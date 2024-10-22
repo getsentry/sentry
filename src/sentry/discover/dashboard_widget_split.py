@@ -128,7 +128,6 @@ def _get_and_save_split_decision_for_dashboard_widget(
             equations=equations,
             limit=1,
             config=QueryBuilderConfig(
-                auto_fields=True,
                 auto_aggregations=True,
                 equation_config={
                     "auto_add": True,
@@ -145,7 +144,6 @@ def _get_and_save_split_decision_for_dashboard_widget(
             equations=equations,
             limit=1,
             config=QueryBuilderConfig(
-                auto_fields=True,
                 auto_aggregations=True,
                 equation_config={
                     "auto_add": True,
