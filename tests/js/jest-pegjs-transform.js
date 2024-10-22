@@ -1,7 +1,7 @@
 /* eslint-env node */
 
 const crypto = require('node:crypto');
-const peg = require('pegjs');
+const peggy = require('peggy');
 
 function getCacheKey(fileData, _filePath, config, _options) {
   return crypto
@@ -13,7 +13,7 @@ function getCacheKey(fileData, _filePath, config, _options) {
 
 function process(sourceText) {
   return {
-    code: `module.exports = ${peg.generate(sourceText, {output: 'source'})}`,
+    code: `module.exports = ${peggy.generate(sourceText, {output: 'source'})}`,
   };
 }
 

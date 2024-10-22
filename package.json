@@ -80,7 +80,6 @@
     "@types/lodash": "^4.14.182",
     "@types/mini-css-extract-plugin": "^2.5.1",
     "@types/papaparse": "^5.3.5",
-    "@types/pegjs": "^0.10.3",
     "@types/prismjs": "^1.26.0",
     "@types/react": "18.2.55",
     "@types/react-date-range": "^1.4.4",
@@ -139,8 +138,7 @@
     "mockdate": "3.0.5",
     "moment-timezone": "0.5.44",
     "papaparse": "^5.3.2",
-    "pegjs": "^0.10.0",
-    "pegjs-loader": "^0.5.8",
+    "peggy": "^4.1.1",
     "platformicons": "^7.0.1",
     "po-catalog-loader": "2.1.0",
     "prettier": "3.3.2",
@@ -265,7 +263,9 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": ["current node"]
+    "test": [
+      "current node"
+    ]
   },
   "volta": {
     "extends": ".volta.json"
