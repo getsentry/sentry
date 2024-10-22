@@ -47,7 +47,7 @@ function Tooltip({
   const {container} = useContext(TooltipContext);
   const theme = useTheme();
   const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps, reset} =
-    useHoverOverlay('tooltip', hoverOverlayProps);
+    useHoverOverlay(hoverOverlayProps);
 
   // Reset the visibility when the tooltip becomes disabled
   useEffect(() => {

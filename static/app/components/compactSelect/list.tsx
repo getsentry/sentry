@@ -3,6 +3,7 @@ import {
   Fragment,
   useCallback,
   useContext,
+  useId,
   useLayoutEffect,
   useMemo,
 } from 'react';
@@ -13,7 +14,6 @@ import type {ListProps} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 
 import {defined} from 'sentry/utils';
-import domId from 'sentry/utils/domId';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from './control';
@@ -337,7 +337,7 @@ function List<Value extends SelectKey>({
     ]
   );
 
-  const listId = useMemo(() => domId('select-list-'), []);
+  const listId = useId();
 
   const sections = useMemo(
     () =>
