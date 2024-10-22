@@ -224,12 +224,7 @@ class PostUpdateLogGroupAttributesChangedTest(TestCase):
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"
         ) as _log_group_attributes_changed:
-            with override_options(
-                {
-                    "groups.enable-post-update-signal": True,
-                    "issues.group_attributes.send_kafka": True,
-                }
-            ):
+            with override_options({"groups.enable-post-update-signal": True}):
                 Group.objects.filter(id__in=[g.id for g in groups]).update(**update_fields)
             _log_group_attributes_changed.assert_called_with(
                 Operation.UPDATED, "group", expected_str

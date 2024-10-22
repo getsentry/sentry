@@ -53,15 +53,15 @@ def delete_group_list(
     # delete the "smaller" groups first
     group_list.sort(key=lambda g: (g.times_seen, g.id))
     group_ids = []
-    non_error_group_found = False
+    error_group_found = False
     for g in group_list:
         group_ids.append(g.id)
-        if not non_error_group_found and g.issue_category != GroupCategory.ERROR:
-            non_error_group_found = True
+        if g.issue_category == GroupCategory.ERROR:
+            error_group_found = True
 
     countdown = 3600
     # With ClickHouse light deletes we want to get rid of the long delay
-    if issue_platform_deletion_allowed and non_error_group_found:
+    if issue_platform_deletion_allowed and not error_group_found:
         countdown = 0
 
     Group.objects.filter(id__in=group_ids).exclude(

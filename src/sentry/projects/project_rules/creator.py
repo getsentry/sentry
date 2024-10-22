@@ -1,37 +1,40 @@
-from django.db import router
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any
+
+from django.db import router, transaction
 from rest_framework.request import Request
 
-from sentry.mediators.mediator import Mediator
-from sentry.mediators.param import Param
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.types.actor import Actor
 
 
-class Creator(Mediator):
-    name = Param(str)
-    environment = Param(int, required=False)
-    owner = Param(Actor, required=False)
-    project = Param(Project)
-    action_match = Param(str)
-    filter_match = Param(str, required=False)
-    actions = Param(list)
-    conditions = Param(list)
-    frequency = Param(int)
-    request = Param(Request, required=False)
-    using = router.db_for_write(Project)
+@dataclass
+class ProjectRuleCreator:
+    name: str
+    project: Project
+    action_match: str
+    actions: Sequence[dict[str, Any]]
+    conditions: Sequence[dict[str, Any]]
+    frequency: int
+    environment: int | None = None
+    owner: Actor | None = None
+    filter_match: str | None = None
+    request: Request | None = None
 
-    def call(self):
-        self.rule = self._create_rule()
-        return self.rule
+    def run(self) -> Rule:
+        with transaction.atomic(router.db_for_write(Rule)):
+            self.rule = self._create_rule()
+            return self.rule
 
-    def _create_rule(self):
+    def _create_rule(self) -> Rule:
         kwargs = self._get_kwargs()
         rule = Rule.objects.create(**kwargs)
 
         return rule
 
-    def _get_kwargs(self):
+    def _get_kwargs(self) -> dict[str, Any]:
         data = {
             "filter_match": self.filter_match,
             "action_match": self.action_match,

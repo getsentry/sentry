@@ -189,6 +189,7 @@ export default function StreamlinedGroupHeader({
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: inherit;
+  align-items: baseline;
 `;
 
 const HeadingGrid = styled('div')`

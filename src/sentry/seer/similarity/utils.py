@@ -116,18 +116,19 @@ def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
 
 def get_stacktrace_string(data: dict[str, Any]) -> str:
     """Format a stacktrace string from the grouping information."""
-    if not (
-        get_path(data, "app", "hash") and get_path(data, "app", "component", "values")
-    ) and not (
-        get_path(data, "system", "hash") and get_path(data, "system", "component", "values")
-    ):
+    app_hash = get_path(data, "app", "hash")
+    app_component = get_path(data, "app", "component", "values")
+    system_hash = get_path(data, "system", "hash")
+    system_component = get_path(data, "system", "component", "values")
+
+    if not (app_hash or system_hash):
         return ""
 
     # Get the data used for grouping
-    if get_path(data, "app", "hash"):
-        exceptions = data["app"]["component"]["values"]
+    if app_hash:
+        exceptions = app_component
     else:
-        exceptions = data["system"]["component"]["values"]
+        exceptions = system_component
 
     # Handle chained exceptions
     if exceptions and exceptions[0].get("id") == "chained-exception":
@@ -137,15 +138,68 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     html_frame_count = 0  # for a temporary metric
     stacktrace_str = ""
     found_non_snipped_context_line = False
-    result_parts = []
 
     metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
+
+    def _process_frames(frames: list[dict[str, Any]]) -> list[str]:
+        nonlocal frame_count
+        nonlocal html_frame_count
+        nonlocal found_non_snipped_context_line
+        frame_strings = []
+
+        contributing_frames = [
+            frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
+        ]
+        contributing_frames = _discard_excess_frames(
+            contributing_frames, MAX_FRAME_COUNT, frame_count
+        )
+        frame_count += len(contributing_frames)
+
+        for frame in contributing_frames:
+            frame_dict = {"filename": "", "function": "", "context-line": ""}
+            for frame_values in frame.get("values", []):
+                if frame_values.get("id") in frame_dict:
+                    frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)
+
+            if not _is_snipped_context_line(frame_dict["context-line"]):
+                found_non_snipped_context_line = True
+
+            # Not an exhaustive list of tests we could run to detect HTML, but this is only
+            # meant to be a temporary, quick-and-dirty metric
+            # TODO: Don't let this, and the metric below, hang around forever. It's only to
+            # help us get a sense of whether it's worthwhile trying to more accurately
+            # detect, and then exclude, frames containing HTML
+            if frame_dict["filename"].endswith("html") or "<html>" in frame_dict["context-line"]:
+                html_frame_count += 1
+
+            # We want to skip frames with base64 encoded filenames since they can be large
+            # and not contain any usable information
+            base64_encoded = False
+            for base64_prefix in BASE64_ENCODED_PREFIXES:
+                if frame_dict["filename"].startswith(base64_prefix):
+                    metrics.incr(
+                        "seer.grouping.base64_encoded_filename",
+                        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                    )
+                    base64_encoded = True
+                    break
+            if base64_encoded:
+                continue
+
+            frame_strings.append(
+                f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+            )
+
+        return frame_strings
+
+    result_parts = []
 
     # Reverse the list of exceptions in order to prioritize the outermost/most recent ones in cases
     # where there are chained exceptions and we end up truncating
     # Limit the number of chained exceptions
     for exception in reversed(exceptions[-MAX_EXCEPTION_COUNT:]):
-        if exception.get("id") not in ["exception", "threads"] or not exception.get("contributes"):
+        exception_type = exception.get("id")
+        if not exception.get("contributes") or exception_type not in ["exception", "threads"]:
             continue
 
         # For each exception, extract its type, value, and up to limit number of stacktrace frames
@@ -156,53 +210,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             elif exception_value.get("id") == "value":
                 exc_value = _get_value_if_exists(exception_value)
             elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
-                contributing_frames = [
-                    frame
-                    for frame in exception_value["values"]
-                    if frame.get("id") == "frame" and frame.get("contributes")
-                ]
-                contributing_frames = _discard_excess_frames(
-                    contributing_frames, MAX_FRAME_COUNT, frame_count
-                )
-                frame_count += len(contributing_frames)
-
-                for frame in contributing_frames:
-                    frame_dict = {"filename": "", "function": "", "context-line": ""}
-                    for frame_values in frame.get("values", []):
-                        if frame_values.get("id") in frame_dict:
-                            frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)
-
-                    if not _is_snipped_context_line(frame_dict["context-line"]):
-                        found_non_snipped_context_line = True
-
-                    # Not an exhaustive list of tests we could run to detect HTML, but this is only
-                    # meant to be a temporary, quick-and-dirty metric
-                    # TODO: Don't let this, and the metric below, hang around forever. It's only to
-                    # help us get a sense of whether it's worthwhile trying to more accurately
-                    # detect, and then exclude, frames containing HTML
-                    if (
-                        frame_dict["filename"].endswith("html")
-                        or "<html>" in frame_dict["context-line"]
-                    ):
-                        html_frame_count += 1
-
-                    # We want to skip frames with base64 encoded filenames since they can be large
-                    # and not contain any usable information
-                    base64_encoded = False
-                    for base64_prefix in BASE64_ENCODED_PREFIXES:
-                        if frame_dict["filename"].startswith(base64_prefix):
-                            metrics.incr(
-                                "seer.grouping.base64_encoded_filename",
-                                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                            )
-                            base64_encoded = True
-                            break
-                    if base64_encoded:
-                        continue
-
-                    frame_strings.append(
-                        f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
-                    )
+                frame_strings = _process_frames(exception_value["values"])
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
