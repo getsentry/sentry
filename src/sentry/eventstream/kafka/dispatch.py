@@ -90,7 +90,7 @@ def _get_task_kwargs_and_dispatch(eventstream_type: str, message: Message[KafkaP
     if not task_kwargs:
         return None
 
-    dispatch_post_process_group_task(eventstream_type, **task_kwargs)
+    dispatch_post_process_group_task(eventstream_type=eventstream_type, **task_kwargs)
 
 
 class EventPostProcessForwarderStrategyFactory(PostProcessForwarderStrategyFactory):
