@@ -32,7 +32,7 @@ type FlagSeriesDatapoint = {
 };
 
 interface FlagSeriesProps {
-  event: Event;
+  event: Event | undefined;
   query: Record<string, any>;
 }
 
@@ -117,7 +117,7 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
           '</div>',
           '<div class="tooltip-footer">',
           time,
-          event.dateCreated &&
+          event?.dateCreated &&
             ` (${moment(time).from(event.dateCreated, true)} ${t('before this event')})`,
           '</div>',
           '<div class="tooltip-arrow"></div>',

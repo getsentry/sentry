@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {getInterval} from 'sentry/components/charts/utils';
 import type {Group} from 'sentry/types/group';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
