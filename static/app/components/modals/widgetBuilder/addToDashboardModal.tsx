@@ -22,6 +22,7 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -286,7 +287,6 @@ function AddToDashboardModal({
                     getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
                   }
                   widget={widget}
-                  showStoredAlert
                   shouldResize={false}
                   widgetLegendState={
                     new WidgetLegendSelectionState({
@@ -297,6 +297,7 @@ function AddToDashboardModal({
                     })
                   }
                 />
+                <IndexedEventsSelectionAlert widget={widget} />
               </MEPSettingProvider>
             )}
           </MetricsDataSwitcher>
