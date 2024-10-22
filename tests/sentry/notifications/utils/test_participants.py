@@ -707,17 +707,6 @@ class GetOwnersCase(_ParticipantsTest):
         self.assert_recipients(expected=[], received=recipients)
         assert outcome == "empty"
 
-    # If matched, and all-recipients flag
-    def test_get_owners_match(self):
-        with self.feature("organizations:notification-all-recipients"):
-            self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3])
-            event = self.create_event(self.project)
-            recipients, outcome = get_owners(project=self.project, event=event)
-            self.assert_recipients(
-                expected=[self.team_1, self.team_2, self.user_1], received=recipients
-            )
-            assert outcome == "match"
-
     # If matched, and no all-recipients flag
     def test_get_owners_single_participant(self):
         self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3])

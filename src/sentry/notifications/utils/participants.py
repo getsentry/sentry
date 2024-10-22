@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from django.db.models import Q
 
-from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_enum_from_string
@@ -207,7 +206,7 @@ def get_owners(
     Given a project and an event, decide which users and teams are the owners.
 
     If when checking owners, there is a rule match we only notify the last owner
-    (would-be auto-assignee) unless the organization passes the feature-flag
+    (would-be auto-assignee)
     """
 
     if event:
@@ -228,11 +227,7 @@ def get_owners(
 
     else:
         outcome = "match"
-        recipients = owners
-        # Used to suppress extra notifications to all matched owners, only notify the would-be auto-assignee
-        if not features.has("organizations:notification-all-recipients", project.organization):
-            recipients = recipients[-1:]
-
+        recipients = owners[-1:]
     return (recipients, outcome)
 
 
