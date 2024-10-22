@@ -85,7 +85,7 @@ parsimonious==0.10.0
 petname==2.6
 phabricator==0.7.0
 phonenumberslite==8.12.55
-pillow==10.2.0
+pillow==10.4.0
 progressbar2==3.41.0
 prompt-toolkit==3.0.41
 proto-plus==1.24.0
