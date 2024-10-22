@@ -35,7 +35,7 @@ class Refresher:
                 self._validate()
                 self.token.delete()
 
-                self.record_analytics()
+                self._record_analytics()
                 return self._create_new_token()
             except APIUnauthorized:
                 logger.info(
@@ -47,7 +47,7 @@ class Refresher:
                 )
                 raise
 
-    def record_analytics(self) -> None:
+    def _record_analytics(self) -> None:
         analytics.record(
             "sentry_app.token_exchanged",
             sentry_app_installation_id=self.install.id,
