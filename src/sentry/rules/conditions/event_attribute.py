@@ -15,7 +15,7 @@ from sentry.rules.history.preview_strategy import DATASET_TO_COLUMN_NAME, get_da
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.types.condition_activity import ConditionActivity
-from sentry.utils.registry import Registry
+from sentry.utils.registry import NoRegistrationExistsError, Registry
 
 
 @dataclass(frozen=True)
@@ -141,7 +141,11 @@ class EventAttributeCondition(EventCondition):
         path = attr.split(".")
 
         first_attr = path[0]
-        attr_handler = attribute_registry.get(first_attr)
+        try:
+            attr_handler = attribute_registry.get(first_attr)
+        except NoRegistrationExistsError:
+            attr_handler = None
+
         if not attr_handler:
             attribute_values = []
         else:
