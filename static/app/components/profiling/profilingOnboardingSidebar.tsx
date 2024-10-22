@@ -340,6 +340,9 @@ const Introduction = styled('div')`
 
 const Content = styled('div')`
   padding: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const Heading = styled('div')`
