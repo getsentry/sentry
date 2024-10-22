@@ -124,6 +124,8 @@ class TagValueSerializerResponse(TypedDict):
     value: str
     count: int
     lastSeen: str
+    firstSeen: str
+    query: str | None
 
 
 @register(GroupTagValue)
