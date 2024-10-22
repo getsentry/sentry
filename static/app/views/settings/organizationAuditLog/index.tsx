@@ -86,7 +86,9 @@ function OrganizationAuditLog({location}: Props) {
         ...prevState,
         isLoading: false,
       }));
-      addErrorMessage('Unable to load audit logs.');
+      if (err.status !== 403) {
+        addErrorMessage('Unable to load audit logs.');
+      }
     }
   }, [api, organization.slug, state.currentCursor, state.eventType]);
 
