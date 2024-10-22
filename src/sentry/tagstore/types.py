@@ -102,7 +102,7 @@ class TagKeySerializerResponse(TypedDict):
 @register(GroupTagKey)
 @register(TagKey)
 class TagKeySerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> TagKeySerializerResponse:
         from sentry import tagstore
 
         output = {
