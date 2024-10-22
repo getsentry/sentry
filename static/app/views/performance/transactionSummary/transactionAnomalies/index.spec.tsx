@@ -11,9 +11,6 @@ import TransactionAnomalies from 'sentry/views/performance/transactionSummary/tr
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
-mockUseLocation.mockReturnValue(
-  LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
-);
 
 const initializeData = (settings: InitializeDataSettings) => {
   const data = _initializeData(settings);
@@ -26,6 +23,9 @@ describe('AnomaliesTab', function () {
   let anomaliesMock: any;
 
   beforeEach(function () {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],

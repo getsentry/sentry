@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
@@ -8,10 +9,15 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import Table from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
+
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 const initializeData = (settings = {}, features: string[] = []) => {
   const projects = [
@@ -104,6 +110,9 @@ describe('Performance > Table', function () {
   let eventsMock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],

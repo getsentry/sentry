@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -6,9 +7,14 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {useLocation} from 'sentry/utils/useLocation';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
 
 const TEST_RELEASE_NAME = 'test-project@1.0.0';
+
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 function initializeData({query} = {query: {}}) {
   const features = ['discover-basic', 'performance-view'];
@@ -39,6 +45,9 @@ describe('Performance > Transaction Tags', function () {
   let histogramMock: Record<string, any>;
 
   beforeEach(function () {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    );
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

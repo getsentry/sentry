@@ -17,9 +17,6 @@ import {
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
-mockUseLocation.mockReturnValue(
-  LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
-);
 
 function WrappedComponent({data}) {
   return (
@@ -135,6 +132,12 @@ const setupMockApiResponeses = () => {
   });
 };
 
+const setupMocks = () => {
+  mockUseLocation.mockReturnValue(
+    LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+  );
+};
+
 const initializeData = (settings?: InitializeDataSettings) => {
   settings = {
     features: ['performance-view'],
@@ -147,7 +150,10 @@ const initializeData = (settings?: InitializeDataSettings) => {
 };
 
 describe('Performance > Transaction Summary > Transaction Events > Index', () => {
-  beforeEach(setupMockApiResponeses);
+  beforeEach(() => {
+    setupMockApiResponeses();
+    setupMocks();
+  });
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
