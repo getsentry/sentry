@@ -487,6 +487,42 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
         if not self.dry_run:
             assert error_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
 
+    def test_dashboard_split_equation_without_aggregates(self):
+        transaction_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        transaction_widget_query = DashboardWidgetQuery.objects.create(
+            widget=transaction_widget,
+            fields=[
+                "equation|count_if(blah-key-set,equals,True) / count()",
+            ],
+            columns=[],
+            aggregates=[
+                "equation|count_if(blah-key-set,equals,True) / count()",
+            ],
+            conditions="event.type:transaction transaction:foo",
+            order=0,
+        )
+
+        _get_and_save_split_decision_for_dashboard_widget(transaction_widget_query, self.dry_run)
+        transaction_widget.refresh_from_db()
+        assert (
+            transaction_widget.discover_widget_split is None
+            if self.dry_run
+            else transaction_widget.discover_widget_split == 101
+        )
+        if not self.dry_run:
+            assert (
+                transaction_widget.dataset_source
+                == DashboardDatasetSourcesTypes.SPLIT_VERSION_2.value
+            )
+
 
 class DashboardWidgetDatasetSplitDryRunTestCase(DashboardWidgetDatasetSplitTestCase):
     def setUp(self):
