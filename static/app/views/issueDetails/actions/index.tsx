@@ -442,12 +442,14 @@ export function Actions(props: Props) {
           size: hasStreamlinedUI ? 'xs' : 'sm',
         }}
         items={[
-          ...(isIgnored || hasStreamlinedUI
+          ...(isIgnored
             ? []
             : [
                 {
                   key: 'Archive',
-                  className: 'hidden-sm hidden-md hidden-lg',
+                  className: hasStreamlinedUI
+                    ? undefined
+                    : 'hidden-sm hidden-md hidden-lg',
                   label: t('Archive'),
                   isSubmenu: true,
                   disabled,
@@ -456,18 +458,24 @@ export function Actions(props: Props) {
               ]),
           {
             key: 'open-in-discover',
+            // XXX: Always show for streamlined UI
             className: hasStreamlinedUI ? undefined : 'hidden-sm hidden-md hidden-lg',
             label: t('Open in Discover'),
             to: disabled ? '' : getDiscoverUrl(),
             onAction: () => trackIssueAction('open_in_discover'),
           },
-          {
-            key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
-            className: 'hidden-sm hidden-md hidden-lg',
-            label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
-            disabled: disabled || group.subscriptionDetails?.disabled,
-            onAction: onToggleSubscribe,
-          },
+          // We don't hide the subscribe button for streamlined UI
+          ...(hasStreamlinedUI
+            ? []
+            : [
+                {
+                  key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
+                  className: 'hidden-sm hidden-md hidden-lg',
+                  label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
+                  disabled: disabled || group.subscriptionDetails?.disabled,
+                  onAction: onToggleSubscribe,
+                },
+              ]),
           {
             key: 'mark-review',
             label: t('Mark reviewed'),
