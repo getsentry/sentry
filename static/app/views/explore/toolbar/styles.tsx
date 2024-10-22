@@ -47,7 +47,10 @@ export const ToolbarRow = styled('div')`
   label,
   span {
     flex-grow: 1;
-    min-width: 0;
+
+    &:first-child {
+      min-width: 0;
+    }
 
     > button {
       width: 100%;
