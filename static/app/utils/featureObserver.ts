@@ -40,7 +40,7 @@ export default class FeatureObserver {
     bufferSize: number;
     flagBuffer: Flags;
     flagName: string;
-    flagResult: any;
+    flagResult: boolean;
   }) {
     // Check if the flag is already in the buffer
     const index = flagBuffer.values.findIndex(f => f.flag === flagName);
@@ -69,7 +69,7 @@ export default class FeatureObserver {
     const updateFlagBuffer = this.updateFlagBuffer;
     // Track names of features that are passed into the .includes() function.
     const handler = {
-      apply: (target, orgFeatures, flagName) => {
+      apply: (target: any, orgFeatures: string[], flagName: string[]) => {
         // Evaluate the result of .includes()
         const flagResult = target.apply(orgFeatures, flagName);
 
@@ -91,7 +91,7 @@ export default class FeatureObserver {
     const updateFlagBuffer = this.updateFlagBuffer;
     // Track names of features that are passed into the .includes() function.
     const handler = {
-      apply: function (target, projFeatures, flagName) {
+      apply: function (target: any, projFeatures: string[], flagName: string[]) {
         // Evaluate the result of .includes()
         const flagResult = target.apply(projFeatures, flagName);
 
