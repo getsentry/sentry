@@ -38,6 +38,10 @@ function OrganizationAuditLog({location}: Props) {
   const organization = useOrganization();
   const api = useApi();
 
+  const hasPermission = !(
+    organization.access.includes('org:write') || isActiveSuperuser()
+  );
+
   const handleCursor: CursorHandler = resultsCursor => {
     setState(prevState => ({
       ...prevState,
@@ -52,6 +56,10 @@ function OrganizationAuditLog({location}: Props) {
   }, [location.query]);
 
   const fetchAuditLogData = useCallback(async () => {
+    if (!hasPermission) {
+      return;
+    }
+
     setState(prevState => ({...prevState, isLoading: true}));
 
     try {
@@ -90,7 +98,7 @@ function OrganizationAuditLog({location}: Props) {
         addErrorMessage('Unable to load audit logs.');
       }
     }
-  }, [api, organization.slug, state.currentCursor, state.eventType]);
+  }, [api, organization.slug, state.currentCursor, state.eventType, hasPermission]);
 
   useEffect(() => {
     fetchAuditLogData();
@@ -109,7 +117,7 @@ function OrganizationAuditLog({location}: Props) {
 
   return (
     <Fragment>
-      {organization.access.includes('org:write') || isActiveSuperuser() ? (
+      {hasPermission ? (
         <AuditLogList
           entries={state.entryList}
           pageLinks={state.entryListPageLinks}
