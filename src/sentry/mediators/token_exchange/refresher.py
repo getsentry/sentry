@@ -53,7 +53,7 @@ class Refresher(Mediator):
         )
 
     def _validate(self):
-        Validator.run(install=self.install, client_id=self.client_id, user=self.user)
+        Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         self._validate_token_belongs_to_app()
 
