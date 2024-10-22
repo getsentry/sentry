@@ -23,18 +23,25 @@ function initializeData({query} = {query: {}}) {
     features,
   });
 
+  const newQuery = {
+    transaction: 'Test Transaction',
+    project: '1',
+    ...query,
+  };
+
   const initialData = initializeOrg({
     organization,
     router: {
       location: {
-        query: {
-          transaction: 'Test Transaction',
-          project: '1',
-          ...query,
-        },
+        query: newQuery,
       },
     },
   });
+
+  mockUseLocation.mockReturnValue({
+    pathname: '/organizations/org-slug/performance/summary/tags/',
+    query: newQuery,
+  } as any); // TODO - type this correctly
 
   act(() => ProjectsStore.loadInitialData(initialData.projects));
 
@@ -46,7 +53,7 @@ describe('Performance > Transaction Tags', function () {
 
   beforeEach(function () {
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary/tags/'})
     );
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
@@ -323,6 +330,7 @@ describe('Performance > Transaction Tags', function () {
 
     await waitFor(() =>
       expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/performance/summary/tags/',
         query: {
           project: '1',
           statsPeriod: '14d',
