@@ -68,7 +68,6 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         return Response(status=204)
 
     def get(self, request: Request, organization) -> Response:
-
         tasks_to_serialize = list(
             onboarding_tasks.fetch_onboarding_tasks(organization, request.user)
         )
