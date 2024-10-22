@@ -316,7 +316,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return search.formatString();
   }, [rawQuery, transaction]);
 
-  const {data, isPending, isError} = useAggregateFlamegraphQuery({
+  const {data, status} = useAggregateFlamegraphQuery({
     query,
   });
 
@@ -355,6 +355,10 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     }
     return frame => !frame.is_application;
   }, [frameFilter]);
+
+  const onResetFrameFilter = useCallback(() => {
+    setFrameFilter('all');
+  }, [setFrameFilter]);
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
@@ -449,19 +453,22 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                             setHideSystemFrames={noop}
                             onHideRegressionsClick={onHideRegressionsClick}
                           />
-                          {isPending ? (
+                          {status === 'pending' ? (
                             <RequestStateMessageContainer>
                               <LoadingIndicator />
                             </RequestStateMessageContainer>
-                          ) : isError ? (
+                          ) : status === 'error' ? (
                             <RequestStateMessageContainer>
                               {t('There was an error loading the flamegraph.')}
                             </RequestStateMessageContainer>
                           ) : null}
                           {visualization === 'flamegraph' ? (
                             <AggregateFlamegraph
+                              filter={frameFilter}
                               canvasPoolManager={canvasPoolManager}
                               scheduler={scheduler}
+                              status={status}
+                              onResetFilter={onResetFrameFilter}
                             />
                           ) : (
                             <AggregateFlamegraphTreeTable

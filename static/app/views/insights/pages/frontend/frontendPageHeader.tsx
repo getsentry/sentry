@@ -12,9 +12,9 @@ import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
+  headerTitle: HeaderProps['headerTitle'];
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
-  headerTitle?: HeaderProps['headerTitle'];
   hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
   module?: HeaderProps['selectedModule'];
   tabs?: HeaderProps['tabs'];
@@ -24,10 +24,10 @@ type Props = {
 export function FrontendHeader({
   module,
   headerActions,
-  breadcrumbs,
   headerTitle,
-  hideDefaultTabs,
+  breadcrumbs,
   tabs,
+  hideDefaultTabs,
 }: Props) {
   const {slug} = useOrganization();
 
@@ -42,12 +42,12 @@ export function FrontendHeader({
       domainBaseUrl={frontendBaseUrl}
       domainTitle={FRONTEND_LANDING_TITLE}
       modules={modules}
-      tabs={tabs}
       selectedModule={module}
-      additonalHeaderActions={headerActions}
-      hideDefaultTabs={hideDefaultTabs}
       additionalBreadCrumbs={breadcrumbs}
-      headerTitle={headerTitle || FRONTEND_LANDING_TITLE}
+      additonalHeaderActions={headerActions}
+      headerTitle={headerTitle}
+      tabs={tabs}
+      hideDefaultTabs={hideDefaultTabs}
     />
   );
 }

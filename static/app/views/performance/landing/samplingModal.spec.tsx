@@ -17,9 +17,9 @@ const initializeData = () => {
   return data;
 };
 
-const stubEl: any = props => <div>{props.children}</div>;
+const stubEl: any = (props: any) => <div>{props.children}</div>;
 
-function WrappedComponent({data}) {
+function WrappedComponent({data}: any) {
   const eventView = EventView.fromLocation(data.router.location);
 
   return (

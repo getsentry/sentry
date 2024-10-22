@@ -39,8 +39,11 @@ export default class FeatureObserver {
         // Evaluate the result of .includes()
         const flagResult = target.apply(orgFeatures, flagName);
 
+        // Append `feature.organizations:` in front to match the Sentry options automator format
+        const name = 'feature.organizations:' + flagName[0];
+
         // Check if the flag is already in the buffer
-        const index = FLAGS.values.findIndex(f => f.flag === flagName[0]);
+        const index = FLAGS.values.findIndex(f => f.flag === name);
 
         // The flag is already in the buffer
         if (index !== -1) {
@@ -55,7 +58,7 @@ export default class FeatureObserver {
 
         // Store the flag and its result in the buffer
         FLAGS.values.push({
-          flag: flagName[0],
+          flag: name,
           result: flagResult,
         });
 
