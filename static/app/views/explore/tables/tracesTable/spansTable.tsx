@@ -12,19 +12,18 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import type {TraceResult} from '../../hooks/useTraces';
-import {type SpanResult, useTraceSpans} from '../../hooks/useTraceSpans';
-import {useUserQuery} from '../../hooks/useUserQuery';
-
-import {type Field, FIELDS, SORTS} from './data';
+import {useDataset} from 'sentry/views/explore/hooks/useDataset';
+import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
+import {type SpanResult, useTraceSpans} from 'sentry/views/explore/hooks/useTraceSpans';
+import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
+import {type Field, FIELDS, SORTS} from 'sentry/views/explore/tables/tracesTable/data';
 import {
   SpanBreakdownSliceRenderer,
   SpanDescriptionRenderer,
   SpanIdRenderer,
   SpanTimeRenderer,
   TraceBreakdownContainer,
-} from './fieldRenderers';
+} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
 import {
   MoreMatchingSpans,
   SpanPanelContent,
@@ -33,8 +32,11 @@ import {
   StyledPanelHeader,
   StyledPanelItem,
   StyledSpanPanelItem,
-} from './styles';
-import {getSecondaryNameFromSpan, getStylingSliceName} from './utils';
+} from 'sentry/views/explore/tables/tracesTable/styles';
+import {
+  getSecondaryNameFromSpan,
+  getStylingSliceName,
+} from 'sentry/views/explore/tables/tracesTable/utils';
 
 const ONE_MINUTE = 60 * 1000; // in milliseconds
 
@@ -47,9 +49,11 @@ export function SpanTable({
 }) {
   const organization = useOrganization();
 
+  const [dataset] = useDataset();
   const [query] = useUserQuery();
 
   const {data, isPending, isError} = useTraceSpans({
+    dataset,
     trace,
     fields: [
       ...FIELDS,
