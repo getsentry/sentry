@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import Any
 
 from django import forms
@@ -14,27 +12,6 @@ from sentry.rules.history.preview_strategy import DATASET_TO_COLUMN_NAME, get_da
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.types.condition_activity import ConditionActivity
-from sentry.utils.registry import Registry
-
-
-@dataclass(frozen=True)
-class AttributeHandler(ABC):
-    minimum_path_length: int
-
-    @classmethod
-    def handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        if len(path) < cls.minimum_path_length:
-            return []
-        return cls._handle(path, event)
-
-    @classmethod
-    @abstractmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        raise NotImplementedError
-
-
-attribute_registry = Registry[AttributeHandler]()
-
 
 # Maps attributes to snuba columns
 ATTR_CHOICES = {
@@ -102,6 +79,161 @@ class EventAttributeCondition(EventCondition):
         "value": {"type": "string", "placeholder": "value"},
     }
 
+    def _get_attribute_values(self, event: GroupEvent, attr: str) -> Sequence[object | None]:
+        # TODO(dcramer): we should validate attributes (when we can) before
+        path = attr.split(".")
+
+        if path[0] == "platform":
+            if len(path) != 1:
+                return []
+            return [event.platform]
+
+        if path[0] == "message":
+            if len(path) != 1:
+                return []
+            return [event.message, event.search_message]
+        elif path[0] == "environment":
+            return [event.get_tag("environment")]
+
+        elif path[0] == "type":
+            return [event.data["type"]]
+
+        elif len(path) == 1:
+            return []
+
+        elif path[0] == "extra":
+            path.pop(0)
+            value = event.data["extra"]
+            while path:
+                bit = path.pop(0)
+                value = value.get(bit)
+                if not value:
+                    return []
+
+            if isinstance(value, (list, tuple)):
+                return value
+            return [value]
+
+        elif len(path) < 2:
+            return []  # all attribute paths below have at least 2 elements
+
+        elif path[0] == "exception":
+            if path[1] not in ("type", "value"):
+                return []
+
+            return [
+                getattr(e, path[1]) for e in event.interfaces["exception"].values if e is not None
+            ]
+
+        elif path[0] == "error":
+            # TODO: add support for error.main_thread
+
+            if path[1] not in ("handled", "unhandled"):
+                return []
+
+            # Flip "handled" to "unhandled"
+            negate = path[1] == "unhandled"
+
+            return [
+                e.mechanism.handled != negate
+                for e in event.interfaces["exception"].values
+                if e.mechanism is not None and getattr(e.mechanism, "handled") is not None
+            ]
+
+        elif path[0] == "user":
+            if path[1] in ("id", "ip_address", "email", "username"):
+                return [getattr(event.interfaces["user"], path[1])]
+            return [getattr(event.interfaces["user"].data, path[1])]
+
+        elif path[0] == "http":
+            if path[1] in ("url", "method"):
+                return [getattr(event.interfaces["request"], path[1])]
+            elif path[1] in ("status_code"):
+                contexts = event.data["contexts"]
+                response = contexts.get("response")
+                if response is None:
+                    response = {}
+                return [response.get(path[1])]
+
+            return []
+
+        elif path[0] == "sdk":
+            if path[1] != "name":
+                return []
+            return [event.data["sdk"].get(path[1])]
+
+        elif path[0] == "stacktrace":
+            stacktrace = event.interfaces.get("stacktrace")
+            if stacktrace:
+                stacks = [stacktrace]
+            else:
+                stacks = [
+                    e.stacktrace for e in event.interfaces["exception"].values if e.stacktrace
+                ]
+            result = []
+            for st in stacks:
+                for frame in st.frames:
+                    if path[1] in ("filename", "module", "abs_path", "package"):
+                        result.append(getattr(frame, path[1]))
+                    elif path[1] == "code":
+                        if frame.pre_context:
+                            result.extend(frame.pre_context)
+                        if frame.context_line:
+                            result.append(frame.context_line)
+                        if frame.post_context:
+                            result.extend(frame.post_context)
+            return result
+
+        elif path[0] == "device":
+            if path[1] in (
+                "screen_density",
+                "screen_dpi",
+                "screen_height_pixels",
+                "screen_width_pixels",
+            ):
+                contexts = event.data["contexts"]
+                device = contexts.get("device")
+                if device is None:
+                    device = []
+                return [device.get(path[1])]
+
+        elif path[0] == "unreal":
+            if path[1] == "crash_type":
+                contexts = event.data["contexts"]
+                unreal = contexts.get("unreal")
+                if unreal is None:
+                    unreal = {}
+                return [unreal.get(path[1])]
+
+        elif path[0] == "app":
+            if path[1] in ("in_foreground"):
+                contexts = event.data["contexts"]
+                response = contexts.get("app")
+                if response is None:
+                    response = {}
+                return [response.get(path[1])]
+
+        elif len(path) < 3:
+            return []  # all attribute paths below have at least 3 elements
+
+        elif path[0] == "os":
+            if path[1] in ("distribution"):
+                if path[2] in ("name", "version"):
+                    contexts = event.data["contexts"]
+                    os_context = contexts.get("os")
+                    if os_context is None:
+                        os_context = {}
+
+                    distribution = os_context.get(path[1])
+                    if distribution is None:
+                        distribution = {}
+
+                    return [distribution.get(path[2])]
+                return []
+            return []
+
+        return []
+
     def render_label(self) -> str:
         data = {
             "attribute": self.data["attribute"],
@@ -137,14 +269,10 @@ class EventAttributeCondition(EventCondition):
 
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         attr = self.get_option("attribute", "")
-        path = attr.split(".")
-
-        first_attr = path[0]
-        attr_handler = attribute_registry.get(first_attr)
-        if not attr_handler:
+        try:
+            attribute_values = self._get_attribute_values(event, attr.lower())
+        except KeyError:
             attribute_values = []
-        else:
-            attribute_values = attr_handler.handle(path, event)
 
         return self._passes(attribute_values)
 
@@ -179,234 +307,3 @@ class EventAttributeCondition(EventCondition):
             raise NotImplementedError
         columns: dict[Dataset, Sequence[str]] = get_dataset_columns([column])
         return columns
-
-
-# Register attribute handlers
-@attribute_registry.register("platform")
-class PlatformAttributeHandler(AttributeHandler):
-    minimum_path_length = 1
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        return [str(event.platform)]
-
-
-@attribute_registry.register("message")
-class MessageAttributeHandler(AttributeHandler):
-    minimum_path_length = 1
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        return [event.message, event.search_message]
-
-
-@attribute_registry.register("environment")
-class EnvironmentAttributeHandler(AttributeHandler):
-    minimum_path_length = 1
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        return [str(event.get_tag("environment"))]
-
-
-@attribute_registry.register("type")
-class TypeAttributeHandler(AttributeHandler):
-    minimum_path_length = 1
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        return [event.data["type"]]
-
-
-@attribute_registry.register("extra")
-class ExtraAttributeHandler(AttributeHandler):
-    minimum_path_length = 1
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        path.pop(0)
-        value = event.data["extra"]
-        while path:
-            bit = path.pop(0)
-            value = value.get(bit)
-            if not value:
-                return []
-
-        if isinstance(value, (list, tuple)):
-            return list(value)
-        return [value]
-
-
-@attribute_registry.register("exception")
-class ExceptionAttributeHandler(AttributeHandler):
-    minimum_path_length = 2
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        if path[1] not in ("type", "value"):
-            return []
-
-        return [getattr(e, path[1]) for e in event.interfaces["exception"].values if e is not None]
-
-
-@attribute_registry.register("error")
-class ErrorAttributeHandler(AttributeHandler):
-    minimum_path_length = 2
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        # TODO: add support for error.main_thread
-
-        if path[1] not in ("handled", "unhandled"):
-            return []
-
-        # Flip "handled" to "unhandled"
-        negate = path[1] == "unhandled"
-
-        return [
-            e.mechanism.handled != negate
-            for e in event.interfaces["exception"].values
-            if e.mechanism is not None and getattr(e.mechanism, "handled") is not None
-        ]
-
-
-@attribute_registry.register("user")
-class UserAttributeHandler(AttributeHandler):
-    minimum_path_length = 2
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        if path[1] not in ("id", "ip_address", "email", "username"):
-            return []
-
-        return [getattr(event.interfaces["user"], path[1])]
-
-
-@attribute_registry.register("http")
-class HttpAttributeHandler(AttributeHandler):
-    minimum_path_length = 2
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        if path[1] in ("url", "method"):
-            return [getattr(event.interfaces["request"], path[1])]
-        elif path[1] in ("status_code"):
-            contexts = event.data["contexts"]
-            response = contexts.get("response")
-            if response is None:
-                response = {}
-            return [response.get(path[1])]
-
-        return []
-
-
-@attribute_registry.register("sdk")
-class SdkAttributeHandler(AttributeHandler):
-    minimum_path_length = 2
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        if path[1] != "name":
-            return []
-        return [event.data["sdk"].get(path[1])]
-
-
-@attribute_registry.register("stacktrace")
-class StacktraceAttributeHandler(AttributeHandler):
-    minimum_path_length = 2
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        stacktrace = event.interfaces.get("stacktrace")
-        if stacktrace:
-            stacks = [stacktrace]
-        else:
-            stacks = [e.stacktrace for e in event.interfaces["exception"].values if e.stacktrace]
-        result = []
-        for st in stacks:
-            for frame in st.frames:
-                if path[1] in ("filename", "module", "abs_path", "package"):
-                    result.append(getattr(frame, path[1]))
-                elif path[1] == "code":
-                    if frame.pre_context:
-                        result.extend(frame.pre_context)
-                    if frame.context_line:
-                        result.append(frame.context_line)
-                    if frame.post_context:
-                        result.extend(frame.post_context)
-        return result
-
-
-@attribute_registry.register("device")
-class DeviceAttributeHandler(AttributeHandler):
-    minimum_path_length = 2
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        if path[1] in (
-            "screen_density",
-            "screen_dpi",
-            "screen_height_pixels",
-            "screen_width_pixels",
-        ):
-            contexts = event.data["contexts"]
-            device = contexts.get("device")
-            if device is None:
-                device = []
-            return [device.get(path[1])]
-
-        return []
-
-
-@attribute_registry.register("unreal")
-class UnrealAttributeHandler(AttributeHandler):
-    minimum_path_length = 2
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        if path[1] == "crash_type":
-            contexts = event.data["contexts"]
-            unreal = contexts.get("unreal")
-            if unreal is None:
-                unreal = {}
-            return [unreal.get(path[1])]
-
-        return []
-
-
-@attribute_registry.register("app")
-class AppAttributeHandler(AttributeHandler):
-    minimum_path_length = 2
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        if path[1] in ("in_foreground"):
-            contexts = event.data["contexts"]
-            response = contexts.get("app")
-            if response is None:
-                response = {}
-            return [response.get(path[1])]
-
-        return []
-
-
-@attribute_registry.register("os")
-class OsAttributeHandler(AttributeHandler):
-    minimum_path_length = 3
-
-    @classmethod
-    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        if path[1] in ("distribution"):
-            if path[2] in ("name", "version"):
-                contexts = event.data["contexts"]
-                os_context = contexts.get("os")
-                if os_context is None:
-                    os_context = {}
-
-                distribution = os_context.get(path[1])
-                if distribution is None:
-                    distribution = {}
-
-                return [distribution.get(path[2])]
-            return []
-        return []
