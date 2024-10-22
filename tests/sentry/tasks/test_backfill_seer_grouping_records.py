@@ -70,6 +70,26 @@ EXCEPTION = {
 EXCEPTION_STACKTRACE_STRING = (
     'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero'
 )
+ONLY_STACKTRACE = {
+    "stacktrace": {
+        "frames": [
+            {
+                "function": "Cake\\Http\\Server::run",
+                "filename": "/var/www/gib-potato/vendor/cakephp/cakephp/src/Http/Server.php",
+                "abs_path": "/var/www/gib-potato/vendor/cakephp/cakephp/src/Http/Server.php",
+                "lineno": 104,
+                "in_app": False,
+            },
+            {
+                "function": "App\\Middleware\\SentryMiddleware::process",
+                "filename": "/var/www/gib-potato/src/Middleware/SentryMiddleware.php",
+                "abs_path": "/var/www/gib-potato/src/Middleware/SentryMiddleware.php",
+                "lineno": 65,
+                "in_app": False,
+            },
+        ]
+    }
+}
 
 
 @django_db_all
@@ -2309,3 +2329,24 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
 
         assert mock_logger.info.call_args_list == expected_call_args_list
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    def test_backfill_for_project_with_only_stacktrace(self, mock_post_bulk_grouping_records):
+        project = self.create_project(organization=self.organization)
+        data = {
+            "stacktrace": {"frames": [{"function": "foo", "filename": "file.php", "in_app": True}]},
+            "timestamp": before_now(seconds=10).isoformat(),
+        }
+        event = self.store_event(data=data, project_id=project.id)
+        event.group.times_seen = 2
+        event.group.save()
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(project.id, None)
+
+        group = Group.objects.get(id=event.group.id)
+        assert group.data["metadata"].get("seer_similarity") == {
+            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+            "request_hash": ANY,
+        }
