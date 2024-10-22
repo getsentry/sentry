@@ -185,7 +185,7 @@ export function initializeSdk(config: Config) {
 
       // attach feature flags to the event context
       if (event.contexts) {
-        const flags = FeatureObserver.singleton().getFeatureFlags();
+        const flags = FeatureObserver.singleton({}).getFeatureFlags();
         event.contexts.flags = flags;
       }
 
