@@ -2,6 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
+import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
@@ -367,27 +368,23 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     </Fragment>
   );
 
-  // If there is only one thread, we expect the stacktrace to wrap itself in a section
-  return hasMoreThanOneThread && hasStreamlinedUI ? (
-    <InterimSection
-      title={tn('Stack Trace', 'Stack Traces', threads.length)}
-      type={SectionKey.STACKTRACE}
-    >
-      <ThreadTraceWrapper
-        style={{
-          // TODO(issues): Remove on streamline issues ui GA
-          padding:
-            !hasMoreThanOneThread || hasStreamlinedUI
-              ? undefined
-              : `${space(1)} ${space(4)}`,
-        }}
+  if (hasStreamlinedUI) {
+    // If there is only one thread, we expect the stacktrace to wrap itself in a section
+    return hasMoreThanOneThread ? (
+      <InterimSection
+        title={tn('Stack Trace', 'Stack Traces', threads.length)}
+        type={SectionKey.STACKTRACE}
       >
-        {threadComponent}
-      </ThreadTraceWrapper>
-    </InterimSection>
-  ) : (
-    threadComponent
-  );
+        <Flex column gap={space(2)}>
+          {threadComponent}
+        </Flex>
+      </InterimSection>
+    ) : (
+      threadComponent
+    );
+  }
+
+  return <ThreadTraceWrapper>{threadComponent}</ThreadTraceWrapper>;
 }
 
 const Grid = styled('div')`
@@ -424,6 +421,10 @@ const ThreadTraceWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+  padding: ${space(1)} ${space(4)};
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(1)} ${space(2)};
+  }
 `;
 
 const ThreadHeading = styled('h3')`

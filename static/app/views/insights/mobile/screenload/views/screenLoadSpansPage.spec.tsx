@@ -119,7 +119,9 @@ describe('Screen Summary', function () {
         platform: 'react-native',
         hasInsightsScreenLoad: true,
       });
-      organization = OrganizationFixture({features: ['insights-initial-modules']});
+      organization = OrganizationFixture({
+        features: ['insights-initial-modules', 'insights-entry-points'],
+      });
       mockResponses(organization, project);
       localStorage.clear();
       browserHistory.push = jest.fn();
@@ -212,7 +214,9 @@ describe('Screen Summary', function () {
     let organization: Organization;
     beforeEach(function () {
       const project = ProjectFixture({platform: 'android', hasInsightsScreenLoad: true});
-      organization = OrganizationFixture({features: ['insights-initial-modules']});
+      organization = OrganizationFixture({
+        features: ['insights-initial-modules', 'insights-entry-points'],
+      });
       mockResponses(organization, project);
       localStorage.clear();
       browserHistory.push = jest.fn();
