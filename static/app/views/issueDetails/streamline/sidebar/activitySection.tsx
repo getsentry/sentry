@@ -130,11 +130,7 @@ function ActivitySection({group}: {group: Group}) {
   }, [group.activity.length, group.lastSeen, group.project]);
 
   return (
-    <FoldSection
-      sectionKey={SectionKey.SIDEBAR_ACTIVITY}
-      title={t('Activity')}
-      preventCollapse
-    >
+    <FoldSection sectionKey={SectionKey.SIDEBAR_ACTIVITY} title={t('Activity')}>
       <Timeline.Container>
         <NoteInputWithStorage
           key={inputId}
