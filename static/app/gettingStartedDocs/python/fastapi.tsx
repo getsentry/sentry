@@ -115,7 +115,7 @@ async def trigger_error():
         <div>
           <p>
             {tct(
-              'When you open [link:http://localhost:8000/sentry-debug/] with your browser a transaction in the Performance section of Sentry will be created.',
+              'When you open [link:http://localhost:8000/sentry-debug/] with your browser, a transaction in the Performance section of Sentry will be created.',
               {
                 link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
               }
