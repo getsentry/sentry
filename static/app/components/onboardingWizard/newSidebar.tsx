@@ -57,7 +57,6 @@ const orderedBeyondBasicsTasks = [
   OnboardingTaskKey.REAL_TIME_NOTIFICATIONS,
   OnboardingTaskKey.SESSION_REPLAY,
   OnboardingTaskKey.FIRST_TRANSACTION,
-  OnboardingTaskKey.METRIC_ALERT,
   OnboardingTaskKey.SECOND_PLATFORM,
 ];
 

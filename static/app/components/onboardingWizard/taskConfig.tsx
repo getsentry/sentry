@@ -461,7 +461,9 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: getMetricAlertUrl({projects, organization, onboardingContext}),
       // Use `features?.` because getsentry has a different `Organization` type/payload
-      display: organization.features?.includes('incidents'),
+      display:
+        organization.features?.includes('incidents') &&
+        !hasQuickStartUpdatesFeature(organization),
     },
   ];
 }
