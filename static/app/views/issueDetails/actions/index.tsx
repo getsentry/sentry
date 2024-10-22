@@ -415,7 +415,7 @@ export function Actions(props: Props) {
               />
             </GuideAnchor>
             <ArchiveActions
-              className="hidden-xs"
+              className={hasStreamlinedUI ? undefined : 'hidden-xs'}
               size="xs"
               isArchived={isIgnored}
               onUpdate={onUpdate}
@@ -423,7 +423,7 @@ export function Actions(props: Props) {
               disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
             />
             <SubscribeAction
-              className="hidden-xs"
+              className={hasStreamlinedUI ? undefined : 'hidden-xs'}
               disabled={disabled}
               disablePriority
               group={group}
@@ -442,7 +442,7 @@ export function Actions(props: Props) {
           size: hasStreamlinedUI ? 'xs' : 'sm',
         }}
         items={[
-          ...(isIgnored
+          ...(isIgnored || hasStreamlinedUI
             ? []
             : [
                 {
@@ -456,7 +456,7 @@ export function Actions(props: Props) {
               ]),
           {
             key: 'open-in-discover',
-            className: 'hidden-sm hidden-md hidden-lg',
+            className: hasStreamlinedUI ? undefined : 'hidden-sm hidden-md hidden-lg',
             label: t('Open in Discover'),
             to: disabled ? '' : getDiscoverUrl(),
             onAction: () => trackIssueAction('open_in_discover'),

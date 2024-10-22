@@ -141,7 +141,7 @@ export default function StreamlinedGroupHeader({
           event={event}
           query={location.query}
         />
-        <Flex justify="flex-end" gap={space(2)}>
+        <WorkflowActions>
           <Workflow>
             {t('Priority')}
             <GroupPriority group={group} />
@@ -162,8 +162,7 @@ export default function StreamlinedGroupHeader({
               <ParticipantList users={displayUsers} />
             </Workflow>
           )}
-          <Divider />
-          <Button
+          <SidebarButton
             icon={
               sidebarOpen ? (
                 <IconChevron direction="right" color="gray300" />
@@ -177,7 +176,7 @@ export default function StreamlinedGroupHeader({
             borderless
             onClick={() => setSidebarOpen(!sidebarOpen)}
           />
-        </Flex>
+        </WorkflowActions>
       </ActionBar>
     </Fragment>
   );
@@ -237,7 +236,7 @@ const Message = styled(Tooltip)<{hasMessage: boolean}>`
 const ActionBar = styled('div')<{isComplete: boolean}>`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1.5)};
+  gap: ${space(1)};
   flex-wrap: wrap;
   padding: ${space(1)} 24px;
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
@@ -257,9 +256,25 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
   }
 `;
 
+const WorkflowActions = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  column-gap: ${space(2)};
+  flex-wrap: wrap;
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    justify-content: flex-start;
+  }
+`;
+
 const Workflow = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
   align-items: center;
+`;
+
+const SidebarButton = styled(Button)`
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+  }
 `;
