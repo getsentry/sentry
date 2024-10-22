@@ -14,6 +14,7 @@ import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/
 import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
@@ -253,7 +254,14 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
       <TaskGroupHeader role="button" onClick={() => setIsExpanded(!isExpanded)}>
         <InteractionStateLayer />
         <div>
-          <strong>{title}</strong>
+          <TaskGroupTitle>
+            <strong>{title}</strong>
+            {incompletedTasks.length === 0 && (
+              <Tooltip title={t('All tasks completed')} containerDisplayMode="flex">
+                <IconCheckmark color="green300" isCircled />
+              </Tooltip>
+            )}
+          </TaskGroupTitle>
           <p>{description}</p>
         </div>
         <Chevron
@@ -458,6 +466,13 @@ const TaskGroupHeader = styled('div')`
     font-size: ${p => p.theme.fontSizeSmall};
     color: ${p => p.theme.subText};
   }
+`;
+
+const TaskGroupTitle = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const TaskGroupBody = styled('div')`
