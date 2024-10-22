@@ -18,6 +18,7 @@ const mockReplay = ReplayReader.factory({
     },
   }),
   errors: [],
+  fetching: false,
   attachments: [],
 });
 
