@@ -999,7 +999,8 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         )
         self.organization.update_option("sentry:alerts_member_write", False)
         self.login_as(team_admin_user)
-        resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
         assert resp.status_code == 201
 
     def test_member_create(self):
