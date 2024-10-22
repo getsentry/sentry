@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
@@ -306,24 +306,24 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     isSelfHosted,
   };
 
-  const steps = [
-    ...docs.onboarding.install(docParams),
-    ...docs.onboarding.configure(docParams),
-  ];
+  const doc = docs.profilingOnboarding ?? docs.onboarding;
+  const steps = [...doc.install(docParams), ...doc.configure(docParams)];
 
   return (
-    <Fragment>
-      {docs.onboarding.introduction && (
-        <Introduction>{docs.onboarding.introduction(docParams)}</Introduction>
-      )}
+    <Wrapper>
+      {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
       <Steps>
         {steps.map(step => {
           return <Step key={step.title ?? step.type} {...step} />;
         })}
       </Steps>
-    </Fragment>
+    </Wrapper>
   );
 }
+
+const Wrapper = styled('div')`
+  margin-top: ${space(2)};
+`;
 
 const Steps = styled('div')`
   display: flex;
@@ -332,10 +332,9 @@ const Steps = styled('div')`
 `;
 
 const Introduction = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin-top: ${space(2)};
-  margin-bottom: ${space(2)};
+  & > p:not(:last-child) {
+    margin-bottom: ${space(2)};
+  }
 `;
 
 const Content = styled('div')`

@@ -17,11 +17,14 @@ import {t, tct} from 'sentry/locale';
 type Params = DocsParams;
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct(
-      'Symfony is supported via the [code:sentry-symfony] package as a native bundle.',
-      {code: <code />}
-    ),
+  introduction: () => (
+    <p>
+      {tct(
+        'Symfony is supported via the [code:sentry-symfony] package as a native bundle.',
+        {code: <code />}
+      )}
+    </p>
+  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,

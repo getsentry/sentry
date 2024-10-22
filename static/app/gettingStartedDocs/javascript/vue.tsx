@@ -348,6 +348,11 @@ const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
+  ...onboarding,
+  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
@@ -355,6 +360,7 @@ const docs: Docs<PlatformOptions> = {
   replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;
