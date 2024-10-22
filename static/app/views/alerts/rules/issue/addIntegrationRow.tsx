@@ -34,12 +34,6 @@ function AddIntegrationRow({onClick}: Props) {
     });
     onClick();
   };
-  const onSelfHostedClick = () => {
-    trackAnalytics('onboarding.messaging_integration_self_hosted_clicked', {
-      provider_key: provider.key,
-      organization,
-    });
-  };
 
   const buttonProps = {
     size: 'sm',
@@ -60,7 +54,6 @@ function AddIntegrationRow({onClick}: Props) {
               href={`https://develop.sentry.dev/integrations/${provider.slug}`}
               priority="primary"
               external
-              onClick={onSelfHostedClick}
             >
               Add {provider.metadata.noun}
             </LinkButton>
