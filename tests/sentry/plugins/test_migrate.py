@@ -1,10 +1,10 @@
 from sentry.integrations.example import ExampleIntegrationProvider
 from sentry.integrations.services.integration.serial import serialize_integration
-from sentry.mediators.plugins.migrator import Migrator
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
+from sentry.plugins.migrator import Migrator
 from sentry.testutils.cases import TestCase
 
 
@@ -52,18 +52,18 @@ class MigratorTest(TestCase):
         plugin = plugins.get("example")
         plugin.enable(self.project)
 
-        self.migrator.call()
+        self.migrator.run()
         assert plugin not in plugins.for_project(self.project)
 
     def test_does_not_disable_any_plugin(self):
         plugin = plugins.get("webhooks")
         plugin.enable(self.project)
 
-        self.migrator.call()
+        self.migrator.run()
         assert plugin in plugins.for_project(self.project)
 
     def test_logs(self):
-        Migrator.run(
+        Migrator(
             integration=serialize_integration(self.integration),
             organization=serialize_rpc_organization(self.organization),
-        )
+        ).run()
