@@ -50,7 +50,7 @@ type TraceDrawerProps = {
   meta: TraceMetaQueryResults;
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  replayRecord: ReplayRecord | null;
+  replay: ReplayRecord | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   scheduler: TraceScheduler;
   trace: TraceTree;
@@ -443,7 +443,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                   />
                 ) : (
                   <TraceTreeNodeDetails
-                    replayRecord={props.replayRecord}
+                    replay={props.replay}
                     manager={props.manager}
                     organization={organization}
                     onParentClick={onParentClick}

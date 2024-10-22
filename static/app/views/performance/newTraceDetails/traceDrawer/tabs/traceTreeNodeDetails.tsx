@@ -25,7 +25,7 @@ export interface TraceTreeNodeDetailsProps<T> {
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
-  replayRecord: ReplayRecord | null;
+  replay: ReplayRecord | null;
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {

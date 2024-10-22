@@ -91,9 +91,7 @@ import {
   traceNodeAnalyticsName,
 } from './traceTreeAnalytics';
 import TraceTypeWarnings from './traceTypeWarnings';
-import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-import {useTraceScrollToPath} from './useTraceScrollToPath';
 
 function logTraceMetadata(
   tree: TraceTree,
@@ -184,14 +182,15 @@ export function TraceView() {
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
   const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
-  const tree = useTraceTree({traceSlug, trace, meta, replayRecord: null});
+  const tree = useTraceTree({traceSlug, trace, meta, replay: null});
   const rootEvent = useTraceRootEvent(trace.data ?? null);
 
+  const title = useMemo(() => {
+    return `${t('Trace Details')} - ${traceSlug}`;
+  }, [traceSlug]);
+
   return (
-    <SentryDocumentTitle
-      title={`${t('Trace Details')} - ${traceSlug}`}
-      orgSlug={organization.slug}
-    >
+    <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <TraceStateProvider
         initialPreferences={preferences}
         preferencesStorageKey="trace-view-preferences"
@@ -213,7 +212,7 @@ export function TraceView() {
                 rootEvent={rootEvent}
                 traceEventView={traceEventView}
                 meta={meta}
-                replayRecord={null}
+                replay={null}
                 source="performance"
                 isEmbedded={false}
               />
@@ -239,7 +238,7 @@ type TraceViewWaterfallProps = {
   isEmbedded: boolean;
   meta: TraceMetaQueryResults;
   organization: Organization;
-  replayRecord: ReplayRecord | null;
+  replay: ReplayRecord | null;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   source: string;
   trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError>;
@@ -256,13 +255,16 @@ type TraceViewWaterfallProps = {
 
 export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const api = useApi();
+  const filters = usePageFilters();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
+
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
-  const filters = usePageFilters();
+
+  const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
+
   const traceScheduler = useMemo(() => new TraceScheduler(), []);
   const traceView = useMemo(() => new TraceViewModel(), []);
 
@@ -867,18 +869,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   }, [traceState.search.query]);
   useTraceQueryParamStateSync(traceQueryStateSync);
 
-  const scrollQueueRef = useTraceScrollToPath(props.scrollToNode);
-
-  useTraceOnLoad({
-    rerender,
-    onTraceLoad,
-    scrollQueueRef,
-    scheduler: traceScheduler,
-    trace: props.trace,
-    meta: props.meta,
-    replayRecord: props.replayRecord,
-  });
-
   return (
     <Fragment>
       <TraceTypeWarnings
@@ -918,7 +908,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         ) : null}
 
         <TraceDrawer
-          replayRecord={props.replayRecord}
+          replay={props.replay}
           meta={props.meta}
           traceType={shape}
           trace={props.tree}

@@ -271,7 +271,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     trace: TraceTree.Trace,
     options: {
       meta: TraceMetaQueryResults['data'] | null;
-      replayRecord: ReplayRecord | null;
+      replay: ReplayRecord | null;
     }
   ): TraceTree {
     const tree = new TraceTree();
@@ -379,9 +379,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
     // equal to the duration of the replay. We need to adjust the traceview bounds
     // to ensure that we can see the max of the replay duration and the sum(trace durations). This way, we
     // can ensure that the replay timestamp indicators are always visible in the traceview along with all spans from the traces.
-    if (options.replayRecord) {
-      const replayStart = options.replayRecord.started_at.getTime();
-      const replayEnd = options.replayRecord.finished_at.getTime();
+    if (options.replay) {
+      const replayStart = options.replay.started_at.getTime();
+      const replayEnd = options.replay.finished_at.getTime();
 
       traceSpaceBounds[0] = Math.min(traceSpaceBounds[0], replayStart);
       traceSpaceBounds[1] = Math.max(traceSpaceBounds[1], replayEnd);
@@ -1275,14 +1275,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
     if (!zoomedIn) {
       const index = this.list.indexOf(node);
 
-      if (index === -1) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-view-zooming']);
-          scope.captureMessage('Cannot zoom into a node that is not in the list');
-        });
-        return Promise.resolve(null);
-      }
-
       // Remove currently visible children
       this.list.splice(index + 1, TraceTree.VisibleChildren(node).length);
       // Flip visibility
@@ -1352,14 +1344,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         const index = this.list.indexOf(node);
         node.fetchStatus = 'resolved';
 
-        if (index === -1 || !node.expanded) {
-          // The node may have been collapsed by user by the time the promise resolved
-          return data;
-        }
-
-        const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
-
-        if (node.expanded) {
+        if (node.expanded && index !== -1) {
           const childrenCount = TraceTree.VisibleChildren(node).length;
           if (childrenCount > 0) {
             this.list.splice(index + 1, childrenCount);
@@ -1367,11 +1352,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
 
         // API response is not sorted
+        const spans = data.entries.find(s => s.type === 'spans') ?? {data: []};
         spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
         const root = TraceTree.FromSpans(node, spans.data, data);
 
         root.zoomedIn = true;
-
         // Spans contain millisecond precision, which means that it is possible for the
         // children spans of a transaction to extend beyond the start and end of the transaction
         // through ns precision. To account for this, we need to adjust the space of the transaction node and the space
@@ -1398,7 +1383,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
           this.dispatch('trace timeline change', this.root.space);
         }
 
-        this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
+        if (index !== -1) {
+          this.list.splice(index + 1, 0, ...TraceTree.VisibleChildren(node));
+        }
         return data;
       })
       .catch(_e => {
@@ -1757,7 +1744,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         this.appendTree(
           TraceTree.FromTrace(updatedData, {
             meta: options.meta?.data,
-            replayRecord: null,
+            replay: null,
           })
         );
         rerender();

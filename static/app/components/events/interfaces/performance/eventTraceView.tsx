@@ -60,7 +60,7 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
     limit: 10000,
   });
   const meta = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
-  const tree = useTraceTree({trace, meta, replayRecord: null});
+  const tree = useTraceTree({trace, meta, replay: null});
 
   const hasNoTransactions = meta.data?.transactions === 0;
   const shouldLoadTraceRoot = !trace.isPending && trace.data && !hasNoTransactions;
@@ -94,6 +94,11 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
     return null;
   }
 
+  const scrollToNode = useMemo(() => {
+    const firstTransactionEventId = trace.data?.transactions[0]?.event_id;
+    return {eventId: firstTransactionEventId};
+  }, [trace.data]);
+
   return (
     <Fragment>
       <TraceStateProvider
@@ -104,21 +109,14 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
           <TraceViewWaterfall
             tree={tree}
             trace={trace}
+            replay={null}
             rootEvent={rootEvent}
             traceSlug={undefined}
             organization={organization}
             traceEventView={traceEventView}
             meta={meta}
             source="issues"
-            replayRecord={null}
-            scrollToNode={
-              trace.data?.transactions[0]?.event_id
-                ? {
-                    // Scroll/highlight the current transaction
-                    path: [`txn-${trace.data.transactions[0].event_id}`],
-                  }
-                : undefined
-            }
+            scrollToNode={scrollToNode}
             isEmbedded
           />
         </TraceViewWaterfallWrapper>

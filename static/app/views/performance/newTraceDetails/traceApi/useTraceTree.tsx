@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import type {QueryStatus, UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -7,14 +7,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-import {isTransactionNode} from '../traceGuards';
 import {TraceTree} from '../traceModels/traceTree';
 
 import type {TraceMetaQueryResults} from './useTraceMeta';
 
 type UseTraceTreeParams = {
   meta: TraceMetaQueryResults;
-  replayRecord: ReplayRecord | null;
+  replay: ReplayRecord | null;
   trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any>;
   traceSlug?: string;
 };
@@ -38,22 +37,29 @@ export function useTraceTree({
   trace,
   meta,
   traceSlug,
-  replayRecord,
+  replay,
 }: UseTraceTreeParams): TraceTree {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
 
   const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
-  const loadingTraceRef = useRef<TraceTree | null>(null);
-  const [_, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
+  const treeRef = useRef<TraceTree | null>(null);
+  treeRef.current = tree;
 
-  const status = useMemo(() => {
-    return getTraceViewQueryStatus(trace.status, meta.status);
-  }, [trace.status, meta.status]);
+  const scrollQueueRef = useTraceScrollToPath(props.scrollToNode);
+  useTraceOnLoad({
+    onTraceLoad,
+    scrollQueueRef,
+    scheduler: traceScheduler,
+    trace: props.trace,
+    meta: props.meta,
+    replay: props.replay,
+  });
 
   useEffect(() => {
-    if (status === 'error') {
+    const status = getTraceViewQueryStatus(trace.status, meta.status);
+    if (status === 'error' && treeRef.current?.type !== 'error') {
       const errorTree = TraceTree.Error({
         project_slug: projects?.[0]?.slug ?? '',
         event_id: traceSlug,
@@ -70,52 +76,27 @@ export function useTraceTree({
       return;
     }
 
-    if (status === 'pending') {
-      const loadingTrace =
-        loadingTraceRef.current ??
-        TraceTree.Loading({
-          project_slug: projects?.[0]?.slug ?? '',
-          event_id: traceSlug,
-        });
+    if (status === 'pending' && treeRef.current?.type !== 'loading') {
+      const loadingTree = TraceTree.Loading({
+        project_slug: projects?.[0]?.slug ?? '',
+        event_id: traceSlug,
+      });
 
-      loadingTraceRef.current = loadingTrace;
-      setTree(loadingTrace);
+      setTree(loadingTree);
       return;
     }
 
     if (trace.data && meta.data) {
       const newTree = TraceTree.FromTrace(trace.data, {
-        meta: meta,
-        replayRecord: replayRecord,
+        meta: meta.data,
+        replay: replay,
       });
 
-      // Root frame + 2 nodes
-      const promises: Promise<void>[] = [];
-      const transactions = TraceTree.FindAll(tree.root, c => isTransactionNode(c));
-
-      if (transactions.length <= 3) {
-        for (const c of tree.list) {
-          if (c.canFetch) {
-            promises.push(newTree.zoom(c, true, {api, organization}).then(rerender));
-          }
-        }
-      }
-
-      Promise.allSettled(promises).finally(() => {
-        setTree(newTree);
-      });
+      setTree(newTree);
+      newTree.build();
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    api,
-    organization,
-    projects,
-    replayRecord,
-    status,
-    meta.data,
-    trace.data,
-    traceSlug,
-  ]);
+  }, [api, organization, projects, replay, meta.data, trace.data, traceSlug]);
 
   return tree;
 }

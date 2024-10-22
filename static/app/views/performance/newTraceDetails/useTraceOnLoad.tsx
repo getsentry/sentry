@@ -29,11 +29,6 @@ async function maybeAutoExpandTrace(
 ): Promise<TraceTree> {
   const transactions = TraceTree.FindAll(tree.root, node => isTransactionNode(node));
 
-  // Zooming mutates the tree, so we need to build it first
-  // @TODO: Decouple zoom and expand from the list, it *should* be possible to
-  // create the tree without building the list representation and just call build()
-  tree.build();
-
   if (transactions.length >= AUTO_EXPAND_TRANSACTION_THRESHOLD) {
     return tree;
   }
@@ -60,8 +55,7 @@ type UseTraceScrollToEventOnLoadProps = {
     node: TraceTreeNode<TraceTree.NodeValue> | null,
     index: number | null
   ) => void;
-  replayRecord: ReplayRecord | null;
-  rerender: () => void;
+  replay: ReplayRecord | null;
   scheduler: TraceScheduler;
   scrollQueueRef: ReturnType<typeof useTraceScrollToPath>;
   trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError>;
@@ -71,8 +65,7 @@ export function useTraceOnLoad(options: UseTraceScrollToEventOnLoadProps) {
   const api = useApi();
   const organization = useOrganization();
   const initializedRef = useRef<boolean>(false);
-  const {trace, meta, replayRecord, onTraceLoad, scheduler, scrollQueueRef, rerender} =
-    options;
+  const {trace, meta, replay, onTraceLoad, scheduler, scrollQueueRef} = options;
 
   const traceState = useTraceState();
   const traceStateRef = useRef<TraceReducerState>(traceState);
@@ -111,7 +104,7 @@ export function useTraceOnLoad(options: UseTraceScrollToEventOnLoadProps) {
 
       const tree = TraceTree.FromTrace(trace.data, {
         meta: meta.data,
-        replayRecord: replayRecord,
+        replay: replay,
       });
 
       maybeAutoExpandTrace(tree, api, organization).then(updatedTree => {
@@ -144,28 +137,12 @@ export function useTraceOnLoad(options: UseTraceScrollToEventOnLoadProps) {
                 Sentry.captureMessage('Failed to find and scroll to node in tree');
               });
             }
-
-            // // When users are coming off an eventID link, we want to fetch the children
-            // // of the node that the eventID points to. This is because the eventID link
-            // // only points to the transaction, but we want to fetch the children of the
-            // // transaction to show the user the list of spans in that transaction
-            // if (scrollQueueRef.current?.eventId && node?.canFetch) {
-            //   await tree.zoom(node, true, {api, organization}).catch(_e => {
-            //     Sentry.withScope(scope => {
-            //       scope.setFingerprint(['trace-zoom-eventid']);
-            //       Sentry.captureMessage('Failed to fetch children of eventId on mount');
-            //     });
-            //   });
-            // }
-
-            // onTraceLoad(updatedTree, node);
           })
           .finally(() => {
             // Important to set scrollQueueRef.current to null and trigger a rerender
             // after the promise resolves as we show a loading state during scroll,
             // else the screen could jump around while we fetch span data
             scrollQueueRef.current = null;
-            rerender();
             // Allow react to rerender before dispatching the init event
             requestAnimationFrame(() => {
               scheduler.dispatch('initialize virtualized list');
@@ -186,8 +163,7 @@ export function useTraceOnLoad(options: UseTraceScrollToEventOnLoadProps) {
     scheduler,
     scrollQueueRef,
     onTraceLoad,
-    rerender,
     organization,
-    replayRecord,
+    replay,
   ]);
 }

@@ -38,6 +38,7 @@ export function useTraceScrollToEventOnLoad(options: UseTraceScrollToEventOnLoad
     initializedRef.current = true;
 
     if (!scrollQueueRef.current) {
+      trace.build();
       onTraceLoad(trace, null, null);
       return;
     }
