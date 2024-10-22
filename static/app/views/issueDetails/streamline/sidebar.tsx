@@ -20,13 +20,13 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
     <div>
       <FirstLastSeenSection group={group} />
       <StyledBreak />
-      <StreamlinedActivitySection group={group} />
-      <StyledBreak />
       {event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />
         </ErrorBoundary>
       )}
+      <StyledBreak />
+      <StreamlinedActivitySection group={group} />
     </div>
   );
 }
