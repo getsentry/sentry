@@ -260,11 +260,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
         user_defaults = user_option_value.get(self.model.provider, {})
 
-        defaults = {}
-        defaults.update(project_defaults)
-        defaults.update(user_defaults)
-
-        return defaults
+        return {**project_defaults, **user_defaults}
 
     @abstractmethod
     def create_issue(self, data, **kwargs):
