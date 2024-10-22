@@ -17,11 +17,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
+import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import exportDashboard from './exportDashboard';
-import type {DashboardListItem} from './types';
+import type {DashboardListItem, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
@@ -34,12 +35,14 @@ type Props = {
   onEdit: () => void;
   organization: Organization;
   widgetLimitReached: boolean;
+  dashboardPermissions?: DashboardPermissions;
   hasUnsavedFilters?: boolean;
 };
 
 function Controls({
   dashboardState,
   dashboards,
+  dashboardPermissions,
   hasUnsavedFilters,
   widgetLimitReached,
   onEdit,
@@ -158,6 +161,7 @@ function Controls({
                 {t('Export Dashboard')}
               </Button>
             </Feature>
+            <EditAccessSelector dashboardPermissions={dashboardPermissions} />
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {
