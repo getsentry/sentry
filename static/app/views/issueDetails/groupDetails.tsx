@@ -681,7 +681,6 @@ function GroupDetailsContent({
         group={group}
         project={project}
         groupReprocessingStatus={groupReprocessingStatus}
-        baseUrl={baseUrl}
       />
       <GroupEventDetails
         location={router.location}
