@@ -2,8 +2,8 @@ import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssu
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import ActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
-import {PeopleSection} from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
+import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
+import {PeopleSection} from 'sentry/views/issueDetails/streamline/peopleSection';
 
 type Props = {
   group: Group;
@@ -17,7 +17,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       {event && (
         <StreamlinedExternalIssueList group={group} event={event} project={project} />
       )}
-      <ActivitySection group={group} />
+      <StreamlinedActivitySection group={group} />
       <PeopleSection group={group} />
     </div>
   );

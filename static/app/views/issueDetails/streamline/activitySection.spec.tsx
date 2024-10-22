@@ -14,9 +14,9 @@ import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {GroupActivityType} from 'sentry/types/group';
-import ActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
 
-describe('ActivitySection', function () {
+describe('StreamlinedActivitySection', function () {
   const project = ProjectFixture();
   const user = UserFixture();
   user.options.prefersIssueDetailsStreamlinedUI = true;
@@ -57,7 +57,7 @@ describe('ActivitySection', function () {
       body: {firstRelease, lastRelease},
     });
 
-    render(<ActivitySection group={group} />);
+    render(<StreamlinedActivitySection group={group} />);
     renderGlobalModal();
     expect(await screen.findByText('Test Note')).toBeInTheDocument();
 
@@ -98,7 +98,7 @@ describe('ActivitySection', function () {
       body: {firstRelease, lastRelease},
     });
 
-    render(<ActivitySection group={updatedActivityGroup} />);
+    render(<StreamlinedActivitySection group={updatedActivityGroup} />);
     expect(await screen.findByText('Test Note')).toBeInTheDocument();
 
     expect(

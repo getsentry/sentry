@@ -30,7 +30,7 @@ export interface GroupRelease {
   firstRelease: Release;
   lastRelease: Release;
 }
-function ActivitySection({group}: {group: Group}) {
+function StreamlinedActivitySection({group}: {group: Group}) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
 
@@ -213,4 +213,4 @@ const SmallTimestamp = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-export default ActivitySection;
+export default StreamlinedActivitySection;

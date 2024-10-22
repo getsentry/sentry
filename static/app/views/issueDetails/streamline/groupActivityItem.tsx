@@ -21,7 +21,7 @@ import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
-import type {GroupRelease} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import type {GroupRelease} from 'sentry/views/issueDetails/streamline/activitySection';
 
 export default function getGroupActivityItem(
   activity: GroupActivity,
