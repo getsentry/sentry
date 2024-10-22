@@ -158,7 +158,7 @@ class Item extends Component<Props, State> {
             // Check for valid number (and not NaN)
             let scoreValue =
               typeof avgScore === 'number' && !Number.isNaN(avgScore) ? avgScore : 0;
-            // If hasSimilarityEmbeddingsFeature is on, map similarity score to score between 1-5
+            // If hasSimilarityEmbeddingsFeature is on, translate similarity score in range 0.9-1 to score between 1-5
             if (hasSimilarityEmbeddingsFeature) {
               for (let i = 0; i <= similarityEmbeddingScoreValues.length; i++) {
                 if (scoreValue <= similarityEmbeddingScoreValues[i]) {
