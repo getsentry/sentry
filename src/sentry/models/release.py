@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import ClassVar, TypedDict
+from typing import ClassVar, Literal, TypedDict
 
 import orjson
 import sentry_sdk
@@ -155,7 +155,7 @@ class ReleaseModelManager(BaseManager["Release"]):
     ) -> str | None:
         cache_key = _get_cache_key(project_id, group_id, first)
 
-        release_version = cache.get(cache_key) if use_cache else None
+        release_version: Literal[False] | str | None = cache.get(cache_key) if use_cache else None
         if release_version is False:
             # We've cached the fact that no rows exist.
             return None
