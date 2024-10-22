@@ -204,18 +204,20 @@ type RowState = {
 };
 
 class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
-  constructor(props) {
+  constructor(props: RowProps) {
     super(props);
 
     let initialSubfilters;
     if (props.data.active === true) {
       initialSubfilters = new Set(
         Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-          key => !LEGACY_BROWSER_SUBFILTERS[key].legacy
+          key =>
+            !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS]
+              .legacy
         )
       );
     } else if (props.data.active === false) {
-      initialSubfilters = new Set();
+      initialSubfilters = new Set<string>();
     } else {
       initialSubfilters = new Set(props.data.active);
     }
@@ -227,13 +229,15 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
     };
   }
 
-  handleToggleSubfilters = (subfilter, e) => {
+  handleToggleSubfilters = (subfilter: boolean, e: React.MouseEvent) => {
     let {subfilters} = this.state;
 
     if (subfilter === true) {
       subfilters = new Set(
         Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-          key => !LEGACY_BROWSER_SUBFILTERS[key].legacy
+          key =>
+            !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS]
+              .legacy
         )
       );
     } else if (subfilter === false) {
@@ -543,7 +547,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                         {
                           replaySettings: (
                             <Link
-                              to={`/settings/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
+                              to={`/settings/${organization.slug}/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
                             />
                           ),
                         }

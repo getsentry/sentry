@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 
 from django.db import router, transaction
@@ -14,6 +15,8 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.users.models.user import User
 
+logger = logging.getLogger("sentry.token-exchange")
+
 
 @dataclass
 class Refresher:
@@ -28,11 +31,21 @@ class Refresher:
 
     def run(self) -> ApiToken:
         with transaction.atomic(router.db_for_write(ApiToken)):
-            self._validate()
-            self.token.delete()
+            try:
+                self._validate()
+                self.token.delete()
 
-        self.record_analytics()
-        return self._create_new_token()
+                self.record_analytics()
+                return self._create_new_token()
+            except APIUnauthorized:
+                logger.info(
+                    "refresher.context",
+                    extra={
+                        "application_id": self.application.id,
+                        "refresh_token": self.refresh_token[-4:],
+                    },
+                )
+                raise
 
     def record_analytics(self) -> None:
         analytics.record(

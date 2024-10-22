@@ -81,15 +81,14 @@ function Headers({
               </GraphHeader>
             </GraphHeaderWrapper>
           )}
-
           {organization.features.includes('issue-stream-table-layout') ? (
             <Fragment>
               <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.AGE}>
-                {t('Age')}
+                {t('First Seen')}
                 <HeaderDivider />
               </TimestampLabel>
               <TimestampLabel breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-                {t('Seen')}
+                {t('Last Seen')}
                 <HeaderDivider />
               </TimestampLabel>
             </Fragment>
@@ -143,7 +142,7 @@ const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
 `;
 
 const NarrowGraphLabel = styled(IssueStreamHeaderLabel)`
-  width: 200px;
+  width: 175px;
   flex: 1;
   display: flex;
   justify-content: space-between;
@@ -182,7 +181,7 @@ const GraphToggle = styled('a')<{active: boolean}>`
 `;
 
 const TimestampLabel = styled(IssueStreamHeaderLabel)`
-  width: 60px;
+  width: 75px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -251,7 +250,7 @@ const AssigneeLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
   }
 `;
 
-const NarrowAssigneeLabel = styled(IssueStreamHeaderLabel)`
+export const NarrowAssigneeLabel = styled(IssueStreamHeaderLabel)`
   justify-content: flex-end;
   text-align: right;
   width: 60px;

@@ -116,6 +116,63 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 tags={"platform": "javascript", "sdk": "sentry.javascript.nextjs"},
             )
 
+    def test_unmerge_delete_member(self):
+        member = self.create_user(is_superuser=False)
+        self.login_as(user=member)
+
+        group = self.create_group(
+            platform="javascript",
+            metadata={"sdk": {"name_normalized": "sentry.javascript.nextjs"}},
+        )
+
+        hashes = [
+            GroupHash.objects.create(project=group.project, group=group, hash=hash)
+            for hash in ["a" * 32, "b" * 32]
+        ]
+
+        url = "?".join(
+            [
+                f"/api/0/issues/{group.id}/hashes/",
+                urlencode({"id": [h.hash for h in hashes]}, True),
+            ]
+        )
+
+        response = self.client.delete(url, format="json")
+
+        assert response.status_code == 403, response.content
+
+    def test_unmerge_put_member(self):
+        member_user = self.create_user(is_superuser=False)
+        member = self.create_member(organization=self.organization, user=member_user, role="member")
+        self.login_as(user=member)
+
+        group = self.create_group(
+            platform="javascript",
+            metadata={"sdk": {"name_normalized": "sentry.javascript.nextjs"}},
+        )
+
+        hashes = [
+            GroupHash.objects.create(project=group.project, group=group, hash=hash)
+            for hash in ["a" * 32, "b" * 32]
+        ]
+
+        url = "?".join(
+            [
+                f"/api/0/issues/{group.id}/hashes/",
+                urlencode({"id": [h.hash for h in hashes]}, True),
+            ]
+        )
+
+        with patch("sentry.issues.endpoints.group_hashes.metrics.incr") as mock_metrics_incr:
+            response = self.client.put(url, format="json")
+
+            assert response.status_code == 202, response.content
+            mock_metrics_incr.assert_any_call(
+                "grouping.unmerge_issues",
+                sample_rate=1.0,
+                tags={"platform": "javascript", "sdk": "sentry.javascript.nextjs"},
+            )
+
     def test_unmerge_conflict(self):
         self.login_as(user=self.user)
 

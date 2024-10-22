@@ -22,7 +22,7 @@ export type InviteMembersContextValue = {
   error?: string;
 };
 
-export const defaultInviteProps = {
+export const defaultInviteProps: InviteMembersContextValue = {
   complete: false,
   inviteStatus: {},
   invites: [],

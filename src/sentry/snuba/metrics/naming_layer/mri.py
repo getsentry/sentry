@@ -163,6 +163,7 @@ class TransactionMRI(Enum):
 class SpanMRI(Enum):
     USER = "s:spans/user@none"
     DURATION = "d:spans/duration@millisecond"
+    COUNT_PER_ROOT_PROJECT = "c:spans/count_per_root_project@none"
     SELF_TIME = "d:spans/exclusive_time@millisecond"
     SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 

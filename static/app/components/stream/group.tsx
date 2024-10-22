@@ -14,6 +14,7 @@ import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -45,9 +46,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -56,6 +61,7 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import {
+  createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
   isForReviewQuery,
@@ -112,13 +118,15 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
-      <Checkbox
-        id={group.id}
-        aria-label={t('Select Issue')}
-        checked={isSelected}
-        disabled={!!displayReprocessingLayout}
-        onChange={onChange}
-      />
+      <CheckboxLabel hasNewLayout={hasNewLayout}>
+        <Checkbox
+          id={group.id}
+          aria-label={t('Select Issue')}
+          checked={isSelected}
+          disabled={!!displayReprocessingLayout}
+          onChange={onChange}
+        />
+      </CheckboxLabel>
     </GroupCheckBoxWrapper>
   );
 }
@@ -133,7 +141,7 @@ function GroupTimestamp({date, label}: {date: string | null; label: string}) {
       aria-label={label}
       tooltipPrefix={label}
       date={date}
-      suffix=""
+      suffix="ago"
       unitStyle="extraShort"
     />
   );
@@ -160,6 +168,8 @@ function BaseGroupRow({
   showLastTriggered = false,
   onPriorityChange,
 }: Props) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const groups = useLegacyStore(GroupStore);
   const group = useMemo(
     () => groups.find(item => item.id === id) as Group | undefined,
@@ -226,37 +236,30 @@ function BaseGroupRow({
     },
   });
 
-  const wrapperToggle = useCallback(
+  const clickHasBeenHandled = useCallback(
     (evt: React.MouseEvent<HTMLDivElement>) => {
       const targetElement = evt.target as Partial<HTMLElement>;
       if (!group) {
-        return;
+        return true;
       }
 
-      // Ignore clicks on links
-      if (targetElement?.tagName?.toLowerCase() === 'a') {
-        return;
-      }
+      const tagName = targetElement?.tagName?.toLowerCase();
 
-      // Ignore clicks on the selection checkbox
-      if (targetElement?.tagName?.toLowerCase() === 'input') {
-        return;
+      const ignoredTags = new Set(['a', 'input', 'label']);
+
+      if (tagName && ignoredTags.has(tagName)) {
+        return true;
       }
 
       let e = targetElement;
       while (e.parentElement) {
-        if (e?.tagName?.toLowerCase() === 'a') {
-          return;
+        if (ignoredTags.has(e?.tagName?.toLowerCase() ?? '')) {
+          return true;
         }
         e = e.parentElement!;
       }
 
-      if (evt.shiftKey) {
-        SelectedGroupStore.shiftToggleItems(group.id);
-        window.getSelection()?.removeAllRanges();
-      } else {
-        SelectedGroupStore.toggleSelect(group.id);
-      }
+      return false;
     },
     [group]
   );
@@ -528,15 +531,61 @@ function BaseGroupRow({
     <GuideAnchor target="issue_stream" />
   );
 
+  const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (displayReprocessingLayout) {
+      return;
+    }
+
+    const handled = clickHasBeenHandled(e);
+
+    if (handled) {
+      return;
+    }
+
+    if (canSelect && e.shiftKey) {
+      SelectedGroupStore.shiftToggleItems(group.id);
+      window.getSelection()?.removeAllRanges();
+      return;
+    }
+
+    if (canSelect && isCtrlKeyPressed(e)) {
+      SelectedGroupStore.toggleSelect(group.id);
+      return;
+    }
+
+    if (hasNewLayout) {
+      navigate(
+        normalizeUrl(
+          createIssueLink({
+            data: group,
+            organization,
+            referrer,
+            streamIndex: index,
+            location,
+            query,
+          })
+        )
+      );
+      return;
+    }
+
+    if (!canSelect) {
+      return;
+    }
+
+    SelectedGroupStore.toggleSelect(group.id);
+  };
+
   return (
     <Wrapper
       data-test-id="group"
       data-test-reviewed={reviewed}
-      onClick={displayReprocessingLayout || !canSelect ? undefined : wrapperToggle}
+      onClick={onClick}
       reviewed={reviewed}
       useTintRow={useTintRow ?? true}
       hasNewLayout={hasNewLayout}
     >
+      {hasNewLayout && <InteractionStateLayer />}
       {canSelect && (
         <GroupCheckbox
           group={group}
@@ -681,8 +730,16 @@ const Wrapper = styled(PanelItem)<{
   ${p =>
     p.hasNewLayout &&
     css`
+      cursor: pointer;
       padding: ${space(1)} 0;
       min-height: 66px;
+
+      /* Adds underline to issue title when active  */
+      &:hover {
+        [data-issue-title-primary] {
+          text-decoration: underline;
+        }
+      }
     `}
 
   ${p =>
@@ -743,16 +800,27 @@ const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
 `;
 
 const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
-  margin-left: ${space(2)};
   align-self: flex-start;
-  height: 15px;
+  width: 32px;
   display: flex;
   align-items: center;
+`;
+
+const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  height: 100%;
+  width: 32px;
+  padding-left: ${space(2)};
+  padding-top: ${space(1.5)};
+  margin: 0;
 
   ${p =>
     p.hasNewLayout &&
     css`
-      padding-top: ${space(2)};
+      padding-top: 14px;
     `}
 `;
 
@@ -761,7 +829,7 @@ const CountsWrapper = styled('div')`
   flex-direction: column;
 `;
 
-const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
+export const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
   font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
   ${p =>
     p.hasNewLayout &&
@@ -824,7 +892,7 @@ const ChartWrapper = styled('div')<{margin: boolean; narrowGroups: boolean}>`
 `;
 
 const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
-  width: 200px;
+  width: 175px;
   align-self: center;
   margin-right: ${space(2)};
 
@@ -836,7 +904,7 @@ const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
 const TimestampWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   align-self: center;
-  width: 60px;
+  width: 75px;
   margin-right: ${space(2)};
 
   @media (max-width: ${p => p.breakpoint}) {
@@ -856,7 +924,7 @@ const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   }
 `;
 
-const InnerCountsWrapper = styled('div')`
+export const InnerCountsWrapper = styled('div')`
   margin-right: ${space(2)};
 `;
 

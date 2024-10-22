@@ -240,6 +240,7 @@ const StyledLayoutBody = styled(Layout.Body)<{
   ${p =>
     p.hasStreamlinedUi &&
     css`
+      min-height: 100vh;
       @media (min-width: ${p.theme.breakpoints.large}) {
         gap: ${space(1.5)};
         display: ${p.sidebarOpen ? 'grid' : 'block'};
@@ -270,7 +271,12 @@ const GroupContent = styled(Layout.Main)`
   flex-direction: column;
   padding: ${space(1.5)};
   gap: ${space(1.5)};
-  box-shadow: 0 0 0 1px ${p => p.theme.translucentInnerBorder};
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    border-right: 1px solid ${p => p.theme.translucentBorder};
+  }
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    border-bottom-width: 1px solid ${p => p.theme.translucentBorder};
+  }
 `;
 
 const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
