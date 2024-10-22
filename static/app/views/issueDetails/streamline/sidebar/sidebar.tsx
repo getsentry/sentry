@@ -1,9 +1,9 @@
+import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import ActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import {PeopleSection} from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
-import {StreamlinedExternalIssueList} from 'sentry/views/issueDetails/streamline/sidebar/streamlinedExternalIssueList';
 
 type Props = {
   group: Group;

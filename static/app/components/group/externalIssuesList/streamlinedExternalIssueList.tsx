@@ -17,7 +17,7 @@ import {Divider} from 'sentry/views/issueDetails/divider';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 
-import useStreamLinedExternalIssueData from '../../../../components/group/externalIssuesList/hooks/useGroupExternalIssues';
+import useStreamLinedExternalIssueData from './hooks/useGroupExternalIssues';
 
 interface StreamlinedExternalIssueListProps {
   event: Event;
