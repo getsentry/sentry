@@ -19,6 +19,7 @@ describe('AutofixDiff', function () {
     diff: [AutofixDiffFilePatch()],
     groupId: '1',
     runId: '1',
+    editable: true,
   };
 
   beforeEach(() => {
@@ -150,5 +151,21 @@ describe('AutofixDiff', function () {
         'Something went wrong when updating changes.'
       );
     });
+  });
+
+  it('does not show edit buttons when editable is false', function () {
+    render(<AutofixDiff {...defaultProps} editable={false} />);
+
+    expect(screen.queryByRole('button', {name: 'Edit changes'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Reject changes'})
+    ).not.toBeInTheDocument();
+
+    // Ensure the diff content is still visible
+    expect(
+      screen.getByText('src/sentry/processing/backpressure/memory.py')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('line-added')).toBeInTheDocument();
+    expect(screen.getByTestId('line-removed')).toBeInTheDocument();
   });
 });
