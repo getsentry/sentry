@@ -1,7 +1,6 @@
 import type {Flags} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 
-const DEFAULT_BUFFER_SIZE = 10;
 let __SINGLETON: FeatureObserver | null = null;
 
 export default class FeatureObserver {
@@ -27,10 +26,10 @@ export default class FeatureObserver {
 
   public observeFlags({
     organization,
-    bufferSize = DEFAULT_BUFFER_SIZE,
+    bufferSize,
   }: {
+    bufferSize: number;
     organization: Organization;
-    bufferSize?: number;
   }) {
     const FLAGS = this.FEATURE_FLAGS;
 
@@ -40,8 +39,11 @@ export default class FeatureObserver {
         // Evaluate the result of .includes()
         const flagResult = target.apply(orgFeatures, flagName);
 
+        // Append `feature.organizations:` in front to match the Sentry options automator format
+        const name = 'feature.organizations:' + flagName[0];
+
         // Check if the flag is already in the buffer
-        const index = FLAGS.values.findIndex(f => f.flag === flagName[0]);
+        const index = FLAGS.values.findIndex(f => f.flag === name);
 
         // The flag is already in the buffer
         if (index !== -1) {
@@ -56,7 +58,7 @@ export default class FeatureObserver {
 
         // Store the flag and its result in the buffer
         FLAGS.values.push({
-          flag: flagName[0],
+          flag: name,
           result: flagResult,
         });
 

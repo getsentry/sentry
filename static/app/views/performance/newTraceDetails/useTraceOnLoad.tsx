@@ -25,13 +25,6 @@ const AUTO_EXPAND_TRANSACTION_THRESHOLD = 3;
 async function maybeAutoExpandTrace(
   tree: TraceTree,
   api: Client,
-  configuration: {
-    autogroup: {
-      parent: boolean;
-      sibling: boolean;
-    };
-    missing_instrumentation: boolean;
-  },
   organization: Organization
 ): Promise<TraceTree> {
   const transactions = TraceTree.FindAll(tree.root, node => isTransactionNode(node));
@@ -47,7 +40,7 @@ async function maybeAutoExpandTrace(
 
   const promises: Promise<any>[] = [];
   for (const transaction of transactions) {
-    promises.push(tree.zoom(transaction, true, configuration, {api, organization}));
+    promises.push(tree.zoom(transaction, true, {api, organization}));
   }
 
   await Promise.allSettled(promises).catch(_e => {
@@ -64,7 +57,8 @@ type UseTraceScrollToEventOnLoadProps = {
   meta: TraceMetaQueryResults;
   onTraceLoad: (
     trace: TraceTree,
-    node: TraceTreeNode<TraceTree.NodeValue> | null
+    node: TraceTreeNode<TraceTree.NodeValue> | null,
+    index: number | null
   ) => void;
   replayRecord: ReplayRecord | null;
   rerender: () => void;
@@ -101,6 +95,7 @@ export function useTraceOnLoad(options: UseTraceScrollToEventOnLoadProps) {
           event_id: '',
           project_slug: '',
         }),
+        null,
         null
       );
       return undefined;
@@ -110,7 +105,7 @@ export function useTraceOnLoad(options: UseTraceScrollToEventOnLoadProps) {
       initializedRef.current = true;
 
       if (!trace.data.transactions.length && !trace.data.orphan_errors.length) {
-        onTraceLoad(TraceTree.Empty(), null);
+        onTraceLoad(TraceTree.Empty(), null, null);
         return undefined;
       }
 
@@ -119,44 +114,26 @@ export function useTraceOnLoad(options: UseTraceScrollToEventOnLoadProps) {
         replayRecord: replayRecord,
       });
 
-      tree.build();
-      maybeAutoExpandTrace(
-        tree,
-        api,
-        traceStateRef.current.preferences,
-        organization
-      ).then(updatedTree => {
+      maybeAutoExpandTrace(tree, api, organization).then(updatedTree => {
         if (cancel) {
           return;
         }
 
         // Node path has higher specificity than eventId
         const promise = scrollQueueRef.current?.path
-          ? TraceTree.ExpandToPath(
-              updatedTree,
-              scrollQueueRef.current.path,
-              traceStateRef.current.preferences,
-              rerender,
-              {
+          ? TraceTree.ExpandToPath(updatedTree, scrollQueueRef.current.path, {
+              api,
+              organization,
+            })
+          : scrollQueueRef.current?.eventId
+            ? TraceTree.ExpandToEventID(updatedTree, scrollQueueRef.current?.eventId, {
                 api,
                 organization,
-              }
-            )
-          : scrollQueueRef.current?.eventId
-            ? TraceTree.ExpandToEventID(
-                updatedTree,
-                scrollQueueRef.current?.eventId,
-                traceStateRef.current.preferences,
-                rerender,
-                {
-                  api,
-                  organization,
-                }
-              )
+              })
             : Promise.resolve(null);
 
         promise
-          .then(async node => {
+          .then(node => {
             if (cancel) {
               return;
             }
@@ -168,22 +145,20 @@ export function useTraceOnLoad(options: UseTraceScrollToEventOnLoadProps) {
               });
             }
 
-            // When users are coming off an eventID link, we want to fetch the children
-            // of the node that the eventID points to. This is because the eventID link
-            // only points to the transaction, but we want to fetch the children of the
-            // transaction to show the user the list of spans in that transaction
-            if (scrollQueueRef.current?.eventId && node?.canFetch) {
-              await tree
-                .zoom(node, true, traceStateRef.current.preferences, {api, organization})
-                .catch(_e => {
-                  Sentry.withScope(scope => {
-                    scope.setFingerprint(['trace-zoom-eventid']);
-                    Sentry.captureMessage('Failed to fetch children of eventId on mount');
-                  });
-                });
-            }
+            // // When users are coming off an eventID link, we want to fetch the children
+            // // of the node that the eventID points to. This is because the eventID link
+            // // only points to the transaction, but we want to fetch the children of the
+            // // transaction to show the user the list of spans in that transaction
+            // if (scrollQueueRef.current?.eventId && node?.canFetch) {
+            //   await tree.zoom(node, true, {api, organization}).catch(_e => {
+            //     Sentry.withScope(scope => {
+            //       scope.setFingerprint(['trace-zoom-eventid']);
+            //       Sentry.captureMessage('Failed to fetch children of eventId on mount');
+            //     });
+            //   });
+            // }
 
-            onTraceLoad(updatedTree, node);
+            // onTraceLoad(updatedTree, node);
           })
           .finally(() => {
             // Important to set scrollQueueRef.current to null and trigger a rerender

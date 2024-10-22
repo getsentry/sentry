@@ -11,12 +11,12 @@ import {IconTelescope} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/flagSeries';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
@@ -26,6 +26,7 @@ export const enum EventGraphSeries {
   USER = 'user',
 }
 interface EventGraphProps {
+  event: Event;
   group: Group;
   groupStats: MultiSeriesEventsStats;
   searchQuery: string;
@@ -50,13 +51,12 @@ function createSeriesAndCount(stats: EventsStats) {
   );
 }
 
-export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
+export function EventGraph({group, groupStats, searchQuery, event}: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
     EventGraphSeries.EVENT
   );
-  const router = useRouter();
 
   const [isGraphHovered, setIsGraphHovered] = useState(false);
   const eventStats = groupStats['count()'];
@@ -78,7 +78,6 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
   );
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
-    router,
   });
 
   const flagSeries = useFlagSeries({
@@ -87,6 +86,7 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
     },
+    event,
   });
 
   const series = useMemo((): BarChartSeries[] => {

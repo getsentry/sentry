@@ -50,6 +50,7 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
+import {useTraceTree} from './traceApi/useTraceTree';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {TraceShape, TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
@@ -174,8 +175,6 @@ export function TraceView() {
     });
   }, [queryParams, traceSlug]);
 
-  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
-
   const preferences = useMemo(
     () =>
       loadTraceViewPreferences('trace-view-preferences') ||
@@ -183,7 +182,9 @@ export function TraceView() {
     []
   );
 
+  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
   const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
+  const tree = useTraceTree({traceSlug, trace, meta, replayRecord: null});
   const rootEvent = useTraceRootEvent(trace.data ?? null);
 
   return (
@@ -205,6 +206,7 @@ export function TraceView() {
             />
             <TraceInnerLayout>
               <TraceViewWaterfall
+                tree={tree}
                 traceSlug={traceSlug}
                 trace={trace}
                 organization={organization}
@@ -243,6 +245,7 @@ type TraceViewWaterfallProps = {
   trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError>;
   traceEventView: EventView;
   traceSlug: string | undefined;
+  tree: TraceTree;
   replayTraces?: ReplayTrace[];
   /**
    * Ignore eventId or path query parameters and use the provided node.
@@ -284,26 +287,12 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const isError = props.trace.status === 'error' || props.meta.status === 'error';
   const isLoading = props.trace.status === 'pending' || props.meta.status === 'pending';
 
-  const [tree, setTree] = useState<TraceTree>(
-    TraceTree.Loading({
-      event_id: '',
-      project_slug: projects[0]?.slug,
-    })
-  );
-
-  const loadingTree = useMemo(() => {
-    return TraceTree.Loading({
-      event_id: '',
-      project_slug: projects[0]?.slug,
-    });
-  }, [projects]);
-
   useEffect(() => {
-    if (!props.replayTraces?.length || tree?.type !== 'trace') {
+    if (!props.replayTraces?.length || props.tree?.type !== 'trace') {
       return undefined;
     }
 
-    const cleanup = tree.fetchAdditionalTraces({
+    const cleanup = props.tree.fetchAdditionalTraces({
       api,
       filters,
       replayTraces: props.replayTraces,
@@ -315,7 +304,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
     return () => cleanup();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tree, props.replayTraces]);
+  }, [props.tree, props.replayTraces]);
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
@@ -383,20 +372,20 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   useLayoutEffect(() => {
     return traceDispatch({
       type: 'set roving count',
-      items: tree.list.length - 1,
+      items: props.tree.list.length - 1,
     });
-  }, [tree.list.length, traceDispatch]);
+  }, [props.tree.list.length, traceDispatch]);
 
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
-    if (tree.type !== 'trace') {
+    if (props.tree.type !== 'trace') {
       return;
     }
 
     const newTabs = [TRACE_TAB];
 
-    if (tree.vitals.size > 0) {
-      const types = Array.from(tree.vital_types.values());
+    if (props.tree.vitals.size > 0) {
+      const types = Array.from(props.tree.vital_types.values());
       const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';
 
       newTabs.push({
@@ -405,7 +394,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       });
     }
 
-    if (tree.profiled_events.size > 0) {
+    if (props.tree.profiled_events.size > 0) {
       newTabs.push({
         node: 'profiles',
         label: 'Profiles',
@@ -422,7 +411,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     });
     // We only want to update the tabs when the tree changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tree]);
+  }, [props.tree]);
 
   const searchingRaf = useRef<{id: number | null} | null>(null);
   const onTraceSearch = useCallback(
@@ -480,12 +469,17 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       const tokens = parseTraceSearch(query);
 
       if (tokens) {
-        searchingRaf.current = searchInTraceTreeTokens(tree, tokens, activeNode, done);
+        searchingRaf.current = searchInTraceTreeTokens(
+          props.tree,
+          tokens,
+          activeNode,
+          done
+        );
       } else {
-        searchingRaf.current = searchInTraceTreeText(tree, query, activeNode, done);
+        searchingRaf.current = searchInTraceTreeText(props.tree, query, activeNode, done);
       }
     },
-    [traceDispatch, tree]
+    [traceDispatch, props.tree]
   );
 
   // We need to heavily debounce query string updates because the rest of the app is so slow
@@ -610,38 +604,69 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     [viewManager]
   );
 
-  const onTabScrollToNode = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      if (node === null) {
-        return;
-      }
+  const onScrollToNode = useCallback(
+    (
+      node: TraceTreeNode<TraceTree.NodeValue>
+    ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
+      return TraceTree.ExpandToPath(props.tree, TraceTree.PathToNode(node), {
+        api,
+        organization: props.organization,
+      }).then(() => {
+        const maybeNode = TraceTree.Find(props.tree.root, n => n === node);
 
-      // We call expandToNode because we want to ensure that the node is
-      // visible and may not have been collapsed/hidden by the user
-      TraceTree.ExpandToPath(
-        tree,
-        TraceTree.PathToNode(node),
-        traceStateRef.current.preferences,
-        forceRerender,
-        {
-          api,
-          organization: props.organization,
+        if (!maybeNode) {
+          return null;
         }
-      ).then(maybeNode => {
-        if (maybeNode) {
-          previouslyFocusedNodeRef.current = null;
-          const index = tree.list.findIndex(n => n === maybeNode);
-          if (index === -1) {
-            Sentry.captureMessage('Trace tree node is not visible in tree');
-            return;
+
+        let index = props.tree.list.indexOf(maybeNode);
+
+        if (node && index === -1) {
+          let parent_node = node.parent;
+          while (parent_node) {
+            // Transactions break autogrouping chains, so we can stop here
+            props.tree.expand(parent_node, true);
+            // This is very wasteful as it performs O(n^2) search each time we expand a node...
+            // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
+            // a low autogrouped node count.
+            index = node ? props.tree.list.findIndex(n => n === node) : -1;
+            if (index !== -1) {
+              break;
+            }
+            parent_node = parent_node.parent;
           }
-          scrollRowIntoView(maybeNode, index, 'center if outside', true);
+        }
+
+        scrollRowIntoView(maybeNode, index, 'center if outside', true);
+        traceDispatch({
+          type: 'set roving index',
+          node: maybeNode,
+          index: index,
+          action_source: 'click',
+        });
+
+        if (traceStateRef.current.search.resultsLookup.has(maybeNode)) {
           traceDispatch({
-            type: 'set roving index',
-            node: maybeNode,
-            index: index,
-            action_source: 'click',
+            type: 'set search iterator index',
+            resultIndex: index,
+            resultIteratorIndex:
+              traceStateRef.current.search.resultsLookup.get(maybeNode)!,
           });
+        } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
+          traceDispatch({type: 'clear search iterator index'});
+        }
+
+        return maybeNode;
+      });
+    },
+    [api, props.organization, scrollRowIntoView, props.tree, traceDispatch]
+  );
+
+  const onTabScrollToNode = useCallback(
+    (
+      node: TraceTreeNode<TraceTree.NodeValue>
+    ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
+      return onScrollToNode(node).then(maybeNode => {
+        if (maybeNode) {
           setRowAsFocused(
             maybeNode,
             null,
@@ -649,111 +674,30 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
             null,
             0
           );
-
-          if (traceStateRef.current.search.resultsLookup.has(maybeNode)) {
-            traceDispatch({
-              type: 'set search iterator index',
-              resultIndex: index,
-              resultIteratorIndex:
-                traceStateRef.current.search.resultsLookup.get(maybeNode)!,
-            });
-          } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
-            traceDispatch({type: 'clear search iterator index'});
-          }
         }
+
+        return maybeNode;
       });
     },
-    [
-      api,
-      props.organization,
-      setRowAsFocused,
-      scrollRowIntoView,
-      tree,
-      traceDispatch,
-      forceRerender,
-    ]
-  );
-
-  // Unlike onTabScrollToNode, this function does not set the node as the current
-  // focused node, but rather scrolls the node into view and sets the roving index to the node.
-  const onScrollToNode = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      TraceTree.ExpandToPath(
-        tree,
-        TraceTree.PathToNode(node),
-        traceStateRef.current.preferences,
-        forceRerender,
-        {
-          api,
-          organization: props.organization,
-        }
-      ).then(maybeNode => {
-        if (maybeNode) {
-          previouslyFocusedNodeRef.current = null;
-          const index = tree.list.findIndex(n => n === maybeNode);
-          if (index === -1) {
-            Sentry.captureMessage('Trace tree node is not visible in tree');
-            return;
-          }
-          scrollRowIntoView(maybeNode, index, 'center if outside', true);
-          traceDispatch({
-            type: 'set roving index',
-            node: maybeNode,
-            index: index,
-            action_source: 'click',
-          });
-
-          if (traceStateRef.current.search.resultsLookup.has(maybeNode)) {
-            traceDispatch({
-              type: 'set search iterator index',
-              resultIndex: index,
-              resultIteratorIndex:
-                traceStateRef.current.search.resultsLookup.get(maybeNode)!,
-            });
-          } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
-            traceDispatch({type: 'clear search iterator index'});
-          }
-        }
-      });
-    },
-    [api, props.organization, scrollRowIntoView, tree, traceDispatch, forceRerender]
+    [onScrollToNode, setRowAsFocused]
   );
 
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(
-    (trace: TraceTree, nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null) => {
-      if (traceStateRef.current.preferences.missing_instrumentation) {
-        TraceTree.DetectMissingInstrumentation(
-          trace.root,
-          TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
-        );
-      }
-      if (traceStateRef.current.preferences.autogroup.sibling) {
-        TraceTree.AutogroupSiblingSpanNodes(trace.root);
-      }
-      if (traceStateRef.current.preferences.autogroup.parent) {
-        TraceTree.AutogroupDirectChildrenSpanNodes(trace.root);
-      }
-
-      const indexOfNodeToScrollTo = 0;
-      trace.build();
-      setTree(trace);
-
-      // If terminal node is a missing instrumentation and missing instrumentatioon is off, enable it
-      // if terminal node is a autogrouped node and autogrouping is off, enable it
-      // else look for node index
-      //  - if index > 0, node is visible so scroll to it
-      //  - walk up the parent chain and expand until node is visible
-
+    (
+      _trace: TraceTree,
+      nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
+      indexOfNodeToScrollTo: number | null
+    ) => {
       const query = qs.parse(location.search);
 
       if (query.fov && typeof query.fov === 'string') {
         viewManager.maybeInitializeTraceViewFromQS(query.fov);
       }
 
-      if (nodeToScrollTo !== null) {
+      if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
         // At load time, we want to scroll the row into view, but we need to wait for the view
         // to initialize before we can do that. We listen for the 'initialize virtualized list' and scroll
         // to the row in the view if it is not in view yet. If its in the view, then scroll to it immediately.
@@ -841,7 +785,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         action.type !== 'set search iterator index'
       ) {
         // If the search result index changes, mark the node as focused and scroll it into view
-        const nextNode = tree.list[nextSearchResultIndex];
+        const nextNode = props.tree.list[nextSearchResultIndex];
         setRowAsFocused(
           nextNode,
           null,
@@ -858,7 +802,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       traceStateEmitter.off('before next state', beforeTraceNextStateDispatch);
     };
   }, [
-    tree,
+    props.tree,
     onTraceSearch,
     traceStateEmitter,
     traceDispatch,
@@ -883,25 +827,25 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
 
   // Memoized because it requires tree traversal
-  const shape = useMemo(() => tree.shape, [tree]);
+  const shape = useMemo(() => props.tree.shape, [props.tree]);
 
   useEffect(() => {
-    if (tree.type !== 'trace') {
+    if (props.tree.type !== 'trace') {
       return;
     }
 
-    logTraceMetadata(tree, projects, props.organization);
-  }, [tree, projects, props.organization]);
+    logTraceMetadata(props.tree, projects, props.organization);
+  }, [props.tree, projects, props.organization]);
 
   useLayoutEffect(() => {
-    if (tree.type !== 'trace') {
+    if (props.tree.type !== 'trace') {
       return undefined;
     }
 
     traceScheduler.dispatch('initialize trace space', [
-      tree.root.space[0],
+      props.tree.root.space[0],
       0,
-      tree.root.space[1],
+      props.tree.root.space[1],
       1,
     ]);
 
@@ -910,12 +854,12 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       traceScheduler.dispatch('set trace space', [s[0], 0, s[1], 1]);
     };
 
-    tree.on('trace timeline change', onTraceTimelineChange);
+    props.tree.on('trace timeline change', onTraceTimelineChange);
 
     return () => {
-      tree.off('trace timeline change', onTraceTimelineChange);
+      props.tree.off('trace timeline change', onTraceTimelineChange);
     };
-  }, [viewManager, traceScheduler, tree]);
+  }, [viewManager, traceScheduler, props.tree]);
 
   // Sync part of the state with the URL
   const traceQueryStateSync = useMemo(() => {
@@ -938,7 +882,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   return (
     <Fragment>
       <TraceTypeWarnings
-        tree={tree}
+        tree={props.tree}
         traceSlug={props.traceSlug}
         organization={organization}
       />
@@ -952,7 +896,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       </TraceToolbar>
       <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
         <Trace
-          trace={isLoading ? loadingTree : tree}
+          trace={props.tree}
           rerender={rerender}
           trace_id={props.traceSlug}
           onRowClick={onRowClick}
@@ -969,7 +913,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           <TraceLoading />
         ) : isError ? (
           <TraceError />
-        ) : tree.type === 'empty' ? (
+        ) : props.tree.type === 'empty' ? (
           <TraceEmpty />
         ) : null}
 
@@ -977,9 +921,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           replayRecord={props.replayRecord}
           meta={props.meta}
           traceType={shape}
-          trace={tree}
+          trace={props.tree}
           traceGridRef={traceGridRef}
-          traces={props.trace.data ?? null}
           manager={viewManager}
           scheduler={traceScheduler}
           onTabScrollToNode={onTabScrollToNode}

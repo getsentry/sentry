@@ -261,6 +261,7 @@ export function Trace({
           action_source: 'keyboard',
         });
       }
+
       if (event.key === 'ArrowLeft') {
         if (node.zoomedIn) {
           onNodeZoomIn(event, node, false);
@@ -270,6 +271,8 @@ export function Trace({
       } else if (event.key === 'ArrowRight') {
         if (node.canFetch) {
           onNodeZoomIn(event, node, true);
+        } else {
+          onNodeExpand(event, node, true);
         }
       }
     },

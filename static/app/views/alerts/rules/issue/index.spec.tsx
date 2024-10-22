@@ -230,6 +230,43 @@ describe('IssueRuleEditor', function () {
       );
     });
 
+    it('saves rule with condition value of 0', async function () {
+      const rule = ProjectAlertRuleFixture({
+        conditions: [
+          {id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'},
+          {
+            id: 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+            value: 0,
+          },
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'GET',
+        body: rule,
+      });
+      createWrapper();
+      await userEvent.click(screen.getByText('Save Rule'));
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenCalledWith(
+          endpoint,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              conditions: [
+                {id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'},
+                {
+                  id: 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+                  value: '0', // Verify that the 0 is converted to a string by the serializer
+                },
+              ],
+            }),
+          })
+        )
+      );
+      expect(addErrorMessage).toHaveBeenCalledTimes(0);
+    });
+
     it('sends correct environment value', async function () {
       createWrapper();
       await selectEvent.select(screen.getByText('staging'), 'production');
@@ -368,7 +405,7 @@ describe('IssueRuleEditor', function () {
       // Add the adopted release filter
       await selectEvent.select(
         screen.getByText('Add optional filter...'),
-        /The {oldest_or_newest} release associated/
+        /The {oldest_or_newest} adopted release associated/
       );
 
       const filtersContainer = await screen.findByTestId('rule-filters');

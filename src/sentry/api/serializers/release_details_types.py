@@ -41,7 +41,7 @@ class VersionInfoOptional(TypedDict, total=False):
 
 class VersionInfo(VersionInfoOptional):
     package: str | None
-    version: dict[str, str]
+    version: dict[str, Any]
     buildHash: str | None
 
 
@@ -51,7 +51,7 @@ class LastDeployOptional(TypedDict, total=False):
 
 
 class LastDeploy(LastDeployOptional):
-    id: int
+    id: str
     environment: str
     dateFinished: str
     name: str

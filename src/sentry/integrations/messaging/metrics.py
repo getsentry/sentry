@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecycleOutcome
 from sentry.models.organization import Organization
@@ -37,6 +38,9 @@ class MessagingInteractionType(Enum):
     # Automatic behaviors
     UNFURL_ISSUES = "UNFURL_ISSUES"
     UNFURL_METRIC_ALERTS = "UNFURL_METRIC_ALERTS"
+    UNFURL_DISCOVER = "UNFURL_DISCOVER"
+
+    GET_PARENT_NOTIFICATION = "GET_PARENT_NOTIFICATION"
 
     def __str__(self) -> str:
         return self.value.lower()
@@ -55,7 +59,7 @@ class MessagingInteractionEvent(EventLifecycleMetric):
 
     def get_key(self, outcome: EventLifecycleOutcome) -> str:
         return self.get_standard_key(
-            domain="messaging",
+            domain=IntegrationDomain.MESSAGING,
             integration_name=self.spec.provider_slug,
             interaction_type=str(self.interaction_type),
             outcome=outcome,

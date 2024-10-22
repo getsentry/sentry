@@ -16,9 +16,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
@@ -62,7 +62,7 @@ export function SpanSamplesContainer({
   additionalFilters,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
+  const navigate = useNavigate();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
@@ -125,13 +125,16 @@ export function SpanSamplesContainer({
   const spanMetrics = data[0] ?? {};
 
   const handleSearch = (newSearchQuery: string) => {
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        ...(searchQueryKey && {[searchQueryKey]: newSearchQuery}),
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          ...(searchQueryKey && {[searchQueryKey]: newSearchQuery}),
+        },
       },
-    });
+      {replace: true}
+    );
   };
 
   return (
@@ -178,7 +181,7 @@ export function SpanSamplesContainer({
         transactionName={transactionName}
         transactionMethod={transactionMethod}
         onClickSample={span => {
-          router.push(
+          navigate(
             generateLinkToEventInTraceView({
               eventId: span['transaction.id'],
               projectSlug: span.project,

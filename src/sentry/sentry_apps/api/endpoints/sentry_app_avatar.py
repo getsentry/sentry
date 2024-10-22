@@ -5,10 +5,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.sentry_apps.api.parsers.sentry_app_avatar import SentryAppAvatarParser
 from sentry.sentry_apps.api.serializers.sentry_app import SentryAppSerializer
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 
 
 @control_silo_endpoint

@@ -16,6 +16,7 @@ import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {useTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceTree';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {loadTraceViewPreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -166,6 +167,11 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
   });
   const rootEvent = useTraceRootEvent(trace.data ?? null);
   const meta = useReplayTraceMeta(replayRecord);
+  const tree = useTraceTree({
+    trace,
+    meta,
+    replayRecord: replayRecord ?? null,
+  });
 
   const preferences = useMemo(
     () =>
@@ -220,6 +226,7 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
         <TraceViewWaterfall
           traceSlug={undefined}
           trace={trace}
+          tree={tree}
           rootEvent={rootEvent}
           replayTraces={otherReplayTraces}
           organization={organization}

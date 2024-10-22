@@ -4,11 +4,11 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
   BigNumberWidgetVisualization,
-  type Props as BigNumberWidgetVisualizationProps,
+  type BigNumberWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {
-  type Props as WidgetFrameProps,
   WidgetFrame,
+  type WidgetFrameProps,
 } from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
 import {MISSING_DATA_MESSAGE, NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
@@ -43,7 +43,10 @@ export function BigNumberWidget(props: Props) {
 
   if (!defined(value)) {
     parsingError = MISSING_DATA_MESSAGE;
-  } else if (!Number.isFinite(value) || Number.isNaN(value)) {
+  } else if (
+    (typeof value === 'number' && !Number.isFinite(value)) ||
+    Number.isNaN(value)
+  ) {
     parsingError = NON_FINITE_NUMBER_MESSAGE;
   }
 
@@ -57,16 +60,19 @@ export function BigNumberWidget(props: Props) {
       error={error}
       onRetry={props.onRetry}
     >
-      <BigNumberResizeWrapper>
-        <BigNumberWidgetVisualization
-          value={Number(value)}
-          previousPeriodValue={Number(previousPeriodValue)}
-          field={field}
-          maximumValue={props.maximumValue}
-          preferredPolarity={props.preferredPolarity}
-          meta={props.meta}
-        />
-      </BigNumberResizeWrapper>
+      {defined(value) && (
+        <BigNumberResizeWrapper>
+          <BigNumberWidgetVisualization
+            value={value}
+            previousPeriodValue={previousPeriodValue}
+            field={field}
+            maximumValue={props.maximumValue}
+            preferredPolarity={props.preferredPolarity}
+            meta={props.meta}
+            thresholds={props.thresholds}
+          />
+        </BigNumberResizeWrapper>
+      )}
     </WidgetFrame>
   );
 }
