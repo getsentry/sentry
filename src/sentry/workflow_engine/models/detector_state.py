@@ -10,6 +10,7 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 
 class DetectorStatus(StrEnum):
     OK = "ok"
+    FAILED = "failed"
 
 
 @region_silo_model
