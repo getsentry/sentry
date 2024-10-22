@@ -205,3 +205,21 @@ def dump_variant(
             lines.append("{}{}: {}".format("  " * indent, key, to_json(value)))
 
     return lines
+
+
+def get_snapshot_path(
+    test_file: str, input_file: str, test_name: str, grouping_config_name: str
+) -> str:
+    """
+    Get the path to the snapshot file. This mirrors the default behavior, but is useful if you want
+    multiple tests' snapshots to wind up in the same folder, as might happen if different grouping
+    configs are tested differently.
+    """
+    return path.join(
+        path.dirname(test_file),
+        "snapshots",
+        path.basename(test_file).replace(".py", ""),
+        test_name,
+        grouping_config_name.replace("-", "_").replace(":", "@"),
+        input_file.replace("-", "_").replace(".json", ".pysnap"),
+    )

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from os import path
-
 import pytest
 
 from sentry.eventstore.models import Event
@@ -13,6 +11,7 @@ from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,
     GroupingInput,
     dump_variant,
+    get_snapshot_path,
     with_grouping_inputs,
 )
 
@@ -94,12 +93,7 @@ def _assert_and_snapshot_results(
         output,
         # Manually set the snapshot path so that both of the tests above will file their snapshots
         # in the same spot
-        reference_file=path.join(
-            path.dirname(__file__),
-            "snapshots",
-            path.basename(__file__).replace(".py", ""),
-            "test_event_hash_variant",
-            config_name.replace("-", "_").replace(":", "@"),
-            input_file.replace("-", "_").replace(".json", ".pysnap"),
+        reference_file=get_snapshot_path(
+            __file__, input_file, "test_event_hash_variant", config_name
         ),
     )
