@@ -65,7 +65,6 @@ class WorkerServicer(BaseWorkerServiceServicer):
 
         # TODO: Check idempotency
         task_added_time = activation.received_at.seconds
-        execution_time = time.time()
         next_state = TASK_ACTIVATION_STATUS_FAILURE
         result = None
         try:
@@ -95,6 +94,8 @@ class WorkerServicer(BaseWorkerServiceServicer):
             if self.namespace.get(activation.taskname).should_retry(activation.retry_state, err):
                 logger.info("taskworker.task.retry", extra={"task": activation.taskname})
                 next_state = TASK_ACTIVATION_STATUS_RETRY
+
+        execution_time = time.time()
         task_latency = execution_time - task_added_time
 
         # Dump results to a log file that is CSV shaped

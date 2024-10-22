@@ -195,7 +195,7 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             if topic.name == "hackweek":
                 limit_tasks(message)
                 activation = process_message(message)
-                logger.info("store activation for id=%s", activation.id)
+                logger.info("store activation for id=%s", activation.activation.id)
 
                 self.pending_task_store.store([activation])
 
