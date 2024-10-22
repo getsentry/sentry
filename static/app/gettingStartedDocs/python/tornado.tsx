@@ -8,14 +8,18 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
-const getSdkSetupSnippet = (params: Params) => `import sentry_sdk
+const getSdkSetupSnippet = (params: Params) => `
+import sentry_sdk
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",${
@@ -26,13 +30,23 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    _experiments={
+        # Set continuous_profiling_auto_start to True
+        # to automatically start the profiler on when
+        # possible.
+        "continuous_profiling_auto_start": True,
+    },`
+          : ''
     }
 )
 `;
@@ -90,12 +104,14 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'python',
-          code: `${getSdkSetupSnippet(params)}
+          code: `
+${getSdkSetupSnippet(params)}
 class MainHandler(tornado.web.RequestHandler):
     # ...
-        `,
+`,
         },
       ],
+      additionalInfo: <AlternativeConfiguration />,
     },
   ],
   verify: (params: Params) => [
@@ -128,7 +144,7 @@ async def main():
     await asyncio.Event().wait()
 
 asyncio.run(main())
-    `,
+`,
         },
       ],
       additionalInfo: (
