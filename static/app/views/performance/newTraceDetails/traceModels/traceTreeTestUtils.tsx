@@ -115,6 +115,8 @@ export function makeEventTransaction(
   spans: TraceTree.Span[] = []
 ): EventTransaction {
   return {
+    contexts: {},
+    tags: [],
     entries: [{type: EntryType.SPANS, data: spans}],
     ...overrides,
   } as EventTransaction;

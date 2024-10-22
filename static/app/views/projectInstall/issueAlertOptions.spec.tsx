@@ -27,7 +27,6 @@ describe('IssueAlertOptions', function () {
     providersToIntegrations: {},
     querySuccess: true,
     shouldRenderSetupButton: false,
-    refetchConfigs: jest.fn(),
     setActions: jest.fn(),
     setChannel: jest.fn(),
     setIntegration: jest.fn(),
