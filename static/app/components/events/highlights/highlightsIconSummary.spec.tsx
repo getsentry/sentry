@@ -1,6 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {
@@ -39,7 +39,7 @@ describe('HighlightsIconSummary', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders user if there is id, email, username, etc', function () {
+  it('renders user if there is id, email, username, etc', async function () {
     const eventWithUser = EventFixture({
       contexts: {
         user: {
@@ -52,15 +52,21 @@ describe('HighlightsIconSummary', function () {
 
     render(<HighlightsIconSummary event={eventWithUser} />);
     expect(screen.getByText('user email')).toBeInTheDocument();
-    expect(screen.getByText('Username: user username')).toBeInTheDocument();
+    expect(screen.getByText('user username')).toBeInTheDocument();
+    await userEvent.hover(screen.getByText('user username'));
+    expect(await screen.findByText('Username')).toBeInTheDocument();
   });
 
-  it('renders appropriate icons and text', function () {
+  it('renders appropriate icons and text', async function () {
     render(<HighlightsIconSummary event={event} />);
     expect(screen.getByText('Mac OS X')).toBeInTheDocument();
-    expect(screen.getByText('Version: 10.15')).toBeInTheDocument();
+    expect(screen.getByText('10.15')).toBeInTheDocument();
+    await userEvent.hover(screen.getByText('10.15'));
+    expect(await screen.findByText('Version')).toBeInTheDocument();
     expect(screen.getByText('CPython')).toBeInTheDocument();
-    expect(screen.getByText('Version: 3.8.13')).toBeInTheDocument();
+    expect(screen.getByText('3.8.13')).toBeInTheDocument();
+    await userEvent.hover(screen.getByText('3.8.13'));
+    expect(await screen.findByText('Version')).toBeInTheDocument();
     expect(screen.getAllByRole('img')).toHaveLength(2);
   });
 
@@ -75,10 +81,10 @@ describe('HighlightsIconSummary', function () {
 
     render(<HighlightsIconSummary event={eventWithDevice} />);
     expect(screen.queryByText('iPhone 13')).not.toBeInTheDocument();
-    expect(screen.queryByText('Arch: x86')).not.toBeInTheDocument();
+    expect(screen.queryByText('x86')).not.toBeInTheDocument();
   });
 
-  it('displays device for mobile/native event platforms', function () {
+  it('displays device for mobile/native event platforms', async function () {
     const eventWithDevice = EventFixture({
       contexts: {
         ...TEST_EVENT_CONTEXTS,
@@ -89,6 +95,8 @@ describe('HighlightsIconSummary', function () {
 
     render(<HighlightsIconSummary event={eventWithDevice} />);
     expect(screen.getByText('iPhone 13')).toBeInTheDocument();
-    expect(screen.getByText('Arch: x86')).toBeInTheDocument();
+    expect(screen.getByText('x86')).toBeInTheDocument();
+    await userEvent.hover(screen.getByText('x86'));
+    expect(await screen.findByText('Architecture')).toBeInTheDocument();
   });
 });

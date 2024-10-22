@@ -598,32 +598,69 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     [viewManager]
   );
 
-  const onTabScrollToNode = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      if (node === null) {
-        return;
-      }
-
-      // We call expandToNode because we want to ensure that the node is
-      // visible and may not have been collapsed/hidden by the user
-      TraceTree.ExpandToPath(props.tree, TraceTree.PathToNode(node), forceRerender, {
+  const onScrollToNode = useCallback(
+    (
+      node: TraceTreeNode<TraceTree.NodeValue>
+    ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
+      return TraceTree.ExpandToPath(props.tree, TraceTree.PathToNode(node), {
         api,
         organization: props.organization,
-      }).then(maybeNode => {
-        if (maybeNode) {
-          previouslyFocusedNodeRef.current = null;
-          const index = props.tree.list.findIndex(n => n === maybeNode);
-          if (index === -1) {
-            Sentry.captureMessage('Trace tree node is not visible in tree');
-            return;
+      }).then(() => {
+        const maybeNode = TraceTree.Find(props.tree.root, n => n === node);
+
+        if (!maybeNode) {
+          return null;
+        }
+
+        let index = props.tree.list.indexOf(maybeNode);
+
+        if (node && index === -1) {
+          let parent_node = node.parent;
+          while (parent_node) {
+            // Transactions break autogrouping chains, so we can stop here
+            props.tree.expand(parent_node, true);
+            // This is very wasteful as it performs O(n^2) search each time we expand a node...
+            // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
+            // a low autogrouped node count.
+            index = node ? props.tree.list.findIndex(n => n === node) : -1;
+            if (index !== -1) {
+              break;
+            }
+            parent_node = parent_node.parent;
           }
-          scrollRowIntoView(maybeNode, index, 'center if outside', true);
+        }
+
+        scrollRowIntoView(maybeNode, index, 'center if outside', true);
+        traceDispatch({
+          type: 'set roving index',
+          node: maybeNode,
+          index: index,
+          action_source: 'click',
+        });
+
+        if (traceStateRef.current.search.resultsLookup.has(maybeNode)) {
           traceDispatch({
-            type: 'set roving index',
-            node: maybeNode,
-            index: index,
-            action_source: 'click',
+            type: 'set search iterator index',
+            resultIndex: index,
+            resultIteratorIndex:
+              traceStateRef.current.search.resultsLookup.get(maybeNode)!,
           });
+        } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
+          traceDispatch({type: 'clear search iterator index'});
+        }
+
+        return maybeNode;
+      });
+    },
+    [api, props.organization, scrollRowIntoView, props.tree, traceDispatch]
+  );
+
+  const onTabScrollToNode = useCallback(
+    (
+      node: TraceTreeNode<TraceTree.NodeValue>
+    ): Promise<TraceTreeNode<TraceTree.NodeValue> | null> => {
+      return onScrollToNode(node).then(maybeNode => {
+        if (maybeNode) {
           setRowAsFocused(
             maybeNode,
             null,
@@ -631,68 +668,12 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
             null,
             0
           );
-
-          if (traceStateRef.current.search.resultsLookup.has(maybeNode)) {
-            traceDispatch({
-              type: 'set search iterator index',
-              resultIndex: index,
-              resultIteratorIndex:
-                traceStateRef.current.search.resultsLookup.get(maybeNode)!,
-            });
-          } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
-            traceDispatch({type: 'clear search iterator index'});
-          }
         }
+
+        return maybeNode;
       });
     },
-    [
-      api,
-      props.organization,
-      setRowAsFocused,
-      scrollRowIntoView,
-      props.tree,
-      traceDispatch,
-      forceRerender,
-    ]
-  );
-
-  // Unlike onTabScrollToNode, this function does not set the node as the current
-  // focused node, but rather scrolls the node into view and sets the roving index to the node.
-  const onScrollToNode = useCallback(
-    (node: TraceTreeNode<TraceTree.NodeValue>) => {
-      TraceTree.ExpandToPath(props.tree, TraceTree.PathToNode(node), forceRerender, {
-        api,
-        organization: props.organization,
-      }).then(maybeNode => {
-        if (maybeNode) {
-          previouslyFocusedNodeRef.current = null;
-          const index = props.tree.list.findIndex(n => n === maybeNode);
-          if (index === -1) {
-            Sentry.captureMessage('Trace tree node is not visible in tree');
-            return;
-          }
-          scrollRowIntoView(maybeNode, index, 'center if outside', true);
-          traceDispatch({
-            type: 'set roving index',
-            node: maybeNode,
-            index: index,
-            action_source: 'click',
-          });
-
-          if (traceStateRef.current.search.resultsLookup.has(maybeNode)) {
-            traceDispatch({
-              type: 'set search iterator index',
-              resultIndex: index,
-              resultIteratorIndex:
-                traceStateRef.current.search.resultsLookup.get(maybeNode)!,
-            });
-          } else if (traceStateRef.current.search.resultIteratorIndex !== null) {
-            traceDispatch({type: 'clear search iterator index'});
-          }
-        }
-      });
-    },
-    [api, props.organization, scrollRowIntoView, props.tree, traceDispatch, forceRerender]
+    [onScrollToNode, setRowAsFocused]
   );
 
   // Callback that is invoked when the trace loads and reaches its initialied state,
@@ -886,7 +867,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     rerender,
     onTraceLoad,
     scrollQueueRef,
-    manager: viewManager,
     scheduler: traceScheduler,
     trace: props.tree,
   });
