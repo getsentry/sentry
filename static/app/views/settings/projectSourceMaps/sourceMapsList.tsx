@@ -20,6 +20,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
@@ -69,7 +70,19 @@ function mergeReleaseAndDebugIdBundles(
   return [...debugIdUploads, ...releaseUploads] as SourceMapUpload[];
 }
 
-function useSourceMapUploads({organization, project, query, cursor}) {
+interface UseSourceMapUploadsProps {
+  cursor: string | undefined;
+  organization: Organization;
+  project: Project;
+  query: string | undefined;
+}
+
+function useSourceMapUploads({
+  organization,
+  project,
+  query,
+  cursor,
+}: UseSourceMapUploadsProps) {
   const {
     data: archivesData,
     getResponseHeader: archivesHeaders,
@@ -108,7 +121,7 @@ function useSourceMapUploads({organization, project, query, cursor}) {
 
   return {
     data: mergeReleaseAndDebugIdBundles(archivesData, debugIdBundlesData),
-    headers: header => {
+    headers: (header: string) => {
       return debugIdBundlesHeaders?.(header) ?? archivesHeaders?.(header);
     },
     isPending: archivesLoading || debugIdBundlesLoading,
@@ -306,7 +319,7 @@ interface SourceMapUploadDeleteButtonProps {
 export function SourceMapUploadDeleteButton({
   onDelete,
 }: SourceMapUploadDeleteButtonProps) {
-  const tooltipTitle = useCallback((hasAccess, canDelete) => {
+  const tooltipTitle = useCallback((hasAccess: boolean, canDelete: boolean) => {
     if (hasAccess) {
       if (canDelete) {
         return t('Delete Source Maps');

@@ -30,7 +30,8 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
@@ -38,7 +39,18 @@ sentry_sdk.init(
     profiles_sample_rate=1.0,`
         : ''
     }
-)`;
+)${
+  params.isProfilingSelected &&
+  params.profilingOptions?.defaultProfilingMode === 'continuous'
+    ? `
+
+# Manually call start_profiling and stop_profiling
+# to profile the code in between
+sentry_sdk.profiler.start_profiling()
+# do some work here
+sentry_sdk.profiler.stop_profiling()`
+    : ''
+}`;
 
 const onboarding: OnboardingConfig = {
   install: (params: Params) => [
@@ -76,6 +88,10 @@ const onboarding: OnboardingConfig = {
           code: getSdkSetupSnippet(params),
         },
       ],
+      additionalInfo: params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+          <AlternativeConfiguration />
+        ),
     },
   ],
   verify: () => [
@@ -179,6 +195,21 @@ sentry_sdk.init(
   ],
   nextSteps: () => [],
 };
+
+export function AlternativeConfiguration() {
+  return (
+    <div>
+      {tct(
+        'Alternatively, you can also explicitly control continuous profiling or use transaction profiling. See our [link:documentation] for more information.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/" />
+          ),
+        }
+      )}
+    </div>
+  );
+}
 
 const docs: Docs = {
   onboarding,

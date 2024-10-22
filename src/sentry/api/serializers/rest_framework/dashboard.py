@@ -456,6 +456,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         return data
 
 
+class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
+    is_creator_only_editable = serializers.BooleanField(
+        help_text="Whether the dashboard is editable only by the creator.",
+    )
+
+
 class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False, help_text="A dashboard's unique id.")
@@ -494,6 +500,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         help_text="Setting that lets you display saved time range for this dashboard in UTC.",
     )
     validate_id = validate_id
+    permissions = DashboardPermissionsSerializer(
+        required=False,
+        allow_null=True,
+        help_text="Permissions that restrict users from editing dashboards",
+    )
 
     def validate_projects(self, projects):
         from sentry.api.validators import validate_project_ids

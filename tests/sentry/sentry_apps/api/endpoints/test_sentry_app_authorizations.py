@@ -95,7 +95,7 @@ class TestSentryAppAuthorizations(APITestCase):
     def test_expired_grant(self):
         self.install.api_grant.update(expires_at=timezone.now() - timedelta(minutes=2))
         response = self.get_error_response(status_code=403)
-        assert response.data["error"] == "Grant has already expired."
+        assert response.data["error"] == "Grant has already expired"
 
     def test_request_with_exchanged_access_token(self):
         response = self.get_response()
@@ -130,3 +130,9 @@ class TestSentryAppAuthorizations(APITestCase):
 
         old_token = ApiToken.objects.filter(id=token_id)
         assert not old_token.exists()
+
+        new_token = ApiToken.objects.filter(token=response.data["token"])
+        assert new_token.exists()
+
+        new_token = ApiToken.objects.filter(refresh_token=response.data["refreshToken"])
+        assert new_token.exists()

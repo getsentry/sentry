@@ -59,7 +59,7 @@ describe('AutofixSteps', () => {
 
     expect(screen.getByText('Root cause 1')).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText('Provide any instructions for the fix...')
+      screen.getByPlaceholderText('(Optional) Provide any instructions for the fix...')
     ).toBeInTheDocument();
   });
 
@@ -72,7 +72,9 @@ describe('AutofixSteps', () => {
 
     render(<AutofixSteps {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText('Provide any instructions for the fix...');
+    const input = screen.getByPlaceholderText(
+      '(Optional) Provide any instructions for the fix...'
+    );
     await userEvent.type(input, 'Custom root cause');
     await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
 
@@ -105,7 +107,7 @@ describe('AutofixSteps', () => {
     render(<AutofixSteps {...defaultProps} />);
 
     const messageBox = screen.getByPlaceholderText(
-      'Provide any instructions for the fix...'
+      '(Optional) Provide any instructions for the fix...'
     );
     expect(messageBox).toBeInTheDocument();
 
@@ -160,6 +162,9 @@ describe('AutofixSteps', () => {
       body: {},
     });
 
+    const changeData = AutofixCodebaseChangeData();
+    changeData.pull_request = undefined;
+
     const propsWithChanges = {
       ...defaultProps,
       data: {
@@ -178,7 +183,7 @@ describe('AutofixSteps', () => {
             type: AutofixStepType.CHANGES,
             status: 'COMPLETED',
             progress: [],
-            changes: [AutofixCodebaseChangeData()],
+            changes: [changeData],
           }),
         ],
       },
@@ -191,7 +196,7 @@ describe('AutofixSteps', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
     await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith("Thanks, I'll rethink this...");
+      expect(addSuccessMessage).toHaveBeenCalledWith('Thanks, rethinking this...');
     });
   });
 });

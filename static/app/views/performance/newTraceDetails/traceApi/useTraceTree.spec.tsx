@@ -119,6 +119,16 @@ describe('useTraceTree', () => {
           timestamp: 2,
           transaction: 'transaction2',
         }),
+        makeTransaction({
+          start_timestamp: 0,
+          timestamp: 1,
+          transaction: 'transaction1',
+        }),
+        makeTransaction({
+          start_timestamp: 1,
+          timestamp: 2,
+          transaction: 'transaction2',
+        }),
       ],
       orphan_errors: [
         makeTraceError({
@@ -153,7 +163,7 @@ describe('useTraceTree', () => {
 
     await waitFor(() => {
       expect(result.current.type).toBe('trace');
-      expect(result.current.list).toHaveLength(5);
+      expect(result.current.list).toHaveLength(7);
     });
   });
 
