@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 
 from arroyo import Topic as ArroyoTopic
@@ -21,6 +23,12 @@ MONITOR_TASKS_LAST_TRIGGERED_KEY = "sentry.monitors.last_tasks_ts"
 
 # This key is used to store the hashmap of Mapping[PartitionKey, Timestamp]
 MONITOR_TASKS_PARTITION_CLOCKS = "sentry.monitors.partition_clocks"
+
+# This key is used to record historical date about the volume of check-ins.
+MONITOR_VOLUME_HISTORY = "sentry.monitors.volume_history:{}"
+
+# We record 30 days worth of historical data for each minute of check-ins.
+MONITOR_VOLUME_RETENTION = timedelta(days=30)
 
 CLOCK_TICK_CODEC: Codec[ClockTick] = get_topic_codec(Topic.MONITORS_CLOCK_TICK)
 
@@ -70,6 +78,50 @@ def _dispatch_tick(ts: datetime):
     _clock_tick_producer.produce(ArroyoTopic(topic), payload)
 
 
+def _make_reference_ts(ts: datetime):
+    """
+    Produce a timestamp number with the seconds and microsecond removed
+    """
+    return int(ts.replace(second=0, microsecond=0).timestamp())
+
+
+def update_check_in_volume(ts: datetime):
+    """
+    Increment a counter for this particular timestamp trimmed down to the
+    minute.
+
+    This counter will be used as historical data to help incidate if we may
+    have had some data-loss (due to an incident) and would want to tick our
+    clock in a mode where misses and time-outs are created as "unknown".
+    """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    reference_ts = _make_reference_ts(ts)
+    key = MONITOR_VOLUME_HISTORY.format(reference_ts)
+
+    pipeline = redis_client.pipeline()
+    pipeline.incr(key, amount=1)
+    pipeline.expire(key, MONITOR_VOLUME_RETENTION)
+    pipeline.execute()
+
+
+def bulk_update_check_in_volume(ts_list: Sequence[datetime]):
+    """
+    Increment counters for a list of check-in timestamps. Each timestamp will be
+    trimmed to the minute and groupped appropriately
+    """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    # Group timestamps down to the minute
+    for reference_ts, count in Counter(_make_reference_ts(ts) for ts in ts_list).items():
+        key = MONITOR_VOLUME_HISTORY.format(reference_ts)
+
+        pipeline = redis_client.pipeline()
+        pipeline.incr(key, amount=count)
+        pipeline.expire(key, MONITOR_VOLUME_RETENTION)
+        pipeline.execute()
+
+
 def try_monitor_clock_tick(ts: datetime, partition: int):
     """
     Handles triggering the monitor tasks when we've rolled over the minute.
@@ -84,8 +136,7 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
 
     # Trim the timestamp seconds off, these tasks are run once per minute and
     # should have their timestamp clamped to the minute.
-    reference_datetime = ts.replace(second=0, microsecond=0)
-    reference_ts = int(reference_datetime.timestamp())
+    reference_ts = _make_reference_ts(ts)
 
     # Store the current clock value for this partition.
     redis_client.zadd(

@@ -3,11 +3,18 @@ from unittest import mock
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload
+from django.conf import settings
 from django.test.utils import override_settings
 from django.utils import timezone
 
-from sentry.monitors.clock_dispatch import _dispatch_tick, try_monitor_clock_tick
-from sentry.utils import json
+from sentry.monitors.clock_dispatch import (
+    MONITOR_VOLUME_HISTORY,
+    _dispatch_tick,
+    bulk_update_check_in_volume,
+    try_monitor_clock_tick,
+    update_check_in_volume,
+)
+from sentry.utils import json, redis
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
@@ -143,3 +150,50 @@ def test_dispatch_to_kafka(clock_tick_producer_mock):
         Topic("clock-tick-test-topic"),
         KafkaPayload(None, json.dumps({"ts": now.timestamp()}).encode("utf-8"), []),
     )
+
+
+def test_update_check_in_volume():
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+    now = timezone.now().replace(second=5)
+
+    update_check_in_volume(now)
+    update_check_in_volume(now + timedelta(seconds=5))
+    update_check_in_volume(now + timedelta(minutes=1))
+
+    def make_key(offset: timedelta) -> str:
+        ts = now.replace(second=0, microsecond=0) + offset
+        return MONITOR_VOLUME_HISTORY.format(int(ts.timestamp()))
+
+    minute_0 = redis_client.get(make_key(timedelta()))
+    minute_1 = redis_client.get(make_key(timedelta(minutes=1)))
+
+    assert minute_0 == "2"
+    assert minute_1 == "1"
+
+
+def test_bulk_update_check_in_volume():
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    now = timezone.now().replace(second=5)
+    items = [
+        now,
+        now + timedelta(seconds=10),
+        now + timedelta(seconds=30),
+        now + timedelta(minutes=1),
+        now + timedelta(minutes=3),
+    ]
+    bulk_update_check_in_volume(items)
+
+    def make_key(offset: timedelta) -> str:
+        ts = now.replace(second=0, microsecond=0) + offset
+        return MONITOR_VOLUME_HISTORY.format(int(ts.timestamp()))
+
+    minute_0 = redis_client.get(make_key(timedelta()))
+    minute_1 = redis_client.get(make_key(timedelta(minutes=1)))
+    minute_2 = redis_client.get(make_key(timedelta(minutes=2)))
+    minute_3 = redis_client.get(make_key(timedelta(minutes=3)))
+
+    assert minute_0 == "3"
+    assert minute_1 == "1"
+    assert minute_2 is None
+    assert minute_3 == "1"
