@@ -7,13 +7,13 @@ from sentry import analytics
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.mediators.token_exchange.util import token_expiration
-from sentry.mediators.token_exchange.validator import Validator
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.token_exchange.util import token_expiration
+from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry.token-exchange")
