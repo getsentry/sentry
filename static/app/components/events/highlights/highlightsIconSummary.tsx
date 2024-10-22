@@ -3,7 +3,11 @@ import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
-import {getContextIcon, getContextSummary} from 'sentry/components/events/contexts/utils';
+import {
+  getContextIcon,
+  getContextSummary,
+  getContextTitle,
+} from 'sentry/components/events/contexts/utils';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
@@ -24,6 +28,7 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
   const items = getOrderedContextItems(event)
     .map(({alias, type, value}) => ({
       ...getContextSummary({type, value}),
+      contextTitle: getContextTitle({alias, type, value}),
       alias,
       icon: getContextIcon({
         alias,
@@ -53,7 +58,9 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
               <IconDescription>
                 <div>{item.title}</div>
                 {item.subtitle && (
-                  <IconSubtitle title={item.subtitleType}>{item.subtitle}</IconSubtitle>
+                  <IconSubtitle title={`${item.contextTitle} ${item.subtitleType}`}>
+                    {item.subtitle}
+                  </IconSubtitle>
                 )}
               </IconDescription>
             </Flex>
