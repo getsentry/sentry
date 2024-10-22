@@ -1,5 +1,5 @@
 ---
-created: '2024-10-15T17:23:30.691805+00:00'
+created: '2024-10-16T19:26:51.228424+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -203,7 +203,7 @@ app:
 --------------------------------------------------------------------------
 custom-fingerprint:
   hash: "554e214208f0372603dc9fa6c1c0965f"
-  info: {"client_fingerprint":["{{ default }}","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]]}}
+  info: {"client_fingerprint":["{{ default }}","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"soft-timelimit-exceeded\""}}
   values: ["soft-timelimit-exceeded"]
 --------------------------------------------------------------------------
 system:

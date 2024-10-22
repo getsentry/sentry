@@ -1,5 +1,5 @@
 ---
-created: '2020-10-13T10:09:31.365749Z'
+created: '2024-10-16T22:32:29.636422+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -13,6 +13,7 @@ config:
       - symbolicator::actors::symcaches::*
     - - app
       - 'false'
+    text: function:"symbolicator::actors::symcaches::*" app:"false" -> "symcache-error"
   version: 1
 fingerprint:
 - '{{ default }}'
