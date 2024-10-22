@@ -201,7 +201,7 @@ stripe==3.1.0
 structlog==22.1.0
 symbolic==12.12.0
 tiktoken==0.8.0
-time-machine==2.13.0
+time-machine==2.16.0
 tldextract==5.1.2
 tokenize-rt==5.2.0
 tomli==2.0.1
