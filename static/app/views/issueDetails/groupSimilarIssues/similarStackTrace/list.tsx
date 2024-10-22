@@ -76,14 +76,9 @@ function List({
 
   return (
     <Fragment>
-      {!hasSimilarityEmbeddingsFeature && (
-        <Header>
-          <SimilarSpectrum />
-        </Header>
-      )}
-      {hasSimilarityEmbeddingsFeature && (
-        <LegendSmall>-1 = Not Similar, 1 = Similar</LegendSmall>
-      )}
+      <Header>
+        <SimilarSpectrum />
+      </Header>
       <Panel>
         <Toolbar
           onMerge={onMerge}
@@ -126,13 +121,6 @@ const Header = styled('div')`
   display: flex;
   justify-content: flex-end;
   margin-bottom: ${space(1)};
-`;
-
-const LegendSmall = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Footer = styled('div')`
