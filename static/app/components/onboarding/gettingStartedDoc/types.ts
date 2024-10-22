@@ -107,6 +107,7 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
   performanceOnboarding?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
+  profilingOnboarding?: OnboardingConfig<PlatformOptions>;
   replayOnboarding?: OnboardingConfig<PlatformOptions>;
   replayOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;
 }

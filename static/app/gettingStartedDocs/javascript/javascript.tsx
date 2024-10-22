@@ -607,6 +607,11 @@ transaction.finish(); // Finishing the transaction will send it to Sentry`,
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
+  ...onboarding,
+  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -616,6 +621,7 @@ const docs: Docs<PlatformOptions> = {
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
   platformOptions,
+  profilingOnboarding,
 };
 
 export default docs;

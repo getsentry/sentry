@@ -369,12 +369,18 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  ...onboarding,
+  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
+  profilingOnboarding,
 };
 
 const StyledAlert = styled(Alert)`
