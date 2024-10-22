@@ -10,12 +10,14 @@ import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboar
 import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
+import {hasQuickStartUpdatesFeature} from 'sentry/components/onboardingWizard/utils';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
   ExpandedContext,
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
+import {NewOnboardingStatus} from 'sentry/components/sidebar/newOnboardingStatus';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconDashboard,
@@ -793,13 +795,22 @@ function Sidebar() {
               {...sidebarItemProps}
             />
             <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
-              <OnboardingStatus
-                org={organization}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
-                hidePanel={hidePanel}
-                {...sidebarItemProps}
-              />
+              {hasQuickStartUpdatesFeature(organization) ? (
+                <NewOnboardingStatus
+                  currentPanel={activePanel}
+                  onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+                  hidePanel={hidePanel}
+                  {...sidebarItemProps}
+                />
+              ) : (
+                <OnboardingStatus
+                  org={organization}
+                  currentPanel={activePanel}
+                  onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+                  hidePanel={hidePanel}
+                  {...sidebarItemProps}
+                />
+              )}
             </SidebarSection>
 
             <SidebarSection hasNewNav={hasNewNav}>
