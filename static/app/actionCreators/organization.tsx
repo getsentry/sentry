@@ -15,7 +15,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
-import FeatureObserver, {FEATURE_FLAG_BUFFER_SIZE} from 'sentry/utils/featureObserver';
+import FeatureObserver from 'sentry/utils/featureObserver';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
@@ -42,9 +42,7 @@ async function fetchOrg(
   }
 
   FeatureFlagOverrides.singleton().loadOrg(org);
-  FeatureObserver.singleton({
-    bufferSize: FEATURE_FLAG_BUFFER_SIZE,
-  }).observeOrganizationFlags({
+  FeatureObserver.singleton({}).observeOrganizationFlags({
     organization: org,
   });
 

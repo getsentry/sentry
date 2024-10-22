@@ -15,7 +15,7 @@ import {
   useNavigationType,
 } from 'react-router-dom';
 import {useEffect} from 'react';
-import FeatureObserver, {FEATURE_FLAG_BUFFER_SIZE} from 'sentry/utils/featureObserver';
+import FeatureObserver from 'sentry/utils/featureObserver';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -185,9 +185,7 @@ export function initializeSdk(config: Config) {
 
       // attach feature flags to the event context
       if (event.contexts) {
-        const flags = FeatureObserver.singleton({
-          bufferSize: FEATURE_FLAG_BUFFER_SIZE,
-        }).getFeatureFlags();
+        const flags = FeatureObserver.singleton({}).getFeatureFlags();
         event.contexts.flags = flags;
       }
 
