@@ -112,9 +112,7 @@ function useOpenOnboardingSidebar(organization?: Organization) {
           onboardingContext,
         });
 
-        const allDisplayedTasks = tasks
-          .filter(task => task.display)
-          .filter(task => !task.renderCard);
+        const allDisplayedTasks = tasks.filter(task => task.display);
         const doneTasks = allDisplayedTasks.filter(isDone);
 
         return !(doneTasks.length >= allDisplayedTasks.length);
