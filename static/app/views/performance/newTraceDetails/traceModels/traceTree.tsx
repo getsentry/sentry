@@ -436,6 +436,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
         project_slug: root.metadata.project_slug,
       });
       node.event = event;
+
+      if (spanIdToNode.has(span.span_id)) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['trace-span-id-hash-collision']);
+          scope.captureMessage('Span ID hash collision detected');
+        });
+      }
+
       spanIdToNode.set(span.span_id, node);
       spanNodes.push(node);
     }
@@ -457,12 +465,21 @@ export class TraceTree extends TraceTreeEventDispatcher {
     // Reparent transactions under children spans
     for (const transaction of transactions) {
       const parent = spanIdToNode.get(transaction.value.parent_span_id!);
-
       // If the parent span does not exist in the span tree, the transaction will remain under the current node
       if (!parent) {
         if (transaction.parent?.children.indexOf(transaction) === -1) {
           transaction.parent.children.push(transaction);
         }
+        continue;
+      }
+
+      if (transaction === root) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['trace-tree-span-parent-cycle']);
+          scope.captureMessage(
+            'Span is a parent of its own transaction, this should not be possible'
+          );
+        });
         continue;
       }
 
@@ -1377,6 +1394,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
         // API response is not sorted
         spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
+
         const root = TraceTree.FromSpans(node, spans.data, data, {
           sdk: data.sdk?.name,
         });
