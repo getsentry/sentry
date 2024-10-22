@@ -18,9 +18,7 @@ type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[starlette]'`;
 
-type ProfilingMode = 'transaction' | 'continuous';
-
-const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
+const getSdkSetupSnippet = (params: Params) => `
 from starlette.applications import Starlette
 import sentry_sdk
 
@@ -33,13 +31,15 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected && profilingMode === 'transaction'
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : params.isProfilingSelected && profilingMode === 'continuous'
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
           ? `
     _experiments={
         # Set continuous_profiling_auto_start to True
@@ -83,51 +83,40 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
-
-    return [
-      {
-        type: StepType.CONFIGURE,
-        description: tct(
-          'If you have the [codeStarlette:starlette] package in your dependencies, the Starlette integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
-          {
-            codeStarlette: <code />,
-          }
-        ),
-        configurations: [
-          {
-            language: 'python',
-            code: `
-${getSdkSetupSnippet(params, profilingMode)}
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'If you have the [codeStarlette:starlette] package in your dependencies, the Starlette integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+        {
+          codeStarlette: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: `
+${getSdkSetupSnippet(params)}
 app = Starlette(routes=[...])
 `,
-          },
-        ],
-        additionalInfo: <AlternativeConfiguration />,
-      },
-    ];
-  },
-  verify: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
+        },
+      ],
+      additionalInfo: <AlternativeConfiguration />,
+    },
+  ],
+  verify: (params: Params) => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'You can easily verify your Sentry installation by creating a route that triggers an error:'
+      ),
+      configurations: [
+        {
+          language: 'python',
 
-    return [
-      {
-        type: StepType.VERIFY,
-        description: t(
-          'You can easily verify your Sentry installation by creating a route that triggers an error:'
-        ),
-        configurations: [
-          {
-            language: 'python',
-
-            code: `
+          code: `
 from starlette.routing import Route
-${getSdkSetupSnippet(params, profilingMode)}
+${getSdkSetupSnippet(params)}
 async def trigger_error(request):
     division_by_zero = 1 / 0
 
@@ -135,29 +124,28 @@ app = Starlette(routes=[
     Route("/sentry-debug", trigger_error),
 ])
 `,
-          },
-        ],
-        additionalInfo: (
-          <div>
-            <p>
-              {tct(
-                'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
-                {
-                  link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
-                }
-              )}
-            </p>
-            <p>
-              {t(
-                'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-              )}
-            </p>
-            <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-          </div>
-        ),
-      },
-    ];
-  },
+        },
+      ],
+      additionalInfo: (
+        <div>
+          <p>
+            {tct(
+              'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
+              {
+                link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
+              }
+            )}
+          </p>
+          <p>
+            {t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+            )}
+          </p>
+          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+        </div>
+      ),
+    },
+  ],
   nextSteps: () => [],
 };
 

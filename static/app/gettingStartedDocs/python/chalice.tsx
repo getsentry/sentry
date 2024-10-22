@@ -16,9 +16,7 @@ type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[chalice]'`;
 
-type ProfilingMode = 'transaction' | 'continuous';
-
-const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
+const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 from chalice import Chalice
 
@@ -34,13 +32,15 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected && profilingMode === 'transaction'
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : params.isProfilingSelected && profilingMode === 'continuous'
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
           ? `
     _experiments={
         # Set continuous_profiling_auto_start to True
@@ -91,29 +91,24 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
-
-    return [
-      {
-        type: StepType.CONFIGURE,
-        description: t(
-          'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
-        ),
-        configurations: [
-          {
-            language: 'python',
-            code: getSdkSetupSnippet(params, profilingMode),
-          },
-        ],
-        additionalInfo: params.isProfilingSelected && profilingMode === 'continuous' && (
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: getSdkSetupSnippet(params),
+        },
+      ],
+      additionalInfo: params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
           <AlternativeConfiguration />
         ),
-      },
-    ];
-  },
+    },
+  ],
   verify: () => [
     {
       type: StepType.VERIFY,

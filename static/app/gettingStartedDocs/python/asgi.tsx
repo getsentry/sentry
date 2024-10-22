@@ -19,9 +19,7 @@ type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
-type ProfilingMode = 'transaction' | 'continuous';
-
-const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
+const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 
@@ -36,13 +34,15 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected && profilingMode === 'transaction'
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : params.isProfilingSelected && profilingMode === 'continuous'
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
           ? `
     _experiments={
         # Set continuous_profiling_auto_start to True
@@ -112,40 +112,32 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
-
-    return [
-      {
-        type: StepType.CONFIGURE,
-        description: tct(
-          'Wrap your ASGI application with [code: SentryAsgiMiddleware]:',
-          {
-            code: <code />,
-          }
-        ),
-        configurations: [
-          {
-            language: 'python',
-            code: getSdkSetupSnippet(params, profilingMode),
-          },
-        ],
-        additionalInfo: (
-          <Fragment>
-            {params.isProfilingSelected && profilingMode === 'continuous' && (
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct('Wrap your ASGI application with [code: SentryAsgiMiddleware]:', {
+        code: <code />,
+      }),
+      configurations: [
+        {
+          language: 'python',
+          code: getSdkSetupSnippet(params),
+        },
+      ],
+      additionalInfo: (
+        <Fragment>
+          {params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
               <Fragment>
                 <AlternativeConfiguration />
                 <br />
               </Fragment>
             )}
-            {t('The middleware supports both ASGI 2 and ASGI 3 transparently.')}
-          </Fragment>
-        ),
-      },
-    ];
-  },
+          {t('The middleware supports both ASGI 2 and ASGI 3 transparently.')}
+        </Fragment>
+      ),
+    },
+  ],
   verify: () => [
     {
       type: StepType.VERIFY,

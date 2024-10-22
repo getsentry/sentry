@@ -18,9 +18,7 @@ type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[falcon]'`;
 
-type ProfilingMode = 'transaction' | 'continuous';
-
-const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
+const getSdkSetupSnippet = (params: Params) => `
 import falcon
 import sentry_sdk
 
@@ -33,13 +31,15 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected && profilingMode === 'transaction'
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : params.isProfilingSelected && profilingMode === 'continuous'
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
           ? `
     _experiments={
         # Set continuous_profiling_auto_start to True
@@ -83,50 +83,39 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
-
-    return [
-      {
-        type: StepType.CONFIGURE,
-        description: tct(
-          'If you have the [codeFalcon:falcon] package in your dependencies, the Falcon integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
-          {
-            codeFalcon: <code />,
-          }
-        ),
-        configurations: [
-          {
-            language: 'python',
-            code: `
-${getSdkSetupSnippet(params, profilingMode)}
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'If you have the [codeFalcon:falcon] package in your dependencies, the Falcon integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+        {
+          codeFalcon: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: `
+${getSdkSetupSnippet(params)}
 api = falcon.API()
-        `,
-          },
-        ],
-        additionalInfo: <AlternativeConfiguration />,
-      },
-    ];
-  },
-  verify: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
+      `,
+        },
+      ],
+      additionalInfo: <AlternativeConfiguration />,
+    },
+  ],
+  verify: (params: Params) => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To verify that everything is working, trigger an error on purpose:'
+      ),
+      configurations: [
+        {
+          language: 'python',
 
-    return [
-      {
-        type: StepType.VERIFY,
-        description: t(
-          'To verify that everything is working, trigger an error on purpose:'
-        ),
-        configurations: [
-          {
-            language: 'python',
-
-            code: `
-  ${getSdkSetupSnippet(params, profilingMode)}
+          code: `
+${getSdkSetupSnippet(params)}
 class HelloWorldResource:
     def on_get(self, req, resp):
         message = {
@@ -138,29 +127,28 @@ class HelloWorldResource:
 app = falcon.App()
 app.add_route('/', HelloWorldResource())
 `,
-          },
-        ],
-        additionalInfo: (
-          <div>
-            <p>
-              {tct(
-                'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
-                {
-                  link: <ExternalLink href="http://localhost:8000/" />,
-                }
-              )}
-            </p>
-            <p>
-              {t(
-                'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-              )}
-            </p>
-            <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-          </div>
-        ),
-      },
-    ];
-  },
+        },
+      ],
+      additionalInfo: (
+        <div>
+          <p>
+            {tct(
+              'When you point your browser to [link:http://localhost:8000/] a transaction in the Performance section of Sentry will be created.',
+              {
+                link: <ExternalLink href="http://localhost:8000/" />,
+              }
+            )}
+          </p>
+          <p>
+            {t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+            )}
+          </p>
+          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+        </div>
+      ),
+    },
+  ],
   nextSteps: () => [],
 };
 

@@ -23,9 +23,7 @@ type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[celery]'`;
 
-type ProfilingMode = 'transaction' | 'continuous';
-
-const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
+const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 
 sentry_sdk.init(
@@ -37,7 +35,8 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected && profilingMode === 'transaction'
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
@@ -46,7 +45,8 @@ sentry_sdk.init(
         : ''
     }
 )${
-  params.isProfilingSelected && profilingMode === 'continuous'
+  params.isProfilingSelected &&
+  params.profilingOptions?.defaultProfilingMode === 'continuous'
     ? `
 
 # Manually call start_profiling and stop_profiling
@@ -88,73 +88,69 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
-
-    return [
-      {
-        type: StepType.CONFIGURE,
-        description: (
-          <div>
-            <p>
-              {tct(
-                'If you have the [code:celery] package in your dependencies, the Celery integration will be enabled automatically when you initialize the Sentry SDK.',
-                {
-                  code: <code />,
-                }
-              )}
-            </p>
-            <p>
-              {tct(
-                'Make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your tasks are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
-                {
-                  code: <code />,
-                }
-              )}
-            </p>
-          </div>
-        ),
-        configurations: [
-          {
-            language: 'python',
-            code: getSdkSetupSnippet(params, profilingMode),
-          },
-        ],
-        additionalInfo: (
-          <Fragment>
-            {params.isProfilingSelected && profilingMode === 'continuous' && (
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: (
+        <div>
+          <p>
+            {tct(
+              'If you have the [code:celery] package in your dependencies, the Celery integration will be enabled automatically when you initialize the Sentry SDK.',
+              {
+                code: <code />,
+              }
+            )}
+          </p>
+          <p>
+            {tct(
+              'Make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your tasks are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
+              {
+                code: <code />,
+              }
+            )}
+          </p>
+        </div>
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: getSdkSetupSnippet(params),
+        },
+      ],
+      additionalInfo: (
+        <Fragment>
+          {params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
               <Fragment>
                 <AlternativeConfiguration />
                 <br />
               </Fragment>
             )}
-            <h5>{t('Standalone Setup')}</h5>
-            {t("If you're using Celery standalone, there are two ways to set this up:")}
-            <ul>
-              <li>
-                {tct(
-                  "Initializing the SDK in the configuration file loaded with Celery's [code:--config] parameter",
-                  {
-                    code: <code />,
-                  }
-                )}
-              </li>
-              <li>
-                {tct(
-                  'Initializing the SDK by hooking it to either the [celerydInit: celeryd_init] or [workerInit: worker_init] signals:',
-                  {
-                    celerydInit: (
-                      <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#celeryd-init" />
-                    ),
-                    workerInit: (
-                      <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#worker-init" />
-                    ),
-                  }
-                )}
-                <CodeSnippet dark language="python">
-                  {`import sentry_sdk
+          <h5>{t('Standalone Setup')}</h5>
+          {t("If you're using Celery standalone, there are two ways to set this up:")}
+          <ul>
+            <li>
+              {tct(
+                "Initializing the SDK in the configuration file loaded with Celery's [code:--config] parameter",
+                {
+                  code: <code />,
+                }
+              )}
+            </li>
+            <li>
+              {tct(
+                'Initializing the SDK by hooking it to either the [celerydInit: celeryd_init] or [workerInit: worker_init] signals:',
+                {
+                  celerydInit: (
+                    <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#celeryd-init" />
+                  ),
+                  workerInit: (
+                    <ExternalLink href="https://docs.celeryq.dev/en/stable/userguide/signals.html?#worker-init" />
+                  ),
+                }
+              )}
+              <CodeSnippet dark language="python">
+                {`import sentry_sdk
 from celery import Celery, signals
 
 app = Celery("myapp")
@@ -163,29 +159,28 @@ app = Celery("myapp")
 @signals.celeryd_init.connect
 def init_sentry(**_kwargs):
     sentry_sdk.init(...)  # same as above
-                  `}
-                </CodeSnippet>
-              </li>
-            </ul>
-            <h5>{t('Setup With Django')}</h5>
-            <p>
-              {tct(
-                "If you're using Celery with Django in a conventional setup, have already initialized the SDK in [settingsLink:your settings.py], and have Celery using the same settings with [celeryDocsLinks:config_from_object], you don't need to initialize the SDK separately for Celery.",
-                {
-                  settingsLink: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/python/guides/django/#configure" />
-                  ),
-                  celeryDocsLinks: (
-                    <ExternalLink href="https://docs.celeryq.dev/en/stable/django/first-steps-with-django.html" />
-                  ),
-                }
-              )}
-            </p>
-          </Fragment>
-        ),
-      },
-    ];
-  },
+                `}
+              </CodeSnippet>
+            </li>
+          </ul>
+          <h5>{t('Setup With Django')}</h5>
+          <p>
+            {tct(
+              "If you're using Celery with Django in a conventional setup, have already initialized the SDK in [settingsLink:your settings.py], and have Celery using the same settings with [celeryDocsLinks:config_from_object], you don't need to initialize the SDK separately for Celery.",
+              {
+                settingsLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/python/guides/django/#configure" />
+                ),
+                celeryDocsLinks: (
+                  <ExternalLink href="https://docs.celeryq.dev/en/stable/django/first-steps-with-django.html" />
+                ),
+              }
+            )}
+          </p>
+        </Fragment>
+      ),
+    },
+  ],
   verify: () => [
     {
       type: StepType.VERIFY,

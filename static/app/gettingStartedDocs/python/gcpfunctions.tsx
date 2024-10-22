@@ -22,9 +22,7 @@ type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
-type ProfilingMode = 'transaction' | 'continuous';
-
-const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
+const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 from sentry_sdk.integrations.gcp import GcpIntegration
 
@@ -38,13 +36,15 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected && profilingMode === 'transaction'
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : params.isProfilingSelected && profilingMode === 'continuous'
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
           ? `
     _experiments={
         # Set continuous_profiling_auto_start to True
@@ -91,79 +91,74 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
-
-    return [
-      {
-        type: StepType.CONFIGURE,
-        description: t(
-          'You can use the Google Cloud Functions integration for the Python SDK like this:'
-        ),
-        configurations: [
-          {
-            language: 'python',
-            code: getSdkSetupSnippet(params, profilingMode),
-          },
-        ],
-        additionalInfo: (
-          <Fragment>
-            {params.isProfilingSelected && profilingMode === 'continuous' && (
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'You can use the Google Cloud Functions integration for the Python SDK like this:'
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: getSdkSetupSnippet(params),
+        },
+      ],
+      additionalInfo: (
+        <Fragment>
+          {params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
               <Fragment>
                 <AlternativeConfiguration />
                 <br />
               </Fragment>
             )}
-            {tct("Check out Sentry's [link:GCP sample apps] for detailed examples.", {
-              link: (
-                <ExternalLink href="https://github.com/getsentry/examples/tree/master/gcp-cloud-functions" />
-              ),
-            })}
-          </Fragment>
-        ),
-      },
-      {
-        title: t('Timeout Warning'),
-        description: tct(
-          'The timeout warning reports an issue when the function execution time is near the [link:configured timeout].',
-          {
+          {tct("Check out Sentry's [link:GCP sample apps] for detailed examples.", {
             link: (
-              <ExternalLink href="https://cloud.google.com/functions/docs/concepts/execution-environment#timeout" />
+              <ExternalLink href="https://github.com/getsentry/examples/tree/master/gcp-cloud-functions" />
             ),
-          }
-        ),
-        configurations: [
-          {
-            description: tct(
-              'To enable the warning, update the SDK initialization to set [code:timeout_warning] to [code:true]:',
-              {code: <code />}
-            ),
-            language: 'python',
-            code: getTimeoutWarningSnippet(params),
-          },
-          {
-            description: t(
-              'The timeout warning is sent only if the timeout in the Cloud Function configuration is set to a value greater than one second.'
-            ),
-          },
-        ],
-        additionalInfo: (
-          <AlertWithMarginBottom type="info">
-            {tct(
-              'If you are using a web framework in your Cloud Function, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/platforms/python/#integrations" />
-                ),
-              }
-            )}
-          </AlertWithMarginBottom>
-        ),
-      },
-    ];
-  },
+          })}
+        </Fragment>
+      ),
+    },
+    {
+      title: t('Timeout Warning'),
+      description: tct(
+        'The timeout warning reports an issue when the function execution time is near the [link:configured timeout].',
+        {
+          link: (
+            <ExternalLink href="https://cloud.google.com/functions/docs/concepts/execution-environment#timeout" />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          description: tct(
+            'To enable the warning, update the SDK initialization to set [code:timeout_warning] to [code:true]:',
+            {code: <code />}
+          ),
+          language: 'python',
+          code: getTimeoutWarningSnippet(params),
+        },
+        {
+          description: t(
+            'The timeout warning is sent only if the timeout in the Cloud Function configuration is set to a value greater than one second.'
+          ),
+        },
+      ],
+      additionalInfo: (
+        <AlertWithMarginBottom type="info">
+          {tct(
+            'If you are using a web framework in your Cloud Function, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/#integrations" />
+              ),
+            }
+          )}
+        </AlertWithMarginBottom>
+      ),
+    },
+  ],
   verify: () => [],
 };
 

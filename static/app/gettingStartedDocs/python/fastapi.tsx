@@ -20,9 +20,7 @@ type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[fastapi]'`;
 
-type ProfilingMode = 'transaction' | 'continuous';
-
-const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
+const getSdkSetupSnippet = (params: Params) => `
 from fastapi import FastAPI
 import sentry_sdk
 
@@ -35,13 +33,15 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected && profilingMode === 'transaction'
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : params.isProfilingSelected && profilingMode === 'continuous'
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
           ? `
     _experiments={
         # Set continuous_profiling_auto_start to True
@@ -85,49 +85,44 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
-
-    return [
-      {
-        type: StepType.CONFIGURE,
-        description: tct(
-          'If you have the [codeFastAPI:fastapi] package in your dependencies, the FastAPI integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
-          {
-            codeFastAPI: <code />,
-          }
-        ),
-        configurations: [
-          {
-            language: 'python',
-            code: `
-${getSdkSetupSnippet(params, profilingMode)}
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'If you have the [codeFastAPI:fastapi] package in your dependencies, the FastAPI integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+        {
+          codeFastAPI: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: `
+${getSdkSetupSnippet(params)}
 app = FastAPI()
 `,
-          },
-        ],
-        additionalInfo: (
-          <Fragment>
-            {params.isProfilingSelected && profilingMode === 'continuous' && (
+        },
+      ],
+      additionalInfo: (
+        <Fragment>
+          {params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
               <Fragment>
                 <AlternativeConfiguration />
                 <br />
               </Fragment>
             )}
-            {tct(
-              'The above configuration captures both error and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
-              {
-                code: <code />,
-              }
-            )}
-            ,
-          </Fragment>
-        ),
-      },
-    ];
-  },
+          {tct(
+            'The above configuration captures both error and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
+            {
+              code: <code />,
+            }
+          )}
+          ,
+        </Fragment>
+      ),
+    },
+  ],
   verify: () => [
     {
       type: StepType.VERIFY,
@@ -140,7 +135,8 @@ app = FastAPI()
           code: `
 @app.get("/sentry-debug")
 async def trigger_error():
-    division_by_zero = 1 / 0`,
+    division_by_zero = 1 / 0
+`,
         },
       ],
       additionalInfo: (

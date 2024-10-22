@@ -18,9 +18,7 @@ type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[quart]'`;
 
-type ProfilingMode = 'transaction' | 'continuous';
-
-const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
+const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 from sentry_sdk.integrations.quart import QuartIntegration
 from quart import Quart
@@ -35,13 +33,15 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected && profilingMode === 'transaction'
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : params.isProfilingSelected && profilingMode === 'continuous'
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
           ? `
     _experiments={
         # Set continuous_profiling_auto_start to True
@@ -85,47 +85,36 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
-
-    return [
-      {
-        type: StepType.CONFIGURE,
-        description: t(
-          'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
-        ),
-        configurations: [
-          {
-            language: 'python',
-            code: `
-${getSdkSetupSnippet(params, profilingMode)}
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'To configure the SDK, initialize it with the integration before or after your app has been initialized:'
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: `
+${getSdkSetupSnippet(params)}
 app = Quart(__name__)
 `,
-          },
-        ],
-        additionalInfo: <AlternativeConfiguration />,
-      },
-    ];
-  },
-  verify: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
+        },
+      ],
+      additionalInfo: <AlternativeConfiguration />,
+    },
+  ],
+  verify: (params: Params) => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'You can easily verify your Sentry installation by creating a route that triggers an error:'
+      ),
+      configurations: [
+        {
+          language: 'python',
 
-    return [
-      {
-        type: StepType.VERIFY,
-        description: t(
-          'You can easily verify your Sentry installation by creating a route that triggers an error:'
-        ),
-        configurations: [
-          {
-            language: 'python',
-
-            code: `
-${getSdkSetupSnippet(params, profilingMode)}
+          code: `
+${getSdkSetupSnippet(params)}
 app = Quart(__name__)
 
 @app.route("/")
@@ -135,29 +124,28 @@ async def hello():
 
 app.run()
 `,
-          },
-        ],
-        additionalInfo: (
-          <span>
-            <p>
-              {tct(
-                'When you point your browser to [link:http://localhost:5000/] a transaction in the Performance section of Sentry will be created.',
-                {
-                  link: <ExternalLink href="http://localhost:5000/" />,
-                }
-              )}
-            </p>
-            <p>
-              {t(
-                'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-              )}
-            </p>
-            <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-          </span>
-        ),
-      },
-    ];
-  },
+        },
+      ],
+      additionalInfo: (
+        <span>
+          <p>
+            {tct(
+              'When you point your browser to [link:http://localhost:5000/] a transaction in the Performance section of Sentry will be created.',
+              {
+                link: <ExternalLink href="http://localhost:5000/" />,
+              }
+            )}
+          </p>
+          <p>
+            {t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+            )}
+          </p>
+          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+        </span>
+      ),
+    },
+  ],
   nextSteps: () => [],
 };
 

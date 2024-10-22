@@ -4,9 +4,9 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import docs from './django';
+import docs from './tryton';
 
-describe('django onboarding docs', function () {
+describe('tryton onboarding docs', function () {
   it('renders doc correctly', function () {
     renderWithOnboardingLayout(docs);
 

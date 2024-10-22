@@ -18,9 +18,7 @@ type Params = DocsParams;
 
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
-type ProfilingMode = 'transaction' | 'continuous';
-
-const getSdkSetupSnippet = (params: Params, profilingMode: ProfilingMode) => `
+const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 
 sentry_sdk.init(
@@ -32,13 +30,15 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected && profilingMode === 'transaction'
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : params.isProfilingSelected && profilingMode === 'continuous'
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
           ? `
     _experiments={
         # Set continuous_profiling_auto_start to True
@@ -92,53 +92,42 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  configure: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
-
-    return [
-      {
-        type: StepType.CONFIGURE,
-        description: tct(
-          'If you have the [codeTornado:tornado] package in your dependencies, the Tornado integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
-          {
-            codeTornado: <code />,
-          }
-        ),
-        configurations: [
-          {
-            language: 'python',
-            code: `
-${getSdkSetupSnippet(params, profilingMode)}
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'If you have the [codeTornado:tornado] package in your dependencies, the Tornado integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK before your app has been initialized:',
+        {
+          codeTornado: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: `
+${getSdkSetupSnippet(params)}
 class MainHandler(tornado.web.RequestHandler):
     # ...
 `,
-          },
-        ],
-        additionalInfo: <AlternativeConfiguration />,
-      },
-    ];
-  },
-  verify: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
+        },
+      ],
+      additionalInfo: <AlternativeConfiguration />,
+    },
+  ],
+  verify: (params: Params) => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'You can easily verify your Sentry installation by creating a route that triggers an error:'
+      ),
+      configurations: [
+        {
+          language: 'python',
 
-    return [
-      {
-        type: StepType.VERIFY,
-        description: t(
-          'You can easily verify your Sentry installation by creating a route that triggers an error:'
-        ),
-        configurations: [
-          {
-            language: 'python',
-
-            code: `
+          code: `
 import asyncio
 import tornado
-${getSdkSetupSnippet(params, profilingMode)}
+${getSdkSetupSnippet(params)}
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         1/0  # raises an error
@@ -156,29 +145,28 @@ async def main():
 
 asyncio.run(main())
 `,
-          },
-        ],
-        additionalInfo: (
-          <div>
-            <p>
-              {tct(
-                'When you point your browser to [link:http://localhost:8888/] a transaction in the Performance section of Sentry will be created.',
-                {
-                  link: <ExternalLink href="http://localhost:8888/" />,
-                }
-              )}
-            </p>
-            <p>
-              {t(
-                'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-              )}
-            </p>
-            <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-          </div>
-        ),
-      },
-    ];
-  },
+        },
+      ],
+      additionalInfo: (
+        <div>
+          <p>
+            {tct(
+              'When you point your browser to [link:http://localhost:8888/] a transaction in the Performance section of Sentry will be created.',
+              {
+                link: <ExternalLink href="http://localhost:8888/" />,
+              }
+            )}
+          </p>
+          <p>
+            {t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+            )}
+          </p>
+          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+        </div>
+      ),
+    },
+  ],
   nextSteps: () => [],
 };
 
