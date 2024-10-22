@@ -684,6 +684,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
+
     const query = qs.parse(location.search);
     if (query.fov && typeof query.fov === 'string') {
       viewManager.maybeInitializeTraceViewFromQS(query.fov);

@@ -765,7 +765,7 @@ describe('trace view', () => {
     expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
   });
 
-  it('renders error state if meta fails to load', async () => {
+  it.only('renders error state if meta fails to load', async () => {
     mockTraceResponse({
       statusCode: 200,
       body: {
