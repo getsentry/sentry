@@ -20,7 +20,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features, quotas
+from sentry import features, options, quotas
 from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
@@ -109,7 +109,7 @@ def boost_low_volume_projects(context: TaskContext) -> None:
                 boost_low_volume_projects_of_org.delay(org_id, projects)
 
 
-def partition_by_measure(orgs: Sequence[OrganizationId]) -> Mapping[SamplingMeasure, list[int]]:
+def partition_by_measure(org_ids: Sequence[OrganizationId]) -> Mapping[SamplingMeasure, list[int]]:
     """
     Partitions the orgs by the measure that will be used to adjust the sample
     rates. This is controlled through a feature flag on the organization,
@@ -119,13 +119,20 @@ def partition_by_measure(orgs: Sequence[OrganizationId]) -> Mapping[SamplingMeas
     spans = []
     transactions = []
 
-    # TODO: Batch-query the feature flag
-    for org_id in orgs:
-        org = Organization.objects.get_from_cache(id=org_id)
+    if not options.get("organizations:dynamic-sampling-spans"):
+        return {SamplingMeasure.TRANSACTIONS: org_ids}
+
+    orgs = Organization.objects.get_many_from_cache(org_ids)
+
+    for org in orgs:
+        # This is an N+1 query that fetches getsentry database models
+        # internally, but we cannot abstract over batches of feature flag
+        # handlers yet. Hence, we must fetch organizations and do individual
+        # feature checks per org.
         if features.has("organizations:dynamic-sampling-spans", org):
-            spans.append(org_id)
+            spans.append(org.id)
         else:
-            transactions.append(org_id)
+            transactions.append(org.id)
 
     return {SamplingMeasure.SPANS: spans, SamplingMeasure.TRANSACTIONS: transactions}
 
