@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import Alert from 'sentry/components/alert';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingError from 'sentry/components/loadingError';
@@ -167,20 +166,6 @@ function SimilarStackTrace({params, location, project}: Props) {
 
   return (
     <Fragment>
-      {hasSimilarityEmbeddingsFeature && (
-        <Alert
-          type="info"
-          showIcon
-          defaultExpanded
-          expand={
-            'We\'d love to get your feedback on the accuracy of this score. You can check off individuals rows with "Agree" and "Disagree" to send us feedback on how you\'d classify each decision we\'ve made.'
-          }
-        >
-          Hi there! We're working on improving grouping with ML techniques. Each similar
-          issue has been scored as "Would Group: Yes" and "Would Group: No," which refers
-          to whether or not we'd group the similar issue into the main issue.
-        </Alert>
-      )}
       <HeaderWrapper>
         <Title>{t('Issues with a similar stack trace')}</Title>
         <small>
