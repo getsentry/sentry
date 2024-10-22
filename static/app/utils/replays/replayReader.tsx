@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import type {eventWithTime} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {type Duration, duration} from 'moment-timezone';
 
@@ -160,36 +159,6 @@ const extractDomNodes = {
       timestamp: frame.timestampMs,
     });
   },
-};
-
-const countDomNodes = function (frames: eventWithTime[]) {
-  let frameCount = 0;
-  const length = frames?.length ?? 0;
-  const frameStep = Math.max(Math.round(length * 0.007), 1);
-
-  let prevIds: number[] = [];
-
-  return {
-    shouldVisitFrame() {
-      frameCount++;
-      return frameCount % frameStep === 0;
-    },
-    onVisitFrame(frame, collection, replayer) {
-      const ids = replayer.getMirror().getIds(); // gets list of DOM nodes present
-      const count = ids.length;
-      const added = ids.filter(id => !prevIds.includes(id)).length;
-      const removed = prevIds.filter(id => !ids.includes(id)).length;
-      collection.set(frame as RecordingFrame, {
-        count,
-        added,
-        removed,
-        timestampMs: frame.timestamp,
-        startTimestampMs: frame.timestamp,
-        endTimestampMs: frame.timestamp,
-      });
-      prevIds = ids;
-    },
-  };
 };
 
 export default class ReplayReader {
@@ -466,20 +435,6 @@ export default class ReplayReader {
   hasProcessingErrors = () => {
     return this.processingErrors().length;
   };
-
-  getCountDomNodes = memoize(async () => {
-    const {onVisitFrame, shouldVisitFrame} = countDomNodes(this.getRRWebMutations());
-
-    const results = await replayerStepper({
-      frames: this.getRRWebMutations(),
-      rrwebEvents: this.getRRWebFrames(),
-      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
-      onVisitFrame,
-      shouldVisitFrame,
-    });
-
-    return results;
-  });
 
   getExtractDomNodes = memoize(async () => {
     const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
