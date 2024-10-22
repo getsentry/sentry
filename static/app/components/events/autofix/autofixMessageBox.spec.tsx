@@ -1,9 +1,18 @@
+import {AutofixCodebaseChangeData} from 'sentry-fixture/autofixCodebaseChangeData';
 import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AutofixMessageBox from 'sentry/components/events/autofix/autofixMessageBox';
+import {AutofixStepType} from 'sentry/components/events/autofix/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -17,6 +26,48 @@ describe('AutofixMessageBox', () => {
     responseRequired: false,
     step: null,
     onSend: null,
+  };
+
+  const changesStepProps = {
+    ...defaultProps,
+    isChangesStep: true,
+    step: AutofixStepFixture({
+      type: AutofixStepType.CHANGES,
+      changes: [AutofixCodebaseChangeData()],
+    }),
+  };
+
+  const prCreatedProps = {
+    ...changesStepProps,
+    step: AutofixStepFixture({
+      type: AutofixStepType.CHANGES,
+      status: 'COMPLETED',
+      changes: [AutofixCodebaseChangeData()],
+    }),
+  };
+
+  const multiplePRsProps = {
+    ...changesStepProps,
+    step: AutofixStepFixture({
+      type: AutofixStepType.CHANGES,
+      status: 'COMPLETED',
+      changes: [
+        AutofixCodebaseChangeData({
+          repo_name: 'example/repo1',
+          pull_request: {
+            pr_url: 'https://github.com/example/repo1/pull/1',
+            pr_number: 1,
+          },
+        }),
+        AutofixCodebaseChangeData({
+          repo_name: 'example/repo1',
+          pull_request: {
+            pr_url: 'https://github.com/example/repo2/pull/2',
+            pr_number: 2,
+          },
+        }),
+      ],
+    }),
   };
 
   beforeEach(() => {
@@ -58,9 +109,7 @@ describe('AutofixMessageBox', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
     await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith(
-        "Thanks for the input. I'll get to it soon."
-      );
+      expect(addSuccessMessage).toHaveBeenCalledWith('Thanks for the input.');
     });
   });
 
@@ -113,7 +162,9 @@ describe('AutofixMessageBox', () => {
     );
 
     // Test suggested root cause
-    const input = screen.getByPlaceholderText('Provide any instructions for the fix...');
+    const input = screen.getByPlaceholderText(
+      '(Optional) Provide any instructions for the fix...'
+    );
     await userEvent.type(input, 'Use this suggestion');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -127,11 +178,142 @@ describe('AutofixMessageBox', () => {
     );
 
     // Test custom root cause
-    await userEvent.click(screen.getAllByText('Provide your own root cause')[0]);
+    await userEvent.click(screen.getAllByText('Propose your own root cause')[0]);
     const customInput = screen.getByPlaceholderText('Propose your own root cause...');
     await userEvent.type(customInput, 'Custom root cause');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
     expect(onSendMock).toHaveBeenCalledWith('Custom root cause', true);
+  });
+
+  it('renders segmented control for changes step', () => {
+    render(<AutofixMessageBox {...changesStepProps} />);
+
+    expect(screen.getByRole('radio', {name: 'Give feedback'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Approve changes'})).toBeInTheDocument();
+  });
+
+  it('shows feedback input when "Give feedback" is selected', () => {
+    render(<AutofixMessageBox {...changesStepProps} />);
+
+    expect(screen.getByPlaceholderText('Say something...')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Send'})).toBeInTheDocument();
+  });
+
+  it('shows "Create PR" button when "Approve changes" is selected', async () => {
+    MockApiClient.addMockResponse({
+      url: '/issues/123/autofix/setup/',
+      method: 'GET',
+      body: {
+        genAIConsent: {ok: true},
+        codebaseIndexing: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {
+          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
+        },
+      },
+    });
+
+    render(<AutofixMessageBox {...changesStepProps} />);
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Approve changes'}));
+
+    expect(
+      screen.getByText('Draft 1 pull request for the above changes?')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create PR'})).toBeInTheDocument();
+  });
+
+  it('shows "Create PRs" button with correct text for multiple changes', async () => {
+    MockApiClient.addMockResponse({
+      url: '/issues/123/autofix/setup/',
+      method: 'GET',
+      body: {
+        genAIConsent: {ok: true},
+        codebaseIndexing: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {
+          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
+        },
+      },
+    });
+
+    const multipleChangesProps = {
+      ...changesStepProps,
+      step: {
+        ...changesStepProps.step,
+        changes: [AutofixCodebaseChangeData(), AutofixCodebaseChangeData()],
+      },
+    };
+
+    render(<AutofixMessageBox {...multipleChangesProps} />);
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Approve changes'}));
+
+    expect(
+      screen.getByText('Draft 2 pull requests for the above changes?')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create PRs'})).toBeInTheDocument();
+  });
+
+  it('shows "View PR" buttons when PRs are created', () => {
+    render(<AutofixMessageBox {...prCreatedProps} />);
+
+    expect(screen.getByRole('button', {name: /View PR in/})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /View PR in/})).toHaveAttribute(
+      'href',
+      'https://github.com/owner/hello-world/pull/200'
+    );
+  });
+
+  it('shows multiple "View PR" buttons for multiple PRs', () => {
+    render(<AutofixMessageBox {...multiplePRsProps} />);
+
+    const viewPRButtons = screen.getAllByRole('button', {name: /View PR in/});
+    expect(viewPRButtons).toHaveLength(2);
+    expect(viewPRButtons[0]).toHaveAttribute(
+      'href',
+      'https://github.com/example/repo1/pull/1'
+    );
+    expect(viewPRButtons[1]).toHaveAttribute(
+      'href',
+      'https://github.com/example/repo2/pull/2'
+    );
+  });
+
+  it('shows "Create PRs" button that opens setup modal when setup is incomplete', async () => {
+    MockApiClient.addMockResponse({
+      url: '/issues/123/autofix/setup/',
+      method: 'GET',
+      body: {
+        genAIConsent: {ok: true},
+        codebaseIndexing: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {
+          repos: [
+            {ok: false, provider: 'github', owner: 'owner', name: 'hello-world', id: 100},
+          ],
+        },
+      },
+    });
+
+    render(<AutofixMessageBox {...changesStepProps} />);
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Approve changes'}));
+
+    expect(
+      screen.getByText('Draft 1 pull request for the above changes?')
+    ).toBeInTheDocument();
+
+    const createPRsButton = screen.getByRole('button', {name: 'Create PRs'});
+    expect(createPRsButton).toBeInTheDocument();
+
+    renderGlobalModal();
+    await userEvent.click(createPRsButton);
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('dialog')).getByText('Allow Autofix to Make Pull Requests')
+    ).toBeInTheDocument();
   });
 });

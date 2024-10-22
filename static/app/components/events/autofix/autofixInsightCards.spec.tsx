@@ -28,7 +28,6 @@ const sampleInsights: AutofixInsight[] = [
         file_path: 'src/index.js',
       },
     ],
-    error_message_context: ['Error message 1'],
     insight: 'Sample insight 1',
     justification: 'Sample justification 1',
     stacktrace_context: [
@@ -49,7 +48,6 @@ const sampleInsights: AutofixInsight[] = [
     breadcrumb_context: [],
     stacktrace_context: [],
     codebase_context: [],
-    error_message_context: [],
   },
 ];
 
@@ -93,7 +91,7 @@ describe('AutofixInsightCards', () => {
 
   it('renders breadcrumb context correctly', async () => {
     renderComponent();
-    const contextButton = screen.getByText('Context');
+    const contextButton = screen.getByText('Sample insight 1');
     await userEvent.click(contextButton);
     expect(screen.getByText('Breadcrumb body')).toBeInTheDocument();
     expect(screen.getByText('info')).toBeInTheDocument();
@@ -101,7 +99,7 @@ describe('AutofixInsightCards', () => {
 
   it('renders codebase context correctly', async () => {
     renderComponent();
-    const contextButton = screen.getByText('Context');
+    const contextButton = screen.getByText('Sample insight 1');
     await userEvent.click(contextButton);
     expect(screen.getByText('console.log("Hello, World!");')).toBeInTheDocument();
     expect(screen.getByText('src/index.js')).toBeInTheDocument();
@@ -109,7 +107,7 @@ describe('AutofixInsightCards', () => {
 
   it('renders stacktrace context correctly', async () => {
     renderComponent();
-    const contextButton = screen.getByText('Context');
+    const contextButton = screen.getByText('Sample insight 1');
     await userEvent.click(contextButton);
     expect(
       screen.getByText('function() { throw new Error("Test error"); }')
@@ -133,7 +131,7 @@ describe('AutofixInsightCards', () => {
 
   it('toggles context expansion correctly', async () => {
     renderComponent();
-    const contextButton = screen.getByText('Context');
+    const contextButton = screen.getByText('Sample insight 1');
 
     await userEvent.click(contextButton);
     expect(screen.getByText('Sample justification 1')).toBeInTheDocument();
@@ -148,7 +146,6 @@ describe('AutofixInsightCards', () => {
       {
         insight: 'Another insight',
         justification: 'Another justification',
-        error_message_context: ['Another error message'],
       },
     ];
     renderComponent({insights: multipleInsights});
@@ -234,7 +231,7 @@ describe('AutofixInsightCards', () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith("Thanks, I'll rethink this...");
+      expect(addSuccessMessage).toHaveBeenCalledWith('Thanks, rethinking this...');
     });
   });
 
