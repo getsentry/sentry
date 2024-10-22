@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sentry.audit_log.manager import AuditLogEvent
@@ -351,11 +352,17 @@ class DataSecrecyWaivedAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry):
         entry_data = audit_log_entry.data
-        access_start = entry_data.get("access_start", None)
-        access_end = entry_data.get("access_end", None)
+        access_start = entry_data.get("access_start")
+        access_end = entry_data.get("access_end")
 
         rendered_text = "waived data secrecy"
         if access_start is not None and access_end is not None:
-            rendered_text += f" from {access_start} to {access_end}"
+            start_dt = datetime.fromisoformat(access_start)
+            end_dt = datetime.fromisoformat(access_end)
+
+            formatted_start = start_dt.strftime("%b %d, %Y %I:%M %p UTC")
+            formatted_end = end_dt.strftime("%b %d, %Y %I:%M %p UTC")
+
+            rendered_text += f" from {formatted_start} to {formatted_end}"
 
         return rendered_text

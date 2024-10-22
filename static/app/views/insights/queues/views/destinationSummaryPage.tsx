@@ -76,9 +76,15 @@ function DestinationSummaryPage() {
       )}
 
       {isInDomainView && (
-        <Layout.Header>
-          <BackendHeader module={ModuleName.QUEUE} />
-        </Layout.Header>
+        <BackendHeader
+          headerTitle={destination}
+          breadcrumbs={[
+            {
+              label: DESTINATION_TITLE,
+            },
+          ]}
+          module={ModuleName.QUEUE}
+        />
       )}
 
       <Layout.Body>

@@ -6,7 +6,7 @@ from sentry.tasks.check_new_issue_threshold_met import (
     check_new_issue_threshold_met,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class CheckNewIssueThresholdMetTest(TestCase):
@@ -58,7 +58,7 @@ class CalculateThresholdMetTest(TestCase):
                 self.store_event(
                     data={
                         "fingerprint": [f"group-{weeks}-{i}"],
-                        "timestamp": iso_format(before_now(days=7 * weeks)),
+                        "timestamp": before_now(days=7 * weeks).isoformat(),
                     },
                     project_id=self.project.id,
                 )
@@ -71,7 +71,7 @@ class CalculateThresholdMetTest(TestCase):
                 self.store_event(
                     data={
                         "fingerprint": [f"group-{weeks}-{i}"],
-                        "timestamp": iso_format(before_now(days=7 * weeks)),
+                        "timestamp": before_now(days=7 * weeks).isoformat(),
                     },
                     project_id=self.project.id,
                 )

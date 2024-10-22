@@ -4,10 +4,62 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {InviteStatus} from './types';
 
-interface Props {
+interface InviteCountProps {
+  count: number;
+  isRequest?: boolean;
+}
+
+function InviteCount({count, isRequest}: InviteCountProps) {
+  return (
+    <BoldCount>
+      {isRequest
+        ? tn('%s invite request', '%s invite requests', count)
+        : tn('%s invite', '%s invites', count)}
+    </BoldCount>
+  );
+}
+
+interface CountMessageProps {
+  errorCount: number;
+  sentCount: number;
+  isRequest?: boolean;
+}
+
+function CountMessage({sentCount, errorCount, isRequest}: CountMessageProps) {
+  const invites = <InviteCount count={sentCount} isRequest={isRequest} />;
+  const failedInvites = <InviteCount count={errorCount} isRequest={isRequest} />;
+  const tctComponents = {
+    invites,
+    failed: errorCount,
+    failedInvites,
+  };
+  return (
+    <div>
+      {sentCount > 0 && (
+        <StatusMessage status="success" isNewInviteModal>
+          <IconCheckmark size="sm" color="successText" />
+          <span role="alert" aria-label={t('Sent Invites')}>
+            {tct('[invites] sent.', tctComponents)}
+          </span>
+        </StatusMessage>
+      )}
+      {errorCount > 0 && (
+        <StatusMessage status="error" isNewInviteModal>
+          <IconWarning size="sm" color="errorText" />
+          <span role="alert" aria-label={t('Failed Invites')}>
+            {tct('[failedInvites] failed to send.', tctComponents)}
+          </span>
+        </StatusMessage>
+      )}
+    </div>
+  );
+}
+
+interface InviteStatusMessageProps {
   complete: boolean;
   hasDuplicateEmails: boolean;
   inviteStatus: InviteStatus;
@@ -21,7 +73,10 @@ export default function InviteStatusMessage({
   inviteStatus,
   sendingInvites,
   willInvite,
-}: Props) {
+}: InviteStatusMessageProps) {
+  const organization = useOrganization();
+  const isNewInviteModal = organization.features.includes('invite-members-new-modal');
+
   if (sendingInvites) {
     return (
       <StatusMessage>
@@ -38,6 +93,23 @@ export default function InviteStatusMessage({
     const sentCount = statuses.filter(i => i.sent).length;
     const errorCount = statuses.filter(i => i.error).length;
 
+    const statusIndicator =
+      hasDuplicateEmails || errorCount > 0 ? (
+        <IconWarning color="yellow300" size="sm" />
+      ) : (
+        <IconCheckmark color="successText" size="sm" />
+      );
+
+    if (isNewInviteModal) {
+      return (
+        <CountMessage
+          sentCount={sentCount}
+          errorCount={errorCount}
+          isRequest={!willInvite}
+        />
+      );
+    }
+
     if (willInvite) {
       const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
       const tctComponents = {
@@ -47,7 +119,7 @@ export default function InviteStatusMessage({
 
       return (
         <StatusMessage status="success">
-          <IconCheckmark size="sm" />
+          {statusIndicator}
           <span>
             {errorCount > 0
               ? tct('Sent [invites], [failed] failed to send.', tctComponents)
@@ -63,9 +135,10 @@ export default function InviteStatusMessage({
       inviteRequests,
       failed: errorCount,
     };
+
     return (
       <StatusMessage status="success">
-        <IconCheckmark size="sm" />
+        {statusIndicator}
         {errorCount > 0
           ? tct(
               '[inviteRequests] pending approval, [failed] failed to send.',
@@ -76,10 +149,11 @@ export default function InviteStatusMessage({
     );
   }
 
+  // TODO(mia): remove once old modal is removed
   if (hasDuplicateEmails) {
     return (
       <StatusMessage status="error">
-        <IconWarning size="sm" />
+        <IconWarning size="sm" color="errorText" />
         {t('Duplicate emails between invite rows.')}
       </StatusMessage>
     );
@@ -88,14 +162,19 @@ export default function InviteStatusMessage({
   return null;
 }
 
-export const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
+export const StatusMessage = styled('div')<{
+  isNewInviteModal?: boolean;
+  status?: 'success' | 'error';
+}>`
   display: flex;
   gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => (p.status === 'error' ? p.theme.errorText : p.theme.textColor)};
+  color: ${p =>
+    p.status === 'error' && !p.isNewInviteModal ? p.theme.errorText : p.theme.textColor};
+`;
 
-  > :first-child {
-    ${p => p.status === 'success' && `color: ${p.theme.successText}`};
-  }
+export const BoldCount = styled('div')`
+  display: inline;
+  font-weight: bold;
 `;

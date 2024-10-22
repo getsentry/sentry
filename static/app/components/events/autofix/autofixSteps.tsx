@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
-import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
+import AutofixInsightCards, {
+  useUpdateInsightCard,
+} from 'sentry/components/events/autofix/autofixInsightCards';
 import AutofixMessageBox from 'sentry/components/events/autofix/autofixMessageBox';
 import {
   AutofixRootCause,
@@ -80,6 +82,9 @@ export function Step({
                   repos={repos}
                   hasStepBelow={hasStepBelow}
                   hasStepAbove={hasStepAbove}
+                  stepIndex={step.index}
+                  groupId={groupId}
+                  runId={runId}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
@@ -92,7 +97,12 @@ export function Step({
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
-                <AutofixChanges step={step} groupId={groupId} onRetry={onRetry} />
+                <AutofixChanges
+                  step={step}
+                  groupId={groupId}
+                  onRetry={onRetry}
+                  runId={runId}
+                />
               )}
               {hasErroredStepBefore && hasStepBelow && (
                 <StepMessage>
@@ -138,8 +148,8 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
   const stepsRef = useRef<(HTMLDivElement | null)[]>([]);
 
   const {mutate: handleSelectFix} = useSelectCause({groupId, runId});
-  const selectRootCause = (text: string) => {
-    if (text.length > 0) {
+  const selectRootCause = (text: string, isCustom?: boolean) => {
+    if (isCustom) {
       handleSelectFix({customRootCause: text});
     } else {
       if (!steps) {
@@ -151,8 +161,21 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
       }
       const cause = step.causes[0];
       const id = cause.id;
-      handleSelectFix({causeId: id});
+      handleSelectFix({causeId: id, instruction: text});
     }
+  };
+
+  const {mutate: sendFeedbackOnChanges} = useUpdateInsightCard({groupId, runId});
+  const iterateOnChangesStep = (text: string) => {
+    const planStep = steps?.[steps.length - 2];
+    if (!planStep || planStep.type !== AutofixStepType.DEFAULT) {
+      return;
+    }
+    sendFeedbackOnChanges({
+      step_index: planStep.index,
+      retain_insight_card_index: planStep.insights.length - 1,
+      message: text,
+    });
   };
 
   const lastStepVisible = useInView(
@@ -171,15 +194,9 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
   const isRootCauseSelectionStep =
     lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
     lastStep.status === 'COMPLETED';
-  const areCodeChangesShowing =
-    lastStep.type === AutofixStepType.CHANGES && lastStep.status === 'COMPLETED';
-  const disabled = areCodeChangesShowing ? true : false;
 
-  const previousStep = steps.length > 2 ? steps[steps.length - 2] : null;
-  const previousStepErrored =
-    previousStep !== null &&
-    previousStep?.type === lastStep.type &&
-    previousStep.status === 'ERROR';
+  const isChangesStep =
+    lastStep.type === AutofixStepType.CHANGES && lastStep.status === 'COMPLETED';
 
   const scrollToMatchingStep = () => {
     const matchingStepIndex = steps.findIndex(step => step.type === lastStep.type);
@@ -191,44 +208,54 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
   return (
     <div>
       <StepsContainer>
-        {steps.map((step, index) => (
-          <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
-            <Step
-              step={step}
-              hasStepBelow={index + 1 < steps.length}
-              hasStepAbove={index > 0}
-              groupId={groupId}
-              runId={runId}
-              onRetry={onRetry}
-              repos={repos}
-              hasErroredStepBefore={previousStepErrored}
-            />
-          </div>
-        ))}
+        {steps.map((step, index) => {
+          const previousStep = index > 0 ? steps[index - 1] : null;
+          const previousStepErrored =
+            previousStep !== null &&
+            previousStep?.type === step.type &&
+            previousStep.status === 'ERROR';
+          const nextStep = index + 1 < steps.length ? steps[index + 1] : null;
+          const twoInsightStepsInARow =
+            nextStep?.type === AutofixStepType.DEFAULT &&
+            step.type === AutofixStepType.DEFAULT;
+          const twoNonDefaultStepsInARow =
+            nextStep?.type !== AutofixStepType.DEFAULT &&
+            step.type !== AutofixStepType.DEFAULT;
+          return (
+            <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
+              <Step
+                step={step}
+                hasStepBelow={index + 1 < steps.length && !twoInsightStepsInARow}
+                hasStepAbove={index > 0}
+                groupId={groupId}
+                runId={runId}
+                onRetry={onRetry}
+                repos={repos}
+                hasErroredStepBefore={previousStepErrored}
+              />
+              {twoNonDefaultStepsInARow && <StepSeparator />}
+            </div>
+          );
+        })}
       </StepsContainer>
 
       <AutofixMessageBox
         displayText={activeLog ?? ''}
         step={lastStep}
-        inputPlaceholder={
-          !isRootCauseSelectionStep
-            ? 'Say something...'
-            : 'Or propose your own root cause instead...'
-        }
         responseRequired={lastStep.status === 'WAITING_FOR_USER_RESPONSE'}
-        onSend={!isRootCauseSelectionStep ? null : selectRootCause}
+        onSend={
+          !isRootCauseSelectionStep
+            ? !isChangesStep
+              ? null
+              : iterateOnChangesStep
+            : selectRootCause
+        }
         actionText={!isRootCauseSelectionStep ? 'Send' : 'Find a Fix'}
         allowEmptyMessage={!isRootCauseSelectionStep ? false : true}
-        isDisabled={disabled}
         groupId={groupId}
         runId={runId}
         primaryAction={isRootCauseSelectionStep}
-        emptyInfoText={
-          !isRootCauseSelectionStep ? '' : 'Selected: suggested root cause above'
-        }
-        notEmptyInfoText={
-          !isRootCauseSelectionStep ? '' : 'Selected: your custom root cause below'
-        }
+        isRootCauseSelectionStep={isRootCauseSelectionStep}
         scrollIntoView={
           !lastStepVisible &&
           (lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS ||
@@ -275,3 +302,8 @@ const ContentWrapper = styled(motion.div)`
 `;
 
 const AnimationWrapper = styled(motion.div)``;
+
+const StepSeparator = styled('div')`
+  height: 1px;
+  margin: ${space(1)} 0;
+`;

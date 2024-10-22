@@ -6,10 +6,15 @@ import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
 from google.protobuf.message import Message as ProtobufMessage
+from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 
-from sentry.utils.snuba import _snuba_pool
+from sentry.utils.snuba import SnubaError, _snuba_pool
 
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
+
+
+class SnubaRPCError(SnubaError):
+    pass
 
 
 class SnubaRPCRequest(Protocol):
@@ -54,7 +59,7 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
     aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
     """
     referrer = req.meta.referrer
-    with sentry_sdk.start_span(op="snuba_rpc.run", description=req.__class__.__name__) as span:
+    with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
         span.set_tag("snuba.referrer", referrer)
 
         cls = req.__class__
@@ -69,6 +74,11 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
                 "referer": referrer,
             },
         )
+        if http_resp.status != 200:
+            error = ErrorProto()
+            error.ParseFromString(http_resp.data)
+            raise SnubaRPCError(error)
+
         resp = resp_type()
         resp.ParseFromString(http_resp.data)
         return resp

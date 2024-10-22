@@ -1,8 +1,17 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
@@ -30,6 +39,8 @@ describe('StreamGroup', function () {
         reason: 0,
         reason_details: null,
       },
+      firstSeen: '2017-10-10T02:41:20.000Z',
+      lastSeen: '2017-10-16T02:41:20.000Z',
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -161,5 +172,53 @@ describe('StreamGroup', function () {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('shows first and last seen columns', function () {
+    render(
+      <StreamGroup
+        id="1337"
+        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+        withColumns={['firstSeen', 'lastSeen']}
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['issue-stream-table-layout'],
+        }),
+      }
+    );
+
+    expect(screen.getByRole('time', {name: 'First Seen'})).toHaveTextContent('1w');
+    expect(screen.getByRole('time', {name: 'Last Seen'})).toHaveTextContent('1d');
+  });
+
+  it('navigates to issue with correct params when clicked', async function () {
+    const router = RouterFixture();
+    render(
+      <StreamGroup
+        id="1337"
+        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+      />,
+      {
+        router,
+        organization: OrganizationFixture({
+          features: ['issue-stream-table-layout'],
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByTestId('group'));
+
+    await waitFor(() => {
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/1337/',
+        query: {
+          _allp: 1,
+          query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+          referrer: 'issue-stream',
+          stream_index: undefined,
+        },
+      });
+    });
   });
 });

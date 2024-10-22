@@ -1,0 +1,166 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TraceTree ExpandToPath discards non txns segments 1`] = `
+"
+trace root
+  parent - transaction.op
+    child - transaction.op
+      span.op - span.description
+"
+`;
+
+exports[`TraceTree ExpandToPath expands transactions from path segments 1`] = `
+"
+trace root
+  parent - transaction.op
+    child - transaction.op
+"
+`;
+
+exports[`TraceTree FromTrace assembles tree from trace 1`] = `
+"
+trace root
+  transaction - transaction.op
+    transaction - transaction.op
+"
+`;
+
+exports[`TraceTree FromTrace if parent span does not exist in span tree, the transaction stays under its previous parent 1`] = `
+"
+trace root
+  span.op - span.description
+  root - transaction.op
+    child - transaction.op
+"
+`;
+
+exports[`TraceTree FromTrace inserts orphan error 1`] = `
+"
+trace root
+  transaction - transaction.op
+    transaction - transaction.op
+  error
+"
+`;
+
+exports[`TraceTree FromTrace sorts by start_timestamp 1`] = `
+"
+trace root
+  first - transaction.op
+  last - transaction.op
+"
+`;
+
+exports[`TraceTree appendTree appends tree to end of current tree 1`] = `
+"
+trace root
+  transaction - transaction.op
+    transaction - transaction.op
+  transaction - transaction.op
+    transaction - transaction.op
+"
+`;
+
+exports[`TraceTree expand collapsing a parent autogroup node shows tail chain 1`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 2)
+      http - request
+    transaction - transaction.op
+"
+`;
+
+exports[`TraceTree expand collapsing a sibling autogroup node hides children 1`] = `
+"
+trace root
+  transaction - transaction.op
+    sibling autogroup (db: 5)
+    transaction - transaction.op
+"
+`;
+
+exports[`TraceTree expand collapsing intermediary children is preserved 1`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 2)
+      db - redis
+    transaction - transaction.op
+"
+`;
+
+exports[`TraceTree expand expanding a parent autogroup node shows head to tail chain 1`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 2)
+      db - redis
+        db - redis
+          http - request
+    transaction - transaction.op
+"
+`;
+
+exports[`TraceTree expand expanding a sibling autogroup node shows sibling span 1`] = `
+"
+trace root
+  transaction - transaction.op
+    sibling autogroup (db: 5)
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+    transaction - transaction.op
+"
+`;
+
+exports[`TraceTree zoom maintains the span tree when parent is zoomed in 1`] = `
+"
+trace root
+  transaction - transaction.op
+    span.op - span.description
+    transaction - transaction.op
+      span.op - span.description
+"
+`;
+
+exports[`TraceTree zoom preserves parent of nested child transactions 1`] = `
+"
+trace root
+  root - transaction.op
+    span.op - span.description
+      child - transaction.op
+        grandchild - transaction.op
+"
+`;
+
+exports[`TraceTree zoom reparents child transactions under spans with matching ids 1`] = `
+"
+trace root
+  root - transaction.op
+    span.op - span.description
+      child - transaction.op
+        span.op - span.description
+"
+`;
+
+exports[`TraceTree zoom zooming out preserves spans of child zoomed in transaction 1`] = `
+"
+trace root
+  root - transaction.op
+    child - transaction.op
+      grandchild - transaction.op
+        child-op - span.description
+"
+`;
+
+exports[`TraceTree zoom zooms in on transaction node 1`] = `
+"
+trace root
+  transaction - transaction.op
+    transaction - transaction.op
+      span.op - span.description
+"
+`;

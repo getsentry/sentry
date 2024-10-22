@@ -625,10 +625,7 @@ function GroupDetailsContent({
     group,
     project,
   });
-  const {openTagsDrawer} = useGroupTagsDrawer({
-    groupId: group.id,
-    projectSlug: project.slug,
-  });
+  const {openTagsDrawer} = useGroupTagsDrawer({group});
   const {openUserFeedbackDrawer} = useUserFeedbackDrawer({group, project});
   const {openReplaysDrawer} = useReplaysDrawer({group, project});
   const {isDrawerOpen} = useDrawer();
@@ -680,6 +677,7 @@ function GroupDetailsContent({
   return hasStreamlinedUI ? (
     <div>
       <StreamlinedGroupHeader
+        event={event}
         group={group}
         project={project}
         groupReprocessingStatus={groupReprocessingStatus}
@@ -710,7 +708,7 @@ function GroupDetailsContent({
       <GroupHeader
         organization={organization}
         groupReprocessingStatus={groupReprocessingStatus}
-        event={event ?? undefined}
+        event={event}
         group={group}
         baseUrl={baseUrl}
         project={project as Project}

@@ -277,11 +277,17 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  ...onboarding,
+  introduction: () => null,
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingNode,
   customMetricsOnboarding: getJSServerMetricsOnboarding(),
   crashReportOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;

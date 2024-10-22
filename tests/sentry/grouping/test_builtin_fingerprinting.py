@@ -432,7 +432,6 @@ def test_builtinfingerprinting_rules_from_config_structure_overrides_is_builtin(
                     "is_builtin": is_builtin,
                 },
             ],
-            "version": 1,
         },
         bases=[],
     )
@@ -452,7 +451,6 @@ def test_fingerprinting_rules_from_config_structure_preserves_is_builtin(is_buil
                     "is_builtin": is_builtin,
                 },
             ],
-            "version": 1,
         },
         bases=[],
     )
@@ -677,7 +675,6 @@ class BuiltInFingerprintingTest(TestCase):
 
         assert "built-in-fingerprint" not in variants
         assert event_transaction_no_tx.data["fingerprint"] == ["my-route", "{{ default }}"]
-        assert event_transaction_no_tx.data.get("_fingerprint_info") is None
 
     def test_hydration_rule_w_family_matcher(self):
         """

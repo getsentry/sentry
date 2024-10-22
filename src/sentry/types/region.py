@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Container, Iterable
+from collections.abc import Collection, Iterable
 from enum import Enum
 from typing import Any
 from urllib.parse import urljoin
@@ -321,7 +321,7 @@ def _find_orgs_for_user(user_id: int) -> set[int]:
 
 
 @control_silo_function
-def find_regions_for_orgs(org_ids: Container[int]) -> set[str]:
+def find_regions_for_orgs(org_ids: Iterable[int]) -> set[str]:
     from sentry.models.organizationmapping import OrganizationMapping
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:

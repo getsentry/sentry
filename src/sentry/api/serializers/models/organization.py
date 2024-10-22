@@ -48,6 +48,7 @@ from sentry.constants import (
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    TARGET_SAMPLE_RATE_DEFAULT,
     UPTIME_AUTODETECTION,
     ObjectStatus,
 )
@@ -266,7 +267,7 @@ class OrganizationSerializer(Serializer):
         ]
         feature_set = set()
 
-        with sentry_sdk.start_span(op="features.check", description="check batch features"):
+        with sentry_sdk.start_span(op="features.check", name="check batch features"):
             # Check features in batch using the entity handler
             batch_features = features.batch_has(org_features, actor=user, organization=obj)
 
@@ -282,7 +283,7 @@ class OrganizationSerializer(Serializer):
                     # This feature_name was found via `batch_has`, don't check again using `has`
                     org_features.remove(feature_name)
 
-        with sentry_sdk.start_span(op="features.check", description="check individual features"):
+        with sentry_sdk.start_span(op="features.check", name="check individual features"):
             # Remaining features should not be checked via the entity handler
             for feature_name in org_features:
                 if features.has(feature_name, obj, actor=user, skip_entity=True):
@@ -421,7 +422,7 @@ class OnboardingTasksSerializer(Serializer):
 
 
 class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResponse, total=False):
-    role: Any  # TODO replace with enum/literal
+    role: Any  # TODO: replace with enum/literal
     orgRole: str
     uptimeAutodetection: bool
 
@@ -610,6 +611,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if features.has("organizations:uptime-settings", obj):
             context["uptimeAutodetection"] = bool(
                 obj.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION)
+            )
+
+        if features.has("organizations:dynamic-sampling-custom", obj, actor=user):
+            context["targetSampleRate"] = float(
+                obj.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
             )
 
         trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []

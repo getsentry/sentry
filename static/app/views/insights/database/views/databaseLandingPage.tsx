@@ -159,7 +159,7 @@ export function DatabaseLandingPage() {
     ) ||
     throughputData['spm()'].data?.some(({value}) => value > 0);
 
-  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+  useSynchronizeCharts(2, !isThroughputDataLoading && !isDurationDataLoading);
 
   const crumbs = useModuleBreadcrumbs('db');
 
@@ -187,9 +187,18 @@ export function DatabaseLandingPage() {
       )}
 
       {isInDomainView && (
-        <Layout.Header>
-          <BackendHeader module={ModuleName.DB} />
-        </Layout.Header>
+        <BackendHeader
+          headerTitle={
+            <React.Fragment>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </React.Fragment>
+          }
+          module={ModuleName.DB}
+        />
       )}
 
       <Layout.Body>

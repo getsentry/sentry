@@ -74,7 +74,7 @@ def ingest_recording(
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
         with transaction.start_child(
             op="replays.usecases.ingest.ingest_recording",
-            description="ingest_recording",
+            name="ingest_recording",
         ):
             message = RecordingIngestMessage(
                 replay_id=message_dict["replay_id"],
@@ -260,7 +260,7 @@ def recording_post_processor(
         # Emit DOM search metadata to Clickhouse.
         with transaction.start_child(
             op="replays.usecases.ingest.parse_and_emit_replay_actions",
-            description="parse_and_emit_replay_actions",
+            name="parse_and_emit_replay_actions",
         ):
             project = Project.objects.get_from_cache(id=message.project_id)
             parse_and_emit_replay_actions(
@@ -269,6 +269,7 @@ def recording_post_processor(
                 replay_id=message.replay_id,
                 segment_data=parsed_segment_data,
                 replay_event=parsed_replay_event,
+                org_id=message.org_id,
             )
 
         # Log canvas mutations to bigquery.

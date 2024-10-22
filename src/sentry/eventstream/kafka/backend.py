@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
@@ -25,10 +26,12 @@ if TYPE_CHECKING:
 
 class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options: Any) -> None:
+        super().__init__(**options)
         self.topic = Topic.EVENTS
         self.transactions_topic = Topic.TRANSACTIONS
         self.issue_platform_topic = Topic.EVENTSTREAM_GENERIC
         self.__producers: MutableMapping[Topic, Producer] = {}
+        self.error_last_logged_time: int | None = None
 
     def get_transactions_topic(self, project_id: int) -> Topic:
         return self.transactions_topic
@@ -42,8 +45,11 @@ class KafkaEventStream(SnubaProtocolEventStream):
         return self.__producers[topic]
 
     def delivery_callback(self, error: KafkaError | None, message: KafkaMessage) -> None:
+        now = int(time.time())
         if error is not None:
-            logger.warning("Could not publish message (error: %s): %r", error, message)
+            if self.error_last_logged_time is None or now > self.error_last_logged_time + 60:
+                self.error_last_logged_time = now
+                logger.error("Could not publish message (error: %s): %r", error, message)
 
     def _get_headers_for_insert(
         self,

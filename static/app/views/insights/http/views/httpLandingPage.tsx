@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -63,7 +63,7 @@ export function HTTPLandingPage() {
     },
   });
 
-  const ADDITIONAL_FILTERS = {};
+  const ADDITIONAL_FILTERS: {[SpanMetricsField.USER_GEO_SUBREGION]?: string} = {};
 
   if (query[SpanMetricsField.USER_GEO_SUBREGION].length > 0) {
     ADDITIONAL_FILTERS[SpanMetricsField.USER_GEO_SUBREGION] =
@@ -157,9 +157,19 @@ export function HTTPLandingPage() {
     Referrer.LANDING_DOMAINS_LIST
   );
 
-  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+  useSynchronizeCharts(
+    3,
+    !isThroughputDataLoading && !isDurationDataLoading && !isResponseCodeDataLoading
+  );
 
   const crumbs = useModuleBreadcrumbs('http');
+
+  const headerTitle = (
+    <Fragment>
+      {MODULE_TITLE}
+      <PageHeadingQuestionTooltip docsUrl={MODULE_DOC_LINK} title={MODULE_DESCRIPTION} />
+    </Fragment>
+  );
 
   return (
     <React.Fragment>
@@ -168,13 +178,7 @@ export function HTTPLandingPage() {
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
 
-            <Layout.Title>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Layout.Title>
+            <Layout.Title>{headerTitle}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -185,15 +189,22 @@ export function HTTPLandingPage() {
       )}
 
       {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
-        <Layout.Header>
-          <FrontendHeader module={ModuleName.HTTP} />
-        </Layout.Header>
+        <FrontendHeader
+          headerTitle={
+            <Fragment>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Fragment>
+          }
+          module={ModuleName.HTTP}
+        />
       )}
 
       {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
-        <Layout.Header>
-          <BackendHeader module={ModuleName.HTTP} />
-        </Layout.Header>
+        <BackendHeader headerTitle={headerTitle} module={ModuleName.HTTP} />
       )}
 
       <Layout.Body>

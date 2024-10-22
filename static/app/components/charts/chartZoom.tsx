@@ -22,6 +22,7 @@ import type {
 } from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
@@ -32,16 +33,15 @@ type Period = {
   start: DateString;
 };
 
-const ZoomPropKeys = [
-  'period',
-  'xAxis',
-  'onChartReady',
-  'onDataZoom',
-  'onRestore',
-  'onFinished',
-] as const;
+type ZoomPropKeys =
+  | 'period'
+  | 'xAxis'
+  | 'onChartReady'
+  | 'onDataZoom'
+  | 'onRestore'
+  | 'onFinished';
 
-export interface ZoomRenderProps extends Pick<Props, (typeof ZoomPropKeys)[number]> {
+export interface ZoomRenderProps extends Pick<Props, ZoomPropKeys> {
   dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
@@ -398,4 +398,4 @@ class ChartZoom extends Component<Props> {
   }
 }
 
-export default ChartZoom;
+export default withSentryRouter(ChartZoom);

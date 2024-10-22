@@ -101,7 +101,7 @@ def cast_payload_from_bytes(x: bytes) -> Any:
 
 
 class BufferCommitFailed(Exception):
-    ...
+    pass
 
 
 class RecordingBufferedStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -326,6 +326,7 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             decoded_message["retention_days"],
             parsed_recording_data,
             parsed_replay_event,
+            org_id=decoded_message["org_id"],
         )
 
         if replay_actions is not None:

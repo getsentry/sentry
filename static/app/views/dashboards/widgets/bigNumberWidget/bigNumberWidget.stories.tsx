@@ -31,6 +31,12 @@ export default storyBook(BigNumberWidget, story => {
           visualization shows a tooltip with the full value.
         </p>
 
+        <p>
+          <JSXNode name="BigNumberWidget" /> also supports string values. This is not
+          commonly used, but it's capable of rendering timestamps and in fact most fields
+          defined in our field renderer pipeline
+        </p>
+
         <SideBySide>
           <SmallSizingWindow>
             <BigNumberWidget
@@ -48,6 +54,13 @@ export default storyBook(BigNumberWidget, story => {
                 units: {
                   'eps()': '1/second',
                 },
+              }}
+              thresholds={{
+                max_values: {
+                  max1: 1,
+                  max2: 2,
+                },
+                unit: '1/second',
               }}
             />
           </SmallSizingWindow>
@@ -88,6 +101,25 @@ export default storyBook(BigNumberWidget, story => {
               }}
             />
           </SmallSizingWindow>
+          <SmallSizingWindow>
+            <BigNumberWidget
+              title="Latest Timestamp"
+              description=""
+              data={[
+                {
+                  'max(timestamp)': '2024-10-17T16:08:07+00:00',
+                },
+              ]}
+              meta={{
+                fields: {
+                  'max(timestamp)': 'date',
+                },
+                units: {
+                  'max(timestamp)': null,
+                },
+              }}
+            />
+          </SmallSizingWindow>
         </SideBySide>
         <p>
           The <code>maximumValue</code> prop allows setting the maximum displayable value.
@@ -124,18 +156,13 @@ export default storyBook(BigNumberWidget, story => {
       <Fragment>
         <p>
           <JSXNode name="BigNumberWidget" /> supports the usual loading and error states.
-          The loading state shows a simple placeholder.
+          The loading state shows a simple placeholder. The error state also shows an
+          optional "Retry" button.
         </p>
 
         <SideBySide>
           <NormalWidget>
             <BigNumberWidget title="Loading Count" isLoading />
-          </NormalWidget>
-          <NormalWidget>
-            <BigNumberWidget
-              title="Text"
-              data={[{'max(user.email)': 'bufo@example.com'}]}
-            />
           </NormalWidget>
           <NormalWidget>
             <BigNumberWidget title="Missing Count" data={[{}]} />
@@ -144,6 +171,13 @@ export default storyBook(BigNumberWidget, story => {
             <BigNumberWidget
               title="Count Error"
               error={new Error('Something went wrong!')}
+            />
+          </NormalWidget>
+          <NormalWidget>
+            <BigNumberWidget
+              title="Data Error"
+              error={new Error('Something went wrong!')}
+              onRetry={() => {}}
             />
           </NormalWidget>
         </SideBySide>
@@ -233,6 +267,128 @@ export default storyBook(BigNumberWidget, story => {
                   'http_rate(200)': 'percentage',
                 },
               }}
+            />
+          </NormalWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Thresholds', () => {
+    const meta = {
+      fields: {
+        'eps()': 'rate',
+      },
+      units: {
+        'eps()': '1/second',
+      },
+    };
+
+    const thresholds = {
+      max_values: {
+        max1: 20,
+        max2: 50,
+      },
+      unit: '1/second',
+    };
+
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="BigNumberWidget" /> supports a <code>thresholds</code> prop. If
+          specified, the value of the data in the widget will be evaluated against these
+          thresholds, and indicated using a colorful circle next to the value.
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 7.1,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+              preferredPolarity="+"
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 27.781,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+              preferredPolarity="-"
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 78.1,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+              preferredPolarity="+"
+            />
+          </NormalWidget>
+        </SideBySide>
+
+        <p>
+          The thresholds respect the preferred polarity. By default, the preferred
+          polarity is positive (higher numbers are good).
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 7.1,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+              preferredPolarity="-"
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 27.781,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+              preferredPolarity="-"
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <BigNumberWidget
+              title="eps()"
+              data={[
+                {
+                  'eps()': 78.1,
+                },
+              ]}
+              meta={meta}
+              thresholds={thresholds}
+              preferredPolarity="-"
             />
           </NormalWidget>
         </SideBySide>

@@ -30,7 +30,11 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isCustomMetric} from 'sentry/utils/metrics';
-import {hasMetricAlertFeature, hasMetricsNewInputs} from 'sentry/utils/metrics/features';
+import {
+  hasCustomMetrics,
+  hasMetricAlertFeature,
+  hasMetricsNewInputs,
+} from 'sentry/utils/metrics/features';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -330,15 +334,15 @@ function QueryContextMenu({
       disabled: !customMetric,
       onAction: () => {
         navigateTo(
-          `/settings/projects/:projectId/metrics/${encodeURIComponent(metricsQuery.mri)}`,
+          `/settings/${organization.slug}/projects/:projectId/metrics/${encodeURIComponent(metricsQuery.mri)}`,
           router
         );
       },
     };
 
-    return customMetric
+    return hasCustomMetrics(organization)
       ? [duplicateQueryItem, aliasItem, addAlertItem, removeQueryItem, settingsItem]
-      : [duplicateQueryItem, aliasItem, addAlertItem, removeQueryItem];
+      : [duplicateQueryItem, aliasItem, removeQueryItem, settingsItem];
   }, [
     metricsQuery.mri,
     createAlert,

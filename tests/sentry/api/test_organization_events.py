@@ -15,7 +15,7 @@ from sentry.api.endpoints.organization_events import (
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, override_options, with_feature
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
@@ -29,7 +29,7 @@ class OrganizationEventsEndpointTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
+        self.ten_mins_ago_iso = self.ten_mins_ago.isoformat()
         self.features = {}
 
     def client_get(self, *args, **kwargs):

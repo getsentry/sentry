@@ -3,7 +3,7 @@ import {IncidentTriggerFixture} from 'sentry-fixture/incidentTrigger';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -32,7 +32,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  let organization, project, router, location;
+  let organization, project, router, location, anomalies;
   // create wrapper
   const createWrapper = props =>
     render(
@@ -103,6 +103,11 @@ describe('Incident Rules Form', () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    anomalies = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/organizations/org-slug/events/anomalies/',
       body: [],
     });
   });
@@ -389,13 +394,21 @@ describe('Incident Rules Form', () => {
         },
       });
       expect(
-        await screen.findByLabelText(
-          'Anomaly: whenever values are outside of expected bounds'
-        )
-      ).toBeChecked();
-      expect(
         await screen.findByRole('textbox', {name: 'Level of responsiveness'})
       ).toBeInTheDocument();
+      expect(anomalies).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            config: {
+              direction: 'up',
+              sensitivity: AlertRuleSensitivity.MEDIUM,
+              expected_seasonality: AlertRuleSeasonality.AUTO,
+              time_period: 60,
+            },
+          }),
+        })
+      );
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenLastCalledWith(
@@ -488,6 +501,48 @@ describe('Incident Rules Form', () => {
             thresholdPeriod: 10,
             alertType: 'insights_metrics',
             dataset: 'generic_metrics',
+          }),
+        })
+      );
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
+    });
+
+    it('creates an EAP metric rule', async () => {
+      const rule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          eventTypes: [],
+          aggregate: 'count(span.duration)',
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+        },
+      });
+
+      // Clear field
+      await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
+
+      // Enter in name so we can submit
+      await userEvent.type(
+        screen.getByPlaceholderText('Enter Alert Name'),
+        'EAP Incident Rule'
+      );
+
+      // Set thresholdPeriod
+      await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'EAP Incident Rule',
+            projects: ['project-slug'],
+            eventTypes: [],
+            thresholdPeriod: 10,
+            alertType: 'eap_metrics',
+            dataset: 'events_analytics_platform',
           }),
         })
       );
@@ -668,14 +723,6 @@ describe('Incident Rules Form', () => {
   describe('Slack async lookup', () => {
     const uuid = 'xxxx-xxxx-xxxx';
 
-    beforeEach(() => {
-      jest.useFakeTimers();
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
     it('success status updates the rule', async () => {
       const alertRule = MetricRuleFixture({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
@@ -699,17 +746,16 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
-      act(jest.runAllTimers);
+      await screen.findByTestId('loading-indicator');
       await userEvent.type(
         await screen.findByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule',
         {delay: null}
       );
-      await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
+      await userEvent.click(await screen.findByLabelText('Save Rule'), {delay: null});
 
-      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
 
-      act(jest.runAllTimers);
       await waitFor(
         () => {
           expect(onSubmitSuccess).toHaveBeenCalledWith(
@@ -746,7 +792,6 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
-      act(jest.runAllTimers);
       expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
       expect(onSubmitSuccess).not.toHaveBeenCalled();
     });
@@ -773,15 +818,13 @@ describe('Incident Rules Form', () => {
         rule: alertRule,
         onSubmitSuccess,
       });
-      act(jest.runAllTimers);
       await userEvent.type(
         await screen.findByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule',
         {delay: null}
       );
-      await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
+      await userEvent.click(await screen.findByLabelText('Save Rule'), {delay: null});
 
-      act(jest.runAllTimers);
       await waitFor(
         () => {
           expect(addErrorMessage).toHaveBeenCalledWith('An error occurred');

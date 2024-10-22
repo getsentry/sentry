@@ -10,7 +10,7 @@ import pytest
 from sentry.event_manager import _create_group
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.hashing import (
-    _calculate_primary_hashes,
+    _calculate_primary_hashes_and_variants,
     _calculate_secondary_hashes,
     find_grouphash_with_group,
 )
@@ -29,7 +29,9 @@ pytestmark = [requires_snuba]
 @contextmanager
 def patch_grouping_helpers(return_values: dict[str, Any]):
     wrapped_find_grouphash_with_group = capture_results(find_grouphash_with_group, return_values)
-    wrapped_calculate_primary_hashes = capture_results(_calculate_primary_hashes, return_values)
+    wrapped_calculate_primary_hashes = capture_results(
+        _calculate_primary_hashes_and_variants, return_values
+    )
     wrapped_calculate_secondary_hashes = capture_results(_calculate_secondary_hashes, return_values)
 
     with (
@@ -38,7 +40,7 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
             wraps=wrapped_find_grouphash_with_group,
         ) as find_grouphash_with_group_spy,
         mock.patch(
-            "sentry.grouping.ingest.hashing._calculate_primary_hashes",
+            "sentry.grouping.ingest.hashing._calculate_primary_hashes_and_variants",
             wraps=wrapped_calculate_primary_hashes,
         ) as calculate_primary_hashes_spy,
         mock.patch(
@@ -59,7 +61,7 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
     ):
         yield {
             "find_grouphash_with_group": find_grouphash_with_group_spy,
-            "_calculate_primary_hashes": calculate_primary_hashes_spy,
+            "_calculate_primary_hashes_and_variants": calculate_primary_hashes_spy,
             "_calculate_secondary_hashes": calculate_secondary_hashes_spy,
             "_create_group": create_group_spy,
             "record_calculation_metrics": record_calculation_metrics_spy,
@@ -145,7 +147,7 @@ def get_results_from_saving_event(
     with patch_grouping_helpers(return_values) as spies:
         calculate_secondary_hash_spy = spies["_calculate_secondary_hashes"]
         create_group_spy = spies["_create_group"]
-        calculate_primary_hash_spy = spies["_calculate_primary_hashes"]
+        calculate_primary_hash_spy = spies["_calculate_primary_hashes_and_variants"]
         record_calculation_metrics_spy = spies["record_calculation_metrics"]
 
         set_grouping_configs(
@@ -173,7 +175,7 @@ def get_results_from_saving_event(
         primary_hash_calculated = calculate_primary_hash_spy.call_count == 1
         secondary_hash_calculated = calculate_secondary_hash_spy.call_count == 1
 
-        primary_hash = return_values["_calculate_primary_hashes"][0][0]
+        primary_hash = return_values["_calculate_primary_hashes_and_variants"][0][0][0]
         primary_hash_found = bool(hash_search_result) and hash_search_result.hash == primary_hash
 
         new_group_created = create_group_spy.call_count == 1
@@ -242,8 +244,8 @@ def get_results_from_saving_event(
 #      doesn't find an existing group
 #   c) If the primary (or secondary, if it's calculated) hash finds a group, the event is
 #      assigned there
-#   d) If neither finds a group, a new group is created and both the primary (and secondary,
-#      if it's calculated) hashes are stored
+#   d) If neither finds a group, a new group is created and the primary hash is stored (but
+#      the secondary hash is not, even if it's calculated)
 
 
 @django_db_all
@@ -276,7 +278,7 @@ def test_new_group(
             "primary_grouphash_existed_already": False,
             "secondary_grouphash_existed_already": False,
             "primary_grouphash_exists_now": True,
-            "secondary_grouphash_exists_now": True,
+            "secondary_grouphash_exists_now": False,
             "result_tag_value_for_metrics": "no_match",
             # Moot since no existing group was passed
             "event_assigned_to_given_existing_group": None,
@@ -376,18 +378,24 @@ def test_existing_group_new_hash_exists(
 
     # Set the stage by creating a group tied to the new hash (and possibly the legacy hash as well)
     if secondary_hash_exists:
-        existing_event = save_event_with_grouping_config(
+        existing_event_with_secondary_hash = save_event_with_grouping_config(
+            event_data, project, LEGACY_GROUPING_CONFIG
+        )
+        existing_event_with_primary_hash = save_event_with_grouping_config(
             event_data, project, DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG, True
         )
-        group_id = existing_event.group_id
+        group_id = existing_event_with_primary_hash.group_id
 
+        assert (
+            existing_event_with_secondary_hash.group_id == existing_event_with_primary_hash.group_id
+        )
         assert group_id is not None
         assert GroupHash.objects.filter(project_id=project.id, group_id=group_id).count() == 2
     else:
-        existing_event = save_event_with_grouping_config(
+        existing_event_with_primary_hash = save_event_with_grouping_config(
             event_data, project, DEFAULT_GROUPING_CONFIG
         )
-        group_id = existing_event.group_id
+        group_id = existing_event_with_primary_hash.group_id
 
         assert group_id is not None
         assert GroupHash.objects.filter(project_id=project.id, group_id=group_id).count() == 1

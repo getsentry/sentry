@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -315,9 +315,19 @@ export function ScreensLandingPage() {
             </Layout.Header>
           )}
           {isInDomainView && (
-            <Layout.Header>
-              <MobileHeader module={ModuleName.MOBILE_SCREENS} />
-            </Layout.Header>
+            <MobileHeader
+              headerTitle={
+                <Fragment>
+                  {MODULE_TITLE}
+                  <PageHeadingQuestionTooltip
+                    docsUrl={MODULE_DOC_LINK}
+                    title={MODULE_DESCRIPTION}
+                  />
+                </Fragment>
+              }
+              headerActions={isProjectCrossPlatform && <PlatformSelector />}
+              module={ModuleName.MOBILE_SCREENS}
+            />
           )}
 
           <Layout.Body>

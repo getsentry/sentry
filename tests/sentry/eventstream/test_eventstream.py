@@ -5,7 +5,6 @@ from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
-from django.conf import settings
 from django.test import override_settings
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
@@ -341,18 +340,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @override_settings()
     @patch("sentry.eventstream.backend.insert", autospec=True)
-    def test_queue_split_router(self, mock_eventstream_insert):
-        queues = [
-            "post_process_transactions-1",
-            "post_process_transactions-2",
-            "post_process_transactions-3",
-        ]
-        queues_gen = itertools.cycle(queues)
-
-        settings.SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER = {
-            "post_process_transactions": lambda: next(queues_gen)
-        }
-
+    def test_queue_legacy_split_router(self, mock_eventstream_insert):
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
@@ -371,14 +359,27 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             "group_states": [{"id": event.groups[0].id, **group_state}],
         }
 
-        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
-        assert body["queue"] == "post_process_transactions-1"
-        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
-        assert body["queue"] == "post_process_transactions-2"
-        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
-        assert body["queue"] == "post_process_transactions-3"
-        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
-        assert body["queue"] == "post_process_transactions-1"
+        queues_gen = itertools.cycle(
+            [
+                "post_process_transactions_1",
+                "post_process_transactions_2",
+                "post_process_transactions_3",
+            ]
+        )
+
+        with override_settings(
+            SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER={
+                "post_process_transactions": lambda: next(queues_gen)
+            }
+        ):
+            _, body = self.__produce_payload(*insert_args, **insert_kwargs)
+            assert body["queue"] == "post_process_transactions_1"
+            _, body = self.__produce_payload(*insert_args, **insert_kwargs)
+            assert body["queue"] == "post_process_transactions_2"
+            _, body = self.__produce_payload(*insert_args, **insert_kwargs)
+            assert body["queue"] == "post_process_transactions_3"
+            _, body = self.__produce_payload(*insert_args, **insert_kwargs)
+            assert body["queue"] == "post_process_transactions_1"
 
         # test default assignment
         insert_kwargs = {

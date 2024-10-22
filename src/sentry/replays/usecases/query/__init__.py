@@ -219,38 +219,33 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
 
-    try:
-        # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
-        search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
+    # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
+    search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
-        if preferred_source == "materialized-view":
-            query, referrer, source = _query_using_materialized_view_strategy(
-                search_filters,
-                sort,
-                project_ids,
-                period_start,
-                period_stop,
-            )
-        elif preferred_source == "aggregated":
-            query, referrer, source = _query_using_aggregated_strategy(
-                search_filters,
-                sort,
-                project_ids,
-                period_start,
-                period_stop,
-            )
-        else:
-            query, referrer, source = _query_using_scalar_strategy(
-                search_filters,
-                sort,
-                project_ids,
-                period_start,
-                period_stop,
-            )
-    except (ParseError, ValueError) as exc:
-        sentry_sdk.set_tag("org_id", organization.id if organization else None)
-        sentry_sdk.capture_exception(exc)
-        raise
+    if preferred_source == "materialized-view":
+        query, referrer, source = _query_using_materialized_view_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
+        )
+    elif preferred_source == "aggregated":
+        query, referrer, source = _query_using_aggregated_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
+        )
+    else:
+        query, referrer, source = _query_using_scalar_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
+        )
 
     query = query.set_limit(pagination.limit)
     query = query.set_offset(pagination.offset)

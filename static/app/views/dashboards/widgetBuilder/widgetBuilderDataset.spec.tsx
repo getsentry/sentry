@@ -1,4 +1,6 @@
 import {urlEncode} from '@sentry/utils';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -25,6 +27,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -75,6 +79,13 @@ function renderTestComponent({
 
   ProjectsStore.loadInitialData(projects);
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
+    organization,
+    router,
+  });
+
   render(
     <WidgetBuilder
       route={{}}
@@ -98,6 +109,7 @@ function renderTestComponent({
         dashboardId: dashboard?.id ?? 'new',
         ...params,
       }}
+      widgetLegendState={widgetLegendState}
     />,
     {
       router,
@@ -581,27 +593,36 @@ describe('WidgetBuilder', function () {
       );
     });
 
-    it('renders with a release search bar', async function () {
+    it('suggests release properties for sessions dataset', async function () {
       renderTestComponent();
 
-      await userEvent.type(
-        await screen.findByPlaceholderText('Search for events, users, tags, and more'),
-        'session.status:'
+      await userEvent.click(
+        await screen.findByRole('combobox', {name: 'Add a search term'})
       );
+      await userEvent.paste('session.status:');
 
-      await waitFor(() => {
-        expect(screen.getByText("The field isn't supported here.")).toBeInTheDocument();
-      });
+      const row = await screen.findByRole('row', {name: 'session.status:'});
+      expect(row).toHaveAttribute('aria-invalid', 'true');
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Remove filter: session.status'})
+      );
 
       await userEvent.click(screen.getByText('Releases (Sessions, Crash rates)'));
+
       await userEvent.click(
-        screen.getByPlaceholderText(
-          'Search for release version, session status, and more'
-        )
+        await screen.findByRole('combobox', {name: 'Add a search term'})
       );
-      expect(await screen.findByText('environment')).toBeInTheDocument();
-      expect(screen.getByText('project')).toBeInTheDocument();
-      expect(screen.getByText('release')).toBeInTheDocument();
+
+      expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
+
+      const menu = screen.getByRole('listbox');
+      const groups = within(menu).getAllByRole('group');
+
+      const all = groups[0];
+      expect(within(all).getByRole('option', {name: 'environment'})).toBeInTheDocument();
+      expect(within(all).getByRole('option', {name: 'project'})).toBeInTheDocument();
+      expect(within(all).getByRole('option', {name: 'release'})).toBeInTheDocument();
     });
 
     it('adds a function when the only column chosen in a table is a tag', async function () {
@@ -747,32 +768,34 @@ describe('WidgetBuilder', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('issue query does not work on default search bar', async function () {
+    it('does not suggest issue filter keys for default dataset', async function () {
       renderTestComponent();
 
-      const input = (await screen.findByPlaceholderText(
-        'Search for events, users, tags, and more'
-      )) as HTMLTextAreaElement;
-      await userEvent.type(input, 'bookmarks');
-      input.setSelectionRange(9, 9);
+      await userEvent.click(
+        await screen.findByRole('combobox', {name: 'Add a search term'})
+      );
+      await userEvent.paste('bookmarks');
 
-      expect(await screen.findByText('No items found')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('option', {
+          name: '"bookmarks"',
+        })
+      ).toBeInTheDocument();
     });
 
-    it('renders with an issues search bar when selected in dataset selection', async function () {
+    it('suggests issue filter keys for issues dataset', async function () {
       renderTestComponent();
 
       await userEvent.click(
         await screen.findByText('Issues (States, Assignment, Time, etc.)')
       );
 
-      const input = (await screen.findByPlaceholderText(
-        'Search for issues, status, assigned, and more'
-      )) as HTMLTextAreaElement;
-      await userEvent.type(input, 'is:');
-      input.setSelectionRange(3, 3);
+      await userEvent.click(
+        await screen.findByRole('combobox', {name: 'Add a search term'})
+      );
+      await userEvent.paste('ass');
 
-      expect(await screen.findByText('resolved')).toBeInTheDocument();
+      expect(screen.getByLabelText('assigned')).toBeInTheDocument();
     });
 
     it('Update table header values (field alias)', async function () {
@@ -1266,7 +1289,9 @@ describe('WidgetBuilder', function () {
         });
         await screen.findByText('transaction');
         await userEvent.click(screen.getAllByText('count()')[1]);
-        expect(screen.getByText('measurements.custom.measurement')).toBeInTheDocument();
+        expect(
+          await screen.findByText('measurements.custom.measurement')
+        ).toBeInTheDocument();
       });
 
       it('does not default to sorting by transaction when columns change', async function () {

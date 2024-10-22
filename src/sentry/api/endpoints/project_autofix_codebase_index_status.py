@@ -22,7 +22,6 @@ class ProjectAutofixCodebaseIndexStatusEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    private = True
 
     def get(self, request: Request, project: Project) -> Response:
         """

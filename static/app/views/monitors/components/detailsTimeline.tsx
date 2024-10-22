@@ -13,13 +13,12 @@ import type {Organization} from 'sentry/types/organization';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import {OverviewRow} from './overviewTimeline/overviewRow';
 import {GridLineLabels, GridLineOverlay} from './timeline/gridLines';
-import {useMonitorStats} from './timeline/hooks/useMonitorStats';
 import {useTimeWindowConfig} from './timeline/hooks/useTimeWindowConfig';
 
 interface Props {
@@ -28,7 +27,7 @@ interface Props {
 }
 
 export function DetailsTimeline({monitor, organization}: Props) {
-  const {location} = useRouter();
+  const location = useLocation();
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -36,11 +35,6 @@ export function DetailsTimeline({monitor, organization}: Props) {
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
-
-  const {data: monitorStats, isPending} = useMonitorStats({
-    monitors: [monitor.id],
-    timeWindowConfig,
-  });
 
   const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(
     organization,
@@ -103,14 +97,13 @@ export function DetailsTimeline({monitor, organization}: Props) {
         <GridLineLabels timeWindowConfig={timeWindowConfig} />
       </Header>
       <AlignedGridLineOverlay
-        allowZoom={!isPending}
-        showCursor={!isPending}
-        showIncidents={!isPending}
+        allowZoom
+        showCursor
+        showIncidents
         timeWindowConfig={timeWindowConfig}
       />
       <OverviewRow
         monitor={monitor}
-        bucketedData={monitorStats?.[monitor.id]}
         timeWindowConfig={timeWindowConfig}
         onDeleteEnvironment={handleDeleteEnvironment}
         onToggleMuteEnvironment={handleToggleMuteEnvironment}

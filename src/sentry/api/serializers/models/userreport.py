@@ -1,11 +1,36 @@
-from sentry import eventstore
+from datetime import timedelta
+from typing import Any, TypedDict
+
+from django.utils import timezone
+
+from sentry import eventstore, quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.eventstore.models import Event
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.snuba.dataset import Dataset
-from sentry.utils.eventuser import EventUser
+from sentry.utils.eventuser import EventUser, SerializedEventUser
+
+
+class UserReportEvent(TypedDict):
+    id: str
+    eventID: str
+
+
+class UserReportSerializerResponse(TypedDict):
+    id: str
+    eventID: str
+    name: str | None
+    email: str | None
+    comments: str
+    dateCreated: str
+    user: SerializedEventUser | None
+    event: UserReportEvent
+
+
+class UserReportWithGroupSerializerResponse(UserReportSerializerResponse):
+    issue: dict[str, Any]
 
 
 @register(UserReport)
@@ -14,11 +39,13 @@ class UserReportSerializer(Serializer):
         attrs = {}
 
         project = Project.objects.get(id=item_list[0].project_id)
+        retention = quotas.backend.get_event_retention(organization=project.organization)
 
         events = eventstore.backend.get_events(
             filter=eventstore.Filter(
                 event_ids=[item.event_id for item in item_list],
                 project_ids=[project.id],
+                start=timezone.now() - timedelta(days=retention) if retention else None,
             ),
             referrer="UserReportSerializer.get_attrs",
             dataset=Dataset.Events,
@@ -28,14 +55,16 @@ class UserReportSerializer(Serializer):
         events_dict: dict[str, Event] = {event.event_id: event for event in events}
         for item in item_list:
             attrs[item] = {
-                "event_user": EventUser.from_event(events_dict[item.event_id])
-                if events_dict.get(item.event_id)
-                else {}
+                "event_user": (
+                    EventUser.from_event(events_dict[item.event_id])
+                    if events_dict.get(item.event_id)
+                    else {}
+                )
             }
 
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> UserReportSerializerResponse:
         # TODO(dcramer): add in various context from the event
         # context == user / http / extra interfaces
 
@@ -86,7 +115,9 @@ class UserReportWithGroupSerializer(UserReportSerializer):
             )
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> UserReportWithGroupSerializerResponse:
         context = super().serialize(obj, attrs, user)
-        context["issue"] = attrs["group"]
-        return context
+        return {
+            **context,
+            "issue": attrs["group"],
+        }
