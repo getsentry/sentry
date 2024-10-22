@@ -4,7 +4,7 @@ import {TransactionEventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  act,
+  findAllByText,
   findByText,
   fireEvent,
   render,
@@ -18,7 +18,9 @@ import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/index';
 import {
+  makeEventTransaction,
   makeSpan,
+  makeTraceError,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
@@ -50,7 +52,7 @@ class MockResizeObserver {
         {
           target: element,
           // @ts-expect-error partial mock
-          contentRect: {width: 1000, height: 24 * 10 - 1},
+          contentRect: {width: 1000, height: 24 * 20 - 1},
         },
       ],
       this
@@ -61,6 +63,14 @@ class MockResizeObserver {
 
 type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
 type ResponseType = Arguments<typeof MockApiClient.addMockResponse>[0];
+
+function mockQueryString(query: string) {
+  Object.defineProperty(window, 'location', {
+    value: {
+      search: query,
+    },
+  });
+}
 
 function mockTraceResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
@@ -158,6 +168,20 @@ function mockSpansResponse(
   });
 }
 
+function mockTransactionSpansResponse(
+  id: string,
+  resp?: Partial<ResponseType>,
+  body: Partial<EventTransaction> = {}
+) {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/events/project_slug:${id}/`,
+    method: 'GET',
+    asyncDelay: 1,
+    body,
+    ...(resp ?? {}),
+  });
+}
+
 const {router} = initializeOrg({
   router: {
     params: {orgId: 'org-slug', traceSlug: 'trace-id'},
@@ -241,13 +265,13 @@ async function keyboardNavigationTestSetup() {
 }
 
 async function pageloadTestSetup() {
-  const keyboard_navigation_transactions: TraceFullDetailed[] = [];
-  for (let i = 0; i < 1e4; i++) {
-    keyboard_navigation_transactions.push(
+  const pageloadTransactions: TraceFullDetailed[] = [];
+  for (let i = 0; i < 1e3; i++) {
+    pageloadTransactions.push(
       makeTransaction({
         span_id: i + '',
         event_id: i + '',
-        transaction: 'transaction-name' + i,
+        transaction: 'transaction-name-' + i,
         'transaction.op': 'transaction-op-' + i,
         project_slug: 'project_slug',
       })
@@ -256,11 +280,22 @@ async function pageloadTestSetup() {
   }
   mockTraceResponse({
     body: {
-      transactions: keyboard_navigation_transactions,
+      transactions: pageloadTransactions,
       orphan_errors: [],
     },
   });
-  mockTraceMetaResponse();
+  mockTraceMetaResponse({
+    body: {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+      transaction_child_count_map: pageloadTransactions.map(t => ({
+        'transaction.id': t.event_id,
+        count: 5,
+      })),
+    },
+  });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
@@ -345,7 +380,20 @@ async function searchTestSetup() {
       orphan_errors: [],
     },
   });
-  mockTraceMetaResponse();
+
+  mockTraceMetaResponse({
+    body: {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+      transaction_child_count_map: transactions.map(t => ({
+        'transaction.id': t.event_id,
+        count: 5,
+      })),
+    },
+  });
+
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
@@ -386,11 +434,226 @@ async function simpleTestSetup() {
       orphan_errors: [],
     },
   });
-  mockTraceMetaResponse();
+  mockTraceMetaResponse({
+    body: {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+      transaction_child_count_map: transactions.map(t => ({
+        'transaction.id': t.event_id,
+        count: 5,
+      })),
+    },
+  });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
   mockMetricsResponse();
+
+  const value = render(<TraceView />, {router});
+  const virtualizedContainer = getVirtualizedContainer();
+  const virtualizedScrollContainer = getVirtualizedScrollContainer();
+
+  // Awaits for the placeholder rendering rows to be removed
+  expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();
+  return {...value, virtualizedContainer, virtualizedScrollContainer};
+}
+
+async function completeTestSetup() {
+  const start = Date.now() / 1e3;
+
+  mockTraceResponse({
+    body: {
+      transactions: [
+        makeTransaction({
+          event_id: '0',
+          transaction: 'transaction-name-0',
+          'transaction.op': 'transaction-op-0',
+          project_slug: 'project_slug',
+          start_timestamp: start,
+          timestamp: start + 2,
+          children: [
+            makeTransaction({
+              event_id: '1',
+              transaction: 'transaction-name-1',
+              'transaction.op': 'transaction-op-1',
+              project_slug: 'project_slug',
+              start_timestamp: start,
+              timestamp: start + 2,
+            }),
+          ],
+        }),
+        makeTransaction({
+          event_id: '2',
+          transaction: 'transaction-name-2',
+          'transaction.op': 'transaction-op-2',
+          project_slug: 'project_slug',
+          start_timestamp: start,
+          timestamp: start + 2,
+        }),
+        makeTransaction({
+          event_id: '3',
+          transaction: 'transaction-name-3',
+          'transaction.op': 'transaction-op-3',
+          project_slug: 'project_slug',
+          start_timestamp: start,
+          timestamp: start + 2,
+        }),
+      ],
+      orphan_errors: [
+        makeTraceError({
+          event_id: 'error0',
+          issue: 'error-issue',
+          project_id: 0,
+          project_slug: 'project_slug',
+          issue_id: 0,
+          title: 'error-title',
+          level: 'fatal',
+          timestamp: start + 2,
+        }),
+      ],
+    },
+  });
+  mockTraceMetaResponse({
+    body: {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+      transaction_child_count_map: [
+        {
+          'transaction.id': '0',
+          count: 2,
+        },
+        {
+          'transaction.id': '1',
+          count: 2,
+        },
+        {
+          'transaction.id': '2',
+          count: 2,
+        },
+        {
+          'transaction.id': '3',
+          count: 2,
+        },
+      ],
+    },
+  });
+  mockTraceRootFacets();
+  mockTraceRootEvent('0');
+  mockTraceEventDetails();
+  mockMetricsResponse();
+
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events/project_slug:error0/',
+    body: {
+      tags: [],
+      contexts: {},
+      entries: [],
+    },
+  });
+
+  const transactionWithSpans = makeEventTransaction({
+    entries: [
+      {
+        type: EntryType.SPANS,
+        data: [
+          makeSpan({
+            span_id: 'span0',
+            op: 'http',
+            description: 'request',
+            start_timestamp: start,
+            timestamp: start + 0.1,
+          }),
+          // Parent autogroup chain
+          makeSpan({
+            op: 'db',
+            description: 'redis',
+            parent_span_id: 'span0',
+            span_id: 'redis0',
+            start_timestamp: start + 0.1,
+            timestamp: start + 0.2,
+          }),
+          makeSpan({
+            op: 'db',
+            description: 'redis',
+            parent_span_id: 'redis0',
+            span_id: 'redis1',
+            start_timestamp: start + 0.2,
+            timestamp: start + 0.3,
+          }),
+          // Sibling autogroup chain
+          makeSpan({
+            op: 'http',
+            description: 'request',
+            parent_span_id: 'span0',
+            span_id: 'http0',
+            start_timestamp: start + 0.3,
+            timestamp: start + 0.4,
+          }),
+          makeSpan({
+            op: 'http',
+            description: 'request',
+            parent_span_id: 'span0',
+            span_id: 'http1',
+            start_timestamp: start + 0.4,
+            timestamp: start + 0.5,
+          }),
+          makeSpan({
+            op: 'http',
+            description: 'request',
+            parent_span_id: 'span0',
+            span_id: 'http2',
+            start_timestamp: start + 0.5,
+            timestamp: start + 0.6,
+          }),
+          makeSpan({
+            op: 'http',
+            description: 'request',
+            parent_span_id: 'span0',
+            span_id: 'http3',
+            start_timestamp: start + 0.6,
+            timestamp: start + 0.7,
+          }),
+          makeSpan({
+            op: 'http',
+            description: 'request',
+            parent_span_id: 'span0',
+            span_id: 'http4',
+            start_timestamp: start + 0.7,
+            timestamp: start + 0.8,
+          }),
+          // Missing instrumentation gap
+          makeSpan({
+            op: 'queue',
+            description: 'process',
+            parent_span_id: 'span0',
+            span_id: 'queueprocess0',
+            start_timestamp: start + 0.8,
+            timestamp: start + 0.9,
+          }),
+          makeSpan({
+            op: 'queue',
+            description: 'process',
+            parent_span_id: 'span0',
+            span_id: 'queueprocess1',
+            start_timestamp: start + 1.1,
+            timestamp: start + 1.2,
+          }),
+        ],
+      },
+    ],
+  });
+
+  const transactionWithoutSpans = makeEventTransaction({});
+
+  mockTransactionSpansResponse('1', {}, transactionWithSpans);
+  mockSpansResponse('1', {}, transactionWithSpans);
+  // Mock empty response for txn without spans
+  mockTransactionSpansResponse('0', {}, transactionWithoutSpans);
+  mockSpansResponse('0', {}, transactionWithoutSpans);
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
@@ -426,11 +689,17 @@ function printVirtualizedList(container: HTMLElement) {
     'trace-virtualized-list-scroll-container'
   )!;
 
+  const rows = Array.from(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
   stdout.push(
-    'top:' + scrollContainer.scrollTop + ' ' + 'left:' + scrollContainer.scrollLeft
+    'top:' +
+      scrollContainer.scrollTop +
+      ' ' +
+      'left:' +
+      scrollContainer.scrollLeft +
+      ' ' +
+      rows.length
   );
   stdout.push('///////////////////');
-  const rows = Array.from(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
 
   for (const r of [...rows]) {
     let t = r.textContent ?? '';
@@ -440,6 +709,10 @@ function printVirtualizedList(container: HTMLElement) {
     }
     if (r.classList.contains('Highlight')) {
       t = 'highlight ' + t;
+    }
+
+    if (document.activeElement === r) {
+      t = '⬅ focused ' + t;
     }
 
     stdout.push(t);
@@ -476,26 +749,16 @@ function assertHighlightedRowAtIndex(virtualizedContainer: HTMLElement, index: n
   expect(r.indexOf(highlighted_row!)).toBe(index);
 }
 
-describe('trace view', () => {
+describe('trace', () => {
   beforeEach(() => {
-    globalThis.ResizeObserver = MockResizeObserver as any;
-
-    // We are having replay errors about invalid stylesheets, though the CSS seems valid
     jest.spyOn(console, 'error').mockImplementation(() => {});
-
-    Object.defineProperty(window, 'location', {
-      value: {
-        search: '',
-      },
-    });
-
+    globalThis.ResizeObserver = MockResizeObserver as any;
     MockDate.reset();
   });
   afterEach(() => {
+    mockQueryString('');
     // @ts-expect-error clear mock
     globalThis.ResizeObserver = undefined;
-    // @ts-expect-error override it
-    window.location = new URL('http://localhost/');
   });
 
   it('renders loading state', async () => {
@@ -532,129 +795,172 @@ describe('trace view', () => {
     ).toBeInTheDocument();
   });
 
-  // biome-ignore lint/suspicious/noSkippedTests: Flaky suite times out waiting for `pageloadTestSetup()`
-  describe.skip('pageload', () => {
-    it('highlights row at load and sets it as focused', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?node=txn-5',
-        },
-      });
-      const {virtualizedContainer} = await pageloadTestSetup();
-
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'transaction-op-5'
-      );
+  describe('pageload', () => {
+    it('scrolls to trace root', async () => {
+      mockQueryString('?node=trace-root');
+      const {virtualizedContainer} = await completeTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      expect(rows[6]).toHaveFocus();
+      expect(rows[0]).toHaveFocus();
     });
-    it('scrolls at transaction span', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?node=span-5&node=txn-5',
-        },
-      });
 
-      mockSpansResponse(
-        '5',
-        {},
-        {
-          entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '5', op: 'special-span'})],
-            },
-          ],
-        }
-      );
-
-      const {virtualizedContainer} = await pageloadTestSetup();
-
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'special-span'
-      );
+    it('scrolls to transaction', async () => {
+      mockQueryString('?node=txn-1');
+      const {virtualizedContainer} = await completeTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      expect(rows[7]).toHaveFocus();
+      expect(rows[2]).toHaveFocus();
     });
-    it('scrolls far down the list of transactions', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?node=txn-500',
-        },
-      });
 
-      await pageloadTestSetup();
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'transaction-op-500'
-      );
+    it('scrolls to span that is a child of transaction', async () => {
+      mockQueryString('?node=span-span0&node=txn-1');
 
-      await act(async () => {
-        await wait(1000);
-      });
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      // We need to await a tick because the row is not focused until the next tick
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
 
       await waitFor(() => {
-        expect(document.activeElement).toHaveClass('TraceRow');
-        expect(
-          document.activeElement?.textContent?.includes('transaction-op-500')
-        ).toBeTruthy();
+        expect(rows[3]).toHaveFocus();
+        expect(rows[3].textContent?.includes('http — request')).toBe(true);
       });
     });
-    it('scrolls to event id query param and fetches its spans', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?eventId=500',
-        },
-      });
 
-      const spanRequest = mockSpansResponse(
-        '500',
-        {},
-        {
-          entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '1', op: 'special-span'})],
-            },
-          ],
-        }
-      );
+    it('scrolls to parent autogroup node', async () => {
+      mockQueryString('?node=ag-redis0&node=txn-1');
 
-      await pageloadTestSetup();
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'transaction-op-500'
-      );
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      // We need to await a tick because the row is not focused until the next tick
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
 
       await waitFor(() => {
-        expect(document.activeElement).toHaveClass('TraceRow');
-        expect(
-          document.activeElement?.textContent?.includes('transaction-op-500')
-        ).toBeTruthy();
+        expect(rows[4]).toHaveFocus();
+        expect(rows[4].textContent?.includes('Autogrouped')).toBe(true);
       });
-
-      expect(spanRequest).toHaveBeenCalledTimes(1);
-      expect(await screen.findByText('special-span')).toBeInTheDocument();
     });
-    it('logs if path is not found', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?eventId=bad_value',
-        },
-      });
-      const sentrySpy = jest.spyOn(Sentry, 'captureMessage');
-      await pageloadTestSetup();
+    it('scrolls to child of parent autogroup node', async () => {
+      mockQueryString('?node=span-redis0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      // We need to await a tick because the row is not focused until the next tick
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+
       await waitFor(() => {
-        expect(sentrySpy).toHaveBeenCalledWith(
-          'Failed to find and scroll to node in tree'
+        expect(rows[5]).toHaveFocus();
+        expect(rows[5].textContent?.includes('db — redis')).toBe(true);
+      });
+    });
+
+    it('scrolls to sibling autogroup node', async () => {
+      mockQueryString('?node=ag-http0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      // We need to await a tick because the row is not focused until the next tick
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+
+      await waitFor(() => {
+        expect(rows[5]).toHaveFocus();
+        expect(rows[5].textContent?.includes('5Autogrouped')).toBe(true);
+      });
+    });
+
+    it('scrolls to child of sibling autogroup node', async () => {
+      mockQueryString('?node=span-http0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      // We need to await a tick because the row is not focused until the next tick
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+
+      await waitFor(() => {
+        expect(rows[6]).toHaveFocus();
+        expect(rows[6].textContent?.includes('http — request')).toBe(true);
+      });
+    });
+
+    it('scrolls to missing instrumentation node', async () => {
+      mockQueryString('?node=ms-queueprocess0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      // We need to await a tick because the row is not focused until the next ticks
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+
+      await waitFor(() => {
+        expect(rows[7]).toHaveFocus();
+        expect(rows[7].textContent?.includes('Missing instrumentation')).toBe(true);
+      });
+    });
+
+    it('scrolls to trace error node', async () => {
+      mockQueryString('?node=error-error0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      // We need to await a tick because the row is not focused until the next ticks
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+
+      await waitFor(() => {
+        expect(rows[11]).toHaveFocus();
+        expect(rows[11].textContent?.includes('error-title')).toBe(true);
+      });
+    });
+
+    it('scrolls to event id query param', async () => {
+      mockQueryString('?eventId=1');
+      const {virtualizedContainer} = await completeTestSetup();
+
+      await waitFor(() => {
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[2]).toHaveFocus();
+      });
+    });
+
+    it('supports expanded node path', async () => {
+      mockQueryString('?node=span-span0&node=txn-1&span-0&node=txn-0');
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      await waitFor(() => {
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[3]).toHaveFocus();
+        expect(rows[3].textContent?.includes('http — request')).toBe(true);
+      });
+    });
+
+    it.each([
+      '?eventId=doesnotexist',
+      '?node=txn-doesnotexist',
+      // Invalid path
+      '?node=span-does-notexist',
+    ])('logs if path is not found: %s', async path => {
+      mockQueryString(path);
+
+      const sentryScopeMock = {
+        setFingerprint: jest.fn(),
+        captureMessage: jest.fn(),
+      } as any;
+
+      jest.spyOn(Sentry, 'withScope').mockImplementation((f: any) => f(sentryScopeMock));
+      await pageloadTestSetup();
+
+      await waitFor(() => {
+        expect(sentryScopeMock.captureMessage).toHaveBeenCalledWith(
+          'Failed to scroll to node in trace tree'
         );
       });
     });
 
     it('triggers search on load', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?search=transaction-op-5',
-        },
-      });
+      mockQueryString('?search=transaction-op-5');
       await pageloadTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
@@ -666,15 +972,13 @@ describe('trace view', () => {
         );
       });
     });
+
     it('triggers search on load but does not steal focus from node param', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?search=transaction-op-9999&node=txn-0',
-        },
-      });
-      const {container} = await pageloadTestSetup();
+      mockQueryString('?search=transaction-op-999&node=txn-0');
+
+      const {virtualizedContainer} = await pageloadTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      expect(searchInput).toHaveValue('transaction-op-9999');
+      expect(searchInput).toHaveValue('transaction-op-999');
 
       await waitFor(() => {
         expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
@@ -682,16 +986,13 @@ describe('trace view', () => {
         );
       });
 
-      const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       expect(rows[1]).toHaveFocus();
     });
 
     it('if search on load does not match anything, it does not steal focus or highlight first result', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?search=dead&node=txn-5',
-        },
-      });
+      mockQueryString('?search=dead&node=txn-5');
+
       const {container} = await pageloadTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       expect(searchInput).toHaveValue('dead');
@@ -831,7 +1132,7 @@ describe('trace view', () => {
       );
     });
 
-    it('arrowup on first node jumps to start', async () => {
+    it('arrowup on first node jumps to end', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
@@ -984,9 +1285,9 @@ describe('trace view', () => {
 
       for (const action of [
         // starting at the top, jumpt bottom with shift+arrowdown
-        ['{Shift>}{arrowdown}{/Shift}', 9],
+        ['{Shift>}{arrowdown}{/Shift}', 11],
         // // move to row above with arrowup
-        ['{arrowup}', 8],
+        ['{arrowup}', 10],
         // // and jump back to top with shift+arrowup
         ['{Shift>}{arrowup}{/Shift}', 1],
         // // // and jump to next row with arrowdown
@@ -1044,7 +1345,7 @@ describe('trace view', () => {
       await searchToUpdate();
 
       await waitFor(() => {
-        assertHighlightedRowAtIndex(container, 9);
+        assertHighlightedRowAtIndex(container, 11);
       });
     });
     it('highlighted is persisted on node while it is part of the search results', async () => {
@@ -1281,9 +1582,7 @@ describe('trace view', () => {
   });
 
   describe('tabbing', () => {
-    beforeEach(() => {
-      jest.spyOn(console, 'error').mockImplementation();
-    });
+    beforeEach(() => {});
     afterEach(() => {
       jest.restoreAllMocks();
     });
