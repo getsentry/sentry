@@ -37,6 +37,7 @@ export function GroupPreviewHovercard({
       tipColor="background"
       hide={shouldNotPreview || hide}
       body={<div onClick={handleStackTracePreviewClick}>{body}</div>}
+      containerDisplayMode="inline"
       {...props}
     >
       {children}
