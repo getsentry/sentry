@@ -38,14 +38,11 @@ export default class FeatureObserver {
   public updateFlagBuffer({
     flagName,
     flagResult,
-    flagBuffer,
-    bufferSize,
   }: {
-    bufferSize: number;
-    flagBuffer: Flags;
     flagName: string;
     flagResult: boolean;
   }) {
+    const flagBuffer = this.FEATURE_FLAGS;
     // Check if the flag is already in the buffer
     const index = flagBuffer.values.findIndex(f => f.flag === flagName);
 
@@ -56,7 +53,7 @@ export default class FeatureObserver {
 
     // If at capacity, we need to remove the earliest flag
     // This will only happen if not a duplicate flag
-    if (flagBuffer.values.length === bufferSize) {
+    if (flagBuffer.values.length === this._bufferSize) {
       flagBuffer.values.shift();
     }
 
@@ -68,7 +65,6 @@ export default class FeatureObserver {
   }
 
   public observeOrganizationFlags({organization}: {organization: Organization}) {
-    const flagBuffer = this.FEATURE_FLAGS;
     // Track names of features that are passed into the .includes() function.
     const handler = {
       apply: (target: any, orgFeatures: string[], flagName: string[]) => {
@@ -81,8 +77,6 @@ export default class FeatureObserver {
         this.updateFlagBuffer({
           flagName: name,
           flagResult,
-          flagBuffer,
-          bufferSize: this._bufferSize,
         });
 
         return flagResult;
@@ -93,7 +87,6 @@ export default class FeatureObserver {
   }
 
   public observeProjectFlags({project}: {project: Project}) {
-    const flagBuffer = this.FEATURE_FLAGS;
     // Track names of features that are passed into the .includes() function.
     const handler = {
       apply: (target: any, projFeatures: string[], flagName: string[]) => {
@@ -106,8 +99,6 @@ export default class FeatureObserver {
         this.updateFlagBuffer({
           flagName: name,
           flagResult,
-          flagBuffer,
-          bufferSize: this._bufferSize,
         });
 
         return flagResult;
