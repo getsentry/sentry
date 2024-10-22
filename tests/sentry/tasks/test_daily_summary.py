@@ -442,7 +442,7 @@ class DailySummaryTest(
         project_context_map = cast(
             DailySummaryProjectContext, summary.projects_context_map[project_id]
         )
-        assert project_context_map.escalated_today == [self.group2, self.group3]
+        assert project_context_map.escalated_today == [self.group3, self.group2]
         assert project_context_map.regressed_today == []
 
     def test_build_summary_data_group_regressed_twice_and_escalated(self):
@@ -485,7 +485,7 @@ class DailySummaryTest(
         project_context_map = cast(
             DailySummaryProjectContext, summary.projects_context_map[project_id]
         )
-        assert project_context_map.escalated_today == [self.group2, self.group3]
+        assert project_context_map.escalated_today == [self.group3, self.group2]
         assert project_context_map.regressed_today == []
 
     def test_build_summary_data_group_regressed_escalated_in_the_past(self):

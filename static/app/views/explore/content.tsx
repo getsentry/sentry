@@ -88,35 +88,37 @@ function ExploreContentImpl({}: ExploreContentProps) {
             </Layout.HeaderActions>
           </Layout.Header>
           <Body>
-            <PageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter />
-            </PageFilterBar>
-            {dataset === DiscoverDatasets.SPANS_INDEXED ? (
-              <StyledSpanSearchQueryBuilder
-                supportedAggregates={supportedAggregates}
-                projects={selection.projects}
-                initialQuery={userQuery}
-                onSearch={setUserQuery}
-                searchSource="explore"
-              />
-            ) : (
-              <StyledEAPSpanSearchQueryBuilder
-                supportedAggregates={supportedAggregates}
-                projects={selection.projects}
-                initialQuery={userQuery}
-                onSearch={setUserQuery}
-                searchSource="explore"
-                numberTags={numberTags}
-                stringTags={stringTags}
-              />
-            )}
+            <TopSection>
+              <StyledPageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter />
+              </StyledPageFilterBar>
+              {dataset === DiscoverDatasets.SPANS_INDEXED ? (
+                <SpanSearchQueryBuilder
+                  supportedAggregates={supportedAggregates}
+                  projects={selection.projects}
+                  initialQuery={userQuery}
+                  onSearch={setUserQuery}
+                  searchSource="explore"
+                />
+              ) : (
+                <EAPSpanSearchQueryBuilder
+                  supportedAggregates={supportedAggregates}
+                  projects={selection.projects}
+                  initialQuery={userQuery}
+                  onSearch={setUserQuery}
+                  searchSource="explore"
+                  numberTags={numberTags}
+                  stringTags={stringTags}
+                />
+              )}
+            </TopSection>
             <ExploreToolbar extras={toolbarExtras} />
-            <Main fullWidth>
+            <MainSection fullWidth>
               <ExploreCharts query={userQuery} />
               <ExploreTables />
-            </Main>
+            </MainSection>
           </Body>
         </Layout.Page>
       </PageFiltersContainer>
@@ -135,23 +137,37 @@ export function ExploreContent(props: ExploreContentProps) {
 }
 
 const Body = styled(Layout.Body)`
-  display: flex;
-  flex-direction: column;
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 300px minmax(100px, auto);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    grid-template-columns: 350px minmax(100px, auto);
   }
 `;
 
-const StyledSpanSearchQueryBuilder = styled(SpanSearchQueryBuilder)`
+const TopSection = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  grid-column: 1/3;
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: minmax(300px, auto) 1fr;
+    margin-bottom: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    grid-template-columns: minmax(350px, auto) 1fr;
+  }
+`;
+
+const MainSection = styled(Layout.Main)`
   grid-column: 2/3;
 `;
 
-const StyledEAPSpanSearchQueryBuilder = styled(EAPSpanSearchQueryBuilder)`
-  grid-column: 2/3;
-`;
-
-const Main = styled(Layout.Main)`
-  grid-column: 2/3;
+const StyledPageFilterBar = styled(PageFilterBar)`
+  width: auto;
 `;

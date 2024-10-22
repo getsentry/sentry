@@ -226,6 +226,7 @@ export enum AggregationKey {
   USER_MISERY = 'user_misery',
   FAILURE_RATE = 'failure_rate',
   LAST_SEEN = 'last_seen',
+  PERFORMANCE_SCORE = 'performance_score',
 }
 
 export enum IsFieldValues {
@@ -792,6 +793,20 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
     valueType: FieldValueType.DATE,
     parameters: [],
   },
+  [AggregationKey.PERFORMANCE_SCORE]: {
+    desc: t('Returns the performance score for a given web vital'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.NUMBER,
+    parameters: [
+      {
+        name: 'value',
+        kind: 'column',
+        columnTypes: [FieldValueType.NUMBER],
+        defaultValue: 'measurements.score.total',
+        required: true,
+      },
+    ],
+  },
 };
 
 // TODO: Extend the two lists below with more options upon backend support
@@ -1025,7 +1040,7 @@ type TraceFields =
   | SpanIndexedField.SPAN_STATUS
   | SpanIndexedField.RESPONSE_CODE;
 
-const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
+export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   /** Indexed Fields */
   [SpanIndexedField.SPAN_ACTION]: {
     desc: t(

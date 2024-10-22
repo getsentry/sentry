@@ -79,7 +79,7 @@ export function shouldDisplayOnDemandWidgetWarning(
     !hasErrorCondition(query.conditions) &&
     isOnDemandQueryString(query.conditions) &&
     hasOnDemandMetricWidgetFeature(organization) &&
-    widgetType === WidgetType.DISCOVER
+    (widgetType === WidgetType.DISCOVER || widgetType === WidgetType.TRANSACTIONS)
   );
 }
 
