@@ -7,6 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+import {isTransactionNode} from '../traceGuards';
 import {TraceTree} from '../traceModels/traceTree';
 
 import type {TraceMetaQueryResults} from './useTraceMeta';
@@ -93,7 +94,9 @@ export function useTraceTree({
 
       // Root frame + 2 nodes
       const promises: Promise<void>[] = [];
-      if (trace.list.length <= 3) {
+      const transactions = TraceTree.FindAll(trace.root, c => isTransactionNode(c));
+
+      if (transactions.length <= 3) {
         for (const c of trace.list) {
           if (c.canFetch) {
             promises.push(trace.zoom(c, true, {api, organization}).then(rerender));
