@@ -11,12 +11,33 @@ import type {
   Node,
   Orientation,
 } from '@react-types/shared';
+import * as Sentry from '@sentry/react';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 
 import {tabsShouldForwardProp} from './utils';
+
+function startSentryProfile() {
+  if (
+    'requestIdleCallback' in window &&
+    typeof window.requestIdleCallback === 'function'
+  ) {
+    // Enables browser profiles for tab clicks
+    const span = Sentry.startInactiveSpan({
+      name: 'issues.tab.pointer.down',
+      op: 'ui.render',
+      forceTransaction: true,
+    });
+
+    if (span) {
+      requestIdleCallback(() => {
+        span.end();
+      });
+    }
+  }
+}
 
 interface TabProps extends AriaTabProps {
   item: Node<any>;
@@ -83,9 +104,9 @@ export const BaseTab = forwardRef(
           <TabLink
             to={to}
             onMouseDown={handleLinkClick}
-            onPointerDown={handleLinkClick}
             orientation={orientation}
             tabIndex={-1}
+            onClick={startSentryProfile}
           >
             {children}
           </TabLink>
@@ -103,6 +124,7 @@ export const BaseTab = forwardRef(
           borderStyle={borderStyle}
           ref={ref}
           as={as}
+          onClick={startSentryProfile}
         >
           {!isSelected && (
             <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
@@ -121,6 +143,7 @@ export const BaseTab = forwardRef(
           overflowing={overflowing}
           ref={ref}
           as={as}
+          onClick={startSentryProfile}
         >
           <VariantStyledInteractionStateLayer hasSelectedBackground={false} />
           <VariantFocusLayer />
@@ -137,6 +160,7 @@ export const BaseTab = forwardRef(
         overflowing={overflowing}
         ref={ref}
         as={as}
+        onClick={startSentryProfile}
       >
         <InnerWrap>
           <StyledInteractionStateLayer
