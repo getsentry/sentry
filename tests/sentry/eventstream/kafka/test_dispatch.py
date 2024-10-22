@@ -83,7 +83,7 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
         time.sleep(0.1)
 
     mock_dispatch.assert_called_once_with(
-        EventStreamEventType.Generic,
+        eventstream_type=EventStreamEventType.Generic,
         event_id="fe0ee9a2bc3b415497bad68aaf70dc7f",
         project_id=1,
         group_id=43,
