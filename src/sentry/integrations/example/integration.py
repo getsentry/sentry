@@ -20,10 +20,10 @@ from sentry.integrations.services.integration.serial import serialize_integratio
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
-from sentry.mediators.plugins.migrator import Migrator
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
+from sentry.plugins.migrator import Migrator
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -226,7 +226,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
         organization: RpcOrganizationSummary,
         extra: Any | None = None,
     ) -> None:
-        Migrator.run(integration=serialize_integration(integration), organization=organization)
+        Migrator(integration=serialize_integration(integration), organization=organization).run()
 
     def build_integration(self, state):
         return {"external_id": state["name"]}
