@@ -39,7 +39,7 @@ export default class FeatureObserver {
   }: {
     bufferSize: number;
     flagBuffer: Flags;
-    flagName: any;
+    flagName: string;
     flagResult: any;
   }) {
     // Check if the flag is already in the buffer

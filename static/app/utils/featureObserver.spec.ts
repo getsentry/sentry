@@ -1,11 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import FeatureObserver from 'sentry/utils/featureObserver';
 
 describe('FeatureObserver', () => {
-  let organization;
-  let project;
+  let organization: Organization;
+  let project: Project;
 
   beforeEach(() => {
     organization = OrganizationFixture({
