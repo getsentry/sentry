@@ -44,10 +44,6 @@ export function CreateProjectsFooter({
   genSkipOnboardingLink,
   clearPlatform,
 }: Props) {
-  const frameworkSelectionEnabled = !!organization?.features.includes(
-    'onboarding-sdk-selection'
-  );
-
   const api = useApi();
   const {teams} = useTeams();
   const onboardingContext = useContext(OnboardingContext);
@@ -211,9 +207,7 @@ export function CreateProjectsFooter({
       <ButtonWrapper>
         <Button
           priority="primary"
-          onClick={() =>
-            frameworkSelectionEnabled ? handleProjectCreation() : createPlatformProject()
-          }
+          onClick={handleProjectCreation}
           disabled={!selectedPlatform}
           data-test-id="platform-select-next"
         >

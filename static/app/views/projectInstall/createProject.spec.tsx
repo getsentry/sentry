@@ -303,7 +303,7 @@ describe('CreateProject', function () {
   it('does not render framework selection modal if vanilla js is NOT selected', async function () {
     const {organization} = initializeOrg({
       organization: {
-        features: ['onboarding-sdk-selection', 'team-roles'],
+        features: ['team-roles'],
         access: ['project:read', 'project:write'],
         allowMemberProjectCreation: true,
       },
@@ -343,11 +343,7 @@ describe('CreateProject', function () {
   });
 
   it('renders framework selection modal if vanilla js is selected', async function () {
-    const {organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-sdk-selection'],
-      },
-    });
+    const {organization} = initializeOrg();
 
     const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
       organization,
