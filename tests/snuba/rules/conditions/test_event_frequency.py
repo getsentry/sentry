@@ -554,10 +554,110 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
             )
 
     def test_comparison(self):
-        pass
+        # Test data is 4 events in the current period and 2 events in the comparison period, so
+        # a 100% increase.
+        event = self.add_event(
+            data={
+                "fingerprint": ["something_random"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+            timestamp=before_now(minutes=1),
+        )
+        self.increment(
+            event,
+            3,
+            timestamp=timezone.now() - timedelta(minutes=1),
+        )
+        self.increment(
+            event,
+            2,
+            timestamp=timezone.now() - timedelta(days=1, minutes=20),
+        )
+        data = {
+            "interval": "1h",
+            "value": 99,
+            "comparisonType": "percent",
+            "comparisonInterval": "1d",
+            "id": "EventFrequencyConditionWithConditions",
+        }
+
+        rule = self.get_rule(
+            data=data,
+            rule=Rule(
+                environment_id=None,
+                project_id=self.project.id,
+                data={
+                    "conditions": [data],
+                    "filter_match": "all",
+                },
+            ),
+        )
+        self.assertPasses(rule, event, is_new=False)
+
+        data = {
+            "interval": "1h",
+            "value": 101,
+            "comparisonType": "percent",
+            "comparisonInterval": "1d",
+            "id": "EventFrequencyConditionWithConditions",
+        }
+
+        rule = self.get_rule(
+            data=data,
+            rule=Rule(
+                environment_id=None,
+                project_id=self.project.id,
+                data={
+                    "conditions": [data],
+                    "filter_match": "all",
+                },
+            ),
+        )
+        self.assertDoesNotPass(rule, event, is_new=False)
 
     def test_comparison_empty_comparison_period(self):
-        pass
+        # Test data is 1 event in the current period and 0 events in the comparison period. This
+        # should always result in 0 and never fire.
+        event = self.add_event(
+            data={
+                "fingerprint": ["something_random"],
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+            timestamp=before_now(minutes=1),
+        )
+        data = {
+            "filter_match": "all",
+            "conditions": [
+                {
+                    "interval": "1h",
+                    "value": 0,
+                    "comparisonType": "percent",
+                    "comparisonInterval": "1d",
+                }
+            ],
+        }
+        rule = self.get_rule(
+            data=data, rule=Rule(environment_id=None, project_id=self.project.id, data=data)
+        )
+        self.assertDoesNotPass(rule, event, is_new=False)
+
+        data = {
+            "filter_match": "all",
+            "conditions": [
+                {
+                    "interval": "1h",
+                    "value": 100,
+                    "comparisonType": "percent",
+                    "comparisonInterval": "1d",
+                }
+            ],
+        }
+        rule = self.get_rule(
+            data=data, rule=Rule(environment_id=None, project_id=self.project.id, data=data)
+        )
+        self.assertDoesNotPass(rule, event, is_new=False)
 
     def _run_test(self, minutes, data, passes, add_events=False):
         if not self.environment:

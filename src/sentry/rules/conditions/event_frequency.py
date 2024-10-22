@@ -549,7 +549,6 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
             raise NotImplementedError(
                 "EventUniqueUserFrequencyConditionWithConditions is not enabled for this organization"
             )
-
         if self.rule.data["filter_match"] == "any":
             raise NotImplementedError(
                 "EventUniqueUserFrequencyConditionWithConditions does not support filter_match == any"
@@ -600,7 +599,6 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         )
         error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
         organization_id = self.get_value_from_groups(groups, "project__organization_id")
-        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
 
         conditions = []
 
