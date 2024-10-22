@@ -7,17 +7,19 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.serializers import serialize
 from sentry.models.organizationonboardingtask import OnboardingTaskStatus
 
 
 class OnboardingTaskPermission(OrganizationPermission):
-    scope_map = {"POST": ["org:read"]}
+    scope_map = {"POST": ["org:read"], "GET": ["org:read"]}
 
 
 @region_silo_endpoint
 class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (OnboardingTaskPermission,)
@@ -64,3 +66,11 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
             onboarding_tasks.try_mark_onboarding_complete(organization.id)
 
         return Response(status=204)
+
+    def get(self, request: Request, organization) -> Response:
+        tasks_to_serialize = list(
+            onboarding_tasks.fetch_onboarding_tasks(organization, request.user)
+        )
+        serialized_tasks = serialize(tasks_to_serialize, request.user)
+
+        return Response({"onboardingTasks": serialized_tasks}, status=200)
