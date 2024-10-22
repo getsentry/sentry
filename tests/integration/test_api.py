@@ -99,7 +99,7 @@ class AuthenticationTest(AuthProviderTestCase):
         resp = self.client.get(
             f"/api/0/teams/{self.organization.slug}/{self.team.slug}/",
             HTTP_REFERER=f"https://testdomain.com/organizations/{self.organization.slug}/teams",
-            SERVER_NAME="testdomain.com",
+            HTTP_HOST="testdomain.com",
         )
 
         assert (

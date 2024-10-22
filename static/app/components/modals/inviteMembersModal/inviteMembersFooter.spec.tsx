@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   defaultInviteProps,
@@ -11,7 +12,9 @@ import InviteMembersFooter from 'sentry/components/modals/inviteMembersModal/inv
 describe('InviteRowControlNew', function () {
   const renderComponent = props => {
     render(
-      <InviteMembersContext.Provider value={{...defaultInviteProps, ...props}}>
+      <InviteMembersContext.Provider
+        value={{...defaultInviteProps, ...props, willInvite: true}}
+      >
         <InviteMembersFooter canSend />
       </InviteMembersContext.Provider>,
       {organization: OrganizationFixture({features: ['invite-members-new-modal']})}
@@ -40,7 +43,7 @@ describe('InviteRowControlNew', function () {
       sendInvites: mockSendInvites,
     });
 
-    const sendButton = screen.getByLabelText(/send invite/i);
+    const sendButton = screen.getByRole('button', {name: 'Send invite'});
     expect(sendButton).toBeEnabled();
     await userEvent.click(sendButton);
     expect(mockSetInviteStatus).toHaveBeenCalled();
@@ -54,10 +57,11 @@ describe('InviteRowControlNew', function () {
         'moo-deng': {sent: true},
         'moo-waan': {sent: true},
       },
-      willInvite: true,
     });
-    expect(screen.getByTestId('sent-invites')).toHaveTextContent(/2/i);
-    expect(screen.queryByTestId('failed-invites')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(
+      screen.getByRole('alert', {name: textWithMarkupMatcher('2 invites sent')})
+    ).toBeInTheDocument();
   });
 
   it('displays correct status message for failed invites', function () {
@@ -67,9 +71,11 @@ describe('InviteRowControlNew', function () {
         'moo-deng': {sent: false, error: 'Error'},
         'moo-waan': {sent: false, error: 'Error'},
       },
-      willInvite: true,
     });
-    expect(screen.getByText(/2/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(
+      screen.getByRole('alert', {name: textWithMarkupMatcher('2 invites failed to send')})
+    ).toBeInTheDocument();
   });
 
   it('displays correct status message for sent and failed invites', function () {
@@ -80,9 +86,13 @@ describe('InviteRowControlNew', function () {
         'moo-waan': {sent: true},
         'moo-toon': {sent: false, error: 'Error'},
       },
-      willInvite: true,
     });
-    expect(screen.getByTestId('sent-invites')).toHaveTextContent(/2/i);
-    expect(screen.getByTestId('failed-invites')).toHaveTextContent(/1/i);
+    expect(screen.getAllByRole('alert')).toHaveLength(2);
+    expect(
+      screen.getByRole('alert', {name: textWithMarkupMatcher('2 invites sent')})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('alert', {name: textWithMarkupMatcher('1 invite failed to send')})
+    ).toBeInTheDocument();
   });
 });

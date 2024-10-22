@@ -414,8 +414,8 @@ class FinishPipelineTestCase(IntegrationTestCase):
             integration_id=integration.id, organization_id=self.organization.id
         ).exists()
 
-    @patch("sentry.mediators.plugins.Migrator.call")
-    def test_disabled_plugin_when_fully_migrated(self, call, *args):
+    @patch("sentry.plugins.migrator.Migrator.run")
+    def test_disabled_plugin_when_fully_migrated(self, run, *args):
         with assume_test_silo_mode(SiloMode.REGION):
             Repository.objects.create(
                 organization_id=self.organization.id,
@@ -433,7 +433,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         self.pipeline.finish_pipeline()
 
-        assert call.called
+        assert run.called
 
 
 @control_silo_test

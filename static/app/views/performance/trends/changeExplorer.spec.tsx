@@ -287,8 +287,8 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
 ];
 
 describe('Performance > Trends > Performance Change Explorer', function () {
-  let eventsMockBefore;
-  let spansMock;
+  let eventsMockBefore: jest.Mock;
+  let spansMock: jest.Mock;
   beforeEach(function () {
     eventsMockBefore = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',

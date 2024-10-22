@@ -302,6 +302,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         "PATCH": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationSCIMTeamPermission,)
+    _allow_idp_changes = True
 
     def convert_args(
         self, request: Request, organization_id_or_slug: int | str, team_id, *args, **kwargs

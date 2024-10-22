@@ -6,7 +6,7 @@ import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest, {
   type EventsRequestProps,
@@ -221,6 +221,9 @@ class TriggersChart extends PureComponent<Props, State> {
       this.fetchTotalCount();
     }
   }
+
+  // Create new API Client so that historical requests aren't automatically deduplicated
+  historicalAPI = new Client();
 
   get availableTimePeriods() {
     // We need to special case sessions, because sub-hour windows are available
@@ -491,6 +494,7 @@ class TriggersChart extends PureComponent<Props, State> {
           {this.props.includeHistorical ? (
             <OnDemandMetricRequest
               {...baseProps}
+              api={this.historicalAPI}
               period={period}
               dataLoadedCallback={onHistoricalDataLoaded}
             />
@@ -610,6 +614,7 @@ class TriggersChart extends PureComponent<Props, State> {
         {this.props.includeHistorical ? (
           <EventsRequest
             {...baseProps}
+            api={this.historicalAPI}
             period={HISTORICAL_TIME_PERIOD_MAP[period]}
             dataLoadedCallback={onHistoricalDataLoaded}
           >

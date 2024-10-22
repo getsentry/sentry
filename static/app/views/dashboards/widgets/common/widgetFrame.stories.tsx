@@ -71,6 +71,34 @@ export default storyBook(WidgetFrame, story => {
     );
   });
 
+  story('Badge', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="WidgetFrame" /> supports a <code>badgeProps</code> prop. If
+          passed, a<code>Badge</code> component with the relevant props appears in the
+          header.
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <WidgetFrame
+              title="count()"
+              badgeProps={{
+                text: 'Sampled',
+                type: 'default',
+              }}
+              warnings={[
+                'We have automatically converted this widget to use sampled data.',
+                'Data for this metrics has not been extracted yet',
+              ]}
+            />
+          </NormalWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
   story('Action Menu', () => {
     return (
       <Fragment>
@@ -122,6 +150,24 @@ export default storyBook(WidgetFrame, story => {
                 },
               ]}
             />
+          </NormalWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Full Screen View Button', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="WidgetFrame" /> supports a <code>onOpenFullScreenView</code>{' '}
+          prop. This is a special action that always appears as an individual icon to the
+          right of the normal actions.
+        </p>
+
+        <SideBySide>
+          <NormalWidget>
+            <WidgetFrame title="count()" onFullScreenViewClick={() => {}} />
           </NormalWidget>
         </SideBySide>
       </Fragment>

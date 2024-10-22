@@ -11,17 +11,24 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {
+  EAPSpanSearchQueryBuilder,
+  SpanSearchQueryBuilder,
+} from 'sentry/components/performance/spanSearchQueryBuilder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {
+  SpanTagsProvider,
+  useSpanTags,
+} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
@@ -37,7 +44,11 @@ function ExploreContentImpl({}: ExploreContentProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const [dataset] = useDataset();
   const [resultsMode] = useResultMode();
+
+  const numberTags = useSpanTags('number');
+  const stringTags = useSpanTags('string');
 
   const supportedAggregates = useMemo(() => {
     return resultsMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
@@ -77,23 +88,37 @@ function ExploreContentImpl({}: ExploreContentProps) {
             </Layout.HeaderActions>
           </Layout.Header>
           <Body>
-            <PageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter />
-            </PageFilterBar>
-            <StyledSpanSearchQueryBuilder
-              supportedAggregates={supportedAggregates}
-              projects={selection.projects}
-              initialQuery={userQuery}
-              onSearch={setUserQuery}
-              searchSource="explore"
-            />
+            <TopSection>
+              <StyledPageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter />
+              </StyledPageFilterBar>
+              {dataset === DiscoverDatasets.SPANS_INDEXED ? (
+                <SpanSearchQueryBuilder
+                  supportedAggregates={supportedAggregates}
+                  projects={selection.projects}
+                  initialQuery={userQuery}
+                  onSearch={setUserQuery}
+                  searchSource="explore"
+                />
+              ) : (
+                <EAPSpanSearchQueryBuilder
+                  supportedAggregates={supportedAggregates}
+                  projects={selection.projects}
+                  initialQuery={userQuery}
+                  onSearch={setUserQuery}
+                  searchSource="explore"
+                  numberTags={numberTags}
+                  stringTags={stringTags}
+                />
+              )}
+            </TopSection>
             <ExploreToolbar extras={toolbarExtras} />
-            <Main fullWidth>
+            <MainSection fullWidth>
               <ExploreCharts query={userQuery} />
               <ExploreTables />
-            </Main>
+            </MainSection>
           </Body>
         </Layout.Page>
       </PageFiltersContainer>
@@ -112,19 +137,37 @@ export function ExploreContent(props: ExploreContentProps) {
 }
 
 const Body = styled(Layout.Body)`
-  display: flex;
-  flex-direction: column;
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 300px minmax(100px, auto);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    grid-template-columns: 350px minmax(100px, auto);
   }
 `;
 
-const StyledSpanSearchQueryBuilder = styled(SpanSearchQueryBuilder)`
+const TopSection = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  grid-column: 1/3;
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: minmax(300px, auto) 1fr;
+    margin-bottom: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    grid-template-columns: minmax(350px, auto) 1fr;
+  }
+`;
+
+const MainSection = styled(Layout.Main)`
   grid-column: 2/3;
 `;
 
-const Main = styled(Layout.Main)`
-  grid-column: 2/3;
+const StyledPageFilterBar = styled(PageFilterBar)`
+  width: auto;
 `;
