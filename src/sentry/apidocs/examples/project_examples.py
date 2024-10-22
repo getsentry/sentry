@@ -248,7 +248,6 @@ DETAILED_PROJECT = {
             "invite-members-rate-limits",
             "transaction-name-normalize",
             "performance-file-io-main-thread-visible",
-            "onboarding-sdk-selection",
             "performance-span-histogram-view",
             "performance-file-io-main-thread-ingest",
             "metrics-extraction",
