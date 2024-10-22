@@ -195,11 +195,15 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             if topic.name == "hackweek":
                 limit_tasks(message)
                 activation = process_message(message)
+                logger.info("store activation for id=%s", activation.id)
+
                 self.pending_task_store.store([activation])
 
             if topic.name == "hackweek-reply":
                 result = ActivationResult()
                 result.ParseFromString(message.payload.value)
+                logger.info("process activation-result for id=%s", result.task_id)
+
                 self.pending_task_store.set_task_status(result.task_id, result.status)
 
                 # TODO only do once and a while, perhaps every 5s?

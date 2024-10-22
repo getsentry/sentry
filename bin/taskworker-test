@@ -162,10 +162,11 @@ def main(
                 "cmd": [
                     "sentry",
                     "run",
+                    "consumer",
                     "taskworker-reply",
                     "--consumer-group",
                     "taskworker-pull",
-                    "--loglevel",
+                    "--log-level",
                     "warning",
                     "--",
                     "--storage",

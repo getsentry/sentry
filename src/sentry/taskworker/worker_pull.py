@@ -156,16 +156,6 @@ class Worker:
         task_latency = execution_time - task_added_time
         self.__execution_count += 1
 
-        # Dump results to a log file that is CSV shaped
-        result_logger.info(
-            "task.complete, %s, %s, %s, %s, %s",
-            self.__worker_id,
-            task_added_time,
-            execution_time,
-            task_latency,
-            activation.id,
-        )
-
         if next_state == TASK_ACTIVATION_STATUS_COMPLETE:
             logger.info(
                 "taskworker.task.complete", extra={"task": activation.taskname, "id": activation.id}
@@ -180,6 +170,16 @@ class Worker:
                 task_id=activation.id,
                 task_status=next_state,
             )
+
+        # Dump results to a log file that is CSV shaped
+        result_logger.info(
+            "task.complete, %s, %s, %s, %s, %s",
+            self.__worker_id,
+            task_added_time,
+            execution_time,
+            task_latency,
+            activation.id,
+        )
 
         if response.HasField("task") and response.HasField("processing_deadline"):
             new_task = response.task

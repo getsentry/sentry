@@ -135,6 +135,14 @@ class WorkerReplyServicer(BaseWorkerReplyServiceServicer):
                 next_state = TASK_ACTIVATION_STATUS_RETRY
         task_latency = execution_time - task_added_time
 
+        reply = ActivationResult(status=next_state, task_id=activation.id)
+        self.reply_producer.produce(
+            ArroyoPartition(
+                topic=ArroyoTopic(name="hackweek-reply"), index=request.reply_partition
+            ),
+            KafkaPayload(key=None, value=reply.SerializeToString(), headers=[]),
+        )
+
         # Dump results to a log file that is CSV shaped
         result_logger.info(
             "task.complete, %s, %s, %s, %s, %s",
@@ -143,13 +151,6 @@ class WorkerReplyServicer(BaseWorkerReplyServiceServicer):
             execution_time,
             task_latency,
             activation.id,
-        )
-        reply = ActivationResult(status=next_state, task_id=activation.id)
-        self.reply_producer.produce(
-            ArroyoPartition(
-                topic=ArroyoTopic(name="hackweek-reply"), index=request.reply_partition
-            ),
-            KafkaPayload(key=None, value=reply.SerializeToString(), headers=[]),
         )
 
 
