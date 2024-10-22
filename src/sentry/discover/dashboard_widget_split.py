@@ -75,6 +75,8 @@ def _save_split_decision_for_widget(
 def _get_and_save_split_decision_for_dashboard_widget(
     widget_query: DashboardWidgetQuery, dry_run: bool
 ) -> tuple[int, bool]:
+    sentry_sdk.set_tag("dry_run", dry_run)
+
     widget: DashboardWidget = widget_query.widget
     dashboard: Dashboard = widget.dashboard
     # We use all projects for the clickhouse query but don't do anything
@@ -150,7 +152,8 @@ def _get_and_save_split_decision_for_dashboard_widget(
                 },
             ),
         )
-    except (InvalidSearchQuery, InvalidQueryError):
+    except (InvalidSearchQuery, InvalidQueryError) as e:
+        sentry_sdk.capture_exception(e)
         if dry_run:
             logger.info(
                 "Split decision for %s: %s (forced)",
