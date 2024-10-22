@@ -31,8 +31,8 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         self.browser.click('[aria-label="Start"]')
         self.browser.wait_until('[data-test-id="onboarding-step-select-platform"]')
 
-        # Select and create node JS project
-        self.browser.click('[data-test-id="platform-node"]')
+        # Select and create nest JS project
+        self.browser.click('[data-test-id="platform-node-nestjs"]')
         self.browser.wait_until_not('[data-test-id="platform-select-next"][aria-disabled="true"]')
         self.browser.wait_until('[data-test-id="platform-select-next"][aria-disabled="false"]')
 
@@ -46,5 +46,5 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
 
         # Verify project was created for org
         project = Project.objects.get(organization=self.org)
-        assert project.name == "node"
-        assert project.platform == "node"
+        assert project.name == "node-nestjs"
+        assert project.platform == "node-nestjs"
