@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import os
 from os import path
+from typing import Any
 from unittest import mock
 
+import orjson
 import pytest
 from django.utils.functional import cached_property
 
@@ -14,9 +18,11 @@ from sentry.grouping.api import (
     get_default_grouping_config_dict,
     load_grouping_config,
 )
+from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
@@ -156,3 +162,46 @@ def with_fingerprint_input(name):
     return pytest.mark.parametrize(
         name, fingerprint_input, ids=lambda x: x.filename[:-5].replace("-", "_")
     )
+
+
+def to_json(value: Any) -> str:
+    return orjson.dumps(value, option=orjson.OPT_SORT_KEYS).decode()
+
+
+def dump_variant(
+    variant: BaseVariant, lines: list[str] | None = None, indent: int = 0
+) -> list[str]:
+    if lines is None:
+        lines = []
+
+    def _dump_component(component: GroupingComponent, indent: int) -> None:
+        if not component.hint and not component.values:
+            return
+        lines.append(
+            "%s%s%s%s"
+            % (
+                "  " * indent,
+                component.id,
+                component.contributes and "*" or "",
+                component.hint and " (%s)" % component.hint or "",
+            )
+        )
+        for value in component.values:
+            if isinstance(value, GroupingComponent):
+                _dump_component(value, indent + 1)
+            else:
+                lines.append("{}{}".format("  " * (indent + 1), to_json(value)))
+
+    lines.append("{}hash: {}".format("  " * indent, to_json(variant.get_hash())))
+
+    for key, value in sorted(variant.__dict__.items()):
+        if isinstance(value, GroupingComponent):
+            lines.append("{}{}:".format("  " * indent, key))
+            _dump_component(value, indent + 1)
+        elif key == "config":
+            # We do not want to dump the config
+            continue
+        else:
+            lines.append("{}{}: {}".format("  " * indent, key, to_json(value)))
+
+    return lines
