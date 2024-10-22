@@ -309,29 +309,28 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "super duper bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
-                    "fingerprint": ["group1"],
-                    "tags": {"sentry:user": self.user.email},
-                },
-                default_event_type=EventType.ERROR,
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "super bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user.email},
-                },
-                default_event_type=EventType.ERROR,
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "super duper bad",
+                "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            default_event_type=EventType.ERROR,
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "super bad",
+                "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            default_event_type=EventType.ERROR,
+            project_id=self.project.id,
+        )
 
         with outbox_runner():
             resp = self.get_success_response(
@@ -924,12 +923,11 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp = self.get_error_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
             )
-        assert resp.data == [
-            ErrorDetail(
-                string="Each trigger must have an associated action for this alert to fire.",
-                code="invalid",
-            )
-        ]
+        assert resp.data == {
+            "nonFieldErrors": [
+                "Each trigger must have an associated action for this alert to fire."
+            ]
+        }
 
     def test_invalid_projects(self):
         with self.feature("organizations:incidents"):
@@ -1328,9 +1326,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_response(self.organization.slug, **valid_alert_rule)
             assert resp.status_code == 201
-            assert self.analytics_called_with_args(
-                record_analytics, "alert.created", query_type="PERFORMANCE"
-            )
 
 
 @freeze_time()

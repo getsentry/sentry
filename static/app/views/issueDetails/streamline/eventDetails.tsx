@@ -102,6 +102,7 @@ export function EventDetails({
           {!isLoadingStats && groupStats && (
             <ExtraContent>
               <EventGraph
+                event={event}
                 group={group}
                 groupStats={groupStats}
                 searchQuery={searchQuery}
@@ -199,7 +200,7 @@ const FloatingEventNavigation = styled(EventNavigation)`
     top: ${p => p.theme.sidebar.mobileHeight};
   }
   background: ${p => p.theme.background};
-  z-index: 500;
+  z-index: ${p => p.theme.zIndex.header};
   border-radius: ${p => p.theme.borderRadiusTop};
 
   &[data-stuck='true'] {

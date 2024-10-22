@@ -95,7 +95,7 @@ root.render(<App />);
 `;
 
 const getVerifySnippet = () => `
-return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
+return <button onClick={() => {throw new Error("This is your first error!");}}>Break the world</button>;
 `;
 
 const getInstallConfig = () => [
@@ -417,6 +417,11 @@ export default Sentry.withProfiler(App);
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  ...onboarding,
+  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -424,6 +429,7 @@ const docs: Docs = {
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   performanceOnboarding,
   crashReportOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;

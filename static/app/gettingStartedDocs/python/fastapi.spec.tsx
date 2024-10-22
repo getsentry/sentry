@@ -50,11 +50,9 @@ describe('flask onboarding docs', function () {
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
-    const matches = screen.getAllByText(
-      textWithMarkupMatcher(/profiles_sample_rate=1\.0,/)
-    );
-    expect(matches.length).toBeGreaterThan(0);
-    matches.forEach(match => expect(match).toBeInTheDocument());
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
+    ).toBeInTheDocument();
   });
 
   it('renders continuous profiling', function () {
@@ -76,10 +74,10 @@ describe('flask onboarding docs', function () {
     ).not.toBeInTheDocument();
 
     // Does render continuous profiling config
-    const matches = screen.getAllByText(
-      textWithMarkupMatcher(/"continuous_profiling_auto_start": True,/)
-    );
-    expect(matches.length).toBeGreaterThan(0);
-    matches.forEach(match => expect(match).toBeInTheDocument());
+    expect(
+      screen.queryByText(
+        textWithMarkupMatcher(/"continuous_profiling_auto_start": True,/)
+      )
+    ).toBeInTheDocument();
   });
 });

@@ -547,7 +547,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                         {
                           replaySettings: (
                             <Link
-                              to={`/settings/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
+                              to={`/settings/${organization.slug}/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
                             />
                           ),
                         }

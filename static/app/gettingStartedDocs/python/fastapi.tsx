@@ -128,52 +128,41 @@ app = FastAPI()
       },
     ];
   },
-  verify: (params: Params) => {
-    const profilingMode = params.organization.features.includes('continuous-profiling')
-      ? 'continuous'
-      : 'transaction';
-
-    return [
-      {
-        type: StepType.VERIFY,
-        description: t(
-          'You can easily verify your Sentry installation by creating a route that triggers an error:'
-        ),
-        configurations: [
-          {
-            language: 'python',
-
-            code: `
-${getSdkSetupSnippet(params, profilingMode)}
-app = FastAPI()
-
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'You can easily verify your Sentry installation by creating a route that triggers an error:'
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: `
 @app.get("/sentry-debug")
 async def trigger_error():
-    division_by_zero = 1 / 0
-`,
-          },
-        ],
-        additionalInfo: (
-          <div>
-            <p>
-              {tct(
-                'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
-                {
-                  link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
-                }
-              )}
-            </p>
-            <p>
-              {t(
-                'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
-              )}
-            </p>
-            <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
-          </div>
-        ),
-      },
-    ];
-  },
+    division_by_zero = 1 / 0`,
+        },
+      ],
+      additionalInfo: (
+        <div>
+          <p>
+            {tct(
+              'When you open [link:http://localhost:8000/sentry-debug/] with your browser, a transaction in the Performance section of Sentry will be created.',
+              {
+                link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
+              }
+            )}
+          </p>
+          <p>
+            {t(
+              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+            )}
+          </p>
+          <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
+        </div>
+      ),
+    },
+  ],
   nextSteps: () => [],
 };
 

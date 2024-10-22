@@ -4,10 +4,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import OnboardingSidebar from 'sentry/components/onboardingWizard/sidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
-import {hasQuickStartUpdatesFeature} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -65,9 +63,7 @@ export default function OnboardingStatus({
     onboardingContext,
   });
 
-  const allDisplayedTasks = tasks
-    .filter(task => task.display)
-    .filter(task => !task.renderCard);
+  const allDisplayedTasks = tasks.filter(task => task.display);
 
   const doneTasks = allDisplayedTasks.filter(isDone);
   const numberRemaining = allDisplayedTasks.length - doneTasks.length;
@@ -127,20 +123,13 @@ export default function OnboardingStatus({
           </div>
         )}
       </Container>
-      {isActive &&
-        (hasQuickStartUpdatesFeature(org) ? (
-          <NewOnboardingSidebar
-            orientation={orientation}
-            collapsed={collapsed}
-            onClose={hidePanel}
-          />
-        ) : (
-          <OnboardingSidebar
-            orientation={orientation}
-            collapsed={collapsed}
-            onClose={hidePanel}
-          />
-        ))}
+      {isActive && (
+        <OnboardingSidebar
+          orientation={orientation}
+          collapsed={collapsed}
+          onClose={hidePanel}
+        />
+      )}
     </Fragment>
   );
 }
