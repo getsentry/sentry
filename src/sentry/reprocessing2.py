@@ -78,7 +78,6 @@ instead of group deletion is:
 * Mark the group as deleted in Redis.
 * All reprocessed events are "just" inserted over the old ones.
 """
-
 from __future__ import annotations
 
 import logging
@@ -95,7 +94,7 @@ from sentry import eventstore, models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.eventstore.processing import event_processing_store, transaction_processing_store
+from sentry.eventstore.processing import event_processing_store
 from sentry.eventstore.reprocessing import reprocessing_store
 from sentry.models.eventattachment import EventAttachment
 from sentry.snuba.dataset import Dataset
@@ -153,10 +152,8 @@ def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
 
     if options.get("store.reprocessing-force-disable"):
         return
-    if data.get("type") == "transaction":
-        transaction_processing_store.store(dict(data), unprocessed=True)
-    else:
-        event_processing_store.store(dict(data), unprocessed=True)
+
+    event_processing_store.store(dict(data), unprocessed=True)
 
 
 @dataclass
@@ -209,15 +206,11 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
 
     # Step 1: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
-    if data.get("type") == "transaction":
-        processing_store = transaction_processing_store
-    else:
-        processing_store = event_processing_store
     set_path(data, "contexts", "reprocessing", "original_issue_id", value=event.group_id)
     set_path(
         data, "contexts", "reprocessing", "original_primary_hash", value=event.get_primary_hash()
     )
-    cache_key = processing_store.store(data)
+    cache_key = event_processing_store.store(data)
 
     # Step 2: Copy attachments into attachment cache. Note that we can only
     # consider minidumps because filestore just stays as-is after reprocessing

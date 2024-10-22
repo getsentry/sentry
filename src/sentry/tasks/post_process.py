@@ -14,7 +14,6 @@ from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, options, projectoptions
-from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -487,7 +486,6 @@ def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -
     silo_mode=SiloMode.REGION,
 )
 def post_process_group(
-    eventstream_type: str,
     is_new,
     is_regression,
     is_new_group_environment,
@@ -505,10 +503,7 @@ def post_process_group(
 
     with snuba.options_override({"consistent": True}):
         from sentry import eventstore
-        from sentry.eventstore.processing import (
-            event_processing_store,
-            transaction_processing_store,
-        )
+        from sentry.eventstore.processing import event_processing_store
         from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,
         )
@@ -517,15 +512,11 @@ def post_process_group(
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
 
-        if eventstream_type == EventStreamEventType.Transaction.value:
-            processing_store = transaction_processing_store
-        else:
-            processing_store = event_processing_store
         if occurrence_id is None:
             # We use the data being present/missing in the processing store
             # to ensure that we don't duplicate work should the forwarding consumers
             # need to rewind history.
-            data = processing_store.get(cache_key)
+            data = event_processing_store.get(cache_key)
             if not data:
                 logger.info(
                     "post_process.skipped",
@@ -533,7 +524,7 @@ def post_process_group(
                 )
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
-                processing_store.delete_by_key(cache_key)
+                event_processing_store.delete_by_key(cache_key)
 
             occurrence = None
             event = process_event(data, group_id)

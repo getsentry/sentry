@@ -14,7 +14,6 @@ from sentry_relay.processing import parse_release
 from slack_sdk.web import SlackResponse
 
 from sentry.event_manager import EventManager
-from sentry.eventstream.types import EventStreamEventType
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -543,7 +542,6 @@ class ActivityNotificationTest(APITestCase):
             cache_key = write_event_to_cache(event)
             with self.tasks():
                 post_process_group(
-                    eventstream_type=EventStreamEventType.Error.value,
                     is_new=True,
                     is_regression=False,
                     is_new_group_environment=True,
