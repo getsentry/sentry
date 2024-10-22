@@ -85,7 +85,7 @@ export function getDocsPlatformSDKForPlatform(
     return 'javascript-solid';
   }
 
-  if (platform === 'dart-flutter' || platform === 'dart') {
+  if (platform === 'dart-flutter') {
     return 'dart-flutter';
   }
   if (platform === 'flutter') {
