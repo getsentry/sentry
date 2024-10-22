@@ -169,7 +169,10 @@ def to_json(value: Any) -> str:
 
 
 def dump_variant(
-    variant: BaseVariant, lines: list[str] | None = None, indent: int = 0
+    variant: BaseVariant,
+    lines: list[str] | None = None,
+    indent: int = 0,
+    include_non_contributing: bool = True,
 ) -> list[str]:
     if lines is None:
         lines = []
@@ -177,20 +180,21 @@ def dump_variant(
     def _dump_component(component: GroupingComponent, indent: int) -> None:
         if not component.hint and not component.values:
             return
-        lines.append(
-            "%s%s%s%s"
-            % (
-                "  " * indent,
-                component.id,
-                component.contributes and "*" or "",
-                component.hint and " (%s)" % component.hint or "",
+        if component.contributes or include_non_contributing:
+            lines.append(
+                "%s%s%s%s"
+                % (
+                    "  " * indent,
+                    component.id,
+                    component.contributes and "*" or "",
+                    component.hint and " (%s)" % component.hint or "",
+                )
             )
-        )
-        for value in component.values:
-            if isinstance(value, GroupingComponent):
-                _dump_component(value, indent + 1)
-            else:
-                lines.append("{}{}".format("  " * (indent + 1), to_json(value)))
+            for value in component.values:
+                if isinstance(value, GroupingComponent):
+                    _dump_component(value, indent + 1)
+                else:
+                    lines.append("{}{}".format("  " * (indent + 1), to_json(value)))
 
     lines.append("{}hash: {}".format("  " * indent, to_json(variant.get_hash())))
 
