@@ -23,6 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useUser} from 'sentry/utils/useUser';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
+import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {ShortIdBreadcrumb} from 'sentry/views/issueDetails/shortIdBreadcrumb';
@@ -79,26 +80,29 @@ export default function StreamlinedGroupHeader({
   return (
     <Fragment>
       <Header>
-        <Breadcrumbs
-          crumbs={[
-            {
-              label: 'Issues',
-              to: {
-                pathname: `/organizations/${organization.slug}/issues/`,
-                query,
+        <Flex justify="space-between">
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: 'Issues',
+                to: {
+                  pathname: `/organizations/${organization.slug}/issues/`,
+                  query,
+                },
               },
-            },
-            {
-              label: (
-                <ShortIdBreadcrumb
-                  organization={organization}
-                  project={project}
-                  group={group}
-                />
-              ),
-            },
-          ]}
-        />
+              {
+                label: (
+                  <ShortIdBreadcrumb
+                    organization={organization}
+                    project={project}
+                    group={group}
+                  />
+                ),
+              },
+            ]}
+          />
+          <NewIssueExperienceButton />
+        </Flex>
         <HeaderGrid>
           <Flex gap={space(0.75)} align="baseline">
             <PrimaryTitle title={primaryTitle} isHoverable showOnlyOnOverflow>
