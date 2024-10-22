@@ -10,11 +10,11 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useSuspectFlags, {
-  type FlagSeriesDatapoint,
-  hydrateFlagData,
+import {
+  hydrateToFlagSeries,
   type RawFlagData,
-} from 'sentry/views/issueDetails/streamline/useSuspectFlags';
+} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
+import useSuspectFlags from 'sentry/views/issueDetails/streamline/useSuspectFlags';
 
 interface FlagSeriesProps {
   event: Event;
@@ -29,14 +29,13 @@ function useOrganizationFlagLog({
   organization: Organization;
   query: Record<string, any>;
 }) {
-  const {data, isError, isPending} = useApiQuery<RawFlagData>(
+  return useApiQuery<RawFlagData>(
     [`/organizations/${organization.slug}/flags/logs/`, {query}],
     {
       staleTime: 0,
       enabled: organization.features?.includes('feature-flag-ui'),
     }
   );
-  return {data, isError, isPending};
 }
 
 export default function useFlagSeries({query = {}, event, group}: FlagSeriesProps) {
@@ -69,7 +68,7 @@ export default function useFlagSeries({query = {}, event, group}: FlagSeriesProp
     };
   }
 
-  const hydratedFlagData: FlagSeriesDatapoint[] = hydrateFlagData({rawFlagData});
+  const hydratedFlagData = hydrateToFlagSeries({rawFlagData});
 
   // create a markline series using hydrated flag data
   const markLine = MarkLine({

@@ -1,5 +1,9 @@
 export type FeatureFlagEventParameters = {
-  'flags.event_and_suspect_flags_found': {numEventFlags: number; numSuspectFlags: number};
+  'flags.event_and_suspect_flags_found': {
+    numEventFlags: number;
+    numSuspectFlags: number;
+    numTotalFlags: number;
+  };
   'flags.sort-flags': {sortMethod: string};
   'flags.view-all-clicked': {};
 };
