@@ -12,7 +12,6 @@ import type {
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 
@@ -62,10 +61,6 @@ function SetupMessagingIntegrationButton({
     integration => integration.status !== 'active'
   );
 
-  useRouteAnalyticsParams({
-    setup_message_integration_button_shown: shouldRenderSetupButton,
-  });
-
   if (
     messagingIntegrationsQuery.isPending ||
     messagingIntegrationsQuery.isError ||
@@ -79,6 +74,11 @@ function SetupMessagingIntegrationButton({
   if (!shouldRenderSetupButton) {
     return null;
   }
+
+  trackAnalytics('onboarding.messaging_integration_setup_button_shown', {
+    organization,
+    ...analyticsParams,
+  });
 
   return (
     <IntegrationFeatures
