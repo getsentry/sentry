@@ -74,6 +74,8 @@ export function useIssueDetailsDiscoverQuery<T>({
       interval: eventView.interval,
       yAxis: eventView.yAxis,
       partial: 1,
+      // Cursor on issue details can be used for other pagination
+      cursor: undefined,
     }),
     options,
     referrer,
