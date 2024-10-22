@@ -149,7 +149,6 @@ export function normalizeQueries({
   displayType,
   queries,
   widgetType,
-  organization,
 }: {
   displayType: DisplayType;
   queries: Widget['queries'];
@@ -297,25 +296,13 @@ export function normalizeQueries({
   }
 
   if (DisplayType.BIG_NUMBER === displayType) {
-    if (organization?.features.includes('dashboards-bignumber-equations')) {
-      queries = queries.map(query => {
-        return {
-          ...query,
-          orderby: '',
-          columns: [],
-        };
-      });
-    } else {
-      queries = queries.map(query => {
-        return {
-          ...query,
-          fields: query.aggregates.slice(0, 1),
-          aggregates: query.aggregates.slice(0, 1),
-          orderby: '',
-          columns: [],
-        };
-      });
-    }
+    queries = queries.map(query => {
+      return {
+        ...query,
+        orderby: '',
+        columns: [],
+      };
+    });
   }
 
   return queries;
