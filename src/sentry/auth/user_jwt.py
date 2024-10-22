@@ -94,6 +94,6 @@ class UserJWTToken:
                 },
                 issuer=get_issuer(),
             )
-            return body.get("sub")
+            return int(body.get("sub"))
         except ValueError:
             raise InvalidTokenError("Invalid token")

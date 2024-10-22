@@ -21,3 +21,6 @@ class LoginSuccessView(ProjectView):
                 "token": UserJWTToken.from_request(request, self.default_context),
             },
         )
+
+
+3

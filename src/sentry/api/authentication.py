@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
+from jwt import InvalidTokenError
 from rest_framework.authentication import (
     BaseAuthentication,
     BasicAuthentication,
@@ -21,7 +22,7 @@ from sentry_relay.exceptions import UnpackError
 from sentry import options
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_internal_ip
-from sentry.auth.user_jwt import InvalidTokenError, UserJWTToken
+from sentry.auth.user_jwt import UserJWTToken
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.hybridcloud.rpc.service import compare_signature
 from sentry.models.apiapplication import ApiApplication
