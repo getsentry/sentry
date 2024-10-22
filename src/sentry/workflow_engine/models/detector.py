@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import dataclasses
 import logging
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from django.db import models
 from django.db.models import UniqueConstraint
@@ -14,9 +14,6 @@ from sentry.issues import grouptype
 from sentry.models.owner_base import OwnerModel
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import DataPacket
-
-if TYPE_CHECKING:
-    from sentry.workflow_engine.models.detector_state import DetectorStatus
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +80,7 @@ class Detector(DefaultFieldsModel, OwnerModel):
 class DetectorStateData:
     group_key: str | None
     active: bool
-    status: DetectorStatus
+    status: PriorityLevel
     # Stateful detectors always process data packets in order. Once we confirm that a data packet has been fully
     # processed and all workflows have been done, this value will be used by the stateful detector to prevent
     # reprocessing
