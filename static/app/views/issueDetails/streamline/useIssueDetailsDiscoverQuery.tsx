@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {getInterval} from 'sentry/components/charts/utils';
 import type {Group} from 'sentry/types/group';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
@@ -29,8 +27,7 @@ export function useIssueDetailsEventView({
   const interval = getInterval(pageFilters.datetime, 'low');
   const config = getConfigForIssueType(group, group.project);
 
-  const {query: propQuery = '', ...overrideQueryProps} = queryProps ?? {};
-  const query = [`issue:${group.shortId}`, searchQuery, propQuery]
+  const query = [`issue:${group.shortId}`, searchQuery]
     .filter(s => s.length > 0)
     .join(' ');
 
@@ -47,8 +44,8 @@ export function useIssueDetailsEventView({
     yAxis: ['count()', 'count_unique(user)'],
     fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
     name: group.title || group.type,
+    ...queryProps,
     query,
-    ...overrideQueryProps,
   };
   return EventView.fromSavedQuery(discoverQuery);
 }

@@ -34,7 +34,6 @@ export const enum EventGraphSeries {
 interface EventGraphProps {
   event: Event | undefined;
   group: Group;
-  searchQuery: string;
 }
 
 function createSeriesAndCount(stats: EventsStats) {
@@ -56,13 +55,13 @@ function createSeriesAndCount(stats: EventsStats) {
   );
 }
 
-export function EventGraph({group, searchQuery, event}: EventGraphProps) {
+export function EventGraph({group, event}: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
     EventGraphSeries.EVENT
   );
-  const eventView = useIssueDetailsEventView({group, queryProps: {query: searchQuery}});
+  const eventView = useIssueDetailsEventView({group});
 
   const {
     data: groupStats = {},

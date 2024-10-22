@@ -56,7 +56,7 @@ export function EventDetailsHeader({
       </PageErrorBoundary>
       <PageErrorBoundary mini message={t('There was an error loading the event graph')}>
         <ExtraContent>
-          <EventGraph event={event} group={group} searchQuery={searchQuery} />
+          <EventGraph event={event} group={group} />
         </ExtraContent>
       </PageErrorBoundary>
     </Fragment>

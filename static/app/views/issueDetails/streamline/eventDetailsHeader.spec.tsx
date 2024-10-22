@@ -9,11 +9,16 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+
 import {EventDetailsHeader} from './eventDetailsHeader';
 
 describe('EventDetailsHeader', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture();
+  const project = ProjectFixture({
+    environments: ['production', 'staging', 'development'],
+  });
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
   const persistantQuery = `issue:${group.shortId}`;
@@ -28,6 +33,16 @@ describe('EventDetailsHeader', () => {
       body: TagsFixture(),
       method: 'GET',
     });
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d', utc: null},
+      },
+      new Set(['environments'])
+    );
+    ProjectsStore.loadInitialData([project]);
     mockEventStats = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
