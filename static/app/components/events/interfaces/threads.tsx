@@ -367,27 +367,21 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     </Fragment>
   );
 
-  // If there is only one thread, we expect the stacktrace to wrap itself in a section
-  return hasMoreThanOneThread && hasStreamlinedUI ? (
-    <InterimSection
-      title={tn('Stack Trace', 'Stack Traces', threads.length)}
-      type={SectionKey.STACKTRACE}
-    >
-      <ThreadTraceWrapper
-        style={{
-          // TODO(issues): Remove on streamline issues ui GA
-          padding:
-            !hasMoreThanOneThread || hasStreamlinedUI
-              ? undefined
-              : `${space(1)} ${space(4)}`,
-        }}
+  if (hasStreamlinedUI) {
+    // If there is only one thread, we expect the stacktrace to wrap itself in a section
+    return hasMoreThanOneThread ? (
+      <InterimSection
+        title={tn('Stack Trace', 'Stack Traces', threads.length)}
+        type={SectionKey.STACKTRACE}
       >
         {threadComponent}
-      </ThreadTraceWrapper>
-    </InterimSection>
-  ) : (
-    threadComponent
-  );
+      </InterimSection>
+    ) : (
+      threadComponent
+    );
+  }
+
+  return <ThreadTraceWrapper>{threadComponent}</ThreadTraceWrapper>;
 }
 
 const Grid = styled('div')`
@@ -406,6 +400,7 @@ const ThreadStateWrapper = styled('div')`
   flex-direction: row;
   align-items: center;
   gap: ${space(0.5)};
+  padding: ${space(1)} ${space(4)};
 `;
 
 const LockReason = styled(TextOverflow)`
