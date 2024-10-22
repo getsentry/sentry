@@ -19,10 +19,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-
-import {type TraceResult, useTraces} from '../../hooks/useTraces';
-import {useUserQuery} from '../../hooks/useUserQuery';
-
+import {useDataset} from 'sentry/views/explore/hooks/useDataset';
+import {type TraceResult, useTraces} from 'sentry/views/explore/hooks/useTraces';
+import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {
   Description,
   ProjectBadgeWrapper,
@@ -30,8 +29,8 @@ import {
   SpanTimeRenderer,
   TraceBreakdownRenderer,
   TraceIdRenderer,
-} from './fieldRenderers';
-import {SpanTable} from './spansTable';
+} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
+import {SpanTable} from 'sentry/views/explore/tables/tracesTable/spansTable';
 import {
   BreakdownPanelItem,
   EmptyStateText,
@@ -41,11 +40,13 @@ import {
   StyledPanelItem,
   TracePanelContent,
   WrappingText,
-} from './styles';
+} from 'sentry/views/explore/tables/tracesTable/styles';
 
 export function TracesTable() {
+  const [dataset] = useDataset();
   const [query] = useUserQuery();
   const {data, isPending, isError} = useTraces({
+    dataset,
     query,
     limit: DEFAULT_PER_PAGE,
   });

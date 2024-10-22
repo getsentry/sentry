@@ -3,6 +3,7 @@ import {useEffect} from 'react';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -54,13 +55,14 @@ interface TraceResults {
 }
 
 interface UseTracesOptions {
+  dataset?: DiscoverDatasets;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
   query?: string | string[];
 }
 
-export function useTraces({datetime, enabled, limit, query}: UseTracesOptions) {
+export function useTraces({dataset, datetime, enabled, limit, query}: UseTracesOptions) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -72,6 +74,7 @@ export function useTraces({datetime, enabled, limit, query}: UseTracesOptions) {
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(datetime ?? selection.datetime),
+      dataset,
       query,
       per_page: limit,
       breakdownSlices: BREAKDOWN_SLICES,
