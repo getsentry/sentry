@@ -12,9 +12,9 @@ from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 from sentry import nodestore
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
-from sentry.eventstream.base import EventStreamEventType
 from sentry.eventstream.kafka.backend import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
+from sentry.eventstream.types import EventStreamEventType
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils.cases import SnubaTestCase, TestCase

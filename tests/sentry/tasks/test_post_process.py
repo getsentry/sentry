@@ -17,6 +17,7 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.integration import Integration
@@ -109,7 +110,13 @@ class BasePostProgressGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+        self,
+        eventstream_type,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        event,
+        cache_key=None,
     ):
         pass
 
@@ -138,6 +145,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         )
         cache_key = write_event_to_cache(event)
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Transaction.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -157,6 +165,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -170,6 +179,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
 
         cache_key = self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -184,6 +194,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
 
         self.create_commit(repo=self.create_repo())
         cache_key = self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Transaction.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -196,6 +207,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
     def test_time_to_process_metric(self, logger_mock, metric_timing_mock):
         event = self.create_event(data={}, project_id=self.project.id)
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Transaction.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -223,6 +235,7 @@ class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
 
     def _call_post_process_group(self, event: Event) -> None:
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -389,6 +402,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -410,6 +424,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -459,6 +474,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
             )
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -469,6 +485,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
 
             buffer.backend.incr(Group, {"times_seen": 15}, filters={"id": event.group.id})
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -495,6 +512,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -529,6 +547,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         mock_processor.return_value.apply.return_value = [(mock_callback, mock_futures)]
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=True,
             is_new_group_environment=False,
@@ -555,6 +574,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
 
         with self.feature("projects:servicehooks"):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -584,6 +604,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
 
         with self.feature("projects:servicehooks"):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -612,6 +633,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
 
         with self.feature("projects:servicehooks"):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -630,6 +652,7 @@ class ServiceHooksTestMixin(BasePostProgressGroupMixin):
 
         with self.feature("projects:servicehooks"):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -645,6 +668,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=False,
@@ -675,6 +699,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -702,6 +727,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -723,6 +749,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -749,6 +776,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -768,6 +796,7 @@ class InboxTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.NEW
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=True,
             is_new_group_environment=False,
@@ -799,6 +828,7 @@ class InboxTestMixin(BasePostProgressGroupMixin):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.REGRESSED
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Transaction.value,
             is_new=False,
             is_regression=True,
             is_new_group_environment=False,
@@ -847,6 +877,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -885,6 +916,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -923,6 +955,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -948,6 +981,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -967,6 +1001,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -986,6 +1021,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
         event.group.assignee_set.create(team=self.team, project=self.project)
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1007,6 +1043,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1026,6 +1063,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1050,6 +1088,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1086,6 +1125,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
         event.group.assignee_set.create(team=self.team, project=self.project)
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1119,12 +1159,14 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
             event=event,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1148,12 +1190,14 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         self.prj_ownership.save()
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
             event=event,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1186,12 +1230,14 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
             event=event,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1219,6 +1265,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1249,6 +1296,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         self.prj_ownership.save()
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1281,6 +1329,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             cache.set(key, True)
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1312,6 +1361,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         invalid_codeowner.save()
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1335,6 +1385,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
         cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id), True, ISSUE_OWNERS_DEBOUNCE_DURATION)
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1358,6 +1409,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1369,6 +1421,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         # Raise this organization's ratelimit
         with self.feature("organizations:increased-issue-owners-rate-limit"):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -1388,6 +1441,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         )
         with self.feature("organizations:increased-issue-owners-rate-limit"):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -1483,6 +1537,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
         with self.tasks():
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -1516,6 +1571,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
         with self.tasks():
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -1535,6 +1591,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         """
         with self.tasks():
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -1558,6 +1615,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         mock_get_commit_context.return_value = self.github_blame_all_files_return_value
         with self.tasks():
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -1582,6 +1640,7 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
 
         # Check for has_reappeared=False if is_new=True
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -1601,6 +1660,7 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
 
         # Check for has_reappeared=True if is_new=False
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=True,
@@ -1646,6 +1706,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 
         # Check for has_reappeared=False if is_new=True
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -1665,6 +1726,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 
         # Check for has_reappeared=True if is_new=False
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=True,
@@ -1708,6 +1770,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             snooze = GroupSnooze.objects.create(group=group, count=100, state={"times_seen": 0})
 
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -1717,6 +1780,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 
             buffer.backend.incr(Group, {"times_seen": 60}, filters={"id": event.group.id})
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -1733,6 +1797,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -1760,6 +1825,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             substatus=GroupSubStatus.UNTIL_ESCALATING,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=True,
@@ -1786,6 +1852,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         group.update(first_seen=timezone.now() - timedelta(hours=1))
         group.save()
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=True,
@@ -1814,6 +1881,7 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -1852,6 +1920,7 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -1869,6 +1938,7 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -1890,6 +1960,7 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -1911,6 +1982,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -1946,6 +2018,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -1980,6 +2053,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -1994,6 +2068,7 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -2025,6 +2100,7 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
             comments="It Broke!!!",
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -2054,6 +2130,7 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
             )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -2087,6 +2164,7 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
             )
 
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -2138,6 +2216,7 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
             )
 
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -2164,6 +2243,7 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -2178,6 +2258,7 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -2191,6 +2272,7 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
             project_id=self.project.id,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -2213,6 +2295,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
         with patch("sentry.issues.issue_velocity.calculate_threshold", return_value=9):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -2232,6 +2315,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.update(first_seen=timezone.now() - timedelta(days=2), times_seen=10000)
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -2256,6 +2340,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         )
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -2277,6 +2362,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
         with lock.acquire():
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -2294,6 +2380,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -2306,6 +2393,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             priority=PriorityLevel.MEDIUM,
         )
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -2335,6 +2423,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             group.save()
 
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=False,  # when true, post_process sets the substatus to NEW
                 is_regression=False,
                 is_new_group_environment=True,
@@ -2355,6 +2444,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         event.group = Group.objects.get(id=group.id)
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -2376,6 +2466,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         event.group = Group.objects.get(id=group.id)
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -2393,6 +2484,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group = event.group
         group.update(first_seen=timezone.now() - timedelta(hours=1), times_seen=10000)
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -2413,6 +2505,7 @@ class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
 
         self.call_post_process_group(
+            EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=False,
@@ -2440,6 +2533,7 @@ class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
 
         self.call_post_process_group(
+            EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=False,
@@ -2476,11 +2570,18 @@ class PostProcessGroupErrorTest(
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+        self,
+        eventstream_type,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        event,
+        cache_key=None,
     ):
         if cache_key is None:
             cache_key = write_event_to_cache(event)
         post_process_group(
+            eventstream_type=eventstream_type,
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
@@ -2515,7 +2616,11 @@ class PostProcessGroupErrorTest(
             project_id=self.project.id,
         )
         self.call_post_process_group(
-            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+            eventstream_type=EventStreamEventType.Error.value,
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
         )
 
         assert generic_metrics_backend_mock.call_count == 1
@@ -2549,12 +2654,19 @@ class PostProcessGroupPerformanceTest(
         return self.create_performance_issue(fingerprint=fingerprint)
 
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+        self,
+        eventstream_type,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        event,
+        cache_key=None,
     ):
         if cache_key is None:
             cache_key = write_event_to_cache(event)
         with self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()):
             post_process_group(
+                eventstream_type=eventstream_type,
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
@@ -2589,6 +2701,7 @@ class PostProcessGroupPerformanceTest(
         assert len(event.groups) == 0
         cache_key = write_event_to_cache(event)
         post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -2633,6 +2746,7 @@ class PostProcessGroupPerformanceTest(
         mock_process_rules.side_effect = None
 
         post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
@@ -2672,7 +2786,13 @@ class PostProcessGroupAggregateEventTest(
         return event
 
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+        self,
+        eventstream_type,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        event,
+        cache_key=None,
     ):
         if cache_key is None:
             cache_key = write_event_to_cache(event)
@@ -2680,6 +2800,7 @@ class PostProcessGroupAggregateEventTest(
             PerformanceP95EndpointRegressionGroupType.build_post_process_group_feature_name()
         ):
             post_process_group(
+                eventstream_type=eventstream_type,
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
@@ -2714,6 +2835,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         )
         cache_key = write_event_to_cache(event)
         post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -2751,10 +2873,17 @@ class PostProcessGroupGenericTest(
         return group_event
 
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+        self,
+        eventstream_type,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        event,
+        cache_key=None,
     ):
         with self.feature(ProfileFileIOGroupType.build_post_process_group_feature_name()):
             post_process_group(
+                eventstream_type=eventstream_type,
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
@@ -2778,6 +2907,7 @@ class PostProcessGroupGenericTest(
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=True,
             is_regression=True,
             is_new_group_environment=False,
@@ -2788,6 +2918,7 @@ class PostProcessGroupGenericTest(
 
         # Calling this again should do nothing, since we've already processed this occurrence.
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=True,
             is_new_group_environment=False,
@@ -2820,6 +2951,7 @@ class PostProcessGroupGenericTest(
         mock_handle_auto_assignment.side_effect = None
         mock_process_rules.side_effect = None
         self.call_post_process_group(
+            eventstream_type=EventStreamEventType.Error.value,
             is_new=False,
             is_regression=True,
             is_new_group_environment=False,
@@ -2902,13 +3034,20 @@ class PostProcessGroupFeedbackTest(
         return group_event
 
     def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
+        self,
+        eventstream_type,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        event,
+        cache_key=None,
     ):
         with (
             self.feature(FeedbackGroup.build_post_process_group_feature_name()),
             self.feature("organizations:user-feedback-spam-filter-actions"),
         ):
             post_process_group(
+                eventstream_type=eventstream_type,
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
@@ -2936,6 +3075,7 @@ class PostProcessGroupFeedbackTest(
             },
         ):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -2961,6 +3101,7 @@ class PostProcessGroupFeedbackTest(
             },
         ):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -2987,6 +3128,7 @@ class PostProcessGroupFeedbackTest(
             },
         ):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -3012,6 +3154,7 @@ class PostProcessGroupFeedbackTest(
             },
         ):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -3036,6 +3179,7 @@ class PostProcessGroupFeedbackTest(
             },
         ):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,
@@ -3060,6 +3204,7 @@ class PostProcessGroupFeedbackTest(
             },
         ):
             self.call_post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=True,

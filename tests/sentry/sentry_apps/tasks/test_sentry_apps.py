@@ -13,6 +13,7 @@ from requests.exceptions import Timeout
 from sentry import audit_log, nodestore
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
+from sentry.eventstream.types import EventStreamEventType
 from sentry.integrations.models.utils import get_redis_key
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
@@ -236,6 +237,7 @@ class TestProcessResourceChange(TestCase):
         assert event.group is not None
         with self.tasks():
             post_process_group(
+                EventStreamEventType.Error,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -305,11 +307,15 @@ class TestProcessResourceChange(TestCase):
             assert_no_errors=False,
         )
 
-        with self.tasks(), patch(
-            "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
-            wraps=nodestore.backend.get,
-        ) as nodestore_get:
+        with (
+            self.tasks(),
+            patch(
+                "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
+                wraps=nodestore.backend.get,
+            ) as nodestore_get,
+        ):
             post_process_group(
+                EventStreamEventType.Error,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -356,11 +362,15 @@ class TestProcessResourceChange(TestCase):
             assert_no_errors=False,
         )
 
-        with self.tasks(), patch(
-            "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
-            wraps=nodestore.backend.get,
-        ) as nodestore_get:
+        with (
+            self.tasks(),
+            patch(
+                "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
+                wraps=nodestore.backend.get,
+            ) as nodestore_get,
+        ):
             post_process_group(
+                EventStreamEventType.Error,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -411,6 +421,7 @@ class TestProcessResourceChange(TestCase):
 
         with self.tasks():
             post_process_group(
+                EventStreamEventType.Error,
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -459,6 +470,7 @@ class TestSendResourceChangeWebhook(TestCase):
 
         with self.tasks():
             post_process_group(
+                EventStreamEventType.Error,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,

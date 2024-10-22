@@ -1,5 +1,6 @@
 from django.core import mail
 
+from sentry.eventstream.types import EventStreamEventType
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail.actions import NotifyEmailAction
 from sentry.mail.forms.notify_email import NotifyEmailForm
@@ -157,6 +158,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
 
         with self.tasks():
             post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -195,6 +197,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
 
         with self.tasks():
             post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -232,6 +235,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
 
         with self.tasks():
             post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -260,10 +264,12 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
             project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
         )
 
-        with self.tasks(), self.feature(
-            PerformanceNPlusOneGroupType.build_post_process_group_feature_name()
+        with (
+            self.tasks(),
+            self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()),
         ):
             post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -316,6 +322,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
 
         with self.tasks():
             post_process_group(
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
