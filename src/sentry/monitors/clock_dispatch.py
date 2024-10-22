@@ -85,27 +85,7 @@ def _make_reference_ts(ts: datetime):
     return int(ts.replace(second=0, microsecond=0).timestamp())
 
 
-def update_check_in_volume(ts: datetime):
-    """
-    Increment a counter for this particular timestamp trimmed down to the
-    minute.
-
-    This counter will be used as historical data to help incidate if we may
-    have had some data-loss (due to an incident) and would want to tick our
-    clock in a mode where misses and time-outs are created as "unknown".
-    """
-    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-
-    reference_ts = _make_reference_ts(ts)
-    key = MONITOR_VOLUME_HISTORY.format(reference_ts)
-
-    pipeline = redis_client.pipeline()
-    pipeline.incr(key, amount=1)
-    pipeline.expire(key, MONITOR_VOLUME_RETENTION)
-    pipeline.execute()
-
-
-def bulk_update_check_in_volume(ts_list: Sequence[datetime]):
+def update_check_in_volume(ts_list: Sequence[datetime]):
     """
     Increment counters for a list of check-in timestamps. Each timestamp will be
     trimmed to the minute and grouped appropriately
