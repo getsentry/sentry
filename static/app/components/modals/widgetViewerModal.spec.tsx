@@ -18,6 +18,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {performanceScoreTooltip} from 'sentry/views/dashboards/utils';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.mock('echarts-for-react/lib/core', () => {
@@ -1085,6 +1086,35 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(screen.getByText('217.9 KiB')).toBeInTheDocument();
         expect(screen.getByText('1.58hr')).toBeInTheDocument();
         expect(screen.getByText('98.82%')).toBeInTheDocument();
+      });
+
+      it('disables open in discover button when widget uses performance_score', async function () {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+        });
+
+        await renderModal({
+          initialData,
+
+          widget: {
+            title: 'Custom Widget',
+            displayType: 'table',
+            queries: [
+              {
+                fields: ['performance_score(measurements.score.total)'],
+                aggregates: ['performance_score(measurements.score.total)'],
+                conditions: '',
+                columns: [],
+                orderby: '',
+              },
+            ],
+            widgetType: 'discover',
+          },
+        });
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeDisabled();
+
+        await userEvent.hover(screen.getByRole('button', {name: 'Open in Discover'}));
+        expect(await screen.findByText(performanceScoreTooltip)).toBeInTheDocument();
       });
     });
   });
