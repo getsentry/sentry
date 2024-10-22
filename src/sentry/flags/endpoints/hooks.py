@@ -59,7 +59,9 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
         return args, kwargs
 
     def post(self, request: Request, organization: Organization, provider: str) -> Response:
-        if not features.has("organizations:feature-flags", organization, actor=request.user):
+        if not features.has(
+            "organizations:feature-flag-audit-log", organization, actor=request.user
+        ):
             return Response("Not enabled.", status=404)
 
         try:

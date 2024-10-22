@@ -31,7 +31,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
 
     @property
     def features(self):
-        return {"organizations:feature-flags": True}
+        return {"organizations:feature-flag-audit-log": True}
 
     def test_launchdarkly_post_create(self):
         request_data = {

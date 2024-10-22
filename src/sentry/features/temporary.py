@@ -585,7 +585,7 @@ def register_temporary_features(manager: FeatureManager):
 
     # Feature flags
     manager.add(
-        "organizations:feature-flags",
+        "organizations:feature-flag-audit-log",
         OrganizationFeature,
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=True,
