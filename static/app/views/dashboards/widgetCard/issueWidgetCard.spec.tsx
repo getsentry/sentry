@@ -4,7 +4,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  makeAllTheProviders,
+  render,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -13,6 +18,8 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import WidgetLegendSelectionState from '../widgetLegendSelectionState';
+
+import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
 describe('Dashboards > IssueWidgetCard', function () {
   const {router, organization} = initializeOrg({
@@ -48,6 +55,15 @@ describe('Dashboards > IssueWidgetCard', function () {
       utc: false,
     },
   };
+
+  const BasicProvidersWrapper = makeAllTheProviders({organization, router});
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return (
+      <DashboardsMEPProvider>
+        <BasicProvidersWrapper>{children}</BasicProvidersWrapper>
+      </DashboardsMEPProvider>
+    );
+  }
 
   const user = UserFixture();
   const api = new MockApiClient();
@@ -94,20 +110,23 @@ describe('Dashboards > IssueWidgetCard', function () {
   it('renders with title and issues chart', async function () {
     MemberListStore.loadInitialData([user]);
     render(
-      <WidgetCard
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        showContextMenu
-        widgetLimitReached={false}
-        widgetLegendState={widgetLegendState}
-      />
+      <DashboardsMEPProvider>
+        <WidgetCard
+          api={api}
+          organization={organization}
+          widget={widget}
+          selection={selection}
+          isEditingDashboard={false}
+          onDelete={() => undefined}
+          onEdit={() => undefined}
+          onDuplicate={() => undefined}
+          renderErrorMessage={() => undefined}
+          showContextMenu
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+        />
+      </DashboardsMEPProvider>,
+      {wrapper: Wrapper}
     );
 
     expect(await screen.findByText('Issues')).toBeInTheDocument();
@@ -139,7 +158,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {router}
+      {router, wrapper: Wrapper}
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -167,7 +186,8 @@ describe('Dashboards > IssueWidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
-      />
+      />,
+      {wrapper: Wrapper}
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -192,7 +212,8 @@ describe('Dashboards > IssueWidgetCard', function () {
         showContextMenu
         widgetLimitReached
         widgetLegendState={widgetLegendState}
-      />
+      />,
+      {wrapper: Wrapper}
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -225,7 +246,8 @@ describe('Dashboards > IssueWidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
-      />
+      />,
+      {wrapper: Wrapper}
     );
 
     expect(await screen.findByText('Lifetime Events')).toBeInTheDocument();

@@ -39,7 +39,6 @@ interface Props {
   widgetLegendState: WidgetLegendSelectionState;
   dashboardFilters?: DashboardFilters;
   error?: string;
-  noDashboardsMEPProvider?: boolean;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 }
@@ -52,7 +51,6 @@ export function VisualizationStep({
   onChange,
   widget,
   onDataFetched,
-  noDashboardsMEPProvider,
   dashboardFilters,
   location,
   isWidgetInvalid,
@@ -139,7 +137,6 @@ export function VisualizationStep({
           }
           noLazyLoad
           showStoredAlert
-          noDashboardsMEPProvider={noDashboardsMEPProvider}
           isWidgetInvalid={isWidgetInvalid}
           onDataFetched={onDataFetched}
           onWidgetSplitDecision={onWidgetSplitDecision}

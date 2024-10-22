@@ -25,6 +25,8 @@ import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidg
 
 import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
+import {DashboardsMEPProvider} from './dashboardsMEPContext';
+
 jest.mock('sentry/components/charts/simpleTableChart', () => jest.fn(() => <div />));
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 jest.mock('sentry/components/lazyRender', () => ({
@@ -41,7 +43,9 @@ describe('Dashboards > WidgetCard', function () {
 
   const renderWithProviders = (component: React.ReactNode) =>
     render(
-      <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>,
+      <DashboardsMEPProvider>
+        <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+      </DashboardsMEPProvider>,
       {organization, router}
     );
 
