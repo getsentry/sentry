@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -8,7 +10,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -28,13 +33,23 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'transaction'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    _experiments={
+        # Set continuous_profiling_auto_start to True
+        # to automatically start the profiler on when
+        # possible.
+        "continuous_profiling_auto_start": True,
+    },`
+          : ''
     }
 )
 `;
@@ -85,14 +100,26 @@ const onboarding: OnboardingConfig = {
           code: `
 ${getSdkSetupSnippet(params)}
 app = FastAPI()
-      `,
+`,
         },
       ],
-      additionalInfo: tct(
-        'The above configuration captures both error and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
-        {
-          code: <code />,
-        }
+      additionalInfo: (
+        <Fragment>
+          {params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+              <Fragment>
+                <AlternativeConfiguration />
+                <br />
+              </Fragment>
+            )}
+          {tct(
+            'The above configuration captures both error and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
+            {
+              code: <code />,
+            }
+          )}
+          ,
+        </Fragment>
       ),
     },
   ],
@@ -108,7 +135,8 @@ app = FastAPI()
           code: `
 @app.get("/sentry-debug")
 async def trigger_error():
-    division_by_zero = 1 / 0`,
+    division_by_zero = 1 / 0
+`,
         },
       ],
       additionalInfo: (
