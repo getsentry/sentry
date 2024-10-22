@@ -196,16 +196,7 @@ export function EventGraph({group, event}: EventGraphProps) {
           </Callout>
         </SummaryContainer>
         <LoadingChartContainer>
-          <Placeholder
-            style={{
-              position: 'absolute',
-              width: 'initial',
-              top: space(1),
-              left: space(1),
-              right: space(1),
-              bottom: space(1),
-            }}
-          />
+          <Placeholder height="96px" />
         </LoadingChartContainer>
       </GraphWrapper>
     );
@@ -334,12 +325,6 @@ const ChartContainer = styled('div')`
 const LoadingChartContainer = styled('div')`
   position: relative;
   padding: ${space(1)} ${space(1)};
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  & > div {
-    flex-grow: 1;
-  }
 `;
 
 const OpenInDiscoverButton = styled('div')`
