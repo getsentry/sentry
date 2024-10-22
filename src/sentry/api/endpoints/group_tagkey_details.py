@@ -58,7 +58,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     )
     def get(self, request: Request, group, key) -> Response:
         """
-        Returns the total count of a given tag key related to an issue.
+        Returns the values and aggregate details of a given tag key related to an issue.
         """
         lookup_key = tagstore.backend.prefix_reserved_key(key)
         tenant_ids = {"organization_id": group.project.organization_id}
