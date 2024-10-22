@@ -103,8 +103,10 @@ function getPanelDescription(walkthrough: boolean) {
     };
   }
   return {
-    title: t('Quick Start'),
-    description: t('Walk through this guide to get the most out of Sentry right away.'),
+    title: t('Quick Setup'),
+    description: t(
+      'Complete these steps to set up quickly and get the most out of Sentry right away.'
+    ),
   };
 }
 
@@ -398,7 +400,7 @@ export function NewOnboardingSidebar({
         <TaskGroup
           title={t('Getting Started')}
           description={t(
-            'Learn the essentials to set up monitoring, capture errors, and track releases.'
+            "Let's get you up and running! Complete these key setups first for smooth error tracking and collaboration."
           )}
           tasks={sortedGettingStartedTasks}
           hidePanel={onClose}
@@ -409,7 +411,7 @@ export function NewOnboardingSidebar({
         <TaskGroup
           title={t('Beyond the Basics')}
           description={t(
-            'Explore advanced features like release tracking, performance alerts and more to enhance your monitoring.'
+            'Ready to level-up? Get even more value out of Sentry by enabling advanced features and fine-tuning your workflow.'
           )}
           tasks={sortedBeyondBasicsTasks}
           hidePanel={onClose}
