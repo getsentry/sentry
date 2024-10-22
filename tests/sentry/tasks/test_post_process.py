@@ -2505,6 +2505,7 @@ class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
 
         self.call_post_process_group(
+            EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=False,
@@ -2532,6 +2533,7 @@ class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
 
         self.call_post_process_group(
+            EventStreamEventType.Error.value,
             is_new=True,
             is_regression=False,
             is_new_group_environment=False,
