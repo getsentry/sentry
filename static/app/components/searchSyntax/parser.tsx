@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import merge from 'lodash/merge';
 import moment from 'moment-timezone';
-import type {LocationRange} from 'pegjs';
+import type {LocationRange} from 'peggy';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
