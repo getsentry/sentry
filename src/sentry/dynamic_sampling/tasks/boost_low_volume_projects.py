@@ -122,17 +122,18 @@ def partition_by_measure(org_ids: Sequence[OrganizationId]) -> Mapping[SamplingM
     if not options.get("organizations:dynamic-sampling-spans"):
         return {SamplingMeasure.TRANSACTIONS: org_ids}
 
-    orgs = Organization.objects.get_many_from_cache(org_ids)
+    with metrics.timer("dynamic_sampling.partition_by_measure"):
+        orgs = Organization.objects.get_many_from_cache(org_ids)
 
-    for org in orgs:
-        # This is an N+1 query that fetches getsentry database models
-        # internally, but we cannot abstract over batches of feature flag
-        # handlers yet. Hence, we must fetch organizations and do individual
-        # feature checks per org.
-        if features.has("organizations:dynamic-sampling-spans", org):
-            spans.append(org.id)
-        else:
-            transactions.append(org.id)
+        for org in orgs:
+            # This is an N+1 query that fetches getsentry database models
+            # internally, but we cannot abstract over batches of feature flag
+            # handlers yet. Hence, we must fetch organizations and do individual
+            # feature checks per org.
+            if features.has("organizations:dynamic-sampling-spans", org):
+                spans.append(org.id)
+            else:
+                transactions.append(org.id)
 
     return {SamplingMeasure.SPANS: spans, SamplingMeasure.TRANSACTIONS: transactions}
 
