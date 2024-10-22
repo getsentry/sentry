@@ -14,10 +14,22 @@ import type {Organization} from 'sentry/types/organization';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {MODULE_SIDEBAR_TITLE as MODULE_TITLE_HTTP} from 'sentry/views/insights/http/settings';
-import {AI_LANDING_TITLE} from 'sentry/views/insights/pages/ai/settings';
-import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
-import {FRONTEND_LANDING_TITLE} from 'sentry/views/insights/pages/frontend/settings';
-import {MOBILE_LANDING_TITLE} from 'sentry/views/insights/pages/mobile/settings';
+import {
+  AI_LANDING_SUB_PATH,
+  AI_LANDING_TITLE,
+} from 'sentry/views/insights/pages/ai/settings';
+import {
+  BACKEND_LANDING_SUB_PATH,
+  BACKEND_LANDING_TITLE,
+} from 'sentry/views/insights/pages/backend/settings';
+import {
+  FRONTEND_LANDING_SUB_PATH,
+  FRONTEND_LANDING_TITLE,
+} from 'sentry/views/insights/pages/frontend/settings';
+import {
+  MOBILE_LANDING_SUB_PATH,
+  MOBILE_LANDING_TITLE,
+} from 'sentry/views/insights/pages/mobile/settings';
 import {INSIGHTS_BASE_URL, MODULE_TITLES} from 'sentry/views/insights/settings';
 import {getSearchForIssueGroup, IssueGroup} from 'sentry/views/issueList/utils';
 
@@ -92,19 +104,19 @@ export function createNavConfig({organization}: {organization: Organization}): N
     submenu: [
       {
         label: FRONTEND_LANDING_TITLE,
-        to: `/${prefix}/performance/${FRONTEND_LANDING_TITLE}/`,
+        to: `/${prefix}/performance/${FRONTEND_LANDING_SUB_PATH}/`,
       },
       {
         label: BACKEND_LANDING_TITLE,
-        to: `/${prefix}/performance/${BACKEND_LANDING_TITLE}/`,
+        to: `/${prefix}/performance/${BACKEND_LANDING_SUB_PATH}/`,
       },
       {
         label: AI_LANDING_TITLE,
-        to: `/${prefix}/performance/${AI_LANDING_TITLE}/`,
+        to: `/${prefix}/performance/${AI_LANDING_SUB_PATH}/`,
       },
       {
         label: MOBILE_LANDING_TITLE,
-        to: `/${prefix}/performance/${MOBILE_LANDING_TITLE}/`,
+        to: `/${prefix}/performance/${MOBILE_LANDING_SUB_PATH}/`,
       },
     ],
   };
