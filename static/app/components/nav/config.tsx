@@ -194,6 +194,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
           {label: t('Crons'), to: `/${prefix}/crons/`},
         ],
       },
+      ...(hasPerfDomainViews ? [perfDomainViews] : [insights, perf]),
       {
         label: t('Boards'),
         to: '/dashboards/',
@@ -204,7 +205,6 @@ export function createNavConfig({organization}: {organization: Organization}): N
           requireAll: false,
         },
       },
-      ...(hasPerfDomainViews ? [perfDomainViews] : [insights, perf]),
       {label: t('Alerts'), to: `/${prefix}/alerts/rules/`, icon: <IconSiren />},
     ],
     footer: [
