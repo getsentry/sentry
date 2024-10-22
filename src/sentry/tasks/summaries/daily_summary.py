@@ -3,7 +3,7 @@ import math
 import zoneinfo
 from collections import defaultdict
 from datetime import datetime
-from typing import DefaultDict, cast
+from typing import cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -211,10 +211,14 @@ def build_summary_data(
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
                 datetime__gte=ctx.start,
             )
-            deduped_groups_by_activity_type: DefaultDict[ActivityType, set] = defaultdict(set)
+            deduped_groups_by_activity_type: defaultdict[ActivityType, dict[Group, bool]]
+            deduped_groups_by_activity_type = defaultdict(dict)
 
             for activity in regressed_or_escalated_groups_today:
-                deduped_groups_by_activity_type[ActivityType(activity.type)].add(activity.group)
+                if activity.group is None:
+                    continue
+
+                deduped_groups_by_activity_type[ActivityType(activity.type)][activity.group] = True
 
                 if (
                     activity.type == ActivityType.SET_ESCALATING.value
@@ -223,9 +227,7 @@ def build_summary_data(
                 ):
                     # if a group is already in the regressed set but we now see it in escalating, remove from regressed and add to escalating
                     # this means the group regressed and then later escalated, and we only want to list it once
-                    deduped_groups_by_activity_type[ActivityType.SET_REGRESSION].remove(
-                        activity.group
-                    )
+                    del deduped_groups_by_activity_type[ActivityType.SET_REGRESSION][activity.group]
 
             for activity_type, groups in deduped_groups_by_activity_type.items():
                 for group in list(groups)[:3]:
