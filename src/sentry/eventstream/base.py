@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from datetime import datetime
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -10,8 +11,6 @@ from sentry.queue.routers import SplitQueueRouter
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
-
-from .types import EventStreamEventType
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +36,16 @@ class GroupState(TypedDict):
 GroupStates = Sequence[GroupState]
 
 
+class EventStreamEventType(Enum):
+    """
+    We have 3 broad categories of event types that we care about in eventstream.
+    """
+
+    Error = "error"  # error, default, various security errors
+    Transaction = "transaction"  # transactions
+    Generic = "generic"  # generic events ingested via the issue platform
+
+
 class EventStream(Service):
     __all__ = (
         "insert",
@@ -60,7 +69,6 @@ class EventStream(Service):
 
     def _dispatch_post_process_group_task(
         self,
-        eventstream_type: str,
         event_id: str,
         project_id: int,
         group_id: int | None,
@@ -80,7 +88,6 @@ class EventStream(Service):
 
             post_process_group.apply_async(
                 kwargs={
-                    "eventstream_type": eventstream_type,
                     "is_new": is_new,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
@@ -126,7 +133,6 @@ class EventStream(Service):
         group_states: GroupStates | None = None,
     ) -> None:
         self._dispatch_post_process_group_task(
-            self._get_event_type(event).value,
             event.event_id,
             event.project_id,
             event.group_id,

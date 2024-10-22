@@ -17,7 +17,6 @@ from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
-from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
 from sentry.models.organization import Organization
@@ -487,7 +486,6 @@ def process_event_from_reprocessing(
 
 
 def _do_save_event(
-    consumer_type: str,
     cache_key: str | None = None,
     data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
@@ -507,15 +505,8 @@ def _do_save_event(
 
     event_type = "none"
 
-    # events check event_processing_Store
-    # transactions check transaction_processing_store
-    if consumer_type == ConsumerType.Transactions:
-        processing_store = processing.transaction_processing_store
-    else:
-        processing_store = processing.event_processing_store
-
     if cache_key and data is None:
-        data = processing_store.get(cache_key)
+        data = processing.event_processing_store.get(cache_key)
         if data is not None:
             event_type = data.get("type") or "none"
 
@@ -571,11 +562,11 @@ def _do_save_event(
             data = manager.get_data()
             if not isinstance(data, dict):
                 data = dict(data.items())
-            processing_store.store(data)
+            processing.event_processing_store.store(data)
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:
-                processing_store.delete_by_key(cache_key)
+                processing.event_processing_store.delete_by_key(cache_key)
         except Exception:
             metrics.incr("events.save_event.exception", tags={"event_type": event_type})
             raise
@@ -613,7 +604,7 @@ def save_event(
     project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
-    _do_save_event(ConsumerType.Events, cache_key, data, start_time, event_id, project_id, **kwargs)
+    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
 
 
 @instrumented_task(
@@ -630,9 +621,7 @@ def save_event_transaction(
     project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
-    _do_save_event(
-        ConsumerType.Transactions, cache_key, data, start_time, event_id, project_id, **kwargs
-    )
+    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
 
 
 @instrumented_task(
@@ -669,12 +658,23 @@ def save_event_attachments(
     **kwargs: Any,
 ) -> None:
     _do_save_event(
-        ConsumerType.Attachments,
-        cache_key,
-        data,
-        start_time,
-        event_id,
-        project_id,
-        has_attachments=True,
-        **kwargs,
+        cache_key, data, start_time, event_id, project_id, has_attachments=True, **kwargs
     )
+
+
+# TODO(swatinem): remove this (and related queue) once the backing worker deployment is gone
+@instrumented_task(
+    name="sentry.tasks.store.save_event_highcpu",
+    queue="events.save_event_highcpu",
+    time_limit=65,
+    soft_time_limit=60,
+)
+def save_event_highcpu(
+    cache_key: str | None = None,
+    data: MutableMapping[str, Any] | None = None,
+    start_time: float | None = None,
+    event_id: str | None = None,
+    project_id: int | None = None,
+    **kwargs: Any,
+) -> None:
+    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)

@@ -7,7 +7,6 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
-from sentry.eventstream.types import EventStreamEventType
 from sentry.utils import json
 
 
@@ -74,7 +73,7 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
 
     message = Message(BrokerValue(get_kafka_payload(), partition, 1, datetime.now()))
 
-    dispatch_function(EventStreamEventType.Generic.value, message)
+    dispatch_function(message)
 
     # Dispatch can take a while
     for _i in range(0, 5):
@@ -83,7 +82,6 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
         time.sleep(0.1)
 
     mock_dispatch.assert_called_once_with(
-        eventstream_type=EventStreamEventType.Generic.value,
         event_id="fe0ee9a2bc3b415497bad68aaf70dc7f",
         project_id=1,
         group_id=43,
@@ -105,8 +103,7 @@ def test_dispatch_task_with_occurrence(mock_post_process_group: Mock) -> None:
     partition = Partition(Topic("test-occurrence"), 0)
 
     dispatch_function(
-        EventStreamEventType.Generic.value,
-        Message(BrokerValue(get_occurrence_kafka_payload(), partition, 1, datetime.now())),
+        Message(BrokerValue(get_occurrence_kafka_payload(), partition, 1, datetime.now()))
     )
 
     # Dispatch can take a while
@@ -118,7 +115,6 @@ def test_dispatch_task_with_occurrence(mock_post_process_group: Mock) -> None:
     assert mock_post_process_group.call_count == 1
     assert mock_post_process_group.call_args.kwargs == {
         "kwargs": {
-            "eventstream_type": EventStreamEventType.Generic.value,
             "cache_key": "e:066f15fe1cd2406aaa7c6a07471d7aef:2",
             "group_id": 44,
             "group_states": None,
