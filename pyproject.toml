@@ -142,7 +142,6 @@ module = [
     "sentry.api.endpoints.organization_events_facets_performance",
     "sentry.api.endpoints.organization_events_meta",
     "sentry.api.endpoints.organization_events_spans_performance",
-    "sentry.api.endpoints.organization_events_trends",
     "sentry.api.endpoints.organization_index",
     "sentry.api.endpoints.organization_issues_count",
     "sentry.api.endpoints.organization_member.details",

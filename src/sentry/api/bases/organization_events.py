@@ -150,7 +150,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             return params
 
-    def get_orderby(self, request: Request) -> Sequence[str] | None:
+    def get_orderby(self, request: Request) -> list[str] | None:
         sort = request.GET.getlist("sort")
         if sort:
             return sort
