@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -25,7 +25,11 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
       <div>
         <Title>
           {tct('Last seen [timeSince]', {
-            timeSince: <StyledTimeSince date={group.lastSeen} />,
+            timeSince: group.lastSeen ? (
+              <StyledTimeSince date={group.lastSeen} />
+            ) : (
+              <NoTimeSince>{t('N/A')}</NoTimeSince>
+            ),
           })}
         </Title>
         {groupReleaseData?.firstRelease && (
@@ -47,7 +51,11 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
       <div>
         <Title>
           {tct('First seen [timeSince]', {
-            timeSince: <StyledTimeSince date={group.firstSeen} />,
+            timeSince: group.firstSeen ? (
+              <StyledTimeSince date={group.firstSeen} />
+            ) : (
+              <NoTimeSince>{t('N/A')}</NoTimeSince>
+            ),
           })}
         </Title>
         {groupReleaseData?.lastRelease && (
@@ -93,5 +101,9 @@ const FirstLastSeen = styled('div')`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
+  font-weight: normal;
+`;
+
+const NoTimeSince = styled('span')`
   font-weight: normal;
 `;
