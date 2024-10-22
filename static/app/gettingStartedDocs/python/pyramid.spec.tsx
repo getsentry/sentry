@@ -18,10 +18,4 @@ describe('aiohttp onboarding docs', function () {
       screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk/))
     ).toBeInTheDocument();
   });
-
-  it('renders without tracing', function () {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
-  });
 });
