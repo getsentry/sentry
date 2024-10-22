@@ -21,6 +21,7 @@ from sentry_relay.exceptions import UnpackError
 from sentry import options
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_internal_ip
+from sentry.auth.user_jwt import InvalidTokenError, UserJWTToken
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.hybridcloud.rpc.service import compare_signature
 from sentry.models.apiapplication import ApiApplication
@@ -424,6 +425,41 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             api_token_type=self.token_name,
             api_token_is_sentry_app=getattr(user, "is_sentry_app", False),
         )
+
+
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
+class UserJWTTokenAuthentication(StandardAuthentication):
+    token_name = b"bearer"
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        if not super().accepts_auth(auth):
+            return False
+
+        # Technically, this will not match if auth length is not 2
+        # However, we want to run into `authenticate()` in this case, as this throws a more helpful error message
+        if len(auth) != 2:
+            return True
+
+        # it should be in JWT format
+        token_str = force_str(auth[1])
+        try:
+            return UserJWTToken.is_jwt(token_str)
+        except InvalidTokenError as e:
+            raise AuthenticationFailed(*e.args)
+
+    def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
+        try:
+            user_id = UserJWTToken.decode_verified_user(token)
+        except InvalidTokenError as e:
+            raise AuthenticationFailed(*e.args)
+
+        user = user_service.get_user(user_id=user_id)
+
+        scope = Scope.get_isolation_scope()
+        scope.set_tag("api_token_type", self.token_name)
+        scope.set_tag("entity_id_tag", "user_jwt_token")
+
+        return (user, token)
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
