@@ -77,7 +77,7 @@ const ReleaseWrapper = styled('span')`
     text-decoration-style: dotted;
   }
 `;
-const Title = styled('span')`
+const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
