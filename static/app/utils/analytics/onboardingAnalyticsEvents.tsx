@@ -28,9 +28,6 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
-  'onboarding.messaging_integration_button_shown': {
-    view: string;
-  };
   'onboarding.messaging_integration_external_install_clicked': {
     provider_key: string;
   };
@@ -102,8 +99,6 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.source_maps_wizard_selected_and_copied':
     'Onboarding: Source Maps Wizard Selected and Copied',
   'onboarding.nextjs-dsn-copied': 'Onboarding: NextJS DSN Copied',
-  'onboarding.messaging_integration_button_shown':
-    'Onboarding: Messaging Integration Button Shown',
   'onboarding.messaging_integration_modal_rendered':
     'Onboarding: Messaging Integration Modal Rendered',
   'onboarding.messaging_integration_external_install_clicked':

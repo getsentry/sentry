@@ -75,11 +75,6 @@ function SetupMessagingIntegrationButton({
     return null;
   }
 
-  trackAnalytics('onboarding.messaging_integration_setup_button_shown', {
-    organization,
-    ...analyticsParams,
-  });
-
   return (
     <IntegrationFeatures
       organization={organization}
