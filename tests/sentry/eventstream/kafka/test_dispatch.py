@@ -118,7 +118,7 @@ def test_dispatch_task_with_occurrence(mock_post_process_group: Mock) -> None:
     assert mock_post_process_group.call_count == 1
     assert mock_post_process_group.call_args.kwargs == {
         "kwargs": {
-            "eventstream_type": EventStreamEventType.Generic,
+            "eventstream_type": EventStreamEventType.Generic.value,
             "cache_key": "e:066f15fe1cd2406aaa7c6a07471d7aef:2",
             "group_id": 44,
             "group_states": None,
