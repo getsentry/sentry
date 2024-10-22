@@ -1045,8 +1045,8 @@ class MonitorConsumerTest(TestCase):
             logger.exception.assert_called_with("Failed to trigger monitor tasks")
             try_monitor_clock_tick.side_effect = None
 
-    @mock.patch("sentry.monitors.consumers.monitor_consumer.bulk_update_check_in_volume")
-    def test_parallel_monitor_update_check_in_volume(self, bulk_update_check_in_volume):
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.update_check_in_volume")
+    def test_parallel_monitor_update_check_in_volume(self, update_check_in_volume):
         factory = StoreMonitorCheckInStrategyFactory(mode="parallel", max_batch_size=4)
         commit = mock.Mock()
         consumer = factory.create_with_partitions(commit, {self.partition: 0})
@@ -1065,8 +1065,8 @@ class MonitorConsumerTest(TestCase):
         # yet be processed itself)
         self.send_checkin(monitor.slug, consumer=consumer, ts=now + timedelta(minutes=2))
 
-        assert bulk_update_check_in_volume.call_count == 1
-        assert list(bulk_update_check_in_volume.call_args_list[0][0][0]) == [
+        assert update_check_in_volume.call_count == 1
+        assert list(update_check_in_volume.call_args_list[0][0][0]) == [
             now,
             now + timedelta(seconds=10),
             now + timedelta(seconds=30),
