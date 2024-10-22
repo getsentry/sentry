@@ -145,14 +145,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
 
   const renderContent = () => {
     if (loadingEvent) {
-      if (hasStreamlinedUI) {
-        return (
-          <Fragment>
-            <EventDetailsHeader event={event} group={group} />
-            <LoadingIndicator />;
-          </Fragment>
-        );
-      }
       return <LoadingIndicator />;
     }
 
@@ -209,6 +201,9 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                     project={project}
                   />
                 )}
+                {hasStreamlinedUI ? (
+                  <EventDetailsHeader event={event} group={group} />
+                ) : null}
                 {renderContent()}
               </MainLayoutComponent>
               {hasStreamlinedUI ? (

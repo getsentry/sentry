@@ -18,7 +18,6 @@ import {
   useEventDetails,
   useEventDetailsReducer,
 } from 'sentry/views/issueDetails/streamline/context';
-import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
@@ -38,7 +37,6 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <EventDetailsHeader event={event} group={group} />
       {/* TODO(issues): We should use the router for this */}
       {currentTab === Tab.EVENTS && (
         <PageErrorBoundary mini message={t('There was an error loading the event list')}>
