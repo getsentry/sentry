@@ -186,13 +186,14 @@ def _process_resource_change(
     group_id: int | None = kwargs.get("group_id", None)
     if sender == "Error" and project_id and group_id:
         # Read event from nodestore as Events are heavy in task messages.
-        node_id = Event.generate_node_id(project_id, str(instance_id))
-        nodedata = nodestore.backend.get(node_id)
-        node_event = Event(
+        nodedata = nodestore.backend.get(Event.generate_node_id(project_id, str(instance_id)))
+        if not nodedata:
+            extra = {"sender": sender, "action": action, "event_id": instance_id}
+            logger.info("process_resource_change.event_missing_event", extra=extra)
+            return
+        instance = Event(
             project_id=project_id, group_id=group_id, event_id=str(instance_id), data=nodedata
         )
-
-        instance = node_event
         name = sender.lower()
     else:
         # Some resources are named differently than their model. eg. Group vs Issue.
