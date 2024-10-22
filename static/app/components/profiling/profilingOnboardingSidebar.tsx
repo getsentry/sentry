@@ -304,6 +304,11 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,
     isSelfHosted,
+    profilingOptions: {
+      defaultProfilingMode: props.organization.features.includes('continuous-profiling')
+        ? 'continuous'
+        : 'transaction',
+    },
   };
 
   const doc = docs.profilingOnboarding ?? docs.onboarding;
