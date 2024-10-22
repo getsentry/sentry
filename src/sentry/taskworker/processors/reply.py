@@ -66,12 +66,6 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
         self.current_connections = set()
         self.__send_thread: Thread | None = None
-        self.__shutdown = False
-
-    def shutdown(self):
-        super().shutdown()
-        self.__shutdown = True
-        self.__send_thread = None
 
     def start_worker_push(self):
         with ThreadPoolExecutor(max_workers=len(self.available_stubs)) as executor:
