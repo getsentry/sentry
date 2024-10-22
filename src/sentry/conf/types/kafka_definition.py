@@ -60,6 +60,7 @@ class Topic(Enum):
     HACKWEEK = "hackweek"
     HACKWEEK_REPLY = "hackweek-reply"
     HACKWEEK_DLQ = "hackweek-dlq"
+    HACKWEEK_GLOB = "^(hackweek-reply|hackweek)$"
 
 
 class ConsumerDefinition(TypedDict, total=False):

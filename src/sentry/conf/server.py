@@ -2933,6 +2933,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "hackweek": "default",
     "hackweek-reply": "default",
     "hackweek-dlq": "default",
+    "^(hackweek-reply|hackweek)$": "default",
 }
 
 

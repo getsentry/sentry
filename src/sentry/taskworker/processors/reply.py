@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import deque
-from collections.abc import Mapping, MutableSequence
+from collections.abc import Mapping
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import timedelta
 from threading import Thread
@@ -14,11 +14,10 @@ from arroyo.processing.strategies import (
     CommitOffsets,
     ProcessingStrategy,
     ProcessingStrategyFactory,
-    Reduce,
     RunTask,
 )
 from arroyo.processing.strategies.abstract import MessageRejected
-from arroyo.types import BaseValue, Commit, Message, Partition
+from arroyo.types import Commit, Message, Partition
 from django.utils import timezone
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
@@ -67,6 +66,12 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
         self.current_connections = set()
         self.__send_thread: Thread | None = None
+        self.__shutdown = False
+
+    def shutdown(self):
+        super().shutdown()
+        self.__shutdown = True
+        self.__send_thread = None
 
     def start_worker_push(self):
         with ThreadPoolExecutor(max_workers=len(self.available_stubs)) as executor:
@@ -153,20 +158,6 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 processing_deadline=None,
             )
 
-        def accumulator(
-            batched_results: MutableSequence[InflightActivation],
-            message: BaseValue[InflightActivation],
-        ) -> MutableSequence[InflightActivation]:
-            batched_results.append(message.payload)
-            return batched_results
-
-        def flush_batch(
-            message: Message[MutableSequence[InflightActivation]],
-        ) -> Message[MutableSequence[InflightActivation]]:
-            logger.info("Flushing batch. Messages: %r...", len(message.payload))
-            self.pending_task_store.store(message.value.payload)
-            return message
-
         def limit_tasks(
             message: Message[KafkaPayload],
         ) -> KafkaPayload:
@@ -182,70 +173,6 @@ class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 raise MessageRejected()
             return message.payload
 
-        self.__send_thread = Thread(target=self.start_worker_push)
-        self.__send_thread.start()
-
-        flush = RunTask(
-            function=flush_batch,
-            next_step=CommitOffsets(commit),
-        )
-
-        collect = Reduce(
-            # TODO use CLI options
-            max_batch_size=2,
-            max_batch_time=2,
-            accumulator=accumulator,
-            initial_value=list,
-            next_step=flush,
-        )
-
-        process = RunTask(
-            function=process_message,
-            next_step=collect,
-        )
-
-        return RunTask(
-            function=limit_tasks,
-            next_step=process,
-        )
-
-
-class ReplyStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    """
-    Process task activation results from a reply topic
-    """
-
-    def __init__(
-        self,
-        max_batch_size: int,
-        max_batch_time: int,
-        num_processes: int,
-        input_block_size: int | None,
-        output_block_size: int | None,
-        storage: str | None,
-        worker_addrs: str,
-    ) -> None:
-        super().__init__()
-
-        # Maximum amount of time tasks are allowed to live in pending task
-        # after this time tasks should be deadlettered if they are followed
-        # by completed records. Should come from CLI/options
-        self.max_pending_timeout = 8 * 60
-
-        # Maximum number of pending inflight activations in the store before backpressure is emitted
-        self.max_inflight_activation_in_store = 1000  # make this configurable
-        self.pending_task_store = get_storage_backend(storage)
-
-    def create_with_partitions(
-        self, commit: Commit, partitions: Mapping[Partition, int]
-    ) -> ProcessingStrategy[KafkaPayload]:
-        def process_reply_message(message: Message[KafkaPayload]) -> None:
-            result = ActivationResult()
-            result.ParseFromString(message.payload.value)
-            self.pending_task_store.set_task_status(result.task_id, result.status)
-
-            return None
-
         def do_upkeep(
             message: Message[KafkaPayload],
         ) -> KafkaPayload:
@@ -259,12 +186,26 @@ class ReplyStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
             return message.payload
 
-        run_upkeep = RunTask(
-            function=do_upkeep,
-            next_step=CommitOffsets(commit),
-        )
+        def process_combined_message(message: Message[KafkaPayload]) -> None:
+            ((partition, _offset),) = message.committable.items()
 
-        return RunTask(
-            function=process_reply_message,
-            next_step=run_upkeep,
-        )
+            # TODO smelling the topics is gross.
+            # We could use a message header instead?
+            topic = partition.topic
+            if topic.name == "hackweek":
+                limit_tasks(message)
+                activation = process_message(message)
+                self.pending_task_store.store([activation])
+
+            if topic.name == "hackweek-reply":
+                result = ActivationResult()
+                result.ParseFromString(message.payload.value)
+                self.pending_task_store.set_task_status(result.task_id, result.status)
+
+                # TODO only do once and a while, perhaps every 5s?
+                do_upkeep(message)
+
+        self.__send_thread = Thread(target=self.start_worker_push, daemon=True)
+        self.__send_thread.start()
+
+        return RunTask(function=process_combined_message, next_step=CommitOffsets(commit))

@@ -419,15 +419,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": taskworker_options(default_max_batch_size=100),
         "dlq_topic": Topic.HACKWEEK_DLQ,
     },
-    "taskworker-consumer": {
-        "topic": Topic.HACKWEEK,
+    "taskworker-reply": {
+        "topic": Topic.HACKWEEK_GLOB,
         "strategy_factory": "sentry.taskworker.processors.reply.StrategyFactory",
-        "click_options": taskworker_options(default_max_batch_size=100),
-        "dlq_topic": Topic.HACKWEEK_DLQ,
-    },
-    "taskworker-consumer-reply": {
-        "topic": Topic.HACKWEEK_REPLY,
-        "strategy_factory": "sentry.taskworker.processors.reply.ReplyStrategyFactory",
         "click_options": taskworker_options(default_max_batch_size=100),
         "dlq_topic": Topic.HACKWEEK_DLQ,
     },
