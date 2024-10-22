@@ -4,6 +4,7 @@ from typing import cast
 from django.utils import timezone
 
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
+    SamplingMeasure,
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
@@ -47,7 +48,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org_id=org1.id,
         )
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, org_ids=[org1.id]
+            context, org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
         )
         assert results[org1.id] == [(p1.id, 4.0, 1, 3)]
 
@@ -89,7 +90,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     org_id=org.id,
                 )
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, org_ids=[org1.id, org2.id]
+            context, org_ids=[org1.id, org2.id], measure=SamplingMeasure.TRANSACTIONS
         )
 
         assert len(results) == 2  # two orgs
