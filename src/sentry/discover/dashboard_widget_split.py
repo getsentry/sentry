@@ -26,7 +26,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.project import Project
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.errors import ErrorsQueryBuilder
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.query_sources import QuerySource
@@ -125,6 +125,13 @@ def _get_and_save_split_decision_for_dashboard_widget(
             selected_columns=selected_columns,
             equations=equations,
             limit=1,
+            config=QueryBuilderConfig(
+                auto_fields=True,
+                auto_aggregations=True,
+                equation_config={
+                    "auto_add": True,
+                },
+            ),
         )
 
         transactions_builder = DiscoverQueryBuilder(
@@ -135,6 +142,13 @@ def _get_and_save_split_decision_for_dashboard_widget(
             selected_columns=selected_columns,
             equations=equations,
             limit=1,
+            config=QueryBuilderConfig(
+                auto_fields=True,
+                auto_aggregations=True,
+                equation_config={
+                    "auto_add": True,
+                },
+            ),
         )
     except (InvalidSearchQuery, InvalidQueryError):
         if dry_run:
