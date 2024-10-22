@@ -108,7 +108,7 @@ def update_check_in_volume(ts: datetime):
 def bulk_update_check_in_volume(ts_list: Sequence[datetime]):
     """
     Increment counters for a list of check-in timestamps. Each timestamp will be
-    trimmed to the minute and groupped appropriately
+    trimmed to the minute and grouped appropriately
     """
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
