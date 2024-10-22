@@ -288,7 +288,8 @@ class UserAttributeHandler(AttributeHandler):
         if path[1] not in ("id", "ip_address", "email", "username"):
             return []
 
-        return [getattr(event.interfaces.get("user", {}), path[1])]
+        result = getattr(event.interfaces.get("user", {}), path[1], None)
+        return [result] if result is not None else []
 
 
 @attribute_registry.register("http")
@@ -298,7 +299,8 @@ class HttpAttributeHandler(AttributeHandler):
     @classmethod
     def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] in ("url", "method"):
-            return [getattr(event.interfaces["request"], path[1])]
+            result = getattr(event.interfaces.get("request"), path[1], None)
+            return [result] if result is not None else []
         elif path[1] in ("status_code"):
             contexts = event.data.get("contexts", {})
             response = contexts.get("response")
