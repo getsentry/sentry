@@ -1,12 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
@@ -16,10 +8,7 @@ import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {
-  OnboardingContext,
-  type OnboardingContextProps,
-} from 'sentry/components/onboarding/onboardingContext';
+import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import SkipConfirm from 'sentry/components/onboardingWizard/skipConfirm';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
@@ -40,7 +29,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
 import {getMergedTasks} from './taskConfig';
@@ -55,7 +43,7 @@ const INITIAL_MARK_COMPLETE_TIMEOUT = 600;
  */
 const COMPLETION_SEEN_TIMEOUT = 800;
 
-function useOnboardingTasks(
+export function useOnboardingTasks(
   organization: Organization,
   projects: Project[],
   onboardingContext: OnboardingContextProps
@@ -74,6 +62,7 @@ function useOnboardingTasks(
       beyondBasicsTasks: all.filter(
         task => task.group !== OnboardingTaskGroup.GETTING_STARTED
       ),
+      completeTasks: all.filter(findCompleteTasks),
     };
   }, [organization, projects, onboardingContext]);
 }
@@ -194,7 +183,7 @@ function Task({task, completed, hidePanel}: TaskProps) {
         <p>{task.description}</p>
       </div>
       {task.requisiteTasks.length === 0 && (
-        <Fragment>
+        <TaskActions>
           {task.skippable && (
             <SkipConfirm onSkip={() => handleMarkSkipped(task.task)}>
               {({skip}) => (
@@ -204,6 +193,12 @@ function Task({task, completed, hidePanel}: TaskProps) {
                   aria-label={t('Close')}
                   icon={<IconClose size="xs" color="gray300" />}
                   onClick={skip}
+                  css={css`
+                    /* If the pulsing indicator is active, the close button
+                     * should be above it so it's clickable.
+                     */
+                    z-index: 1;
+                  `}
                 />
               )}
             </SkipConfirm>
@@ -214,7 +209,7 @@ function Task({task, completed, hidePanel}: TaskProps) {
               onCompleteTask={() => handleMarkComplete(task.task)}
             />
           )}
-        </Fragment>
+        </TaskActions>
       )}
     </TaskWrapper>
   );
@@ -284,22 +279,24 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
   );
 }
 
-interface NewSidebarProps extends Pick<CommonSidebarProps, 'orientation' | 'collapsed'> {
+interface NewSidebarProps
+  extends Pick<CommonSidebarProps, 'orientation' | 'collapsed'>,
+    ReturnType<typeof useOnboardingTasks> {
   onClose: () => void;
 }
 
-export function NewOnboardingSidebar({onClose, orientation, collapsed}: NewSidebarProps) {
+export function NewOnboardingSidebar({
+  onClose,
+  orientation,
+  collapsed,
+  allTasks,
+  gettingStartedTasks,
+  beyondBasicsTasks,
+}: NewSidebarProps) {
   const api = useApi();
   const organization = useOrganization();
-  const onboardingContext = useContext(OnboardingContext);
-  const {projects} = useProjects();
   const walkthrough = isDemoWalkthrough();
   const {title, description} = getPanelDescription(walkthrough);
-  const {allTasks, gettingStartedTasks, beyondBasicsTasks} = useOnboardingTasks(
-    organization,
-    projects,
-    onboardingContext
-  );
 
   const markCompletionTimeout = useRef<number | undefined>();
   const markCompletionSeenTimeout = useRef<number | undefined>();
@@ -369,7 +366,9 @@ export function NewOnboardingSidebar({onClose, orientation, collapsed}: NewSideb
           )}
           tasks={gettingStartedTasks}
           hidePanel={onClose}
-          expanded
+          expanded={
+            groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length > 0
+          }
         />
         <TaskGroup
           title={t('Beyond the Basics')}
@@ -481,4 +480,10 @@ const TaskWrapper = styled('div')<{completed?: boolean}>`
           cursor: pointer;
           align-items: flex-start;
         `}
+`;
+
+const TaskActions = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
