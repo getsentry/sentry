@@ -1,9 +1,12 @@
 from unittest.mock import patch
 
-from sentry.rules.conditions.event_attribute import EventAttributeCondition
+import pytest
+
+from sentry.rules.conditions.event_attribute import EventAttributeCondition, attribute_registry
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.registry import NoRegistrationExistsError
 
 pytestmark = [requires_snuba]
 
@@ -84,6 +87,16 @@ class EventAttributeConditionTest(RuleTestCase):
     def test_render_label(self):
         rule = self.get_rule(data={"match": MatchType.EQUAL, "attribute": "\xc3", "value": "\xc4"})
         assert rule.render_label() == "The event's \xc3 value equals \xc4"
+
+    def test_not_in_registry(self):
+        with pytest.raises(NoRegistrationExistsError):
+            attribute_registry.get("transaction")
+
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "transaction", "value": "asdf"}
+        )
+        self.assertDoesNotPass(rule, event)
 
     def test_equals(self):
         event = self.get_event()
