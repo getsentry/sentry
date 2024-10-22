@@ -471,7 +471,7 @@ const ViewPRButtons = styled(ScrollCarousel)`
 
 const ScrollIntoViewButtonWrapper = styled('div')`
   position: absolute;
-  top: -3em;
+  top: -2rem;
   right: 50%;
   transform: translateX(50%);
 `;
