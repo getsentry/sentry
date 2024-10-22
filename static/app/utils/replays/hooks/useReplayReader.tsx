@@ -28,7 +28,7 @@ export default function useReplayReader({
 }: Props): ReplayReaderResult {
   const replayId = parseReplayId(replaySlug);
 
-  const {attachments, errors, replayRecord, ...replayData} = useReplayData({
+  const {attachments, errors, replayRecord, fetching, ...replayData} = useReplayData({
     orgSlug,
     replayId,
   });
@@ -63,15 +63,17 @@ export default function useReplayReader({
         clipWindow: memoizedClipWindow,
         errors,
         featureFlags,
+        fetching,
         replayRecord,
       }),
-    [attachments, memoizedClipWindow, errors, featureFlags, replayRecord]
+    [attachments, memoizedClipWindow, errors, featureFlags, fetching, replayRecord]
   );
 
   return {
     ...replayData,
     attachments,
     errors,
+    fetching,
     replay,
     replayId,
     replayRecord,
