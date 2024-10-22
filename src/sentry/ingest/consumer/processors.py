@@ -105,9 +105,6 @@ def process_event(
     sentry_sdk.set_extra("event_id", event_id)
     sentry_sdk.set_extra("len_attachments", len(attachments))
 
-    if project_id == settings.SENTRY_PROJECT:
-        metrics.incr("internal.captured.ingest_consumer.unparsed")
-
     # check that we haven't already processed this event (a previous instance of the forwarder
     # died before it could commit the event queue offset)
     #
@@ -160,12 +157,6 @@ def process_event(
         data = orjson.loads(payload)
 
     sentry_sdk.set_extra("event_type", data.get("type"))
-
-    if project_id == settings.SENTRY_PROJECT:
-        metrics.incr(
-            "internal.captured.ingest_consumer.parsed",
-            tags={"event_type": data.get("type") or "null"},
-        )
 
     with sentry_sdk.start_span(
         op="killswitch_matches_context", name="store.load-shed-parsed-pipeline-projects"
