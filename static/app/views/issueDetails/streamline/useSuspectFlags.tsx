@@ -30,7 +30,10 @@ export default function useSuspectFlags({
   // map flag data to arrays of flag names
   const auditLogFlagNames = hydratedFlagData.map(f => f.name);
   const evaluatedFlagNames = event.contexts.flags?.values.map(f => f.flag);
-  const intersectionFlags = intersection(auditLogFlagNames, evaluatedFlagNames);
+  const intersectionFlags = useMemo(
+    () => intersection(auditLogFlagNames, evaluatedFlagNames),
+    [auditLogFlagNames, evaluatedFlagNames]
+  );
 
   // no flags in common between event evaluations and audit log
   useEffect(() => {
