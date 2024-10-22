@@ -165,8 +165,6 @@ def main(
                     "taskworker-reply-consumer",
                     "--consumer-group",
                     "taskworker-pull",
-                    # TODO group-instance-id would need to change depending
-                    # on the number of consumers.
                     "--group-instance-id",
                     str(1),
                     "--loglevel",
