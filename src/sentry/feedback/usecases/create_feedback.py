@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 from uuid import uuid4
 
 import jsonschema
+import sentry_sdk
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -272,6 +273,16 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
                 "referrer": source.value,
             },
         )
+        logger.info(
+            "Feedback message exceeds max size.",
+            extra={
+                "project_id": project_id,
+                "entrypoint": "create_feedback_issue",
+                "referrer": source.value,
+            },
+        )
+        # Sentry will capture `feedback_message` in local variables (truncated).
+        sentry_sdk.capture_message("Feedback message exceeds max size.", "warning")
         feedback_message = feedback_message[:max_msg_size]
 
     # Note that some of the fields below like title and subtitle
