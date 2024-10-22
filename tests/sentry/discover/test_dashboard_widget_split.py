@@ -115,7 +115,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
         )
 
         with self.feature({"organizations:dynamic-sampling": True}):
-            _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+            _, queried_snuba, _ = _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query, self.dry_run
             )
         metrics_widget.refresh_from_db()
@@ -146,7 +146,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
         )
 
         with self.feature({"organizations:dynamic-sampling": True}):
-            _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+            _, queried_snuba, _ = _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query, self.dry_run
             )
         metrics_widget.refresh_from_db()
@@ -180,7 +180,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
         )
 
         with self.feature({"organizations:dynamic-sampling": True}):
-            _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+            _, queried_snuba, _ = _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query, self.dry_run
             )
         metrics_widget.refresh_from_db()
@@ -211,7 +211,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
         )
 
         with self.feature({"organizations:dynamic-sampling": False}):
-            _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+            _, queried_snuba, _ = _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query, self.dry_run
             )
         metrics_widget.refresh_from_db()
@@ -249,7 +249,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             order=0,
         )
 
-        _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+        _, queried_snuba, dataset_source = _get_and_save_split_decision_for_dashboard_widget(
             errors_widget_query, self.dry_run
         )
         error_widget.refresh_from_db()
@@ -287,7 +287,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             order=0,
         )
 
-        _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+        _, queried_snuba, _ = _get_and_save_split_decision_for_dashboard_widget(
             errors_widget_query, self.dry_run
         )
         error_widget.refresh_from_db()
@@ -325,7 +325,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             order=0,
         )
 
-        _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+        _, queried_snuba, _ = _get_and_save_split_decision_for_dashboard_widget(
             user_misery_widget_query, self.dry_run
         )
         user_misery_widget.refresh_from_db()
@@ -359,7 +359,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             order=0,
         )
 
-        _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+        _, queried_snuba, _ = _get_and_save_split_decision_for_dashboard_widget(
             last_seen_widget_query, self.dry_run
         )
         last_seen_widget.refresh_from_db()
@@ -441,7 +441,9 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             order=0,
         )
 
-        _get_and_save_split_decision_for_dashboard_widget(errors_widget_query, self.dry_run)
+        _, _, dataset_source = _get_and_save_split_decision_for_dashboard_widget(
+            errors_widget_query, self.dry_run
+        )
         error_widget.refresh_from_db()
         assert (
             error_widget.discover_widget_split is None
@@ -450,6 +452,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
         )
         if not self.dry_run:
             assert error_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
+        assert dataset_source == DashboardDatasetSourcesTypes.FORCED
 
     def test_dashboard_projects_empty(self):
         # Dashboard belonging to an org with no projects

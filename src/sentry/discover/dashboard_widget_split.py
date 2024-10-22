@@ -1,4 +1,5 @@
 import logging
+from collections import namedtuple
 from datetime import datetime
 
 import sentry_sdk
@@ -40,6 +41,8 @@ SPLIT_DATASET_TO_DASHBOARDS_DATASET_MAP = {
     SplitDataset.Transactions: DashboardWidgetTypes.TRANSACTION_LIKE,
 }
 
+SplitDecision = namedtuple("SplitDecision", ["dataset", "queried_snuba", "dataset_source"])
+
 
 def _get_snuba_dataclass_for_dashboard_widget(
     widget: DashboardWidget, projects: list[Project]
@@ -74,7 +77,7 @@ def _save_split_decision_for_widget(
 @sentry_sdk.trace
 def _get_and_save_split_decision_for_dashboard_widget(
     widget_query: DashboardWidgetQuery, dry_run: bool
-) -> tuple[int, bool]:
+) -> SplitDecision:
     sentry_sdk.set_tag("dry_run", dry_run)
 
     widget: DashboardWidget = widget_query.widget
@@ -107,7 +110,11 @@ def _get_and_save_split_decision_for_dashboard_widget(
                 DashboardWidgetTypes.ERROR_EVENTS,
                 DatasetSourcesTypes.FORCED,
             )
-        return DashboardWidgetTypes.ERROR_EVENTS, False
+        return SplitDecision(
+            dataset=DashboardWidgetTypes.ERROR_EVENTS,
+            queried_snuba=False,
+            dataset_source=DatasetSourcesTypes.FORCED,
+        )
 
     snuba_dataclass = _get_snuba_dataclass_for_dashboard_widget(widget, list(projects))
 
@@ -164,7 +171,11 @@ def _get_and_save_split_decision_for_dashboard_widget(
                 DashboardWidgetTypes.ERROR_EVENTS,
                 DatasetSourcesTypes.FORCED,
             )
-        return DashboardWidgetTypes.ERROR_EVENTS, False
+        return SplitDecision(
+            dataset=DashboardWidgetTypes.ERROR_EVENTS,
+            queried_snuba=False,
+            dataset_source=DatasetSourcesTypes.FORCED,
+        )
 
     dataset_inferred_from_query = _dataset_split_decision_inferred_from_query(
         errors_builder, transactions_builder
@@ -180,7 +191,11 @@ def _get_and_save_split_decision_for_dashboard_widget(
                 widget_dataset,
                 DatasetSourcesTypes.SPLIT_VERSION_2,
             )
-        return widget_dataset, False
+        return SplitDecision(
+            dataset=widget_dataset,
+            queried_snuba=False,
+            dataset_source=DatasetSourcesTypes.SPLIT_VERSION_2,
+        )
 
     if (
         features.has("organizations:dynamic-sampling", dashboard.organization, actor=None)
@@ -223,7 +238,11 @@ def _get_and_save_split_decision_for_dashboard_widget(
                         DatasetSourcesTypes.SPLIT_VERSION_2,
                     )
 
-                return DashboardWidgetTypes.TRANSACTION_LIKE, True
+                return SplitDecision(
+                    dataset=DashboardWidgetTypes.TRANSACTION_LIKE,
+                    queried_snuba=True,
+                    dataset_source=DatasetSourcesTypes.SPLIT_VERSION_2,
+                )
         except (
             IncompatibleMetricsQuery,
             snuba.QueryIllegalTypeOfArgument,
@@ -266,7 +285,11 @@ def _get_and_save_split_decision_for_dashboard_widget(
                 DashboardWidgetTypes.ERROR_EVENTS,
                 DatasetSourcesTypes.SPLIT_VERSION_2,
             )
-        return DashboardWidgetTypes.ERROR_EVENTS, True
+        return SplitDecision(
+            dataset=DashboardWidgetTypes.ERROR_EVENTS,
+            queried_snuba=True,
+            dataset_source=DatasetSourcesTypes.SPLIT_VERSION_2,
+        )
 
     has_transactions = False
     try:
@@ -300,7 +323,11 @@ def _get_and_save_split_decision_for_dashboard_widget(
                 DatasetSourcesTypes.SPLIT_VERSION_2,
             )
 
-        return DashboardWidgetTypes.TRANSACTION_LIKE, True
+        return SplitDecision(
+            dataset=DashboardWidgetTypes.TRANSACTION_LIKE,
+            queried_snuba=True,
+            dataset_source=DatasetSourcesTypes.SPLIT_VERSION_2,
+        )
 
     if dry_run:
         logger.info(
@@ -315,4 +342,8 @@ def _get_and_save_split_decision_for_dashboard_widget(
             DatasetSourcesTypes.FORCED,
         )
 
-    return DashboardWidgetTypes.ERROR_EVENTS, True
+    return SplitDecision(
+        dataset=DashboardWidgetTypes.ERROR_EVENTS,
+        queried_snuba=True,
+        dataset_source=DatasetSourcesTypes.FORCED,
+    )
