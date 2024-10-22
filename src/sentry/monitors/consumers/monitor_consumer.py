@@ -28,7 +28,11 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
-from sentry.monitors.clock_dispatch import try_monitor_clock_tick
+from sentry.monitors.clock_dispatch import (
+    bulk_update_check_in_volume,
+    try_monitor_clock_tick,
+    update_check_in_volume,
+)
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
@@ -992,6 +996,9 @@ def process_batch(executor: ThreadPoolExecutor, message: Message[ValuesBatch[Kaf
         ]
         wait(futures)
 
+    # Update check in volume for the entire batch we've just processed
+    bulk_update_check_in_volume(item.timestamp for item in batch)
+
     # Attempt to trigger monitor tasks across processed partitions
     for partition, ts in latest_partition_ts.items():
         try:
@@ -1008,6 +1015,9 @@ def process_single(message: Message[KafkaPayload | FilteredPayload]):
         wrapper: IngestMonitorMessage = MONITOR_CODEC.decode(message.payload.value)
         ts = message.value.timestamp
         partition = message.value.partition.index
+
+        if wrapper["message_type"] != "clock_pulse":
+            update_check_in_volume(ts)
 
         try:
             try_monitor_clock_tick(ts, partition)
