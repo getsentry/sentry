@@ -1,5 +1,5 @@
 ---
-created: '2024-10-15T17:23:30.537570+00:00'
+created: '2024-10-16T19:26:51.182801+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -200,7 +200,7 @@ app:
           "SoftTimeLimitExceeded"
         value (stacktrace and type take precedence)
           "SoftTimeLimitExceeded()"
-  info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]]}}
+  info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
   values: ["{{ default }}","soft-timelimit-exceeded"]
 --------------------------------------------------------------------------
 system:
@@ -400,5 +400,5 @@ system:
           "SoftTimeLimitExceeded"
         value (stacktrace and type take precedence)
           "SoftTimeLimitExceeded()"
-  info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]]}}
+  info: {"client_fingerprint":["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["{{ default }}","soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\""}}
   values: ["{{ default }}","soft-timelimit-exceeded"]

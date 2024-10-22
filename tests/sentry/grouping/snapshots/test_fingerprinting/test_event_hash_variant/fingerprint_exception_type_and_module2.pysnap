@@ -1,5 +1,5 @@
 ---
-created: '2024-10-09T13:42:58.974458+00:00'
+created: '2024-10-16T22:32:28.545402+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -13,6 +13,7 @@ config:
       - DatabaseUnavailable
     - - module
       - invalid.databasestuff.*
+    text: type:"DatabaseUnavailable" module:"invalid.databasestuff.*" -> "database-unavailable"
   version: 1
 fingerprint:
 - my-route
