@@ -96,7 +96,7 @@ app = FastAPI()
       ),
     },
   ],
-  verify: (params: Params) => [
+  verify: () => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -105,22 +105,17 @@ app = FastAPI()
       configurations: [
         {
           language: 'python',
-
           code: `
-${getSdkSetupSnippet(params)}
-app = FastAPI()
-
 @app.get("/sentry-debug")
 async def trigger_error():
-    division_by_zero = 1 / 0
-      `,
+    division_by_zero = 1 / 0`,
         },
       ],
       additionalInfo: (
         <div>
           <p>
             {tct(
-              'When you point your browser to [link:http://localhost:8000/sentry-debug/] a transaction in the Performance section of Sentry will be created.',
+              'When you open [link:http://localhost:8000/sentry-debug/] with your browser, a transaction in the Performance section of Sentry will be created.',
               {
                 link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
               }
