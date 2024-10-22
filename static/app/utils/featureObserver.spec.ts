@@ -18,14 +18,14 @@ describe('FeatureObserver', () => {
 
   describe('observeOrganizationFlags', () => {
     it('should add recently evaluated org flags to the flag queue', () => {
-      const inst = new FeatureObserver();
+      const inst = new FeatureObserver({bufferSize: 3});
       expect(organization.features).toEqual([
         'enable-issues',
         'enable-profiling',
         'enable-replay',
       ]);
 
-      inst.observeOrganizationFlags({organization, bufferSize: 3});
+      inst.observeOrganizationFlags({organization});
       expect(inst.getFeatureFlags().values).toEqual([]);
 
       organization.features.includes('enable-issues');
@@ -47,8 +47,8 @@ describe('FeatureObserver', () => {
     });
 
     it('should remove duplicate flags with a full queue', () => {
-      const inst = new FeatureObserver();
-      inst.observeOrganizationFlags({organization, bufferSize: 3});
+      const inst = new FeatureObserver({bufferSize: 3});
+      inst.observeOrganizationFlags({organization});
       expect(inst.getFeatureFlags().values).toEqual([]);
 
       organization.features.includes('enable-issues');
@@ -87,8 +87,8 @@ describe('FeatureObserver', () => {
     });
 
     it('should remove duplicate flags with an unfilled queue', () => {
-      const inst = new FeatureObserver();
-      inst.observeOrganizationFlags({organization, bufferSize: 3});
+      const inst = new FeatureObserver({bufferSize: 3});
+      inst.observeOrganizationFlags({organization});
       expect(inst.getFeatureFlags().values).toEqual([]);
 
       organization.features.includes('enable-issues');
@@ -116,8 +116,8 @@ describe('FeatureObserver', () => {
     });
 
     it('should not change the functionality of `includes`', () => {
-      const inst = new FeatureObserver();
-      inst.observeOrganizationFlags({organization, bufferSize: 3});
+      const inst = new FeatureObserver({bufferSize: 3});
+      inst.observeOrganizationFlags({organization});
       expect(inst.getFeatureFlags().values).toEqual([]);
 
       organization.features.includes('enable-issues');
@@ -134,10 +134,10 @@ describe('FeatureObserver', () => {
 
   describe('observeProjectFlags', () => {
     it('should add recently evaluated proj flags to the flag queue', () => {
-      const inst = new FeatureObserver();
+      const inst = new FeatureObserver({bufferSize: 3});
       expect(project.features).toEqual(['enable-proj-flag', 'enable-performance']);
 
-      inst.observeProjectFlags({project, bufferSize: 3});
+      inst.observeProjectFlags({project});
       expect(inst.getFeatureFlags().values).toEqual([]);
 
       project.features.includes('enable-proj-flag');
@@ -159,8 +159,8 @@ describe('FeatureObserver', () => {
     });
 
     it('should not change the functionality of `includes`', () => {
-      const inst = new FeatureObserver();
-      inst.observeProjectFlags({project, bufferSize: 3});
+      const inst = new FeatureObserver({bufferSize: 3});
+      inst.observeProjectFlags({project});
       expect(inst.getFeatureFlags().values).toEqual([]);
 
       project.features.includes('enable-proj-flag');
@@ -177,7 +177,7 @@ describe('FeatureObserver', () => {
 
   describe('observeProjectFlags and observeOrganizationFlags', () => {
     it('should add recently evaluated org and proj flags to the flag queue', () => {
-      const inst = new FeatureObserver();
+      const inst = new FeatureObserver({bufferSize: 3});
       expect(project.features).toEqual(['enable-proj-flag', 'enable-performance']);
       expect(organization.features).toEqual([
         'enable-issues',
@@ -185,8 +185,8 @@ describe('FeatureObserver', () => {
         'enable-replay',
       ]);
 
-      inst.observeProjectFlags({project, bufferSize: 3});
-      inst.observeOrganizationFlags({organization, bufferSize: 3});
+      inst.observeProjectFlags({project});
+      inst.observeOrganizationFlags({organization});
       expect(inst.getFeatureFlags().values).toEqual([]);
 
       project.features.includes('enable-proj-flag');

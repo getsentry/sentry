@@ -2,7 +2,6 @@ import type {Flags} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-// Both org and project instances should pass in the same buffer size
 export const FEATURE_FLAG_BUFFER_SIZE = 100;
 let __SINGLETON: FeatureObserver | null = null;
 
@@ -11,11 +10,21 @@ export default class FeatureObserver {
    * Return the same instance of FeatureObserver in each part of the app.
    * Multiple instances of FeatureObserver are needed by tests only.
    */
-  public static singleton() {
+  public static singleton({
+    bufferSize = FEATURE_FLAG_BUFFER_SIZE,
+  }: {
+    bufferSize?: number;
+  }) {
     if (!__SINGLETON) {
-      __SINGLETON = new FeatureObserver();
+      __SINGLETON = new FeatureObserver(bufferSize);
     }
     return __SINGLETON;
+  }
+
+  private _bufferSize = 0;
+
+  constructor(bufferSize) {
+    this._bufferSize = bufferSize;
   }
 
   private FEATURE_FLAGS: Flags = {values: []};
@@ -30,10 +39,8 @@ export default class FeatureObserver {
   public updateFlagBuffer({
     flagName,
     flagResult,
-    bufferSize,
     flagBuffer,
   }: {
-    bufferSize: number;
     flagBuffer: Flags;
     flagName: any;
     flagResult: any;
@@ -48,7 +55,7 @@ export default class FeatureObserver {
 
     // If at capacity, we need to remove the earliest flag
     // This will only happen if not a duplicate flag
-    if (flagBuffer.values.length === bufferSize) {
+    if (flagBuffer.values.length === this._bufferSize) {
       flagBuffer.values.shift();
     }
 
@@ -59,25 +66,19 @@ export default class FeatureObserver {
     });
   }
 
-  public observeOrganizationFlags({
-    organization,
-    bufferSize,
-  }: {
-    bufferSize: number;
-    organization: Organization;
-  }) {
+  public observeOrganizationFlags({organization}: {organization: Organization}) {
     const flagBuffer = this.FEATURE_FLAGS;
     const updateFlagBuffer = this.updateFlagBuffer;
     // Track names of features that are passed into the .includes() function.
     const handler = {
-      apply: function (target, orgFeatures, flagName) {
+      apply: (target, orgFeatures, flagName) => {
         // Evaluate the result of .includes()
         const flagResult = target.apply(orgFeatures, flagName);
 
         // Append `feature.organizations:` in front to match the Sentry options automator format
         const name = 'feature.organizations:' + flagName[0];
 
-        updateFlagBuffer({flagName: name, flagResult, bufferSize, flagBuffer});
+        updateFlagBuffer({flagName: name, flagResult, flagBuffer});
 
         return flagResult;
       },
@@ -86,13 +87,7 @@ export default class FeatureObserver {
     organization.features.includes = proxy;
   }
 
-  public observeProjectFlags({
-    project,
-    bufferSize,
-  }: {
-    bufferSize: number;
-    project: Project;
-  }) {
+  public observeProjectFlags({project}: {project: Project}) {
     const flagBuffer = this.FEATURE_FLAGS;
     const updateFlagBuffer = this.updateFlagBuffer;
     // Track names of features that are passed into the .includes() function.
@@ -104,7 +99,7 @@ export default class FeatureObserver {
         // Append `feature.projects:` in front to match the Sentry options automator format
         const name = 'feature.projects:' + flagName[0];
 
-        updateFlagBuffer({flagName: name, flagResult, bufferSize, flagBuffer});
+        updateFlagBuffer({flagName: name, flagResult, flagBuffer});
 
         return flagResult;
       },

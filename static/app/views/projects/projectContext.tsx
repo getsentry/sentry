@@ -181,9 +181,10 @@ class ProjectContextProvider extends Component<Props, State> {
 
         // assuming here that this means the project is considered the active project
         setActiveProject(project);
-        FeatureObserver.singleton().observeProjectFlags({
-          project,
+        FeatureObserver.singleton({
           bufferSize: FEATURE_FLAG_BUFFER_SIZE,
+        }).observeProjectFlags({
+          project,
         });
       } catch (error) {
         this.setState({
