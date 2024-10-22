@@ -142,7 +142,7 @@
     "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/tags/{key}/values/": {
       "$ref": "paths/events/tag-values.json"
     },
-    "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/hashes/": {
+    "/api/0/issues/{issue_id}/hashes/": {
       "$ref": "paths/events/issue-hashes.json"
     },
     "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/": {
