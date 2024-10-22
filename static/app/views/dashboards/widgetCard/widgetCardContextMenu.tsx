@@ -29,6 +29,8 @@ import {
   getWidgetIssueUrl,
   getWidgetMetricsUrl,
   hasDatasetSelector,
+  isUsingPerformanceScore,
+  performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
 
 import type {Widget} from '../types';
@@ -193,7 +195,8 @@ function WidgetCardContextMenu({
     )
   ) {
     const optionDisabled =
-      hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER;
+      (hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER) ||
+      isUsingPerformanceScore(widget);
     // Open Widget in Discover
     if (widget.queries.length) {
       const discoverPath = getWidgetDiscoverUrl(
@@ -211,9 +214,11 @@ function WidgetCardContextMenu({
           : widget.queries.length === 1
             ? discoverPath
             : undefined,
-        tooltip: t(
-          'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-        ),
+        tooltip: isUsingPerformanceScore(widget)
+          ? performanceScoreTooltip
+          : t(
+              'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
+            ),
         tooltipOptions: {disabled: !optionDisabled},
         disabled: optionDisabled,
         showDetailsInOverlay: true,
