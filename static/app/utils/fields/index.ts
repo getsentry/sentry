@@ -1025,7 +1025,7 @@ type TraceFields =
   | SpanIndexedField.SPAN_STATUS
   | SpanIndexedField.RESPONSE_CODE;
 
-const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
+export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   /** Indexed Fields */
   [SpanIndexedField.SPAN_ACTION]: {
     desc: t(
