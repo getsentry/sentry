@@ -164,8 +164,12 @@ def with_fingerprint_input(name):
     )
 
 
-def to_json(value: Any) -> str:
-    return orjson.dumps(value, option=orjson.OPT_SORT_KEYS).decode()
+def to_json(value: Any, pretty_print: bool = False) -> str:
+    option = orjson.OPT_SORT_KEYS
+    if pretty_print:
+        option = option | orjson.OPT_INDENT_2
+
+    return orjson.dumps(value, option=option).decode()
 
 
 def dump_variant(
