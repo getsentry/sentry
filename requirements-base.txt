@@ -54,7 +54,7 @@ pymemcache
 python-u2flib-server>=5.0.0
 fido2>=0.9.2
 python3-saml>=1.15.0
-PyYAML>=6.0.1
+PyYAML>=6.0.2
 rb>=1.9.0
 redis-py-cluster>=2.1.0
 redis>=3.4.1
