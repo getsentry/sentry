@@ -25,7 +25,7 @@ export default function useSuspectFlags({
   query: Record<string, any>;
   rawFlagData: RawFlagData | undefined;
 }): UseApiQueryResult<RawFlagData, RequestError> {
-  const hydratedFlagData = hydrateToFlagSeries({rawFlagData});
+  const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
 
   // map flag data to arrays of flag names
   const auditLogFlagNames = hydratedFlagData.map(f => f.name);

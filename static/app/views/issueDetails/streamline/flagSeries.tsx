@@ -68,7 +68,7 @@ export default function useFlagSeries({query = {}, event, group}: FlagSeriesProp
     };
   }
 
-  const hydratedFlagData = hydrateToFlagSeries({rawFlagData});
+  const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
 
   // create a markline series using hydrated flag data
   const markLine = MarkLine({

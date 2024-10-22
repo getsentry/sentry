@@ -19,11 +19,9 @@ type FlagSeriesDatapoint = {
   xAxis: number;
 };
 
-export function hydrateToFlagSeries({
-  rawFlagData,
-}: {
-  rawFlagData: RawFlagData | undefined;
-}): FlagSeriesDatapoint[] {
+export function hydrateToFlagSeries(
+  rawFlagData: RawFlagData | undefined
+): FlagSeriesDatapoint[] {
   if (!rawFlagData) {
     return [];
   }
