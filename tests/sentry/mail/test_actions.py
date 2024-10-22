@@ -158,7 +158,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
 
         with self.tasks():
             post_process_group(
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -197,7 +197,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
 
         with self.tasks():
             post_process_group(
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -235,7 +235,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
 
         with self.tasks():
             post_process_group(
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -269,7 +269,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
             self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()),
         ):
             post_process_group(
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
@@ -322,7 +322,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
 
         with self.tasks():
             post_process_group(
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,

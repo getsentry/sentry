@@ -543,7 +543,7 @@ class ActivityNotificationTest(APITestCase):
             cache_key = write_event_to_cache(event)
             with self.tasks():
                 post_process_group(
-                    eventstream_type=EventStreamEventType.Error,
+                    eventstream_type=EventStreamEventType.Error.value,
                     is_new=True,
                     is_regression=False,
                     is_new_group_environment=True,

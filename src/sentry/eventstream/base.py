@@ -126,7 +126,7 @@ class EventStream(Service):
         group_states: GroupStates | None = None,
     ) -> None:
         self._dispatch_post_process_group_task(
-            self._get_event_type(event),
+            self._get_event_type(event).value,
             event.event_id,
             event.project_id,
             event.group_id,
@@ -195,7 +195,7 @@ class EventStream(Service):
         return False
 
     @staticmethod
-    def _get_event_type(event: Event | GroupEvent) -> str:
+    def _get_event_type(event: Event | GroupEvent) -> EventStreamEventType:
         if getattr(event, "occurrence", None):
             # For now, all events with an associated occurrence are specific to the issue platform.
             # When/if we move errors and transactions onto the platform, this might change.

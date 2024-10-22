@@ -517,7 +517,7 @@ def post_process_group(
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
 
-        if eventstream_type == EventStreamEventType.Transaction:
+        if eventstream_type == EventStreamEventType.Transaction.value:
             processing_store = transaction_processing_store
         else:
             processing_store = event_processing_store

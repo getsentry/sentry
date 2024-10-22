@@ -74,7 +74,7 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
 
     message = Message(BrokerValue(get_kafka_payload(), partition, 1, datetime.now()))
 
-    dispatch_function(EventStreamEventType.Generic, message)
+    dispatch_function(EventStreamEventType.Generic.value, message)
 
     # Dispatch can take a while
     for _i in range(0, 5):
@@ -83,7 +83,7 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
         time.sleep(0.1)
 
     mock_dispatch.assert_called_once_with(
-        eventstream_type=EventStreamEventType.Generic,
+        eventstream_type=EventStreamEventType.Generic.value,
         event_id="fe0ee9a2bc3b415497bad68aaf70dc7f",
         project_id=1,
         group_id=43,
@@ -105,7 +105,7 @@ def test_dispatch_task_with_occurrence(mock_post_process_group: Mock) -> None:
     partition = Partition(Topic("test-occurrence"), 0)
 
     dispatch_function(
-        EventStreamEventType.Generic,
+        EventStreamEventType.Generic.value,
         Message(BrokerValue(get_occurrence_kafka_payload(), partition, 1, datetime.now())),
     )
 

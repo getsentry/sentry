@@ -1,4 +1,7 @@
-class EventStreamEventType:
+from enum import Enum
+
+
+class EventStreamEventType(Enum):
     """
     We have 3 broad categories of event types that we care about in eventstream.
     """

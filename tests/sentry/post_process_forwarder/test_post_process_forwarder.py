@@ -140,7 +140,7 @@ class PostProcessForwarderTest(TestCase):
 
             # Verify that the task gets called once
             mock.assert_called_once_with(
-                eventstream_type=EventStreamEventType.Error,
+                eventstream_type=EventStreamEventType.Error.value,
                 event_id="fe0ee9a2bc3b415497bad68aaf70dc7f",
                 project_id=1,
                 group_id=43,
