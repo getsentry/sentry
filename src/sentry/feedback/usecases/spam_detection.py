@@ -1,6 +1,8 @@
 import logging
 
+from sentry import features
 from sentry.llm.usecases import LLMUseCase, complete_prompt
+from sentry.models.project import Project
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -68,3 +70,9 @@ def trim_response(text):
         return True, trimmed_text
     else:
         return False, trimmed_text
+
+
+def spam_detection_enabled(project: Project) -> bool:
+    return features.has(
+        "organizations:user-feedback-spam-filter-ingest", project.organization
+    ) and project.get_option("sentry:feedback_ai_spam_detection")
