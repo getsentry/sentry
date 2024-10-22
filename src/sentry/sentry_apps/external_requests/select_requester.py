@@ -62,7 +62,7 @@ class SelectRequester:
             )
             raise APIError from e
 
-        if not self._validate_response(response) or not response:
+        if not self._validate_response(response):
             logger.info(
                 "select-requester.invalid-response",
                 extra={
