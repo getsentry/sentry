@@ -681,6 +681,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                             "conditions": "event.type:error",
                         }
                     ],
+                    "datasetSource": "user",
                 },
             ],
         }
@@ -1157,6 +1158,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                             "conditions": "event.type:transaction",
                         },
                     ],
+                    "datasetSource": "user",
                 },
                 {"id": str(self.widget_2.id)},
             ],
