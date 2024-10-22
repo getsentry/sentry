@@ -66,8 +66,7 @@ interface ReplayReaderParams {
   errors: ReplayError[] | undefined;
 
   /**
-   * Is replay data still fetching? Do not return a
-   * ReplayReader unless all data is fetched and ready.
+   * Is replay data still fetching?
    */
   fetching: boolean;
 
