@@ -10,24 +10,19 @@ export default class FeatureObserver {
    * Return the same instance of FeatureObserver in each part of the app.
    * Multiple instances of FeatureObserver are needed by tests only.
    */
-  public static singleton({
-    bufferSize = FEATURE_FLAG_BUFFER_SIZE,
-  }: {
-    bufferSize?: number;
-  }) {
+  public static singleton({bufferSize}: {bufferSize?: number}) {
     if (!__SINGLETON) {
-      __SINGLETON = new FeatureObserver(bufferSize);
+      __SINGLETON = new FeatureObserver({bufferSize});
     }
     return __SINGLETON;
   }
 
   private _bufferSize = 0;
+  private FEATURE_FLAGS: Flags = {values: []};
 
-  constructor(bufferSize) {
+  constructor({bufferSize = FEATURE_FLAG_BUFFER_SIZE}: {bufferSize?: number}) {
     this._bufferSize = bufferSize;
   }
-
-  private FEATURE_FLAGS: Flags = {values: []};
 
   /**
    * Return list of recently accessed feature flags.
@@ -40,7 +35,9 @@ export default class FeatureObserver {
     flagName,
     flagResult,
     flagBuffer,
+    bufferSize,
   }: {
+    bufferSize: number;
     flagBuffer: Flags;
     flagName: any;
     flagResult: any;
@@ -55,7 +52,7 @@ export default class FeatureObserver {
 
     // If at capacity, we need to remove the earliest flag
     // This will only happen if not a duplicate flag
-    if (flagBuffer.values.length === this._bufferSize) {
+    if (flagBuffer.values.length === bufferSize) {
       flagBuffer.values.shift();
     }
 
@@ -68,6 +65,7 @@ export default class FeatureObserver {
 
   public observeOrganizationFlags({organization}: {organization: Organization}) {
     const flagBuffer = this.FEATURE_FLAGS;
+    const bufferSize = this._bufferSize;
     const updateFlagBuffer = this.updateFlagBuffer;
     // Track names of features that are passed into the .includes() function.
     const handler = {
@@ -78,7 +76,7 @@ export default class FeatureObserver {
         // Append `feature.organizations:` in front to match the Sentry options automator format
         const name = 'feature.organizations:' + flagName[0];
 
-        updateFlagBuffer({flagName: name, flagResult, flagBuffer});
+        updateFlagBuffer({flagName: name, flagResult, flagBuffer, bufferSize});
 
         return flagResult;
       },
@@ -89,6 +87,7 @@ export default class FeatureObserver {
 
   public observeProjectFlags({project}: {project: Project}) {
     const flagBuffer = this.FEATURE_FLAGS;
+    const bufferSize = this._bufferSize;
     const updateFlagBuffer = this.updateFlagBuffer;
     // Track names of features that are passed into the .includes() function.
     const handler = {
@@ -99,7 +98,7 @@ export default class FeatureObserver {
         // Append `feature.projects:` in front to match the Sentry options automator format
         const name = 'feature.projects:' + flagName[0];
 
-        updateFlagBuffer({flagName: name, flagResult, flagBuffer});
+        updateFlagBuffer({flagName: name, flagResult, flagBuffer, bufferSize});
 
         return flagResult;
       },
