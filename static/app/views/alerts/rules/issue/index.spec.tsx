@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfigurationFixture} from 'sentry-fixture/projectAlertRuleConfiguration';
@@ -147,6 +148,17 @@ describe('IssueRuleEditor', function () {
       body: [],
     });
     ProjectsStore.loadInitialData([ProjectFixture()]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      body: [],
+    });
+    const providerKeys = ['slack', 'discord', 'msteams'];
+    providerKeys.forEach(providerKey => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/config/integrations/?provider_key=${providerKey}`,
+        body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
+      });
+    });
   });
 
   afterEach(function () {
