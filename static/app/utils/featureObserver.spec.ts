@@ -207,5 +207,45 @@ describe('FeatureObserver', () => {
         {flag: 'feature.organizations:enable-replay', result: true},
       ]);
     });
+
+    it('should keep the same queue if the project changes', () => {
+      const inst = new FeatureObserver({bufferSize: 3});
+      expect(project.features).toEqual(['enable-proj-flag', 'enable-performance']);
+      expect(organization.features).toEqual([
+        'enable-issues',
+        'enable-profiling',
+        'enable-replay',
+      ]);
+
+      inst.observeProjectFlags({project});
+      inst.observeOrganizationFlags({organization});
+      expect(inst.getFeatureFlags().values).toEqual([]);
+
+      project.features.includes('enable-proj-flag');
+      project.features.includes('enable-replay');
+      organization.features.includes('enable-issues');
+      expect(inst.getFeatureFlags().values).toEqual([
+        {flag: 'feature.projects:enable-proj-flag', result: true},
+        {flag: 'feature.projects:enable-replay', result: false},
+        {flag: 'feature.organizations:enable-issues', result: true},
+      ]);
+
+      project = ProjectFixture({
+        features: ['enable-new-flag'],
+      });
+      inst.observeProjectFlags({project});
+      expect(inst.getFeatureFlags().values).toEqual([
+        {flag: 'feature.projects:enable-proj-flag', result: true},
+        {flag: 'feature.projects:enable-replay', result: false},
+        {flag: 'feature.organizations:enable-issues', result: true},
+      ]);
+
+      project.features.includes('enable-new-flag');
+      expect(inst.getFeatureFlags().values).toEqual([
+        {flag: 'feature.projects:enable-replay', result: false},
+        {flag: 'feature.organizations:enable-issues', result: true},
+        {flag: 'feature.projects:enable-new-flag', result: true},
+      ]);
+    });
   });
 });
