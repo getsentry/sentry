@@ -39,7 +39,7 @@ def decode_and_process_chunks(
     metrics.distribution(
         "ingest_consumer.payload_size",
         len(raw_payload),
-        tags={"consumer": str(consumer_type)},
+        tags={"consumer": consumer_type},
         unit="byte",
     )
 

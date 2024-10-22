@@ -40,7 +40,7 @@ def process_simple_event_message(
     metrics.distribution(
         "ingest_consumer.payload_size",
         len(raw_payload),
-        tags={"consumer": str(consumer_type)},
+        tags={"consumer": consumer_type},
         unit="byte",
     )
 

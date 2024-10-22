@@ -1667,6 +1667,9 @@ SENTRY_EVENT_PROCESSING_STORE = (
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
 # Transactions processing backend
+# If these are set, transactions will be written to a different processing store
+# than errors. If these are set to none, Events(errors) and transactions will
+# both write to the EVENT_PROCESSING_STORE.
 SENTRY_TRANSACTION_PROCESSING_STORE: str | None = None
 SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 

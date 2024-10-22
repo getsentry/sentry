@@ -200,15 +200,12 @@ def process_event(
             cache_key = None
         else:
             with metrics.timer("ingest_consumer._store_event"):
-                event_type = data.get("type")
-
-            cache_key = processing_store.store(data)
+                cache_key = processing_store.store(data)
             save_attachments(attachments, cache_key)
 
         try:
             # Records rc-processing usage broken down by
             # event type.
-
             event_type = data.get("type")
             if event_type == "error":
                 app_feature = "errors"
