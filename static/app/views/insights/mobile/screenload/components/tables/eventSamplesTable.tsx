@@ -29,7 +29,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {DeviceClassSelector} from 'sentry/views/insights/mobile/common/components/deviceClassSelector';
 import {ModuleName} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Props = {
   columnNameMap: Record<string, string>;

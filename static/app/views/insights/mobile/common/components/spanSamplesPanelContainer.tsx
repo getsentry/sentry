@@ -32,9 +32,8 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-
-import {TraceViewSources} from '../../../../performance/newTraceDetails/traceMetadataHeader';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
