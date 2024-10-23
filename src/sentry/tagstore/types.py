@@ -91,12 +91,15 @@ class GroupTagValue(TagType):
         self.last_seen = last_seen
 
 
-class TagKeySerializerResponse(TypedDict):
-    key: str
-    name: str
+class TagKeySerializerResponseOptional(TypedDict, total=False):
     uniqueValues: int | None
     totalValues: int | None
     topValues: list[TagValueSerializerResponse] | None
+
+
+class TagKeySerializerResponse(TagKeySerializerResponseOptional):
+    key: str
+    name: str
 
 
 @register(GroupTagKey)
@@ -118,14 +121,17 @@ class TagKeySerializer(Serializer):
         return output
 
 
-class TagValueSerializerResponse(TypedDict):
+class TagValueSerializerResponseOptional(TypedDict, total=False):
+    query: str | None
+
+
+class TagValueSerializerResponse(TagValueSerializerResponseOptional):
     key: str
     name: str
     value: str
     count: int
     lastSeen: str
     firstSeen: str
-    query: str | None
 
 
 @register(GroupTagValue)
