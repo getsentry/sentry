@@ -25,11 +25,11 @@ from sentry.ingest.consumer.processors import (
     process_individual_attachment,
     process_userreport,
 )
+from sentry.ingest.types import ConsumerType
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
 from sentry.options import set
-from sentry.tasks.store import ConsumerType
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba, requires_symbolicator

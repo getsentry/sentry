@@ -7,8 +7,8 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 
+from sentry.ingest.types import ConsumerType
 from sentry.models.project import Project
-from sentry.tasks.store import ConsumerType
 from sentry.utils import metrics
 
 from .processors import (
