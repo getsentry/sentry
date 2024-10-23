@@ -5,10 +5,18 @@ import type {Polarity} from 'sentry/components/percentChange';
 
 import {normalizeUnit} from '../../utils';
 import {ThresholdsHoverWrapper} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
-import type {Thresholds} from '../common/types';
+import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+
+type ValidThresholds = {
+  max_values: {
+    max1: number;
+    max2: number;
+  };
+  unit?: string;
+};
 
 interface ThresholdsIndicatorProps {
-  thresholds: Thresholds;
+  thresholds: ValidThresholds;
   type: string;
   unit: string;
   value: number;
@@ -28,8 +36,8 @@ export function ThresholdsIndicator({
   const {max1, max2} = max_values;
 
   const normalizedValue = normalizeUnit(value, valueUnit, type);
-  const normalizedMax1 = normalizeUnit(max1, thresholdUnit, type);
-  const normalizedMax2 = normalizeUnit(max2, thresholdUnit, type);
+  const normalizedMax1 = thresholdUnit ? normalizeUnit(max1, thresholdUnit, type) : max1;
+  const normalizedMax2 = thresholdUnit ? normalizeUnit(max2, thresholdUnit, type) : max2;
 
   const state = getThresholdState(
     normalizedValue,
@@ -40,8 +48,16 @@ export function ThresholdsIndicator({
 
   const colorName = COLOR_NAME_FOR_STATE[state];
 
+  const thresholdsConfig: ThresholdsConfig = {
+    unit: thresholdUnit ?? null,
+    max_values: {
+      max1: max1 ?? null,
+      max2: max2 ?? null,
+    },
+  };
+
   return (
-    <ThresholdsHoverWrapper thresholds={thresholds} type={type}>
+    <ThresholdsHoverWrapper thresholds={thresholdsConfig} type={type}>
       <Circle role="status" aria-label={state} color={theme[colorName]} />
     </ThresholdsHoverWrapper>
   );
