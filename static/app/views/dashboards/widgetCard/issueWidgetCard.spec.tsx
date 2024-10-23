@@ -110,22 +110,20 @@ describe('Dashboards > IssueWidgetCard', function () {
   it('renders with title and issues chart', async function () {
     MemberListStore.loadInitialData([user]);
     render(
-      <DashboardsMEPProvider>
-        <WidgetCard
-          api={api}
-          organization={organization}
-          widget={widget}
-          selection={selection}
-          isEditingDashboard={false}
-          onDelete={() => undefined}
-          onEdit={() => undefined}
-          onDuplicate={() => undefined}
-          renderErrorMessage={() => undefined}
-          showContextMenu
-          widgetLimitReached={false}
-          widgetLegendState={widgetLegendState}
-        />
-      </DashboardsMEPProvider>,
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={widget}
+        selection={selection}
+        isEditingDashboard={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />,
       {wrapper: Wrapper}
     );
 
