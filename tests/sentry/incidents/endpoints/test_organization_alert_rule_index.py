@@ -997,11 +997,22 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             role="member",
             organization=self.organization,
         )
+
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[self.team]
+        )
+
         self.organization.update_option("sentry:alerts_member_write", False)
         self.login_as(team_admin_user)
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
         assert resp.status_code == 201
+
+        # verify that a regular team member cannot create an alert
+        self.login_as(member_user)
+        resp = self.get_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.status_code == 403
 
     def test_member_create(self):
         member_user = self.create_user()

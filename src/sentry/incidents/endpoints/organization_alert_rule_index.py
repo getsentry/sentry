@@ -6,7 +6,7 @@ from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Sub
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -435,6 +435,23 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationAlertRulePermission,)
+
+    def convert_args(self, request: Request, *args, **kwargs):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        organization = kwargs.get("organization")
+        # projects where the user has project membership
+        projects = self.get_projects(request, organization)
+        # team admins and regular org members don't have project:write on an org level
+        if not request.access.has_scope("project:write"):
+            # team admins will have project:write scoped to their projects, members will not
+            team_admin_has_access = all(
+                [request.access.has_project_scope(project, "project:write") for project in projects]
+            )
+            # all() returns True for empty list, so include a check for it
+            if not team_admin_has_access or not projects:
+                raise PermissionDenied
+
+        return args, kwargs
 
     @extend_schema(
         operation_id="List an Organization's Metric Alert Rules",

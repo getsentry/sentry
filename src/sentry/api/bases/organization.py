@@ -204,7 +204,8 @@ class OrganizationDataExportPermission(OrganizationPermission):
 class OrganizationAlertRulePermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
-        "POST": ["org:write", "org:admin", "alerts:write"],
+        # grant org:write permission, but raise permission denied if the user isn't a team admin (doesn't have project:write)
+        "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
         "PUT": ["org:write", "org:admin", "alerts:write"],
         "DELETE": ["org:write", "org:admin", "alerts:write"],
     }
