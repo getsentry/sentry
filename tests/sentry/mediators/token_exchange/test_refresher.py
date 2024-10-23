@@ -42,7 +42,7 @@ class TestRefresher(TestCase):
         self.refresher.call()
         assert not ApiToken.objects.filter(id=self.token.id).exists()
 
-    @patch("sentry.mediators.token_exchange.Validator.run")
+    @patch("sentry.sentry_apps.token_exchange.Validator.run")
     def test_validates_generic_token_exchange_requirements(self, validator):
         self.refresher.call()
 
