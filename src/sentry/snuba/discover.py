@@ -635,7 +635,7 @@ def top_events_timeseries(
 
 
 def get_facets(
-    query: str,
+    query: str | None,
     snuba_params: SnubaParams,
     referrer: str,
     per_page: int | None = TOP_KEYS_DEFAULT_LIMIT,
