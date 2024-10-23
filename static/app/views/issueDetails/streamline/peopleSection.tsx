@@ -41,7 +41,7 @@ export default function PeopleSection({group}: {group: Group}) {
       {hasViewers && (
         <Flex gap={space(0.5)} align="center">
           <ParticipantList users={viewers} />
-          {t('viewed this issue')}
+          {t('viewed')}
         </Flex>
       )}
     </div>
