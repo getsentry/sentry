@@ -106,7 +106,9 @@ export default storyBook(WidgetFrame, story => {
           <JSXNode name="WidgetFrame" /> supports an action menu. If only one action is
           passed, the single action is rendered as a small button. If multiple actions are
           passed, they are grouped into a dropdown menu. Menu actions appear on hover or
-          keyboard focus.
+          keyboard focus. They can be disabled with the <code>actionsDisabled</code> prop,
+          and supplemented with an optional <code>actionsMessage</code> prop that adds a
+          tooltip.
         </p>
 
         <SideBySide>
@@ -130,7 +132,52 @@ export default storyBook(WidgetFrame, story => {
           <NormalWidget>
             <WidgetFrame
               title="Count"
+              actionsDisabled
+              actionsMessage="Not possible here"
+              description="This counts up the amount of something that happens."
+              actions={[
+                {
+                  key: 'see-more',
+                  label: t('See More'),
+                  onAction: () => {
+                    // eslint-disable-next-line no-console
+                    console.log('See more!');
+                  },
+                },
+              ]}
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <WidgetFrame
+              title="Count"
               description="This is a tough formula to reason about"
+              actions={[
+                {
+                  key: 'see-more',
+                  label: t('See More'),
+                  onAction: () => {
+                    // eslint-disable-next-line no-console
+                    console.log('See more!');
+                  },
+                },
+                {
+                  key: 'see-less',
+                  label: t('See Less'),
+                  onAction: () => {
+                    // eslint-disable-next-line no-console
+                    console.log('See less!');
+                  },
+                },
+              ]}
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <WidgetFrame
+              title="Count"
+              actionsDisabled
+              actionsMessage="Not available in this context"
               actions={[
                 {
                   key: 'see-more',
