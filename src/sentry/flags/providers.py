@@ -1,4 +1,5 @@
 import datetime
+import re
 from typing import Any, TypedDict
 
 from rest_framework import serializers
@@ -50,6 +51,23 @@ class InvalidProvider(Exception):
     ...
 
 
+def handle_provider_event(
+    provider: str,
+    request_data: dict[str, Any],
+    organization_id: int,
+) -> list[FlagAuditLogRow]:
+    match provider:
+        case "launchdarkly":
+            return handle_launchdarkly_event(request_data, organization_id)
+        case "splitio":
+            return handle_splitio_event(request_data, organization_id)
+        case _:
+            raise InvalidProvider(provider)
+
+
+"""LaunchDarkly Provider."""
+
+
 class LaunchDarklyItemSerializer(serializers.Serializer):
     accesses = serializers.ListField(required=True)
     date = serializers.IntegerField(required=True)
@@ -58,18 +76,16 @@ class LaunchDarklyItemSerializer(serializers.Serializer):
     description = serializers.CharField(required=True)
 
 
-"""
-LaunchDarkly has a lot more flag actions than what's in our
-ACTION_MAP. The "updated" action is the catch-all for actions
-that don't fit in the other buckets.
-
-We started out with a few actions that we think would be useful
-to accept. All other actions will not be logged
-to the audit log. This set of actions is subject to change.
-"""
-
-
 def handle_launchdarkly_actions(action: str) -> int:
+    """
+    LaunchDarkly has a lot more flag actions than what's in our
+    ACTION_MAP. The "updated" action is the catch-all for actions
+    that don't fit in the other buckets.
+
+    We started out with a few actions that we think would be useful
+    to accept. All other actions will not be logged
+    to the audit log. This set of actions is subject to change.
+    """
     if action == "createFlag" or action == "cloneFlag":
         return ACTION_MAP["created"]
     if action == "deleteFlag":
@@ -121,16 +137,45 @@ def handle_launchdarkly_event(
     ]
 
 
-def handle_provider_event(
-    provider: str,
-    request_data: dict[str, Any],
-    organization_id: int,
+"""Splitio Integration.
+
+Enabling:
+    - Go to Split.io page.
+    - Admin settings.
+    - Integrations.
+    - Outgoing webhooks.
+    - Select environments and paste url.
+
+Documentation: https://help.split.io/hc/en-us/articles/360020957991-Webhook-audit-log
+"""
+
+
+DELETED_REGEX = re.compile(r"^.* deleted feature .* with comment .*")
+
+
+def handle_splitio_event(
+    request_data: dict[str, Any], organization_id: int
 ) -> list[FlagAuditLogRow]:
-    match provider:
-        case "launchdarkly":
-            return handle_launchdarkly_event(request_data, organization_id)
-        case _:
-            raise InvalidProvider(provider)
+    if "previous" not in request_data:
+        action = ACTION_MAP["created"]
+    elif DELETED_REGEX.match(request_data["description"]):
+        action = ACTION_MAP["deleted"]
+    else:
+        action = ACTION_MAP["updated"]
+
+    return [
+        {
+            "action": action,
+            "created_at": datetime.datetime.fromtimestamp(
+                request_data["time"] / 1000, datetime.UTC
+            ),
+            "created_by": request_data["editor"],
+            "created_by_type": CREATED_BY_TYPE_MAP["name"],
+            "flag": request_data["name"],
+            "organization_id": organization_id,
+            "tags": {"environment": request_data["environmentName"]},
+        }
+    ]
 
 
 """Internal flag-pole provider.
