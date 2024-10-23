@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -8,20 +8,18 @@ import {Flex} from 'sentry/components/container/flex';
 import Count from 'sentry/components/count';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {useUser} from 'sentry/utils/useUser';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -47,7 +45,6 @@ export default function StreamlinedGroupHeader({
   groupReprocessingStatus,
   project,
 }: GroupHeaderProps) {
-  const activeUser = useUser();
   const location = useLocation();
   const organization = useOrganization();
   const {baseUrl} = useGroupDetailsRoute();
@@ -64,18 +61,6 @@ export default function StreamlinedGroupHeader({
     'issue-details-sidebar-open',
     true
   );
-
-  const {userParticipants, teamParticipants, displayUsers} = useMemo(() => {
-    return {
-      userParticipants: group.participants.filter(
-        (p): p is UserParticipant => p.type === 'user'
-      ),
-      teamParticipants: group.participants.filter(
-        (p): p is TeamParticipant => p.type === 'team'
-      ),
-      displayUsers: group.seenBy.filter(user => activeUser.id !== user.id),
-    };
-  }, [group, activeUser.id]);
 
   return (
     <Fragment>
@@ -163,18 +148,6 @@ export default function StreamlinedGroupHeader({
             {t('Assignee')}
             <GroupHeaderAssigneeSelector group={group} project={project} event={event} />
           </Workflow>
-          {group.participants.length > 0 && (
-            <Workflow>
-              {t('Participants')}
-              <ParticipantList users={userParticipants} teams={teamParticipants} />
-            </Workflow>
-          )}
-          {displayUsers.length > 0 && (
-            <Workflow>
-              {t('Viewers')}
-              <ParticipantList users={displayUsers} />
-            </Workflow>
-          )}
           <SidebarButton
             icon={
               sidebarOpen ? (
