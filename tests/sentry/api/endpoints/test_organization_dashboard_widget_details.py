@@ -1105,3 +1105,26 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert "columns" in warnings
         assert len(warnings["columns"]) == 1
         assert warnings["columns"]["sometag"] == "disabled:high-cardinality"
+
+    def test_widget_type_spans(self):
+        data = {
+            "title": "Test Query",
+            "widgetType": "spans",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["span.op", "count()"],
+                    "columns": ["span.op"],
+                    "aggregates": ["count()"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
