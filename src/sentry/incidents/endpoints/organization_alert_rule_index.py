@@ -436,23 +436,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
     }
     permission_classes = (OrganizationAlertRulePermission,)
 
-    def convert_args(self, request: Request, *args, **kwargs):
-        args, kwargs = super().convert_args(request, *args, **kwargs)
-        organization = kwargs.get("organization")
-        # projects where the user has project membership
-        projects = self.get_projects(request, organization)
-        # team admins and regular org members don't have project:write on an org level
-        if not request.access.has_scope("project:write"):
-            # team admins will have project:write scoped to their projects, members will not
-            team_admin_has_access = all(
-                [request.access.has_project_scope(project, "project:write") for project in projects]
-            )
-            # all() returns True for empty list, so include a check for it
-            if not team_admin_has_access or not projects:
-                raise PermissionDenied
-
-        return args, kwargs
-
     @extend_schema(
         operation_id="List an Organization's Metric Alert Rules",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
@@ -642,4 +625,17 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
         """
+        # projects where the user has project membership
+        projects = self.get_projects(request, organization)
+        # team admins and regular org members don't have project:write on an org level
+        if not request.access.has_scope("project:write") and not request.access.has_scope(
+            "alerts:write"
+        ):
+            # team admins will have project:write scoped to their projects, members will not
+            team_admin_has_access = all(
+                [request.access.has_project_scope(project, "project:write") for project in projects]
+            )
+            # all() returns True for empty list, so include a check for it
+            if not team_admin_has_access or not projects:
+                raise PermissionDenied
         return self.create_metric_alert(request, organization)
