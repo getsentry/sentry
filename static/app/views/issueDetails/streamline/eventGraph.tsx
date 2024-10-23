@@ -19,6 +19,7 @@ import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/flagSeries';
@@ -146,9 +147,12 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     return seriesData;
   }, [visibleSeries, userSeries, eventSeries, flagSeries, theme]);
 
-  const [legendSelected, setLegendSelected] = useState({
-    ['Feature Flags']: true,
-  });
+  const [legendSelected, setLegendSelected] = useLocalStorageState(
+    'issue-details-graph-legend',
+    {
+      ['Feature Flags']: true,
+    }
+  );
 
   const legend = Legend({
     theme: theme,
@@ -171,7 +175,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           [name]: newValue,
         }));
       },
-    []
+    [setLegendSelected]
   );
 
   if (error) {
@@ -256,6 +260,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           grid={{
             left: 8,
             right: 8,
+            top: 12,
             bottom: 0,
           }}
           yAxis={{
