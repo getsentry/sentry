@@ -96,7 +96,12 @@ function EventOrGroupHeader({
 
     if (hasNewLayout) {
       return (
-        <NewTitleWithLink {...commonEleProps} to={to} onClick={onClick}>
+        <NewTitleWithLink
+          {...commonEleProps}
+          to={to}
+          onClick={onClick}
+          data-issue-title-link
+        >
           {getTitleChildren()}
         </NewTitleWithLink>
       );

@@ -167,7 +167,6 @@ const GroupExtra = styled('div')<{hasNewLayout: boolean}>`
   align-items: center;
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
-  position: relative;
   min-width: 500px;
   white-space: nowrap;
   line-height: 1.2;
@@ -205,12 +204,14 @@ const CommentsLink = styled(Link)`
   align-items: center;
   grid-auto-flow: column;
   color: ${p => p.theme.textColor};
+  position: relative;
 `;
 
 const AnnotationNoMargin = styled(EventAnnotation)<{hasNewLayout: boolean}>`
   margin-left: 0;
   padding-left: 0;
   border-left: none;
+  position: relative;
 
   ${p =>
     !p.hasNewLayout &&
@@ -231,6 +232,7 @@ const AnnotationNoMargin = styled(EventAnnotation)<{hasNewLayout: boolean}>`
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
+  position: relative;
 `;
 
 const Location = styled('div')`
