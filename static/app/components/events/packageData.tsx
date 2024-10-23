@@ -95,7 +95,7 @@ export const ColumnsContainer = styled('div')<{columnCount: number}>`
 
 export const Column = styled('div')`
   display: grid;
-  grid-template-columns: fit-content(50%) 1fr;
+  grid-template-columns: fit-content(65%) 1fr;
   font-size: ${p => p.theme.fontSizeSmall};
   &:first-child {
     margin-left: -${space(1)};
