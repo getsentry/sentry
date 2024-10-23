@@ -50,6 +50,23 @@ class InvalidProvider(Exception):
     ...
 
 
+def handle_provider_event(
+    provider: str,
+    request_data: dict[str, Any],
+    organization_id: int,
+) -> list[FlagAuditLogRow]:
+    match provider:
+        case "launchdarkly":
+            return handle_launchdarkly_event(request_data, organization_id)
+        case "statsig":
+            return handle_statsig_event(request_data, organization_id)
+        case _:
+            raise InvalidProvider(provider)
+
+
+"""LaunchDarkly Provider."""
+
+
 class LaunchDarklyItemSerializer(serializers.Serializer):
     accesses = serializers.ListField(required=True)
     date = serializers.IntegerField(required=True)
@@ -58,18 +75,16 @@ class LaunchDarklyItemSerializer(serializers.Serializer):
     description = serializers.CharField(required=True)
 
 
-"""
-LaunchDarkly has a lot more flag actions than what's in our
-ACTION_MAP. The "updated" action is the catch-all for actions
-that don't fit in the other buckets.
-
-We started out with a few actions that we think would be useful
-to accept. All other actions will not be logged
-to the audit log. This set of actions is subject to change.
-"""
-
-
 def handle_launchdarkly_actions(action: str) -> int:
+    """
+    LaunchDarkly has a lot more flag actions than what's in our
+    ACTION_MAP. The "updated" action is the catch-all for actions
+    that don't fit in the other buckets.
+
+    We started out with a few actions that we think would be useful
+    to accept. All other actions will not be logged
+    to the audit log. This set of actions is subject to change.
+    """
     if action == "createFlag" or action == "cloneFlag":
         return ACTION_MAP["created"]
     if action == "deleteFlag":
@@ -121,16 +136,7 @@ def handle_launchdarkly_event(
     ]
 
 
-def handle_provider_event(
-    provider: str,
-    request_data: dict[str, Any],
-    organization_id: int,
-) -> list[FlagAuditLogRow]:
-    match provider:
-        case "launchdarkly":
-            return handle_launchdarkly_event(request_data, organization_id)
-        case _:
-            raise InvalidProvider(provider)
+"""Statsig Provider."""
 
 
 """Internal flag-pole provider.
