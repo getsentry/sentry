@@ -15,6 +15,7 @@ type Props = {
   headerTitle: HeaderProps['headerTitle'];
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
+  hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
   module?: HeaderProps['selectedModule'];
   tabs?: HeaderProps['tabs'];
 };
@@ -26,6 +27,7 @@ export function BackendHeader({
   headerTitle,
   breadcrumbs,
   tabs,
+  hideDefaultTabs,
 }: Props) {
   const {slug} = useOrganization();
 
@@ -44,6 +46,7 @@ export function BackendHeader({
       selectedModule={module}
       additionalBreadCrumbs={breadcrumbs}
       tabs={tabs}
+      hideDefaultTabs={hideDefaultTabs}
     />
   );
 }

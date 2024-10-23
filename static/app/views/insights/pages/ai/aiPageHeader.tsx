@@ -15,11 +15,19 @@ type Props = {
   headerTitle: HeaderProps['headerTitle'];
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
+  hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
   module?: HeaderProps['selectedModule'];
   tabs?: HeaderProps['tabs'];
 };
 
-export function AiHeader({module, headerTitle, headerActions, breadcrumbs, tabs}: Props) {
+export function AiHeader({
+  module,
+  headerTitle,
+  headerActions,
+  breadcrumbs,
+  tabs,
+  hideDefaultTabs,
+}: Props) {
   const {slug} = useOrganization();
 
   const aiBaseUrl = normalizeUrl(
@@ -38,6 +46,7 @@ export function AiHeader({module, headerTitle, headerActions, breadcrumbs, tabs}
       additonalHeaderActions={headerActions}
       additionalBreadCrumbs={breadcrumbs}
       tabs={tabs}
+      hideDefaultTabs={hideDefaultTabs}
     />
   );
 }
