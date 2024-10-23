@@ -13,6 +13,7 @@ from requests.exceptions import Timeout
 from sentry import audit_log, nodestore
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
+from sentry.eventstream.types import EventStreamEventType
 from sentry.integrations.models.utils import get_redis_key
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
@@ -242,6 +243,7 @@ class TestProcessResourceChange(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         ((args, kwargs),) = safe_urlopen.call_args_list
@@ -305,10 +307,13 @@ class TestProcessResourceChange(TestCase):
             assert_no_errors=False,
         )
 
-        with self.tasks(), patch(
-            "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
-            wraps=nodestore.backend.get,
-        ) as nodestore_get:
+        with (
+            self.tasks(),
+            patch(
+                "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
+                wraps=nodestore.backend.get,
+            ) as nodestore_get,
+        ):
             post_process_group(
                 is_new=False,
                 is_regression=False,
@@ -316,6 +321,7 @@ class TestProcessResourceChange(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
             assert not nodestore_get.called
 
@@ -356,10 +362,13 @@ class TestProcessResourceChange(TestCase):
             assert_no_errors=False,
         )
 
-        with self.tasks(), patch(
-            "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
-            wraps=nodestore.backend.get,
-        ) as nodestore_get:
+        with (
+            self.tasks(),
+            patch(
+                "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
+                wraps=nodestore.backend.get,
+            ) as nodestore_get,
+        ):
             post_process_group(
                 is_new=False,
                 is_regression=False,
@@ -367,6 +376,7 @@ class TestProcessResourceChange(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
             assert nodestore_get.called
@@ -416,6 +426,7 @@ class TestProcessResourceChange(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert not safe_urlopen.called
@@ -465,6 +476,7 @@ class TestSendResourceChangeWebhook(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert len(safe_urlopen.mock_calls) == 2

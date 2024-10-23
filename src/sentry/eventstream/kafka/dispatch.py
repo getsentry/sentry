@@ -45,6 +45,7 @@ def dispatch_post_process_group_task(
     skip_consume: bool = False,
     group_states: GroupStates | None = None,
     occurrence_id: str | None = None,
+    eventstream_type: str | None = None,
 ) -> None:
     if skip_consume:
         logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
@@ -62,6 +63,7 @@ def dispatch_post_process_group_task(
                 "group_states": group_states,
                 "occurrence_id": occurrence_id,
                 "project_id": project_id,
+                "eventstream_type": eventstream_type,
             },
             queue=queue,
         )
