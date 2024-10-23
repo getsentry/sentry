@@ -53,8 +53,8 @@ export default function StreamlinedGroupHeader({
   const {baseUrl} = useGroupDetailsRoute();
   const {sort: _sort, ...query} = location.query;
   const {count: eventCount, userCount} = group;
-  const {title: primaryTitle, subtitle: secondaryTitle} = getTitle(group);
-  const message = getMessage(group);
+  const {title: primaryTitle, subtitle} = getTitle(group);
+  const secondaryTitle = getMessage(group);
   const isComplete = group.status === 'resolved' || group.status === 'ignored';
   const disableActions = [
     ReprocessingStatus.REPROCESSING,
@@ -105,11 +105,17 @@ export default function StreamlinedGroupHeader({
         </Flex>
         <HeaderGrid>
           <Flex gap={space(0.75)} align="baseline">
-            <PrimaryTitle title={primaryTitle} isHoverable showOnlyOnOverflow>
+            <PrimaryTitle title={primaryTitle} isHoverable showOnlyOnOverflow delay={500}>
               {primaryTitle}
             </PrimaryTitle>
-            <SecondaryTitle title={secondaryTitle} isHoverable showOnlyOnOverflow>
-              {secondaryTitle}
+            <SecondaryTitle
+              title={secondaryTitle}
+              isHoverable
+              showOnlyOnOverflow
+              delay={500}
+              isDefault={!secondaryTitle}
+            >
+              {secondaryTitle ?? t('No error message')}
             </SecondaryTitle>
           </Flex>
           <StatTitle to={`${baseUrl}events/${location.search}`}>{t('Events')}</StatTitle>
@@ -120,15 +126,9 @@ export default function StreamlinedGroupHeader({
             <ErrorLevel level={group.level} size={'10px'} />
             {group.isUnhandled && <UnhandledTag />}
             <Divider />
-            <Message
-              title={message}
-              disabled={!message}
-              hasMessage={!!message}
-              isHoverable
-              showOnlyOnOverflow
-            >
-              {message ?? t('No error message')}
-            </Message>
+            <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={500}>
+              {subtitle}
+            </Subtitle>
             <AttachmentsBadge group={group} />
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
@@ -207,9 +207,10 @@ const PrimaryTitle = styled(Tooltip)`
   white-space: nowrap;
 `;
 
-const SecondaryTitle = styled(PrimaryTitle)`
+const SecondaryTitle = styled(PrimaryTitle)<{isDefault: boolean}>`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};
+  font-style: ${p => (p.isDefault ? 'italic' : 'initial')};
 `;
 
 const StatTitle = styled(Link)`
@@ -229,12 +230,11 @@ const StatCount = styled(Count)`
   text-align: right;
 `;
 
-const Message = styled(Tooltip)<{hasMessage: boolean}>`
+const Subtitle = styled(Tooltip)`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: ${p => p.theme.subText};
-  font-style: ${p => (p.hasMessage ? 'initial' : 'italic')};
 `;
 
 const ActionBar = styled('div')<{isComplete: boolean}>`
