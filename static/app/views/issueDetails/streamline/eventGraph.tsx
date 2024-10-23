@@ -2,11 +2,13 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import Placeholder from 'sentry/components/placeholder';
 import {IconTelescope} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,17 +21,19 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/flagSeries';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {
+  useIssueDetailsDiscoverQuery,
+  useIssueDetailsEventView,
+} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
 
 export const enum EventGraphSeries {
   EVENT = 'event',
   USER = 'user',
 }
+
 interface EventGraphProps {
-  event: Event;
+  event: Event | undefined;
   group: Group;
-  groupStats: MultiSeriesEventsStats;
-  searchQuery: string;
 }
 
 function createSeriesAndCount(stats: EventsStats) {
@@ -51,26 +55,40 @@ function createSeriesAndCount(stats: EventsStats) {
   );
 }
 
-export function EventGraph({group, groupStats, searchQuery, event}: EventGraphProps) {
+export function EventGraph({group, event}: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
     EventGraphSeries.EVENT
   );
+  const eventView = useIssueDetailsEventView({group});
+
+  const {
+    data: groupStats = {},
+    isPending: isLoadingStats,
+    error,
+  } = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
+    params: {
+      route: 'events-stats',
+      eventView,
+      referrer: 'issue_details.streamline_graph',
+    },
+  });
 
   const [isGraphHovered, setIsGraphHovered] = useState(false);
-  const eventStats = groupStats['count()'];
-  const {series: eventSeries, count: eventCount} = useMemo(
-    () => createSeriesAndCount(eventStats),
-    [eventStats]
-  );
-  const userStats = groupStats['count_unique(user)'];
-  const {series: userSeries, count: userCount} = useMemo(
-    () => createSeriesAndCount(userStats),
-    [userStats]
-  );
+  const {series: eventSeries, count: eventCount} = useMemo(() => {
+    if (!groupStats['count()']) {
+      return {series: [], count: 0};
+    }
+    return createSeriesAndCount(groupStats['count()']);
+  }, [groupStats]);
+  const {series: userSeries, count: userCount} = useMemo(() => {
+    if (!groupStats['count_unique(user)']) {
+      return {series: [], count: 0};
+    }
+    return createSeriesAndCount(groupStats['count_unique(user)']);
+  }, [groupStats]);
 
-  const eventView = useIssueDetailsEventView({group, queryProps: {query: searchQuery}});
   const discoverUrl = eventView.getResultsViewUrlTarget(
     organization.slug,
     false,
@@ -92,7 +110,7 @@ export function EventGraph({group, groupStats, searchQuery, event}: EventGraphPr
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
 
-    if (eventStats && visibleSeries === EventGraphSeries.USER) {
+    if (visibleSeries === EventGraphSeries.USER) {
       seriesData.push({
         seriesName: t('Users'),
         itemStyle: {
@@ -102,9 +120,10 @@ export function EventGraph({group, groupStats, searchQuery, event}: EventGraphPr
         },
         stack: 'stats',
         data: userSeries,
+        animation: false,
       });
     }
-    if (eventStats && visibleSeries === EventGraphSeries.EVENT) {
+    if (visibleSeries === EventGraphSeries.EVENT) {
       seriesData.push({
         seriesName: t('Events'),
         itemStyle: {
@@ -114,6 +133,7 @@ export function EventGraph({group, groupStats, searchQuery, event}: EventGraphPr
         },
         stack: 'stats',
         data: eventSeries,
+        animation: false,
       });
     }
 
@@ -122,7 +142,7 @@ export function EventGraph({group, groupStats, searchQuery, event}: EventGraphPr
     }
 
     return seriesData;
-  }, [eventStats, visibleSeries, userSeries, eventSeries, flagSeries, theme]);
+  }, [visibleSeries, userSeries, eventSeries, flagSeries, theme]);
 
   const [legendSelected, setLegendSelected] = useState({
     ['Feature Flags']: true,
@@ -151,6 +171,36 @@ export function EventGraph({group, groupStats, searchQuery, event}: EventGraphPr
       },
     []
   );
+
+  if (error) {
+    return (
+      <GraphAlert type="error" showIcon>
+        {error.message}
+      </GraphAlert>
+    );
+  }
+
+  if (isLoadingStats) {
+    return (
+      <GraphWrapper>
+        <SummaryContainer>
+          <Callout isActive={visibleSeries === EventGraphSeries.EVENT} disabled>
+            <InteractionStateLayer hidden={visibleSeries === EventGraphSeries.EVENT} />
+            <Label>{tn('Event', 'Events', eventCount)}</Label>
+            <Count>-</Count>
+          </Callout>
+          <Callout isActive={visibleSeries === EventGraphSeries.USER} disabled>
+            <InteractionStateLayer hidden={visibleSeries === EventGraphSeries.USER} />
+            <Label>{t('Users')}</Label>
+            <Count>-</Count>
+          </Callout>
+        </SummaryContainer>
+        <LoadingChartContainer>
+          <Placeholder height="96px" />
+        </LoadingChartContainer>
+      </GraphWrapper>
+    );
+  }
 
   return (
     <GraphWrapper>
@@ -268,12 +318,22 @@ const Count = styled('div')`
 `;
 
 const ChartContainer = styled('div')`
-  padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
   position: relative;
+  padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
+`;
+
+const LoadingChartContainer = styled('div')`
+  position: relative;
+  padding: ${space(1)} ${space(1)};
 `;
 
 const OpenInDiscoverButton = styled('div')`
   position: absolute;
   top: ${space(1)};
   right: ${space(1)};
+`;
+
+const GraphAlert = styled(Alert)`
+  margin: 0;
+  border: 1px solid ${p => p.theme.translucentBorder};
 `;

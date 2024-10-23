@@ -27,8 +27,7 @@ export function useIssueDetailsEventView({
   const interval = getInterval(pageFilters.datetime, 'low');
   const config = getConfigForIssueType(group, group.project);
 
-  const {query: propQuery = '', ...overrideQueryProps} = queryProps ?? {};
-  const query = [`issue:${group.shortId}`, searchQuery, propQuery]
+  const query = [`issue:${group.shortId}`, searchQuery]
     .filter(s => s.length > 0)
     .join(' ');
 
@@ -45,8 +44,8 @@ export function useIssueDetailsEventView({
     yAxis: ['count()', 'count_unique(user)'],
     fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
     name: group.title || group.type,
+    ...queryProps,
     query,
-    ...overrideQueryProps,
   };
   return EventView.fromSavedQuery(discoverQuery);
 }
@@ -75,6 +74,8 @@ export function useIssueDetailsDiscoverQuery<T>({
       interval: eventView.interval,
       yAxis: eventView.yAxis,
       partial: 1,
+      // Cursor on issue details can be used for other pagination
+      cursor: undefined,
     }),
     options,
     referrer,
