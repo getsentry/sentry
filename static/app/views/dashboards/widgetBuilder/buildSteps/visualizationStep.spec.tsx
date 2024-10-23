@@ -17,6 +17,7 @@ import {
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 import {VisualizationStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/visualizationStep';
 
+import {DashboardsMEPProvider} from '../../widgetCard/dashboardsMEPContext';
 import WidgetLegendSelectionState from '../../widgetLegendSelectionState';
 
 jest.unmock('lodash/debounce');
@@ -314,17 +315,19 @@ describe('VisualizationStep', function () {
 
     render(
       <MEPSettingProvider>
-        <VisualizationStep
-          organization={organization}
-          pageFilters={PageFiltersFixture()}
-          displayType={DisplayType.TABLE}
-          error={undefined}
-          onChange={jest.fn()}
-          widget={mockSpanWidget}
-          isWidgetInvalid={false}
-          location={router.location}
-          widgetLegendState={widgetLegendState}
-        />
+        <DashboardsMEPProvider>
+          <VisualizationStep
+            organization={organization}
+            pageFilters={PageFiltersFixture()}
+            displayType={DisplayType.TABLE}
+            error={undefined}
+            onChange={jest.fn()}
+            widget={mockSpanWidget}
+            isWidgetInvalid={false}
+            location={router.location}
+            widgetLegendState={widgetLegendState}
+          />
+        </DashboardsMEPProvider>
       </MEPSettingProvider>,
       {organization}
     );

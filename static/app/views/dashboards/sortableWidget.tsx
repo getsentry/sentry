@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 
+import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import type {DashboardFilters, Widget} from './types';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -66,7 +67,9 @@ function SortableWidget(props: Props) {
 
   return (
     <GridWidgetWrapper>
-      <WidgetCard {...widgetProps} />
+      <DashboardsMEPProvider>
+        <WidgetCard {...widgetProps} />
+      </DashboardsMEPProvider>
     </GridWidgetWrapper>
   );
 }
