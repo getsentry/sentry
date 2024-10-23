@@ -35,7 +35,6 @@ const swcConfig: Swcrc = {
         importSource: '@emotion/react',
       },
     },
-    // Target is es5 because we break rules of esm in many places
     target: 'es5',
     loose: false,
     externalHelpers: false,
@@ -249,13 +248,8 @@ const ESM_NODE_MODULES = [];
 
 const config: Config.InitialOptions = {
   verbose: false,
-  collectCoverageFrom: [
-    'static/app/**/*.{js,jsx,ts,tsx}',
-    '!static/app/**/*.spec.{js,jsx,ts,tsx}',
-  ],
-  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   coverageReporters: ['html', 'cobertura'],
-  coverageDirectory: '.artifacts/coverage',
+  coverageProvider: 'v8',
   moduleNameMapper: {
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
