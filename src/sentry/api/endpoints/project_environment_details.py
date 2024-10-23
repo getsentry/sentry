@@ -26,7 +26,7 @@ class ProjectEnvironmentSerializer(serializers.Serializer):
     )
 
 
-@extend_schema(["Environments"])
+@extend_schema(tags=["Environments"])
 @region_silo_endpoint
 class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
     publish_status = {
@@ -70,6 +70,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
             EnvironmentParams.ENVIRONMENT,
         ],
+        request=ProjectEnvironmentSerializer,
         responses={
             200: EnvironmentProjectSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -80,6 +81,9 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         examples=EnvironmentExamples.RETRIEVE_PROJECT_ENVIRONMENT,
     )
     def put(self, request: Request, project, environment) -> Response:
+        """
+        Update the visibility for a project environment.
+        """
         try:
             instance = EnvironmentProject.objects.select_related("environment").get(
                 project=project,
