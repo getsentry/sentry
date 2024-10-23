@@ -77,17 +77,25 @@ export default storyBook(WidgetFrame, story => {
         <p>
           <JSXNode name="WidgetFrame" /> supports a <code>badgeProps</code> prop. If
           passed, a<code>Badge</code> component with the relevant props appears in the
-          header.
+          header. Note: Avoid using this! This is mostly used as an internal feature, for
+          diagnosing widget state at a glance. We might remove this feature very soon.{' '}
+          <i>Especially</i> avoid multiple badges.
         </p>
 
         <SideBySide>
           <NormalWidget>
             <WidgetFrame
               title="count()"
-              badgeProps={{
-                text: 'Sampled',
-                type: 'default',
-              }}
+              badgeProps={[
+                {
+                  text: 'Alpha',
+                  type: 'alpha',
+                },
+                {
+                  text: 'Sampled',
+                  type: 'default',
+                },
+              ]}
               warnings={[
                 'We have automatically converted this widget to use sampled data.',
                 'Data for this metrics has not been extracted yet',
