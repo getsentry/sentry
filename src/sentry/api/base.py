@@ -153,9 +153,9 @@ def apply_cors_headers(
         "Content-Type, Authentication, Authorization, Content-Encoding, "
         "sentry-trace, baggage, X-CSRFToken"
     )
-    response[
-        "Access-Control-Expose-Headers"
-    ] = "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
+    response["Access-Control-Expose-Headers"] = (
+        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
+    )
 
     if request.META.get("HTTP_ORIGIN") == "null":
         # if ORIGIN header is explicitly specified as 'null' leave it alone

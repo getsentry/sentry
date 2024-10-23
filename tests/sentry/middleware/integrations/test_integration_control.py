@@ -70,11 +70,12 @@ class IntegrationControlMiddlewareTest(TestCase):
 
         self.middleware.register_classifications(classifications=[NewClassification])
 
-        with patch.object(
-            NewClassification, "should_operate", return_value=True
-        ) as mock_new_should_operate, patch.object(
-            NewClassification, "get_response"
-        ) as mock_new_get_response:
+        with (
+            patch.object(
+                NewClassification, "should_operate", return_value=True
+            ) as mock_new_should_operate,
+            patch.object(NewClassification, "get_response") as mock_new_get_response,
+        ):
             self.middleware(self.factory.post("/"))
             assert mock_integration_operate.called
             assert mock_plugin_operate.called

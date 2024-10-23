@@ -458,7 +458,7 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
         BLENDED_RATE = 0.25
         get_blended_sample_rate.return_value = BLENDED_RATE
 
-        for (sliding_window_step, used_sample_rate) in ((1, 1.0), (2, BLENDED_RATE), (3, 0.5)):
+        for sliding_window_step, used_sample_rate in ((1, 1.0), (2, BLENDED_RATE), (3, 0.5)):
             # We flush redis after each run, to make sure no data persists.
             self.flush_redis()
 

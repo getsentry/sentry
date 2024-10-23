@@ -54,9 +54,9 @@ class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.value_resolver_map[
-            constants.SPAN_STATUS
-        ] = lambda status: SPAN_STATUS_CODE_TO_NAME.get(status)
+        self.value_resolver_map[constants.SPAN_STATUS] = (
+            lambda status: SPAN_STATUS_CODE_TO_NAME.get(status)
+        )
 
 
 class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):

@@ -38,8 +38,7 @@ class FieldProtocol(Protocol):
     construct the "Condition".
     """
 
-    def apply(self, search_filter: SearchFilter) -> Condition:
-        ...
+    def apply(self, search_filter: SearchFilter) -> Condition: ...
 
 
 class BaseField(Generic[T]):

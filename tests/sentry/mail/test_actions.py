@@ -260,8 +260,9 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
             project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
         )
 
-        with self.tasks(), self.feature(
-            PerformanceNPlusOneGroupType.build_post_process_group_feature_name()
+        with (
+            self.tasks(),
+            self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()),
         ):
             post_process_group(
                 is_new=True,

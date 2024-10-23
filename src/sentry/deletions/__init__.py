@@ -77,6 +77,7 @@ each child (such as Event). However, when you delete a project, it won't actuall
 registered Group task. It will instead take a more efficient approach of batch deleting its indirect
 descendants, such as Event, so it can more efficiently bulk delete rows.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any

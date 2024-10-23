@@ -254,9 +254,9 @@ class AlertRuleNotification(ProjectNotification):
 
         if len(self.rules) > 0:
             context["snooze_alert"] = True
-            context[
-                "snooze_alert_url"
-            ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
+            context["snooze_alert_url"] = (
+                f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
+            )
 
         if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title

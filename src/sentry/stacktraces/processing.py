@@ -366,9 +366,7 @@ def normalize_stacktraces_for_grouping(
     event_metadata["in_app_frame_mix"] = (
         "in-app-only"
         if frame_mixes["in-app-only"] == len(stacktrace_frames)
-        else "system-only"
-        if frame_mixes["system-only"] == len(stacktrace_frames)
-        else "mixed"
+        else "system-only" if frame_mixes["system-only"] == len(stacktrace_frames) else "mixed"
     )
     data["metadata"] = event_metadata
 

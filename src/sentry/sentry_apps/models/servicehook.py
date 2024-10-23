@@ -117,9 +117,11 @@ class ServiceHook(Model):
         from sentry.models.project import Project
 
         ServiceHookProject.objects.create(
-            project_id=project_or_project_id.id
-            if isinstance(project_or_project_id, Project)
-            else project_or_project_id,
+            project_id=(
+                project_or_project_id.id
+                if isinstance(project_or_project_id, Project)
+                else project_or_project_id
+            ),
             service_hook_id=self.id,
         )
 

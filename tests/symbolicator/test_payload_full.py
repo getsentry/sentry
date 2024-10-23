@@ -92,8 +92,9 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         self.project.update_option("sentry:builtin_symbol_sources", [])
         self.min_ago = before_now(minutes=1).isoformat()
 
-        with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
-            {"system.url-prefix": live_server.url}
+        with (
+            patch("sentry.auth.system.is_internal_ip", return_value=True),
+            self.options({"system.url-prefix": live_server.url}),
         ):
             # Run test case
             yield

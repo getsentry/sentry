@@ -759,7 +759,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             span_ids,
         ) = self.create_mock_traces()
 
-        for (mri, op) in [
+        for mri, op in [
             (TransactionMRI.DURATION.value, "count"),
             ("d:transactions/measurements.lcp@millisecond", "max"),
             (SpanMRI.DURATION.value, "min"),
@@ -1006,7 +1006,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             span_ids,
         ) = self.create_mock_traces()
 
-        for (mri, op) in [
+        for mri, op in [
             (TransactionMRI.DURATION.value, "count"),
             ("d:transactions/measurements.lcp@millisecond", "max"),
             (SpanMRI.DURATION.value, "min"),
