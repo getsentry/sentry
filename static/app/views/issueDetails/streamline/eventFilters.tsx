@@ -1,12 +1,10 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -15,10 +13,6 @@ import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
-import {
-  useIssueDetailsDiscoverQuery,
-  useIssueDetailsEventView,
-} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
 
 export function EventFilters({event, group}: {event: Event; group: Group}) {
   const location = useLocation();
@@ -27,19 +21,7 @@ export function EventFilters({event, group}: {event: Event; group: Group}) {
   const {environments} = selection;
 
   const searchQuery = useEventQuery({group});
-  const eventView = useIssueDetailsEventView({group});
 
-  const {
-    data: groupStats,
-    isPending: isLoadingStats,
-    error,
-  } = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
-    params: {
-      route: 'events-stats',
-      eventView,
-      referrer: 'issue_details.streamline_graph',
-    },
-  });
   return (
     <FilterContainer>
       <EnvironmentFilter
@@ -69,23 +51,7 @@ export function EventFilters({event, group}: {event: Event; group: Group}) {
           },
         }}
       />
-      {error ? (
-        <div>
-          <GraphAlert type="error" showIcon>
-            {error.message}
-          </GraphAlert>
-        </div>
-      ) : (
-        !isLoadingStats &&
-        groupStats && (
-          <Graph
-            event={event}
-            group={group}
-            groupStats={groupStats}
-            searchQuery={searchQuery}
-          />
-        )
-      )}
+      <Graph event={event} group={group} />
     </FilterContainer>
   );
 }
@@ -100,11 +66,6 @@ const FilterContainer = styled('div')`
     'graph  graph graph';
   border: 0px solid ${p => p.theme.translucentBorder};
   border-width: 0 1px 1px 0;
-`;
-
-const GraphAlert = styled(Alert)`
-  margin: 0;
-  border: 1px solid ${p => p.theme.translucentBorder};
 `;
 
 const EnvironmentFilter = styled(EnvironmentPageFilter)`

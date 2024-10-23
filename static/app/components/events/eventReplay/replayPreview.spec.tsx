@@ -24,16 +24,6 @@ const mockEventTimestampMs = new Date('2022-09-22T16:59:41Z').getTime();
 
 const mockButtonHref = `/organizations/${mockOrgSlug}/replays/761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=62&t_main=errors`;
 
-// Mock screenfull library
-jest.mock('screenfull', () => ({
-  enabled: true,
-  isFullscreen: false,
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
-
 // Get replay data with the mocked replay reader params
 const mockReplay = ReplayReader.factory({
   replayRecord: ReplayRecordFixture({
@@ -43,6 +33,7 @@ const mockReplay = ReplayReader.factory({
     },
   }),
   errors: [],
+  fetching: false,
   attachments: RRWebInitFrameEventsFixture({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),

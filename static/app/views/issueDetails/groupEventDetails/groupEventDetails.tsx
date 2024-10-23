@@ -28,6 +28,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
+import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {EventFilters} from 'sentry/views/issueDetails/streamline/eventFilters';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
 
@@ -202,6 +203,9 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                     project={project}
                   />
                 )}
+                {hasStreamlinedUI ? (
+                  <EventDetailsHeader event={event} group={group} />
+                ) : null}
                 {hasStreamlinedUI ? (
                   <GroupContent>{renderContent()}</GroupContent>
                 ) : (
