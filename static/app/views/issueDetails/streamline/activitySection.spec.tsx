@@ -1,6 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {ReleaseFixture} from 'sentry-fixture/release';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -25,9 +24,6 @@ describe('StreamlinedActivitySection', function () {
   ProjectsStore.loadInitialData([project]);
   GroupStore.init();
 
-  const firstRelease = ReleaseFixture({id: '1'});
-  const lastRelease = ReleaseFixture({id: '2'});
-
   const group = GroupFixture({
     id: '1337',
     activity: [
@@ -49,12 +45,6 @@ describe('StreamlinedActivitySection', function () {
     const deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/note-1/',
       method: 'DELETE',
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/first-last-release/`,
-      method: 'GET',
-      body: {firstRelease, lastRelease},
     });
 
     render(<StreamlinedActivitySection group={group} />);
@@ -90,12 +80,6 @@ describe('StreamlinedActivitySection', function () {
         },
       ],
       project,
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${updatedActivityGroup.id}/first-last-release/`,
-      method: 'GET',
-      body: {firstRelease, lastRelease},
     });
 
     render(<StreamlinedActivitySection group={updatedActivityGroup} />);

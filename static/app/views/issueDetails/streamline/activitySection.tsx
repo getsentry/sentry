@@ -1,10 +1,11 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -16,7 +17,6 @@ import {GroupActivityType} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
@@ -31,14 +31,6 @@ export interface GroupRelease {
 function StreamlinedActivitySection({group}: {group: Group}) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
-
-  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
-    {
-      staleTime: 30000,
-      gcTime: 30000,
-    }
-  );
 
   const [inputId, setInputId] = useState(uniqueId());
 
@@ -96,39 +88,9 @@ function StreamlinedActivitySection({group}: {group: Group}) {
     [group.activity, mutators, group.id]
   );
 
-  const activities = useMemo(() => {
-    const lastSeenActivity: GroupActivity = {
-      type: GroupActivityType.LAST_SEEN,
-      id: uniqueId(),
-      dateCreated: group.lastSeen,
-      project: group.project,
-      data: {},
-    };
-
-    const groupActivities = [...group.activity, lastSeenActivity];
-    return groupActivities.sort((a, b) => {
-      const dateA = new Date(a.dateCreated).getTime();
-      const dateB = new Date(b.dateCreated).getTime();
-      if (
-        a.type === GroupActivityType.FIRST_SEEN &&
-        b.type === GroupActivityType.LAST_SEEN
-      ) {
-        return 1;
-      }
-      if (
-        a.type === GroupActivityType.LAST_SEEN &&
-        b.type === GroupActivityType.FIRST_SEEN
-      ) {
-        return -1;
-      }
-
-      return dateB - dateA;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [group.activity.length, group.lastSeen, group.project]);
-
   return (
-    <Fragment>
+    <div>
+      <StyledSectionTitle>{t('Activity')}</StyledSectionTitle>
       <Timeline.Container>
         <NoteInputWithStorage
           key={inputId}
@@ -141,15 +103,14 @@ function StreamlinedActivitySection({group}: {group: Group}) {
           source="issue-details"
           {...noteProps}
         />
-        {activities.map(item => {
+        {group.activity.map(item => {
           const authorName = item.user ? item.user.name : 'Sentry';
           const {title, message} = getGroupActivityItem(
             item,
             organization,
             group.project.id,
             <Author>{authorName}</Author>,
-            teams,
-            groupReleaseData
+            teams
           );
 
           const Icon = groupActivityTypeIconMapping[item.type]?.Component ?? null;
@@ -185,7 +146,7 @@ function StreamlinedActivitySection({group}: {group: Group}) {
           );
         })}
       </Timeline.Container>
-    </Fragment>
+    </div>
   );
 }
 
@@ -212,3 +173,8 @@ const SmallTimestamp = styled(TimeSince)`
 `;
 
 export default StreamlinedActivitySection;
+
+const StyledSectionTitle = styled(SidebarSection.Title)`
+  margin-bottom: ${space(1)};
+  color: ${p => p.theme.headingColor};
+`;
