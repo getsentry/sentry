@@ -1,9 +1,50 @@
 /* eslint-env node */
 import type {Config} from '@jest/types';
+import type {Swcrc} from '@swc/core';
 import path from 'node:path';
 import process from 'node:process';
 
-import babelConfig from './babel.config';
+const swcConfig: Swcrc = {
+  jsc: {
+    experimental: {
+      plugins: [
+        [
+          '@swc/plugin-emotion',
+          {
+            // We don't need source maps for jest tests
+            sourceMap: false,
+            autoLabel: 'always',
+          },
+        ],
+        // https://github.com/magic-akari/swc_mut_cjs_exports
+        ['swc_mut_cjs_exports', {}],
+      ],
+    },
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+    },
+    transform: {
+      react: {
+        runtime: 'automatic',
+        // https://swc.rs/docs/configuration/compilation#jsctransformreactdevelopment
+        development: false,
+        refresh: false,
+        useBuiltins: true,
+        importSource: '@emotion/react',
+      },
+    },
+    // Target is es5 because we break rules of esm in many places
+    target: 'es5',
+    loose: false,
+    externalHelpers: false,
+    keepClassNames: false,
+  },
+  module: {
+    type: 'commonjs',
+  },
+  minify: false,
+};
 
 const {
   CI,
@@ -211,6 +252,7 @@ const config: Config.InitialOptions = {
     'static/app/**/*.{js,jsx,ts,tsx}',
     '!static/app/**/*.spec.{js,jsx,ts,tsx}',
   ],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
@@ -242,8 +284,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
+    '^.+\\.(t|j)sx?$': ['@swc/jest', swcConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [

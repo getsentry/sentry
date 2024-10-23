@@ -181,6 +181,9 @@
     "@sentry/jest-environment": "6.0.0",
     "@sentry/profiling-node": "^8.35.0-beta.0",
     "@styled/typescript-styled-plugin": "^1.0.1",
+    "@swc/core": "^1.7.39",
+    "@swc/jest": "^0.2.36",
+    "@swc/plugin-emotion": "^4.0.3",
     "@testing-library/dom": "10.1.0",
     "@testing-library/jest-dom": "6.4.5",
     "@testing-library/react": "16.0.0",
@@ -201,6 +204,7 @@
     "react-refresh": "0.14.0",
     "stylelint": "16.2.1",
     "stylelint-config-recommended": "^14.0.0",
+    "swc_mut_cjs_exports": "^0.109.1",
     "terser": "5.31.6",
     "tsconfig-paths": "^4.2.0",
     "webpack-dev-server": "5.1.0"
