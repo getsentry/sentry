@@ -91,10 +91,10 @@ export function EventFilters({event, group}: {event: Event; group: Group}) {
 }
 
 const FilterContainer = styled('div')`
-  padding: 0 0 ${space(1)} 24px;
+  padding-left: 24px;
   display: grid;
   grid-template-columns: auto auto 1fr;
-  grid-template-rows: 38px 110px;
+  grid-template-rows: 38px auto;
   grid-template-areas:
     'env    date  searchFilter'
     'graph  graph graph';

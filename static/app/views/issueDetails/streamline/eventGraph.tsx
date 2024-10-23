@@ -245,23 +245,25 @@ const GraphWrapper = styled('div')`
 
 const SummaryContainer = styled('div')`
   display: flex;
+  gap: ${space(0.5)};
   flex-direction: column;
   margin: ${space(1)} ${space(1)} ${space(1)} 0;
   border-radius: ${p => p.theme.borderRadiusLeft};
 `;
 
 const Callout = styled(Button)<{isActive: boolean}>`
-  text-align: center;
   cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-  position: relative;
   border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
   background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(0.5)} ${space(2)};
   box-shadow: none;
   height: unset;
   overflow: hidden;
   &:disabled {
     opacity: 1;
+  }
+  &:hover {
+    border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
   }
 `;
 
@@ -280,7 +282,7 @@ const Count = styled('div')<{isActive: boolean}>`
 `;
 
 const ChartContainer = styled('div')`
-  padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
+  padding-right: ${space(1)};
   position: relative;
 `;
 
