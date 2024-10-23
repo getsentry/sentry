@@ -1,4 +1,5 @@
 """Dynamic query parsing library."""
+
 import uuid
 from typing import Any
 

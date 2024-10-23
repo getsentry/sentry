@@ -109,7 +109,7 @@ LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
                 },
                 "version": {
                     "type": "string",
-                    "pattern": "^(?P<major>0|[1-9]\\d*)\\.(?P<minor>0|[1-9]\\d*)\\.(?P<patch>0|[1-9]\\d*)$"
+                    "pattern": "^(?P<major>0|[1-9]\\d*)\\.(?P<minor>0|[1-9]\\d*)\\.(?P<patch>0|[1-9]\\d*)$",
                     # MAJOR.MINOR.PATCH
                 },
             },

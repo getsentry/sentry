@@ -35,11 +35,13 @@ class ProducerTestMixin(UptimeTestCase):
 
     def assert_producer_calls(self, *args: UptimeSubscription | str):
         expected_payloads = [
-            UPTIME_CONFIGS_CODEC.encode(
-                uptime_subscription_to_check_config(arg, str(arg.subscription_id))
+            (
+                UPTIME_CONFIGS_CODEC.encode(
+                    uptime_subscription_to_check_config(arg, str(arg.subscription_id))
+                )
+                if isinstance(arg, UptimeSubscription)
+                else None
             )
-            if isinstance(arg, UptimeSubscription)
-            else None
             for arg in args
         ]
         expected_message_ids = [

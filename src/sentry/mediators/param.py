@@ -83,8 +83,7 @@ class Param(Generic[T]):
         *,
         required: Literal[False],
         default: T | Callable[..., T] | None = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(
@@ -93,8 +92,7 @@ class Param(Generic[T]):
         *,
         required: bool = ...,
         default: T | Callable[..., T] | None = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def __init__(
         self,
@@ -146,12 +144,9 @@ class Param(Generic[T]):
     if TYPE_CHECKING:
 
         @overload
-        def __get__(self, inst: None, owner: type[C]) -> Self:
-            ...
+        def __get__(self, inst: None, owner: type[C]) -> Self: ...
 
         @overload
-        def __get__(self, inst: C, owner: type[C]) -> T:
-            ...
+        def __get__(self, inst: C, owner: type[C]) -> T: ...
 
-        def __get__(self, inst: C | None, owner: type[C]) -> T | Self:
-            ...
+        def __get__(self, inst: C | None, owner: type[C]) -> T | Self: ...

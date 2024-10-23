@@ -90,9 +90,9 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
         self.__commit_log_topic = commit_log_topic
         self.__commit_log_groups = commit_log_groups
 
-        self.__remote_offsets: Synchronized[
-            Mapping[str, MutableMapping[Partition, int]]
-        ] = Synchronized({group: {} for group in commit_log_groups})
+        self.__remote_offsets: Synchronized[Mapping[str, MutableMapping[Partition, int]]] = (
+            Synchronized({group: {} for group in commit_log_groups})
+        )
 
         self.__commit_log_worker_stop_requested = Event()
         self.__commit_log_worker_subscription_received = Event()

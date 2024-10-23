@@ -97,8 +97,9 @@ class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
         ):
             self.login_as(user=self.superuser, superuser=True)
 
-            with assume_test_silo_mode(SiloMode.CONTROL), override_settings(
-                SILO_MODE=SiloMode.CONTROL
+            with (
+                assume_test_silo_mode(SiloMode.CONTROL),
+                override_settings(SILO_MODE=SiloMode.CONTROL),
             ):
                 for doc in [self.published_doc, self.draft_doc]:
                     prev_avatar = doc.avatar.get()
@@ -122,8 +123,9 @@ class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
         ):
             self.login_as(user=self.staff_user, staff=True)
 
-            with assume_test_silo_mode(SiloMode.CONTROL), override_settings(
-                SILO_MODE=SiloMode.CONTROL
+            with (
+                assume_test_silo_mode(SiloMode.CONTROL),
+                override_settings(SILO_MODE=SiloMode.CONTROL),
             ):
                 for doc in [self.published_doc, self.draft_doc]:
                     prev_avatar = doc.avatar.get()

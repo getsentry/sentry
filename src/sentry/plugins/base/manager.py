@@ -22,16 +22,13 @@ class PluginManager(InstanceManager):
         return sum(1 for i in self.all())
 
     @overload
-    def all(self) -> Generator[Plugin]:
-        ...
+    def all(self) -> Generator[Plugin]: ...
 
     @overload
-    def all(self, *, version: Literal[2]) -> Generator[Plugin2]:
-        ...
+    def all(self, *, version: Literal[2]) -> Generator[Plugin2]: ...
 
     @overload
-    def all(self, *, version: None) -> Generator[Plugin | Plugin2]:
-        ...
+    def all(self, *, version: None) -> Generator[Plugin | Plugin2]: ...
 
     def all(self, version: int | None = 1) -> Generator[Plugin | Plugin2]:
         for plugin in sorted(super().all(), key=lambda x: x.get_title()):

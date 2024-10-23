@@ -768,9 +768,11 @@ class MetricsDatasetConfig(DatasetConfig):
                     "spm",
                     snql_distribution=self._resolve_spm,
                     optional_args=[
-                        fields.NullColumn("interval")
-                        if self.should_skip_interval_calculation
-                        else fields.IntervalDefault("interval", 1, None)
+                        (
+                            fields.NullColumn("interval")
+                            if self.should_skip_interval_calculation
+                            else fields.IntervalDefault("interval", 1, None)
+                        )
                     ],
                     default_result_type="rate",
                 ),

@@ -16,15 +16,13 @@ def generate_boost_low_volume_projects_cache_key(org_id: int) -> str:
 @overload
 def get_boost_low_volume_projects_sample_rate(
     org_id: int, project_id: int, *, error_sample_rate_fallback: float
-) -> tuple[float, bool]:
-    ...
+) -> tuple[float, bool]: ...
 
 
 @overload
 def get_boost_low_volume_projects_sample_rate(
     org_id: int, project_id: int, *, error_sample_rate_fallback: float | None
-) -> tuple[float | None, bool]:
-    ...
+) -> tuple[float | None, bool]: ...
 
 
 def get_boost_low_volume_projects_sample_rate(

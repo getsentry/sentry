@@ -305,10 +305,13 @@ class TestProcessResourceChange(TestCase):
             assert_no_errors=False,
         )
 
-        with self.tasks(), patch(
-            "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
-            wraps=nodestore.backend.get,
-        ) as nodestore_get:
+        with (
+            self.tasks(),
+            patch(
+                "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
+                wraps=nodestore.backend.get,
+            ) as nodestore_get,
+        ):
             post_process_group(
                 is_new=False,
                 is_regression=False,
@@ -356,10 +359,13 @@ class TestProcessResourceChange(TestCase):
             assert_no_errors=False,
         )
 
-        with self.tasks(), patch(
-            "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
-            wraps=nodestore.backend.get,
-        ) as nodestore_get:
+        with (
+            self.tasks(),
+            patch(
+                "sentry.sentry_apps.tasks.sentry_apps.nodestore.backend.get",
+                wraps=nodestore.backend.get,
+            ) as nodestore_get,
+        ):
             post_process_group(
                 is_new=False,
                 is_regression=False,

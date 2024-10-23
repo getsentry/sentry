@@ -41,13 +41,11 @@ def strip_lone_surrogates(string: str) -> str:
 
 
 @overload
-def truncatechars(value: None, arg: int, ellipsis: str = ...) -> None:
-    ...
+def truncatechars(value: None, arg: int, ellipsis: str = ...) -> None: ...
 
 
 @overload
-def truncatechars(value: str, arg: int, ellipsis: str = ...) -> str:
-    ...
+def truncatechars(value: str, arg: int, ellipsis: str = ...) -> str: ...
 
 
 def truncatechars(value: str | None, arg: int, ellipsis: str = "...") -> str | None:

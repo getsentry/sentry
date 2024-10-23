@@ -16,7 +16,6 @@ class MetricsInterfaceTestCase(BaseMetricsLayerTestCase, TestCase, GenericMetric
 
 
 class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
-
     """
     A sample test case that shows the process of writing
     the metric via the Snuba HTTP endpoint, and then

@@ -30,8 +30,9 @@ class UniqueMonitorTest(UptimeTestCase):
             interval_seconds=60,
             method="GET",
         )
-        with pytest.raises(IntegrityError), transaction.atomic(
-            router.db_for_write(UptimeSubscription)
+        with (
+            pytest.raises(IntegrityError),
+            transaction.atomic(router.db_for_write(UptimeSubscription)),
         ):
             self.create_uptime_subscription(
                 url="https://santry.io",
@@ -50,8 +51,9 @@ class UniqueMonitorTest(UptimeTestCase):
             headers={"hi": "santry", "auth": "sentaur"},
         )
 
-        with pytest.raises(IntegrityError), transaction.atomic(
-            router.db_for_write(UptimeSubscription)
+        with (
+            pytest.raises(IntegrityError),
+            transaction.atomic(router.db_for_write(UptimeSubscription)),
         ):
             self.create_uptime_subscription(
                 url="https://santry.io",
@@ -65,8 +67,9 @@ class UniqueMonitorTest(UptimeTestCase):
             headers={"hi": "santry", "auth": "sentaur"},
             body="hello",
         )
-        with pytest.raises(IntegrityError), transaction.atomic(
-            router.db_for_write(UptimeSubscription)
+        with (
+            pytest.raises(IntegrityError),
+            transaction.atomic(router.db_for_write(UptimeSubscription)),
         ):
             self.create_uptime_subscription(
                 url="https://santry.io",

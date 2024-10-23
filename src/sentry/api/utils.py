@@ -92,8 +92,7 @@ def get_date_range_from_params(
     params: Mapping[str, Any],
     optional: Literal[False] = ...,
     default_stats_period: datetime.timedelta = ...,
-) -> tuple[datetime.datetime, datetime.datetime]:
-    ...
+) -> tuple[datetime.datetime, datetime.datetime]: ...
 
 
 @overload
@@ -101,8 +100,7 @@ def get_date_range_from_params(
     params: Mapping[str, Any],
     optional: bool = ...,
     default_stats_period: datetime.timedelta = ...,
-) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]:
-    ...
+) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]: ...
 
 
 def get_date_range_from_params(
@@ -165,8 +163,7 @@ def get_date_range_from_stats_period(
     params: dict[str, Any],
     optional: Literal[False] = ...,
     default_stats_period: datetime.timedelta = ...,
-) -> tuple[datetime.datetime, datetime.datetime]:
-    ...
+) -> tuple[datetime.datetime, datetime.datetime]: ...
 
 
 @overload
@@ -174,8 +171,7 @@ def get_date_range_from_stats_period(
     params: dict[str, Any],
     optional: bool = ...,
     default_stats_period: datetime.timedelta = ...,
-) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]:
-    ...
+) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]: ...
 
 
 def get_date_range_from_stats_period(

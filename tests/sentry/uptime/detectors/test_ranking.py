@@ -86,8 +86,9 @@ class AddBaseUrlToRankTest(UptimeTestCase):
         self.assert_url_count(project_2, url_2, 1, project_2_url_expiry)
 
     def test_trim(self):
-        with mock.patch("sentry.uptime.detectors.ranking.RANKED_TRIM_CHANCE", new=1), mock.patch(
-            "sentry.uptime.detectors.ranking.RANKED_MAX_SIZE", new=2
+        with (
+            mock.patch("sentry.uptime.detectors.ranking.RANKED_TRIM_CHANCE", new=1),
+            mock.patch("sentry.uptime.detectors.ranking.RANKED_MAX_SIZE", new=2),
         ):
             key = get_project_base_url_rank_key(self.project)
             url_1 = "https://sentry.io"

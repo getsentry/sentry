@@ -3,6 +3,7 @@
 Very similar to our filtering configurations except in this module we do not need the field
 abstraction.  We can pass any valid Snuba expression and the query will be sorted by it.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

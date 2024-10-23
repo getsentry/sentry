@@ -110,8 +110,9 @@ class ProjectKeyTest(TestCase):
             assert key.js_sdk_loader_cdn_url == "http://testserver/js-sdk-loader/abc.min.js"
 
     def test_get_dsn_org_subdomain(self):
-        with self.feature("organizations:org-ingest-subdomains"), self.options(
-            {"system.region-api-url-template": ""}
+        with (
+            self.feature("organizations:org-ingest-subdomains"),
+            self.options({"system.region-api-url-template": ""}),
         ):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             host = f"o{key.project.organization_id}.ingest.testserver"

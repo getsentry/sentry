@@ -26,7 +26,7 @@ class SiloLimitCoverageTest(TestCase):
         undecorated_endpoint_classes = []
 
         url_mappings = django.urls.get_resolver().reverse_dict.items()
-        for (view_function, bindings) in url_mappings:
+        for view_function, bindings in url_mappings:
             view_class = getattr(view_function, "view_class", None)
             if (
                 view_class

@@ -42,9 +42,9 @@ class BuildMetricAlertAttachmentTest(TestCase):
         )
 
         uuid = "uuid"
-        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build(
-            notification_uuid=uuid
-        ) == {
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=self.alert_rule,
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
@@ -110,9 +110,9 @@ class BuildMetricAlertAttachmentTest(TestCase):
             )
         )
         uuid = "uuid"
-        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build(
-            notification_uuid=uuid
-        ) == {
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=self.alert_rule,
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
@@ -218,7 +218,9 @@ class BuildMetricAlertAttachmentTest(TestCase):
             )
         )
 
-        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build() == {
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=self.alert_rule,
+        ).build() == {
             "content": "",
             "embeds": [
                 {
@@ -261,9 +263,9 @@ class BuildMetricAlertAttachmentTest(TestCase):
             )
         )
         uuid = "uuid"
-        assert DiscordMetricAlertMessageBuilder(alert_rule=alert_rule,).build(
-            notification_uuid=uuid
-        ) == {
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=alert_rule,
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
