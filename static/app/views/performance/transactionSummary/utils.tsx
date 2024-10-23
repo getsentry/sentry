@@ -14,7 +14,9 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
 
@@ -37,10 +39,17 @@ export enum TransactionFilterOptions {
 export function generateTransactionSummaryRoute({
   orgSlug,
   subPath,
+  view,
 }: {
   orgSlug: string;
   subPath?: string;
+  view?: DomainView; // TODO - this should be mantatory once we release domain view
 }): string {
+  if (view) {
+    return normalizeUrl(
+      `/organizations/${orgSlug}/performance/${view}/summary/${subPath ? `${subPath}/` : ''}`
+    );
+  }
   return `/organizations/${orgSlug}/performance/summary/${subPath ? `${subPath}/` : ''}`;
 }
 
@@ -80,6 +89,7 @@ export function transactionSummaryRouteWithQuery({
   showTransactions,
   additionalQuery,
   subPath,
+  view,
 }: {
   orgSlug: string;
   query: Query;
@@ -92,10 +102,12 @@ export function transactionSummaryRouteWithQuery({
   trendColumn?: string;
   trendFunction?: string;
   unselectedSeries?: string | string[];
+  view?: DomainView;
 }) {
   const pathname = generateTransactionSummaryRoute({
     orgSlug,
     subPath,
+    view,
   });
 
   let searchFilter: typeof query.query;
@@ -255,6 +267,11 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     };
   };
 }
+
+export function getTransactionSummaryBaseUrl(orgSlug: string, view?: DomainView) {
+  return `${getPerformanceBaseUrl(orgSlug, view)}/summary`;
+}
+
 export const SidebarSpacer = styled('div')`
   margin-top: ${space(3)};
 `;

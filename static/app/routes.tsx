@@ -1610,6 +1610,75 @@ function buildRoutes() {
     </Route>
   );
 
+  const transactionSummaryRoutes = (
+    <Route path="summary/">
+      <IndexRoute
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionOverview')
+        )}
+      />
+      <Route
+        path="replays/"
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionReplays')
+        )}
+      />
+      <Route
+        path="vitals/"
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionVitals')
+        )}
+      />
+      <Route
+        path="tags/"
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionTags')
+        )}
+      />
+      <Route
+        path="events/"
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionEvents')
+        )}
+      />
+      <Route
+        path="anomalies/"
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionAnomalies')
+        )}
+      />
+      <Route
+        path="profiles/"
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionProfiles')
+        )}
+      />
+      <Route
+        path="aggregateWaterfall/"
+        component={make(
+          () =>
+            import('sentry/views/performance/transactionSummary/aggregateSpanWaterfall')
+        )}
+      />
+      <Route path="spans/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/transactionSummary/transactionSpans')
+          )}
+        />
+        <Route
+          path=":spanSlug/"
+          component={make(
+            () =>
+              import(
+                'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
+              )
+          )}
+        />
+      </Route>
+    </Route>
+  );
+
   const performanceRoutes = (
     <Route
       path="/performance/"
@@ -1626,6 +1695,11 @@ function buildRoutes() {
           component={make(
             () => import('sentry/views/insights/pages/frontend/frontendOverviewPage')
           )}
+        />
+        {transactionSummaryRoutes}
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
         />
         <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
           <IndexRoute
@@ -1682,6 +1756,11 @@ function buildRoutes() {
             () => import('sentry/views/insights/pages/backend/backendOverviewPage')
           )}
         />
+        {transactionSummaryRoutes}
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
         <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
           <IndexRoute
             component={make(
@@ -1734,6 +1813,11 @@ function buildRoutes() {
           component={make(
             () => import('sentry/views/insights/pages/mobile/mobileOverviewPage')
           )}
+        />
+        {transactionSummaryRoutes}
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
         />
         <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
           <IndexRoute
@@ -1822,6 +1906,11 @@ function buildRoutes() {
         <IndexRoute
           component={make(() => import('sentry/views/insights/pages/ai/aiOverviewPage'))}
         />
+        {transactionSummaryRoutes}
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
         <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
           <IndexRoute
             component={make(
@@ -1842,75 +1931,7 @@ function buildRoutes() {
           />
         </Route>
       </Route>
-      <Route path="summary/">
-        <IndexRoute
-          component={make(
-            () =>
-              import('sentry/views/performance/transactionSummary/transactionOverview')
-          )}
-        />
-        <Route
-          path="replays/"
-          component={make(
-            () => import('sentry/views/performance/transactionSummary/transactionReplays')
-          )}
-        />
-        <Route
-          path="vitals/"
-          component={make(
-            () => import('sentry/views/performance/transactionSummary/transactionVitals')
-          )}
-        />
-        <Route
-          path="tags/"
-          component={make(
-            () => import('sentry/views/performance/transactionSummary/transactionTags')
-          )}
-        />
-        <Route
-          path="events/"
-          component={make(
-            () => import('sentry/views/performance/transactionSummary/transactionEvents')
-          )}
-        />
-        <Route
-          path="anomalies/"
-          component={make(
-            () =>
-              import('sentry/views/performance/transactionSummary/transactionAnomalies')
-          )}
-        />
-        <Route
-          path="profiles/"
-          component={make(
-            () =>
-              import('sentry/views/performance/transactionSummary/transactionProfiles')
-          )}
-        />
-        <Route
-          path="aggregateWaterfall/"
-          component={make(
-            () =>
-              import('sentry/views/performance/transactionSummary/aggregateSpanWaterfall')
-          )}
-        />
-        <Route path="spans/">
-          <IndexRoute
-            component={make(
-              () => import('sentry/views/performance/transactionSummary/transactionSpans')
-            )}
-          />
-          <Route
-            path=":spanSlug/"
-            component={make(
-              () =>
-                import(
-                  'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
-                )
-            )}
-          />
-        </Route>
-      </Route>
+      {transactionSummaryRoutes}
       <Route
         path="vitaldetail/"
         component={make(() => import('sentry/views/performance/vitalDetail'))}

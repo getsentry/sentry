@@ -5,10 +5,11 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 
 import type {SpanOperationBreakdownFilter} from '../filter';
 import {filterToField} from '../filter';
-import {TransactionFilterOptions} from '../utils';
+import {getTransactionSummaryBaseUrl, TransactionFilterOptions} from '../utils';
 
 export enum EventsDisplayFilterName {
   P50 = 'p50',
@@ -91,13 +92,15 @@ export function eventsRouteWithQuery({
   transaction,
   projectID,
   query,
+  view,
 }: {
   orgSlug: string;
   query: Query;
   transaction: string;
   projectID?: string | string[];
+  view?: DomainView;
 }) {
-  const pathname = `/organizations/${orgSlug}/performance/summary/events/`;
+  const pathname = `${getTransactionSummaryBaseUrl(orgSlug, view)}/events/`;
   return {
     pathname,
     query: {

@@ -1,16 +1,20 @@
 import type {Query} from 'history';
 
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 function generateSpanDetailsRoute({
   orgSlug,
   spanSlug,
+  view,
 }: {
   orgSlug: string;
   spanSlug: SpanSlug;
+  view?: DomainView;
 }): string {
   const spanComponent = `${encodeURIComponent(spanSlug.op)}:${spanSlug.group}`;
-  return `/organizations/${orgSlug}/performance/summary/spans/${spanComponent}/`;
+  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/spans/${spanComponent}/`;
 }
 
 export function spanDetailsRouteWithQuery({

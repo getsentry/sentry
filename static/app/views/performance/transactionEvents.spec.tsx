@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -5,9 +6,14 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {WebVital} from 'sentry/utils/fields';
+import {useLocation} from 'sentry/utils/useLocation';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
 // XXX(epurkhiser): This appears to also be tested by ./transactionSummary/transactionEvents/index.spec.tsx
+
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 type Data = {
   features?: string[];
@@ -39,6 +45,10 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
 
 describe('Performance > TransactionSummary', function () {
   beforeEach(function () {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    );
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
