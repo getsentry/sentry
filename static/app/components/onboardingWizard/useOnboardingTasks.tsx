@@ -71,7 +71,7 @@ export function useOnboardingTasks({
   });
 
   return {
-    allTasks: supportedTasks,
+    allTasks: mergedTasks,
     completeTasks: mergedTasks.filter(findCompleteTasks),
     gettingStartedTasks: mergedTasks.filter(
       task => task.group === OnboardingTaskGroup.GETTING_STARTED
