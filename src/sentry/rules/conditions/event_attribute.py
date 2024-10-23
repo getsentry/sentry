@@ -256,7 +256,7 @@ class ExceptionAttributeHandler(AttributeHandler):
             return []
 
         return [
-            getattr(e, path[1])
+            getattr(e, path[1], None)
             for e in getattr(event.interfaces.get("exception"), "values", [])
             if e is not None
         ]
@@ -339,13 +339,15 @@ class StacktraceAttributeHandler(AttributeHandler):
             stacks = [
                 getattr(e, "stacktrace")
                 for e in getattr(event.interfaces.get("exception"), "values", [])
-                if getattr(e, "stacktrace")
+                if getattr(e, "stacktrace", None)
             ]
         result = []
         for st in stacks:
             for frame in st.frames:
                 if path[1] in ("filename", "module", "abs_path", "package"):
-                    result.append(getattr(frame, path[1]))
+                    value = getattr(frame, path[1], None)
+                    if value is not None:
+                        result.append(value)
                 elif path[1] == "code":
                     if frame.pre_context:
                         result.extend(frame.pre_context)
