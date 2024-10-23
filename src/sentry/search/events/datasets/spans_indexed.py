@@ -568,36 +568,6 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
     def _resolve_aggregate_if(
         self, aggregate: str
     ) -> Callable[[Mapping[str, str | Column | SelectType | int | float], str | None], SelectType]:
-        def extract_attr(
-            column: str | Column | SelectType | int | float,
-        ) -> tuple[Column, str] | None:
-            # This check exists to handle the temporay prefixing.
-            # Once that's removed, this condition should become much simpler
-
-            if not isinstance(column, Function):
-                return None
-
-            if column.function != "if":
-                return None
-
-            if len(column.parameters) != 3:
-                return None
-
-            if (
-                not isinstance(column.parameters[0], Function)
-                or column.parameters[0].function != "mapContains"
-                or len(column.parameters[0].parameters) != 2
-            ):
-                return None
-
-            attr_col = column.parameters[0].parameters[0]
-            attr_name = column.parameters[0].parameters[1]
-
-            if not isinstance(attr_col, Column) or not isinstance(attr_name, str):
-                return None
-
-            return attr_col, attr_name
-
         def resolve_aggregate_if(
             args: Mapping[str, str | Column | SelectType | int | float],
             alias: str | None = None,
@@ -618,19 +588,16 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             attr_col, attr_name = attr
 
             function = (
-                aggregate.replace("quantile", "quantileIf")
+                aggregate.replace("quantile", "quantileTDigestIf")
                 if aggregate.startswith("quantile(")
                 else f"{aggregate}If"
             )
-
-            unprefixed = Function("mapContains", [attr_col, attr_name])
-            prefixed = Function("mapContains", [attr_col, f"sentry.{attr_name}"])
 
             return Function(
                 function,
                 [
                     args["column"],
-                    Function("or", [unprefixed, prefixed]),
+                    Function("mapContains", [attr_col, attr_name]),
                 ],
                 alias,
             )
@@ -671,7 +638,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 SnQLFunction(
                     "count_unique",
                     required_args=[ColumnTagArg("column")],
-                    snql_aggregate=lambda args, alias: Function("uniq", [args["column"]], alias),
+                    snql_aggregate=self._resolve_aggregate_if("uniq"),
                     default_result_type="integer",
                 ),
                 SnQLFunction(
@@ -769,8 +736,16 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 ),
                 SnQLFunction(
                     "count_weighted",
-                    optional_args=[NullColumn("column")],
+                    optional_args=[
+                        with_default("span.duration", NumericColumn("column", spans=True)),
+                    ],
                     snql_aggregate=self._resolve_count_weighted,
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "count_unique_weighted",
+                    required_args=[ColumnTagArg("column")],
+                    snql_aggregate=self._resolve_aggregate_if("uniq"),
                     default_result_type="integer",
                 ),
                 SnQLFunction(
@@ -788,10 +763,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                         "divide",
                         [
                             self._resolve_sum_weighted(args),
-                            Function(
-                                "sum",
-                                [Function("multiply", [Column("sign"), self.sampling_weight])],
-                            ),
+                            self._resolve_count_weighted(args),
                         ],
                         alias,
                     ),
@@ -884,7 +856,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 SnQLFunction(
                     "min_weighted",
                     required_args=[NumericColumn("column", spans=True)],
-                    snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
+                    snql_aggregate=self._resolve_aggregate_if("min"),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
@@ -892,7 +864,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 SnQLFunction(
                     "max_weighted",
                     required_args=[NumericColumn("column", spans=True)],
-                    snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
+                    snql_aggregate=self._resolve_aggregate_if("max"),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
@@ -976,8 +948,31 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
+        attr = extract_attr(args["column"])
+
+        # If we're not aggregating on an attr column,
+        # we can directly aggregate on the column
+        if attr is None:
+            return Function(
+                "sum",
+                [
+                    Function(
+                        "multiply",
+                        [
+                            Column("sign"),
+                            Function("multiply", [args["column"], self.sampling_weight]),
+                        ],
+                    )
+                ],
+                alias,
+            )
+
+        # When aggregating on an attr column, we have to make sure that we skip rows
+        # where the attr does not exist.
+        attr_col, attr_name = attr
+
         return Function(
-            "sum",
+            "sumIf",
             [
                 Function(
                     "multiply",
@@ -985,7 +980,8 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                         Column("sign"),
                         Function("multiply", [args["column"], self.sampling_weight]),
                     ],
-                )
+                ),
+                Function("mapContains", [attr_col, attr_name]),
             ],
             alias,
         )
@@ -995,12 +991,35 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
+        attr = extract_attr(args["column"])
+
+        # If we're not aggregating on an attr column,
+        # we can directly aggregate on the column
+        if attr is None:
+            return Function(
+                "round",
+                [
+                    Function(
+                        "sum",
+                        [Function("multiply", [Column("sign"), self.sampling_weight])],
+                    )
+                ],
+                alias,
+            )
+
+        # When aggregating on an attr column, we have to make sure that we skip rows
+        # where the attr does not exist.
+        attr_col, attr_name = attr
+
         return Function(
             "round",
             [
                 Function(
-                    "sum",
-                    [Function("multiply", [Column("sign"), self.sampling_weight])],
+                    "sumIf",
+                    [
+                        Function("multiply", [Column("sign"), self.sampling_weight]),
+                        Function("mapContains", [attr_col, attr_name]),
+                    ],
                 )
             ],
             alias,
@@ -1012,10 +1031,30 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         alias: str,
         fixed_percentile: float | None = None,
     ) -> SelectType:
+        attr = extract_attr(args["column"])
+
+        # If we're not aggregating on an attr column,
+        # we can directly aggregate on the column
+        if attr is None:
+            return Function(
+                f'quantileTDigestWeighted({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+                # Only convert to UInt64 when we have to since we lose rounding accuracy
+                [args["column"], Function("toUInt64", [self.sampling_weight])],
+                alias,
+            )
+
+        # When aggregating on an attr column, we have to make sure that we skip rows
+        # where the attr does not exist.
+        attr_col, attr_name = attr
+
         return Function(
-            f'quantileTDigestWeighted({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+            f'quantileTDigestWeightedIf({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
             # Only convert to UInt64 when we have to since we lose rounding accuracy
-            [args["column"], Function("toUInt64", [self.sampling_weight])],
+            [
+                args["column"],
+                Function("toUInt64", [self.sampling_weight]),
+                Function("mapContains", [attr_col, attr_name]),
+            ],
             alias,
         )
 
@@ -1194,3 +1233,34 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             ],
             alias,
         )
+
+
+def extract_attr(
+    column: str | Column | SelectType | int | float,
+) -> tuple[Column, str] | None:
+    # This check exists to handle the temporay prefixing.
+    # Once that's removed, this condition should become much simpler
+
+    if not isinstance(column, Function):
+        return None
+
+    if column.function != "if":
+        return None
+
+    if len(column.parameters) != 3:
+        return None
+
+    if (
+        not isinstance(column.parameters[0], Function)
+        or column.parameters[0].function != "mapContains"
+        or len(column.parameters[0].parameters) != 2
+    ):
+        return None
+
+    attr_col = column.parameters[0].parameters[0]
+    attr_name = column.parameters[0].parameters[1]
+
+    if not isinstance(attr_col, Column) or not isinstance(attr_name, str):
+        return None
+
+    return attr_col, attr_name

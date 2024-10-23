@@ -578,19 +578,17 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         super().test_id_filtering()
 
     def test_span_duration(self):
-        self.store_spans(
-            [
-                self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success"}},
-                    start_ts=self.ten_mins_ago,
-                ),
-                self.create_span(
-                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
-                    start_ts=self.ten_mins_ago,
-                ),
-            ],
-            is_eap=self.is_eap,
-        )
+        spans = [
+            self.create_span(
+                {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
         response = self.do_request(
             {
                 "field": ["span.duration", "description"],
@@ -609,41 +607,98 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             {
                 "span.duration": 1000.0,
                 "description": "bar",
+                "project.name": self.project.slug,
+                "id": spans[0]["span_id"],
             },
             {
                 "span.duration": 1000.0,
                 "description": "foo",
+                "project.name": self.project.slug,
+                "id": spans[1]["span_id"],
             },
         ]
         assert meta["dataset"] == self.dataset
 
-    def test_extrapolation_smoke(self):
-        """This is a hack, we just want to make sure nothing errors from using the weighted functions"""
-        for function in [
-            "count_weighted()",
-            "sum_weighted(span.duration)",
-            "avg_weighted(span.duration)",
-            "percentile_weighted(span.duration, 0.23)",
-            "p50_weighted()",
-            "p75_weighted()",
-            "p90_weighted()",
-            "p95_weighted()",
-            "p99_weighted()",
-            "p100_weighted()",
-            "min_weighted(span.duration)",
-            "max_weighted(span.duration)",
-        ]:
-            response = self.do_request(
-                {
-                    "field": ["description", function],
-                    "query": "",
-                    "orderby": "description",
-                    "project": self.project.id,
-                    "dataset": self.dataset,
-                }
-            )
+    def test_aggregate_numeric_attr_weighted(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar1"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar2"},
+                    },
+                    measurements={"foo": {"value": 5}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar3"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
 
-            assert response.status_code == 200, f"error: {response.content}\naggregate: {function}"
+        response = self.do_request(
+            {
+                "field": [
+                    "description",
+                    "count_unique_weighted(bar)",
+                    "count_unique_weighted(tags[bar])",
+                    "count_unique_weighted(tags[bar,string])",
+                    "count_weighted()",
+                    "count_weighted(span.duration)",
+                    "count_weighted(tags[foo,     number])",
+                    "sum_weighted(tags[foo,number])",
+                    "avg_weighted(tags[foo,number])",
+                    "p50_weighted(tags[foo,number])",
+                    "p75_weighted(tags[foo,number])",
+                    "p95_weighted(tags[foo,number])",
+                    "p99_weighted(tags[foo,number])",
+                    "p100_weighted(tags[foo,number])",
+                    "min_weighted(tags[foo,number])",
+                    "max_weighted(tags[foo,number])",
+                ],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0] == {
+            "description": "foo",
+            "count_unique_weighted(bar)": 3,
+            "count_unique_weighted(tags[bar])": 3,
+            "count_unique_weighted(tags[bar,string])": 3,
+            "count_weighted()": 3,
+            "count_weighted(span.duration)": 3,
+            "count_weighted(tags[foo,     number])": 1,
+            "sum_weighted(tags[foo,number])": 5.0,
+            "avg_weighted(tags[foo,number])": 5.0,
+            "p50_weighted(tags[foo,number])": 5.0,
+            "p75_weighted(tags[foo,number])": 5.0,
+            "p95_weighted(tags[foo,number])": 5.0,
+            "p99_weighted(tags[foo,number])": 5.0,
+            "p100_weighted(tags[foo,number])": 5.0,
+            "min_weighted(tags[foo,number])": 5.0,
+            "max_weighted(tags[foo,number])": 5.0,
+        }
 
     def test_numeric_attr_without_space(self):
         self.store_spans(
