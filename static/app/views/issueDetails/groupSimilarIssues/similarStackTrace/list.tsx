@@ -77,7 +77,18 @@ function List({
   return (
     <Fragment>
       <Header>
-        <SimilarSpectrum />
+        {!hasSimilarityEmbeddingsFeature && (
+          <SimilarSpectrum
+            highSpectrumLabel={t('Similar')}
+            lowSpectrumLabel={t('Not Similar')}
+          />
+        )}
+        {hasSimilarityEmbeddingsFeature && (
+          <SimilarSpectrum
+            highSpectrumLabel={'Most Similar'}
+            lowSpectrumLabel={'Less Similar'}
+          />
+        )}
       </Header>
       <Panel>
         <Toolbar
