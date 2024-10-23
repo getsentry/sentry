@@ -8,23 +8,16 @@ import {space} from 'sentry/styles/space';
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 
 type ToolbarProps = {
-  hideToolbar?: boolean;
   isMobile?: boolean;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
 };
 
-export function Toolbar({
-  hideToolbar,
-  isMobile,
-  onEdit,
-  onDelete,
-  onDuplicate,
-}: ToolbarProps) {
+export function Toolbar({isMobile, onEdit, onDelete, onDuplicate}: ToolbarProps) {
   return (
     <ToolbarPanel>
-      <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
+      <IconContainer>
         {!isMobile && (
           <GrabbableButton
             size="xs"
