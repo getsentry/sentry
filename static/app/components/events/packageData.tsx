@@ -64,7 +64,12 @@ export function EventPackageData({event}: Props) {
   }
 
   return (
-    <InterimSection title={title} type={SectionKey.PACKAGES} ref={containerRef}>
+    <InterimSection
+      title={title}
+      type={SectionKey.PACKAGES}
+      ref={containerRef}
+      initialCollapse
+    >
       {hasStreamlinedUI ? (
         <ColumnsContainer columnCount={columnCount}>{columns}</ColumnsContainer>
       ) : (
