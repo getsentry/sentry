@@ -104,7 +104,6 @@ function WidgetCardContextMenu({
   }
 
   const menuOptions: MenuItemProps[] = [];
-  const disabledKeys: string[] = [];
 
   const openWidgetViewerPath = (id: string | undefined) => {
     if (!isWidgetViewerPath(location.pathname)) {
@@ -153,6 +152,7 @@ function WidgetCardContextMenu({
                   label: t(
                     'This is a preview only. To edit, you must add this dashboard.'
                   ),
+                  disabled: true,
                 },
               ]}
               triggerProps={{
@@ -163,7 +163,6 @@ function WidgetCardContextMenu({
                 icon: <IconEllipsis direction="down" size="sm" />,
               }}
               position="bottom-end"
-              disabledKeys={[...disabledKeys, 'preview']}
             />
             <Button
               aria-label={t('Open Widget Viewer')}
@@ -267,8 +266,8 @@ function WidgetCardContextMenu({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
+      disabled: widgetLimitReached,
     });
-    widgetLimitReached && disabledKeys.push('duplicate-widget');
 
     menuOptions.push({
       key: 'edit-widget',
@@ -332,7 +331,6 @@ function WidgetCardContextMenu({
               icon: <IconEllipsis direction="down" size="sm" />,
             }}
             position="bottom-end"
-            disabledKeys={[...disabledKeys]}
           />
           <Button
             aria-label={t('Open Widget Viewer')}
