@@ -1393,8 +1393,7 @@ def find_histogram_min_max(
 
         max_fence_value = max(fences) if fences else None
 
-        candidates = [max_fence_value, max_value]
-        candidates = list(filter(lambda v: v is not None, candidates))
+        candidates = [cand for cand in (max_fence_value, max_value) if cand is not None]
         max_value = min(candidates) if candidates else None
         if max_value is not None and min_value is not None:
             # min_value may be either queried or provided by the user. max_value was queried.
