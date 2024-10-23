@@ -1,4 +1,3 @@
-import {useContext} from 'react';
 import omit from 'lodash/omit';
 
 import type {Client} from 'sentry/api';
@@ -21,7 +20,7 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 
 import {type DashboardFilters, type Widget, WidgetType} from '../types';
 
-import {DashboardsMEPContext} from './dashboardsMEPContext';
+import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import type {
   GenericWidgetQueriesChildrenProps,
   OnDataFetchedProps,
@@ -138,7 +137,7 @@ function WidgetQueries({
   const config = getDatasetConfig(
     widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
   );
-  const context = useContext(DashboardsMEPContext);
+  const context = useDashboardsMEPContext();
   const metricsMeta = useMetricsResultsMeta();
   const mepSettingContext = useMEPSettingContext();
 
