@@ -6,7 +6,6 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -14,7 +13,6 @@ import {
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
@@ -69,7 +67,7 @@ export function DomainViewHeader({
     ...additionalBreadCrumbs,
   ];
 
-  const filteredModules = filterEnabledModules(modules, organization);
+  const showModuleTabs = organization.features.includes('insights-entry-points');
 
   const defaultHandleTabChange = (key: ModuleName | typeof OVERVIEW_PAGE_TITLE) => {
     if (key === selectedModule || (key === OVERVIEW_PAGE_TITLE && !module)) {
@@ -96,11 +94,16 @@ export function DomainViewHeader({
       key: OVERVIEW_PAGE_TITLE,
       label: OVERVIEW_PAGE_TITLE,
     },
-    ...filteredModules.map(moduleName => ({
-      key: moduleName,
-      label: MODULE_TITLES[moduleName],
-    })),
   ];
+
+  if (showModuleTabs) {
+    tabList.push(
+      ...modules.map(moduleName => ({
+        key: moduleName,
+        label: MODULE_TITLES[moduleName],
+      }))
+    );
+  }
 
   return (
     <Fragment>
@@ -130,10 +133,3 @@ export function DomainViewHeader({
     </Fragment>
   );
 }
-
-const filterEnabledModules = (modules: ModuleName[], organization: Organization) => {
-  if (!organization.features.includes('insights-entry-points')) {
-    return [];
-  }
-  return modules.filter(module => isModuleEnabled(module, organization));
-};

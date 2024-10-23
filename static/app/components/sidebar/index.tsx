@@ -606,7 +606,10 @@ function Sidebar() {
   );
 
   const performanceDomains = hasOrganization && (
-    <Feature features="insights-domain-view" organization={organization}>
+    <Feature
+      features={['insights-domain-view', 'performance-view']}
+      organization={organization}
+    >
       <SidebarAccordion
         {...sidebarItemProps}
         icon={<IconGraph />}

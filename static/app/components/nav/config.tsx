@@ -101,7 +101,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
   const perfDomainViews: NavSidebarItem = {
     label: t('Perf.'),
     icon: <IconLightning />,
-    feature: {features: 'insights-domain-view'},
+    feature: {features: ['insights-domain-view', 'performance-view']},
     submenu: [
       {
         label: FRONTEND_LANDING_TITLE,
