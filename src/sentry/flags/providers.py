@@ -52,13 +52,15 @@ class InvalidProvider(Exception):
 
 def handle_provider_event(
     provider: str,
-    request_data: dict[str, Any],
+    request_data: Any,
     organization_id: int,
 ) -> list[FlagAuditLogRow]:
     match provider:
         case "launchdarkly":
+            assert isinstance(request_data, dict)
             return handle_launchdarkly_event(request_data, organization_id)
         case "statsig":
+            assert isinstance(request_data, list)
             return handle_statsig_event(request_data, organization_id)
         case _:
             raise InvalidProvider(provider)
@@ -136,7 +138,31 @@ def handle_launchdarkly_event(
     ]
 
 
-"""Statsig Provider."""
+"""Statsig Provider.
+
+Docs are light on details. Most of the test cases will be based on trial and error.
+
+Documentation: https://docs.statsig.com/integrations/event_webhook/
+"""
+
+
+def handle_statsig_event(
+    request_data: list[dict[str, Any]], organization_id: int
+) -> list[FlagAuditLogRow]:
+    return [
+        {
+            "action": item["metadata"]["action"],
+            "created_at": datetime.datetime.fromtimestamp(item["timestamp"] / 1000.0, datetime.UTC),
+            "created_by": item["user"]["email"],
+            "created_by_type": "email",
+            "flag": item["metadata"]["name"],
+            "organization_id": organization_id,
+            "tags": {},
+        }
+        for item in request_data
+        if item["eventName"] == "statsig::config_change"
+        and item["metadata"]["action"] in ("created", "updated", "deleted")
+    ]
 
 
 """Internal flag-pole provider.
