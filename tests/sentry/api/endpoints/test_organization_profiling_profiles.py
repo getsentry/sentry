@@ -11,7 +11,7 @@ from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.utils import proxy_profiling_service
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
@@ -605,8 +605,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
         transaction = {
             "project.id": self.project.id,
             "profile.id": profile_id,
-            "timestamp": iso_format(datetime.fromtimestamp(profile_transaction["timestamp"]))
-            + "+00:00",
+            "timestamp": datetime.fromtimestamp(profile_transaction["timestamp"]).isoformat(),
             "profiler.id": None,
             "thread.id": None,
             "precise.start_ts": datetime.fromtimestamp(
@@ -726,8 +725,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             "id": profile_transaction_id,
             "project.id": self.project.id,
             "profile.id": profile_id,
-            "timestamp": iso_format(datetime.fromtimestamp(profile_transaction["timestamp"]))
-            + "+00:00",
+            "timestamp": datetime.fromtimestamp(profile_transaction["timestamp"]).isoformat(),
             "profiler.id": None,
             "thread.id": None,
             "precise.start_ts": datetime.fromtimestamp(
@@ -753,8 +751,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             "id": profiler_transaction_id,
             "project.id": self.project.id,
             "profile.id": None,
-            "timestamp": iso_format(datetime.fromtimestamp(profile_transaction["timestamp"]))
-            + "+00:00",
+            "timestamp": datetime.fromtimestamp(profile_transaction["timestamp"]).isoformat(),
             "profiler.id": profiler_id,
             "thread.id": thread_id,
             "precise.start_ts": datetime.fromtimestamp(
