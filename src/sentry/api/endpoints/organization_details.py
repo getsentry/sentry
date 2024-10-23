@@ -938,8 +938,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 organization, changed_data = serializer.save()
 
             if "targetSampleRate" in changed_data:
-                # TODO: check whether dynamic sampling enabled
-                boost_low_volume_projects_of_org_with_query.delay(organization.id)
+                has_dynamic_sampling_custom = features.has(
+                    "organizations:dynamic-sampling-custom", organization, actor=request.user
+                )
+                if has_dynamic_sampling_custom:
+                    boost_low_volume_projects_of_org_with_query.delay(organization.id)
 
             if was_pending_deletion:
                 self.create_audit_entry(
