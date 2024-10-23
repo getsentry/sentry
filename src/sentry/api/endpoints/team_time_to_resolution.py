@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
+from typing import TypedDict
 
 from django.db.models import Avg, F, Q
 from django.db.models.functions import Coalesce, TruncDay
@@ -17,6 +18,11 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.utils.dates import floor_to_utc_day
+
+
+class _SumCount(TypedDict):
+    sum: timedelta
+    count: int
 
 
 @region_silo_endpoint
@@ -58,6 +64,7 @@ class TeamTimeToResolutionEndpoint(TeamEndpoint, EnvironmentMixin):
             )
             .annotate(avg_ttr=Avg("ttr"))
         )
+        sums: dict[str, _SumCount]
         sums = defaultdict(lambda: {"sum": timedelta(), "count": 0})
         for gh in history_list:
             key = str(gh["bucket"].date())
