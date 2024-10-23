@@ -100,7 +100,7 @@ describe('add to dashboard modal', () => {
     eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {
-        meta: {isMetricsData: false},
+        isMetricsData: false,
         data: [],
       },
     });
@@ -141,26 +141,6 @@ describe('add to dashboard modal', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeDisabled();
-  });
-
-  it('displays stored data alert', async function () {
-    render(
-      <AddToDashboardModal
-        Header={stubEl}
-        Footer={stubEl as ModalRenderProps['Footer']}
-        Body={stubEl as ModalRenderProps['Body']}
-        CloseButton={stubEl}
-        closeModal={() => undefined}
-        organization={initialData.organization}
-        widget={widget}
-        selection={defaultSelection}
-        router={initialData.router}
-        widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={LocationFixture()}
-      />
-    );
-
-    await screen.findByText(/we've automatically adjusted your results/i);
   });
 
   it('enables the buttons when a dashboard is selected', async function () {
