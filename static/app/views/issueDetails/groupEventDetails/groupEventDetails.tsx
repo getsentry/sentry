@@ -287,7 +287,7 @@ const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
   ${p =>
     p.hasStreamlinedUi
       ? css`
-          padding: ${space(1.5)} ${space(2)} ${space(3)};
+          padding: ${space(1.5)} ${space(2)};
         `
       : css`
           padding: ${space(3)} ${space(2)} ${space(3)};
@@ -298,7 +298,7 @@ const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
         `}
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding-left: 0;
+    padding-left: ${p => (p.hasStreamlinedUi ? space(0.5) : 0)};
   }
 `;
 
