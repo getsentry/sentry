@@ -162,6 +162,10 @@ function CreateProject() {
           project_id: projectData.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
+          has_onboarding_feature_flag: organization.features.includes(
+            'messaging-integration-onboarding-project-creation'
+          ),
+          created_integration_notification: shouldCreateRule ?? false,
         });
 
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
