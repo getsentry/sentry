@@ -16,9 +16,10 @@ type Props = {
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
   module?: HeaderProps['selectedModule'];
+  tabs?: HeaderProps['tabs'];
 };
 
-export function AiHeader({module, headerTitle, headerActions, breadcrumbs}: Props) {
+export function AiHeader({module, headerTitle, headerActions, breadcrumbs, tabs}: Props) {
   const {slug} = useOrganization();
 
   const aiBaseUrl = normalizeUrl(
@@ -36,6 +37,7 @@ export function AiHeader({module, headerTitle, headerActions, breadcrumbs}: Prop
       selectedModule={module}
       additonalHeaderActions={headerActions}
       additionalBreadCrumbs={breadcrumbs}
+      tabs={tabs}
     />
   );
 }
