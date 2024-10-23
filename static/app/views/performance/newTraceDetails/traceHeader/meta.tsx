@@ -21,13 +21,14 @@ import type {TraceTree} from '../traceModels/traceTree';
 type MetaDataProps = {
   bodyText: React.ReactNode;
   headingText: string;
+  rightAlignBody?: boolean;
 };
 
-function MetaSection({headingText, bodyText}: MetaDataProps) {
+function MetaSection({headingText, bodyText, rightAlignBody}: MetaDataProps) {
   return (
     <HeaderInfo>
       <StyledSectionHeading>{headingText}</StyledSectionHeading>
-      <SectionBody>{bodyText}</SectionBody>
+      <SectionBody rightAlign={rightAlignBody}>{bodyText}</SectionBody>
     </HeaderInfo>
   );
 }
@@ -41,8 +42,9 @@ const StyledSectionHeading = styled(SectionHeading)`
   margin: 0;
 `;
 
-const SectionBody = styled('div')`
+const SectionBody = styled('div')<{rightAlign?: boolean}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
+  text-align: ${p => (p.rightAlign ? 'right' : 'left')};
   padding: ${space(0.5)} 0;
   max-height: 32px;
 `;
@@ -133,6 +135,7 @@ export function Meta(props: MetaProps) {
       {traceNode ? (
         <MetaSection
           headingText={t('Trace Duration')}
+          rightAlignBody
           bodyText={
             traceNode.space[1] > 0
               ? getDuration(traceNode.space[1] / 1e3, 2, true)

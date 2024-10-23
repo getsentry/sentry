@@ -70,7 +70,7 @@ function NewTraceMetadataHeader({
               <HighlightsIconSummary event={rootEventResults.data} />
             </StyledWrapper>
             <ProjectsRenderer
-              projectSlugs={Array.from(tree.project_slugs)}
+              projectSlugs={Array.from(tree.projects).map(({slug}) => slug)}
               visibleAvatarSize={24}
               maxVisibleProjects={3}
             />
