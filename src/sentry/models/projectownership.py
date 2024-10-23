@@ -369,14 +369,27 @@ class ProjectOwnership(Model):
         ownership: ProjectOwnership | ProjectCodeOwners,
         data: Mapping[str, Any],
     ) -> list[Rule]:
-        rules = []
-        if ownership.schema is not None:
-            munged_data = Matcher.munge_if_needed(data)
-            for rule in load_schema(ownership.schema):
-                if rule.test(data, munged_data):
-                    rules.append(rule)
+        if ownership.schema is None:
+            return []
 
-        return rules
+        # "projectownership" or "projectcodeowners"
+        ownership_type = type(ownership).__name__.lower()
+
+        munged_data = Matcher.munge_if_needed(data)
+        metrics.distribution(
+            key="projectownership.matching_ownership_rules.frames",
+            value=len(munged_data[0]),
+            tags={"ownership_type": ownership_type},
+        )
+
+        rules = load_schema(ownership.schema)
+        metrics.distribution(
+            key="projectownership.matching_ownership_rules.rules",
+            value=len(rules),
+            tags={"ownership_type": ownership_type},
+        )
+
+        return [rule for rule in rules if rule.test(data, munged_data)]
 
 
 def process_resource_change(instance, change, **kwargs):

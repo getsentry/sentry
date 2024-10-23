@@ -31,7 +31,7 @@ def test_benchmark_grouping(config_name, benchmark):
 
 
 def run_configuration(grouping_input: GroupingInput, config_name: str) -> None:
-    event = grouping_input.create_event(config_name)
+    event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
 
     # This ensures we won't try to touch the DB when getting event hashes
     event.project = None  # type: ignore[assignment]

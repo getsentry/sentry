@@ -31,6 +31,7 @@ export type InsightEventParameters = {
   'insight.page_loads.http': {has_ever_sent_data: boolean};
   'insight.page_loads.queue': {has_ever_sent_data: boolean};
   'insight.page_loads.screen_load': {has_ever_sent_data: boolean};
+  'insight.page_loads.screen_rendering': {has_ever_sent_data: boolean};
   'insight.page_loads.vital': {has_ever_sent_data: boolean};
   'insight.screen_load.spans.filter_by_device_class': {filter: string};
   'insight.screen_load.spans.filter_by_operation': {filter: string};
@@ -54,6 +55,7 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.page_loads.queue': 'Insights: Queue Page Load',
   'insight.page_loads.screen_load': 'Insights: Screen Load Page Load',
   'insight.page_loads.vital': 'Insights: Vital Page Load',
+  'insight.page_loads.screen_rendering': 'Insights: Screen Rendering Page Load',
   'insight.app_start.select_start_type': 'Insights: App Start - select app start type',
   'insight.app_start.spans.filter_by_device_class':
     'Insights: App Start - filter device class',
