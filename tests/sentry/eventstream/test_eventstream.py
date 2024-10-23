@@ -2,9 +2,12 @@ import itertools
 import logging
 import time
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+import sentry_sdk
+from confluent_kafka import KafkaError
+from confluent_kafka import Message as KafkaMessage
 from django.test import override_settings
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
@@ -464,3 +467,20 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             assert "contexts" in send_extra_data_data
             contexts_after_processing = send_extra_data_data["contexts"]
             assert contexts_after_processing == {**{"geo": geo_interface}}
+
+    @patch("sentry.eventstream.backend.delivery_callback", new_callable=MagicMock)
+    # @patch("", autospec=True)
+    def test_sentry_error_reporting(self):
+        mock_capture_exception = MagicMock()
+        message = KafkaMessage(
+            {
+                "key": "my_key",
+                "value": "Hello, Kafka!",
+                "headers": {"header_key": "header_value"},
+                "timestamp": "2024-10-11T12:34:56Z",
+                "offset": 12345,
+            }
+        )
+        with self.assertRaises(Exception):
+            self.kafka_eventstream.delivery_callback(error=KafkaError(), message=message)
+        mock_capture_exception.assert_called_once()
