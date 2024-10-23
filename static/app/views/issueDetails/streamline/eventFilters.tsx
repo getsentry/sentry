@@ -10,7 +10,6 @@ import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {Divider} from 'sentry/views/issueDetails/divider';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
@@ -43,8 +42,14 @@ export function EventFilters({event, group}: {event: Event; group: Group}) {
   });
   return (
     <FilterContainer>
-      <EnvironmentFilter />
-      <Divider />
+      <EnvironmentFilter
+        triggerProps={{
+          borderless: true,
+          style: {
+            borderRadius: 0,
+          },
+        }}
+      />
       <SearchFilter
         group={group}
         handleSearch={query => {
@@ -56,7 +61,14 @@ export function EventFilters({event, group}: {event: Event; group: Group}) {
           disallowFreeText: true,
         }}
       />
-      <DateFilter />
+      <DateFilter
+        triggerProps={{
+          borderless: true,
+          style: {
+            borderRadius: 0,
+          },
+        }}
+      />
       {error ? (
         <div>
           <GraphAlert type="error" showIcon>
@@ -79,13 +91,15 @@ export function EventFilters({event, group}: {event: Event; group: Group}) {
 }
 
 const FilterContainer = styled('div')`
+  padding: 0 0 ${space(1)} 24px;
   display: grid;
   grid-template-columns: auto auto 1fr;
   grid-template-rows: 38px 110px;
   grid-template-areas:
     'env    date  searchFilter'
     'graph  graph graph';
-  gap: ${space(1.5)};
+  border: 0px solid ${p => p.theme.translucentBorder};
+  border-width: 0 1px 1px 0;
 `;
 
 const GraphAlert = styled(Alert)`
@@ -95,17 +109,37 @@ const GraphAlert = styled(Alert)`
 
 const EnvironmentFilter = styled(EnvironmentPageFilter)`
   grid-area: env;
-  border: 0;
+  &:before {
+    right: 0;
+    top: ${space(1)};
+    bottom: ${space(1)};
+    width: 1px;
+    content: '';
+    position: absolute;
+    background: ${p => p.theme.translucentInnerBorder};
+  }
 `;
 
 const DateFilter = styled(DatePageFilter)`
   grid-area: date;
+  &:before {
+    right: 0;
+    top: ${space(1)};
+    bottom: ${space(1)};
+    width: 1px;
+    content: '';
+    position: absolute;
+    background: ${p => p.theme.translucentInnerBorder};
+  }
 `;
 
 const SearchFilter = styled(EventSearch)`
   grid-area: searchFilter;
+  border: 0;
+  border-radius: 0;
 `;
 
 const Graph = styled(EventGraph)`
+  border-top: 1px solid ${p => p.theme.translucentBorder};
   grid-area: graph;
 `;

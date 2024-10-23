@@ -161,7 +161,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
 
   const eventWithMeta = withMeta(event);
   const issueTypeConfig = getConfigForIssueType(group, project);
-  const MainLayoutComponent = hasStreamlinedUI ? GroupContent : StyledLayoutMain;
+  const MainLayoutComponent = hasStreamlinedUI ? 'div' : StyledLayoutMain;
 
   return (
     <TransactionProfileIdProvider
@@ -191,8 +191,8 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             />
           ) : (
             <Fragment>
-              {eventWithMeta && <EventFilters event={eventWithMeta} group={group} />}
               <MainLayoutComponent>
+                {eventWithMeta && <EventFilters event={eventWithMeta} group={group} />}
                 {!hasStreamlinedUI && renderGroupStatusBanner()}
                 <EscalatingIssuesFeedback organization={organization} group={group} />
                 {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
@@ -202,7 +202,11 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                     project={project}
                   />
                 )}
-                {renderContent()}
+                {hasStreamlinedUI ? (
+                  <GroupContent>{renderContent()}</GroupContent>
+                ) : (
+                  renderContent()
+                )}
               </MainLayoutComponent>
               {hasStreamlinedUI ? (
                 sidebarOpen ? (
