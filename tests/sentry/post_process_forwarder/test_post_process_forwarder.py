@@ -14,7 +14,6 @@ from django.conf import settings
 from django.test import override_settings
 
 from sentry.consumers import get_stream_processor
-from sentry.eventstream.types import EventStreamEventType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_kafka
 from sentry.utils import json, kafka_config
@@ -140,7 +139,6 @@ class PostProcessForwarderTest(TestCase):
 
             # Verify that the task gets called once
             mock.assert_called_once_with(
-                eventstream_type=EventStreamEventType.Error.value,
                 event_id="fe0ee9a2bc3b415497bad68aaf70dc7f",
                 project_id=1,
                 group_id=43,

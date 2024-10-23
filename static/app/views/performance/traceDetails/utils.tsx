@@ -12,6 +12,8 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import type {TraceInfo} from './types';
@@ -27,6 +29,7 @@ export function getTraceDetailsUrl({
   demo,
   location,
   source,
+  view,
 }: {
   dateSelection;
   location: Location;
@@ -40,6 +43,7 @@ export function getTraceDetailsUrl({
   // to trace view are updated to use spand ids of transactions instead of event ids.
   targetId?: string;
   timestamp?: string | number;
+  view?: DomainView;
 }): LocationDescriptorObject {
   const {start, end, statsPeriod} = dateSelection;
 
@@ -50,10 +54,10 @@ export function getTraceDetailsUrl({
     [PAGE_URL_PARAM.PAGE_END]: end,
   };
 
+  const performanceBaseUrl = getPerformanceBaseUrl(organization.slug, view);
+
   const oldTraceUrl = {
-    pathname: normalizeUrl(
-      `/organizations/${organization.slug}/performance/trace/${traceSlug}/`
-    ),
+    pathname: normalizeUrl(`${performanceBaseUrl}/trace/${traceSlug}/`),
     query: queryParams,
   };
 
@@ -66,9 +70,7 @@ export function getTraceDetailsUrl({
       queryParams.node = [`span-${spanId}`, `txn-${targetId ?? eventId}`];
     }
     return {
-      pathname: normalizeUrl(
-        `/organizations/${organization.slug}/performance/trace/${traceSlug}/`
-      ),
+      pathname: normalizeUrl(`${performanceBaseUrl}/trace/${traceSlug}/`),
       query: {
         ...queryParams,
         timestamp: getTimeStampFromTableDateField(timestamp),

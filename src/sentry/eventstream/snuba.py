@@ -11,8 +11,7 @@ import urllib3
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.eventstore.models import GroupEvent
-from sentry.eventstream.base import EventStream, GroupStates
-from sentry.eventstream.types import EventStreamEventType
+from sentry.eventstream.base import EventStream, EventStreamEventType, GroupStates
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
@@ -470,7 +469,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
             **kwargs,
         )
         self._dispatch_post_process_group_task(
-            self._get_event_type(event).value,
             event.event_id,
             event.project_id,
             event.group_id,

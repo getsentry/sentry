@@ -77,17 +77,25 @@ export default storyBook(WidgetFrame, story => {
         <p>
           <JSXNode name="WidgetFrame" /> supports a <code>badgeProps</code> prop. If
           passed, a<code>Badge</code> component with the relevant props appears in the
-          header.
+          header. Note: Avoid using this! This is mostly used as an internal feature, for
+          diagnosing widget state at a glance. We might remove this feature very soon.{' '}
+          <i>Especially</i> avoid multiple badges.
         </p>
 
         <SideBySide>
           <NormalWidget>
             <WidgetFrame
               title="count()"
-              badgeProps={{
-                text: 'Sampled',
-                type: 'default',
-              }}
+              badgeProps={[
+                {
+                  text: 'Alpha',
+                  type: 'alpha',
+                },
+                {
+                  text: 'Sampled',
+                  type: 'default',
+                },
+              ]}
               warnings={[
                 'We have automatically converted this widget to use sampled data.',
                 'Data for this metrics has not been extracted yet',
@@ -106,7 +114,9 @@ export default storyBook(WidgetFrame, story => {
           <JSXNode name="WidgetFrame" /> supports an action menu. If only one action is
           passed, the single action is rendered as a small button. If multiple actions are
           passed, they are grouped into a dropdown menu. Menu actions appear on hover or
-          keyboard focus.
+          keyboard focus. They can be disabled with the <code>actionsDisabled</code> prop,
+          and supplemented with an optional <code>actionsMessage</code> prop that adds a
+          tooltip.
         </p>
 
         <SideBySide>
@@ -130,7 +140,52 @@ export default storyBook(WidgetFrame, story => {
           <NormalWidget>
             <WidgetFrame
               title="Count"
+              actionsDisabled
+              actionsMessage="Not possible here"
+              description="This counts up the amount of something that happens."
+              actions={[
+                {
+                  key: 'see-more',
+                  label: t('See More'),
+                  onAction: () => {
+                    // eslint-disable-next-line no-console
+                    console.log('See more!');
+                  },
+                },
+              ]}
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <WidgetFrame
+              title="Count"
               description="This is a tough formula to reason about"
+              actions={[
+                {
+                  key: 'see-more',
+                  label: t('See More'),
+                  onAction: () => {
+                    // eslint-disable-next-line no-console
+                    console.log('See more!');
+                  },
+                },
+                {
+                  key: 'see-less',
+                  label: t('See Less'),
+                  onAction: () => {
+                    // eslint-disable-next-line no-console
+                    console.log('See less!');
+                  },
+                },
+              ]}
+            />
+          </NormalWidget>
+
+          <NormalWidget>
+            <WidgetFrame
+              title="Count"
+              actionsDisabled
+              actionsMessage="Not available in this context"
               actions={[
                 {
                   key: 'see-more',
