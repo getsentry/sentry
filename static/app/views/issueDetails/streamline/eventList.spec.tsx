@@ -15,15 +15,6 @@ import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {MOCK_EVENTS_TABLE_DATA} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
-jest.mock('screenfull', () => ({
-  enabled: true,
-  isFullscreen: false,
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
-
 describe('EventList', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({
