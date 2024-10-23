@@ -525,9 +525,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.data["data"] == [{"foo": "", "count()": 1}]
 
 
-@pytest.mark.xfail(
-    reason="Snuba is not stable for the EAP dataset, xfailing since its prone to failure"
-)
+@pytest.mark.xfail(reason="skipping EAP tests until its stable")
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True
 

@@ -223,5 +223,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.data["Other"]["meta"]["dataset"] == self.dataset
 
 
+@pytest.mark.xfail(reason="skipping EAP tests until its stable")
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
     is_eap = True
