@@ -9,12 +9,20 @@ import {isAggregateField} from 'sentry/utils/discover/fields';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {SpanSort, SpanSortOption} from './types';
 import {SpanSortOthers, SpanSortPercentiles} from './types';
 
-export function generateSpansRoute({orgSlug}: {orgSlug: string}): string {
-  return `/organizations/${orgSlug}/performance/summary/spans/`;
+export function generateSpansRoute({
+  orgSlug,
+  view,
+}: {
+  orgSlug: string;
+  view?: DomainView;
+}): string {
+  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/spans/`;
 }
 
 export function spansRouteWithQuery({
@@ -22,14 +30,17 @@ export function spansRouteWithQuery({
   transaction,
   projectID,
   query,
+  view,
 }: {
   orgSlug: string;
   query: Query;
   transaction: string;
   projectID?: string | string[];
+  view?: DomainView;
 }) {
   const pathname = generateSpansRoute({
     orgSlug,
+    view,
   });
 
   return {

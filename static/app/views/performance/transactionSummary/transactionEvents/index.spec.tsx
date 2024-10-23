@@ -1,3 +1,5 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
 import type {InitializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -5,11 +7,16 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {useLocation} from 'sentry/utils/useLocation';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 import {
   EVENTS_TABLE_RESPONSE_FIELDS,
   MOCK_EVENTS_TABLE_DATA,
 } from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
+
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 function WrappedComponent({data}) {
   return (
@@ -125,6 +132,12 @@ const setupMockApiResponeses = () => {
   });
 };
 
+const setupMocks = () => {
+  mockUseLocation.mockReturnValue(
+    LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+  );
+};
+
 const initializeData = (settings?: InitializeDataSettings) => {
   settings = {
     features: ['performance-view'],
@@ -137,7 +150,10 @@ const initializeData = (settings?: InitializeDataSettings) => {
 };
 
 describe('Performance > Transaction Summary > Transaction Events > Index', () => {
-  beforeEach(setupMockApiResponeses);
+  beforeEach(() => {
+    setupMockApiResponeses();
+    setupMocks();
+  });
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();

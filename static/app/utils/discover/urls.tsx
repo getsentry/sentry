@@ -3,6 +3,7 @@ import type {Location, LocationDescriptorObject} from 'history';
 
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTimeStampFromTableDateField} from '../dates';
@@ -56,6 +57,7 @@ export function generateLinkToEventInTraceView({
   demo,
   source,
   type = 'performance',
+  view,
 }: {
   eventId: string | undefined;
   location: Location;
@@ -73,6 +75,7 @@ export function generateLinkToEventInTraceView({
   targetId?: string;
   transactionName?: string;
   type?: 'performance' | 'discover';
+  view?: DomainView;
 }) {
   const _eventView = eventView ?? EventView.fromLocation(location);
   const dateSelection = _eventView.normalizeDateSelection(location);
@@ -99,6 +102,7 @@ export function generateLinkToEventInTraceView({
       demo,
       location,
       source,
+      view,
     });
   }
 
@@ -108,7 +112,8 @@ export function generateLinkToEventInTraceView({
       eventSlug,
       transactionName,
       location.query,
-      spanId
+      spanId,
+      view
     );
   }
 

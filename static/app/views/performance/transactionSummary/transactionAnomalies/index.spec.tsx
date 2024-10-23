@@ -1,9 +1,16 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
 import type {InitializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {useLocation} from 'sentry/utils/useLocation';
 import TransactionAnomalies from 'sentry/views/performance/transactionSummary/transactionAnomalies';
+
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 const initializeData = (settings: InitializeDataSettings) => {
   const data = _initializeData(settings);
@@ -16,6 +23,9 @@ describe('AnomaliesTab', function () {
   let anomaliesMock: any;
 
   beforeEach(function () {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
