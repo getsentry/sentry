@@ -799,28 +799,30 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     }
     let conditions = this.state.configs?.conditions ?? null;
 
+    if (conditions === null) {
+      return null;
+    }
+
     if (
       !organization.features.includes(
         'event-unique-user-frequency-condition-with-conditions'
       )
     ) {
-      conditions =
-        conditions?.filter(
-          condition =>
-            condition.id !==
-            'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions'
-        ) ?? null;
+      conditions = conditions?.filter(
+        condition =>
+          condition.id !==
+          'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions'
+      );
     }
 
-    conditions =
-      conditions?.map(condition =>
-        CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
-          ? {
-              ...condition,
-              label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id]}...`,
-            }
-          : condition
-      ) ?? null;
+    conditions = conditions?.map(condition =>
+      CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
+        ? {
+            ...condition,
+            label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id]}...`,
+          }
+        : condition
+    );
 
     return conditions;
   }
