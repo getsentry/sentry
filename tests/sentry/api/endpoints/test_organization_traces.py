@@ -437,8 +437,69 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             exception, contexts={"bad_traces": {"traces": list(sorted([trace_id_1, trace_id_2]))}}
         )
 
+    def test_use_first_span_for_name(self):
+        trace_id = uuid4().hex
+        span_id = "1" + uuid4().hex[:15]
+        parent_span_id = "1" + uuid4().hex[:15]
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        ts = now - timedelta(minutes=10)
+
+        self.double_write_segment(
+            project=self.project,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id=span_id,
+            parent_span_id=parent_span_id,
+            timestamp=ts,
+            transaction="foo",
+            duration=60_100,
+            exclusive_time=60_100,
+            sdk_name="sentry.javascript.node",
+            op="bar",
+        )
+
+        timestamp = int(ts.timestamp() * 1000)
+
+        query = {
+            "project": [],
+            "field": ["id", "parent_span", "span.duration"],
+            "query": "",
+            "maxSpansPerTrace": 3,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+
+        assert response.data["data"] == [
+            {
+                "breakdowns": [
+                    {
+                        "duration": 60100,
+                        "start": timestamp,
+                        "end": timestamp + 60100,
+                        "sliceStart": 0,
+                        "sliceEnd": 40,
+                        "sliceWidth": 40,
+                        "isRoot": False,
+                        "kind": "project",
+                        "project": self.project.slug,
+                        "sdkName": "sentry.javascript.node",
+                    },
+                ],
+                "duration": 60100,
+                "end": timestamp + 60100,
+                "name": "foo",
+                "numErrors": 0,
+                "numOccurrences": 0,
+                "numSpans": 1,
+                "matchingSpans": 1,
+                "project": self.project.slug,
+                "start": timestamp,
+                "trace": trace_id,
+            },
+        ]
+
     def test_use_root_span_for_name(self):
-        project = self.create_project()
         trace_id = uuid4().hex
         span_id_1 = "1" + uuid4().hex[:15]
         span_id_2 = "1" + uuid4().hex[:15]
@@ -446,7 +507,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
-            project=project,
+            project=self.project,
             trace_id=trace_id,
             transaction_id=uuid4().hex,
             span_id=span_id_1,
@@ -458,7 +519,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         )
 
         self.double_write_segment(
-            project=project,
+            project=self.project,
             trace_id=trace_id,
             transaction_id=uuid4().hex,
             span_id=span_id_2,
@@ -495,7 +556,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sliceWidth": 40,
                         "isRoot": False,
                         "kind": "project",
-                        "project": project.slug,
+                        "project": self.project.slug,
                         "sdkName": "sentry.javascript.remix",
                     },
                     {
@@ -507,7 +568,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sliceWidth": 10,
                         "isRoot": False,
                         "kind": "project",
-                        "project": project.slug,
+                        "project": self.project.slug,
                         "sdkName": "sentry.javascript.node",
                     },
                 ],
@@ -518,14 +579,13 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "numOccurrences": 0,
                 "numSpans": 2,
                 "matchingSpans": 2,
-                "project": project.slug,
+                "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
             },
         ]
 
     def test_use_pageload_for_name(self):
-        project = self.create_project()
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
         parent_span_id = "1" + uuid4().hex[:15]
@@ -533,7 +593,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
-            project=project,
+            project=self.project,
             trace_id=trace_id,
             transaction_id=uuid4().hex,
             span_id=span_id,
@@ -570,7 +630,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sliceWidth": 40,
                         "isRoot": False,
                         "kind": "project",
-                        "project": project.slug,
+                        "project": self.project.slug,
                         "sdkName": "sentry.javascript.node",
                     },
                 ],
@@ -581,7 +641,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "numOccurrences": 0,
                 "numSpans": 1,
                 "matchingSpans": 1,
-                "project": project.slug,
+                "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
             },

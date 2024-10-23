@@ -843,25 +843,44 @@ class TracesExecutor:
             context = {"traces": list(sorted(traces_range.keys()))}
             sentry_sdk.capture_exception(e, contexts={"bad_traces": context})
 
+        # This is the name of the trace's root span without a parent span
+        traces_primary_names: MutableMapping[str, tuple[str, str]] = {}
+
+        # This is the name of a span that can take the place of the trace's root
+        # based on some heuristics for that type of trace
+        traces_fallback_names: MutableMapping[str, tuple[str, str]] = {}
+
+        # This is the name of the first span in the trace that will be used if
+        # no other candidates names are found
+        traces_default_names: MutableMapping[str, tuple[str, str]] = {}
+
         # Normally, the name given to a trace is the name of the first root transaction
         # found within the trace.
         #
         # But there are some cases where traces do not have any root transactions. For
         # these traces, we try to pick out a name from the first span that is a good
         # candidate for the trace name.
-        traces_primary_names: MutableMapping[str, tuple[str, str]] = {}
-        traces_fallback_names: MutableMapping[str, tuple[str, str]] = {}
         for row in traces_breakdown_projects_results["data"]:
             if row["trace"] in traces_primary_names:
                 continue
-            else:
-                # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
-                # So make sure to handle both in case something changes.
-                if not row["parent_span"] or int(row["parent_span"], 16) == 0:
-                    traces_primary_names[row["trace"]] = (row["project"], row["transaction"])
 
+            # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
+            # So make sure to handle both in case something changes.
+            if not row["parent_span"] or int(row["parent_span"], 16) == 0:
+                traces_primary_names[row["trace"]] = (row["project"], row["transaction"])
+
+            if row["trace"] in traces_fallback_names:
+                continue
+
+            # This span is a good candidate for the trace name so use it.
             if row["trace"] not in traces_fallback_names and is_trace_name_candidate(row):
                 traces_fallback_names[row["trace"]] = (row["project"], row["transaction"])
+
+            if row["trace"] in traces_default_names:
+                continue
+
+            # This is the first span in this trace.
+            traces_default_names[row["trace"]] = (row["project"], row["transaction"])
 
         def get_trace_name(trace):
             if trace in traces_primary_names:
@@ -869,6 +888,9 @@ class TracesExecutor:
 
             if trace in traces_fallback_names:
                 return traces_fallback_names[trace]
+
+            if trace in traces_default_names:
+                return traces_default_names[trace]
 
             return (None, None)
 
