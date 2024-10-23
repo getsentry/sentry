@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -8,20 +8,18 @@ import {Flex} from 'sentry/components/container/flex';
 import Count from 'sentry/components/count';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {useUser} from 'sentry/utils/useUser';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -47,7 +45,6 @@ export default function StreamlinedGroupHeader({
   groupReprocessingStatus,
   project,
 }: GroupHeaderProps) {
-  const activeUser = useUser();
   const location = useLocation();
   const organization = useOrganization();
   const {baseUrl} = useGroupDetailsRoute();
@@ -64,18 +61,6 @@ export default function StreamlinedGroupHeader({
     'issue-details-sidebar-open',
     true
   );
-
-  const {userParticipants, teamParticipants, displayUsers} = useMemo(() => {
-    return {
-      userParticipants: group.participants.filter(
-        (p): p is UserParticipant => p.type === 'user'
-      ),
-      teamParticipants: group.participants.filter(
-        (p): p is TeamParticipant => p.type === 'team'
-      ),
-      displayUsers: group.seenBy.filter(user => activeUser.id !== user.id),
-    };
-  }, [group, activeUser.id]);
 
   return (
     <Fragment>
@@ -105,14 +90,19 @@ export default function StreamlinedGroupHeader({
         </Flex>
         <HeaderGrid>
           <Flex gap={space(0.75)} align="baseline">
-            <PrimaryTitle title={primaryTitle} isHoverable showOnlyOnOverflow delay={500}>
+            <PrimaryTitle
+              title={primaryTitle}
+              isHoverable
+              showOnlyOnOverflow
+              delay={1000}
+            >
               {primaryTitle}
             </PrimaryTitle>
             <SecondaryTitle
               title={secondaryTitle}
               isHoverable
               showOnlyOnOverflow
-              delay={500}
+              delay={1000}
               isDefault={!secondaryTitle}
             >
               {secondaryTitle ?? t('No error message')}
@@ -125,10 +115,14 @@ export default function StreamlinedGroupHeader({
           <Flex gap={space(1)} align="center" justify="flex-start">
             <ErrorLevel level={group.level} size={'10px'} />
             {group.isUnhandled && <UnhandledTag />}
-            <Divider />
-            <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={500}>
-              {subtitle}
-            </Subtitle>
+            {subtitle && (
+              <Fragment>
+                <Divider />
+                <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={1000}>
+                  {subtitle}
+                </Subtitle>
+              </Fragment>
+            )}
             <AttachmentsBadge group={group} />
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
@@ -154,18 +148,6 @@ export default function StreamlinedGroupHeader({
             {t('Assignee')}
             <GroupHeaderAssigneeSelector group={group} project={project} event={event} />
           </Workflow>
-          {group.participants.length > 0 && (
-            <Workflow>
-              {t('Participants')}
-              <ParticipantList users={userParticipants} teams={teamParticipants} />
-            </Workflow>
-          )}
-          {displayUsers.length > 0 && (
-            <Workflow>
-              {t('Viewers')}
-              <ParticipantList users={displayUsers} />
-            </Workflow>
-          )}
           <SidebarButton
             icon={
               sidebarOpen ? (
@@ -199,16 +181,18 @@ const HeaderGrid = styled('div')`
 `;
 
 const PrimaryTitle = styled(Tooltip)`
-  font-size: 20px;
-  font-weight: ${p => p.theme.fontWeightBold};
   overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 20px;
+  font-weight: ${p => p.theme.fontWeightBold};
+  flex-shrink: 0;
 `;
 
-const SecondaryTitle = styled(PrimaryTitle)<{isDefault: boolean}>`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+const SecondaryTitle = styled(Tooltip)<{isDefault: boolean}>`
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-style: ${p => (p.isDefault ? 'italic' : 'initial')};
 `;
 

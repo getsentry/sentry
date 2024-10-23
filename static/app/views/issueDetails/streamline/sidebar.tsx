@@ -9,6 +9,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/firstLastSeenSection';
+import PeopleSection from 'sentry/views/issueDetails/streamline/peopleSection';
 
 type Props = {
   group: Group;
@@ -28,6 +29,8 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         </ErrorBoundary>
       )}
       <StreamlinedActivitySection group={group} />
+      <StyledBreak />
+      <PeopleSection group={group} />
     </div>
   );
 }

@@ -820,7 +820,7 @@ const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
   ${p =>
     p.hasNewLayout &&
     css`
-      padding-top: 14px;
+      padding-top: ${space(2)};
     `}
 `;
 
