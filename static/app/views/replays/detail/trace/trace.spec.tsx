@@ -7,17 +7,6 @@ import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 import {useTransactionData} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import Trace from 'sentry/views/replays/detail/trace/trace';
 
-jest.mock('screenfull', () => ({
-  enabled: true,
-  get isFullscreen() {
-    return false;
-  },
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
-
 jest.mock('sentry/views/replays/detail/trace/replayTransactionContext');
 
 const mockUseTransactionData = jest.mocked(useTransactionData);
