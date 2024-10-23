@@ -27,7 +27,7 @@ describe('WidgetFrame', () => {
   });
 
   describe('Badge', () => {
-    it('Shows the badge', () => {
+    it('Shows a single badge', () => {
       const {rerender} = render(<WidgetFrame title="count()" />);
 
       expect(screen.queryByText('Sampled')).not.toBeInTheDocument();
@@ -42,6 +42,29 @@ describe('WidgetFrame', () => {
       );
 
       expect(screen.getByText('Sampled')).toBeInTheDocument();
+    });
+
+    it('Shows multiple badges', () => {
+      const {rerender} = render(<WidgetFrame title="count()" />);
+
+      expect(screen.queryByText('Sampled')).not.toBeInTheDocument();
+
+      rerender(
+        <WidgetFrame
+          title="count()"
+          badgeProps={[
+            {
+              text: 'Sampled',
+            },
+            {
+              text: 'Extracted',
+            },
+          ]}
+        />
+      );
+
+      expect(screen.getByText('Sampled')).toBeInTheDocument();
+      expect(screen.getByText('Extracted')).toBeInTheDocument();
     });
   });
 
