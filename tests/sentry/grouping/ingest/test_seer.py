@@ -14,7 +14,7 @@ from sentry.utils.types import NonNone
 
 
 class ShouldCallSeerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.event_data = {
             "title": "FailedToFetchError('Charlie didn't bring the ball back')",
             "exception": {
@@ -42,18 +42,19 @@ class ShouldCallSeerTest(TestCase):
             event_id="11212012123120120415201309082013",
             data=self.event_data,
         )
+        self.variants = self.event.get_grouping_variants()
         self.primary_hashes = self.event.get_hashes()
 
-    def test_obeys_feature_enablement_check(self):
+    def test_obeys_feature_enablement_check(self) -> None:
         for backfill_completed_option, expected_result in [(None, False), (11211231, True)]:
             self.project.update_option(
                 "sentry:similarity_backfill_completed", backfill_completed_option
             )
             assert (
-                should_call_seer_for_grouping(self.event) is expected_result
+                should_call_seer_for_grouping(self.event, self.variants) is expected_result
             ), f"Case {backfill_completed_option} failed."
 
-    def test_obeys_content_filter(self):
+    def test_obeys_content_filter(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         for content_eligibility, expected_result in [(True, True), (False, False)]:
@@ -61,32 +62,32 @@ class ShouldCallSeerTest(TestCase):
                 "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
                 return_value=content_eligibility,
             ):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
-    def test_obeys_global_seer_killswitch(self):
+    def test_obeys_global_seer_killswitch(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         for killswitch_enabled, expected_result in [(True, False), (False, True)]:
             with override_options({"seer.global-killswitch.enabled": killswitch_enabled}):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
-    def test_obeys_similarity_service_killswitch(self):
+    def test_obeys_similarity_service_killswitch(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         for killswitch_enabled, expected_result in [(True, False), (False, True)]:
             with override_options({"seer.similarity-killswitch.enabled": killswitch_enabled}):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
-    def test_obeys_project_specific_killswitch(self):
+    def test_obeys_project_specific_killswitch(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         for blocked_projects, expected_result in [([self.project.id], False), ([], True)]:
             with override_options(
                 {"seer.similarity.grouping_killswitch_projects": blocked_projects}
             ):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
-    def test_obeys_global_ratelimit(self):
+    def test_obeys_global_ratelimit(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         for ratelimit_enabled, expected_result in [(True, False), (False, True)]:
@@ -96,9 +97,9 @@ class ShouldCallSeerTest(TestCase):
                     is_enabled if key == "seer:similarity:global-limit" else False
                 ),
             ):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
-    def test_obeys_project_ratelimit(self):
+    def test_obeys_project_ratelimit(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         for ratelimit_enabled, expected_result in [(True, False), (False, True)]:
@@ -110,9 +111,9 @@ class ShouldCallSeerTest(TestCase):
                     else False
                 ),
             ):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
-    def test_obeys_circuit_breaker(self):
+    def test_obeys_circuit_breaker(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         for request_allowed, expected_result in [(True, True), (False, False)]:
@@ -120,9 +121,9 @@ class ShouldCallSeerTest(TestCase):
                 "sentry.grouping.ingest.seer.CircuitBreaker.should_allow_request",
                 return_value=request_allowed,
             ):
-                assert should_call_seer_for_grouping(self.event) is expected_result
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
 
-    def test_obeys_customized_fingerprint_check(self):
+    def test_obeys_customized_fingerprint_check(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         default_fingerprint_event = Event(
@@ -146,7 +147,7 @@ class ShouldCallSeerTest(TestCase):
             data={
                 **self.event_data,
                 "fingerprint": ["failedtofetcherror"],
-                "_fingerprint_info": {"is_builtin": True},
+                "_fingerprint_info": {"matched_rule": {"is_builtin": True}},
             },
         )
 
@@ -158,12 +159,13 @@ class ShouldCallSeerTest(TestCase):
         ]:
 
             assert (
-                should_call_seer_for_grouping(event) is expected_result
+                should_call_seer_for_grouping(event, event.get_grouping_variants())
+                is expected_result
             ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
 
 
 class GetSeerSimilarIssuesTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         assert self.existing_event.get_primary_hash() == "04e89719410791836f0a0bbf03bf0d2e"
         # In real life just filtering on group id wouldn't be enough to guarantee us a single,
@@ -176,10 +178,11 @@ class GetSeerSimilarIssuesTest(TestCase):
             event_id="11212012123120120415201309082013",
             data={"message": "Adopt don't shop"},
         )
+        self.variants = self.new_event.get_grouping_variants()
         assert self.new_event.get_primary_hash() == "3f11319f08263b2ee1e654779742955a"
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
-    def test_sends_expected_data_to_seer(self, mock_get_similarity_data: MagicMock):
+    def test_sends_expected_data_to_seer(self, mock_get_similarity_data: MagicMock) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
@@ -208,7 +211,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "platform": "python",
             },
         )
-        get_seer_similar_issues(new_event)
+        get_seer_similar_issues(new_event, new_event.get_grouping_variants())
 
         mock_get_similarity_data.assert_called_with(
             {
@@ -223,7 +226,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             }
         )
 
-    def test_returns_metadata_and_grouphash_if_sufficiently_close_group_found(self):
+    def test_returns_metadata_and_grouphash_if_sufficiently_close_group_found(self) -> None:
         seer_result_data = SeerSimilarIssueData(
             parent_hash=NonNone(self.existing_event.get_primary_hash()),
             parent_group_id=NonNone(self.existing_event.group_id),
@@ -240,12 +243,12 @@ class GetSeerSimilarIssuesTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[seer_result_data],
         ):
-            assert get_seer_similar_issues(self.new_event) == (
+            assert get_seer_similar_issues(self.new_event, self.variants) == (
                 expected_metadata,
                 self.existing_event_grouphash,
             )
 
-    def test_returns_no_grouphash_and_empty_metadata_if_no_similar_group_found(self):
+    def test_returns_no_grouphash_and_empty_metadata_if_no_similar_group_found(self) -> None:
         expected_metadata = {
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
             "results": [],
@@ -255,7 +258,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
         ):
-            assert get_seer_similar_issues(self.new_event) == (
+            assert get_seer_similar_issues(self.new_event, self.variants) == (
                 expected_metadata,
                 None,
             )

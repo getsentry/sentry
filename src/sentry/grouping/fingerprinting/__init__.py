@@ -245,7 +245,7 @@ class FingerprintingRules:
     def _from_config_structure(
         cls, data: dict[str, Any], bases: Sequence[str] | None = None
     ) -> Self:
-        version = data["version"]
+        version = data.get("version", VERSION)
         if version != VERSION:
             raise ValueError("Unknown version")
         return cls(
@@ -485,6 +485,7 @@ class Rule:
 
     def _to_config_structure(self) -> dict[str, Any]:
         config_structure: dict[str, Any] = {
+            "text": self.text,
             "matchers": [x._to_config_structure() for x in self.matchers],
             "fingerprint": self.fingerprint,
             "attributes": self.attributes,

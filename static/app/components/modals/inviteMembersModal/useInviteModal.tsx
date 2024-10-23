@@ -181,6 +181,26 @@ export default function useInviteModal({organization, initialData, source}: Prop
     });
   }, []);
 
+  useEffect(() => {
+    const statuses = Object.values(state.inviteStatus) as InviteStatus[];
+    const sentCount = statuses.filter(i => i.sent).length;
+    const errorCount = statuses.filter(i => i.error).length;
+    // Don't track if no invites have been sent or invites are still sending
+    if ((sentCount === 0 && errorCount === 0) || state.sendingInvites) {
+      return;
+    }
+    trackAnalytics(
+      willInvite ? 'invite_modal.invites_sent' : 'invite_modal.requests_sent',
+      {
+        organization,
+        modal_session: sessionId.current,
+        sent_invites: sentCount,
+        failed_invites: errorCount,
+        is_new_modal: organization.features.includes('invite-members-new-modal'),
+      }
+    );
+  }, [organization, state.inviteStatus, state.sendingInvites, willInvite]);
+
   const sendInvites = useCallback(async () => {
     setState(prev => ({...prev, sendingInvites: true}));
     await Promise.all(invites.map(sendInvite));
@@ -188,15 +208,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
       removeSentInvites();
     }
     setState(prev => ({...prev, sendingInvites: false, complete: true}));
-
-    trackAnalytics(
-      willInvite ? 'invite_modal.invites_sent' : 'invite_modal.requests_sent',
-      {
-        organization,
-        modal_session: sessionId.current,
-      }
-    );
-  }, [organization, invites, sendInvite, willInvite, removeSentInvites]);
+  }, [organization, invites, sendInvite, removeSentInvites]);
 
   const addInviteRow = useCallback(() => {
     setState(prev => ({

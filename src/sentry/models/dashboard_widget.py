@@ -62,6 +62,7 @@ class DashboardWidgetTypes(TypesClass):
     """
     This targets transaction-like data from the split from discover. Itt may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
     """
+    SPANS = 102
 
     TYPES = [
         (DISCOVER, "discover"),
@@ -73,6 +74,7 @@ class DashboardWidgetTypes(TypesClass):
         (METRICS, "custom-metrics"),
         (ERROR_EVENTS, "error-events"),
         (TRANSACTION_LIKE, "transaction-like"),
+        (SPANS, "spans"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -96,6 +98,14 @@ class DatasetSourcesTypes(Enum):
      Was an ambiguous dataset forced to split (i.e. we picked a default)
     """
     FORCED = 3
+    """
+     Dataset inferred by split script, version 1
+    """
+    SPLIT_VERSION_1 = 4
+    """
+     Dataset inferred by split script, version 2
+    """
+    SPLIT_VERSION_2 = 5
 
     @classmethod
     def as_choices(cls):

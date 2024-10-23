@@ -39,11 +39,11 @@ function initializeData() {
 }
 
 describe('Performance Transaction Events Content', function () {
-  let fields;
-  let data;
-  let transactionName;
-  let eventView;
-  let initialData;
+  let fields: string[];
+  let data: any[];
+  let transactionName: string;
+  let eventView: EventView;
+  let initialData: ReturnType<typeof initializeData>;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {

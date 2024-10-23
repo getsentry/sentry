@@ -4,7 +4,7 @@ import abc
 import logging
 import sys
 from collections.abc import Mapping, MutableMapping, Sequence
-from enum import Enum
+from enum import Enum, StrEnum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
 
@@ -36,6 +36,7 @@ from sentry.shared_integrations.constants import (
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiInvalidRequestError,
     ApiUnauthorized,
     IntegrationError,
     IntegrationFormError,
@@ -123,6 +124,58 @@ class IntegrationFeatures(Enum):
     DATA_FORWARDING = "data-forwarding"
     SESSION_REPLAY = "session-replay"
     DEPLOYMENT = "deployment"
+
+
+# Integration Types
+class IntegrationDomain(StrEnum):
+    MESSAGING = "messaging"
+    PROJECT_MANAGEMENT = "project_management"
+    SOURCE_CODE_MANAGEMENT = "source_code_management"
+    ON_CALL_SCHEDULING = "on_call_scheduling"
+    IDENTITY = "identity"  # for identity pipelines
+
+
+class IntegrationProviderSlug(StrEnum):
+    SLACK = "slack"
+    DISCORD = "discord"
+    MSTeams = "msteams"
+    JIRA = "jira"
+    JIRA_SERVER = "jira_server"
+    AZURE_DEVOPS = "vsts"
+    GITHUB = "github"
+    GITHUB_ENTERPRISE = "github_enterprise"
+    GITLAB = "gitlab"
+    BITBUCKET = "bitbucket"
+    PAGERDUTY = "pagerduty"
+    OPSGENIE = "opsgenie"
+
+
+INTEGRATION_TYPE_TO_PROVIDER = {
+    IntegrationDomain.MESSAGING: [
+        IntegrationProviderSlug.SLACK,
+        IntegrationProviderSlug.DISCORD,
+        IntegrationProviderSlug.MSTeams,
+    ],
+    IntegrationDomain.PROJECT_MANAGEMENT: [
+        IntegrationProviderSlug.JIRA,
+        IntegrationProviderSlug.JIRA_SERVER,
+        IntegrationProviderSlug.GITHUB,
+        IntegrationProviderSlug.GITHUB_ENTERPRISE,
+        IntegrationProviderSlug.GITLAB,
+        IntegrationProviderSlug.AZURE_DEVOPS,
+    ],
+    IntegrationDomain.SOURCE_CODE_MANAGEMENT: [
+        IntegrationProviderSlug.GITHUB,
+        IntegrationProviderSlug.GITHUB_ENTERPRISE,
+        IntegrationProviderSlug.GITLAB,
+        IntegrationProviderSlug.BITBUCKET,
+        IntegrationProviderSlug.AZURE_DEVOPS,
+    ],
+    IntegrationDomain.ON_CALL_SCHEDULING: [
+        IntegrationProviderSlug.PAGERDUTY,
+        IntegrationProviderSlug.OPSGENIE,
+    ],
+}
 
 
 class IntegrationProvider(PipelineProvider, abc.ABC):
@@ -373,7 +426,7 @@ class IntegrationInstallation(abc.ABC):
         """
         raise NotImplementedError
 
-    def get_keyring_client(self, keyid: str) -> Any:
+    def get_keyring_client(self, keyid: int | str) -> Any:
         """
         Return an API client with a scoped key based on the key_name.
 
@@ -431,7 +484,7 @@ class IntegrationInstallation(abc.ABC):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
                 sys.exc_info()[2]
             )
-        elif isinstance(exc, ApiError):
+        elif isinstance(exc, ApiInvalidRequestError):
             if exc.json:
                 error_fields = self.error_fields_from_json(exc.json)
                 if error_fields is not None:

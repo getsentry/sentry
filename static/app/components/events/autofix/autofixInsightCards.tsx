@@ -29,8 +29,10 @@ import {
   IconArrow,
   IconChevron,
   IconCode,
+  IconEdit,
   IconFire,
   IconRefresh,
+  IconSpan,
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -103,6 +105,7 @@ export function ExpandableInsightContext({
         name={title}
         isRounded={rounded}
         isExpanded={expanded}
+        size="sm"
       >
         <ContextHeaderWrapper>
           <ContextHeaderLeftAlign>
@@ -147,6 +150,12 @@ function AutofixInsightCard({
 }: AutofixInsightCardProps) {
   const isUserMessage = insight.justification === 'USER';
 
+  const [expanded, setExpanded] = useState(false);
+
+  const toggleExpand = () => {
+    setExpanded(oldState => !oldState);
+  };
+
   return (
     <ContentWrapper>
       <AnimatePresence initial>
@@ -161,100 +170,107 @@ function AutofixInsightCard({
           )}
           {!isUserMessage && (
             <InsightContainer>
-              <MiniHeader
-                dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(insight.insight),
-                }}
-              />
-              <ExpandableInsightContext title={'Context'}>
-                <p
+              <InsightCardRow onClick={toggleExpand}>
+                <MiniHeader
                   dangerouslySetInnerHTML={{
-                    __html: singleLineRenderer(
-                      replaceHeadersWithBold(insight.justification)
-                    ),
+                    __html: singleLineRenderer(insight.insight),
                   }}
                 />
-                {insight.error_message_context &&
-                  insight.error_message_context.length > 0 && (
-                    <div>
-                      {insight.error_message_context
-                        .map((message, i) => {
-                          return (
-                            <BackgroundPanel key={i}>
-                              <ErrorMessage>
-                                <ErrorMessageIcon>
-                                  <IconFire color="red400" size="md" />
-                                </ErrorMessageIcon>
-                                <p
-                                  dangerouslySetInnerHTML={{
-                                    __html: singleLineRenderer('`' + message + '`'),
+                <StyledIconChevron direction={expanded ? 'down' : 'right'} size="xs" />
+              </InsightCardRow>
+
+              {expanded && (
+                <ContextBody>
+                  <p
+                    dangerouslySetInnerHTML={{
+                      __html: singleLineRenderer(
+                        replaceHeadersWithBold(insight.justification)
+                      ),
+                    }}
+                  />
+                  {insight.stacktrace_context &&
+                    insight.stacktrace_context.length > 0 && (
+                      <div>
+                        <ContextSectionTitle>
+                          <IconFire color="red400" />
+                          {t(
+                            'Stacktrace%s and Variables:',
+                            insight.stacktrace_context.length > 1 ? 's' : ''
+                          )}
+                        </ContextSectionTitle>
+                        {insight.stacktrace_context
+                          .map((stacktrace, i) => {
+                            let vars: any = {};
+                            try {
+                              vars = JSON.parse(stacktrace.vars_as_json);
+                            } catch {
+                              vars = {vars: stacktrace.vars_as_json};
+                            }
+                            return (
+                              <div key={i}>
+                                <SuggestedFixSnippet
+                                  snippet={{
+                                    snippet: stacktrace.code_snippet,
+                                    repo_name: stacktrace.repo_name,
+                                    file_path: stacktrace.file_name,
                                   }}
+                                  linesToHighlight={[]}
+                                  repos={repos}
                                 />
-                              </ErrorMessage>
-                            </BackgroundPanel>
+                                <StyledStructuredEventData
+                                  data={vars}
+                                  maxDefaultDepth={1}
+                                />
+                              </div>
+                            );
+                          })
+                          .reverse()}
+                      </div>
+                    )}
+                  {insight.breadcrumb_context &&
+                    insight.breadcrumb_context.length > 0 && (
+                      <div>
+                        <ContextSectionTitle>
+                          <IconSpan color="green400" />
+                          {t(
+                            'Breadcrumb%s:',
+                            insight.breadcrumb_context.length > 1 ? 's' : ''
+                          )}
+                        </ContextSectionTitle>
+                        {insight.breadcrumb_context
+                          .map((breadcrumb, i) => {
+                            return (
+                              <AutofixBreadcrumbSnippet key={i} breadcrumb={breadcrumb} />
+                            );
+                          })
+                          .reverse()}
+                      </div>
+                    )}
+                  {insight.codebase_context && insight.codebase_context.length > 0 && (
+                    <div>
+                      <ContextSectionTitle>
+                        <IconCode color="purple400" />
+                        {t(
+                          'Code Snippet%s:',
+                          insight.codebase_context.length > 1 ? 's' : ''
+                        )}
+                      </ContextSectionTitle>
+                      {insight.codebase_context
+                        .map((code, i) => {
+                          return (
+                            <SuggestedFixSnippet
+                              key={i}
+                              snippet={code}
+                              linesToHighlight={[]}
+                              repos={repos}
+                            />
                           );
                         })
                         .reverse()}
                     </div>
                   )}
-                {insight.stacktrace_context && insight.stacktrace_context.length > 0 && (
-                  <div>
-                    {insight.stacktrace_context
-                      .map((stacktrace, i) => {
-                        let vars = {};
-                        try {
-                          vars = JSON.parse(stacktrace.vars_as_json);
-                        } catch {
-                          vars = {vars: stacktrace.vars_as_json};
-                        }
-                        return (
-                          <div key={i}>
-                            <SuggestedFixSnippet
-                              snippet={{
-                                snippet: stacktrace.code_snippet,
-                                repo_name: stacktrace.repo_name,
-                                file_path: stacktrace.file_name,
-                              }}
-                              linesToHighlight={[]}
-                              repos={repos}
-                              icon={<IconFire color="red400" />}
-                            />
-                            <StyledStructuredEventData data={vars} maxDefaultDepth={1} />
-                          </div>
-                        );
-                      })
-                      .reverse()}
-                  </div>
-                )}
-                {insight.breadcrumb_context && insight.breadcrumb_context.length > 0 && (
-                  <div>
-                    {insight.breadcrumb_context
-                      .map((breadcrumb, i) => {
-                        return (
-                          <AutofixBreadcrumbSnippet key={i} breadcrumb={breadcrumb} />
-                        );
-                      })
-                      .reverse()}
-                  </div>
-                )}
-                {insight.codebase_context && insight.codebase_context.length > 0 && (
-                  <div>
-                    {insight.codebase_context
-                      .map((code, i) => {
-                        return (
-                          <SuggestedFixSnippet
-                            key={i}
-                            snippet={code}
-                            linesToHighlight={[]}
-                            repos={repos}
-                            icon={<IconCode color="purple400" />}
-                          />
-                        );
-                      })
-                      .reverse()}
-                  </div>
-                )}
-              </ExpandableInsightContext>
+                </ContextBody>
+              )}
             </InsightContainer>
           )}
           {isUserMessage && (
@@ -302,17 +318,6 @@ function AutofixInsightCards({
 }: AutofixInsightCardsProps) {
   return (
     <InsightsContainer>
-      {!hasStepAbove && (
-        <div>
-          <TitleText>Insights</TitleText>
-          <ChainLink
-            insightCardAboveIndex={null}
-            stepIndex={stepIndex}
-            groupId={groupId}
-            runId={runId}
-          />
-        </div>
-      )}
       {insights.length > 0 ? (
         insights.map((insight, index) =>
           !insight ? null : (
@@ -344,7 +349,7 @@ function AutofixInsightCards({
   );
 }
 
-function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
+export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
 
   return useMutation({
@@ -367,7 +372,7 @@ function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}
       });
     },
     onSuccess: _ => {
-      addSuccessMessage(t("Thanks, I'll rethink this..."));
+      addSuccessMessage(t('Thanks, rethinking this...'));
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending Autofix your message.'));
@@ -412,13 +417,13 @@ function ChainLink({
     <ArrowContainer>
       <IconArrow direction={'down'} className="arrow-icon" />
       <RethinkButton
-        icon={<IconRefresh />}
+        icon={<IconEdit size="xs" />}
         size="zero"
-        className="hover-button"
+        className="rethink-button"
+        title={t('Rethink from here')}
+        aria-label={t('Rethink from here')}
         onClick={() => setShowOverlay(true)}
-      >
-        Rethink from here
-      </RethinkButton>
+      />
 
       {showOverlay && (
         <RethinkInput ref={overlayRef}>
@@ -458,10 +463,35 @@ function ChainLink({
   );
 }
 
+const ContextSectionTitle = styled('p')`
+  font-weight: bold;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const InsightCardRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+`;
+
 const UserMessageContainer = styled('div')`
   color: ${p => p.theme.subText};
   display: flex;
-  padding: ${space(1)};
+  padding: ${space(2)};
+  align-items: center;
+  border: 1px solid ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+  box-shadow: ${p => p.theme.dropShadowMedium};
+  margin-left: ${space(4)};
+  margin-right: ${space(4)};
 `;
 
 const UserMessage = styled('div')`
@@ -486,14 +516,6 @@ const NoInsightsYet = styled('div')`
   text-align: center;
 `;
 
-const TitleText = styled('p')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-  margin: 0;
-  display: flex;
-  justify-content: center;
-`;
-
 const InsightsContainer = styled('div')``;
 
 const InsightContainer = styled(motion.div)`
@@ -501,6 +523,8 @@ const InsightContainer = styled(motion.div)`
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
+  margin-left: ${space(2)};
+  margin-right: ${space(2)};
 `;
 
 const ArrowContainer = styled('div')`
@@ -510,22 +534,25 @@ const ArrowContainer = styled('div')`
   align-items: center;
   position: relative;
   z-index: 0;
+  padding-top: ${space(1)};
+  padding-bottom: ${space(1)};
 
   .arrow-icon {
-    margin-top: ${space(1)};
     grid-column: 2 / 3;
     justify-self: center;
+    align-self: center;
   }
 
-  .hover-button {
-    opacity: 0;
+  .rethink-button {
     grid-column: 3 / 4;
     justify-self: end;
-    transition: opacity 0.1s ease-in-out;
+    align-self: center;
   }
 
-  &:hover .hover-button {
-    opacity: 1;
+  &:hover {
+    .rethink-button {
+      color: ${p => p.theme.subText};
+    }
   }
 `;
 
@@ -533,8 +560,8 @@ const RethinkButton = styled(Button)`
   font-weight: normal;
   font-size: small;
   border: none;
-  color: ${p => p.theme.subText};
-  margin-top: ${space(1)};
+  color: ${p => p.theme.gray200};
+  transition: color 0.2s ease-in-out;
 `;
 
 const RethinkInput = styled('div')`
@@ -545,7 +572,8 @@ const RethinkInput = styled('div')`
   background: ${p => p.theme.backgroundElevated};
   padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
-  margin: 0 ${space(2)} 0 ${space(2)};
+  margin: 0 ${space(1.5)} 0 ${space(1.5)};
+  z-index: 10000;
 
   .row-form {
     display: flex;
@@ -565,9 +593,7 @@ const BreadcrumbItem = styled(Timeline.Item)`
   }
 `;
 
-const ContentWrapper = styled('div')`
-  padding-bottom: ${space(1)};
-`;
+const ContentWrapper = styled('div')``;
 
 const Header = styled('div')`
   display: grid;
@@ -581,7 +607,8 @@ const TextBreak = styled('span')`
 
 const BackgroundPanel = styled('div')`
   padding: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${space(2)};
+  margin-bottom: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
 `;
@@ -590,11 +617,11 @@ const MiniHeader = styled('p')`
   padding-top: ${space(2)};
   padding-right: ${space(2)};
   padding-left: ${space(2)};
+  width: 95%;
 `;
 
 const ExpandableContext = styled('div')<{isRounded?: boolean}>`
   width: 100%;
-  background: ${p => p.theme.alert.info.backgroundLight};
   border-radius: ${p => (p.isRounded ? p.theme.borderRadius : 0)};
 `;
 
@@ -635,14 +662,10 @@ const ContextHeaderText = styled('p')`
 
 const ContextBody = styled('div')`
   padding: ${space(2)};
+  background: ${p => p.theme.alert.info.backgroundLight};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  overflow: hidden;
 `;
-
-const ErrorMessage = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
-
-const ErrorMessageIcon = styled('div')``;
 
 const StyledStructuredEventData = styled(StructuredEventData)`
   border-top: solid 1px ${p => p.theme.border};
@@ -651,5 +674,14 @@ const StyledStructuredEventData = styled(StructuredEventData)`
 `;
 
 const AnimationWrapper = styled(motion.div)``;
+
+const StyledIconChevron = styled(IconChevron)`
+  width: 5%;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: ${p => p.theme.subText};
+`;
 
 export default AutofixInsightCards;

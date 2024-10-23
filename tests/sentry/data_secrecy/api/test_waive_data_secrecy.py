@@ -89,6 +89,11 @@ class DataSecrecyTest(APITestCase):
         assert ds.access_start == datetime.now(tz=timezone.utc) + timedelta(days=1)
         assert ds.access_end == datetime.now(tz=timezone.utc) + timedelta(days=2)
 
+        assert_org_audit_log_exists(
+            organization=self.org,
+            event=audit_log.get_event_id("DATA_SECRECY_WAIVED"),
+        )
+
     @freeze_time(datetime(2024, 7, 18, 0, 0, 0, tzinfo=timezone.utc))
     def test_put_invalid_dates(self):
         self.body_params["accessEnd"] = self.body_params["accessStart"]
@@ -120,9 +125,14 @@ class DataSecrecyTest(APITestCase):
         )
 
         with outbox_runner():
-            self.get_success_response(self.org.slug, method="delete")
+            self.get_success_response(self.org.slug, method="delete", status_code=204)
 
         assert DataSecrecyWaiver.objects.filter(organization=self.org).first() is None
+
+        assert_org_audit_log_exists(
+            organization=self.org,
+            event=audit_log.get_event_id("DATA_SECRECY_REINSTATED"),
+        )
 
     @freeze_time(datetime(2024, 7, 18, 0, 0, 0, tzinfo=timezone.utc))
     def test_delete_non_existing_waiver(self):

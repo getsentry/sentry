@@ -93,6 +93,11 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     interval_seconds = serializers.ChoiceField(
         required=True, choices=[int(i.total_seconds()) for i in VALID_INTERVALS]
     )
+    timeout_ms = serializers.IntegerField(
+        required=True,
+        min_value=1000,
+        max_value=30_000,
+    )
     mode = serializers.IntegerField(required=False)
     method = serializers.ChoiceField(
         required=False, choices=list(zip(SUPPORTED_HTTP_METHODS, SUPPORTED_HTTP_METHODS))
@@ -172,6 +177,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
                 environment=environment,
                 url=validated_data["url"],
                 interval_seconds=validated_data["interval_seconds"],
+                timeout_ms=validated_data["timeout_ms"],
                 name=validated_data["name"],
                 mode=validated_data.get("mode", ProjectUptimeSubscriptionMode.MANUAL),
                 owner=validated_data.get("owner"),
@@ -201,6 +207,9 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             if "interval_seconds" in data
             else instance.uptime_subscription.interval_seconds
         )
+        timeout_ms = (
+            data["timeout_ms"] if "timeout_ms" in data else instance.uptime_subscription.timeout_ms
+        )
         method = data["method"] if "method" in data else instance.uptime_subscription.method
         headers = data["headers"] if "headers" in data else instance.uptime_subscription.headers
         body = data["body"] if "body" in data else instance.uptime_subscription.body
@@ -223,6 +232,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             environment=environment,
             url=url,
             interval_seconds=interval_seconds,
+            timeout_ms=timeout_ms,
             method=method,
             headers=headers,
             body=body,

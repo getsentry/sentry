@@ -6,7 +6,7 @@ from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory
 from sentry.rules.history.endpoints.project_rule_group_history import RuleGroupHistorySerializer
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -55,8 +55,8 @@ class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
             self.organization.slug,
             self.project.slug,
             rule.id,
-            start=iso_format(before_now(days=6)),
-            end=iso_format(before_now(days=0)),
+            start=before_now(days=6),
+            end=before_now(days=0),
         )
         base_triggered_date = before_now(days=1)
         assert resp.data == serialize(
@@ -72,8 +72,8 @@ class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
             self.organization.slug,
             self.project.slug,
             rule.id,
-            start=iso_format(before_now(days=6)),
-            end=iso_format(before_now(days=0)),
+            start=before_now(days=6),
+            end=before_now(days=0),
             per_page=1,
         )
         assert resp.data == serialize(
@@ -85,8 +85,8 @@ class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
             self.organization.slug,
             self.project.slug,
             rule.id,
-            start=iso_format(before_now(days=6)),
-            end=iso_format(before_now(days=0)),
+            start=before_now(days=6),
+            end=before_now(days=0),
             per_page=1,
             cursor=self.get_cursor_headers(resp)[1],
         )
@@ -104,7 +104,7 @@ class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
             self.organization.slug,
             self.project.slug,
             rule.id,
-            start=iso_format(before_now(days=0)),
-            end=iso_format(before_now(days=6)),
+            start=before_now(days=0),
+            end=before_now(days=6),
         )
         assert resp.status_code == 400

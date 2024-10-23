@@ -128,13 +128,13 @@ describe('EventNavigation', () => {
     expect(screen.queryByText('Jump To:')).not.toBeInTheDocument();
     expect(screen.queryByText('Replay')).not.toBeInTheDocument();
     expect(screen.queryByText('Tags')).not.toBeInTheDocument();
-    expect(screen.queryByText('Event Highlights')).not.toBeInTheDocument();
+    expect(screen.queryByText('Highlights')).not.toBeInTheDocument();
   });
 
   it('does show jump to sections when the sections render', () => {
     render(<EventNavigation {...defaultProps} />);
     expect(screen.getByText('Jump to:')).toBeInTheDocument();
-    expect(screen.getByText('Event Highlights')).toBeInTheDocument();
+    expect(screen.getByText('Highlights')).toBeInTheDocument();
     expect(screen.getByText('Replay')).toBeInTheDocument();
     expect(screen.getByText('Tags')).toBeInTheDocument();
   });
@@ -142,7 +142,8 @@ describe('EventNavigation', () => {
   it('can copy event ID', async () => {
     render(<EventNavigation {...defaultProps} />);
 
-    await userEvent.click(screen.getByText(testEvent.id));
+    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event ID'}));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
   });

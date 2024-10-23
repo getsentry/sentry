@@ -24,6 +24,7 @@ describe('replayPlayerEventsContext', () => {
     const mockReplay = ReplayReader.factory({
       attachments: [],
       errors: [],
+      fetching: false,
       replayRecord: ReplayRecordFixture(),
     });
 
@@ -42,9 +43,10 @@ describe('replayPlayerEventsContext', () => {
     const mockReplay = ReplayReader.factory({
       attachments: [],
       errors: [],
+      fetching: false,
       replayRecord: ReplayRecordFixture(),
     });
-    const mockRRwebFrames = [];
+    const mockRRwebFrames: any[] = [];
     mockReplay!.getRRWebFrames = jest.fn().mockReturnValue(mockRRwebFrames);
 
     const {result} = renderHook(useReplayPlayerEvents, {

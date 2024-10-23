@@ -16,7 +16,6 @@ const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 from sentry_sdk.integrations.pymongo import PyMongoIntegration
 
-
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     integrations=[

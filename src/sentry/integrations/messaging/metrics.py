@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecycleOutcome
 from sentry.models.organization import Organization
@@ -14,7 +15,7 @@ from sentry.users.services.user import RpcUser
 class MessagingInteractionType(Enum):
     """A way in which a user can interact with Sentry through a messaging app."""
 
-    # General interactions
+    # Direct interactions with the user
     HELP = "HELP"
     LINK_IDENTITY = "LINK_IDENTITY"
     UNLINK_IDENTITY = "UNLINK_IDENTITY"
@@ -34,6 +35,13 @@ class MessagingInteractionType(Enum):
     IGNORE = "IGNORE"
     MARK_ONGOING = "MARK_ONGOING"
 
+    # Automatic behaviors
+    UNFURL_ISSUES = "UNFURL_ISSUES"
+    UNFURL_METRIC_ALERTS = "UNFURL_METRIC_ALERTS"
+    UNFURL_DISCOVER = "UNFURL_DISCOVER"
+
+    GET_PARENT_NOTIFICATION = "GET_PARENT_NOTIFICATION"
+
     def __str__(self) -> str:
         return self.value.lower()
 
@@ -51,7 +59,7 @@ class MessagingInteractionEvent(EventLifecycleMetric):
 
     def get_key(self, outcome: EventLifecycleOutcome) -> str:
         return self.get_standard_key(
-            domain="messaging",
+            domain=IntegrationDomain.MESSAGING,
             integration_name=self.spec.provider_slug,
             interaction_type=str(self.interaction_type),
             outcome=outcome,

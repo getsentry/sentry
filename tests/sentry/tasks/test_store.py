@@ -2,19 +2,12 @@ from time import time
 from unittest import mock
 
 import pytest
-from django.test.utils import override_settings
 
 from sentry import options, quotas
 from sentry.event_manager import EventManager
 from sentry.exceptions import HashDiscarded
 from sentry.plugins.base.v2 import Plugin2
-from sentry.tasks.store import (
-    is_process_disabled,
-    preprocess_event,
-    process_event,
-    save_event,
-    time_synthetic_monitoring_event,
-)
+from sentry.tasks.store import is_process_disabled, preprocess_event, process_event, save_event
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -289,58 +282,6 @@ def test_scrubbing_after_processing(
     mock_save_event.delay.assert_called_once_with(
         cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id
     )
-
-
-def test_time_synthetic_monitoring_event_in_save_event_disabled(mock_metrics_timing):
-    data = {"project": 1}
-    with override_settings(SENTRY_SYNTHETIC_MONITORING_PROJECT_ID=None):
-        assert time_synthetic_monitoring_event(data, 1, time()) is False
-    assert mock_metrics_timing.call_count == 0
-
-
-def test_time_synthetic_monitoring_event_in_save_event_not_matching_project(mock_metrics_timing):
-    data = {"project": 1}
-    with override_settings(SENTRY_SYNTHETIC_MONITORING_PROJECT_ID=2):
-        assert time_synthetic_monitoring_event(data, 1, time()) is False
-    assert mock_metrics_timing.call_count == 0
-
-
-def test_time_synthetic_monitoring_event_in_save_event_missing_extra(mock_metrics_timing):
-    data = {"project": 1}
-    with override_settings(SENTRY_SYNTHETIC_MONITORING_PROJECT_ID=1):
-        assert time_synthetic_monitoring_event(data, 1, time()) is False
-    assert mock_metrics_timing.call_count == 0
-
-
-def test_time_synthetic_monitoring_event_in_save_event(mock_metrics_timing):
-    tags = {
-        "source_region": "region-1",
-        "target": "target.io",
-        "source": "source-1",
-    }
-    extra = {"key": "value", "another": "val"}
-    extra.update(tags)
-    data = {
-        "project": 1,
-        "timestamp": time(),
-        "extra": {"_sentry_synthetic_monitoring": extra},
-    }
-    with override_settings(SENTRY_SYNTHETIC_MONITORING_PROJECT_ID=1):
-        assert time_synthetic_monitoring_event(data, 1, time()) is True
-
-    to_ingest, to_process = mock_metrics_timing.mock_calls
-
-    assert to_ingest.args == (
-        "events.synthetic-monitoring.time-to-ingest-total",
-        mock.ANY,
-    )
-    assert to_ingest.kwargs == {"tags": tags, "sample_rate": 1.0}
-
-    assert to_process.args == (
-        "events.synthetic-monitoring.time-to-process",
-        mock.ANY,
-    )
-    assert to_process.kwargs == {"tags": tags, "sample_rate": 1.0}
 
 
 @django_db_all

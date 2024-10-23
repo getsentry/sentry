@@ -1,26 +1,34 @@
 import styled from '@emotion/styled';
 
+import Badge, {type BadgeProps} from 'sentry/components/badge/badge';
 import {Button, LinkButton} from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {ErrorPanel} from './errorPanel';
 import {MIN_HEIGHT, MIN_WIDTH} from './settings';
+import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
+import {WarningsList} from './warningsList';
 
-export interface Props extends StateProps {
+export interface WidgetFrameProps extends StateProps {
   actions?: MenuItemProps[];
+  actionsDisabled?: boolean;
+  actionsMessage?: string;
+  badgeProps?: BadgeProps;
   children?: React.ReactNode;
   description?: string;
+  onFullScreenViewClick?: () => void;
   title?: string;
+  warnings?: string[];
 }
 
-export function WidgetFrame(props: Props) {
+export function WidgetFrame(props: WidgetFrameProps) {
   const {error} = props;
 
   // The error state has its own set of available actions
@@ -40,26 +48,48 @@ export function WidgetFrame(props: Props) {
   return (
     <Frame>
       <Header>
-        <Title>
-          <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
-            <TitleText>{props.title}</TitleText>
+        {props.warnings && props.warnings.length > 0 && (
+          <Tooltip title={<WarningsList warnings={props.warnings} />} isHoverable>
+            <TooltipIconTrigger aria-label={t('Widget warnings')}>
+              <IconWarning color="warningText" />
+            </TooltipIconTrigger>
           </Tooltip>
+        )}
 
-          {props.description && (
-            <TooltipAligner>
-              <QuestionTooltip size="sm" title={props.description} />
-            </TooltipAligner>
-          )}
+        <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
+          <TitleText>{props.title}</TitleText>
+        </Tooltip>
 
-          {actions && actions.length > 0 && (
-            <TitleActions>
+        {props.badgeProps && <RigidBadge {...props.badgeProps} />}
+
+        {(props.description ||
+          props.onFullScreenViewClick ||
+          (actions && actions.length > 0)) && (
+          <TitleHoverItems>
+            {props.description && (
+              <QuestionTooltip title={props.description} size="sm" icon="info" />
+            )}
+
+            <TitleActionsWrapper
+              disabled={Boolean(props.actionsDisabled)}
+              disabledMessage={props.actionsMessage ?? ''}
+            >
               {actions.length === 1 ? (
                 actions[0].to ? (
-                  <LinkButton size="xs" onClick={actions[0].onAction} to={actions[0].to}>
+                  <LinkButton
+                    size="xs"
+                    disabled={props.actionsDisabled}
+                    onClick={actions[0].onAction}
+                    to={actions[0].to}
+                  >
                     {actions[0].label}
                   </LinkButton>
                 ) : (
-                  <Button size="xs" onClick={actions[0].onAction}>
+                  <Button
+                    size="xs"
+                    disabled={props.actionsDisabled}
+                    onClick={actions[0].onAction}
+                  >
                     {actions[0].label}
                   </Button>
                 )
@@ -68,6 +98,7 @@ export function WidgetFrame(props: Props) {
               {actions.length > 1 ? (
                 <DropdownMenu
                   items={actions}
+                  isDisabled={props.actionsDisabled}
                   triggerProps={{
                     'aria-label': t('Actions'),
                     size: 'xs',
@@ -78,15 +109,55 @@ export function WidgetFrame(props: Props) {
                   position="bottom-end"
                 />
               ) : null}
-            </TitleActions>
-          )}
-        </Title>
+            </TitleActionsWrapper>
+
+            {props.onFullScreenViewClick && (
+              <Button
+                aria-label={t('Open Full-Screen View')}
+                borderless
+                size="xs"
+                icon={<IconExpand />}
+                onClick={() => {
+                  props.onFullScreenViewClick?.();
+                }}
+              />
+            )}
+          </TitleHoverItems>
+        )}
       </Header>
 
       <VisualizationWrapper>
         {props.error ? <ErrorPanel error={error} /> : props.children}
       </VisualizationWrapper>
     </Frame>
+  );
+}
+
+const TitleHoverItems = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  margin-left: auto;
+
+  opacity: 1;
+  transition: opacity 0.1s;
+`;
+
+interface TitleActionsProps {
+  children: React.ReactNode;
+  disabled: boolean;
+  disabledMessage: string;
+}
+
+function TitleActionsWrapper({disabled, disabledMessage, children}: TitleActionsProps) {
+  if (!disabled || !disabledMessage) {
+    return children;
+  }
+
+  return (
+    <Tooltip title={disabledMessage} isHoverable>
+      {children}
+    </Tooltip>
   );
 }
 
@@ -100,24 +171,36 @@ const Frame = styled('div')`
   width: 100%;
   min-width: ${MIN_WIDTH}px;
 
-  padding: ${space(2)};
+  padding: ${space(1.5)} ${space(2)};
 
   border-radius: ${p => p.theme.panelBorderRadius};
   border: ${p => p.theme.border};
   border: 1px ${p => 'solid ' + p.theme.border};
 
   background: ${p => p.theme.background};
+
+  :hover {
+    background-color: ${p => p.theme.surface200};
+    transition:
+      background-color 100ms linear,
+      box-shadow 100ms linear;
+    box-shadow: ${p => p.theme.dropShadowLight};
+  }
+
+  &:not(:hover):not(:focus-within) {
+    ${TitleHoverItems} {
+      opacity: 0;
+      ${p => p.theme.visuallyHidden}
+    }
+  }
 `;
+
+const HEADER_HEIGHT = 26;
 
 const Header = styled('div')`
   display: flex;
-  flex-direction: column;
-  min-height: 20px;
-`;
-
-const Title = styled('div')`
-  display: inline-flex;
   align-items: center;
+  height: ${HEADER_HEIGHT}px;
   gap: ${space(0.75)};
 `;
 
@@ -126,14 +209,8 @@ const TitleText = styled(HeaderTitle)`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const TitleActions = styled('div')`
-  margin-left: auto;
-`;
-
-const TooltipAligner = styled('div')`
-  font-size: 0;
-  line-height: 1;
-  margin-bottom: 2px;
+const RigidBadge = styled(Badge)`
+  flex-shrink: 0;
 `;
 
 const VisualizationWrapper = styled('div')`

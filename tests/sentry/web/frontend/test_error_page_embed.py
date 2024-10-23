@@ -9,7 +9,7 @@ from django.urls import reverse
 from sentry.models.environment import Environment
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.types.region import get_local_region
 
 
@@ -191,6 +191,16 @@ class ErrorPageEmbedTest(TestCase):
         )
         assert resp.status_code == 400, resp.content
 
+    def test_submission_message_too_large(self):
+        resp = self.client.post(
+            self.path_with_qs,
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "a" * 9001},
+            HTTP_REFERER="http://example.com",
+            HTTP_ACCEPT="application/json",
+        )
+        assert resp.status_code == 400, resp.content
+        assert not UserReport.objects.exists()
+
 
 @override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedEnvironmentTest(TestCase):
@@ -211,7 +221,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.environment.add_project(self.project)
 
     def make_event(self, **kwargs):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         result = {
             "event_id": "a" * 32,
             "message": "foo",

@@ -24,7 +24,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
-@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
+@patch("sentry.sentry_apps.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotifications(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -230,7 +230,7 @@ class TestIssueWorkflowNotifications(APITestCase):
         assert not delay.called
 
 
-@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
+@patch("sentry.sentry_apps.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueAssigned(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -301,7 +301,7 @@ class TestIssueAssigned(APITestCase):
         )
 
 
-@patch("sentry.tasks.sentry_apps.build_comment_webhook.delay")
+@patch("sentry.sentry_apps.tasks.sentry_apps.build_comment_webhook.delay")
 class TestComments(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -373,7 +373,7 @@ class TestComments(APITestCase):
         )
 
 
-@patch("sentry.tasks.sentry_apps.workflow_notification.delay")
+@patch("sentry.sentry_apps.tasks.sentry_apps.workflow_notification.delay")
 class TestIssueWorkflowNotificationsForSubscriptionFamily(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)

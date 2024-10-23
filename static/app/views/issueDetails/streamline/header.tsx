@@ -4,90 +4,66 @@ import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import Count from 'sentry/components/count';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
-import {
-  AssigneeSelector,
-  useHandleAssigneeChange,
-} from 'sentry/components/group/assigneeSelector';
+import ErrorLevel from 'sentry/components/events/errorLevel';
+import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import Link from 'sentry/components/links/link';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import type {Release} from 'sentry/types/release';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {getMessage, getTitle} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useUser} from 'sentry/utils/useUser';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
+import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {ShortIdBreadcrumb} from 'sentry/views/issueDetails/shortIdBreadcrumb';
+import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/assigneeSelector';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/replayBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
-import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
-import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
-
-interface GroupRelease {
-  firstRelease: Release;
-  lastRelease: Release;
-}
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 interface GroupHeaderProps {
-  baseUrl: string;
+  event: Event | null;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   project: Project;
-  event?: Event;
 }
 
 export default function StreamlinedGroupHeader({
-  group,
-  project,
-  baseUrl,
-  groupReprocessingStatus,
   event,
+  group,
+  groupReprocessingStatus,
+  project,
 }: GroupHeaderProps) {
   const activeUser = useUser();
   const location = useLocation();
   const organization = useOrganization();
+  const {baseUrl} = useGroupDetailsRoute();
   const {sort: _sort, ...query} = location.query;
-
-  const {data: groupReleaseData} = useApiQuery<GroupRelease>(
-    [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
-    {
-      staleTime: 30000,
-      gcTime: 30000,
-    }
-  );
-
   const {count: eventCount, userCount} = group;
-  const {firstRelease, lastRelease} = groupReleaseData || {};
-
-  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
-    organization,
-    group,
-  });
-
+  const {title: primaryTitle, subtitle} = getTitle(group);
+  const secondaryTitle = getMessage(group);
+  const isComplete = group.status === 'resolved' || group.status === 'ignored';
+  const disableActions = [
+    ReprocessingStatus.REPROCESSING,
+    ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
+  ].includes(groupReprocessingStatus);
   const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
     'issue-details-sidebar-open',
     true
   );
-
-  const {message, eventRoute, disableActions, shortIdBreadcrumb} = useIssueDetailsHeader({
-    group,
-    groupReprocessingStatus,
-    baseUrl,
-    project,
-  });
 
   const {userParticipants, teamParticipants, displayUsers} = useMemo(() => {
     return {
@@ -102,93 +78,66 @@ export default function StreamlinedGroupHeader({
   }, [group, activeUser.id]);
 
   return (
-    <Header>
-      <StyledBreadcrumbs
-        crumbs={[
-          {
-            label: 'Issues',
-            to: {
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: query,
-            },
-          },
-          {label: shortIdBreadcrumb},
-        ]}
-      />
-      <HeadingGrid>
-        <Heading>
-          <TitleHeading>
-            <TitleWrapper>
-              <StyledEventOrGroupTitle data={group} />
-            </TitleWrapper>
-          </TitleHeading>
-          <MessageWrapper>
-            <EventMessage
-              message={message}
-              type={group.type}
-              level={group.level}
-              showUnhandled={group.isUnhandled}
-            />
-            {firstRelease && lastRelease && (
-              <Fragment>
-                <Divider />
-                <ReleaseWrapper>
-                  {firstRelease.id === lastRelease.id ? t('Release') : t('Releases')}
-                  <VersionHoverCard
+    <Fragment>
+      <Header>
+        <Flex justify="space-between">
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: 'Issues',
+                to: {
+                  pathname: `/organizations/${organization.slug}/issues/`,
+                  query,
+                },
+              },
+              {
+                label: (
+                  <ShortIdBreadcrumb
                     organization={organization}
-                    projectSlug={project.slug}
-                    releaseVersion={firstRelease.version}
-                  >
-                    <Version
-                      version={firstRelease.version}
-                      projectId={project.id}
-                      truncate
-                    />
-                  </VersionHoverCard>
-                  {firstRelease.id === lastRelease.id ? null : (
-                    <Fragment>
-                      -
-                      <VersionHoverCard
-                        organization={organization}
-                        projectSlug={project.slug}
-                        releaseVersion={lastRelease.version}
-                      >
-                        <Version
-                          version={lastRelease.version}
-                          projectId={project.id}
-                          truncate
-                        />
-                      </VersionHoverCard>
-                    </Fragment>
-                  )}
-                </ReleaseWrapper>
-              </Fragment>
-            )}
+                    project={project}
+                    group={group}
+                  />
+                ),
+              },
+            ]}
+          />
+          <NewIssueExperienceButton />
+        </Flex>
+        <HeaderGrid>
+          <Flex gap={space(0.75)} align="baseline">
+            <PrimaryTitle title={primaryTitle} isHoverable showOnlyOnOverflow delay={500}>
+              {primaryTitle}
+            </PrimaryTitle>
+            <SecondaryTitle
+              title={secondaryTitle}
+              isHoverable
+              showOnlyOnOverflow
+              delay={500}
+              isDefault={!secondaryTitle}
+            >
+              {secondaryTitle ?? t('No error message')}
+            </SecondaryTitle>
+          </Flex>
+          <StatTitle to={`${baseUrl}events/${location.search}`}>{t('Events')}</StatTitle>
+          <StatTitle to={`${baseUrl}tags/user/${location.search}`}>
+            {t('Users')}
+          </StatTitle>
+          <Flex gap={space(1)} align="center" justify="flex-start">
+            <ErrorLevel level={group.level} size={'10px'} />
+            {group.isUnhandled && <UnhandledTag />}
+            <Divider />
+            <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={500}>
+              {subtitle}
+            </Subtitle>
             <AttachmentsBadge group={group} />
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
-          </MessageWrapper>
-        </Heading>
-        <AllStats>
-          <Stat>
-            <Label data-test-id="all-event-count">{t('All Events')}</Label>
-            <Link disabled={disableActions} to={eventRoute}>
-              <StatCount value={eventCount} />
-            </Link>
-          </Stat>
-          <Stat>
-            <Label>{t('All Users')}</Label>
-            <Link disabled={disableActions} to={`${baseUrl}tags/user/${location.search}`}>
-              <StatCount value={userCount} />
-            </Link>
-          </Stat>
-        </AllStats>
-      </HeadingGrid>
-
-      <StyledBreak />
-      <InfoWrapper
-        isResolvedOrIgnored={group.status === 'resolved' || group.status === 'ignored'}
-      >
+          </Flex>
+          <StatCount value={eventCount} />
+          <StatCount value={userCount} />
+        </HeaderGrid>
+      </Header>
+      <ActionBar isComplete={isComplete}>
         <GroupActions
           group={group}
           project={project}
@@ -196,40 +145,33 @@ export default function StreamlinedGroupHeader({
           event={event}
           query={location.query}
         />
-        <SidebarWorkflowWrapper>
-          <WorkflowWrapper>
-            <Wrapper>
-              {t('Priority')}
-              <GroupPriority group={group} />
-            </Wrapper>
-            <Wrapper>
-              {t('Assignee')}
-              <AssigneeSelector
-                group={group}
-                assigneeLoading={assigneeLoading}
-                handleAssigneeChange={handleAssigneeChange}
-              />
-            </Wrapper>
-            {group.participants.length > 0 && (
-              <Wrapper>
-                {t('Participants')}
-                <ParticipantList users={userParticipants} teams={teamParticipants} />
-              </Wrapper>
-            )}
-            {displayUsers.length > 0 && (
-              <Wrapper>
-                {t('Viewers')}
-                <ParticipantList users={displayUsers} />
-              </Wrapper>
-            )}
-          </WorkflowWrapper>
-          <Divider />
-          <Button
+        <WorkflowActions>
+          <Workflow>
+            {t('Priority')}
+            <GroupPriority group={group} />
+          </Workflow>
+          <Workflow>
+            {t('Assignee')}
+            <GroupHeaderAssigneeSelector group={group} project={project} event={event} />
+          </Workflow>
+          {group.participants.length > 0 && (
+            <Workflow>
+              {t('Participants')}
+              <ParticipantList users={userParticipants} teams={teamParticipants} />
+            </Workflow>
+          )}
+          {displayUsers.length > 0 && (
+            <Workflow>
+              {t('Viewers')}
+              <ParticipantList users={displayUsers} />
+            </Workflow>
+          )}
+          <SidebarButton
             icon={
               sidebarOpen ? (
-                <IconChevron direction="right" />
+                <IconChevron direction="right" color="gray300" />
               ) : (
-                <IconPanel direction="right" />
+                <IconPanel direction="right" color="gray300" />
               )
             }
             title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
@@ -238,138 +180,114 @@ export default function StreamlinedGroupHeader({
             borderless
             onClick={() => setSidebarOpen(!sidebarOpen)}
           />
-        </SidebarWorkflowWrapper>
-      </InfoWrapper>
-    </Header>
+        </WorkflowActions>
+      </ActionBar>
+    </Fragment>
   );
 }
 
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
-  font-size: inherit;
+const Header = styled('div')`
+  background-color: ${p => p.theme.background};
+  padding: ${space(1)} 24px;
 `;
 
-const HeadingGrid = styled('div')`
+const HeaderGrid = styled('div')`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: ${space(2)};
+  grid-template-columns: minmax(150px, 1fr) auto auto;
+  column-gap: ${space(2)};
   align-items: center;
 `;
 
-const Heading = styled('div')``;
-
-const AllStats = styled('div')`
-  display: flex;
-  gap: ${space(4)};
-`;
-
-const Stat = styled('div')`
-  display: inline-block;
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const Label = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+const PrimaryTitle = styled(Tooltip)`
+  font-size: 20px;
   font-weight: ${p => p.theme.fontWeightBold};
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const SecondaryTitle = styled(PrimaryTitle)<{isDefault: boolean}>`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightNormal};
+  font-style: ${p => (p.isDefault ? 'italic' : 'initial')};
+`;
+
+const StatTitle = styled(Link)`
+  display: block;
+  text-decoration: underline;
+  text-decoration-style: dotted;
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 1;
+  justify-self: flex-end;
 `;
 
 const StatCount = styled(Count)`
-  font-size: ${p => p.theme.headerFontSize};
   display: block;
+  font-size: 20px;
+  line-height: 1;
+  text-align: right;
 `;
 
-const TitleWrapper = styled('h3')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin: 0 0 8px;
+const Subtitle = styled(Tooltip)`
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  overflow: hidden;
-  color: ${p => p.theme.headingColor};
-
-  & em {
-    font-weight: ${p => p.theme.fontWeightNormal};
-    color: ${p => p.theme.textColor};
-    font-size: 90%;
-  }
+  color: ${p => p.theme.subText};
 `;
 
-const TitleHeading = styled('div')`
-  display: flex;
-  line-height: 2;
-  gap: ${space(1)};
-  padding-top: ${space(1)};
-`;
-
-const StyledBreak = styled('hr')`
-  margin-top: ${space(2)};
-  margin-bottom: 0;
-  margin-right: 0;
-  border-color: ${p => p.theme.border};
-`;
-
-const MessageWrapper = styled('div')`
-  display: flex;
-  color: ${p => p.theme.gray300};
-  gap: ${space(1)};
-`;
-
-const InfoWrapper = styled('div')<{isResolvedOrIgnored: boolean}>`
+const ActionBar = styled('div')<{isComplete: boolean}>`
   display: flex;
   justify-content: space-between;
   gap: ${space(1)};
-  background: ${p =>
-    p.isResolvedOrIgnored
-      ? `linear-gradient(to right, ${p.theme.background}, ${Color(p.theme.success).lighten(0.5).alpha(0.15).string()})`
-      : p.theme.background};
-  color: ${p => p.theme.gray300};
-  padding: ${space(1)} 24px;
-  margin-right: 0;
-  margin-left: 0;
   flex-wrap: wrap;
+  padding: ${space(1)} 24px;
+  border-bottom: 1px solid ${p => p.theme.translucentBorder};
+  position: relative;
+  transition: background 0.3s ease-in-out;
+  background: ${p => (p.isComplete ? 'transparent' : p.theme.background)};
+  &:before {
+    z-index: -1;
+    position: absolute;
+    inset: 0;
+    content: '';
+    background: linear-gradient(
+      to right,
+      ${p => p.theme.background},
+      ${p => Color(p.theme.success).lighten(0.5).alpha(0.15).string()}
+    );
+  }
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 24px;
+    bottom: unset;
+    height: 1px;
+    background: ${p => p.theme.translucentBorder};
+  }
 `;
 
-const SidebarWorkflowWrapper = styled('div')`
+const WorkflowActions = styled('div')`
   display: flex;
-  gap: ${space(0.5)};
-  align-items: center;
-`;
-
-const WorkflowWrapper = styled('div')`
-  display: flex;
+  justify-content: flex-end;
   column-gap: ${space(2)};
   flex-wrap: wrap;
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    justify-content: flex-start;
+  }
 `;
 
-const Wrapper = styled('div')`
+const Workflow = styled('div')`
   display: flex;
-  align-items: center;
   gap: ${space(0.5)};
-`;
-
-const ReleaseWrapper = styled('div')`
-  display: flex;
+  color: ${p => p.theme.subText};
   align-items: center;
-  max-width: 40%;
-  gap: ${space(0.25)};
-  a {
-    color: ${p => p.theme.gray300};
-    text-decoration: underline;
-    text-decoration-style: dotted;
-  }
 `;
 
-const Header = styled('div')`
-  background-color: ${p => p.theme.background};
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid ${p => p.theme.border};
-
-  > * {
-    margin-right: 24px;
-    margin-left: 24px;
+const SidebarButton = styled(Button)`
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
   }
-`;
-
-const StyledBreadcrumbs = styled(Breadcrumbs)`
-  margin-top: ${space(2)};
 `;

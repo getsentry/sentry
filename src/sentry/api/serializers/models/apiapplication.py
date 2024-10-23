@@ -20,4 +20,6 @@ class ApiApplicationSerializer(Serializer):
             "termsUrl": obj.terms_url,
             "allowedOrigins": obj.get_allowed_origins(),
             "redirectUris": obj.get_redirect_uris(),
+            "scopes": obj.scopes,
+            "requiresOrgLevelAccess": obj.requires_org_level_access,
         }

@@ -424,6 +424,20 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Flag Options
+register(
+    "flags:options-audit-log-is-enabled",
+    default=True,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    type=Bool,
+)
+register(
+    "flags:options-audit-log-organization-id",
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    type=Int,
+)
+
 # Replay Options
 #
 # Replay storage backend configuration (only applicable if the direct-storage driver is used)
@@ -436,18 +450,6 @@ register(
     "replay.storage.options",
     type=Dict,
     default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Replay Analyzer service.
-register(
-    "replay.analyzer_service_url",
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "organizations:session-replay-accessibility-issues-enabled",
-    type=Bool,
-    default=True,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Globally disables replay-video.
@@ -464,6 +466,19 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Used for internal dogfooding of a reduced timeout on rage/dead clicks.
+register(
+    "replay.rage-click.experimental-timeout.org-id-list",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "replay.rage-click.experimental-timeout.milliseconds",
+    type=Int,
+    default=5000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -471,6 +486,20 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "feedback.message.max-size",
+    type=Int,
+    default=4096,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Dev Toolbar Options
+register(
+    "devtoolbar.analytics.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -1987,13 +2016,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# The flag activates whether to send group attributes messages to kafka
-register(
-    "issues.group_attributes.send_kafka",
-    default=True,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enables statistical detectors for a project
 register(
     "statistical_detectors.enable",
@@ -2701,6 +2723,11 @@ register(
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "celery_split_queue_task_rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
@@ -2717,13 +2744,6 @@ register(
 register(
     "seer.api.use-nonce-signature",
     default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "ownership.munge_data_for_performance",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2764,5 +2784,33 @@ register(
     "secret-scanning.github.enable-signature-verification",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rate limiting for the occurrence consumer
+register(
+    "issues.occurrence-consumer.rate-limit.quota",
+    type=Dict,
+    default={"window_seconds": 3600, "granularity_seconds": 60, "limit": 1000},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.occurrence-consumer.rate-limit.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "eventstore.adjacent_event_ids_use_snql",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentryapps.process-resource-change.use-eventid",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

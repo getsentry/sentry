@@ -11,6 +11,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
@@ -53,15 +54,45 @@ export default function FiltersBar({
   return (
     <Wrapper>
       <PageFilterBar condensed>
-        <ProjectPageFilter disabled={isEditingDashboard} />
-        <EnvironmentPageFilter disabled={isEditingDashboard} />
-        <DatePageFilter disabled={isEditingDashboard} />
+        <ProjectPageFilter
+          disabled={isEditingDashboard}
+          onChange={() => {
+            trackAnalytics('dashboards2.filter.change', {
+              organization,
+              filter_type: 'project',
+            });
+          }}
+        />
+        <EnvironmentPageFilter
+          disabled={isEditingDashboard}
+          onChange={() => {
+            trackAnalytics('dashboards2.filter.change', {
+              organization,
+              filter_type: 'environment',
+            });
+          }}
+        />
+        <DatePageFilter
+          disabled={isEditingDashboard}
+          onChange={() => {
+            trackAnalytics('dashboards2.filter.change', {
+              organization,
+              filter_type: 'date',
+            });
+          }}
+        />
       </PageFilterBar>
       <Fragment>
         <FilterButtons>
           <ReleasesProvider organization={organization} selection={selection}>
             <ReleasesSelectControl
-              handleChangeFilter={onDashboardFilterChange}
+              handleChangeFilter={activeFilters => {
+                onDashboardFilterChange(activeFilters);
+                trackAnalytics('dashboards2.filter.change', {
+                  organization,
+                  filter_type: 'release',
+                });
+              }}
               selectedReleases={selectedReleases}
               isDisabled={isEditingDashboard}
             />

@@ -20,7 +20,7 @@ describe('SavedQueries API helpers', () => {
   errorsView.id = '1'; // set id manually as errorsView.id is undefined
   const yAxis = ['count()', 'failure_count()'];
 
-  let mockCall;
+  let mockCall: jest.Mock;
 
   afterEach(() => {
     MockApiClient.clearMockResponses();

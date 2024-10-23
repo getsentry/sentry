@@ -78,6 +78,8 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:integrations-stacktrace-link": True,
         # Allow orgs to automatically create Tickets in Issue Alerts
         "organizations:integrations-ticket-rules": True,
+        # Enable metric alert charts in email/slack
+        "organizations:metric-alert-chartcuterie": False,
         # Enable Performance view
         "organizations:performance-view": True,
         # Enable profiling view

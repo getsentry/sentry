@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {useIsStuck} from 'sentry/utils/useIsStuck';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -24,6 +24,7 @@ import {
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {
   EventDetailsContext,
+  useEventDetails,
   useEventDetailsReducer,
 } from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
@@ -46,14 +47,10 @@ export function EventDetails({
   event,
   project,
 }: Required<EventDetailsContentProps>) {
-  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   const {environments} = selection;
-  const [nav, setNav] = useState<HTMLDivElement | null>(null);
-  const isStuck = useIsStuck(nav);
   const {eventDetails, dispatch} = useEventDetailsReducer();
 
   const searchQuery = useEventQuery({group});
@@ -72,31 +69,11 @@ export function EventDetails({
     },
   });
 
-  useLayoutEffect(() => {
-    const navHeight = nav?.offsetHeight ?? 0;
-    const sidebarHeight = isScreenMedium ? theme.sidebar.mobileHeightNumber : 0;
-    dispatch({
-      type: 'UPDATE_DETAILS',
-      state: {navScrollMargin: navHeight + sidebarHeight},
-    });
-  }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
-
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
       <Feature features={['organizations:ai-summary']}>
         <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
       </Feature>
-      <PageErrorBoundary
-        mini
-        message={t('There was an error loading the suspect commits')}
-      >
-        <SuspectCommits
-          project={project}
-          eventId={event.id}
-          group={group}
-          commitRow={CommitRow}
-        />
-      </PageErrorBoundary>
       <PageErrorBoundary mini message={t('There was an error loading the event filter')}>
         <FilterContainer>
           <EnvironmentPageFilter />
@@ -125,6 +102,7 @@ export function EventDetails({
           {!isLoadingStats && groupStats && (
             <ExtraContent>
               <EventGraph
+                event={event}
                 group={group}
                 groupStats={groupStats}
                 searchQuery={searchQuery}
@@ -136,7 +114,8 @@ export function EventDetails({
       {/* TODO(issues): We should use the router for this */}
       {currentTab === Tab.EVENTS && (
         <PageErrorBoundary mini message={t('There was an error loading the event list')}>
-          <GroupContent>
+          {/* Overflow added only to this instance to scroll table. Acts weird with sticky nav. */}
+          <GroupContent style={{overflowX: 'auto'}}>
             <EventList group={group} project={project} />
           </GroupContent>
         </PageErrorBoundary>
@@ -147,13 +126,7 @@ export function EventDetails({
           message={t('There was an error loading the event content')}
         >
           <GroupContent>
-            <FloatingEventNavigation
-              event={event}
-              group={group}
-              ref={setNav}
-              query={searchQuery}
-              data-stuck={isStuck}
-            />
+            <StickyEventNav event={event} group={group} searchQuery={searchQuery} />
             <ContentPadding>
               <EventDetailsContent group={group} event={event} project={project} />
             </ContentPadding>
@@ -168,6 +141,45 @@ export function EventDetails({
         </ExtraContent>
       </PageErrorBoundary>
     </EventDetailsContext.Provider>
+  );
+}
+
+function StickyEventNav({
+  event,
+  group,
+  searchQuery,
+}: {
+  event: Event;
+  group: Group;
+  searchQuery: string;
+}) {
+  const theme = useTheme();
+  const [nav, setNav] = useState<HTMLDivElement | null>(null);
+  const isStuck = useIsStuck(nav);
+  const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const {dispatch} = useEventDetails();
+
+  useLayoutEffect(() => {
+    if (!nav) {
+      return;
+    }
+
+    const navHeight = nav.offsetHeight ?? 0;
+    const sidebarHeight = isScreenMedium ? theme.sidebar.mobileHeightNumber : 0;
+    dispatch({
+      type: 'UPDATE_DETAILS',
+      state: {navScrollMargin: navHeight + sidebarHeight},
+    });
+  }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
+
+  return (
+    <FloatingEventNavigation
+      event={event}
+      group={group}
+      ref={setNav}
+      query={searchQuery}
+      data-stuck={isStuck}
+    />
   );
 }
 
@@ -188,7 +200,7 @@ const FloatingEventNavigation = styled(EventNavigation)`
     top: ${p => p.theme.sidebar.mobileHeight};
   }
   background: ${p => p.theme.background};
-  z-index: 500;
+  z-index: ${p => p.theme.zIndex.header};
   border-radius: ${p => p.theme.borderRadiusTop};
 
   &[data-stuck='true'] {

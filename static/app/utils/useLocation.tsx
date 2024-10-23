@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import {useLocation as useReactRouter6Location} from 'react-router-dom';
 import type {Location, Query} from 'history';
 
-import {NODE_ENV} from 'sentry/constants';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {location6ToLocation3} from './reactRouter6Compat/location';
@@ -14,11 +13,10 @@ type DefaultQuery<T = string> = {
 export function useLocation<Q extends Query = DefaultQuery>(): Location<Q> {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
-  const useReactRouter6 = NODE_ENV !== 'test';
+  const legacyRouterContext = useRouteContext();
 
-  if (!useReactRouter6) {
-    // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
-    return useRouteContext().location;
+  if (legacyRouterContext) {
+    return legacyRouterContext.location;
   }
 
   // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration

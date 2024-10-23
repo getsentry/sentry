@@ -125,6 +125,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                     "provider": provider,
                     "integration_id": integration.id,
                     "error_message": str(e),
+                    "exception_type": type(e).__name__,
                 },
             )
             metrics.incr(
@@ -136,5 +137,4 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
             raise
 
-        if not event.get_tag("sample_event") == "yes":
-            create_link(integration, installation, event, response)
+        create_link(integration, installation, event, response)

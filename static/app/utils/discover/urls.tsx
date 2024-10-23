@@ -52,11 +52,12 @@ export function generateLinkToEventInTraceView({
   eventId,
   transactionName,
   eventView,
+  targetId,
   demo,
   source,
   type = 'performance',
 }: {
-  eventId: string;
+  eventId: string | undefined;
   location: Location;
   organization: Organization;
   projectSlug: string;
@@ -67,6 +68,9 @@ export function generateLinkToEventInTraceView({
   isHomepage?: boolean;
   source?: string;
   spanId?: string;
+  // targetId represents the span id of the transaction. It will replace eventId once all links
+  // to trace view are updated to use spand ids of transactions instead of event ids.
+  targetId?: string;
   transactionName?: string;
   type?: 'performance' | 'discover';
 }) {
@@ -90,6 +94,7 @@ export function generateLinkToEventInTraceView({
       dateSelection,
       timestamp: normalizedTimestamp,
       eventId,
+      targetId,
       spanId,
       demo,
       location,

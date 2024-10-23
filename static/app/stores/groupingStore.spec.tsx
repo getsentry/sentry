@@ -2,7 +2,7 @@ import * as GroupActionCreators from 'sentry/actionCreators/group';
 import GroupingStore from 'sentry/stores/groupingStore';
 
 describe('Grouping Store', function () {
-  let trigger;
+  let trigger!: jest.SpyInstance;
 
   beforeAll(function () {
     MockApiClient.asyncDelay = 1;
@@ -603,7 +603,7 @@ describe('Grouping Store', function () {
       beforeEach(function () {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
-          method: 'DELETE',
+          method: 'PUT',
           url: '/organizations/org-slug/issues/groupId/hashes/',
         });
       });
@@ -705,7 +705,7 @@ describe('Grouping Store', function () {
       it('resets busy state and has same items checked after error when trying to merge', async function () {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
-          method: 'DELETE',
+          method: 'PUT',
           url: '/organizations/org-slug/issues/groupId/hashes/',
           statusCode: 500,
           body: {},

@@ -14,10 +14,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import DashboardList from 'sentry/views/dashboards/manage/dashboardList';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {type DashboardListItem, DisplayType} from 'sentry/views/dashboards/types';
 
 describe('Dashboards - DashboardList', function () {
-  let dashboards, deleteMock, dashboardUpdateMock, createMock;
+  let dashboards: DashboardListItem[];
+  let deleteMock: jest.Mock;
+  let dashboardUpdateMock: jest.Mock;
+  let createMock: jest.Mock;
   const organization = OrganizationFixture({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });

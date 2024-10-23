@@ -3,13 +3,12 @@ import {useTheme} from '@emotion/react';
 
 import {IconGroup} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 
-import {
-  makeTraceNodeBarColor,
-  type ParentAutogroupNode,
-} from '../../traceModels/traceTree';
+import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
+import type {ParentAutogroupNode} from '../../traceModels/parentAutogroupNode';
+import {TraceTree} from '../../traceModels/traceTree';
+import {makeTraceNodeBarColor} from '../../traceRow/traceBar';
+import {getTraceTabTitle} from '../../traceState/traceTabs';
 
 import {IssueList} from './issues/issues';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
@@ -25,7 +24,7 @@ export function ParentAutogroupNodeDetails({
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
 
-  const parentTransaction = node.parent_transaction;
+  const parentTransaction = TraceTree.ParentTransaction(node);
 
   const items: SectionCardKeyValueList = [
     {

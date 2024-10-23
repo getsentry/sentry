@@ -903,7 +903,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             == "Select a valid choice. bad data is not one of the available choices."
         )
 
-    @with_feature("organizations:latest-adopted-release-filter")
     def test_latest_adopted_release_filter_validation(self):
         filter = {
             "id": "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",

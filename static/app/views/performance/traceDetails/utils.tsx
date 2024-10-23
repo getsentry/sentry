@@ -23,6 +23,7 @@ export function getTraceDetailsUrl({
   timestamp,
   spanId,
   eventId,
+  targetId,
   demo,
   location,
   source,
@@ -35,6 +36,9 @@ export function getTraceDetailsUrl({
   eventId?: string;
   source?: string;
   spanId?: string;
+  // targetId represents the span id of the transaction. It will replace eventId once all links
+  // to trace view are updated to use spand ids of transactions instead of event ids.
+  targetId?: string;
   timestamp?: string | number;
 }): LocationDescriptorObject {
   const {start, end, statsPeriod} = dateSelection;
@@ -59,7 +63,7 @@ export function getTraceDetailsUrl({
 
   if (organization.features.includes('trace-view-v1')) {
     if (spanId) {
-      queryParams.node = [`span-${spanId}`, `txn-${eventId}`];
+      queryParams.node = [`span-${spanId}`, `txn-${targetId ?? eventId}`];
     }
     return {
       pathname: normalizeUrl(
@@ -69,6 +73,7 @@ export function getTraceDetailsUrl({
         ...queryParams,
         timestamp: getTimeStampFromTableDateField(timestamp),
         eventId,
+        targetId,
         demo,
         source,
       },

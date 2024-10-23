@@ -8,7 +8,7 @@ import {SpanIndexedField} from 'sentry/views/insights/types';
 describe('queuesTable', () => {
   const organization = OrganizationFixture();
 
-  let eventsMock;
+  let eventsMock: jest.Mock;
 
   const pageLinks =
     '<https://sentry.io/fake/previous>; rel="previous"; results="false"; cursor="0:0:1", ' +

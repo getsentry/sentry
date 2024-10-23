@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -102,7 +102,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
             project=project3.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(self.min_ago), "transaction": "foo_transaction"},
+            data={"timestamp": self.min_ago.isoformat(), "transaction": "foo_transaction"},
             project_id=self.project.id,
         )
         url = reverse(
@@ -215,7 +215,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
             project=project3.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(self.min_ago), "transaction": "foo_transaction"},
+            data={"timestamp": self.min_ago.isoformat(), "transaction": "foo_transaction"},
             project_id=self.project.id,
         )
         url = reverse(

@@ -83,7 +83,6 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
-from sentry.mediators.project_rules.creator import Creator
 from sentry.models.apitoken import ApiToken
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.commit import Commit
@@ -114,6 +113,7 @@ from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
+from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.rules.base import RuleBase
@@ -1452,7 +1452,6 @@ class SnubaTestCase(BaseTestCase):
                 "last_seen",
                 "first_seen",
                 "data",
-                "score",
                 "project_id",
                 "time_spent_total",
                 "time_spent_count",
@@ -1474,7 +1473,6 @@ class SnubaTestCase(BaseTestCase):
                 self.to_snuba_time_format(group.last_seen),
                 self.to_snuba_time_format(group.first_seen),
                 group.data,
-                group.score,
                 group.project.id,
                 group.time_spent_total,
                 group.time_spent_count,
@@ -1553,6 +1551,7 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["tags"] = tags
         if transaction_id:
             payload["event_id"] = transaction_id
+            payload["segment_id"] = transaction_id[:16]
         if profile_id:
             payload["profile_id"] = profile_id
         if measurements:
@@ -1594,6 +1593,8 @@ class BaseSpansTestCase(SnubaTestCase):
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         group: str = "00",
         category: str | None = None,
+        organization_id: int = 1,
+        is_eap: bool = False,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1602,7 +1603,7 @@ class BaseSpansTestCase(SnubaTestCase):
 
         payload = {
             "project_id": project_id,
-            "organization_id": 1,
+            "organization_id": organization_id,
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
@@ -1628,6 +1629,7 @@ class BaseSpansTestCase(SnubaTestCase):
             }
         if transaction_id:
             payload["event_id"] = transaction_id
+            payload["segment_id"] = transaction_id[:16]
         if profile_id:
             payload["profile_id"] = profile_id
         if store_metrics_summary:
@@ -1640,7 +1642,7 @@ class BaseSpansTestCase(SnubaTestCase):
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
-            self.store_span(payload)
+            self.store_span(payload, is_eap=is_eap)
 
         if "_metrics_summary" in payload:
             self.store_metrics_summary(payload)
@@ -3261,16 +3263,16 @@ class MonitorTestCase(APITestCase):
                 "uuid": str(uuid4()),
             },
         ]
-        rule = Creator(
+        rule = ProjectRuleCreator(
             name="New Cool Rule",
             project=self.project,
             conditions=conditions,
-            filterMatch="all",
+            filter_match="all",
             action_match="any",
             actions=actions,
             frequency=5,
             environment=self.environment.id,
-        ).call()
+        ).run()
         rule.update(source=RuleSource.CRON_MONITOR)
 
         config = monitor.config

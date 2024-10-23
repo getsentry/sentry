@@ -103,7 +103,6 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.actor import Actor
 
@@ -309,7 +308,6 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
     def test_projects(self):
         assert get_incident_aggregates(self.project_incident) == {"count": 4}
 
-    @override_options({"issues.group_attributes.send_kafka": True})
     def test_is_unresolved_query(self):
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5),
@@ -1009,7 +1007,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         data = {
             "event_id": "a" * 32,
             "message": "super bad",
-            "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+            "timestamp": two_weeks_ago + timedelta(minutes=1),
             "tags": {"sentry:user": self.user.email},
             "exception": [{"value": "BadError"}],
         }
@@ -1703,12 +1701,12 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         # update query
         update_alert_rule(
             dynamic_rule,
-            query="is:unresolved",
+            query="message:*post_process*",
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
         assert mock_seer_request.call_count == 1
         snuba_query.refresh_from_db()
-        assert snuba_query.query == "is:unresolved"
+        assert snuba_query.query == "message:*post_process*"
         mock_seer_request.reset_mock()
         # update aggregate
         update_alert_rule(
@@ -1811,11 +1809,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         mock_seer_request.reset_mock()
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
-            self.create_error_event(
-                timestamp=iso_format(two_weeks_ago + timedelta(days=10))
-            )  # 4 days ago
+        self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
+        self.create_error_event(
+            timestamp=iso_format(two_weeks_ago + timedelta(days=10))
+        )  # 4 days ago
 
         # update aggregate
         update_alert_rule(
@@ -1840,11 +1837,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
-            self.create_error_event(
-                timestamp=iso_format(two_weeks_ago + timedelta(days=10))
-            )  # 4 days ago
+        self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
+        self.create_error_event(
+            timestamp=iso_format(two_weeks_ago + timedelta(days=10))
+        )  # 4 days ago
 
         dynamic_rule = self.create_alert_rule(
             sensitivity=AlertRuleSensitivity.HIGH,
@@ -1962,7 +1958,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             update_alert_rule(
                 dynamic_rule,
                 time_window=30,
-                query="is:unresolved",
+                query="message:*post_process*",
                 detection_type=AlertRuleDetectionType.DYNAMIC,
                 sensitivity=AlertRuleSensitivity.HIGH,
                 seasonality=AlertRuleSeasonality.AUTO,
@@ -1982,7 +1978,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             update_alert_rule(
                 dynamic_rule,
                 time_window=30,
-                query="is:unresolved",
+                query="message:*post_process*",
                 detection_type=AlertRuleDetectionType.DYNAMIC,
                 sensitivity=AlertRuleSensitivity.HIGH,
                 seasonality=AlertRuleSeasonality.AUTO,
@@ -2150,6 +2146,70 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not AlertRule.objects.filter(id=alert_rule_id).exists()
         incident = Incident.objects.get(id=incident.id)
         assert Incident.objects.filter(id=incident.id, alert_rule=self.alert_rule).exists()
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @patch(
+        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_with_incident_anomaly_detection_rule(self, mock_seer_request):
+        alert_rule = self.dynamic_alert_rule
+        alert_rule_id = alert_rule.id
+        incident = self.create_incident()
+        incident.update(alert_rule=alert_rule)
+
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        with self.tasks():
+            delete_alert_rule(alert_rule)
+
+        assert AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        incident = Incident.objects.get(id=incident.id)
+        assert Incident.objects.filter(id=incident.id, alert_rule=alert_rule).exists()
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        assert AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @patch(
+        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    @patch("sentry.seer.anomaly_detection.delete_rule.logger")
+    @patch("sentry.incidents.logic.logger")
+    def test_with_incident_anomaly_detection_rule_error(
+        self, mock_model_logger, mock_seer_logger, mock_seer_request
+    ):
+        alert_rule = self.dynamic_alert_rule
+        alert_rule_id = alert_rule.id
+        incident = self.create_incident()
+        incident.update(alert_rule=alert_rule)
+        mock_seer_request.return_value = HTTPResponse("Bad request", status=500)
+
+        with self.tasks():
+            delete_alert_rule(alert_rule)
+
+        assert AlertRule.objects_with_snapshots.filter(id=alert_rule_id).exists()
+        assert not AlertRule.objects.filter(id=alert_rule_id).exists()
+        incident = Incident.objects.get(id=incident.id)
+        assert Incident.objects.filter(id=incident.id, alert_rule=alert_rule).exists()
+
+        mock_seer_logger.error.assert_called_with(
+            "Error when hitting Seer delete rule data endpoint",
+            extra={"response_data": "Bad request", "rule_id": alert_rule_id},
+        )
+        mock_model_logger.error.assert_called_with(
+            "Call to delete rule data in Seer failed",
+            extra={"rule_id": alert_rule_id},
+        )
+        assert mock_seer_request.call_count == 1
 
     @patch("sentry.incidents.logic.schedule_update_project_config")
     def test_on_demand_metric_alert(self, mocked_schedule_update_project_config):
@@ -3082,7 +3142,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
             self.action,
             type,
             target_type,
-            target_identifier=target_identifier,
+            target_identifier=str(target_identifier),
             integration_id=integration.id,
         )
 

@@ -136,6 +136,8 @@ describe('Onboarding', function () {
             type: 'framework',
             language: 'javascript',
             category: 'browser',
+            name: 'Next.js',
+            link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
           },
           projects: {
             [nextJsProject.id]: {
@@ -221,6 +223,8 @@ describe('Onboarding', function () {
             type: 'framework',
             language: 'javascript',
             category: 'browser',
+            name: 'Rect',
+            link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
           },
           projects: {
             [reactProject.id]: {
@@ -316,6 +320,8 @@ describe('Onboarding', function () {
             type: 'framework',
             language: 'javascript',
             category: 'browser',
+            name: 'Rect',
+            link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
           },
           projects: {
             [reactProject.id]: {
@@ -354,9 +360,6 @@ describe('Onboarding', function () {
     };
 
     const {routerProps, router, organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-sdk-selection'],
-      },
       router: {
         params: routeParams,
       },
@@ -382,9 +385,6 @@ describe('Onboarding', function () {
 
     // Modal is open
     await screen.findByText('Do you use a framework?');
-
-    // Close modal
-    await userEvent.click(screen.getByRole('button', {name: 'Skip'}));
   });
 
   it('does not render framework selection modal if vanilla js is NOT selected', async function () {
@@ -393,9 +393,6 @@ describe('Onboarding', function () {
     };
 
     const {routerProps, router, organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-sdk-selection'],
-      },
       router: {
         params: routeParams,
       },

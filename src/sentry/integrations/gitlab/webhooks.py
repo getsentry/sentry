@@ -168,7 +168,7 @@ class PushEventWebhook(Webhook):
 
         authors = {}
 
-        # TODO gitlab only sends a max of 20 commits. If a push contains
+        # TODO: gitlab only sends a max of 20 commits. If a push contains
         # more commits they provide a total count and require additional API
         # requests to fetch the commit details
         for commit in event.get("commits", []):

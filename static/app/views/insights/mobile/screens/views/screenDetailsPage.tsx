@@ -141,6 +141,12 @@ export function ScreenDetailsPage() {
                 hideDefaultTabs
                 tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
                 headerActions={isProjectCrossPlatform && <PlatformSelector />}
+                headerTitle={transactionName}
+                breadcrumbs={[
+                  {
+                    label: t('Screen Summary'),
+                  },
+                ]}
               />
             )}
             <Layout.Body>

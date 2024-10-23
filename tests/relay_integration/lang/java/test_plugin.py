@@ -9,7 +9,7 @@ from django.urls import reverse
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
@@ -469,7 +469,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -543,7 +543,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -613,7 +613,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -702,7 +702,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -769,7 +769,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -864,7 +864,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -970,7 +970,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -1087,7 +1087,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -1405,7 +1405,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -1540,7 +1540,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     {"type": "RemoteException", "module": "android.os"},
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -1583,7 +1583,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1),
         }
         assert is_jvm_event(event)
 
@@ -1612,7 +1612,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1),
         }
         # has no platform
         assert is_jvm_event(event)
@@ -1643,7 +1643,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1),
         }
         # has no modules
         assert not is_jvm_event(event)

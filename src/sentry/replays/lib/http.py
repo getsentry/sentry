@@ -4,11 +4,11 @@ from typing import Protocol
 
 
 class MalformedRangeHeader(Exception):
-    ...
+    pass
 
 
 class UnsatisfiableRange(Exception):
-    ...
+    pass
 
 
 class RangeProtocol(Protocol):

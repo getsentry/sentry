@@ -1,7 +1,11 @@
 {% comment %}
-Template returned for authenticated, valid requests to /iframe. The iframe serves as a proxy for Sentry API requests.
+Template returned for requests to /iframe. The iframe serves as a proxy for Sentry API requests.
 Required context variables:
-- referrer:         string. HTTP header from the request object.
+- referrer:           string.       HTTP header from the request object.
+- state:              string.       One of: `logged-out`, `missing-project`, `invalid-domain` or `success`.
+- logging:            any.          If the value is truthy in JavaScript then debug logging will be enabled.
+- organization_slug:  string.       The org named in the url params
+- project_id_or_slug: string | int. The project named in the url params
 {% endcomment %}
 {% load sentry_helpers %}
 {% load sentry_assets %}
@@ -12,59 +16,147 @@ Required context variables:
     <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
   </head>
   <body>
+    <form id="login-form">
+      <button type="submit">Log in</button>
+    </form>
+
     {% script %}
     <script>
-      const referrer = "{{ referrer|escapejs }}";
+      (function() {
+        const referrer = '{{ referrer|escapejs }}';
+        const state = '{{ state|escapejs }}';
+        const logging = '{{ logging|escapejs }}';
+        const organizationSlug = '{{ organization_slug|escapejs }}';
+        const projectIdOrSlug = '{{ project_id_or_slug|escapejs }}';
 
-      function log(...args) {
-        if (localStorage && localStorage.getItem('sentry-toolbar-iframe-debug')) {
-          console.log('iframe:', ...args);
-        }
-      }
-
-      log('Init', {referrer});
-
-      const {port1, port2} = new MessageChannel();
-
-      const messageDispatch = {
-        'log': log,
-        'fetch': async (url, init) => {
-          const response =  await fetch(url, init);
-          return {
-            ok: response.ok,
-            status: response.status,
-            statusText: response.statusText,
-            url: response.url,
-            headers: Object.fromEntries(response.headers.entries()),
-            text: await response.text(),
+        function log(...args) {
+          if (logging) {
+            console.log('/toolbar/:org/:project/iframe/', ...args);
           }
-        },
-      };
-
-      port1.addEventListener('message', (postMessage) => {
-        log('port.onMessage', postMessage.data);
-
-        const {$id, message} = postMessage.data;
-        if (!$id) {
-          return; // MessageEvent is malformed, missing $id
         }
 
-        if (!message.$function || !(message.$function in messageDispatch)) {
-          return; // No-op without a $function to call
+        function setupLoginForm() {
+          log('setupLoginForm()');
+          const form = document.getElementById('login-form');
+          form.addEventListener('submit', submitEvent => {
+            submitEvent.preventDefault();
+            window.open(
+              `/toolbar/${organizationSlug}/${projectIdOrSlug}/login-success/`,
+              'sentry-toolbar-auth-popup',
+              'popup=true,innerWidth=800,innerHeight=550,noopener=false'
+            );
+          });
         }
 
-        messageDispatch[message.$function]
-          .apply(undefined, message.$args || [])
-          .then($result => port1.postMessage({$id, $result}))
-          .catch((error) => port1.postMessage({$id, $error: error}));
-      });
-      port1.start();
+        function sendStateMessage(state) {
+          log('sendStateMessage(state)', { state });
+          window.parent.postMessage({
+            source: 'sentry-toolbar',
+            message: state
+          }, referrer);
+        }
 
-      window.parent.postMessage({
-        source: 'sentry-toolbar',
-        message: 'port-connect',
-      }, referrer, [port2]);
-      log('Sent', {message: 'port-connect', referrer})
+        function listenForLoginSuccess() {
+          window.addEventListener('message', messageEvent => {
+            if (messageEvent.origin !== document.location.origin || messageEvent.data.source !== 'sentry-toolbar') {
+              return;
+            }
+
+            log('window.onMessage', messageEvent.data, messageEvent);
+            if (messageEvent.data.message === 'did-login') {
+              saveAccessToken(messageEvent.data);
+              setupMessageChannel();
+            }
+          });
+        }
+
+        function saveAccessToken(data) {
+          log('saveAccessToken', data)
+          if (data.cookie) {
+            const value = `${data.cookie}; domain=${window.location.hostname}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
+            document.cookie = value
+            log('Saved a cookie', document.cookie.indexOf(cookie) >= 0, cookie);
+            localStorage.setItem('cookie', data.cookie);
+          }
+          if (data.token) {
+            localStorage.setItem('accessToken', data.token);
+            log('Saved an accessToken to localStorage', data.token);
+          }
+          if (!data.cookie && !data.token) {
+            log('Unexpected: No access token found!');
+          }
+        }
+
+        function setupMessageChannel() {
+          log('setupMessageChannel()');
+          const { port1, port2 } = new MessageChannel();
+
+          const messageDispatch = {
+            'log': log,
+            'fetch': async (url, init) => {
+              // For mock/test purposes we're fetching the accessToken and injecting it
+              const accessToken = localStorage.getItem('accessToken')
+              const bearer = accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {};
+
+              log('Found access info', {cookie: document.cookie, accessToken, lsCookie: localStorage.getItem('cookie')});
+
+              const initWithCreds = {
+                ...init,
+                headers: { ...init.headers, ...bearer },
+                credentials: 'same-origin',
+              };
+              log({initWithCreds});
+
+              const response = await fetch(url, initWithCreds);
+              return {
+                ok: response.ok,
+                status: response.status,
+                statusText: response.statusText,
+                url: response.url,
+                headers: Object.fromEntries(response.headers.entries()),
+                text: await response.text(),
+              };
+            },
+          };
+
+          port1.addEventListener('message', messageEvent => {
+            log('port.onMessage', messageEvent.data);
+
+            const { $id, message } = messageEvent.data;
+            if (!$id) {
+              return; // MessageEvent is malformed, missing $id
+            }
+
+            if (!message.$function || !(message.$function in messageDispatch)) {
+              return; // No-op without a $function to call
+            }
+
+            messageDispatch[message.$function]
+              .apply(undefined, message.$args || [])
+              .then($result => port1.postMessage({ $id, $result }))
+              .catch(error => port1.postMessage({ $id, $error: error }));
+          });
+          port1.start();
+
+          window.parent.postMessage({
+            source: 'sentry-toolbar',
+            message: 'port-connect',
+          }, referrer, [port2]);
+
+          log('Sent', { message: 'port-connect', referrer });
+        }
+
+        log('Init', { referrer, state });
+
+        if (state === 'success') {
+          setupMessageChannel();
+        } else {
+          setupLoginForm();
+          // enum of: logged-out, missing-project, invalid-domain
+          sendStateMessage(state);
+          listenForLoginSuccess();
+        }
+      })();
     </script>
     {% endscript %}
 

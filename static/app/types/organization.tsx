@@ -90,6 +90,7 @@ export interface Organization extends OrganizationSummary {
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
   storeCrashReports: number;
+  targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
   desiredSampleRate?: number | null;
