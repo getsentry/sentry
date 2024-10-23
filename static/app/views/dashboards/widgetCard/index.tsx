@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -65,8 +64,6 @@ export const SESSION_DURATION_ALERT = (
   <PanelAlert type="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
 );
 
-type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
-
 type Props = WithRouterProps & {
   api: Client;
   isEditingDashboard: boolean;
@@ -77,7 +74,6 @@ type Props = WithRouterProps & {
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
-  draggableProps?: DraggableProps;
   hideToolbar?: boolean;
   index?: string;
   isEditingWidget?: boolean;
@@ -311,7 +307,6 @@ function WidgetCard(props: Props) {
               onEdit={props.onEdit}
               onDelete={props.onDelete}
               onDuplicate={props.onDuplicate}
-              draggableProps={props.draggableProps}
               hideToolbar={props.hideToolbar}
               isMobile={props.isMobile}
             />

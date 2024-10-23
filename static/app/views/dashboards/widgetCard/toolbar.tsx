@@ -1,4 +1,3 @@
-import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -8,10 +7,7 @@ import {space} from 'sentry/styles/space';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 
-type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
-
 type ToolbarProps = {
-  draggableProps?: DraggableProps;
   hideToolbar?: boolean;
   isMobile?: boolean;
   onDelete?: () => void;
@@ -25,7 +21,6 @@ export function Toolbar({
   onEdit,
   onDelete,
   onDuplicate,
-  draggableProps,
 }: ToolbarProps) {
   return (
     <ToolbarPanel>
@@ -37,8 +32,6 @@ export function Toolbar({
             icon={<IconGrabbable />}
             borderless
             className={DRAG_HANDLE_CLASS}
-            {...draggableProps?.listeners}
-            {...draggableProps?.attributes}
           />
         )}
         {onEdit && (
