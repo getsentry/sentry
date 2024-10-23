@@ -131,9 +131,9 @@ function GroupCheckbox({
   );
 }
 
-function GroupTimestamp({date, label}: {date: string | null; label: string}) {
+function GroupTimestamp({date, label}: {date: string | null | undefined; label: string}) {
   if (!date) {
-    return <Placeholder height="18px" width="40px" />;
+    return <Placeholder height="18px" width="60px" />;
   }
 
   return (
@@ -641,12 +641,12 @@ function BaseGroupRow({
         <Fragment>
           {withColumns.includes('firstSeen') && (
             <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
-              <GroupTimestamp date={group.firstSeen} label={t('First Seen')} />
+              <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
             </TimestampWrapper>
           )}
           {withColumns.includes('lastSeen') && (
             <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-              <GroupTimestamp date={group.lastSeen} label={t('Last Seen')} />
+              <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
             </TimestampWrapper>
           )}
           {withColumns.includes('event') &&
