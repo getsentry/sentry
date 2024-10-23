@@ -13,16 +13,15 @@ export function ErrorPanel({error}: ErrorPanelProps) {
   return (
     <Panel>
       <NonShrinkingWarningIcon color={DEEMPHASIS_COLOR_NAME} size="md" />
-      <span>{error?.toString()}</span>
+      <ErrorText>{error?.toString()}</ErrorText>
     </Panel>
   );
 }
 
-const NonShrinkingWarningIcon = styled(IconWarning)`
-  flex-shrink: 0;
-`;
-
 const Panel = styled('div')<{height?: string}>`
+  container-type: size;
+  container-name: error-panel;
+
   position: absolute;
   inset: 0;
 
@@ -34,5 +33,16 @@ const Panel = styled('div')<{height?: string}>`
   overflow: hidden;
 
   color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
-  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const NonShrinkingWarningIcon = styled(IconWarning)`
+  flex-shrink: 0;
+`;
+
+const ErrorText = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  @container error-panel (min-width: 360px) {
+    font-size: ${p => p.theme.fontSizeMedium};
+  }
 `;
