@@ -91,6 +91,7 @@ type Props = {
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   handleAddMetricWidget?: (layout?: Widget['layout']) => void;
+  handleSetSplitTransactionsDataset?: (widget: Widget, index: number) => void;
   isPreview?: boolean;
   newWidget?: Widget;
   onSetNewWidget?: () => void;
@@ -385,8 +386,14 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditingDashboard, widgetLimitReached, isPreview, dashboard, location} =
-      this.props;
+    const {
+      isEditingDashboard,
+      widgetLimitReached,
+      isPreview,
+      dashboard,
+      location,
+      handleSetSplitTransactionsDataset,
+    } = this.props;
 
     const widgetProps = {
       widget,
@@ -396,6 +403,7 @@ class Dashboard extends Component<Props, State> {
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
+      onSetTransactionsDataset: () => handleSetSplitTransactionsDataset?.(widget, index),
 
       isPreview,
 

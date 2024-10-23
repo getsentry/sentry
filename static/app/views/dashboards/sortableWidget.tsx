@@ -15,6 +15,7 @@ type Props = {
   onDelete: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
+  onSetTransactionsDataset: () => void;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
@@ -32,6 +33,7 @@ function SortableWidget(props: Props) {
     onDelete,
     onEdit,
     onDuplicate,
+    onSetTransactionsDataset,
     isPreview,
     isMobile,
     windowWidth,
@@ -47,6 +49,7 @@ function SortableWidget(props: Props) {
     onDelete,
     onEdit,
     onDuplicate,
+    onSetTransactionsDataset,
     showContextMenu: true,
     isPreview,
     index,
