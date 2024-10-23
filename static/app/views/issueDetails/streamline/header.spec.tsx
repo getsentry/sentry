@@ -14,7 +14,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
-describe('UpdatedGroupHeader', () => {
+describe('StreamlinedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
   const organization = OrganizationFixture();
   const project = ProjectFixture({
@@ -97,15 +97,11 @@ describe('UpdatedGroupHeader', () => {
 
       expect(screen.getByText('RequestError')).toBeInTheDocument();
       expect(screen.getByText('Unhandled')).toBeInTheDocument();
-      expect(await screen.findByTestId('all-event-count')).toHaveTextContent(
-        'All Events'
-      );
+      expect(await screen.findByRole('link', {name: 'Events'})).toBeInTheDocument();
+      expect(screen.getByText(formatAbbreviatedNumber(group.count))).toBeInTheDocument();
+      expect(await screen.findByRole('link', {name: 'Users'})).toBeInTheDocument();
       expect(
-        await screen.findByRole('link', {name: formatAbbreviatedNumber(group.count)})
-      ).toBeInTheDocument();
-      expect(await screen.findByText('All Users')).toBeInTheDocument();
-      expect(
-        await screen.findByRole('link', {name: formatAbbreviatedNumber(group.userCount)})
+        screen.getByText(formatAbbreviatedNumber(group.userCount))
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Modify issue priority'})
