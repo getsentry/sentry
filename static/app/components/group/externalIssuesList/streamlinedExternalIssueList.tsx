@@ -145,6 +145,7 @@ const IssueActionWrapper = styled('div')`
 
 const StyledSectionTitle = styled(SidebarSection.Title)`
   margin-top: ${space(0.25)};
+  color: ${p => p.theme.headingColor};
 `;
 
 const LinkedIssue = styled(LinkButton)`
