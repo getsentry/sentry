@@ -14,6 +14,7 @@ import {
   getWidgetIssueUrl,
   hasUnsavedFilterChanges,
   isCustomMeasurementWidget,
+  isUsingPerformanceScore,
   isWidgetUsingTransactionName,
 } from 'sentry/views/dashboards/utils';
 
@@ -394,5 +395,24 @@ describe('isWidgetUsingTransactionName', () => {
     baseQuery.queryConditions = ['transaction:test'];
     const widget = constructWidgetFromQuery(baseQuery)!;
     expect(isWidgetUsingTransactionName(widget)).toEqual(true);
+  });
+
+  describe('isUsingPerformanceScore', () => {
+    it('returns false when widget does not use performance_score', () => {
+      const widget = constructWidgetFromQuery(baseQuery)!;
+      expect(isUsingPerformanceScore(widget)).toEqual(false);
+    });
+
+    it('returns true when widget uses performance_score as aggregate', () => {
+      baseQuery.queryFields.push('performance_score(measurements.score.total)');
+      const widget = constructWidgetFromQuery(baseQuery)!;
+      expect(isUsingPerformanceScore(widget)).toEqual(true);
+    });
+
+    it('returns true when widget uses performance_score as condition', () => {
+      baseQuery.queryConditions.push('performance_score(measurements.score.total):>0.5');
+      const widget = constructWidgetFromQuery(baseQuery)!;
+      expect(isUsingPerformanceScore(widget)).toEqual(true);
+    });
   });
 });

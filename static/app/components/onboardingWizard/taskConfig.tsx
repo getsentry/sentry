@@ -31,8 +31,6 @@ import EventWaiter from 'sentry/utils/eventWaiter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 
-import OnboardingProjectsCard from './onboardingProjectsCard';
-
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
     ? projects.some(({platform}) => platform && sourceMaps.includes(platform))
@@ -245,7 +243,6 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: `/settings/${organization.slug}/integrations/`,
       display: !hasQuickStartUpdatesFeature(organization),
-      group: OnboardingTaskGroup.GETTING_STARTED,
     },
     {
       task: OnboardingTaskKey.REAL_TIME_NOTIFICATIONS,
@@ -258,7 +255,6 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: `/settings/${organization.slug}/integrations/?category=chat`,
       display: hasQuickStartUpdatesFeature(organization),
-      group: OnboardingTaskGroup.GETTING_STARTED,
     },
     {
       task: OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
@@ -365,7 +361,7 @@ export function getOnboardingTasks({
       actionType: 'external',
       location:
         'https://docs.sentry.io/platform-redirect/?next=/enriching-events/identify-user/',
-      display: true,
+      display: !hasQuickStartUpdatesFeature(organization),
     },
     {
       task: OnboardingTaskKey.SESSION_REPLAY,
@@ -465,18 +461,9 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: getMetricAlertUrl({projects, organization, onboardingContext}),
       // Use `features?.` because getsentry has a different `Organization` type/payload
-      display: organization.features?.includes('incidents'),
-    },
-    {
-      task: OnboardingTaskKey.USER_SELECTED_PROJECTS,
-      title: t('Projects to Setup'),
-      description: '',
-      skippable: true,
-      requisites: [],
-      actionType: 'action',
-      action: () => {},
-      display: true,
-      renderCard: OnboardingProjectsCard,
+      display:
+        organization.features?.includes('incidents') &&
+        !hasQuickStartUpdatesFeature(organization),
     },
   ];
 }

@@ -1,5 +1,5 @@
 ---
-created: '2020-12-08T17:25:04.978501Z'
+created: '2024-10-16T22:32:31.694343+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -16,6 +16,7 @@ config:
       - sentry.*
     - - level
       - ERROR
+    text: logger:"sentry.*" level:"ERROR" -> "log-{{ logger }}-{{ level }}"
   version: 1
 fingerprint:
 - log-
