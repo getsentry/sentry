@@ -35,16 +35,6 @@ const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
 
 jest.mock('sentry/utils/replays/hooks/useReplayReader');
-// Mock screenfull library
-jest.mock('screenfull', () => ({
-  enabled: true,
-  isFullscreen: false,
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
-
 const mockUseReplayReader = jest.mocked(useReplayReader);
 
 const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');

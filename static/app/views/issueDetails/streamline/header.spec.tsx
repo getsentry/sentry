@@ -14,15 +14,6 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
-jest.mock('screenfull', () => ({
-  enabled: true,
-  isFullscreen: false,
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
-
 describe('StreamlinedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
   const organization = OrganizationFixture();

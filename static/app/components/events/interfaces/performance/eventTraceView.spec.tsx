@@ -17,15 +17,6 @@ class ResizeObserver {
 
 window.ResizeObserver = ResizeObserver;
 
-jest.mock('screenfull', () => ({
-  enabled: true,
-  isFullscreen: false,
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
-
 describe('EventTraceView', () => {
   const traceId = 'this-is-a-good-trace-id';
   const {organization, project} = initializeData({

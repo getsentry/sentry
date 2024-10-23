@@ -14,14 +14,6 @@ import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {MOCK_EVENTS_TABLE_DATA} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
 jest.mock('sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent');
-jest.mock('screenfull', () => ({
-  enabled: true,
-  isFullscreen: false,
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
 
 describe('EventDetails', function () {
   const organization = OrganizationFixture();
