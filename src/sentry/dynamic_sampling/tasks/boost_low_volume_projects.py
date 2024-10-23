@@ -119,7 +119,7 @@ def partition_by_measure(org_ids: Sequence[OrganizationId]) -> Mapping[SamplingM
     spans = []
     transactions = []
 
-    if not options.get("organizations:dynamic-sampling-spans"):
+    if not options.get("dynamic-sampling.check_span_feature_flag"):
         return {SamplingMeasure.TRANSACTIONS: org_ids}
 
     with metrics.timer("dynamic_sampling.partition_by_measure"):
