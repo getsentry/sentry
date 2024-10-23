@@ -91,7 +91,7 @@ describe('StreamlinedActivitySection', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('collapses activity when there are more than 7 items', async function () {
+  it('collapses activity when there are more than 5 items', async function () {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -111,6 +111,7 @@ describe('StreamlinedActivitySection', function () {
     expect(await screen.findByText('Test Note 1')).toBeInTheDocument();
     expect(await screen.findByText('Test Note 7')).toBeInTheDocument();
     expect(screen.queryByText('Test Note 6')).not.toBeInTheDocument();
+    expect(await screen.findByText('4 comments hidden')).toBeInTheDocument();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Show all activity'}));
     expect(await screen.findByText('Test Note 6')).toBeInTheDocument();

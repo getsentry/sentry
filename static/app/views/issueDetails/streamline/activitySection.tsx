@@ -148,13 +148,13 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
           source="issue-details"
           {...noteProps}
         />
-        {(group.activity.length < 7 || showAll) &&
+        {(group.activity.length < 5 || showAll) &&
           group.activity.map(item => {
             return createTimelineItem(item);
           })}
-        {!showAll && group.activity.length >= 7 && (
+        {!showAll && group.activity.length >= 5 && (
           <Fragment>
-            {group.activity.slice(0, 3).map(item => {
+            {group.activity.slice(0, 2).map(item => {
               return createTimelineItem(item);
             })}
             <ActivityTimelineItem
@@ -165,7 +165,7 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
                   borderless
                   size="zero"
                 >
-                  {t('%s comments hidden', group.activity.length - 4)}
+                  {t('%s comments hidden', group.activity.length - 3)}
                 </ShowAllButton>
               }
               icon={<RotatedEllipsisIcon />}
