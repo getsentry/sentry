@@ -29,6 +29,7 @@ from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
 from sentry.options import set
+from sentry.tasks.store import ConsumerType
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba, requires_symbolicator
@@ -96,6 +97,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
                 "remote_addr": "127.0.0.1",
             },
             project=default_project,
+            consumer_type=ConsumerType.Events,
         )
 
     (kwargs,) = preprocess_event
@@ -146,6 +148,7 @@ def test_transactions_spawn_save_event_transaction(
             "remote_addr": "127.0.0.1",
         },
         project=default_project,
+        consumer_type=ConsumerType.Events,
     )
     assert not len(preprocess_event)
     assert save_event_transaction.delay.call_args[0] == ()
@@ -198,6 +201,7 @@ def test_accountant_transaction(default_project):
             "remote_addr": "127.0.0.1",
         },
         project=default_project,
+        consumer_type=ConsumerType.Events,
     )
 
     accountant._shutdown()
@@ -248,6 +252,7 @@ def test_feedbacks_spawn_save_event_feedback(
             "remote_addr": "127.0.0.1",
         },
         project=default_project,
+        consumer_type=ConsumerType.Events,
     )
     assert not len(preprocess_event)
     assert save_event_feedback.delay.call_args[0] == ()
@@ -309,6 +314,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
                 ],
             },
             project=default_project,
+            consumer_type=ConsumerType.Events,
         )
 
     persisted_attachments = list(
@@ -393,6 +399,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner, set_sentry_opt
                     ],
                 },
                 project=default_project,
+                consumer_type=ConsumerType.Events,
             )
 
         persisted_attachments = list(

@@ -8,6 +8,7 @@ from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 
 from sentry.models.project import Project
+from sentry.tasks.store import ConsumerType
 from sentry.utils import metrics
 
 from .processors import (
@@ -90,7 +91,9 @@ def process_attachments_and_events(
             if not reprocess_only_stuck_events:
                 process_individual_attachment(message, project)
         elif message_type == "event":
-            process_event(message, project, reprocess_only_stuck_events)
+            process_event(
+                message, project, reprocess_only_stuck_events, consumer_type=ConsumerType.Events
+            )
         elif message_type == "user_report":
             process_userreport(message, project)
         else:
