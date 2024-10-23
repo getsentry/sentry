@@ -74,7 +74,6 @@ type Props = WithRouterProps & {
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
-  hideToolbar?: boolean;
   index?: string;
   isEditingWidget?: boolean;
   isMobile?: boolean;
@@ -307,7 +306,6 @@ function WidgetCard(props: Props) {
               onEdit={props.onEdit}
               onDelete={props.onDelete}
               onDuplicate={props.onDuplicate}
-              hideToolbar={props.hideToolbar}
               isMobile={props.isMobile}
             />
           )}
