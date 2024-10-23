@@ -375,6 +375,7 @@ class TracesExecutor:
         self.metrics_operation = metrics_operation
         self.metrics_query = metrics_query
         self.mri = mri
+        self.offset = 0
         self.limit = limit
         self.breakdown_slices = breakdown_slices
         self.get_all_projects = get_all_projects
@@ -387,6 +388,12 @@ class TracesExecutor:
         return all_projects_snuba_params
 
     def execute(self, offset: int, limit: int):
+        # To support pagination on only EAP, we use the offset/limit
+        # values from the paginator here.
+        if self.dataset == Dataset.EventsAnalyticsPlatform:
+            self.offset = offset
+            self.limit = limit
+
         return {"data": self._execute()}
 
     def _execute(self):
@@ -659,6 +666,7 @@ class TracesExecutor:
                 selected_columns=["trace", timestamp_column],
                 orderby=orderby,
                 limit=self.limit,
+                offset=self.offset,
                 limitby=("trace", 1),
                 config=QueryBuilderConfig(
                     transform_alias_to_input_format=True,
@@ -676,6 +684,7 @@ class TracesExecutor:
                 selected_columns=["trace", timestamp_column],
                 orderby=orderby,
                 limit=self.limit,
+                offset=self.offset,
                 limitby=("trace", 1),
                 config=QueryBuilderConfig(
                     auto_aggregations=True,

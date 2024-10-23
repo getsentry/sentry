@@ -9,6 +9,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.api.endpoints.organization_traces import process_breakdowns
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
@@ -2613,21 +2614,48 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                 ["foo:[bar, baz]"],
                 ["foo:bar span.duration:>10s", "foo:baz"],
             ]:
+                expected = sorted(
+                    expected,
+                    key=lambda trace: trace["start"],
+                    reverse=descending,
+                )
+
                 query = {
                     # only query for project_2 but expect traces to start from project_1
                     "project": [project_2.id],
                     "field": ["id", "parent_span", "span.duration"],
                     "query": q,
                     "sort": "-timestamp" if descending else "timestamp",
+                    "per_page": 1,
                 }
-
                 response = self.do_request(query)
                 assert response.status_code == 200, response.data
-                assert response.data["data"] == sorted(
-                    expected,
-                    key=lambda trace: trace["start"],
-                    reverse=descending,
-                )
+                assert response.data["data"] == [expected[0]]
+
+                links = parse_link_header(response.headers["Link"])
+                prev_link = next(link for link in links.values() if link["rel"] == "previous")
+                assert prev_link["results"] == "false"
+                next_link = next(link for link in links.values() if link["rel"] == "next")
+                assert next_link["results"] == "true"
+
+                query = {
+                    # only query for project_2 but expect traces to start from project_1
+                    "project": [project_2.id],
+                    "field": ["id", "parent_span", "span.duration"],
+                    "query": q,
+                    "sort": "-timestamp" if descending else "timestamp",
+                    "per_page": 1,
+                    "cursor": next_link["cursor"],
+                }
+                response = self.do_request(query)
+                assert response.status_code == 200, response.data
+                assert response.data["data"] == [expected[1]]
+
+                links = parse_link_header(response.headers["Link"])
+                prev_link = next(link for link in links.values() if link["rel"] == "previous")
+                assert prev_link["results"] == "true"
+                next_link = next(link for link in links.values() if link["rel"] == "next")
+                assert next_link["results"] == "false"
 
 
 class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):
