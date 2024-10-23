@@ -5,9 +5,14 @@ import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import type {Release} from 'sentry/types/release';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {GroupRelease} from 'sentry/views/issueDetails/streamline/activitySection';
+
+export interface GroupRelease {
+  firstRelease: Release;
+  lastRelease: Release;
+}
 
 export default function FirstLastSeenSection({group}: {group: Group}) {
   const organization = useOrganization();
