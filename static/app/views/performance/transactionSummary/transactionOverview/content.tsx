@@ -420,8 +420,11 @@ function SummaryContent({
             titles={transactionsListTitles}
             handleDropdownChange={handleTransactionsListSortChange}
             generateLink={{
-              id: generateTransactionIdLink(transactionName),
-              trace: generateTraceLink(eventView.normalizeDateSelection(location)),
+              id: generateTransactionIdLink(transactionName, domainViewFilters.view),
+              trace: generateTraceLink(
+                eventView.normalizeDateSelection(location),
+                domainViewFilters.view
+              ),
               replayId: generateReplayLink(routes),
               'profile.id': generateProfileLink(),
             }}
@@ -430,6 +433,7 @@ function SummaryContent({
               p95: totalValues?.['p95()'] ?? 0,
               spanOperationBreakdownFilter,
             })}
+            domainViewFilters={domainViewFilters}
             forceLoading={isLoading}
             referrer="performance.transactions_summary"
             supportsInvestigationRule

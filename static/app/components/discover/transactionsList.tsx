@@ -26,7 +26,7 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import type {DomainView, DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {mapShowTransactionToPercentile} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {PerformanceAtScaleContext} from 'sentry/views/performance/transactionSummary/transactionOverview/performanceAtScaleContext';
@@ -86,6 +86,7 @@ type Props = {
    */
   selected: DropdownOption;
   breakdown?: SpanOperationBreakdownFilter;
+  domainViewFilters?: DomainViewFilters;
   /**
    * Show a loading indicator instead of the table, used for transaction summary p95.
    */
@@ -156,8 +157,6 @@ function TableRender({
   target,
   paginationCursorSize,
 }: TableRenderProps) {
-  const domainViewFilters = useDomainViewFilters();
-
   const query = decodeScalar(location.query.query, '');
   const display = decodeScalar(location.query.display, DisplayModes.DURATION);
   const performanceAtScaleContext = useContext(PerformanceAtScaleContext);
@@ -273,10 +272,12 @@ class _TransactionsList extends Component<Props> {
     cursor,
     numSamples,
     supportsInvestigationRule,
+    view,
   }: {
     numSamples: number | null | undefined;
     cursor?: string | undefined;
     supportsInvestigationRule?: boolean;
+    view?: DomainView;
   }): React.ReactNode {
     const {
       organization,
@@ -321,6 +322,7 @@ class _TransactionsList extends Component<Props> {
                   {
                     showTransactions: mapShowTransactionToPercentile(showTransactions),
                     breakdown,
+                    view,
                   }
                 )}
                 size="xs"
@@ -392,7 +394,10 @@ class _TransactionsList extends Component<Props> {
           isLoading
           pageLinks={null}
           tableData={null}
-          header={this.renderHeader({numSamples: null})}
+          header={this.renderHeader({
+            numSamples: null,
+            view: this.props.domainViewFilters?.view,
+          })}
         />
       );
     }
@@ -416,6 +421,7 @@ class _TransactionsList extends Component<Props> {
               numSamples: tableData?.data?.length ?? null,
               supportsInvestigationRule: this.props.supportsInvestigationRule,
               cursor,
+              view: this.props.domainViewFilters?.view,
             })}
           />
         )}
@@ -458,6 +464,7 @@ class _TransactionsList extends Component<Props> {
             header={this.renderHeader({
               numSamples: null,
               supportsInvestigationRule: false,
+              view: this.props.domainViewFilters?.view,
             })}
             titles={['transaction', 'percentage', 'difference']}
             columnOrder={decodeColumnOrder([

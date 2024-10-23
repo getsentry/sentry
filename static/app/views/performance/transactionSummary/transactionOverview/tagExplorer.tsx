@@ -31,7 +31,10 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {
+  type DomainViewFilters,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 
 import {
   platformAndConditionsToPerformanceType,
@@ -477,6 +480,7 @@ type HeaderProps = {
 };
 
 function TagsHeader(props: HeaderProps) {
+  const domainViewFilters = useDomainViewFilters();
   const {pageLinks, organization, location, transactionName} = props;
 
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
@@ -500,6 +504,7 @@ function TagsHeader(props: HeaderProps) {
     transaction: transactionName,
     projectID: decodeScalar(location.query.project),
     query: {...location.query},
+    view: domainViewFilters?.view,
   });
 
   return (
