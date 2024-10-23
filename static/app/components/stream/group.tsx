@@ -604,37 +604,40 @@ function BaseGroupRow({
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
-      {withChart &&
-      !displayReprocessingLayout &&
-      issueTypeConfig.stats.enabled &&
-      hasNewLayout ? (
-        <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
-          <GroupStatusChart
-            hideZeros
-            loading={!defined(groupStats)}
-            stats={groupStats}
-            secondaryStats={groupSecondaryStats}
-            showSecondaryPoints={showSecondaryPoints}
-            groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
-            showMarkLine
-          />
-        </NarrowChartWrapper>
-      ) : (
-        <ChartWrapper
-          narrowGroups={narrowGroups}
-          margin={withColumns.includes('firstSeen')}
-        >
-          <GroupStatusChart
-            hideZeros
-            loading={!defined(groupStats)}
-            stats={groupStats}
-            secondaryStats={groupSecondaryStats}
-            showSecondaryPoints={showSecondaryPoints}
-            groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
-            showMarkLine
-          />
-        </ChartWrapper>
-      )}
+      {withChart && !displayReprocessingLayout ? (
+        hasNewLayout ? (
+          <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
+            {issueTypeConfig.stats.enabled ? (
+              <GroupStatusChart
+                hideZeros
+                loading={!defined(groupStats)}
+                stats={groupStats}
+                secondaryStats={groupSecondaryStats}
+                showSecondaryPoints={showSecondaryPoints}
+                groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
+                showMarkLine
+              />
+            ) : null}
+          </NarrowChartWrapper>
+        ) : (
+          <ChartWrapper
+            narrowGroups={narrowGroups}
+            margin={withColumns.includes('firstSeen')}
+          >
+            {issueTypeConfig.stats.enabled ? (
+              <GroupStatusChart
+                hideZeros
+                loading={!defined(groupStats)}
+                stats={groupStats}
+                secondaryStats={groupSecondaryStats}
+                showSecondaryPoints={showSecondaryPoints}
+                groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
+                showMarkLine
+              />
+            ) : null}
+          </ChartWrapper>
+        )
+      ) : null}
       {displayReprocessingLayout ? (
         renderReprocessingColumns()
       ) : (
@@ -649,28 +652,34 @@ function BaseGroupRow({
               <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
             </TimestampWrapper>
           )}
-          {withColumns.includes('event') &&
-          issueTypeConfig.stats.enabled &&
-          hasNewLayout ? (
-            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-              <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
-            </NarrowEventsOrUsersCountsWrapper>
-          ) : (
-            <EventCountsWrapper
-              leftMargin={withColumns.includes('lastSeen') ? undefined : '0px'}
-            >
-              {groupCount}
-            </EventCountsWrapper>
-          )}
-          {withColumns.includes('users') &&
-          issueTypeConfig.stats.enabled &&
-          hasNewLayout ? (
-            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-              <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
-            </NarrowEventsOrUsersCountsWrapper>
-          ) : (
-            <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
-          )}
+          {withColumns.includes('event') ? (
+            hasNewLayout ? (
+              <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+                {issueTypeConfig.stats.enabled ? (
+                  <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
+                ) : null}
+              </NarrowEventsOrUsersCountsWrapper>
+            ) : (
+              <EventCountsWrapper
+                leftMargin={withColumns.includes('lastSeen') ? undefined : '0px'}
+              >
+                {issueTypeConfig.stats.enabled ? groupCount : null}
+              </EventCountsWrapper>
+            )
+          ) : null}
+          {withColumns.includes('users') ? (
+            hasNewLayout ? (
+              <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
+                {issueTypeConfig.stats.enabled ? (
+                  <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
+                ) : null}
+              </NarrowEventsOrUsersCountsWrapper>
+            ) : (
+              <EventCountsWrapper>
+                {issueTypeConfig.stats.enabled ? groupUsersCount : null}
+              </EventCountsWrapper>
+            )
+          ) : null}
           {withColumns.includes('priority') ? (
             hasNewLayout ? (
               <NarrowPriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
