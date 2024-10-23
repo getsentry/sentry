@@ -45,7 +45,7 @@ export default function useSuspectFlags({
         organization,
       });
     }
-  });
+  }, [hydratedFlagData.length, intersectionFlags.length, organization]);
 
   // get all the audit log flag changes which happened prior to the first seen date
   const start = moment(firstSeen).subtract(1, 'year').format('YYYY-MM-DD HH:mm:ss');
@@ -84,9 +84,14 @@ export default function useSuspectFlags({
         organization,
       });
     }
-  });
+  }, [
+    data,
+    hydratedFlagData.length,
+    isError,
+    isPending,
+    intersectionFlags.length,
+    organization,
+  ]);
 
-  return useMemo(() => {
-    return apiQueryResponse;
-  }, [apiQueryResponse]);
+  return apiQueryResponse;
 }
