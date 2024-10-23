@@ -87,6 +87,9 @@ logger = logging.getLogger(__name__)
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects(context: TaskContext) -> None:
+    """
+    Task to adjusts the sample rates of all projects in all active organizations.
+    """
     logger.info(
         "boost_low_volume_projects",
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
@@ -115,6 +118,10 @@ def boost_low_volume_projects_of_org_with_query(
     context: TaskContext,
     org_id: OrganizationId,
 ) -> None:
+    """
+    Task to adjust the sample rates of the projects of a single organization specified by an
+    organization ID. Transaction counts and rates are fetched within this task.
+    """
     logger.info(
         "boost_low_volume_projects_of_org_with_query",
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
@@ -142,7 +149,10 @@ def boost_low_volume_projects_of_org(
         tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
     ],
 ) -> None:
-
+    """
+    Task to adjust the sample rates of the projects of a single organization specified by an
+    organization ID. Transaction counts and rates have to be provided.
+    """
     logger.info(
         "boost_low_volume_projects_of_org",
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
