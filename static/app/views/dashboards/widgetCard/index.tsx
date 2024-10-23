@@ -55,13 +55,14 @@ import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
+
+export const SESSION_DURATION_ALERT_TEXT = t(
+  'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
+  getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
+);
+
 export const SESSION_DURATION_ALERT = (
-  <PanelAlert type="warning">
-    {t(
-      'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
-      getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
-    )}
-  </PanelAlert>
+  <PanelAlert type="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
 );
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
@@ -358,8 +359,9 @@ function WidgetCard(props: Props) {
 
 export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
 
-function DisplayOnDemandWarnings(props: {widget: Widget}) {
+function useOnDemandWarning(props: {widget: Widget}): string | null {
   const organization = useOrganization();
+
   if (!hasOnDemandMetricWidgetFeature(organization)) {
     return null;
   }
@@ -379,25 +381,26 @@ function DisplayOnDemandWarnings(props: {widget: Widget}) {
   );
 
   if (widgetContainsHighCardinality) {
-    return (
-      <Tooltip
-        containerDisplayMode="inline-flex"
-        title={t(
-          'This widget is using indexed data because it has a column with too many unique values.'
-        )}
-      >
-        <IconWarning color="warningText" />
-      </Tooltip>
+    return t(
+      'This widget is using indexed data because it has a column with too many unique values.'
     );
   }
+
   if (widgetReachedSpecLimit) {
+    return t(
+      "This widget is using indexed data because you've reached your organization limit for dynamically extracted metrics."
+    );
+  }
+
+  return null;
+}
+
+function DisplayOnDemandWarnings(props: {widget: Widget}) {
+  const warning = useOnDemandWarning(props);
+
+  if (warning) {
     return (
-      <Tooltip
-        containerDisplayMode="inline-flex"
-        title={t(
-          "This widget is using indexed data because you've reached your organization limit for dynamically extracted metrics."
-        )}
-      >
+      <Tooltip containerDisplayMode="inline-flex" title={warning}>
         <IconWarning color="warningText" />
       </Tooltip>
     );
