@@ -31,6 +31,7 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 import {
   platformAndConditionsToPerformanceType,
@@ -178,6 +179,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   transactionName: string;
+  domainViewFilters?: DomainViewFilters;
 };
 
 type State = {
@@ -328,6 +330,7 @@ export class TagExplorer extends Component<Props> {
         transaction: transactionName,
         projectID: decodeScalar(location.query.project),
         query: {...location.query, tagKey: dataRow.tags_key},
+        view: this.props.domainViewFilters?.view,
       });
       return (
         <Link to={target} onClick={() => this.onTagKeyClick()}>

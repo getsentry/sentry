@@ -42,6 +42,7 @@ import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -103,6 +104,7 @@ function SummaryContent({
 }: Props) {
   const routes = useRoutes();
   const mepDataContext = useMEPDataContext();
+  const domainViewFilters = useDomainViewFilters();
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -456,6 +458,7 @@ function SummaryContent({
           projects={projects}
           transactionName={transactionName}
           currentFilter={spanOperationBreakdownFilter}
+          domainViewFilters={domainViewFilters}
         />
 
         <SuspectFunctionsTable

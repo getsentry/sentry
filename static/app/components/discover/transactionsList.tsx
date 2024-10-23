@@ -26,6 +26,7 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {mapShowTransactionToPercentile} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {PerformanceAtScaleContext} from 'sentry/views/performance/transactionSummary/transactionOverview/performanceAtScaleContext';
@@ -155,6 +156,8 @@ function TableRender({
   target,
   paginationCursorSize,
 }: TableRenderProps) {
+  const domainViewFilters = useDomainViewFilters();
+
   const query = decodeScalar(location.query.query, '');
   const display = decodeScalar(location.query.display, DisplayModes.DURATION);
   const performanceAtScaleContext = useContext(PerformanceAtScaleContext);
