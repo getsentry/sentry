@@ -272,6 +272,7 @@ _SENTRY_RULES = (
     "sentry.rules.conditions.tagged_event.TaggedEventCondition",
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+    "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions",
     "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
     "sentry.rules.conditions.event_attribute.EventAttributeCondition",
     "sentry.rules.conditions.level.LevelCondition",

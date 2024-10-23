@@ -70,9 +70,12 @@ class UniqueConditionQuery(NamedTuple):
 class DataAndGroups(NamedTuple):
     data: EventFrequencyConditionData
     group_ids: set[int]
+    rule_id: int | None = None
 
     def __repr__(self):
-        return f"<DataAndGroups data: {self.data} group_ids: {self.group_ids}>"
+        return (
+            f"<DataAndGroups data: {self.data} group_ids: {self.group_ids} rule_id: {self.rule_id}>"
+        )
 
 
 def fetch_project(project_id: int) -> Project | None:
@@ -176,7 +179,7 @@ def get_condition_query_groups(
                     data_and_groups.group_ids.update(rules_to_groups[rule.id])
                 else:
                     condition_groups[condition_query] = DataAndGroups(
-                        condition_data, set(rules_to_groups[rule.id])
+                        condition_data, set(rules_to_groups[rule.id]), rule.id
                     )
     return condition_groups
 
@@ -305,7 +308,7 @@ def get_condition_group_results(
     current_time = datetime.now(tz=timezone.utc)
     project_id = project.id
 
-    for unique_condition, (condition_data, group_ids) in condition_groups.items():
+    for unique_condition, (condition_data, group_ids, rule_id) in condition_groups.items():
         cls_id = unique_condition.cls_id
         condition_cls = rules.get(cls_id)
         if condition_cls is None:
@@ -316,7 +319,15 @@ def get_condition_group_results(
             )
             continue
 
-        condition_inst = condition_cls(project=project, data=condition_data)  # type: ignore[arg-type]
+        if rule_id:
+            rule = Rule.objects.get(id=rule_id)
+        else:
+            rule = None
+
+        condition_inst = condition_cls(
+            project=project, data=condition_data, rule=rule  # type: ignore[arg-type]
+        )
+
         if not isinstance(condition_inst, BaseEventFrequencyCondition):
             logger.warning("Unregistered condition %r", cls_id, extra={"project_id": project_id})
             continue
