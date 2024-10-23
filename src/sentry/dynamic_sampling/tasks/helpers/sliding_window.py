@@ -1,8 +1,11 @@
 from calendar import IllegalMonthError, monthrange
 from datetime import datetime, timezone
 
-from sentry import options
+from sentry import features, options
+from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 
 # In case a misconfiguration happens on the server side which makes the option invalid, we want to define a fallback
 # sliding window size, which in this case will be 24 hours.
@@ -37,9 +40,39 @@ def generate_sliding_window_org_cache_key(org_id: int) -> str:
     return f"ds::o:{org_id}:sliding_window_org_sample_rate"
 
 
-def get_sliding_window_org_sample_rate(
+def get_org_sample_rate(
     org_id: int, default_sample_rate: float | None
 ) -> tuple[float | None, bool]:
+    """
+    Returns the organization sample rate for dynamic sampling. This returns either the
+    target_sample_rate organization option if custom dynamic sampling is enabled. Otherwise
+    it will fall back on retrieving the sample rate from the sliding window calculations.
+    """
+
+    # check if `organizations:dynamic-sampling-custom` feature flag is enabled for the
+    # organization, if yes, return the `sentry:target_sample_rate` option
+    try:
+        org = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        org = None
+
+    has_dynamic_sampling_custom = features.has("organizations:dynamic-sampling-custom", org)
+    if has_dynamic_sampling_custom:
+        try:
+            option_inst = OrganizationOption.objects.get(
+                organization=org, key="sentry:target_sample_rate"
+            )
+        except OrganizationOption.DoesNotExist:
+            option_inst = None
+
+        if option_inst is None or option_inst.value is None:
+            if default_sample_rate is not None:
+                return default_sample_rate, False
+            return TARGET_SAMPLE_RATE_DEFAULT, False
+
+        return float(option_inst.value), True
+
+    # fallback to sliding window calculation
     redis_client = get_redis_client_for_ds()
     cache_key = generate_sliding_window_org_cache_key(org_id)
 
