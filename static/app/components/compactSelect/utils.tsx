@@ -271,7 +271,8 @@ export function HiddenSectionToggle({
   const {focusProps} = useFocus({
     onFocus: () => {
       const visibleCounterpart = document.querySelector(
-        `#${listId} button[aria-hidden][data-key="${item.key}"]`
+        // Escape react useId to make valid CSS id selector
+        `#${CSS.escape(listId)} button[aria-hidden][data-key="${item.key}"]`
       );
 
       if (!visibleCounterpart) {
@@ -281,7 +282,7 @@ export function HiddenSectionToggle({
     },
     onBlur: () => {
       const visibleCounterpart = document.querySelector(
-        `#${listId} button[aria-hidden][data-key="${item.key}"]`
+        `#${CSS.escape(listId)} button[aria-hidden][data-key="${item.key}"]`
       );
 
       if (!visibleCounterpart) {

@@ -1,8 +1,7 @@
-import {forwardRef, useMemo} from 'react';
+import {forwardRef, useId} from 'react';
 import type {PopperProps} from 'react-popper';
 import styled from '@emotion/styled';
 
-import domId from 'sentry/utils/domId';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
 interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
@@ -42,8 +41,8 @@ function BaseOverlayArrow(
     `C ${w * 0.55} ${s / 2} ${w * 0.75} ${h - s / 2} ${w} ${h - s / 2}`,
   ].join('');
 
-  const strokeMaskId = useMemo(() => domId('stroke-mask'), []);
-  const fillMaskId = useMemo(() => domId('fill-mask'), []);
+  const strokeMaskId = useId();
+  const fillMaskId = useId();
 
   return (
     <Wrap ref={ref} placement={placement} size={size} {...props}>

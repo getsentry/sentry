@@ -3,6 +3,7 @@ import {
   isValidElement,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -11,7 +12,6 @@ import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 
-import domId from 'sentry/utils/domId';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
 function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
@@ -144,25 +144,22 @@ function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
 /**
  * A hook used to trigger a positioned overlay on hover.
  */
-function useHoverOverlay(
-  overlayType: string,
-  {
-    className,
-    delay,
-    displayTimeout,
-    isHoverable,
-    showUnderline,
-    underlineColor,
-    showOnlyOnOverflow,
-    skipWrapper,
-    forceVisible,
-    offset = 8,
-    position = 'top',
-    containerDisplayMode = 'inline-block',
-  }: UseHoverOverlayProps
-) {
+function useHoverOverlay({
+  className,
+  delay,
+  displayTimeout,
+  isHoverable,
+  showUnderline,
+  underlineColor,
+  showOnlyOnOverflow,
+  skipWrapper,
+  forceVisible,
+  offset = 8,
+  position = 'top',
+  containerDisplayMode = 'inline-block',
+}: UseHoverOverlayProps) {
   const theme = useTheme();
-  const describeById = useMemo(() => domId(`${overlayType}-`), [overlayType]);
+  const describeById = useId();
 
   const [isVisible, setIsVisible] = useState(forceVisible ?? false);
   const isOpen = forceVisible ?? isVisible;

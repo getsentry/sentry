@@ -1,5 +1,5 @@
 import type {Dispatch, SetStateAction} from 'react';
-import {useMemo, useRef} from 'react';
+import {useId, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
@@ -14,7 +14,6 @@ import {space} from 'sentry/styles/space';
 import toArray from 'sentry/utils/array/toArray';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {getFormattedDate} from 'sentry/utils/dates';
-import domId from 'sentry/utils/domId';
 import formatDuration from 'sentry/utils/duration/formatDuration';
 import type {MemoryFrame} from 'sentry/utils/replays/types';
 
@@ -37,7 +36,7 @@ export default function MemoryChart({
   startTimestampMs,
 }: Props) {
   const theme = useTheme();
-  const idRef = useRef(domId('replay-memory-chart-'));
+  const chartId = useId();
 
   const chartOptions: Omit<AreaChartProps, 'series'> = useMemo(
     () => ({
@@ -52,7 +51,7 @@ export default function MemoryChart({
           appendToBody: true,
           trigger: 'axis',
           renderMode: 'html',
-          chartId: idRef.current,
+          chartId,
           formatter: values => {
             const firstValue = Array.isArray(values) ? values[0] : values;
             const seriesTooltips = toArray(values).map(
@@ -120,7 +119,7 @@ export default function MemoryChart({
         }
       },
     }),
-    [setCurrentHoverTime, setCurrentTime, startTimestampMs, theme]
+    [setCurrentHoverTime, setCurrentTime, startTimestampMs, theme, chartId]
   );
 
   const staticSeries = useMemo<AreaChartSeries[]>(
@@ -185,7 +184,7 @@ export default function MemoryChart({
   );
 
   return (
-    <div id={idRef.current}>
+    <div id={chartId}>
       <AreaChart series={series} {...chartOptions} />
     </div>
   );

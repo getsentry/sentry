@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useId, useState} from 'react';
 import type {MentionsInputProps} from 'react-mentions';
 import {Mention, MentionsInput} from 'react-mentions';
 import type {Theme} from '@emotion/react';
@@ -13,7 +13,6 @@ import type {
 } from 'sentry/components/activity/note/types';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
-import domId from 'sentry/utils/domId';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 
@@ -121,7 +120,7 @@ function StreamlinedNoteInput({
     [canSubmit, handleSubmit]
   );
 
-  const errorId = useMemo(() => domId('note-error-'), []);
+  const errorId = useId();
   const errorMessage =
     (errorJSON &&
       (typeof errorJSON.detail === 'string'
