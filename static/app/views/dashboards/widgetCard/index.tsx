@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
+import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
@@ -47,6 +48,7 @@ import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
+import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
@@ -71,6 +73,7 @@ type Props = WithRouterProps & {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
   draggableProps?: DraggableProps;
@@ -80,12 +83,14 @@ type Props = WithRouterProps & {
   isMobile?: boolean;
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
+  legendOptions?: LegendComponentOption;
   noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
+  onLegendSelectChanged?: () => void;
   onUpdate?: (widget: Widget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -142,6 +147,9 @@ function WidgetCard(props: Props) {
     location,
     onWidgetSplitDecision,
     shouldResize,
+    onLegendSelectChanged,
+    legendOptions,
+    widgetLegendState,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -280,6 +288,9 @@ function WidgetCard(props: Props) {
                   chartGroup={DASHBOARD_CHART_GROUP}
                   onWidgetSplitDecision={onWidgetSplitDecision}
                   shouldResize={shouldResize}
+                  onLegendSelectChanged={onLegendSelectChanged}
+                  legendOptions={legendOptions}
+                  widgetLegendState={widgetLegendState}
                 />
               ) : (
                 <LazyRender containerHeight={200} withoutContainer>
@@ -298,6 +309,9 @@ function WidgetCard(props: Props) {
                     chartGroup={DASHBOARD_CHART_GROUP}
                     onWidgetSplitDecision={onWidgetSplitDecision}
                     shouldResize={shouldResize}
+                    onLegendSelectChanged={onLegendSelectChanged}
+                    legendOptions={legendOptions}
+                    widgetLegendState={widgetLegendState}
                   />
                 </LazyRender>
               )}

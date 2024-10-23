@@ -84,6 +84,7 @@ function Issue(props: IssueProps) {
       },
     ],
     {
+      enabled: !!props.issue.issue_id,
       staleTime: 2 * 60 * 1000,
     }
   );

@@ -1,7 +1,9 @@
 import {useTheme} from '@emotion/react';
+import moment from 'moment-timezone';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -28,6 +30,11 @@ type FlagSeriesDatapoint = {
   // unix timestamp
   xAxis: number;
 };
+
+interface FlagSeriesProps {
+  event: Event;
+  query: Record<string, any>;
+}
 
 function useOrganizationFlagLog({
   organization,
@@ -63,7 +70,7 @@ function hydrateFlagData({
   return flagData;
 }
 
-export default function useFlagSeries({query = {}}: {query?: Record<string, any>}) {
+export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const {
@@ -106,10 +113,12 @@ export default function useFlagSeries({query = {}}: {query?: Record<string, any>
           `<div><span class="tooltip-label"><strong>${t(
             'Feature Flag'
           )}</strong></span></div>`,
-          `<div><code class="tooltip-code-no-margin">${data.name}</code>${data.label.formatter()}</div>`,
+          `<span class="tooltip-label-align-start"><code class="tooltip-code-no-margin">${data.name}</code>${data.label.formatter()}</span>`,
           '</div>',
           '<div class="tooltip-footer">',
           time,
+          event.dateCreated &&
+            ` (${moment(time).from(event.dateCreated, true)} ${t('before this event')})`,
           '</div>',
           '<div class="tooltip-arrow"></div>',
         ].join('');

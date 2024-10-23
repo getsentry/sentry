@@ -55,6 +55,7 @@ type Props = {
   noFieldsMessage?: string;
   showAliasField?: boolean;
   source?: Sources;
+  supportsEquations?: boolean;
 };
 
 type State = {
@@ -582,7 +583,7 @@ class ColumnEditCollection extends Component<Props, State> {
   }
 
   render() {
-    const {className, columns, showAliasField, source} = this.props;
+    const {className, columns, showAliasField, source, supportsEquations} = this.props;
     const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
     const canDrag = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
@@ -672,20 +673,18 @@ class ColumnEditCollection extends Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            {WidgetType.ISSUE &&
-              source !== WidgetType.RELEASE &&
-              source !== WidgetType.METRICS && (
-                <Button
-                  size="sm"
-                  aria-label={t('Add an Equation')}
-                  onClick={this.handleAddEquation}
-                  title={title}
-                  disabled={!canAdd}
-                  icon={<IconAdd isCircled />}
-                >
-                  {t('Add an Equation')}
-                </Button>
-              )}
+            {supportsEquations && (
+              <Button
+                size="sm"
+                aria-label={t('Add an Equation')}
+                onClick={this.handleAddEquation}
+                title={title}
+                disabled={!canAdd}
+                icon={<IconAdd isCircled />}
+              >
+                {t('Add an Equation')}
+              </Button>
+            )}
           </Actions>
         </RowContainer>
       </div>

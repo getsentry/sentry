@@ -83,7 +83,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
-        options.set("issues.group_attributes.send_kafka", True)
 
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
@@ -1233,7 +1232,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    @override_options({"issues.group_attributes.send_kafka": False})
     @with_feature({"organizations:issue-search-snuba": False})
     def test_assigned_or_suggested_search(self, _: MagicMock) -> None:
         event = self.store_event(

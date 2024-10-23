@@ -101,6 +101,11 @@ export function OnboardingLayout({
       isSelfHosted,
       platformOptions: selectedOptions,
       newOrg,
+      profilingOptions: {
+        defaultProfilingMode: organization.features.includes('continuous-profiling')
+          ? 'continuous'
+          : 'transaction',
+      },
       replayOptions: {block: true, mask: true},
     };
 
