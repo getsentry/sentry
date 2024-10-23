@@ -62,7 +62,7 @@ repos:
         files: requirements-.*\.txt$
         # exclude the overrides file from this linter -- it doesn't apply at all
         exclude: ^requirements-getsentry-overrides\.txt$
-        additional_dependencies: [packaging==21.3]
+        additional_dependencies: [packaging==24.1]
       - id: requirements-overrides
         name: use pinned archives (see comment in file)
         stages: [pre-commit]
