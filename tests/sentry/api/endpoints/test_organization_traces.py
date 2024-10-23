@@ -2682,11 +2682,11 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
 
                 query = {
                     # only query for project_2 but expect traces to start from project_1
-                    "project": [project_2.id],
+                    "project": [str(project_2.id)],
                     "field": ["id", "parent_span", "span.duration"],
                     "query": q,
                     "sort": "-timestamp" if descending else "timestamp",
-                    "per_page": 1,
+                    "per_page": "1",
                 }
                 response = self.do_request(query)
                 assert response.status_code == 200, response.data
@@ -2697,14 +2697,15 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                 assert prev_link["results"] == "false"
                 next_link = next(link for link in links.values() if link["rel"] == "next")
                 assert next_link["results"] == "true"
+                assert next_link["cursor"]
 
                 query = {
                     # only query for project_2 but expect traces to start from project_1
-                    "project": [project_2.id],
+                    "project": [str(project_2.id)],
                     "field": ["id", "parent_span", "span.duration"],
                     "query": q,
                     "sort": "-timestamp" if descending else "timestamp",
-                    "per_page": 1,
+                    "per_page": "1",
                     "cursor": next_link["cursor"],
                 }
                 response = self.do_request(query)
