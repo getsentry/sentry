@@ -66,6 +66,10 @@ def handle_provider_event(
             raise InvalidProvider(provider)
 
 
+def timestamp_to_datetime(timestamp: float | int) -> datetime.datetime:
+    return datetime.datetime.fromtimestamp(timestamp / 1000.0, datetime.UTC)
+
+
 """LaunchDarkly Provider."""
 
 
@@ -152,7 +156,7 @@ def handle_statsig_event(
     return [
         {
             "action": item["metadata"]["action"],
-            "created_at": datetime.datetime.fromtimestamp(item["timestamp"] / 1000.0, datetime.UTC),
+            "created_at": timestamp_to_datetime(item["timestamp"]),
             "created_by": item["user"]["email"],
             "created_by_type": "email",
             "flag": item["metadata"]["name"],
