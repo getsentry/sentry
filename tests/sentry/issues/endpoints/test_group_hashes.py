@@ -148,16 +148,6 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 tags={"platform": "javascript", "sdk": "sentry.javascript.nextjs"},
             )
 
-        with patch("sentry.issues.endpoints.group_hashes.metrics.incr") as mock_metrics_incr:
-            response = self.client.put(url, format="json")
-
-            assert response.status_code == 202, response.content
-            mock_metrics_incr.assert_any_call(
-                "grouping.unmerge_issues",
-                sample_rate=1.0,
-                tags={"platform": "javascript", "sdk": "sentry.javascript.nextjs"},
-            )
-
     def test_unmerge_conflict(self):
         self.login_as(user=self.user)
 
