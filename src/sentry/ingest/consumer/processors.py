@@ -81,11 +81,11 @@ def process_transaction_no_celery(
 @trace_func(name="ingest_consumer.process_event")
 @metrics.wraps("ingest_consumer.process_event")
 def process_event(
+    consumer_type: str,
     message: IngestMessage,
     project: Project,
     reprocess_only_stuck_events: bool = False,
     no_celery_mode: bool = False,
-    consumer_type: ConsumerType = None,
 ) -> None:
     """
     Perform some initial filtering and deserialize the message payload.

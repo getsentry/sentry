@@ -5,7 +5,6 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 
-from sentry.ingest.types import ConsumerType
 from sentry.models.project import Project
 from sentry.utils import metrics
 
@@ -65,7 +64,7 @@ def process_simple_event_message(
             project,
             reprocess_only_stuck_events,
             no_celery_mode,
-            consumer_type=ConsumerType.Events,
+            consumer_type=consumer_type,
         )
 
     except Exception as exc:
