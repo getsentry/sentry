@@ -1,0 +1,24 @@
+{
+  "exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "abs_path": "foo/bar.tsx",
+              "module": "foo.bar",
+              "filename": "bar.tsx",
+              "lineno": 13,
+              "in_app": false
+            }
+          ]
+        },
+        "type": "ChunkLoadError",
+        "value": "ChunkLoadError: something something..."
+      }
+    ]
+  },
+  "platform": "javascript",
+  "sdk": {"name": "sentry.javascript.nextjs", "version": "1.2.3"}
+}

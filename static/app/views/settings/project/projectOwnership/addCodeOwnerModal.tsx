@@ -265,7 +265,7 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
                 label={t('Apply an existing code mapping')}
                 options={codeMappings.map((cm: RepositoryProjectPathConfig) => ({
                   value: cm.id,
-                  label: cm.repoName,
+                  label: `Repo Name: ${cm.repoName}, Stack Trace Root: ${cm.stackRoot}, Source Code Root: ${cm.sourceRoot}`,
                 }))}
                 onChange={this.fetchFile}
                 required

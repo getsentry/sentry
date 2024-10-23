@@ -51,10 +51,11 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const config = getConfigForIssueType(group, project);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const isSampleError = useIsSampleEvent();
-  // NOTE:  Autofix is for INTERNAL testing only for now.
+
   const displayAiAutofix =
-    organization.features.includes('autofix') &&
-    organization.features.includes('issue-details-autofix-ui') &&
+    ((organization.features.includes('autofix') &&
+      organization.features.includes('issue-details-autofix-ui')) ||
+      organization.genAIConsent) &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
     config.autofix &&
     hasStacktraceWithFrames(event) &&

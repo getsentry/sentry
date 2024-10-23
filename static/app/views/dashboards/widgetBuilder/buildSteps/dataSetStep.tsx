@@ -90,6 +90,11 @@ export function DataSetStep({
   if (!hasDatasetSelectorFeature) {
     datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));
   }
+
+  if (organization.features.includes('dashboards-eap')) {
+    datasetChoices.set(DataSet.SPANS, t('Spans'));
+  }
+
   datasetChoices.set(DataSet.ISSUES, t('Issues (States, Assignment, Time, etc.)'));
 
   datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));

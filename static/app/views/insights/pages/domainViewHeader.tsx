@@ -132,5 +132,8 @@ export function DomainViewHeader({
 }
 
 const filterEnabledModules = (modules: ModuleName[], organization: Organization) => {
+  if (!organization.features.includes('insights-entry-points')) {
+    return [];
+  }
   return modules.filter(module => isModuleEnabled(module, organization));
 };

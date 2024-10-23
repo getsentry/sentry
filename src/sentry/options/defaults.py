@@ -487,6 +487,12 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "feedback.message.max-size",
+    type=Int,
+    default=4096,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Dev Toolbar Options
 register(
@@ -2017,13 +2023,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# The flag activates whether to send group attributes messages to kafka
-register(
-    "issues.group_attributes.send_kafka",
-    default=True,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enables statistical detectors for a project
 register(
     "statistical_detectors.enable",
@@ -2792,5 +2791,33 @@ register(
     "secret-scanning.github.enable-signature-verification",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rate limiting for the occurrence consumer
+register(
+    "issues.occurrence-consumer.rate-limit.quota",
+    type=Dict,
+    default={"window_seconds": 3600, "granularity_seconds": 60, "limit": 1000},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.occurrence-consumer.rate-limit.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "eventstore.adjacent_event_ids_use_snql",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentryapps.process-resource-change.use-eventid",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
