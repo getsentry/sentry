@@ -1199,6 +1199,7 @@ export const modalCss = css`
 
 const Container = styled('div')<{height?: number | null}>`
   display: flex;
+  flex-direction: column;
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
   padding-bottom: ${space(3)};

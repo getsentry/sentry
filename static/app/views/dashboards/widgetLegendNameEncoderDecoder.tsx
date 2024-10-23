@@ -12,6 +12,10 @@ class WidgetLegendNameEncoderDecoder {
 
   // change timeseries names to SeriesName:widgetID
   static modifyTimeseriesNames(widget: Widget, timeseriesResults?: Series[]) {
+    if (!timeseriesResults) {
+      return undefined;
+    }
+
     return timeseriesResults
       ? timeseriesResults.map(series => {
           return {
