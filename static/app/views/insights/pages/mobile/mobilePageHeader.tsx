@@ -36,15 +36,15 @@ export function MobileHeader({
   );
 
   const hasMobileScreens = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
+  const hasMobileUi = isModuleEnabled(ModuleName.MOBILE_UI, organization);
 
   const modules = hasMobileScreens
     ? [ModuleName.MOBILE_SCREENS]
-    : [
-        ModuleName.APP_START,
-        ModuleName.SCREEN_LOAD,
-        ModuleName.SCREEN_RENDERING,
-        ModuleName.MOBILE_UI,
-      ];
+    : [ModuleName.APP_START, ModuleName.SCREEN_LOAD, ModuleName.SCREEN_RENDERING];
+
+  if (!hasMobileScreens && hasMobileUi) {
+    modules.push(ModuleName.MOBILE_UI);
+  }
 
   return (
     <DomainViewHeader
