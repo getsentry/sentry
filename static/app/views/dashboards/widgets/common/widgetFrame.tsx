@@ -63,7 +63,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
         {(props.description ||
           props.onFullScreenViewClick ||
           (actions && actions.length > 0)) && (
-          <TitleActions>
+          <TitleHoverItems>
             {props.description && (
               <QuestionTooltip title={props.description} size="sm" icon="info" />
             )}
@@ -105,7 +105,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
                 }}
               />
             )}
-          </TitleActions>
+          </TitleHoverItems>
         )}
       </Header>
 
@@ -116,7 +116,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
   );
 }
 
-const TitleActions = styled('div')`
+const TitleHoverItems = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
@@ -153,7 +153,7 @@ const Frame = styled('div')`
   }
 
   &:not(:hover):not(:focus-within) {
-    ${TitleActions} {
+    ${TitleHoverItems} {
       opacity: 0;
       ${p => p.theme.visuallyHidden}
     }
