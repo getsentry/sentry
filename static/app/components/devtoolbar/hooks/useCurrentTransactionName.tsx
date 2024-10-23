@@ -78,7 +78,7 @@ export function toSearchTerm(transaction) {
 
   transaction = transaction.replaceAll(parameterizedRegex, '/*');
 
-  // replaces nonparameterized urls with /*/ ie. /12345/
+  // finds nonparameterized parts of transaction: /12345/
   const nonparameterizedRegex = /([\/])([0-9]+)/g;
   transaction = transaction.replaceAll(nonparameterizedRegex, '/*');
 
