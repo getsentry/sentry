@@ -73,10 +73,10 @@ export function useOnboardingTasks({
   return {
     allTasks: supportedTasks,
     completeTasks: mergedTasks.filter(findCompleteTasks),
-    gettingStartedTasks: supportedTasks.filter(
+    gettingStartedTasks: mergedTasks.filter(
       task => task.group === OnboardingTaskGroup.GETTING_STARTED
     ),
-    beyondBasicsTasks: supportedTasks.filter(
+    beyondBasicsTasks: mergedTasks.filter(
       task => task.group !== OnboardingTaskGroup.GETTING_STARTED
     ),
   };
