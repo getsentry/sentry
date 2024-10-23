@@ -106,8 +106,8 @@ def boost_low_volume_projects(context: TaskContext) -> None:
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=25 * 60,
-    time_limit=2 * 60 + 5,
+    soft_time_limit=3 * 60,
+    time_limit=5 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
@@ -131,8 +131,8 @@ def boost_low_volume_projects_of_org_with_query(
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=25 * 60,
-    time_limit=2 * 60 + 5,
+    soft_time_limit=3 * 60,
+    time_limit=5 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task
