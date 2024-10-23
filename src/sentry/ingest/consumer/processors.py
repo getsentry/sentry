@@ -12,9 +12,8 @@ from usageaccountant import UsageUnit
 from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import EventManager, save_attachment
-from sentry.eventstore.processing import event_processing_store, transaction_processing_store
+from sentry.eventstore.processing import event_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, is_in_feedback_denylist
-from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
@@ -74,7 +73,7 @@ def process_transaction_no_celery(
         data = dict(data.items())
 
     with sentry_sdk.start_span(op="event_processing_store.store"):
-        cache_key = transaction_processing_store.store(data)
+        cache_key = event_processing_store.store(data)
     save_attachments(attachments, cache_key)
 
 
@@ -220,7 +219,6 @@ def process_event(
                     start_time=start_time,
                     event_id=event_id,
                     project_id=project_id,
-                    consumer_type=ConsumerType.Transactions,
                 )
 
             try:
