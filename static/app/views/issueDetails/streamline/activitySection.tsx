@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
+import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,6 +25,53 @@ import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
+
+function TimelineItem({
+  item,
+  handleDelete,
+  group,
+  teams,
+}: {
+  group: Group;
+  handleDelete: (item: GroupActivity) => void;
+  item: GroupActivity;
+  teams: Team[];
+}) {
+  const organization = useOrganization();
+  const authorName = item.user ? item.user.name : 'Sentry';
+  const {title, message} = getGroupActivityItem(
+    item,
+    organization,
+    group.project.id,
+    <Author>{authorName}</Author>,
+    teams
+  );
+
+  const Icon = groupActivityTypeIconMapping[item.type]?.Component ?? null;
+
+  return (
+    <ActivityTimelineItem
+      title={
+        <TitleWrapper>
+          {title}
+          <NoteDropdownWrapper>
+            {item.type === GroupActivityType.NOTE && (
+              <NoteDropdown onDelete={() => handleDelete(item)} user={item.user} />
+            )}
+          </NoteDropdownWrapper>
+        </TitleWrapper>
+      }
+      timestamp={<SmallTimestamp date={item.dateCreated} />}
+      icon={
+        Icon && (
+          <Icon {...groupActivityTypeIconMapping[item.type].defaultProps} size="xs" />
+        )
+      }
+    >
+      {typeof message === 'string' ? <NoteBody text={message} /> : message}
+    </ActivityTimelineItem>
+  );
+}
 
 export default function StreamlinedActivitySection({group}: {group: Group}) {
   const organization = useOrganization();
@@ -86,46 +134,6 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
     [group.activity, mutators, group.id]
   );
 
-  const createTimelineItem = useCallback(
-    (item: GroupActivity) => {
-      const authorName = item.user ? item.user.name : 'Sentry';
-      const {title, message} = getGroupActivityItem(
-        item,
-        organization,
-        group.project.id,
-        <Author>{authorName}</Author>,
-        teams
-      );
-
-      const Icon = groupActivityTypeIconMapping[item.type]?.Component ?? null;
-
-      return (
-        <ActivityTimelineItem
-          title={
-            <TitleWrapper>
-              {title}
-              <NoteDropdownWrapper>
-                {item.type === GroupActivityType.NOTE && (
-                  <NoteDropdown onDelete={() => handleDelete(item)} user={item.user} />
-                )}
-              </NoteDropdownWrapper>
-            </TitleWrapper>
-          }
-          timestamp={<SmallTimestamp date={item.dateCreated} />}
-          icon={
-            Icon && (
-              <Icon {...groupActivityTypeIconMapping[item.type].defaultProps} size="xs" />
-            )
-          }
-          key={item.id}
-        >
-          {typeof message === 'string' ? <NoteBody text={message} /> : message}
-        </ActivityTimelineItem>
-      );
-    },
-    [group, organization, teams, handleDelete]
-  );
-
   return (
     <div>
       <TitleSection>
@@ -150,12 +158,28 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
         />
         {(group.activity.length < 5 || showAll) &&
           group.activity.map(item => {
-            return createTimelineItem(item);
+            return (
+              <TimelineItem
+                item={item}
+                handleDelete={handleDelete}
+                group={group}
+                teams={teams}
+                key={item.id}
+              />
+            );
           })}
         {!showAll && group.activity.length >= 5 && (
           <Fragment>
             {group.activity.slice(0, 2).map(item => {
-              return createTimelineItem(item);
+              return (
+                <TimelineItem
+                  item={item}
+                  handleDelete={handleDelete}
+                  group={group}
+                  teams={teams}
+                  key={item.id}
+                />
+              );
             })}
             <ActivityTimelineItem
               title={
@@ -170,7 +194,13 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
               }
               icon={<RotatedEllipsisIcon />}
             />
-            {createTimelineItem(group.activity[group.activity.length - 1])}
+            <TimelineItem
+              item={group.activity[group.activity.length - 1]}
+              handleDelete={handleDelete}
+              group={group}
+              teams={teams}
+              key={group.activity[group.activity.length - 1].id}
+            />
           </Fragment>
         )}
       </Timeline.Container>
