@@ -52,7 +52,6 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_win
 from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
-    _compute_task_name,
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
     has_dynamic_sampling,
@@ -111,17 +110,15 @@ def boost_low_volume_projects(context: TaskContext) -> None:
     time_limit=2 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
-@dynamic_sampling_task
+@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects_of_org_with_query(
+    context: TaskContext,
     org_id: OrganizationId,
 ) -> None:
     logger.info(
         "boost_low_volume_projects_of_org_with_query",
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
     )
-
-    task_name = _compute_task_name(boost_low_volume_projects_of_org_with_query.__name__)
-    context = TaskContext(task_name, MAX_TASK_SECONDS)
 
     projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
         context, org_ids=[org_id]
