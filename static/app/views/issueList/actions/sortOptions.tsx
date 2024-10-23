@@ -12,6 +12,7 @@ type Props = {
   onSelect: (sort: string) => void;
   query: string;
   sort: string;
+  className?: string;
   showIcon?: boolean;
   triggerSize?: DropdownButtonProps['size'];
 };
@@ -35,6 +36,7 @@ export function getSortTooltip(key: IssueSortOptions) {
 }
 
 function IssueListSortOptions({
+  className,
   onSelect,
   sort,
   query,
@@ -53,6 +55,7 @@ function IssueListSortOptions({
 
   return (
     <CompactSelect
+      className={className}
       size="md"
       onChange={opt => onSelect(opt.value)}
       options={sortKeys.map(key => ({

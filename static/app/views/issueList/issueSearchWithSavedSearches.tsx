@@ -13,9 +13,11 @@ import IssueListSearchBar from './searchBar';
 type IssueSearchWithSavedSearchesProps = {
   onSearch: (query: string) => void;
   query: string;
+  className?: string;
 };
 
 export function IssueSearchWithSavedSearches({
+  className,
   query,
   onSearch,
 }: IssueSearchWithSavedSearchesProps) {
@@ -36,7 +38,7 @@ export function IssueSearchWithSavedSearches({
   }
 
   return (
-    <SearchBarWithButtonContainer>
+    <SearchBarWithButtonContainer className={className}>
       {!organization.features.includes('issue-stream-custom-views') && (
         <StyledButton onClick={onSavedSearchesToggleClicked}>
           {selectedSavedSearch?.name ?? t('Custom Search')}
