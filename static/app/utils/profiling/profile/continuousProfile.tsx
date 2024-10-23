@@ -63,6 +63,9 @@ export class ContinuousProfile extends Profile {
   }
 
   appendSample(stack: Frame[], duration: number, end: number): void {
+    // Keep track of discarded samples and ones that may have negative weights
+    this.trackSampleStats(duration);
+
     // Ignore samples with 0 weight
     if (duration === 0) {
       return;
