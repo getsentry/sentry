@@ -82,7 +82,6 @@ export const ColumnsContainer = styled('div')<{columnCount: number}>`
   display: grid;
   align-items: start;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-  grid-column-gap: ${space(3)};
 `;
 
 export const Column = styled('div')`
