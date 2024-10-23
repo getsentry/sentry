@@ -220,12 +220,9 @@ class RedisBackend(Backend):
                     raise
 
             records = [
-                Record(
-                    key.decode(),
-                    self.codec.decode(value) if value is not None else None,
-                    float(timestamp),
-                )
+                Record(key.decode(), self.codec.decode(value), float(timestamp))
                 for key, value, timestamp in response
+                if value is not None
             ]
 
             # If the record value is `None`, this means the record data was
