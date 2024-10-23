@@ -99,10 +99,7 @@ describe('add to dashboard modal', () => {
 
     eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        isMetricsData: false,
-        data: [],
-      },
+      body: [],
     });
   });
 
