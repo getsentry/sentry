@@ -67,6 +67,9 @@ from sentry.constants import (
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
+    boost_low_volume_projects_of_org_with_query,
+)
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -933,6 +936,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     )
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
+
+            if "targetSampleRate" in changed_data:
+                boost_low_volume_projects_of_org_with_query.delay(organization.id)
 
             if was_pending_deletion:
                 self.create_audit_entry(
