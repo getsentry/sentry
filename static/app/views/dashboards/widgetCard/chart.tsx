@@ -554,7 +554,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                               }
                             : {}),
                           legend,
-                          series: [...series, ...modifiedReleaseSeriesResults],
+                          series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
                           onLegendSelectChanged,
                           forwardedRef,
                         }),
