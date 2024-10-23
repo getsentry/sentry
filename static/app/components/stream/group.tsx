@@ -730,14 +730,23 @@ const Wrapper = styled(PanelItem)<{
   ${p =>
     p.hasNewLayout &&
     css`
-      cursor: pointer;
       padding: ${space(1)} 0;
       min-height: 66px;
 
-      /* Adds underline to issue title when active  */
-      &:hover {
-        [data-issue-title-primary] {
-          text-decoration: underline;
+      [data-issue-title-link] {
+        &::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+        }
+
+        &:hover {
+          [data-issue-title-primary] {
+            text-decoration: underline;
+          }
         }
       }
     `}
@@ -804,6 +813,7 @@ const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
   width: 32px;
   display: flex;
   align-items: center;
+  z-index: 1;
 `;
 
 const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`

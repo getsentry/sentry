@@ -764,9 +764,9 @@ const commonTheme = {
 
     // On mobile views issue list dropdowns overlap
     issuesList: {
-      stickyHeader: 1,
-      sortOptions: 2,
-      displayOptions: 3,
+      stickyHeader: 2,
+      sortOptions: 3,
+      displayOptions: 4,
     },
   },
 
