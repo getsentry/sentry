@@ -21,7 +21,7 @@ import {space} from 'sentry/styles/space';
 import {
   type OnboardingTask,
   OnboardingTaskGroup,
-  type OnboardingTaskKey,
+  OnboardingTaskKey,
 } from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -42,6 +42,23 @@ const INITIAL_MARK_COMPLETE_TIMEOUT = 600;
  * How long (in ms) to delay between marking each unseen task as complete.
  */
 const COMPLETION_SEEN_TIMEOUT = 800;
+
+const orderedGettingStartedTasks = [
+  OnboardingTaskKey.FIRST_PROJECT,
+  OnboardingTaskKey.FIRST_EVENT,
+  OnboardingTaskKey.INVITE_MEMBER,
+  OnboardingTaskKey.ALERT_RULE,
+  OnboardingTaskKey.SOURCEMAPS,
+  OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
+  OnboardingTaskKey.RELEASE_TRACKING,
+];
+
+const orderedBeyondBasicsTasks = [
+  OnboardingTaskKey.REAL_TIME_NOTIFICATIONS,
+  OnboardingTaskKey.SESSION_REPLAY,
+  OnboardingTaskKey.FIRST_TRANSACTION,
+  OnboardingTaskKey.SECOND_PLATFORM,
+];
 
 export function useOnboardingTasks(
   organization: Organization,
@@ -350,6 +367,17 @@ export function NewOnboardingSidebar({
     };
   }, [markSeenOnOpen]);
 
+  const sortedGettingStartedTasks = gettingStartedTasks.sort(
+    (a, b) =>
+      orderedGettingStartedTasks.indexOf(a.task) -
+      orderedGettingStartedTasks.indexOf(b.task)
+  );
+
+  const sortedBeyondBasicsTasks = beyondBasicsTasks.sort(
+    (a, b) =>
+      orderedBeyondBasicsTasks.indexOf(a.task) - orderedBeyondBasicsTasks.indexOf(b.task)
+  );
+
   return (
     <Wrapper
       collapsed={collapsed}
@@ -364,7 +392,7 @@ export function NewOnboardingSidebar({
           description={t(
             'Learn the essentials to set up monitoring, capture errors, and track releases.'
           )}
-          tasks={gettingStartedTasks}
+          tasks={sortedGettingStartedTasks}
           hidePanel={onClose}
           expanded={
             groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length > 0
@@ -375,7 +403,7 @@ export function NewOnboardingSidebar({
           description={t(
             'Explore advanced features like release tracking, performance alerts and more to enhance your monitoring.'
           )}
-          tasks={beyondBasicsTasks}
+          tasks={sortedBeyondBasicsTasks}
           hidePanel={onClose}
           expanded={
             groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
