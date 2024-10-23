@@ -12,6 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
@@ -59,9 +60,11 @@ describe('Dashboards > IssueWidgetCard', function () {
   const BasicProvidersWrapper = makeAllTheProviders({organization, router});
   function Wrapper({children}: {children: React.ReactNode}) {
     return (
-      <DashboardsMEPProvider>
-        <BasicProvidersWrapper>{children}</BasicProvidersWrapper>
-      </DashboardsMEPProvider>
+      <BasicProvidersWrapper>
+        <DashboardsMEPProvider>
+          <MEPSettingProvider forceTransactions={false}>{children}</MEPSettingProvider>
+        </DashboardsMEPProvider>
+      </BasicProvidersWrapper>
     );
   }
 
@@ -156,7 +159,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {router, wrapper: Wrapper}
+      {wrapper: Wrapper}
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
