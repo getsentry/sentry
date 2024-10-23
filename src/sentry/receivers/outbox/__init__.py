@@ -47,6 +47,7 @@ be successfully delivered.
 
 See https://www.notion.so/sentry/Async-cross-region-updates-outbox-9330293c8d2f4bd497361a505fd355d3
 """
+
 from __future__ import annotations
 
 from typing import TypeVar

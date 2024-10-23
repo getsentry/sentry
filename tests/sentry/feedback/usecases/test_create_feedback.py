@@ -793,13 +793,16 @@ def test_create_feedback_large_message_skips_spam_detection(
     default_project, set_sentry_option, monkeypatch
 ):
     """If spam is enabled, large messages are marked as spam without making an LLM request."""
-    with Feature(
-        {
-            "organizations:user-feedback-spam-filter-actions": True,
-            "organizations:user-feedback-spam-filter-ingest": True,
-            "organizations:feedback-ingest": True,
-        }
-    ), set_sentry_option("feedback.message.max-size", 4096):
+    with (
+        Feature(
+            {
+                "organizations:user-feedback-spam-filter-actions": True,
+                "organizations:user-feedback-spam-filter-ingest": True,
+                "organizations:feedback-ingest": True,
+            }
+        ),
+        set_sentry_option("feedback.message.max-size", 4096),
+    ):
 
         event = mock_feedback_event(default_project.id, datetime.now(UTC))
         event["contexts"]["feedback"]["message"] = "a" * 7007

@@ -2,6 +2,7 @@
 Testsuite of backend-independent nodestore tests. Add your backend to the
 `ns` fixture to have it tested.
 """
+
 from contextlib import nullcontext
 
 import pytest
