@@ -627,13 +627,11 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         """
         # projects where the user has project membership
         projects = self.get_projects(request, organization)
-        # team admins and regular org members don't have project:write on an org level
-        if not request.access.has_scope("project:write") and not request.access.has_scope(
-            "alerts:write"
-        ):
-            # team admins will have project:write scoped to their projects, members will not
+        # if sentry:alerts_member_write is false, then team admins and regular org members don't have alerts:write on an org level
+        if not request.access.has_scope("alerts:write"):
+            # team admins will have alerts:write scoped to their projects, members will not
             team_admin_has_access = all(
-                [request.access.has_project_scope(project, "project:write") for project in projects]
+                [request.access.has_project_scope(project, "alerts:write") for project in projects]
             )
             # all() returns True for empty list, so include a check for it
             if not team_admin_has_access or not projects:
