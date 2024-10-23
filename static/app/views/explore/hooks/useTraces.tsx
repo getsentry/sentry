@@ -60,9 +60,17 @@ interface UseTracesOptions {
   enabled?: boolean;
   limit?: number;
   query?: string | string[];
+  sort?: 'timestamp' | '-timestamp';
 }
 
-export function useTraces({dataset, datetime, enabled, limit, query}: UseTracesOptions) {
+export function useTraces({
+  dataset,
+  datetime,
+  enabled,
+  limit,
+  query,
+  sort,
+}: UseTracesOptions) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -76,6 +84,7 @@ export function useTraces({dataset, datetime, enabled, limit, query}: UseTracesO
       ...normalizeDateTimeParams(datetime ?? selection.datetime),
       dataset,
       query,
+      sort, // only has an effect when `dataset` is `EAPSpans`
       per_page: limit,
       breakdownSlices: BREAKDOWN_SLICES,
     },
