@@ -1,5 +1,7 @@
+from collections.abc import Callable
 from functools import wraps
 from random import random
+from typing import Concatenate, ParamSpec
 
 from sentry import features
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
@@ -27,10 +29,16 @@ def _compute_task_name(function_name: str) -> str:
     return f"sentry.tasks.dynamic_sampling.{function_name}"
 
 
-def dynamic_sampling_task_with_context(max_task_execution: int):
-    def wrapper(func):
+P = ParamSpec("P")
+DynamicTaskWithContextType = Callable[Concatenate[TaskContext, P], None]
+
+
+def dynamic_sampling_task_with_context(
+    max_task_execution: int,
+) -> Callable[[DynamicTaskWithContextType], Callable[P, None]]:
+    def wrapper(func: DynamicTaskWithContextType) -> Callable[P, None]:
         @wraps(func)
-        def _wrapper():
+        def _wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
             function_name = func.__name__
             task_name = _compute_task_name(function_name)
 
@@ -39,7 +47,7 @@ def dynamic_sampling_task_with_context(max_task_execution: int):
             # We will count how much it takes to run the function.
             with metrics.timer(task_name, sample_rate=1.0):
                 context = TaskContext(task_name, max_task_execution)
-                func(context=context)
+                func(context, *args, **kwargs)
 
         return _wrapper
 
