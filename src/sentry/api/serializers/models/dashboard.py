@@ -63,7 +63,7 @@ class DashboardWidgetResponse(TypedDict):
     limit: int | None
     widgetType: str
     layout: dict[str, int]
-    datasetSource: str
+    datasetSource: str | None
 
 
 class DashboardPermissionsResponse(TypedDict):
