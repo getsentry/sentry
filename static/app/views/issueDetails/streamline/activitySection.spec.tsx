@@ -12,6 +12,7 @@ import {
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
 
@@ -88,5 +89,31 @@ describe('StreamlinedActivitySection', function () {
     expect(
       screen.queryByRole('button', {name: 'Comment Actions'})
     ).not.toBeInTheDocument();
+  });
+
+  it('collapses activity when there are more than 5 items', async function () {
+    const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
+      type: GroupActivityType.NOTE,
+      id: `note-${index + 1}`,
+      data: {text: `Test Note ${index + 1}`},
+      dateCreated: '2020-01-01T00:00:00',
+      user: UserFixture({id: '2'}),
+      project,
+    }));
+
+    const updatedActivityGroup = GroupFixture({
+      id: '1338',
+      activity: activities,
+      project,
+    });
+
+    render(<StreamlinedActivitySection group={updatedActivityGroup} />);
+    expect(await screen.findByText('Test Note 1')).toBeInTheDocument();
+    expect(await screen.findByText('Test Note 7')).toBeInTheDocument();
+    expect(screen.queryByText('Test Note 6')).not.toBeInTheDocument();
+    expect(await screen.findByText('4 comments hidden')).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Show all activity'}));
+    expect(await screen.findByText('Test Note 6')).toBeInTheDocument();
   });
 });

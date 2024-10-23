@@ -14,6 +14,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
 
 import useStreamLinedExternalIssueData from './hooks/useGroupExternalIssues';
 
@@ -38,7 +39,7 @@ export function StreamlinedExternalIssueList({
   if (isLoading) {
     return (
       <div data-test-id="linked-issues">
-        <StyledSectionTitle>{t('Issue Tracking')}</StyledSectionTitle>
+        <SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>
         <SidebarSection.Content>
           <Placeholder height="25px" />
         </SidebarSection.Content>
@@ -48,7 +49,7 @@ export function StreamlinedExternalIssueList({
 
   return (
     <div data-test-id="linked-issues">
-      <StyledSectionTitle>{t('Issue Tracking')}</StyledSectionTitle>
+      <SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>
       <SidebarSection.Content>
         {integrations.length || linkedIssues.length ? (
           <IssueActionWrapper>
@@ -141,11 +142,6 @@ const IssueActionWrapper = styled('div')`
   flex-wrap: wrap;
   gap: ${space(1)};
   line-height: 1.2;
-`;
-
-const StyledSectionTitle = styled(SidebarSection.Title)`
-  margin-top: ${space(0.25)};
-  color: ${p => p.theme.headingColor};
 `;
 
 const LinkedIssue = styled(LinkButton)`
