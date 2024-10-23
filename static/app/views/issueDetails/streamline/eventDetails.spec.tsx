@@ -16,14 +16,6 @@ import {MOCK_EVENTS_TABLE_DATA} from 'sentry/views/performance/transactionSummar
 
 jest.mock('sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent');
 jest.mock('sentry/views/issueDetails/streamline/issueContent');
-jest.mock('screenfull', () => ({
-  enabled: true,
-  isFullscreen: false,
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
 
 const mockUseNavigate = jest.fn();
 jest.mock('sentry/utils/useNavigate', () => ({

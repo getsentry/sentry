@@ -17,14 +17,6 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/components/events/suspectCommits');
 jest.mock('sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent');
 jest.mock('sentry/views/issueDetails/streamline/issueContent');
-jest.mock('screenfull', () => ({
-  enabled: true,
-  isFullscreen: false,
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
 const mockUseLocation = jest.mocked(useLocation);
 
 describe('EventGraph', () => {
