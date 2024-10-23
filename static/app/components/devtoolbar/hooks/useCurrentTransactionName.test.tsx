@@ -17,6 +17,22 @@ describe('getSearchTerm', () => {
       transactionName: '/all/:id1/:id2/param',
       searchTerm: '/all/*/*/param/',
     },
+    {
+      transactionName: '//settings/account/emails/',
+      searchTerm: '/settings/account/emails/',
+    },
+    {
+      transactionName: '//settings/account/api/auth-tokens/new-token/',
+      searchTerm: '/settings/account/api/auth-tokens/new-token/',
+    },
+    {
+      transactionName: '/about/ps5/',
+      searchTerm: '/about/ps5/',
+    },
+    {
+      transactionName: '/',
+      searchTerm: '/',
+    },
   ])(
     'should get the correct search term from the transaction name',
     ({transactionName, searchTerm}) => {
