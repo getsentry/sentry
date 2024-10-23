@@ -50,7 +50,11 @@ export function EventPackageData({event}: Props) {
   }
 
   const componentItems = packages.map((item, i) => (
-    <KeyValueData.Content key={`content-card-${item.key}-${i}`} item={item} />
+    <KeyValueData.Content
+      key={`content-card-${item.key}-${i}`}
+      item={item}
+      meta={item.meta}
+    />
   ));
 
   const columns: React.ReactNode[] = [];
