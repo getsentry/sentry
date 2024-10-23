@@ -789,7 +789,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
@@ -1665,13 +1664,6 @@ SENTRY_EVENT_PROCESSING_STORE = (
     "sentry.eventstore.processing.redis.RedisClusterEventProcessingStore"
 )
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
-
-# Transactions processing backend
-# If these are set, transactions will be written to a different processing store
-# than errors. If these are set to none, Events(errors) and transactions will
-# both write to the EVENT_PROCESSING_STORE.
-SENTRY_TRANSACTION_PROCESSING_STORE: str | None = None
-SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
