@@ -487,13 +487,13 @@ def process_event_from_reprocessing(
 
 
 def _do_save_event(
-    consumer_type: str | None = None,
     cache_key: str | None = None,
     data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     project_id: int | None = None,
     has_attachments: bool = False,
+    consumer_type: str | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -569,7 +569,7 @@ def _do_save_event(
             data = manager.get_data()
             if not isinstance(data, dict):
                 data = dict(data.items())
-            processing.event_processing_store.store(data)
+            processing_store.store(data)
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:
@@ -611,7 +611,15 @@ def save_event(
     project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
-    _do_save_event(ConsumerType.Events, cache_key, data, start_time, event_id, project_id, **kwargs)
+    _do_save_event(
+        cache_key,
+        data,
+        start_time,
+        event_id,
+        project_id,
+        consumer_type=ConsumerType.Events,
+        **kwargs,
+    )
 
 
 @instrumented_task(
@@ -629,7 +637,13 @@ def save_event_transaction(
     **kwargs: Any,
 ) -> None:
     _do_save_event(
-        ConsumerType.Transactions, cache_key, data, start_time, event_id, project_id, **kwargs
+        cache_key,
+        data,
+        start_time,
+        event_id,
+        project_id,
+        consumer_type=ConsumerType.Transactions,
+        **kwargs,
     )
 
 
@@ -667,12 +681,12 @@ def save_event_attachments(
     **kwargs: Any,
 ) -> None:
     _do_save_event(
-        ConsumerType.Attachments,
         cache_key,
         data,
         start_time,
         event_id,
         project_id,
+        consumer_type=ConsumerType.Attachments,
         has_attachments=True,
         **kwargs,
     )
