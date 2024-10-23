@@ -6,7 +6,6 @@ from sentry.ingest.userreport import save_userreport
 from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format
 
 
 class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
@@ -169,7 +168,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         old_event = self.store_event(
             data={
                 "event_id": "f" * 32,
-                "timestamp": iso_format(datetime.now(UTC) - timedelta(days=retention_days + 1)),
+                "timestamp": (datetime.now(UTC) - timedelta(days=retention_days + 1)).isoformat(),
                 "environment": self.environment.name,
             },
             project_id=self.project_1.id,

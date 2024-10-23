@@ -19,7 +19,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -198,8 +198,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["filters"]["release"] == filters["release"]
 
     def test_start_and_end_filters_are_returned_in_response(self):
-        start = iso_format(datetime.now() - timedelta(seconds=10))
-        end = iso_format(datetime.now())
+        start = (datetime.now() - timedelta(seconds=10)).isoformat()
+        end = datetime.now().isoformat()
         filters = {"start": start, "end": end, "utc": False}
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
@@ -210,8 +210,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         dashboard.projects.set([Project.objects.create(organization=self.organization)])
 
         response = self.do_request("get", self.url(dashboard.id))
-        assert iso_format(response.data["start"]) == start
-        assert iso_format(response.data["end"]) == end
+        assert response.data["start"].replace(tzinfo=None).isoformat() == start
+        assert response.data["end"].replace(tzinfo=None).isoformat() == end
         assert not response.data["utc"]
 
     def test_response_truncates_with_retention(self):
@@ -230,8 +230,9 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("get", self.url(dashboard.id))
 
         assert response.data["expired"]
-        assert iso_format(response.data["start"].replace(second=0)) == iso_format(
-            expected_adjusted_retention_start.replace(second=0)
+        assert (
+            response.data["start"].replace(second=0, microsecond=0).isoformat()
+            == expected_adjusted_retention_start.replace(second=0, microsecond=0).isoformat()
         )
 
     def test_dashboard_widget_type_returns_split_decision(self):

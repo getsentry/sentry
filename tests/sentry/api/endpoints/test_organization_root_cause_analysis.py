@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.samples import load_data
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -262,8 +262,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "e" * 16,
-                    "start_timestamp": iso_format(self.now - timedelta(days=2)),
-                    "timestamp": iso_format(self.now - timedelta(days=2)),
+                    "start_timestamp": (self.now - timedelta(days=2)).isoformat(),
+                    "timestamp": (self.now - timedelta(days=2)).isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 60.0,
@@ -284,8 +284,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "e" * 16,
-                    "start_timestamp": iso_format(self.now - timedelta(hours=1)),
-                    "timestamp": iso_format(self.now - timedelta(hours=1)),
+                    "start_timestamp": (self.now - timedelta(hours=1)).isoformat(),
+                    "timestamp": (self.now - timedelta(hours=1)).isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 100.0,
@@ -293,8 +293,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "f" * 16,
-                    "start_timestamp": iso_format(self.now - timedelta(hours=1)),
-                    "timestamp": iso_format(self.now - timedelta(hours=1)),
+                    "start_timestamp": (self.now - timedelta(hours=1)).isoformat(),
+                    "timestamp": (self.now - timedelta(hours=1)).isoformat(),
                     "op": "db",
                     "description": "db",
                     "exclusive_time": 10000.0,
