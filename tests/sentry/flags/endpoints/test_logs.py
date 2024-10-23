@@ -38,9 +38,9 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
             assert len(result["data"]) == 1
             assert result["data"][0]["id"] == 1
             assert result["data"][0]["action"] == "created"
-            assert "created_at" in result["data"][0]
-            assert result["data"][0]["created_by"] == "a@b.com"
-            assert result["data"][0]["created_by_type"] == "email"
+            assert "createdAt" in result["data"][0]
+            assert result["data"][0]["createdBy"] == "a@b.com"
+            assert result["data"][0]["createdByType"] == "email"
             assert result["data"][0]["flag"] == "hello"
             assert result["data"][0]["tags"] == {"commit_sha": "123"}
 
@@ -127,9 +127,9 @@ class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
             result = response.json()
             assert result["data"]["id"] == 4
             assert result["data"]["action"] == "created"
-            assert "created_at" in result["data"]
-            assert result["data"]["created_by"] == "a@b.com"
-            assert result["data"]["created_by_type"] == "email"
+            assert "createdAt" in result["data"]
+            assert result["data"]["createdBy"] == "a@b.com"
+            assert result["data"]["createdByType"] == "email"
             assert result["data"]["flag"] == "hello"
             assert result["data"]["tags"] == {"commit_sha": "123"}
 
