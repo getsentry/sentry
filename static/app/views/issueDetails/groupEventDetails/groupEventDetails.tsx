@@ -29,7 +29,6 @@ import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetail
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
-import {EventFilters} from 'sentry/views/issueDetails/streamline/eventFilters';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
 
 import ReprocessingProgress from '../reprocessingProgress';
@@ -193,7 +192,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
           ) : (
             <Fragment>
               <MainLayoutComponent>
-                {eventWithMeta && <EventFilters event={eventWithMeta} group={group} />}
                 {!hasStreamlinedUI && renderGroupStatusBanner()}
                 <EscalatingIssuesFeedback organization={organization} group={group} />
                 {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
