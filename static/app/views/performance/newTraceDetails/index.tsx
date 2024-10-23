@@ -82,7 +82,7 @@ import {
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
 import {isTraceNode} from './traceGuards';
-import {TraceMetadataHeader} from './traceHeader';
+import {TraceMetaDataHeader} from './traceHeader';
 import {TraceShortcuts} from './traceShortcutsModal';
 import type {TraceReducer, TraceReducerState} from './traceState';
 import {
@@ -197,7 +197,7 @@ export function TraceView() {
       >
         <NoProjectMessage organization={organization}>
           <TraceExternalLayout>
-            <TraceMetadataHeader
+            <TraceMetaDataHeader
               rootEventResults={rootEvent}
               tree={tree}
               metaResults={metaResults}
