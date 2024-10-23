@@ -59,15 +59,12 @@ def evaluate_workflow_trigger_conditions(
     for workflow, detector_and_results in workflow_to_detector_results.items():
         for detector, results in detector_and_results:
             for detector_update in results:
-                # TODO - Confirm this is the correct way the state will be sent for all detectors
                 new_detector_state = detector_update.state_update_data
-
                 if new_detector_state is None:
+                    # TODO - figure out details in handling this case; logging, metrics, errors, etc
                     continue
 
-                new_detector_status = new_detector_state.status
-
-                if workflow.evaluate_when_condition_group(new_detector_status):
+                if workflow.evaluate_when_condition_group(new_detector_state):
                     # TODO - add logger / metrics
                     triggered_workflows[workflow].append((detector, results))
 

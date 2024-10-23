@@ -4,7 +4,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 
 from .data_condition_group import DataConditionGroup
-from .detector_state import DetectorStatus
+from .detector import DetectorStateData
 
 
 @region_silo_model
@@ -40,7 +40,7 @@ class Workflow(DefaultFieldsModel):
             )
         ]
 
-    def evaluate_when_condition_group(self, detector_status: DetectorStatus) -> bool:
+    def evaluate_when_condition_group(self, detector_state: DetectorStateData) -> bool:
         """
         Evaluate the when_condition_group for the workflow.
 
@@ -55,4 +55,8 @@ class Workflow(DefaultFieldsModel):
         if not self.enabled:
             return False
 
-        return self.when_condition_group.evaluate(detector_status.value)
+        # TODO - figure out what the DetectorStateData is that maps to this;
+        #      - should we have a custom DataCondition to evaluate the detector state?
+        #      - should we simplify the DetectorStateData and just worry about a subset of the data here?
+
+        return self.when_condition_group.evaluate(detector_state.status)

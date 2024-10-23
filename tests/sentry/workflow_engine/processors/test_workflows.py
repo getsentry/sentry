@@ -18,9 +18,22 @@ class TestWorkflowCase(TestCase):
             organization=self.organization,
         )
 
+        self.detector_result = DetectorEvaluationResult(
+            is_active=True,
+            priority=PriorityLevel.LOW,
+            data={"bar": "baz"},
+            state_update_data=DetectorStateData(
+                group_key=None,
+                active=True,
+                status=PriorityLevel.LOW,
+                dedupe_value=0,
+                counter_updates={},
+            ),
+        )
+
         self.create_data_condition(
             condition=DataConditionType.EQ,
-            comparison=PriorityLevel.LOW,
+            comparison=self.detector_result.state_update_data.status,
             type="WorkflowWhenCondition",  # TODO - Add this to the deafult enum
             condition_result=True,
             condition_group=self.when_condition_group,
@@ -44,19 +57,6 @@ class TestWorkflowCase(TestCase):
         self.detector = self.create_detector(organization=self.organization)
         self.create_detector_workflow(detector=self.detector, workflow=self.workflow)
 
-        self.detector_result = DetectorEvaluationResult(
-            is_active=True,
-            priority=PriorityLevel.LOW,
-            data={"bar": "baz"},
-            state_update_data=DetectorStateData(
-                group_key=None,
-                active=True,
-                status=PriorityLevel.LOW,
-                dedupe_value=0,
-                counter_updates={},
-            ),
-        )
-
     def setUp(self):
         super().setUp()
         self.create_workflow_case()
@@ -70,7 +70,6 @@ class TestWorkflowCase(TestCase):
         assert len(triggered_workflows) == 1
         assert triggered_workflows[self.workflow] == [(self.detector, [self.detector_result])]
 
-    # This test is making sure that if the data conditions don't match, it'll return an empty list
     def test_process_workflow_no_trigger__no_data_condition_matching(self):
         packet = DataPacket[dict]("source_id", {"source_id": 1, "foo": "bar"})
 

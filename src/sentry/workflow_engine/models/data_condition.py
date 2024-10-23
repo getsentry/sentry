@@ -1,33 +1,14 @@
-import operator
-from collections.abc import Callable
-from typing import Any
-
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
-from sentry.utils.registry import NoRegistrationExistsError, Registry
+from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.registries.condition_registry import (
+    DataConditionType,
+    condition_registry,
+)
 
 from .data_condition_group import DataConditionGroup
-
-
-class DataConditionType(models.TextChoices):
-    EQ = "eq", "Equals"
-    NE = "ne", "Not Equals"
-    GT = "gt", "Greater Than"
-    GTE = "gte", "Greater Than or Equals"
-    LT = "lt", "Less Than"
-    LTE = "lte", "Less Than or Equals"
-
-
-condition_registry = Registry[Callable[[Any, Any], bool]]()
-
-condition_registry.register(DataConditionType.EQ, operator.eq)
-condition_registry.register(DataConditionType.NE, operator.ne)
-condition_registry.register(DataConditionType.GT, operator.gt)
-condition_registry.register(DataConditionType.GTE, operator.ge)
-condition_registry.register(DataConditionType.LT, operator.lt)
-condition_registry.register(DataConditionType.LTE, operator.le)
 
 
 @region_silo_model
@@ -66,6 +47,5 @@ class DataCondition(DefaultFieldsModel):
         except NoRegistrationExistsError:
             raise NotImplementedError(f"Condition {self.condition} is not implemented")
 
-        # TODO - Figure out the JSON in / out for this
         if operator(value, self.comparison):
             return self.condition_result
