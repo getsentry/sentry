@@ -105,14 +105,19 @@ export default function StreamlinedGroupHeader({
         </Flex>
         <HeaderGrid>
           <Flex gap={space(0.75)} align="baseline">
-            <PrimaryTitle title={primaryTitle} isHoverable showOnlyOnOverflow delay={500}>
+            <PrimaryTitle
+              title={primaryTitle}
+              isHoverable
+              showOnlyOnOverflow
+              delay={1000}
+            >
               {primaryTitle}
             </PrimaryTitle>
             <SecondaryTitle
               title={secondaryTitle}
               isHoverable
               showOnlyOnOverflow
-              delay={500}
+              delay={1000}
               isDefault={!secondaryTitle}
             >
               {secondaryTitle ?? t('No error message')}
@@ -126,7 +131,7 @@ export default function StreamlinedGroupHeader({
             <ErrorLevel level={group.level} size={'10px'} />
             {group.isUnhandled && <UnhandledTag />}
             <Divider />
-            <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={500}>
+            <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={1000}>
               {subtitle}
             </Subtitle>
             <AttachmentsBadge group={group} />
@@ -199,16 +204,18 @@ const HeaderGrid = styled('div')`
 `;
 
 const PrimaryTitle = styled(Tooltip)`
-  font-size: 20px;
-  font-weight: ${p => p.theme.fontWeightBold};
   overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 20px;
+  font-weight: ${p => p.theme.fontWeightBold};
+  flex-shrink: 0;
 `;
 
-const SecondaryTitle = styled(PrimaryTitle)<{isDefault: boolean}>`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
+const SecondaryTitle = styled(Tooltip)<{isDefault: boolean}>`
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-style: ${p => (p.isDefault ? 'italic' : 'initial')};
 `;
 
