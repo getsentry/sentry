@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -23,7 +23,28 @@ import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurement
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
 import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCountForTransactions';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
+import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
+import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
+import {anomaliesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionAnomalies/utils';
+import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
+import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
+import {replaysRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
+import {spansRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
+import {tagsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionTags/utils';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 
@@ -57,6 +78,67 @@ function TransactionHeader({
   currentTab,
   hasWebVitals,
 }: Props) {
+  const {isInDomainView, view} = useDomainViewFilters();
+  const navigate = useNavigate();
+
+  const getNewRoute = useCallback(
+    (newTab: Tab) => {
+      if (!transactionName) {
+        return {};
+      }
+
+      const routeQuery = {
+        orgSlug: organization.slug,
+        transaction: transactionName,
+        projectID: projectId,
+        query: location.query,
+        view,
+      };
+
+      switch (newTab) {
+        case Tab.TAGS:
+          return tagsRouteWithQuery(routeQuery);
+        case Tab.EVENTS:
+          return eventsRouteWithQuery(routeQuery);
+        case Tab.SPANS:
+          return spansRouteWithQuery(routeQuery);
+        case Tab.ANOMALIES:
+          return anomaliesRouteWithQuery(routeQuery);
+        case Tab.REPLAYS:
+          return replaysRouteWithQuery(routeQuery);
+        case Tab.PROFILING: {
+          return profilesRouteWithQuery(routeQuery);
+        }
+        case Tab.AGGREGATE_WATERFALL:
+          return aggregateWaterfallRouteWithQuery(routeQuery);
+        case Tab.TRANSACTION_SUMMARY:
+        default:
+          return transactionSummaryRouteWithQuery(routeQuery);
+      }
+    },
+    [location.query, organization.slug, projectId, transactionName, view]
+  );
+
+  const onTabChange = useCallback(
+    (newTab: string) => {
+      // Prevent infinite rerenders
+      if (newTab === currentTab) {
+        return;
+      }
+
+      const analyticsKey = TAB_ANALYTICS[newTab];
+      if (analyticsKey) {
+        trackAnalytics(analyticsKey, {
+          organization,
+          project_platforms: getSelectedProjectPlatforms(location, projects),
+        });
+      }
+
+      navigate(normalizeUrl(getNewRoute(newTab as Tab)));
+    },
+    [getNewRoute, organization, location, projects, currentTab, navigate]
+  );
+
   function handleCreateAlertSuccess() {
     trackAnalytics('performance_views.summary.create_alert_clicked', {
       organization,
@@ -116,6 +198,109 @@ function TransactionHeader({
     statsPeriod: '90d',
   });
   const replaysCount = getReplayCountForTransaction(transactionName);
+
+  const tabList = (
+    <HasMeasurementsQuery
+      location={location}
+      orgSlug={organization.slug}
+      eventView={eventView}
+      transaction={transactionName}
+      type="web"
+    >
+      {({hasMeasurements}) => {
+        const renderWebVitals = getWebVitals(!!hasMeasurements);
+
+        return (
+          <TabList
+            hideBorder
+            outerWrapStyles={{
+              gridColumn: '1 / -1',
+            }}
+          >
+            <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
+            <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
+            <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+            <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
+            <TabList.Item
+              key={Tab.ANOMALIES}
+              textValue={t('Anomalies')}
+              hidden={!hasAnomalyDetection}
+            >
+              {t('Anomalies')}
+              <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />
+            </TabList.Item>
+            <TabList.Item
+              key={Tab.WEB_VITALS}
+              textValue={t('Web Vitals')}
+              hidden={!renderWebVitals}
+            >
+              {t('Web Vitals')}
+            </TabList.Item>
+            <TabList.Item
+              key={Tab.REPLAYS}
+              textValue={t('Replays')}
+              hidden={!hasSessionReplay}
+            >
+              {t('Replays')}
+              <ReplayCountBadge count={replaysCount} />
+            </TabList.Item>
+            <TabList.Item
+              key={Tab.PROFILING}
+              textValue={t('Profiling')}
+              hidden={!hasProfiling}
+            >
+              {t('Profiles')}
+            </TabList.Item>
+            <TabList.Item
+              key={Tab.AGGREGATE_WATERFALL}
+              textValue={t('Aggregate Spans')}
+              hidden={!hasAggregateWaterfall}
+            >
+              {t('Aggregate Spans')}
+            </TabList.Item>
+          </TabList>
+        );
+      }}
+    </HasMeasurementsQuery>
+  );
+
+  if (isInDomainView) {
+    const headerProps = {
+      headerTitle: (
+        <Fragment>
+          {project && (
+            <IdBadge
+              project={project}
+              avatarSize={28}
+              hideName
+              avatarProps={{hasTooltip: true, tooltip: project.slug}}
+            />
+          )}
+          <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
+            <TransactionName>{transactionName}</TransactionName>
+          </Tooltip>
+        </Fragment>
+      ),
+      hideDefaultTabs: true,
+      tabs: {
+        onTabChange,
+        tabList,
+        value: currentTab,
+      },
+    };
+    if (view === FRONTEND_LANDING_SUB_PATH) {
+      return <FrontendHeader {...headerProps} />;
+    }
+    if (view === BACKEND_LANDING_SUB_PATH) {
+      return <BackendHeader {...headerProps} />;
+    }
+    if (view === AI_LANDING_SUB_PATH) {
+      return <AiHeader {...headerProps} />;
+    }
+    if (view === MOBILE_LANDING_SUB_PATH) {
+      return <MobileHeader {...headerProps} />;
+    }
+  }
 
   return (
     <Layout.Header>

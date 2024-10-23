@@ -4,11 +4,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
@@ -56,36 +54,10 @@ describe('StreamlinedGroupHeader', () => {
     });
 
     it('shows all elements of header', async () => {
-      const teams: TeamParticipant[] = [{...TeamFixture(), type: 'team'}];
-      const users: UserParticipant[] = [
-        {
-          ...UserFixture({
-            id: '2',
-            name: 'John Smith',
-            email: 'johnsmith@example.com',
-          }),
-          type: 'user',
-        },
-        {
-          ...UserFixture({
-            id: '3',
-            name: 'Sohn Jmith',
-            email: 'sohnjmith@example.com',
-          }),
-          type: 'user',
-        },
-      ];
-
-      const participantGroup = {
-        ...group,
-        participants: [...teams, ...users],
-        seenBy: users,
-      };
-
       render(
         <StreamlinedGroupHeader
           {...defaultProps}
-          group={participantGroup}
+          group={group}
           project={project}
           event={null}
         />,
@@ -109,9 +81,6 @@ describe('StreamlinedGroupHeader', () => {
       expect(
         screen.getByRole('button', {name: 'Modify issue assignee'})
       ).toBeInTheDocument();
-
-      expect(screen.getByText('Participants')).toBeInTheDocument();
-      expect(screen.getByText('Viewers')).toBeInTheDocument();
 
       expect(
         screen.queryByRole('button', {name: 'Switch to the old issue experience'})
