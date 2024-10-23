@@ -147,11 +147,11 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
           source="issue-details"
           {...noteProps}
         />
-        {(group.activity.length <= 7 || showAll) &&
+        {(group.activity.length < 7 || showAll) &&
           group.activity.map(item => {
             return createTimelineItem(item);
           })}
-        {!showAll && group.activity.length > 7 && (
+        {!showAll && group.activity.length >= 7 && (
           <Fragment>
             {group.activity.slice(0, 3).map(item => {
               return createTimelineItem(item);
