@@ -71,7 +71,7 @@ import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_LANDING_TITLE,
 } from 'sentry/views/insights/pages/mobile/settings';
-import {DOMAIN_VIEW_RELEAE_LEVEL} from 'sentry/views/insights/pages/settings';
+import {DOMAIN_VIEW_RELEASE_LEVEL} from 'sentry/views/insights/pages/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
@@ -615,8 +615,8 @@ function Sidebar() {
         id="performance-domains"
         initiallyExpanded={false}
         exact={!shouldAccordionFloat}
-        isAlpha={DOMAIN_VIEW_RELEAE_LEVEL === 'alpha'}
-        isBeta={DOMAIN_VIEW_RELEAE_LEVEL === 'beta'}
+        isAlpha={DOMAIN_VIEW_RELEASE_LEVEL === 'alpha'}
+        isBeta={DOMAIN_VIEW_RELEASE_LEVEL === 'beta'}
       >
         <SidebarItem
           {...sidebarItemProps}
