@@ -39,22 +39,21 @@ import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
 import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
-import {getColoredWidgetIndicator, hasThresholdMaxValue} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
-import {DashboardsMEPProvider} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
+
+export const SESSION_DURATION_ALERT_TEXT = t(
+  'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
+  getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
+);
+
 export const SESSION_DURATION_ALERT = (
-  <PanelAlert type="warning">
-    {t(
-      'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
-      getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
-    )}
-  </PanelAlert>
+  <PanelAlert type="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
 );
 
 type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
@@ -77,7 +76,6 @@ type Props = WithRouterProps & {
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
-  noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
@@ -89,6 +87,7 @@ type Props = WithRouterProps & {
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
   showContextMenu?: boolean;
+  showStoredAlert?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
@@ -122,7 +121,6 @@ function WidgetCard(props: Props) {
     tableItemLimit,
     windowWidth,
     noLazyLoad,
-    noDashboardsMEPProvider,
     dashboardFilters,
     isWidgetInvalid,
     location,
@@ -149,13 +147,6 @@ function WidgetCard(props: Props) {
     query.aggregates.some(aggregate => aggregate.includes('session.duration'))
   );
 
-  function conditionalWrapWithDashboardsMEPProvider(component: React.ReactNode) {
-    if (noDashboardsMEPProvider) {
-      return component;
-    }
-    return <DashboardsMEPProvider>{component}</DashboardsMEPProvider>;
-  }
-
   if (widget.widgetType === WidgetType.METRICS) {
     return (
       <MetricWidgetCard
@@ -180,134 +171,127 @@ function WidgetCard(props: Props) {
     <ErrorBoundary
       customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
     >
-      {conditionalWrapWithDashboardsMEPProvider(
-        <Fragment>
-          <VisuallyCompleteWithData
-            id="DashboardList-FirstWidgetCard"
-            hasData={
-              ((data?.tableResults?.length || data?.timeseriesResults?.length) ?? 0) > 0
-            }
-            disabled={Number(props.index) !== 0}
-          >
-            <WidgetCardPanel isDragging={false} aria-label={t('Widget panel')}>
-              <WidgetHeaderWrapper>
-                <WidgetHeaderDescription>
-                  <WidgetTitleRow>
-                    <Tooltip
-                      title={widget.title}
-                      containerDisplayMode="grid"
-                      showOnlyOnOverflow
-                    >
-                      <WidgetTitle>{widget.title}</WidgetTitle>
-                    </Tooltip>
-                    {widget.thresholds &&
-                      hasThresholdMaxValue(widget.thresholds) &&
-                      data?.tableResults &&
-                      getColoredWidgetIndicator(widget.thresholds, data?.tableResults)}
-                    <ExtractedMetricsTag queryKey={widget} />
-                    <DisplayOnDemandWarnings widget={widget} />
-                    <DiscoverSplitAlert widget={widget} />
-                  </WidgetTitleRow>
-                </WidgetHeaderDescription>
-                {!props.isEditingDashboard && (
-                  <WidgetCardContextMenuContainer>
-                    <WidgetCardContextMenu
-                      organization={organization}
-                      widget={widget}
-                      selection={selection}
-                      showContextMenu={props.showContextMenu}
-                      isPreview={props.isPreview}
-                      widgetLimitReached={props.widgetLimitReached}
-                      onDuplicate={props.onDuplicate}
-                      onEdit={props.onEdit}
-                      onDelete={props.onDelete}
-                      router={props.router}
-                      location={props.location}
-                      index={props.index}
-                      seriesData={data?.timeseriesResults}
-                      seriesResultsType={data?.timeseriesResultsTypes}
-                      tableData={data?.tableResults}
-                      pageLinks={data?.pageLinks}
-                      totalIssuesCount={data?.totalIssuesCount}
-                      description={widget.description}
-                      title={widget.title}
-                    />
-                  </WidgetCardContextMenuContainer>
-                )}
-              </WidgetHeaderWrapper>
-              {hasSessionDuration && SESSION_DURATION_ALERT}
-              {isWidgetInvalid ? (
-                <Fragment>
-                  {renderErrorMessage?.('Widget query condition is invalid.')}
-                  <StyledErrorPanel>
-                    <IconWarning color="gray500" size="lg" />
-                  </StyledErrorPanel>
-                </Fragment>
-              ) : noLazyLoad ? (
-                <WidgetCardChartContainer
-                  location={location}
-                  api={api}
+      <VisuallyCompleteWithData
+        id="DashboardList-FirstWidgetCard"
+        hasData={
+          ((data?.tableResults?.length || data?.timeseriesResults?.length) ?? 0) > 0
+        }
+        disabled={Number(props.index) !== 0}
+      >
+        <WidgetCardPanel isDragging={false} aria-label={t('Widget panel')}>
+          <WidgetHeaderWrapper>
+            <WidgetHeaderDescription>
+              <WidgetTitleRow>
+                <Tooltip
+                  title={widget.title}
+                  containerDisplayMode="grid"
+                  showOnlyOnOverflow
+                >
+                  <WidgetTitle>{widget.title}</WidgetTitle>
+                </Tooltip>
+                <ExtractedMetricsTag queryKey={widget} />
+                <DisplayOnDemandWarnings widget={widget} />
+                <DiscoverSplitAlert widget={widget} />
+              </WidgetTitleRow>
+            </WidgetHeaderDescription>
+            {!props.isEditingDashboard && (
+              <WidgetCardContextMenuContainer>
+                <WidgetCardContextMenu
                   organization={organization}
-                  selection={selection}
                   widget={widget}
-                  isMobile={isMobile}
-                  renderErrorMessage={renderErrorMessage}
-                  tableItemLimit={tableItemLimit}
-                  windowWidth={windowWidth}
-                  onDataFetched={onDataFetched}
-                  dashboardFilters={dashboardFilters}
-                  chartGroup={DASHBOARD_CHART_GROUP}
-                  onWidgetSplitDecision={onWidgetSplitDecision}
-                  shouldResize={shouldResize}
-                  onLegendSelectChanged={onLegendSelectChanged}
-                  legendOptions={legendOptions}
-                  widgetLegendState={widgetLegendState}
-                />
-              ) : (
-                <LazyRender containerHeight={200} withoutContainer>
-                  <WidgetCardChartContainer
-                    location={location}
-                    api={api}
-                    organization={organization}
-                    selection={selection}
-                    widget={widget}
-                    isMobile={isMobile}
-                    renderErrorMessage={renderErrorMessage}
-                    tableItemLimit={tableItemLimit}
-                    windowWidth={windowWidth}
-                    onDataFetched={onDataFetched}
-                    dashboardFilters={dashboardFilters}
-                    chartGroup={DASHBOARD_CHART_GROUP}
-                    onWidgetSplitDecision={onWidgetSplitDecision}
-                    shouldResize={shouldResize}
-                    onLegendSelectChanged={onLegendSelectChanged}
-                    legendOptions={legendOptions}
-                    widgetLegendState={widgetLegendState}
-                  />
-                </LazyRender>
-              )}
-              {props.isEditingDashboard && (
-                <Toolbar
+                  selection={selection}
+                  showContextMenu={props.showContextMenu}
+                  isPreview={props.isPreview}
+                  widgetLimitReached={props.widgetLimitReached}
+                  onDuplicate={props.onDuplicate}
                   onEdit={props.onEdit}
                   onDelete={props.onDelete}
-                  onDuplicate={props.onDuplicate}
-                  draggableProps={props.draggableProps}
-                  hideToolbar={props.hideToolbar}
-                  isMobile={props.isMobile}
+                  router={props.router}
+                  location={props.location}
+                  index={props.index}
+                  seriesData={data?.timeseriesResults}
+                  seriesResultsType={data?.timeseriesResultsTypes}
+                  tableData={data?.tableResults}
+                  pageLinks={data?.pageLinks}
+                  totalIssuesCount={data?.totalIssuesCount}
+                  description={widget.description}
+                  title={widget.title}
                 />
-              )}
-            </WidgetCardPanel>
-          </VisuallyCompleteWithData>
-        </Fragment>
-      )}
+              </WidgetCardContextMenuContainer>
+            )}
+          </WidgetHeaderWrapper>
+          {hasSessionDuration && SESSION_DURATION_ALERT}
+          {isWidgetInvalid ? (
+            <Fragment>
+              {renderErrorMessage?.('Widget query condition is invalid.')}
+              <StyledErrorPanel>
+                <IconWarning color="gray500" size="lg" />
+              </StyledErrorPanel>
+            </Fragment>
+          ) : noLazyLoad ? (
+            <WidgetCardChartContainer
+              location={location}
+              api={api}
+              organization={organization}
+              selection={selection}
+              widget={widget}
+              isMobile={isMobile}
+              renderErrorMessage={renderErrorMessage}
+              tableItemLimit={tableItemLimit}
+              windowWidth={windowWidth}
+              onDataFetched={onDataFetched}
+              dashboardFilters={dashboardFilters}
+              chartGroup={DASHBOARD_CHART_GROUP}
+              onWidgetSplitDecision={onWidgetSplitDecision}
+              shouldResize={shouldResize}
+              onLegendSelectChanged={onLegendSelectChanged}
+              legendOptions={legendOptions}
+              widgetLegendState={widgetLegendState}
+            />
+          ) : (
+            <LazyRender containerHeight={200} withoutContainer>
+              <WidgetCardChartContainer
+                location={location}
+                api={api}
+                organization={organization}
+                selection={selection}
+                widget={widget}
+                isMobile={isMobile}
+                renderErrorMessage={renderErrorMessage}
+                tableItemLimit={tableItemLimit}
+                windowWidth={windowWidth}
+                onDataFetched={onDataFetched}
+                dashboardFilters={dashboardFilters}
+                chartGroup={DASHBOARD_CHART_GROUP}
+                onWidgetSplitDecision={onWidgetSplitDecision}
+                shouldResize={shouldResize}
+                onLegendSelectChanged={onLegendSelectChanged}
+                legendOptions={legendOptions}
+                widgetLegendState={widgetLegendState}
+              />
+            </LazyRender>
+          )}
+          {props.isEditingDashboard && (
+            <Toolbar
+              onEdit={props.onEdit}
+              onDelete={props.onDelete}
+              onDuplicate={props.onDuplicate}
+              draggableProps={props.draggableProps}
+              hideToolbar={props.hideToolbar}
+              isMobile={props.isMobile}
+            />
+          )}
+        </WidgetCardPanel>
+      </VisuallyCompleteWithData>
     </ErrorBoundary>
   );
 }
 
 export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
 
-function DisplayOnDemandWarnings(props: {widget: Widget}) {
+function useOnDemandWarning(props: {widget: Widget}): string | null {
   const organization = useOrganization();
+
   if (!hasOnDemandMetricWidgetFeature(organization)) {
     return null;
   }
@@ -327,25 +311,26 @@ function DisplayOnDemandWarnings(props: {widget: Widget}) {
   );
 
   if (widgetContainsHighCardinality) {
-    return (
-      <Tooltip
-        containerDisplayMode="inline-flex"
-        title={t(
-          'This widget is using indexed data because it has a column with too many unique values.'
-        )}
-      >
-        <IconWarning color="warningText" />
-      </Tooltip>
+    return t(
+      'This widget is using indexed data because it has a column with too many unique values.'
     );
   }
+
   if (widgetReachedSpecLimit) {
+    return t(
+      "This widget is using indexed data because you've reached your organization limit for dynamically extracted metrics."
+    );
+  }
+
+  return null;
+}
+
+function DisplayOnDemandWarnings(props: {widget: Widget}) {
+  const warning = useOnDemandWarning(props);
+
+  if (warning) {
     return (
-      <Tooltip
-        containerDisplayMode="inline-flex"
-        title={t(
-          "This widget is using indexed data because you've reached your organization limit for dynamically extracted metrics."
-        )}
-      >
+      <Tooltip containerDisplayMode="inline-flex" title={warning}>
         <IconWarning color="warningText" />
       </Tooltip>
     );

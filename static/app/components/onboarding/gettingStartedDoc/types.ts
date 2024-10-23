@@ -68,6 +68,9 @@ export interface DocsParams<
     screenshot?: boolean;
   };
   newOrg?: boolean;
+  profilingOptions?: {
+    defaultProfilingMode?: 'transaction' | 'continuous';
+  };
   replayOptions?: {
     block?: boolean;
     mask?: boolean;

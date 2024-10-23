@@ -538,6 +538,8 @@ describe('TraceTree', () => {
 
       const txn = TraceTree.Find(tree.root, n => isTransactionNode(n))!;
 
+      const transactionSpaceBounds = JSON.stringify(txn.space);
+
       mockSpansResponse(
         [makeSpan({start_timestamp: start, timestamp: start + 1.2})],
         'project',
@@ -549,6 +551,7 @@ describe('TraceTree', () => {
         organization: OrganizationFixture(),
       });
 
+      expect(JSON.stringify(txn.space)).toEqual(transactionSpaceBounds);
       expect(listener).toHaveBeenCalledWith([start * 1e3, 1200]);
     });
   });

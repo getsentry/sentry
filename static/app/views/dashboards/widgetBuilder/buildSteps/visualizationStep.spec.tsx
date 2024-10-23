@@ -314,8 +314,8 @@ describe('VisualizationStep', function () {
     };
 
     render(
-      <DashboardsMEPProvider>
-        <MEPSettingProvider>
+      <MEPSettingProvider>
+        <DashboardsMEPProvider>
           <VisualizationStep
             organization={organization}
             pageFilters={PageFiltersFixture()}
@@ -327,8 +327,8 @@ describe('VisualizationStep', function () {
             location={router.location}
             widgetLegendState={widgetLegendState}
           />
-        </MEPSettingProvider>
-      </DashboardsMEPProvider>,
+        </DashboardsMEPProvider>
+      </MEPSettingProvider>,
       {organization}
     );
 

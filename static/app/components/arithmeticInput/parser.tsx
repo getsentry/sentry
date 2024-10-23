@@ -1,4 +1,4 @@
-import type {LocationRange} from 'pegjs';
+import type {LocationRange} from 'peggy';
 
 import {t} from 'sentry/locale';
 

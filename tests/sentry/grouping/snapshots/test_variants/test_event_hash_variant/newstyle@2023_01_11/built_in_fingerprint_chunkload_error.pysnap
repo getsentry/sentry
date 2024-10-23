@@ -1,5 +1,5 @@
 ---
-created: '2024-10-15T17:24:00.902258+00:00'
+created: '2024-10-16T19:21:18.239532+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -23,7 +23,7 @@ app:
 --------------------------------------------------------------------------
 built-in-fingerprint:
   hash: "5d731dcf8ecc4f042eeacf528d8d8da9"
-  info: {"matched_rule":{"attributes":{},"fingerprint":["chunkloaderror"],"is_builtin":true,"matchers":[["family","javascript"],["type","ChunkLoadError"]]}}
+  info: {"matched_rule":{"attributes":{},"fingerprint":["chunkloaderror"],"is_builtin":true,"matchers":[["family","javascript"],["type","ChunkLoadError"]],"text":"family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\""}}
   values: ["chunkloaderror"]
 --------------------------------------------------------------------------
 system:

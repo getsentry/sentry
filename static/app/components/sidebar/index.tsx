@@ -138,6 +138,7 @@ function Sidebar() {
   const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
+  const hasPerfDomainViews = organization?.features.includes('insights-domain-view');
 
   const collapsed = hasNewNav ? true : !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -439,7 +440,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const performance = hasOrganization && (
+  const performance = hasOrganization && !hasPerfDomainViews && (
     <Feature
       hookName="feature-disabled:performance-sidebar-item"
       features="performance-view"
@@ -605,7 +606,10 @@ function Sidebar() {
   );
 
   const performanceDomains = hasOrganization && (
-    <Feature features="insights-domain-view" organization={organization}>
+    <Feature
+      features={['insights-domain-view', 'performance-view']}
+      organization={organization}
+    >
       <SidebarAccordion
         {...sidebarItemProps}
         icon={<IconGraph />}
@@ -646,7 +650,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const insights = hasOrganization && (
+  const insights = hasOrganization && !hasPerfDomainViews && (
     <Feature key="insights" features="insights-entry-points" organization={organization}>
       <SidebarAccordion
         {...sidebarItemProps}

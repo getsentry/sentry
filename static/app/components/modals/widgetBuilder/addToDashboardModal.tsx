@@ -40,6 +40,7 @@ import {
   NEW_DASHBOARD_ID,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
+import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -269,36 +270,39 @@ function AddToDashboardModal({
             hideLoadingIndicator
           >
             {metricsDataSide => (
-              <MEPSettingProvider
-                location={location}
-                forceTransactions={metricsDataSide.forceTransactionsOnly}
-              >
-                <WidgetCard
-                  organization={organization}
-                  isEditingDashboard={false}
-                  showContextMenu={false}
-                  widgetLimitReached={false}
-                  selection={
-                    selectedDashboard
-                      ? getSavedFiltersAsPageFilters(selectedDashboard)
-                      : selection
-                  }
-                  dashboardFilters={
-                    getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
-                  }
-                  widget={widget}
-                  shouldResize={false}
-                  widgetLegendState={
-                    new WidgetLegendSelectionState({
-                      location,
-                      router,
-                      organization,
-                      dashboard: selectedDashboard,
-                    })
-                  }
-                />
-                <IndexedEventsSelectionAlert widget={widget} />
-              </MEPSettingProvider>
+              <DashboardsMEPProvider>
+                <MEPSettingProvider
+                  location={location}
+                  forceTransactions={metricsDataSide.forceTransactionsOnly}
+                >
+                  <WidgetCard
+                    organization={organization}
+                    isEditingDashboard={false}
+                    showContextMenu={false}
+                    widgetLimitReached={false}
+                    selection={
+                      selectedDashboard
+                        ? getSavedFiltersAsPageFilters(selectedDashboard)
+                        : selection
+                    }
+                    dashboardFilters={
+                      getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
+                    }
+                    widget={widget}
+                    shouldResize={false}
+                    widgetLegendState={
+                      new WidgetLegendSelectionState({
+                        location,
+                        router,
+                        organization,
+                        dashboard: selectedDashboard,
+                      })
+                    }
+                  />
+
+                  <IndexedEventsSelectionAlert widget={widget} />
+                </MEPSettingProvider>
+              </DashboardsMEPProvider>
             )}
           </MetricsDataSwitcher>
         </MetricsCardinalityProvider>
