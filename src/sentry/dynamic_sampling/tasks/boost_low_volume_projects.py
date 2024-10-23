@@ -48,7 +48,7 @@ from sentry.dynamic_sampling.tasks.constants import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_org_sample_rate
+from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (

@@ -54,7 +54,7 @@ from sentry.constants import (
 )
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.dynamic_sampling.tasks.common import get_organization_volume
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_org_sample_rate
+from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
