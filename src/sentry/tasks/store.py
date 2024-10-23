@@ -611,7 +611,7 @@ def save_event(
     project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
-    _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
+    _do_save_event(ConsumerType.Events, cache_key, data, start_time, event_id, project_id, **kwargs)
 
 
 @instrumented_task(
