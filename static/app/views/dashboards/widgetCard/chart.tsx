@@ -21,7 +21,6 @@ import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -39,7 +38,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -53,7 +52,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
@@ -61,6 +59,7 @@ import {getDatasetConfig} from '../datasetConfig/base';
 import type {Widget} from '../types';
 import {DisplayType} from '../types';
 import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
+import {BigNumberWidgetVisualization} from '../widgets/bigNumberWidget/bigNumberWidgetVisualization';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -203,9 +202,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {location, organization, widget, isMobile, expandNumbers} = this.props;
+    const {widget} = this.props;
 
-    return tableResults.map(result => {
+    return tableResults.map((result, i) => {
       const tableMeta = {...result.meta};
       const fields = Object.keys(tableMeta);
 
@@ -220,47 +219,31 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         }
       }
 
-      // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
-      const shouldExpandInteger = !!expandNumbers && tableMeta[field] === 'integer';
-      if (shouldExpandInteger) {
-        tableMeta[field] = 'string';
-      }
+      const data = result?.data;
+      const meta = result?.meta as EventsMetaType;
+      const value = data?.[0]?.[selectedField];
 
       if (
         !field ||
         !result.data?.length ||
         selectedField === 'equation|' ||
-        selectedField === ''
+        selectedField === '' ||
+        !defined(value) ||
+        !Number.isFinite(value) ||
+        Number.isNaN(value)
       ) {
         return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
       }
 
-      const dataRow = result.data[0];
-      const fieldRenderer = getFieldFormatter(field, tableMeta, false);
-
-      const unit = tableMeta.units?.[field];
-      const rendered = fieldRenderer(
-        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
-        {location, organization, unit}
-      );
-
-      const isModalWidget = !(widget.id || widget.tempId);
-      if (isModalWidget || isMobile) {
-        return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
-      }
-
-      return expandNumbers ? (
-        <BigText>{rendered}</BigText>
-      ) : (
-        <AutoResizeParent key={`big_number:${result.title}`}>
-          <AutoSizedText>
-            <NumberContainerOverride>
-              <Tooltip title={rendered} showOnlyOnOverflow>
-                {rendered}
-              </Tooltip>
-            </NumberContainerOverride>
-          </AutoSizedText>
-        </AutoResizeParent>
+      return (
+        <BigNumberWidgetVisualization
+          key={i}
+          field={field}
+          value={value}
+          meta={meta}
+          thresholds={widget.thresholds ?? undefined}
+          preferredPolarity="-"
+        />
       );
     });
   }
@@ -670,46 +653,6 @@ const BigNumber = styled('div')`
 
   * {
     text-align: left !important;
-  }
-`;
-
-const AutoResizeParent = styled('div')`
-  position: absolute;
-  color: ${p => p.theme.headingColor};
-  inset: 0;
-
-  * {
-    line-height: 1;
-    text-align: left !important;
-  }
-`;
-
-const BigText = styled('div')`
-  display: block;
-  width: 100%;
-  color: ${p => p.theme.headingColor};
-  font-size: max(min(8vw, 90px), 30px);
-  padding: ${space(1)} ${space(3)} 0 ${space(3)};
-  white-space: nowrap;
-
-  * {
-    text-align: left !important;
-  }
-`;
-
-/**
- * This component overrides the default behavior of `NumberContainer`,
- * which wraps every single number in big widgets. This override forces
- * `NumberContainer` to never truncate its values, which makes it possible
- * to auto-size them.
- */
-const NumberContainerOverride = styled('div')`
-  display: inline-block;
-
-  * {
-    text-overflow: clip !important;
-    display: inline;
-    white-space: nowrap;
   }
 `;
 
