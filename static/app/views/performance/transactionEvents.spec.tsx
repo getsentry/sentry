@@ -146,6 +146,14 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -172,7 +180,7 @@ describe('Performance > TransactionSummary', function () {
     expect(screen.getByRole('heading', {name: '/performance'})).toBeInTheDocument();
 
     expect(
-      await screen.findByRole('textbox', {name: 'Search events'})
+      await screen.findByPlaceholderText('Search for events, users, tags, and more')
     ).toBeInTheDocument();
 
     expect(await screen.findByRole('button', {name: 'Next'})).toBeInTheDocument();
