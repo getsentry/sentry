@@ -130,10 +130,14 @@ export default function StreamlinedGroupHeader({
           <Flex gap={space(1)} align="center" justify="flex-start">
             <ErrorLevel level={group.level} size={'10px'} />
             {group.isUnhandled && <UnhandledTag />}
-            <Divider />
-            <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={1000}>
-              {subtitle}
-            </Subtitle>
+            {subtitle && (
+              <Fragment>
+                <Divider />
+                <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={1000}>
+                  {subtitle}
+                </Subtitle>
+              </Fragment>
+            )}
             <AttachmentsBadge group={group} />
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
