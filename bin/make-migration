@@ -1,0 +1,75 @@
+#!/usr/bin/env python
+
+import os
+import subprocess
+import sys
+import textwrap
+
+
+def run_command(command):
+    try:
+        return subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write(f"Error executing command: {' '.join(command)}\n")
+        sys.stderr.write(f"Error details: {e}\n")
+        sys.exit(1)
+
+
+def print_help():
+    help_message = textwrap.dedent(
+        """
+    Usage: ./bin/make-migration.py [options]
+
+    This script runs three commands in sequence:
+    1. sentry django makemigrations (with any provided arguments)
+    2. ./bin/generate-model-dependency-fixtures
+    3. SENTRY_SNAPSHOTS_WRITEBACK=1 pytest (specific test files)
+
+    Options:
+        -h, --help    Show this help message and exit
+
+    Any other options provided will be passed directly to the 'sentry django makemigrations' command.
+    """
+    )
+
+    sys.stdout.write(help_message)
+
+
+def main():
+    """
+    If there are test failures after this command has run make sure to:
+        - check the relocation scope information
+        - check to see if there are additional snapshots to update for the 3rd command
+        - check that test/utils/helpers/backups.py is setup correctly
+        - check that the test fixtures have been updated correctly
+    """
+
+    if "-h" in sys.argv or "--help" in sys.argv:
+        print_help()
+        sys.exit(0)
+
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+
+    # Command 1: sentry django makemigrations (with potential additional args)
+    makemigrations_cmd = ["sentry", "django", "makemigrations"] + sys.argv[1:]
+    run_command(makemigrations_cmd)
+
+    # Command 2: ./bin/generate-model-dependency-fixtures
+    generate_fixtures_cmd = [os.path.join(current_dir, "bin", "generate-model-dependency-fixtures")]
+    run_command(generate_fixtures_cmd)
+
+    # Command 3: SENTRY_SNAPSHOTS_WRITEBACK=1 pytest ...
+    pytest_cmd = [
+        "pytest",
+        "tests/sentry/backup/test_comparators.py",
+        "tests/sentry/backup/test_releases.py",
+        "tests/sentry/backup/test_sanitize.py",
+        "tests/sentry/tasks/test_relocation.py",
+    ]
+    env = os.environ.copy()
+    env["SENTRY_SNAPSHOTS_WRITEBACK"] = "1"
+    subprocess.run(pytest_cmd, check=True, env=env)
+
+
+if __name__ == "__main__":
+    main()
