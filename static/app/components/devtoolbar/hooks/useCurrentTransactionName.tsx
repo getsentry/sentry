@@ -82,7 +82,7 @@ export function toSearchTerm(transaction) {
   const nonparameterizedRegex = /([\/])([0-9]+)/g;
   transaction = transaction.replaceAll(nonparameterizedRegex, '/*');
 
-  // Step 3: Join the array back into a string with '/'
+  // Join the array back into a string with '/'
   const searchTerm = `/${transaction}/`.replaceAll(/\/+/g, '/');
   return searchTerm;
 }
