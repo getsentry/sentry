@@ -14,6 +14,10 @@ describe('getSearchTerm', () => {
     },
     {transactionName: '/issues/4489703641/', searchTerm: '/issues/*/'},
     {
+      transactionName: 'v1.3/tutorial/event/123',
+      searchTerm: '/v1.3/tutorial/event/*/',
+    },
+    {
       transactionName: '/all/:id1/:id2/param',
       searchTerm: '/all/*/*/param/',
     },

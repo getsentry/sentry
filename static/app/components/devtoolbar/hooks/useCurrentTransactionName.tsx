@@ -21,9 +21,9 @@ type WindowWithSentry = Window & {
 
 export default function useCurrentTransactionName() {
   const scope = getScope();
-  const scopeData = scope.getScopeData();
+  const scopeData = scope?.getScopeData();
 
-  const search = toSearchTerm(scopeData.transactionName);
+  const search = toSearchTerm(scopeData?.transactionName);
 
   return search;
 }
@@ -33,7 +33,8 @@ function getScope() {
   const sentryScope = sentryCarrier && getSentryScope(sentryCarrier);
 
   if (!sentryScope) {
-    throw Error(
+    // using console log for now, will change this when moving to dev tool bar repo
+    console.log(
       "Couldn't find a Sentry SDK scope. Make sure you're using a Sentry SDK with version 7.x or 8.x"
     );
   }
@@ -71,17 +72,28 @@ function getSentryScope(
 }
 
 export function toSearchTerm(transaction) {
-  // finds parameterized parts of transaction name: /:param, /[param], /{param}, /<param>,
-  const parameterizedRegex =
-    /([\/])(([:]([^\/]*))|([\[]([^\/]*)[\]])|([{]([^\/]*)[}])|([<]([^\/]*)[>]))/g;
+  // finds dynamic parts of transaction name to change into search term
+  let modifiedTransaction = transaction;
 
-  transaction = transaction.replaceAll(parameterizedRegex, '/*');
+  // /:param used by React, Vue, Angular, Express, Ruby on Rails, Phoenix, Solid
+  const colonRegex = /([\/])(([:]([^\/]*)))/g;
+  modifiedTransaction = modifiedTransaction.replaceAll(colonRegex, '/*');
+  // /[param] used by Next.js, Nuxt.js, Svelte
+  const bracketRegex = /([\/])([\[]([^\/]*)[\]])/g;
+  modifiedTransaction = modifiedTransaction.replaceAll(bracketRegex, '/*');
+  //  /{param} used by ASP.NET Core, Laravel, Symfony
+  const curlyRegex = /([\/])([{]([^\/]*)[}])/g;
+  modifiedTransaction = modifiedTransaction.replaceAll(curlyRegex, '/*');
+  // /<param> used by Flask, Django
+  const arrowRegex = /([\/])([<]([^\/]*)[>])/g;
+  modifiedTransaction = modifiedTransaction.replaceAll(arrowRegex, '/*');
 
-  // finds nonparameterized parts of transaction: /12345/
+  // transaction name could contain the resolved URL instead of the route pattern (ie actual id instead of :id)
+  // match any param that starts with a number eg. /12353
   const nonparameterizedRegex = /([\/])([0-9]+)/g;
-  transaction = transaction.replaceAll(nonparameterizedRegex, '/*');
+  modifiedTransaction = modifiedTransaction.replaceAll(nonparameterizedRegex, '/*');
 
   // Join the array back into a string with '/'
-  const searchTerm = `/${transaction}/`.replaceAll(/\/+/g, '/');
+  const searchTerm = `/${modifiedTransaction}/`.replaceAll(/\/+/g, '/');
   return searchTerm;
 }
