@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 const swcConfig: Swcrc = {
+  sourceMaps: process.env.CI ? false : true,
   jsc: {
     experimental: {
       plugins: [
