@@ -15,7 +15,6 @@ import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
-import type {Release} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,11 +23,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
-
-export interface GroupRelease {
-  firstRelease: Release;
-  lastRelease: Release;
-}
 
 export default function StreamlinedActivitySection({group}: {group: Group}) {
   const organization = useOrganization();
