@@ -23,6 +23,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
 
 export default function StreamlinedActivitySection({group}: {group: Group}) {
   const organization = useOrganization();
@@ -128,7 +129,7 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
   return (
     <div>
       <TitleSection>
-        <div>{t('Activity')}</div>
+        <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
         {showAll && (
           <CollapseButton borderless size="zero" onClick={() => setShowAll(false)}>
             {t('Collapse')}
