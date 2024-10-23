@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {space} from 'sentry/styles/space';
+import {space, type ValidSize} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -25,7 +25,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       {event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />
-          <StyledBreak />
+          <StyledBreak bottomMargin={0.5} />
         </ErrorBoundary>
       )}
       <StreamlinedActivitySection group={group} />
@@ -35,9 +35,9 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   );
 }
 
-const StyledBreak = styled('hr')`
+const StyledBreak = styled('hr')<{bottomMargin?: ValidSize}>`
   margin-top: ${space(1.5)};
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => (p.bottomMargin ? space(p.bottomMargin) : space(1.5))};
   border-color: ${p => p.theme.border};
 `;
 
