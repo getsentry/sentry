@@ -188,7 +188,6 @@ export default function StreamlinedGroupHeader({
 
 const Header = styled('div')`
   background-color: ${p => p.theme.background};
-  border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(1)} 24px;
 `;
 
@@ -257,6 +256,16 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
       ${p => p.theme.background},
       ${p => Color(p.theme.success).lighten(0.5).alpha(0.15).string()}
     );
+  }
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 24px;
+    bottom: unset;
+    height: 1px;
+    background: ${p => p.theme.translucentBorder};
   }
 `;
 
