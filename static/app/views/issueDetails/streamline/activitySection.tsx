@@ -168,7 +168,7 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
                   {t('%s comments hidden', group.activity.length - 4)}
                 </ShowAllButton>
               }
-              icon={<IconEllipsis />}
+              icon={<RotatedEllipsisIcon />}
             />
             {createTimelineItem(group.activity[group.activity.length - 1])}
           </Fragment>
@@ -216,4 +216,8 @@ const CollapseButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const RotatedEllipsisIcon = styled(IconEllipsis)`
+  transform: rotate(90deg);
 `;
