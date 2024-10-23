@@ -99,7 +99,7 @@ def get_time_params(start: datetime, end: datetime) -> MappedParams:
 @region_silo_endpoint
 class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def has_feature(self, organization, request):

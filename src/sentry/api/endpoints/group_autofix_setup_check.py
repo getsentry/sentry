@@ -108,12 +108,6 @@ class GroupAutofixSetupCheck(GroupEndpoint):
         """
         Checks if we are able to run Autofix on the given group.
         """
-        if not (
-            features.has("projects:ai-autofix", group.project)
-            or features.has("organizations:autofix", group.organization)
-        ):
-            return Response({"detail": "Feature not enabled for project"}, status=403)
-
         org: Organization = request.organization
         has_gen_ai_consent = org.get_option("sentry:gen_ai_consent", False)
 

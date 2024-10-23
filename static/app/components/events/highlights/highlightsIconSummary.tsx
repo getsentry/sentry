@@ -1,21 +1,25 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
-import {getContextIcon, getContextSummary} from 'sentry/components/events/contexts/utils';
+import {
+  getContextIcon,
+  getContextSummary,
+  getContextTitle,
+} from 'sentry/components/events/contexts/utils';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
-import type {IconSize} from 'sentry/utils/theme';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface HighlightsIconSummaryProps {
   event: Event;
-  iconSize?: IconSize;
 }
 
-export function HighlightsIconSummary({event, iconSize}: HighlightsIconSummaryProps) {
+export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
   // Hide device for non-native platforms since it's mostly duplicate of the client_os or os context
   const shouldDisplayDevice =
     isMobilePlatform(event.platform) || isNativePlatform(event.platform);
@@ -24,13 +28,14 @@ export function HighlightsIconSummary({event, iconSize}: HighlightsIconSummaryPr
   const items = getOrderedContextItems(event)
     .map(({alias, type, value}) => ({
       ...getContextSummary({type, value}),
+      contextTitle: getContextTitle({alias, type, value}),
       alias,
       icon: getContextIcon({
         alias,
         type,
         value,
         contextIconProps: {
-          size: iconSize ?? 'xl',
+          size: 'md',
         },
       }),
     }))
@@ -48,13 +53,17 @@ export function HighlightsIconSummary({event, iconSize}: HighlightsIconSummaryPr
       <IconBar>
         <ScrollCarousel gap={4}>
           {items.map((item, index) => (
-            <IconSummary key={index}>
+            <Flex key={index} gap={space(1)} align="center">
               <IconWrapper>{item.icon}</IconWrapper>
               <IconDescription>
-                <IconTitle>{item.title}</IconTitle>
-                {item.subtitle && <IconSubtitle>{item.subtitle}</IconSubtitle>}
+                <div>{item.title}</div>
+                {item.subtitle && (
+                  <IconSubtitle title={`${item.contextTitle} ${item.subtitleType}`}>
+                    {item.subtitle}
+                  </IconSubtitle>
+                )}
               </IconDescription>
-            </IconSummary>
+            </Flex>
           ))}
         </ScrollCarousel>
       </IconBar>
@@ -65,32 +74,21 @@ export function HighlightsIconSummary({event, iconSize}: HighlightsIconSummaryPr
 
 const IconBar = styled('div')`
   position: relative;
-  padding: ${space(1)} ${space(0.5)};
-`;
-
-const IconSummary = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  flex: none;
+  padding: ${space(0.5)} ${space(0.5)};
 `;
 
 const IconDescription = styled('div')`
   display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const IconWrapper = styled('div')`
   flex: none;
-`;
-
-const IconTitle = styled('div')`
   line-height: 1;
 `;
 
-const IconSubtitle = styled('div')`
+const IconSubtitle = styled(Tooltip)`
+  display: block;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1;
 `;

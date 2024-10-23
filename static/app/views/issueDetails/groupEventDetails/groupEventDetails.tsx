@@ -28,6 +28,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
+import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
 
 import ReprocessingProgress from '../reprocessingProgress';
@@ -200,6 +201,9 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                     project={project}
                   />
                 )}
+                {hasStreamlinedUI ? (
+                  <EventDetailsHeader event={event} group={group} />
+                ) : null}
                 {renderContent()}
               </MainLayoutComponent>
               {hasStreamlinedUI ? (
@@ -271,7 +275,12 @@ const GroupContent = styled(Layout.Main)`
   flex-direction: column;
   padding: ${space(1.5)};
   gap: ${space(1.5)};
-  box-shadow: 0 0 0 1px ${p => p.theme.translucentInnerBorder};
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    border-right: 1px solid ${p => p.theme.translucentBorder};
+  }
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    border-bottom-width: 1px solid ${p => p.theme.translucentBorder};
+  }
 `;
 
 const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`

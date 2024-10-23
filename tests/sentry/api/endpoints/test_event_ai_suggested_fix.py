@@ -79,11 +79,23 @@ class EventAiSuggestedFixEndpointTest(APITestCase):
         ):
             response = self.client.get(self.path)
             assert response.status_code == 403
+            assert response.json() == {"restriction": "organization_consent_required"}
+
+            self.organization.update_option("sentry:ai_suggested_solution", True)
+            response = self.client.get(self.path)
+            assert response.status_code == 403
             assert response.json() == {"restriction": "individual_consent"}
+
             response = self.client.get(self.path + "?consent=yes")
             assert response.status_code == 200
             assert response.json() == {"suggestion": "AI generated response"}
 
+            self.organization.update_option("sentry:ai_suggested_solution", False)
+            response = self.client.get(self.path + "?consent=yes")
+            assert response.status_code == 403
+            assert response.json() == {"restriction": "organization_consent_required"}
+
+        self.organization.update_option("sentry:ai_suggested_solution", True)
         with patch(
             "sentry.api.endpoints.event_ai_suggested_fix.get_openai_policy",
             return_value="subprocessor",

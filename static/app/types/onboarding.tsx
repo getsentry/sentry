@@ -79,15 +79,6 @@ interface OnboardingTaskDescriptorBase {
    */
   group?: OnboardingTaskGroup;
   /**
-   * If a render function was provided, it will be used to render the entire card,
-   * and the card will be rendered before any other cards regardless of completion status.
-   * the render function is therefore responsible for determining the completion status
-   * of the card by returning null when it's completed.
-   *
-   * Note that this should not be given a react component.
-   */
-  renderCard?: (props: OnboardingCustomComponentProps) => JSX.Element | null;
-  /**
    * Joins with this task id for server-side onboarding state.
    * This allows you to create alias for exising onboarding tasks or create multiple
    * tasks for the same server-side task.
@@ -161,12 +152,11 @@ export enum OnboardingProjectStatus {
   PROCESSED = 'processed',
 }
 
-export type OnboardingSelectedSDK = {
+export interface OnboardingSelectedSDK
+  extends Pick<PlatformIntegration, 'language' | 'link' | 'name' | 'type'> {
   category: Category;
   key: PlatformKey;
-  language: PlatformIntegration['language'];
-  type: PlatformIntegration['type'];
-};
+}
 
 export type OnboardingRecentCreatedProject = Project & {
   firstError: boolean;

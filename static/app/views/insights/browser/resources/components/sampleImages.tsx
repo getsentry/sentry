@@ -10,9 +10,9 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
@@ -158,6 +158,7 @@ function SampleImagesChartPanelBody(props: {
 
 function DisabledImages(props: {onClickShowLinks?: () => void}) {
   const {onClickShowLinks} = props;
+  const organization = useOrganization();
   const {
     selection: {projects: selectedProjects},
   } = usePageFilters();
@@ -178,9 +179,7 @@ function DisabledImages(props: {onClickShowLinks?: () => void}) {
       <ButtonContainer>
         <Button onClick={onClickShowLinks}>Only show links</Button>
         <Link
-          to={normalizeUrl(
-            `/settings/projects/${firstProjectSelected?.slug}/performance/`
-          )}
+          to={`/settings/${organization.slug}/projects/${firstProjectSelected?.slug}/performance/`}
         >
           <Button priority="primary" data-test-id="enable-sample-images-button">
             {t(' Enable in Settings')}

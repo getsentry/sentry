@@ -66,7 +66,7 @@ function NewTraceMetadataHeader({
         {rootEventResults.data ? (
           <HeaderRow>
             <StyledWrapper>
-              <HighlightsIconSummary event={rootEventResults.data} iconSize="lg" />
+              <HighlightsIconSummary event={rootEventResults.data} />
             </StyledWrapper>
             <ProjectsRenderer
               projectSlugs={Array.from(tree.project_slugs)}
