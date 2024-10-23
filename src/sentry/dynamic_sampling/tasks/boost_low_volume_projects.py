@@ -109,7 +109,7 @@ def boost_low_volume_projects(context: TaskContext) -> None:
                 boost_low_volume_projects_of_org.delay(org_id, projects)
 
 
-def partition_by_measure(org_ids: Sequence[OrganizationId]) -> Mapping[SamplingMeasure, list[int]]:
+def partition_by_measure(org_ids: list[OrganizationId]) -> Mapping[SamplingMeasure, list[int]]:
     """
     Partitions the orgs by the measure that will be used to adjust the sample
     rates. This is controlled through a feature flag on the organization,
