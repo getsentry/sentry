@@ -4,7 +4,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  makeAllTheProviders,
+  render,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -15,6 +20,8 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
+import {DashboardsMEPProvider} from './dashboardsMEPContext';
+
 describe('Dashboards > IssueWidgetCard', function () {
   const {router, organization} = initializeOrg({
     organization: OrganizationFixture({
@@ -22,12 +29,6 @@ describe('Dashboards > IssueWidgetCard', function () {
     }),
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
-
-  const renderWithProviders = (component: React.ReactNode) =>
-    render(
-      <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>,
-      {organization, router}
-    );
 
   const widget: Widget = {
     title: 'Issues',
@@ -55,6 +56,17 @@ describe('Dashboards > IssueWidgetCard', function () {
       utc: false,
     },
   };
+
+  const BasicProvidersWrapper = makeAllTheProviders({organization, router});
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return (
+      <BasicProvidersWrapper>
+        <DashboardsMEPProvider>
+          <MEPSettingProvider forceTransactions={false}>{children}</MEPSettingProvider>
+        </DashboardsMEPProvider>
+      </BasicProvidersWrapper>
+    );
+  }
 
   const user = UserFixture();
   const api = new MockApiClient();
@@ -100,7 +112,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('renders with title and issues chart', async function () {
     MemberListStore.loadInitialData([user]);
-    renderWithProviders(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -114,7 +126,8 @@ describe('Dashboards > IssueWidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
-      />
+      />,
+      {wrapper: Wrapper}
     );
 
     expect(await screen.findByText('Issues')).toBeInTheDocument();
@@ -131,7 +144,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   });
 
   it('opens in issues page', async function () {
-    renderWithProviders(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -145,7 +158,8 @@ describe('Dashboards > IssueWidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
-      />
+      />,
+      {wrapper: Wrapper}
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -159,7 +173,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
-    renderWithProviders(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -173,7 +187,8 @@ describe('Dashboards > IssueWidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
-      />
+      />,
+      {wrapper: Wrapper}
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -184,7 +199,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('disables the duplicate widget button if max widgets is reached', async function () {
     const mock = jest.fn();
-    renderWithProviders(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -198,7 +213,8 @@ describe('Dashboards > IssueWidgetCard', function () {
         showContextMenu
         widgetLimitReached
         widgetLegendState={widgetLegendState}
-      />
+      />,
+      {wrapper: Wrapper}
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -209,7 +225,7 @@ describe('Dashboards > IssueWidgetCard', function () {
 
   it('maps lifetimeEvents and lifetimeUsers headers to more human readable', async function () {
     MemberListStore.loadInitialData([user]);
-    renderWithProviders(
+    render(
       <WidgetCard
         api={api}
         organization={organization}
@@ -231,7 +247,8 @@ describe('Dashboards > IssueWidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
-      />
+      />,
+      {wrapper: Wrapper}
     );
 
     expect(await screen.findByText('Lifetime Events')).toBeInTheDocument();
