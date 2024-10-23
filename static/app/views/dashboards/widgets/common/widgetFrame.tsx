@@ -18,6 +18,8 @@ import {WarningsList} from './warningsList';
 
 export interface WidgetFrameProps extends StateProps {
   actions?: MenuItemProps[];
+  actionsDisabled?: boolean;
+  actionsMessage?: string;
   badgeProps?: BadgeProps;
   children?: React.ReactNode;
   description?: string;
@@ -63,36 +65,51 @@ export function WidgetFrame(props: WidgetFrameProps) {
         {(props.description ||
           props.onFullScreenViewClick ||
           (actions && actions.length > 0)) && (
-          <TitleActions>
+          <TitleHoverItems>
             {props.description && (
               <QuestionTooltip title={props.description} size="sm" icon="info" />
             )}
 
-            {actions.length === 1 ? (
-              actions[0].to ? (
-                <LinkButton size="xs" onClick={actions[0].onAction} to={actions[0].to}>
-                  {actions[0].label}
-                </LinkButton>
-              ) : (
-                <Button size="xs" onClick={actions[0].onAction}>
-                  {actions[0].label}
-                </Button>
-              )
-            ) : null}
+            <TitleActionsWrapper
+              disabled={Boolean(props.actionsDisabled)}
+              disabledMessage={props.actionsMessage ?? ''}
+            >
+              {actions.length === 1 ? (
+                actions[0].to ? (
+                  <LinkButton
+                    size="xs"
+                    disabled={props.actionsDisabled}
+                    onClick={actions[0].onAction}
+                    to={actions[0].to}
+                  >
+                    {actions[0].label}
+                  </LinkButton>
+                ) : (
+                  <Button
+                    size="xs"
+                    disabled={props.actionsDisabled}
+                    onClick={actions[0].onAction}
+                  >
+                    {actions[0].label}
+                  </Button>
+                )
+              ) : null}
 
-            {actions.length > 1 ? (
-              <DropdownMenu
-                items={actions}
-                triggerProps={{
-                  'aria-label': t('Actions'),
-                  size: 'xs',
-                  borderless: true,
-                  showChevron: false,
-                  icon: <IconEllipsis direction="down" size="sm" />,
-                }}
-                position="bottom-end"
-              />
-            ) : null}
+              {actions.length > 1 ? (
+                <DropdownMenu
+                  items={actions}
+                  isDisabled={props.actionsDisabled}
+                  triggerProps={{
+                    'aria-label': t('Actions'),
+                    size: 'xs',
+                    borderless: true,
+                    showChevron: false,
+                    icon: <IconEllipsis direction="down" size="sm" />,
+                  }}
+                  position="bottom-end"
+                />
+              ) : null}
+            </TitleActionsWrapper>
 
             {props.onFullScreenViewClick && (
               <Button
@@ -105,7 +122,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
                 }}
               />
             )}
-          </TitleActions>
+          </TitleHoverItems>
         )}
       </Header>
 
@@ -116,7 +133,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
   );
 }
 
-const TitleActions = styled('div')`
+const TitleHoverItems = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
@@ -125,6 +142,24 @@ const TitleActions = styled('div')`
   opacity: 1;
   transition: opacity 0.1s;
 `;
+
+interface TitleActionsProps {
+  children: React.ReactNode;
+  disabled: boolean;
+  disabledMessage: string;
+}
+
+function TitleActionsWrapper({disabled, disabledMessage, children}: TitleActionsProps) {
+  if (!disabled || !disabledMessage) {
+    return children;
+  }
+
+  return (
+    <Tooltip title={disabledMessage} isHoverable>
+      {children}
+    </Tooltip>
+  );
+}
 
 const Frame = styled('div')`
   position: relative;
@@ -153,7 +188,7 @@ const Frame = styled('div')`
   }
 
   &:not(:hover):not(:focus-within) {
-    ${TitleActions} {
+    ${TitleHoverItems} {
       opacity: 0;
       ${p => p.theme.visuallyHidden}
     }
