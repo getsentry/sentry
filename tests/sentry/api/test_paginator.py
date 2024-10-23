@@ -35,7 +35,6 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
 from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.utils.cursors import Cursor
@@ -925,7 +924,7 @@ class CallbackPaginatorTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
                 data={
                     "event_id": str(i) * 32,
-                    "timestamp": iso_format(self.now - timedelta(minutes=2)),
+                    "timestamp": (self.now - timedelta(minutes=2)).isoformat(),
                 },
             )
 
