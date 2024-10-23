@@ -181,6 +181,18 @@ export default storyBook(BigNumberWidget, story => {
             />
           </SmallWidget>
         </SideBySide>
+
+        <p>The contents of the error adjust slightly as the widget gets bigger.</p>
+
+        <SideBySide>
+          <MediumWidget>
+            <BigNumberWidget
+              title="Data Error"
+              error={new Error('Something went wrong!')}
+              onRetry={() => {}}
+            />
+          </MediumWidget>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -404,4 +416,8 @@ const SmallSizingWindow = styled(SizingWindow)`
 
 const SmallWidget = styled('div')`
   width: 250px;
+`;
+
+const MediumWidget = styled('div')`
+  width: 420px;
 `;
