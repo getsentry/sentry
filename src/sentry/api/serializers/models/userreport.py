@@ -33,10 +33,14 @@ class UserReportWithGroupSerializerResponse(UserReportSerializerResponse):
     issue: dict[str, Any]
 
 
+class _EventUser(TypedDict):
+    event_user: EventUser | dict[None, None]
+
+
 @register(UserReport)
 class UserReportSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        attrs = {}
+        attrs: dict[str, _EventUser] = {}
 
         project = Project.objects.get(id=item_list[0].project_id)
         retention = quotas.backend.get_event_retention(organization=project.organization)
