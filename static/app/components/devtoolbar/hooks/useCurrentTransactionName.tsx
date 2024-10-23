@@ -30,20 +30,19 @@ export default function useCurrentTransactionName() {
 
 function getScope() {
   const sentryCarrier = (window as WindowWithSentry).__SENTRY__;
-  const sentryClient = sentryCarrier && getSentryScope(sentryCarrier);
+  const sentryScope = sentryCarrier && getSentryScope(sentryCarrier);
 
-  if (!sentryClient) {
-    // TODO: find a way to get scope on v7 of the Sentry SDK
+  if (!sentryScope) {
     throw Error(
-      "Couldn't find a Sentry SDK client. Make sure you're using a Sentry SDK with version 7.x or 8.x"
+      "Couldn't find a Sentry SDK scope. Make sure you're using a Sentry SDK with version 7.x or 8.x"
     );
   }
 
-  return sentryClient;
+  return sentryScope;
 }
 
 /**
- * Accesses the `window.__SENTRY__` carrier object and tries to get the Sentry client
+ * Accesses the `window.__SENTRY__` carrier object and tries to get the Sentry scope
  * from it. This function supports all carrier object structures from v7 to all versions
  * of v8.
  */
