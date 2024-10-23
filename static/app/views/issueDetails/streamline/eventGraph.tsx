@@ -1,11 +1,12 @@
-import {useMemo, useState} from 'react';
+import {type CSSProperties, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
+import {Flex} from 'sentry/components/container/flex';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconTelescope} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -30,6 +31,8 @@ interface EventGraphProps {
   group: Group;
   groupStats: MultiSeriesEventsStats;
   searchQuery: string;
+  className?: string;
+  style?: CSSProperties;
 }
 
 function createSeriesAndCount(stats: EventsStats) {
@@ -51,14 +54,20 @@ function createSeriesAndCount(stats: EventsStats) {
   );
 }
 
-export function EventGraph({group, groupStats, searchQuery, event}: EventGraphProps) {
+export function EventGraph({
+  className,
+  event,
+  group,
+  groupStats,
+  searchQuery,
+  style,
+}: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
     EventGraphSeries.EVENT
   );
 
-  const [isGraphHovered, setIsGraphHovered] = useState(false);
   const eventStats = groupStats['count()'];
   const {series: eventSeries, count: eventCount} = useMemo(
     () => createSeriesAndCount(eventStats),
@@ -134,8 +143,8 @@ export function EventGraph({group, groupStats, searchQuery, event}: EventGraphPr
     orient: 'horizontal',
     align: 'left',
     show: true,
-    right: 35,
-    top: 5,
+    top: 8,
+    right: 95,
     data: ['Feature Flags'],
     selected: legendSelected,
   });
@@ -153,7 +162,7 @@ export function EventGraph({group, groupStats, searchQuery, event}: EventGraphPr
   );
 
   return (
-    <GraphWrapper>
+    <GraphWrapper className={className} style={style}>
       <SummaryContainer>
         <Callout
           onClick={() =>
@@ -164,8 +173,14 @@ export function EventGraph({group, groupStats, searchQuery, event}: EventGraphPr
           disabled={visibleSeries === EventGraphSeries.EVENT}
         >
           <InteractionStateLayer hidden={visibleSeries === EventGraphSeries.EVENT} />
-          <Label>{tn('Event', 'Events', eventCount)}</Label>
-          <Count>{formatAbbreviatedNumber(eventCount)}</Count>
+          <Flex column>
+            <Label isActive={visibleSeries === EventGraphSeries.EVENT}>
+              {tn('Event', 'Events', eventCount)}
+            </Label>
+            <Count isActive={visibleSeries === EventGraphSeries.EVENT}>
+              {formatAbbreviatedNumber(eventCount)}
+            </Count>
+          </Flex>
         </Callout>
         <Callout
           onClick={() =>
@@ -176,15 +191,17 @@ export function EventGraph({group, groupStats, searchQuery, event}: EventGraphPr
           disabled={visibleSeries === EventGraphSeries.USER}
         >
           <InteractionStateLayer hidden={visibleSeries === EventGraphSeries.USER} />
-          <Label>{tn('User', 'Users', userCount)}</Label>
-          <Count>{formatAbbreviatedNumber(userCount)}</Count>
+          <Flex column>
+            <Label isActive={visibleSeries === EventGraphSeries.USER}>
+              {tn('User', 'Users', userCount)}
+            </Label>
+            <Count isActive={visibleSeries === EventGraphSeries.USER}>
+              {formatAbbreviatedNumber(userCount)}
+            </Count>
+          </Flex>
         </Callout>
       </SummaryContainer>
-      <ChartContainer
-        role="figure"
-        onMouseEnter={() => setIsGraphHovered(true)}
-        onMouseLeave={() => setIsGraphHovered(false)}
-      >
+      <ChartContainer role="figure">
         <BarChart
           height={100}
           series={series}
@@ -192,7 +209,6 @@ export function EventGraph({group, groupStats, searchQuery, event}: EventGraphPr
           onLegendSelectChanged={onLegendSelectChanged}
           showTimeInTooltip
           grid={{
-            top: 28, // leave room for legend
             left: 8,
             right: 8,
             bottom: 0,
@@ -207,17 +223,16 @@ export function EventGraph({group, groupStats, searchQuery, event}: EventGraphPr
           }}
           {...chartZoomProps}
         />
-        {discoverUrl && isGraphHovered && (
-          <OpenInDiscoverButton>
-            <LinkButton
-              size="xs"
-              icon={<IconTelescope />}
-              to={discoverUrl}
-              aria-label={t('Open in Discover')}
-              title={t('Open in Discover')}
-            />
-          </OpenInDiscoverButton>
-        )}
+        <OpenInDiscoverButton>
+          <LinkButton
+            size="xs"
+            icon={<IconTelescope />}
+            to={discoverUrl}
+            aria-label={t('Open in Discover')}
+          >
+            {t('Discover')}
+          </LinkButton>
+        </OpenInDiscoverButton>
       </ChartContainer>
     </GraphWrapper>
   );
@@ -231,40 +246,37 @@ const GraphWrapper = styled('div')`
 const SummaryContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  margin-right: space(1);
+  margin: ${space(1)} ${space(1)} ${space(1)} 0;
   border-radius: ${p => p.theme.borderRadiusLeft};
 `;
 
-const Callout = styled('button')<{isActive: boolean}>`
-  flex: 1;
+const Callout = styled(Button)<{isActive: boolean}>`
+  text-align: center;
   cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-  outline: 0;
   position: relative;
-  border: 1px solid ${p => p.theme.translucentInnerBorder};
-  background: ${p => (p.isActive ? p.theme.background : p.theme.backgroundSecondary)};
-  text-align: left;
+  border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+  background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
   padding: ${space(1)} ${space(2)};
-  &:first-child {
-    border-radius: ${p => p.theme.borderRadius} 0 ${p => p.theme.borderRadius} 0;
-    border-width: ${p => (p.isActive ? '0' : '0 1px 1px 0')};
-  }
-  &:last-child {
-    border-radius: 0 ${p => p.theme.borderRadius} 0 ${p => p.theme.borderRadius};
-    border-width: ${p => (p.isActive ? '0' : '1px 1px 0 0')};
+  box-shadow: none;
+  height: unset;
+  overflow: hidden;
+  &:disabled {
+    opacity: 1;
   }
 `;
 
-const Label = styled('div')`
+const Label = styled('div')<{isActive: boolean}>`
+  line-height: 1;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: 1;
+  color: ${p => (p.isActive ? p.theme.purple400 : p.theme.subText)};
 `;
 
-const Count = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin-top: ${space(0.5)};
+const Count = styled('div')<{isActive: boolean}>`
   line-height: 1;
+  margin-top: ${space(0.5)};
+  font-size: 20px;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => (p.isActive ? p.theme.purple400 : p.theme.textColor)};
 `;
 
 const ChartContainer = styled('div')`
