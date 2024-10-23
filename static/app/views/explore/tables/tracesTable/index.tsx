@@ -49,6 +49,7 @@ export function TracesTable() {
     dataset,
     query,
     limit: DEFAULT_PER_PAGE,
+    sort: '-timestamp',
   });
 
   const showErrorState = useMemo(() => {
