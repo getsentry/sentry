@@ -43,6 +43,7 @@ import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {convertLocationDescriptorToHref} from 'sentry/utils/convertLocationDescriptorToHref';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -548,24 +549,23 @@ function BaseGroupRow({
       return;
     }
 
-    if (canSelect && isCtrlKeyPressed(e)) {
-      SelectedGroupStore.toggleSelect(group.id);
-      return;
-    }
-
     if (hasNewLayout) {
-      navigate(
-        normalizeUrl(
-          createIssueLink({
-            data: group,
-            organization,
-            referrer,
-            streamIndex: index,
-            location,
-            query,
-          })
-        )
+      const issueLocation: LocationDescriptor = normalizeUrl(
+        createIssueLink({
+          data: group,
+          organization,
+          referrer,
+          streamIndex: index,
+          location,
+          query,
+        })
       );
+
+      if (isCtrlKeyPressed(e)) {
+        window.open(convertLocationDescriptorToHref(issueLocation), '_blank');
+      } else {
+        navigate(issueLocation);
+      }
       return;
     }
 
