@@ -68,6 +68,9 @@ export interface DocsParams<
     screenshot?: boolean;
   };
   newOrg?: boolean;
+  profilingOptions?: {
+    defaultProfilingMode?: 'transaction' | 'continuous';
+  };
   replayOptions?: {
     block?: boolean;
     mask?: boolean;
@@ -107,6 +110,7 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
   performanceOnboarding?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
+  profilingOnboarding?: OnboardingConfig<PlatformOptions>;
   replayOnboarding?: OnboardingConfig<PlatformOptions>;
   replayOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;
 }

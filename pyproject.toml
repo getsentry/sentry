@@ -511,6 +511,7 @@ module = [
     "sentry.utils.env",
     "sentry.utils.event",
     "sentry.utils.files",
+    "sentry.utils.function_cache",
     "sentry.utils.geo",
     "sentry.utils.imports",
     "sentry.utils.iterators",

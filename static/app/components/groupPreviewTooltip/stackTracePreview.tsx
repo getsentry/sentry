@@ -83,7 +83,7 @@ export function StackTracePreviewContent({
     return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
   }
 
-  return <StackTraceContent {...commonProps} />;
+  return <StackTraceContent {...commonProps} hideIcon />;
 }
 
 type StackTracePreviewProps = {

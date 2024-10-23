@@ -38,6 +38,7 @@ const mockReplay = ReplayReader.factory({
     duration: duration(10, 'seconds'),
   }),
   errors: [],
+  fetching: false,
   attachments: RRWebInitFrameEventsFixture({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
