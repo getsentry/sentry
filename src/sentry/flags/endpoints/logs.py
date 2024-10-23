@@ -21,9 +21,9 @@ from sentry.models.organization import Organization
 class FlagAuditLogModelSerializerResponse(TypedDict):
     id: int
     action: str
-    created_at: datetime
-    created_by: str
-    created_by_type: str
+    createdAt: datetime
+    createdBy: str
+    createdByType: str
     flag: str
     tags: dict[str, Any]
 
