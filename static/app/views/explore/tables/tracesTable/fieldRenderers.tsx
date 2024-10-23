@@ -57,20 +57,22 @@ export function SpanDescriptionRenderer({span}: {span: SpanResult<Field>}) {
 interface ProjectsRendererProps {
   projectSlugs: string[];
   maxVisibleProjects?: number;
+  visibleAvatarSize?: number;
 }
 
 export function ProjectsRenderer({
   projectSlugs,
+  visibleAvatarSize,
   maxVisibleProjects = 2,
 }: ProjectsRendererProps) {
   const organization = useOrganization();
-  const {projects} = useProjects({slugs: projectSlugs, orgId: organization.id});
+  const {projects} = useProjects({slugs: projectSlugs, orgId: organization.slug});
   const projectAvatars =
     projects.length > 0 ? projects : projectSlugs.map(slug => ({slug}));
   const numProjects = projectAvatars.length;
   const numVisibleProjects =
     maxVisibleProjects - numProjects >= 0 ? numProjects : maxVisibleProjects - 1;
-  const visibleProjectAvatars = projectAvatars.slice(0, numVisibleProjects);
+  const visibleProjectAvatars = projectAvatars.slice(0, numVisibleProjects).reverse();
   const collapsedProjectAvatars = projectAvatars.slice(numVisibleProjects);
   const numCollapsedProjects = collapsedProjectAvatars.length;
 
@@ -102,7 +104,7 @@ export function ProjectsRenderer({
           key={project.slug}
           hideName
           project={project}
-          avatarSize={24}
+          avatarSize={visibleAvatarSize ?? 16}
           avatarProps={{hasTooltip: true, tooltip: project.slug}}
         />
       ))}

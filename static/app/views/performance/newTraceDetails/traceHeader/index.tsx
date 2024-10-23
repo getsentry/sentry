@@ -7,6 +7,7 @@ import DiscoverButton from 'sentry/components/discoverButton';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -70,6 +71,7 @@ function NewTraceMetadataHeader({
             </StyledWrapper>
             <ProjectsRenderer
               projectSlugs={Array.from(tree.project_slugs)}
+              visibleAvatarSize={24}
               maxVisibleProjects={3}
             />
           </HeaderRow>
@@ -102,10 +104,63 @@ const StyledBreak = styled('hr')`
   border-color: ${p => p.theme.border};
 `;
 
-const StyledWrapper = styled('div')`
+const StyledWrapper = styled('span')`
+  display: flex;
+  align-items: center;
   & > div {
     padding: 0;
   }
+`;
+
+function PlaceHolder({organization}: {organization: Organization}) {
+  const location = useLocation();
+
+  return (
+    <Layout.Header>
+      <HeaderContent>
+        <HeaderRow>
+          <Breadcrumbs crumbs={getTraceViewBreadcrumbs(organization, location)} />
+        </HeaderRow>
+        <HeaderRow>
+          <PlaceHolderTitleWrapper>
+            <StyledPlaceholder _width={300} _height={20} />
+            <StyledPlaceholder _width={200} _height={18} />
+          </PlaceHolderTitleWrapper>
+          <PlaceHolderTitleWrapper>
+            <StyledPlaceholder _width={300} _height={18} />
+            <StyledPlaceholder _width={300} _height={24} />
+          </PlaceHolderTitleWrapper>
+        </HeaderRow>
+        <StyledBreak />
+        <HeaderRow>
+          <PlaceHolderHighlightWrapper>
+            <StyledPlaceholder _width={150} _height={20} />
+            <StyledPlaceholder _width={150} _height={20} />
+            <StyledPlaceholder _width={150} _height={20} />
+          </PlaceHolderHighlightWrapper>
+          <StyledPlaceholder _width={50} _height={28} />
+        </HeaderRow>
+      </HeaderContent>
+    </Layout.Header>
+  );
+}
+
+const PlaceHolderTitleWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const PlaceHolderHighlightWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>`
+  border-radius: ${p => p.theme.borderRadius};
+  height: ${p => p._height}px;
+  width: ${p => p._width}px;
 `;
 
 function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
@@ -149,8 +204,17 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const hasNewTraceViewUi = useHasTraceNewUi();
 
+  const isLoading =
+    props.metaResults.isLoading ||
+    props.rootEventResults.isPending ||
+    props.tree.type === 'loading';
+
   if (hasNewTraceViewUi) {
-    return <NewTraceMetadataHeader {...props} />;
+    return isLoading ? (
+      <PlaceHolder organization={props.organization} />
+    ) : (
+      <NewTraceMetadataHeader {...props} />
+    );
   }
 
   return <LegacyTraceMetadataHeader {...props} />;

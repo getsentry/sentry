@@ -20,11 +20,15 @@ interface TitleProps {
 export function Title({rootEventResults, traceSlug, tree}: TitleProps) {
   const title = rootEventResults.data?.title;
   const op = rootEventResults.data?.contexts.trace?.op;
+  const hasRoot =
+    ![TraceShape.EMPTY_TRACE, TraceShape.NO_ROOT, TraceShape.ONLY_ERRORS].includes(
+      tree.shape
+    ) || tree.eventsCount === 1;
 
   return (
     <div>
       <HeaderTitle>
-        {tree.shape === TraceShape.ONE_ROOT ? (
+        {hasRoot ? (
           op ? (
             <Fragment>
               <strong>{op} - </strong>
