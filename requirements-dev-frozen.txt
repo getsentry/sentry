@@ -21,7 +21,7 @@ build==0.8.0
 cachetools==5.3.0
 celery==5.3.5
 certifi==2023.7.22
-cffi==1.15.1
+cffi==1.17.1
 cfgv==3.3.1
 charset-normalizer==3.3.2
 click==8.1.7
