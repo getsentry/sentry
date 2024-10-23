@@ -15,11 +15,20 @@ type Props = {
   headerTitle: HeaderProps['headerTitle'];
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
+  hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
   module?: HeaderProps['selectedModule'];
+  tabs?: HeaderProps['tabs'];
 };
 
 // TODO - add props to append to breadcrumbs and change title
-export function BackendHeader({module, headerActions, headerTitle, breadcrumbs}: Props) {
+export function BackendHeader({
+  module,
+  headerActions,
+  headerTitle,
+  breadcrumbs,
+  tabs,
+  hideDefaultTabs,
+}: Props) {
   const {slug} = useOrganization();
 
   const backendBaseUrl = normalizeUrl(
@@ -36,6 +45,8 @@ export function BackendHeader({module, headerActions, headerTitle, breadcrumbs}:
       modules={modules}
       selectedModule={module}
       additionalBreadCrumbs={breadcrumbs}
+      tabs={tabs}
+      hideDefaultTabs={hideDefaultTabs}
     />
   );
 }
