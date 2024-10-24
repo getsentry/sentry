@@ -213,6 +213,10 @@ class SentryPermission(ScopedPermission):
 
         # TODO(iamrajjoshi): Remove this check once we have fully migrated to the new data secrecy logic
         organization = org_context.organization
+
+        if is_readonly_user(request):
+            org_context.member.scopes = get_readonly_scopes()
+
         if (
             request.user
             and request.user.is_superuser
@@ -282,3 +286,34 @@ class SentryPermission(ScopedPermission):
                     extra=extra,
                 )
                 raise MemberDisabledOverLimit(organization)
+
+    def has_permission(self, request: Request, view: object) -> bool:
+        if is_readonly_user(request) and request.method not in ("GET", "HEAD"):
+            return False
+
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
+        if is_readonly_user(request) and request.method not in ("GET", "HEAD"):
+            return False
+
+        return super().has_object_permission(request, view, obj)
+
+
+def is_readonly_user(request: Request) -> bool:
+    return request.user and request.user.email == "readonly@sentry.io"
+
+
+def get_readonly_scopes() -> frozenset[str]:
+
+    return frozenset(
+        [
+            "project:read",
+            "org:read",
+            "event:read",
+            "member:read",
+            "team:read",
+            "project:releases",
+            "alerts:read",
+        ]
+    )
