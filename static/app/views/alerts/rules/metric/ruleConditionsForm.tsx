@@ -704,7 +704,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               />
               {allowChangeEventTypes && this.renderEventTypeFilter()}
             </FormRow>
-            <FormRow>
+            <FormRow noMargin>
               <FormField
                 name="query"
                 inline={false}
@@ -789,6 +789,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 }}
               </FormField>
             </FormRow>
+            {
+              <OnDemandMetricAlert
+                message={t('To die, to sleep. To sleep—perchance to dream.')}
+              />
+            }
           </Fragment>
         )}
       </Fragment>
