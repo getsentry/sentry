@@ -712,6 +712,8 @@ from kombu import Exchange, Queue
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
+TASK_WORKER_ALWAYS_EAGER = False
+
 # Ensure workers run async by default
 # in Development you might want them to run in-process
 # though it would cause timeouts/recursions in some cases

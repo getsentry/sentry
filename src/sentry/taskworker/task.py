@@ -62,7 +62,12 @@ class Task:
         return self.apply_async(*args, **kwargs)
 
     def apply_async(self, *args, **kwargs):
-        self.__namespace.send_task(self, args, kwargs)
+        from django.conf import settings
+
+        if settings.TASK_WORKER_ALWAYS_EAGER:
+            self.__func(*args, **kwargs)
+        else:
+            self.__namespace.send_task(self, args, kwargs)
 
     def should_retry(self, state: RetryState, exc: Exception) -> bool:
         # No retry policy means no retries.

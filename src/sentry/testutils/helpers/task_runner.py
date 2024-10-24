@@ -14,14 +14,17 @@ __all__ = ("BurstTaskRunner", "TaskRunner")
 
 @contextlib.contextmanager
 def TaskRunner() -> Generator[None]:
-    prev = settings.CELERY_ALWAYS_EAGER
+    prev_celery_setting = settings.CELERY_ALWAYS_EAGER
+    prev_task_worker_setting = settings.TASK_WORKER_ALWAYS_EAGER
+    settings.TASK_WORKER_ALWAYS_EAGER = True
     settings.CELERY_ALWAYS_EAGER = True
     current_app.conf.CELERY_ALWAYS_EAGER = True
     try:
         yield
     finally:
-        current_app.conf.CELERY_ALWAYS_EAGER = prev
-        settings.CELERY_ALWAYS_EAGER = prev
+        current_app.conf.CELERY_ALWAYS_EAGER = prev_celery_setting
+        settings.CELERY_ALWAYS_EAGER = prev_celery_setting
+        settings.TASK_WORKER_ALWAYS_EAGER = prev_task_worker_setting
 
 
 class BurstTaskRunnerRetryError(Exception):
