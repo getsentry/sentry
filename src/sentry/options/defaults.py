@@ -2025,6 +2025,13 @@ register(
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
 
+# Enables anomaly detection based on the volume of check-ins being processed
+register(
+    "crons.tick_volume_anomaly_detection",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Sets the timeout for webhooks
 register(
     "sentry-apps.webhook.timeout.sec",
