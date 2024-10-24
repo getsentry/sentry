@@ -91,7 +91,7 @@ zstandard>=0.18.0
 sentry-usage-accountant==0.0.10
 orjson>=3.10.3
 
-msgpack>=1.0.7
+msgpack>=1.1
 cryptography>=38.0.3
 
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
