@@ -13,10 +13,10 @@ export default storyBook(QuestionTooltip, story => {
       <Fragment>
         <p>
           The <JSXNode name="QuestionTooltip" /> component is a small{' '}
-          <JSXNode name="IconQuestion" /> where you can specify a tooltip to go with it.
-          It is useful for placing after headers and titles to include additional
-          information. You'll see it often at the top of Sentry's pages, near the page
-          titles.
+          <JSXNode name="IconQuestion" /> or <JSXNode name="IconInfo" /> where you can
+          specify a tooltip to go with it. It is useful for placing after headers and
+          titles to include additional information. You'll see it often at the top of
+          Sentry's pages, near the page titles.
         </p>
         <p>
           An example <JSXNode name="QuestionTooltip" /> looks like this:
@@ -39,7 +39,7 @@ export default storyBook(QuestionTooltip, story => {
     );
   });
 
-  story('size', () => {
+  story('Size', () => {
     return (
       <Fragment>
         <p>
@@ -65,6 +65,26 @@ export default storyBook(QuestionTooltip, story => {
           </div>
           <div>
             "xxl" <QuestionTooltip size="xxl" title="xxl" />
+          </div>
+        </IconExamples>
+      </Fragment>
+    );
+  });
+
+  story('Icon', () => {
+    return (
+      <Fragment>
+        <p>
+          You can set the <JSXProperty name="icon" value /> prop to either{' '}
+          <code>"question"</code> or <code>"info"</code>
+        </p>
+
+        <IconExamples>
+          <div>
+            "question" <QuestionTooltip size="sm" title="Question" icon="question" />
+          </div>
+          <div>
+            "info" <QuestionTooltip size="sm" title="Info" icon="info" />
           </div>
         </IconExamples>
       </Fragment>
