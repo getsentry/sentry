@@ -129,14 +129,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     def _has_indexed(self, generic_metric: GenericMetric, use_case_id: UseCaseID) -> bool:
         return self._has_tag(generic_metric, use_case_id, "indexed")
 
-    def _has_tag(
-        self, generic_metric: GenericMetric, use_case_id: UseCaseID, tag_key: str
-    ) -> bool:
-        indexed_tag_key = self._resolve(generic_metric["mapping_meta"], tag_key)
+    def _has_tag(self, generic_metric: GenericMetric, use_case_id: UseCaseID, tag_key: str) -> bool:
+        indexed_tag_key = self._resolve(generic_metric, tag_key)
         if indexed_tag_key is None:
             return False
 
-        tag_value = generic_metric["tags"].get(self.indexed_tag_key)
+        tag_value = generic_metric["tags"].get(indexed_tag_key)
         return tag_value == "true"
 
     def _produce_billing_outcomes(self, generic_metric: GenericMetric) -> None:
@@ -176,7 +174,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         try:
             org_id = generic_metric["org_id"]
             project_id = generic_metric["project_id"]
-            metric_mri = self._resolve(generic_metric["mapping_meta"], generic_metric["metric_id"])
+            metric_mri = self._reverse_resolve(generic_metric, generic_metric["metric_id"])
 
             parsed_mri = parse_mri(metric_mri)
             if parsed_mri is None or not is_custom_metric(parsed_mri):
@@ -196,7 +194,27 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         except Project.DoesNotExist:
             pass
 
-    def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int) -> str | None:
+    def _resolve(self, generic_metric: GenericMetric, value: str) -> str | None:
+        """
+        Resolves the original string value of a field to its indexed value.
+
+        The resolution leverages the `mapping_meta` field of the generic metric payload.
+        """
+        mapping_meta = generic_metric["mapping_meta"]
+        for _, inner_meta in mapping_meta.items():
+            for indexed_value, original_value in inner_meta.items():
+                if original_value == value:
+                    return indexed_value
+
+        return None
+
+    def _reverse_resolve(self, generic_metric: GenericMetric, indexed_value: int) -> str | None:
+        """
+        Reverse resolves the indexed value in the metric payload to the original string value.
+
+        The resolution leverages the `mapping_meta` field of the generic metric payload.
+        """
+        mapping_meta = generic_metric["mapping_meta"]
         for _, inner_meta in mapping_meta.items():
             if (string_value := inner_meta.get(str(indexed_value))) is not None:
                 return string_value
