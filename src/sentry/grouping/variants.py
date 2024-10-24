@@ -56,6 +56,9 @@ class ChecksumVariant(BaseVariant):
     def get_hash(self) -> str | None:
         return self.checksum
 
+    def _get_metadata_as_dict(self):
+        return {"checksum": self.checksum}
+
 
 class FallbackVariant(BaseVariant):
     type = "fallback"
