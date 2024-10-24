@@ -1184,16 +1184,23 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         event = job["event"]
 
-        track_outcome(
-            org_id=event.project.organization_id,
-            project_id=job["project_id"],
-            key_id=job["key_id"],
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=to_datetime(job["start_time"]),
-            event_id=event.event_id,
-            category=job["category"],
-        )
+        categories = [job["category"]]
+        if categories[0] == DataCategory.TRANSACTION_INDEXED and options.get(
+            "consumers.use_new_counting_strategy"
+        ):
+            categories.append(DataCategory.TRANSACTION)
+
+        for category in categories:
+            track_outcome(
+                org_id=event.project.organization_id,
+                project_id=job["project_id"],
+                key_id=job["key_id"],
+                outcome=Outcome.ACCEPTED,
+                reason=None,
+                timestamp=to_datetime(job["start_time"]),
+                event_id=event.event_id,
+                category=category,
+            )
 
 
 def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:

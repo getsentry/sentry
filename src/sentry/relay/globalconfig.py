@@ -25,6 +25,7 @@ RELAY_OPTIONS: list[str] = [
     "relay.span-extraction.sample-rate",
     "relay.compute-metrics-summaries.sample-rate",
     "relay.span-normalization.allowed_hosts",
+    "consumers.use_new_counting_strategy",
 ]
 
 

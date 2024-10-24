@@ -14,15 +14,10 @@ from arroyo.types import Commit, Message, Partition
 from django.core.cache import cache
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
-from sentry.sentry_metrics.indexer.strings import (
-    SHARED_TAG_STRINGS,
-    SPAN_METRICS_NAMES,
-    TRANSACTION_METRICS_NAMES,
-)
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.utils import reverse_resolve_tag_value
+from sentry.sentry_metrics.indexer.strings import SPAN_METRICS_NAMES, TRANSACTION_METRICS_NAMES
 from sentry.signals import first_custom_metric_received
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.naming_layer.mri import is_custom_metric
@@ -58,7 +53,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]: DataCategory.TRANSACTION,
         SPAN_METRICS_NAMES["c:spans/usage@none"]: DataCategory.SPAN,
     }
-    profile_tag_key = str(SHARED_TAG_STRINGS["has_profile"])
 
     def __init__(self, next_step: ProcessingStrategy[Any]) -> None:
         self.__next_step = next_step
@@ -95,6 +89,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         except KeyError:
             return {}
 
+        # In the new world, if we are see a usage metric which has the `indexed` tag set to `true` it means that an
+        # indexed payload was supposed to be received and counted by the respective consumer, so we will not count it
+        # here to avoid double counting.
+        if options.get("consumers.use_new_counting_strategy") and self._has_indexed(generic_metric):
+            return {}
+
         value = generic_metric["value"]
         try:
             quantity = max(int(value), 0)  # type: ignore[arg-type]
@@ -113,13 +113,18 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         return items
 
     def _has_profile(self, generic_metric: GenericMetric) -> bool:
-        return bool(
-            (tag_value := generic_metric["tags"].get(self.profile_tag_key))
-            and "true"
-            == reverse_resolve_tag_value(
-                UseCaseID.TRANSACTIONS, generic_metric["org_id"], tag_value
-            )
-        )
+        return self._has_tag(generic_metric, "has_profile")
+
+    def _has_indexed(self, generic_metric: GenericMetric) -> bool:
+        return self._has_tag(generic_metric, "indexed")
+
+    def _has_tag(self, generic_metric: GenericMetric, tag_key: str) -> bool:
+        indexed_tag_key = self._resolve(generic_metric, tag_key)
+        if indexed_tag_key is None:
+            return False
+
+        tag_value = generic_metric["tags"].get(indexed_tag_key)
+        return tag_value == "true"
 
     def _produce_billing_outcomes(self, generic_metric: GenericMetric) -> None:
         for category, quantity in self._count_processed_items(generic_metric).items():
@@ -158,7 +163,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         try:
             org_id = generic_metric["org_id"]
             project_id = generic_metric["project_id"]
-            metric_mri = self._resolve(generic_metric["mapping_meta"], generic_metric["metric_id"])
+            metric_mri = self._reverse_resolve(generic_metric, generic_metric["metric_id"])
 
             parsed_mri = parse_mri(metric_mri)
             if parsed_mri is None or not is_custom_metric(parsed_mri):
@@ -178,7 +183,27 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         except Project.DoesNotExist:
             pass
 
-    def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int) -> str | None:
+    def _resolve(self, generic_metric: GenericMetric, value: str) -> str | None:
+        """
+        Resolves the original string value of a field to its indexed value.
+
+        The resolution leverages the `mapping_meta` field of the generic metric payload.
+        """
+        mapping_meta = generic_metric["mapping_meta"]
+        for _, inner_meta in mapping_meta.items():
+            for indexed_value, original_value in inner_meta.items():
+                if original_value == value:
+                    return indexed_value
+
+        return None
+
+    def _reverse_resolve(self, generic_metric: GenericMetric, indexed_value: int) -> str | None:
+        """
+        Reverse resolves the indexed value in the metric payload to the original string value.
+
+        The resolution leverages the `mapping_meta` field of the generic metric payload.
+        """
+        mapping_meta = generic_metric["mapping_meta"]
         for _, inner_meta in mapping_meta.items():
             if (string_value := inner_meta.get(str(indexed_value))) is not None:
                 return string_value

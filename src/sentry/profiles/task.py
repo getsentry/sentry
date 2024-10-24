@@ -193,6 +193,7 @@ def process_profile_task(
                     _track_duration_outcome(profile=profile, project=project)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
+
             if profile.get("version") != "2":
                 _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
@@ -980,17 +981,25 @@ def _track_outcome(
     outcome: Outcome,
     reason: str | None = None,
 ) -> None:
-    track_outcome(
-        org_id=project.organization_id,
-        project_id=project.id,
-        key_id=None,
-        outcome=outcome,
-        reason=reason,
-        timestamp=datetime.now(timezone.utc),
-        event_id=get_event_id(profile),
-        category=get_data_category(profile),
-        quantity=1,
-    )
+    categories = [get_data_category(profile)]
+    # In the new counting strategy, we count all incoming profiles also with the `PROFILE` category since we are
+    # assuming that profiles are not dynamically sampled so there is no difference between `PROFILE` and
+    # `PROFILE_INDEXED` counts.
+    if outcome == Outcome.ACCEPTED and options.get("consumers.use_new_counting_strategy"):
+        categories.append(DataCategory.PROFILE)
+
+    for category in categories:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=outcome,
+            reason=reason,
+            timestamp=datetime.now(timezone.utc),
+            event_id=get_event_id(profile),
+            category=category,
+            quantity=1,
+        )
 
 
 @metrics.wraps("process_profile.insert_vroom_profile")
