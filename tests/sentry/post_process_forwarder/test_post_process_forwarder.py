@@ -149,6 +149,7 @@ class PostProcessForwarderTest(TestCase):
                 is_new_group_environment=False,
                 group_states=None,
                 occurrence_id=None,
+                eventstream_type=None,
             )
 
         processor.signal_shutdown()
