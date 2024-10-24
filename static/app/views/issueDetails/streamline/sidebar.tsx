@@ -10,6 +10,8 @@ import type {Project} from 'sentry/types/project';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/firstLastSeenSection';
 import PeopleSection from 'sentry/views/issueDetails/streamline/peopleSection';
+import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
+import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
 
 type Props = {
   group: Group;
@@ -31,6 +33,10 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       <StreamlinedActivitySection group={group} />
       <StyledBreak />
       <PeopleSection group={group} />
+      <StyledBreak />
+      <SimilarIssuesSidebarSection />
+      <StyledBreak />
+      <MergedIssuesSidebarSection />
     </div>
   );
 }
