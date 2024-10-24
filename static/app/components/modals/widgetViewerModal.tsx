@@ -55,6 +55,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
@@ -1021,6 +1022,7 @@ function WidgetViewerModal(props: Props) {
                     <WidgetHeader>
                       <WidgetTitleRow>
                         <h3>{widget.title}</h3>
+                        <DiscoverSplitAlert widget={widget} />
                       </WidgetTitleRow>
                       {widget.description && (
                         <Tooltip

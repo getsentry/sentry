@@ -77,6 +77,7 @@ type Props = WithRouterProps & {
   onDuplicate?: () => void;
   onEdit?: () => void;
   onLegendSelectChanged?: () => void;
+  onSetTransactionsDataset?: () => void;
   onUpdate?: (widget: Widget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -186,7 +187,10 @@ function WidgetCard(props: Props) {
                 </Tooltip>
                 <ExtractedMetricsTag queryKey={widget} />
                 <DisplayOnDemandWarnings widget={widget} />
-                <DiscoverSplitAlert widget={widget} />
+                <DiscoverSplitAlert
+                  widget={widget}
+                  onSetTransactionsDataset={props.onSetTransactionsDataset}
+                />
               </WidgetTitleRow>
             </WidgetHeaderDescription>
             {!props.isEditingDashboard && (
