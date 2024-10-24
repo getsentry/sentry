@@ -77,7 +77,7 @@ describe('GroupPriority', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Modify issue priority'}));
 
-      expect(screen.getByText('Time to prioritize!')).toBeInTheDocument();
+      expect(screen.getByText('Time to prioritize')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Learn more'})).toHaveAttribute(
         'href',
         'https://docs.sentry.io/product/issues/issue-priority/'
