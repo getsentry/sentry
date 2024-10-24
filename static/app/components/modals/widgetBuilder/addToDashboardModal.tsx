@@ -40,6 +40,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -234,6 +235,18 @@ function AddToDashboardModal({
     ].filter(Boolean) as SelectValue<string>[];
   }, [allowCreateNewDashboard, dashboards]);
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location,
+    router,
+    organization,
+    dashboard: selectedDashboard,
+  });
+
+  const unselectedReleasesForCharts = {
+    [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend('Releases', widget.id)]:
+      false,
+  };
+
   return (
     <OrganizationContext.Provider value={organization}>
       <Header closeButton>
@@ -290,13 +303,13 @@ function AddToDashboardModal({
                     widget={widget}
                     showStoredAlert
                     shouldResize={false}
-                    widgetLegendState={
-                      new WidgetLegendSelectionState({
-                        location,
-                        router,
-                        organization,
-                        dashboard: selectedDashboard,
-                      })
+                    widgetLegendState={widgetLegendState}
+                    onLegendSelectChanged={() => {}}
+                    legendOptions={
+                      organization.features.includes('dashboards-releases-on-charts') &&
+                      widgetLegendState.widgetRequiresLegendUnselection(widget)
+                        ? {selected: unselectedReleasesForCharts}
+                        : undefined
                     }
                   />
                 </MEPSettingProvider>
