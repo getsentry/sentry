@@ -7,14 +7,14 @@ from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.token_exchange.util import token_expiration
-from sentry.mediators.token_exchange.validator import Validator
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.token_exchange.util import token_expiration
+from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
 
@@ -62,7 +62,7 @@ class GrantExchanger:
         )
 
     def _validate(self) -> None:
-        Validator.run(install=self.install, client_id=self.client_id, user=self.user)
+        Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         if not self._grant_belongs_to_install() or not self._sentry_app_user_owns_grant():
             raise APIUnauthorized("Forbidden grant")
