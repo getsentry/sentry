@@ -11,7 +11,7 @@ import {Chevron} from 'sentry/components/chevron';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import SkipConfirm from 'sentry/components/onboardingWizard/skipConfirm';
 import type {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {findCompleteTasks} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -45,7 +45,9 @@ const orderedBeyondBasicsTasks = [
 ];
 
 function groupTasksByCompletion(tasks: OnboardingTask[]) {
-  const [completedTasks, incompletedTasks] = partition(tasks, task => taskIsDone(task));
+  const [completedTasks, incompletedTasks] = partition(tasks, task =>
+    findCompleteTasks(task)
+  );
   return {
     completedTasks,
     incompletedTasks,

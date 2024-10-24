@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -8,6 +8,7 @@ import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext'
 import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
+import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -28,14 +29,6 @@ import {SidebarPanelKey} from './types';
 
 type NewOnboardingStatusProps = CommonSidebarProps;
 
-// Compatible with https://github.com/getsentry/sentry/blob/master/static/app/components/sidebar/broadcasts.tsx#L20
-const MARK_SEEN_DELAY = 1000;
-
-/**
- * How long (in ms) to delay between marking each unseen task as complete.
- */
-const COMPLETION_SEEN_TIMEOUT = 800;
-
 export function NewOnboardingStatus({
   collapsed,
   currentPanel,
@@ -48,7 +41,6 @@ export function NewOnboardingStatus({
   const onboardingContext = useContext(OnboardingContext);
   const {projects} = useProjects();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const markSeenTimeoutRef = useRef<number | undefined>(undefined);
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
   const walkthrough = isDemoWalkthrough();
@@ -69,19 +61,17 @@ export function NewOnboardingStatus({
   const unseenDoneTasks = useMemo(
     () =>
       allTasks
-        .filter(task => task.status === 'complete' && !task.completionSeen)
+        .filter(task => taskIsDone(task) && !task.completionSeen)
         .map(task => task.task),
     [allTasks]
   );
 
   const markDoneTaskAsComplete = useCallback(() => {
     for (const unseenDoneTask of unseenDoneTasks) {
-      setTimeout(() => {
-        updateOnboardingTask(api, organization, {
-          task: unseenDoneTask,
-          completionSeen: true,
-        });
-      }, COMPLETION_SEEN_TIMEOUT);
+      updateOnboardingTask(api, organization, {
+        task: unseenDoneTask,
+        completionSeen: true,
+      });
     }
   }, [api, organization, unseenDoneTasks]);
 
@@ -92,13 +82,7 @@ export function NewOnboardingStatus({
       });
     }
 
-    if (markSeenTimeoutRef.current) {
-      window.clearTimeout(markSeenTimeoutRef.current);
-    }
-
-    markSeenTimeoutRef.current = window.setTimeout(() => {
-      markDoneTaskAsComplete();
-    }, MARK_SEEN_DELAY);
+    markDoneTaskAsComplete();
 
     onShowPanel();
   }, [onShowPanel, isActive, walkthrough, markDoneTaskAsComplete, organization]);
