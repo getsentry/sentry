@@ -32,6 +32,10 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.OTHER]: '',
 };
 
+/**
+ * These are overrides for the module titles for each domain view,
+ * If a module is not listed here, it will use the default module title from MODULE_TITLES
+ */
 export const DOMAIN_VIEW_MODULE_TITLES: Record<
   DomainView,
   Partial<Record<ModuleName, string>>
