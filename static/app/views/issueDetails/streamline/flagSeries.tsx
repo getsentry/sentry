@@ -70,7 +70,7 @@ export default function useFlagSeries({query = {}, event, group}: FlagSeriesProp
   const markLine = MarkLine({
     animation: false,
     lineStyle: {
-      color: theme.purple300,
+      color: theme.blue300,
       opacity: 0.3,
       type: 'solid',
     },

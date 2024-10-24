@@ -27,6 +27,7 @@ import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
 } from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/useReleaseMarkLineSeries';
 
 export const enum EventGraphSeries {
   EVENT = 'event',
@@ -101,6 +102,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     saveOnZoom: true,
   });
 
+  const releaseSeries = useReleaseMarkLineSeries({group});
   const flagSeries = useFlagSeries({
     query: {
       start: eventView.start,
@@ -141,16 +143,21 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       });
     }
 
+    if (releaseSeries.markLine) {
+      seriesData.push(releaseSeries as BarChartSeries);
+    }
+
     if (flagSeries.markLine) {
       seriesData.push(flagSeries as BarChartSeries);
     }
 
     return seriesData;
-  }, [visibleSeries, userSeries, eventSeries, flagSeries, theme]);
+  }, [visibleSeries, userSeries, eventSeries, releaseSeries, flagSeries, theme]);
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
     'issue-details-graph-legend',
     {
+      ['Releases']: true,
       ['Feature Flags']: true,
     }
   );
@@ -163,7 +170,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     show: true,
     top: 8,
     right: 95,
-    data: ['Feature Flags'],
+    data: ['Releases', 'Feature Flags'],
     selected: legendSelected,
   });
 
