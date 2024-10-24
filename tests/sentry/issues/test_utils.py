@@ -17,7 +17,6 @@ from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.issues.status_change_message import StatusChangeMessage, StatusChangeMessageData
 from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.helpers.datetime import iso_format
 
 
 class OccurrenceTestMixin:
@@ -127,7 +126,7 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
 
         event_data = {
             "tags": [("sentry:user", user_id_val)],
-            "timestamp": iso_format(insert_timestamp),
+            "timestamp": insert_timestamp.isoformat(),
             **(event_data or {}),
         }
         if tags:

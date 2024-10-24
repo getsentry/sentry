@@ -47,7 +47,7 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -313,7 +313,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "super duper bad",
-                "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+                "timestamp": (two_weeks_ago + timedelta(minutes=1)).isoformat(),
                 "fingerprint": ["group1"],
                 "tags": {"sentry:user": self.user.email},
             },
@@ -324,7 +324,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "super bad",
-                "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
+                "timestamp": (two_weeks_ago + timedelta(days=10)).isoformat(),
                 "fingerprint": ["group2"],
                 "tags": {"sentry:user": self.user.email},
             },

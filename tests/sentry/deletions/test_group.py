@@ -24,7 +24,7 @@ from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import bulk_snuba_queries
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -32,7 +32,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
-        one_minute = iso_format(before_now(minutes=1))
+        one_minute = before_now(minutes=1).isoformat()
         group1_data = {"timestamp": one_minute, "fingerprint": ["group1"]}
         group2_data = {"timestamp": one_minute, "fingerprint": ["group2"]}
 
@@ -93,7 +93,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
     def test_simple_multiple_groups(self) -> None:
         other_event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group3"]},
+            data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["group3"]},
             project_id=self.project.id,
         )
         other_node_id = Event.generate_node_id(self.project.id, other_event.event_id)
@@ -112,7 +112,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
     def test_grouphistory_relation(self) -> None:
         other_event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group3"]},
+            data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["group3"]},
             project_id=self.project.id,
         )
         other_group = other_event.group
@@ -159,7 +159,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         other_event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group3"],
             },
             project_id=self.project.id,

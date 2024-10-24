@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.issues.grouptype import ReplayRageClickType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
@@ -14,7 +14,7 @@ pytestmark = pytest.mark.sentry_metrics
 class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self):
         super().setUp()
-        self.min_ago = before_now(minutes=1)
+        self.min_ago = before_now(minutes=1).replace(microsecond=0)
         self.login_as(user=self.user)
         self.project_1 = self.create_project()
         self.project_2 = self.create_project()
@@ -51,7 +51,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
                 "issue.id": event_a.group.id,
                 "issue": event_a.group.qualified_short_id,
                 "project.name": self.project_1.slug,
-                "timestamp": iso_format(self.min_ago) + "+00:00",
+                "timestamp": self.min_ago.isoformat(),
                 "title": "<unlabeled event>",
             },
             {
@@ -61,7 +61,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
                 "issue.id": event_b.group.id,
                 "issue": event_b.group.qualified_short_id,
                 "project.name": self.project_2.slug,
-                "timestamp": iso_format(self.min_ago) + "+00:00",
+                "timestamp": self.min_ago.isoformat(),
                 "title": "<unlabeled event>",
             },
         ]
@@ -102,7 +102,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
                 "issue.id": group_info.group.id,
                 "issue": group_info.group.qualified_short_id,
                 "project.name": self.project.slug,
-                "timestamp": iso_format(self.min_ago) + "+00:00",
+                "timestamp": self.min_ago.isoformat(),
                 "title": "Rage Click",
             }
         ]
