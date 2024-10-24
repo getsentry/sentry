@@ -150,3 +150,32 @@ def test_statsig_unknown_event():
         1,
     )
     assert result == []
+
+
+def test_statsig_unknown_change_type():
+    """Assert unknown change types are ignored."""
+    result = handle_provider_event(
+        "statsig",
+        {
+            "data": [
+                {
+                    "user": {"name": "User Name", "email": "user@site.com"},
+                    "timestamp": 1729792825102,
+                    "eventName": "anything",
+                    "metadata": {
+                        "projectName": "sentry",
+                        "projectID": "1Qr",
+                        "type": "Segment",
+                        "name": "test_gate",
+                        "description": "Deleted Config",
+                        "environments": "development,staging,production",
+                        "action": "deleted",
+                        "tags": [],
+                        "targetApps": [],
+                    },
+                }
+            ]
+        },
+        1,
+    )
+    assert result == []

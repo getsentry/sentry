@@ -164,6 +164,7 @@ def handle_statsig_event(
         for item in request_data["data"]
         if item["eventName"] == "statsig::config_change"
         and item["metadata"]["action"] in ("created", "updated", "deleted")
+        and item["metadata"]["type"] == "Gate"
     ]
 
 
