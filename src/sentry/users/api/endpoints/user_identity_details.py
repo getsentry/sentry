@@ -11,7 +11,7 @@ from sentry.users.models.user import User
 @control_silo_endpoint
 class UserIdentityDetailsEndpoint(UserEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
 
     def delete(self, request: Request, user: User, identity_id: int) -> Response:
