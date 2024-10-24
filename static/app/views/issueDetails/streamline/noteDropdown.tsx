@@ -36,7 +36,9 @@ function NoteDropdown({user, onDelete}: Props) {
           priority: 'danger',
           onAction: () =>
             openConfirmModal({
-              header: t('Are you sure you want to remove this comment?'),
+              message: (
+                <strong>{t('Are you sure you want to remove this comment?')}</strong>
+              ),
               confirmText: t('Remove comment'),
               onConfirm: onDelete,
             }),
