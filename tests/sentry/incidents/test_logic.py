@@ -94,8 +94,8 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.group import GroupStatus
-from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import StoreDataResponse
+from sentry.seer.anomaly_detection.utils import SEER_ANOMALY_DETECTION_CONNECTION_POOL
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -838,9 +838,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_create_alert_rule_anomaly_detection(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -888,9 +886,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_create_alert_rule_anomaly_detection_not_enough_data(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -911,9 +907,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_create_alert_rule_anomaly_detection_no_data(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -931,9 +925,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     @patch("sentry.seer.anomaly_detection.store_data.logger")
     def test_create_alert_rule_anomaly_detection_seer_timeout_max_retry(
         self, mock_logger, mock_seer_request
@@ -954,13 +946,13 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window=self.dynamic_metric_alert_settings["time_window"],
         ).exists()
         assert mock_logger.warning.call_count == 1
-        assert mock_seer_request.call_count == 1
+        assert mock_seer_request.call_count == 2  # 1 for create, 1 for delete because create failed
 
         mock_seer_request.reset_mock()
         mock_logger.reset_mock()
 
         mock_seer_request.side_effect = MaxRetryError(
-            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+            SEER_ANOMALY_DETECTION_CONNECTION_POOL, SEER_ANOMALY_DETECTION_STORE_DATA_URL
         )
 
         with pytest.raises(TimeoutError):
@@ -976,11 +968,9 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window=self.dynamic_metric_alert_settings["time_window"],
         ).exists()
         assert mock_logger.warning.call_count == 1
-        assert mock_seer_request.call_count == 1
+        assert mock_seer_request.call_count == 2  # 1 for create, 1 for delete because create failed
 
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_create_alert_rule_anomaly_detection_no_feature(self, mock_seer_request):
         with pytest.raises(ResourceDoesNotExist):
             create_alert_rule(
@@ -1488,18 +1478,11 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
-    @patch(
-        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
-    )
-    def test_update_detection_type(self, mock_seer_delete_request, mock_seer_request):
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
+    def test_update_detection_type(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        mock_seer_delete_request.return_value = HTTPResponse(
-            orjson.dumps(seer_return_value), status=200
-        )
+
         comparison_delta = 60
         # test percent to dynamic
         rule = self.create_alert_rule(
@@ -1605,9 +1588,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_update_infer_detection_type(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -1665,9 +1646,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_update_dynamic_alerts(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -1693,7 +1672,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert mock_seer_request.call_count == 0
         mock_seer_request.reset_mock()
         # update name
-        update_alert_rule(dynamic_rule, name="everything is broken")
+        update_alert_rule(
+            dynamic_rule, detection_type=AlertRuleDetectionType.DYNAMIC, name="everything is broken"
+        )
         dynamic_rule.refresh_from_db()
         assert dynamic_rule.name == "everything is broken"
         assert mock_seer_request.call_count == 0
@@ -1720,9 +1701,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_update_dynamic_alert_static_to_dynamic(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -1739,9 +1718,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_update_dynamic_alert_percent_to_dynamic(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -1759,9 +1736,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_update_alert_rule_static_to_dynamic_enough_data(self, mock_seer_request):
         """
         Assert that the status is PENDING if enough data exists.
@@ -1788,9 +1763,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_update_dynamic_alert_not_enough_to_pending(self, mock_seer_request):
         """
         Update a dynamic rule's aggregate so the rule's status changes from not enough data to enough/pending
@@ -1826,9 +1799,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_update_dynamic_alert_pending_to_not_enough(self, mock_seer_request):
         """
         Update a dynamic rule's aggregate so the rule's status changes from enough/pending to not enough data
@@ -1867,9 +1838,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_update_alert_rule_static_to_dynamic_not_enough_data(self, mock_seer_request):
         """
         Assert that the status is NOT_ENOUGH_DATA if we don't have 7 days of data.
@@ -1896,9 +1865,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_update_alert_rule_dynamic_to_static_status(self, mock_seer_request):
         """
         Assert that the alert rule status changes to PENDING if we switch from a dynamic alert to another type of alert.
@@ -1933,9 +1900,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     @patch("sentry.seer.anomaly_detection.store_data.logger")
     def test_update_alert_rule_anomaly_detection_seer_timeout_max_retry(
         self, mock_logger, mock_seer_request
@@ -1971,7 +1936,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         mock_logger.reset_mock()
 
         mock_seer_request.side_effect = MaxRetryError(
-            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+            SEER_ANOMALY_DETECTION_CONNECTION_POOL, SEER_ANOMALY_DETECTION_STORE_DATA_URL
         )
         with pytest.raises(TimeoutError):
             # attempt to update query
@@ -1989,15 +1954,13 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     @patch("sentry.seer.anomaly_detection.store_data.logger")
     def test_update_alert_rule_static_to_anomaly_detection_seer_timeout(
         self, mock_logger, mock_seer_request
     ):
         mock_seer_request.side_effect = MaxRetryError(
-            seer_anomaly_detection_connection_pool, SEER_ANOMALY_DETECTION_STORE_DATA_URL
+            SEER_ANOMALY_DETECTION_CONNECTION_POOL, SEER_ANOMALY_DETECTION_STORE_DATA_URL
         )
         static_rule = self.create_alert_rule(time_window=30)
         with pytest.raises(TimeoutError):
@@ -2013,18 +1976,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
-    )
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
-    def test_update_alert_rule_dynamic_to_static_delete_call(
-        self, mock_store_request, mock_delete_request
-    ):
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
+    def test_update_alert_rule_dynamic_to_static_delete_call(self, mock_seer_request):
         seer_return_value = {"success": True}
-        mock_store_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        mock_delete_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         alert_rule = self.create_alert_rule(
             sensitivity=AlertRuleSensitivity.HIGH,
@@ -2035,11 +1990,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
         update_alert_rule(alert_rule, detection_type=AlertRuleDetectionType.STATIC)
 
-        assert mock_delete_request.call_count == 1
+        assert mock_seer_request.call_count == 2  # 1 for update, 1 for delete
 
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_update_alert_rule_anomaly_detection_no_feature(self, mock_seer_request):
         static_rule = self.create_alert_rule(time_window=30)
 
@@ -2057,9 +2010,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_update_invalid_time_window(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -2109,9 +2060,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
         return self.create_alert_rule()
 
     @cached_property
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def dynamic_alert_rule(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -2222,9 +2171,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_delete_anomaly_detection_rule(self, mock_seer_request):
         alert_rule = self.dynamic_alert_rule
         alert_rule_id = alert_rule.id
@@ -2247,9 +2194,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     @patch("sentry.seer.anomaly_detection.delete_rule.logger")
     @patch("sentry.incidents.models.alert_rule.logger")
     def test_delete_anomaly_detection_rule_timeout(
@@ -2281,9 +2226,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     @patch("sentry.seer.anomaly_detection.delete_rule.logger")
     @patch("sentry.incidents.models.alert_rule.logger")
     def test_delete_anomaly_detection_rule_error(
@@ -2315,9 +2258,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     @patch("sentry.seer.anomaly_detection.delete_rule.logger")
     @patch("sentry.incidents.models.alert_rule.logger")
     def test_delete_anomaly_detection_rule_attribute_error(
@@ -2349,9 +2290,7 @@ class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     @patch("sentry.seer.anomaly_detection.delete_rule.logger")
     @patch("sentry.incidents.models.alert_rule.logger")
     def test_delete_anomaly_detection_rule_failure(
@@ -2472,9 +2411,7 @@ class CreateAlertRuleTriggerTest(TestCase):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_invalid_threshold_dynamic_alert(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
@@ -2545,9 +2482,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
-    @patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
+    @patch("sentry.seer.anomaly_detection.utils.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen")
     def test_invalid_threshold_dynamic_alert(self, mock_seer_request):
         seer_return_value: StoreDataResponse = {"success": True}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
