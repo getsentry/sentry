@@ -200,6 +200,7 @@ SHARED_TAG_STRINGS = {
     "cardinality.window": PREFIX + 278,
     "cardinality.limit": PREFIX + 279,
     "cardinality.scope": PREFIX + 280,
+    "indexed": PREFIX + 281,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
