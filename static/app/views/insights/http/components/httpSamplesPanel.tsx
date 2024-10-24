@@ -5,7 +5,6 @@ import * as qs from 'query-string';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -13,7 +12,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {
@@ -65,7 +63,6 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
@@ -88,7 +85,6 @@ export function HTTPSamplesPanel() {
 
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const {data: supportedTags} = useSpanFieldSupportedTags();
 
   const project = projects.find(p => query.project === p.id);
 
@@ -481,26 +477,13 @@ export function HTTPSamplesPanel() {
           )}
 
           <ModuleLayout.Full>
-            {organization.features.includes('search-query-builder-performance') ? (
-              <SpanSearchQueryBuilder
-                projects={selection.projects}
-                initialQuery={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                searchSource={`${ModuleName.HTTP}-sample-panel`}
-              />
-            ) : (
-              <SearchBar
-                searchSource={`${ModuleName.HTTP}-sample-panel`}
-                query={query.spanSearchQuery}
-                onSearch={handleSearch}
-                placeholder={t('Search for span attributes')}
-                organization={organization}
-                supportedTags={supportedTags}
-                dataset={DiscoverDatasets.SPANS_INDEXED}
-                projectIds={selection.projects}
-              />
-            )}
+            <SpanSearchQueryBuilder
+              projects={selection.projects}
+              initialQuery={query.spanSearchQuery}
+              onSearch={handleSearch}
+              placeholder={t('Search for span attributes')}
+              searchSource={`${ModuleName.HTTP}-sample-panel`}
+            />
           </ModuleLayout.Full>
 
           {query.panel === 'duration' && (
