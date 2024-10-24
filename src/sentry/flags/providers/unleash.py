@@ -86,6 +86,7 @@ def handle_unleash_event(
     tags = {tag["type"]: tag["value"] for tag in unleash_tags}
     tags["project"] = event.get("project")
     tags["environment"] = event.get("environment")
+    tags["unleash_event_type"] = event_type
     # TODO: can add 'inferred_value' (bool) tag for some events, using the `data` field + others.
 
     return [
