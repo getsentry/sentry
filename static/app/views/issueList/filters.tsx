@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -19,18 +20,20 @@ interface Props {
 function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   const organization = useOrganization();
 
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
+
   return (
-    <SearchContainer>
+    <FiltersContainer hasNewLayout={hasNewLayout}>
       <StyledPageFilterBar>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter />
       </StyledPageFilterBar>
 
-      <IssueSearchWithSavedSearches {...{query, onSearch}} />
+      <Search {...{query, onSearch}} />
 
       {organization.features.includes('issue-stream-table-layout') && (
-        <IssueListSortOptions
+        <Sort
           query={query}
           sort={sort}
           onSelect={onSortChange}
@@ -38,33 +41,78 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
           showIcon={false}
         />
       )}
-    </SearchContainer>
+    </FiltersContainer>
   );
 }
 
-const SearchContainer = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: ${space(2)};
+const FiltersContainer = styled('div')<{hasNewLayout: boolean}>`
+  display: grid;
+  column-gap: ${space(1)};
   row-gap: ${space(1)};
-  width: 100%;
   margin-bottom: ${space(2)};
+  width: 100%;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    flex-direction: column;
-  }
+  ${p =>
+    p.hasNewLayout
+      ? css`
+          grid-template-columns: 100%;
+          grid-template-areas:
+            'page-filters'
+            'search'
+            'sort';
+
+          @media (min-width: ${p.theme.breakpoints.xsmall}) {
+            grid-template-columns: auto 1fr;
+            grid-template-areas:
+              'page-filters sort'
+              'search search';
+          }
+
+          @media (min-width: ${p.theme.breakpoints.large}) {
+            grid-template-columns: auto 1fr auto;
+            grid-template-areas: 'page-filters search sort';
+          }
+        `
+      : css`
+          grid-template-columns: 100%;
+          grid-template-areas:
+            'page-filters'
+            'search';
+
+          @media (min-width: ${p.theme.breakpoints.xsmall}) {
+            grid-template-columns: auto 1fr;
+            grid-template-areas:
+              'page-filters sort'
+              'search search';
+          }
+
+          @media (min-width: ${p.theme.breakpoints.large}) {
+            grid-template-columns: auto 1fr;
+            grid-template-areas: 'page-filters search';
+          }
+        `}
+`;
+
+const Search = styled(IssueSearchWithSavedSearches)`
+  grid-area: search;
 `;
 
 const StyledPageFilterBar = styled(PageFilterBar)`
+  grid-area: page-filters;
   display: flex;
   flex-basis: content;
   width: 100%;
   max-width: 43rem;
-  align-self: flex-start;
+  justify-self: start;
 
   > div > button {
     width: 100%;
   }
+`;
+
+const Sort = styled(IssueListSortOptions)`
+  grid-area: sort;
+  justify-self: end;
 `;
 
 export default IssueListFilters;
