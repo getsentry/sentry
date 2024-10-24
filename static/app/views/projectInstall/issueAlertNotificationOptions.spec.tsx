@@ -14,6 +14,7 @@ describe('MessagingIntegrationAlertRule', function () {
     features: ['messaging-integration-onboarding-project-creation'],
   });
   const integrations: OrganizationIntegration[] = [];
+  const mockRefetchIntegrations = jest.fn();
   const mockSetAction = jest.fn();
 
   const notificationProps: IssueAlertNotificationProps = {
@@ -24,6 +25,7 @@ describe('MessagingIntegrationAlertRule', function () {
     providersToIntegrations: {},
     querySuccess: true,
     shouldRenderSetupButton: false,
+    refetchIntegrations: mockRefetchIntegrations,
     setActions: mockSetAction,
     setChannel: jest.fn(),
     setIntegration: jest.fn(),
@@ -62,6 +64,11 @@ describe('MessagingIntegrationAlertRule', function () {
     mockResponses.forEach(mock => {
       expect(mock).toHaveBeenCalled();
     });
+    const refreshButton = await screen.findByRole('button', {
+      name: 'Refresh integrations',
+    });
+    await userEvent.click(refreshButton);
+    expect(mockRefetchIntegrations).toHaveBeenCalled();
   });
 
   it('renders alert configuration if integration is installed', async function () {
