@@ -116,6 +116,7 @@ def test_dispatch_task_with_occurrence(mock_post_process_group: Mock) -> None:
     assert mock_post_process_group.call_args.kwargs == {
         "kwargs": {
             "cache_key": "e:066f15fe1cd2406aaa7c6a07471d7aef:2",
+            "eventstream_type": None,
             "group_id": 44,
             "group_states": None,
             "is_new": False,

@@ -1,5 +1,6 @@
 from django.core import mail
 
+from sentry.eventstream.types import EventStreamEventType
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail.actions import NotifyEmailAction
 from sentry.mail.forms.notify_email import NotifyEmailForm
@@ -163,6 +164,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert len(mail.outbox) == 1
@@ -201,6 +203,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert len(mail.outbox) == 1
@@ -238,6 +241,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         # See that the ActiveMembers default results in notifications still being sent
@@ -260,8 +264,9 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
             project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
         )
 
-        with self.tasks(), self.feature(
-            PerformanceNPlusOneGroupType.build_post_process_group_feature_name()
+        with (
+            self.tasks(),
+            self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()),
         ):
             post_process_group(
                 is_new=True,
@@ -271,6 +276,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 occurrence_id=event.occurrence_id,
                 project_id=event.group.project_id,
                 group_id=event.group_id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert len(mail.outbox) == 1
@@ -322,6 +328,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert len(mail.outbox) == 3
