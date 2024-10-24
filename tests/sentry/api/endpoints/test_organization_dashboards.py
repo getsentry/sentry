@@ -12,7 +12,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -506,29 +506,29 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data["filters"]["releaseId"] == ["1"]
 
     def test_post_with_start_and_end_filter(self):
-        start = iso_format(datetime.now() - timedelta(seconds=10))
-        end = iso_format(datetime.now())
+        start = (datetime.now() - timedelta(seconds=10)).isoformat()
+        end = datetime.now().isoformat()
         response = self.do_request(
             "post",
             self.url,
             data={"title": "Dashboard from Post", "start": start, "end": end, "utc": True},
         )
         assert response.status_code == 201
-        assert response.data["start"].strftime("%Y-%m-%dT%H:%M:%S") == start
-        assert response.data["end"].strftime("%Y-%m-%dT%H:%M:%S") == end
+        assert response.data["start"].replace(tzinfo=None).isoformat() == start
+        assert response.data["end"].replace(tzinfo=None).isoformat() == end
         assert response.data["utc"]
 
     def test_post_with_start_and_end_filter_and_utc_false(self):
-        start = iso_format(datetime.now() - timedelta(seconds=10))
-        end = iso_format(datetime.now())
+        start = (datetime.now() - timedelta(seconds=10)).isoformat()
+        end = datetime.now().isoformat()
         response = self.do_request(
             "post",
             self.url,
             data={"title": "Dashboard from Post", "start": start, "end": end, "utc": False},
         )
         assert response.status_code == 201
-        assert response.data["start"].strftime("%Y-%m-%dT%H:%M:%S") == start
-        assert response.data["end"].strftime("%Y-%m-%dT%H:%M:%S") == end
+        assert response.data["start"].replace(tzinfo=None).isoformat() == start
+        assert response.data["end"].replace(tzinfo=None).isoformat() == end
         assert not response.data["utc"]
 
     def test_post_dashboard_with_invalid_project_filter(self):

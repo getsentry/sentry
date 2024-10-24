@@ -18,7 +18,7 @@ from sentry.issues.issue_velocity import (
 )
 from sentry.tasks.post_process import locks
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
 
 WEEK_IN_HOURS = 7 * 24
 
@@ -39,7 +39,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             project_id=self.project.id,
             data={
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(days=8)),
+                "timestamp": (self.now - timedelta(days=8)).isoformat(),
                 "user": {"id": self.user.id, "email": self.user.email},
             },
         )
@@ -48,7 +48,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
                 project_id=self.project.id,
                 data={
                     "fingerprint": ["group-1"],
-                    "timestamp": iso_format(self.now - timedelta(days=1)),
+                    "timestamp": (self.now - timedelta(days=1)).isoformat(),
                     "user": {"id": self.user.id, "email": self.user.email},
                 },
             )
@@ -67,7 +67,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
                 project_id=self.project.id,
                 data={
                     "fingerprint": [f"group-{i}"],
-                    "timestamp": iso_format(self.now - timedelta(days=8)),
+                    "timestamp": (self.now - timedelta(days=8)).isoformat(),
                     "user": {"id": self.user.id, "email": self.user.email},
                 },
             )
@@ -77,7 +77,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
                     project_id=self.project.id,
                     data={
                         "fingerprint": [f"group-{i}"],
-                        "timestamp": iso_format(self.now - timedelta(days=1)),
+                        "timestamp": (self.now - timedelta(days=1)).isoformat(),
                         "user": {"id": self.user.id, "email": self.user.email},
                     },
                 )
@@ -101,7 +101,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
                 project_id=self.project.id,
                 data={
                     "fingerprint": ["group-1"],
-                    "timestamp": iso_format(self.now - timedelta(days=1)),
+                    "timestamp": (self.now - timedelta(days=1)).isoformat(),
                     "user": {"id": self.user.id, "email": self.user.email},
                 },
             )
@@ -116,7 +116,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             project_id=self.project.id,
             data={
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(days=8)),
+                "timestamp": (self.now - timedelta(days=8)).isoformat(),
                 "user": {"id": self.user.id, "email": self.user.email},
             },
         )
@@ -125,7 +125,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             project_id=self.project.id,
             data={
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(days=1)),
+                "timestamp": (self.now - timedelta(days=1)).isoformat(),
                 "user": {"id": self.user.id, "email": self.user.email},
             },
         )
@@ -142,7 +142,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             project_id=self.project.id,
             data={
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(minutes=1)),
+                "timestamp": (self.now - timedelta(minutes=1)).isoformat(),
                 "user": {"id": self.user.id, "email": self.user.email},
             },
         )
@@ -151,7 +151,7 @@ class IssueVelocityTests(TestCase, SnubaTestCase):
             project_id=self.project.id,
             data={
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(minutes=1)),
+                "timestamp": (self.now - timedelta(minutes=1)).isoformat(),
                 "user": {"id": self.user.id, "email": self.user.email},
             },
         )

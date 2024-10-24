@@ -101,7 +101,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.types.actor import Actor
@@ -1809,9 +1809,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         mock_seer_request.reset_mock()
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
+        self.create_error_event(timestamp=(two_weeks_ago + timedelta(minutes=1)).isoformat())
         self.create_error_event(
-            timestamp=iso_format(two_weeks_ago + timedelta(days=10))
+            timestamp=(two_weeks_ago + timedelta(days=10)).isoformat()
         )  # 4 days ago
 
         # update aggregate
@@ -1837,9 +1837,9 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        self.create_error_event(timestamp=iso_format(two_weeks_ago + timedelta(minutes=1)))
+        self.create_error_event(timestamp=(two_weeks_ago + timedelta(minutes=1)).isoformat())
         self.create_error_event(
-            timestamp=iso_format(two_weeks_ago + timedelta(days=10))
+            timestamp=(two_weeks_ago + timedelta(days=10)).isoformat()
         )  # 4 days ago
 
         dynamic_rule = self.create_alert_rule(

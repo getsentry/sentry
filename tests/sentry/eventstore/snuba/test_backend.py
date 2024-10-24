@@ -82,16 +82,6 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             event_data=event_data_3, project_id=self.project2.id
         )
 
-        """
-        event_data_4 = load_data("transaction")
-        event_data_4["timestamp"] = iso_format(before_now(seconds=30))
-        event_data_4["start_timestamp"] = iso_format(before_now(seconds=31))
-
-        event_data_4["event_id"] = "g" * 32
-
-        self.transaction_event_4 = self.store_event(data=event_data_4, project_id=self.project2.id)
-        """
-
         self.eventstore = SnubaEventStorage()
 
     def test_get_events(self):
