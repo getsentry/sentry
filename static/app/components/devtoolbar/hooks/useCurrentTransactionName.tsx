@@ -76,18 +76,13 @@ export function toSearchTerm(transaction) {
   // finds dynamic parts of transaction name to change into search term
   let modifiedTransaction = transaction;
 
-  // /:param used by React, Vue, Angular, Express, Ruby on Rails, Phoenix, Solid
-  const colonRegex = /([\/])(([:]([^\/]*)))/g;
-  modifiedTransaction = modifiedTransaction.replaceAll(colonRegex, '/*');
-  // /[param] used by Next.js, Nuxt.js, Svelte
-  const bracketRegex = /([\/])([\[]([^\/]*)[\]])/g;
-  modifiedTransaction = modifiedTransaction.replaceAll(bracketRegex, '/*');
-  //  /{param} used by ASP.NET Core, Laravel, Symfony
-  const curlyRegex = /([\/])([{]([^\/]*)[}])/g;
-  modifiedTransaction = modifiedTransaction.replaceAll(curlyRegex, '/*');
-  // /<param> used by Flask, Django
-  const arrowRegex = /([\/])([<]([^\/]*)[>])/g;
-  modifiedTransaction = modifiedTransaction.replaceAll(arrowRegex, '/*');
+  // ([:]([^\/]*)) matches :param used by React, Vue, Angular, Express, Ruby on Rails, Phoenix, Solid
+  // ([\[]([^\/]*)[\]]) matches [param] used by Next.js, Nuxt.js, Svelte
+  // ([{]([^\/]*)[}]) matches {param} used by ASP.NET Core, Laravel, Symfony
+  // ([<]([^\/]*)[>]) matches <param> used by Flask, Django
+  const parameterizedRegex =
+    / ([\/]) (([:]([^\/]*)) | ([\[]([^\/]*)[\]]) | ([{]([^\/]*)[}]) | ([<]([^\/]*)[>])) /g;
+  modifiedTransaction = modifiedTransaction.replaceAll(parameterizedRegex, '/*');
 
   // transaction name could contain the resolved URL instead of the route pattern (ie actual id instead of :id)
   // match any param that starts with a number eg. /12353
