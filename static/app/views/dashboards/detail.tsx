@@ -827,9 +827,6 @@ class DashboardDetail extends Component<Props, State> {
                           handleUpdateWidgetList={this.handleUpdateWidgetList}
                           handleAddCustomWidget={this.handleAddCustomWidget}
                           handleAddMetricWidget={this.handleAddMetricWidget}
-                          handleSetSplitTransactionsDataset={
-                            this.handleSetSplitTransactionsDataset
-                          }
                           isPreview={this.isPreview}
                           router={router}
                           location={location}
@@ -1055,9 +1052,6 @@ class DashboardDetail extends Component<Props, State> {
                                   handleUpdateWidgetList={this.handleUpdateWidgetList}
                                   handleAddCustomWidget={this.handleAddCustomWidget}
                                   handleAddMetricWidget={this.handleAddMetricWidget}
-                                  handleSetSplitTransactionsDataset={
-                                    this.handleSetSplitTransactionsDataset
-                                  }
                                   router={router}
                                   location={location}
                                   newWidget={newWidget}
