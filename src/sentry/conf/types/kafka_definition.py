@@ -57,6 +57,10 @@ class Topic(Enum):
     SNUBA_SPANS = "snuba-spans"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
+    HACKWEEK = "hackweek"
+    HACKWEEK_REPLY = "hackweek-reply"
+    HACKWEEK_DLQ = "hackweek-dlq"
+    HACKWEEK_GLOB = "^(hackweek-reply|hackweek)$"
 
 
 class ConsumerDefinition(TypedDict, total=False):
