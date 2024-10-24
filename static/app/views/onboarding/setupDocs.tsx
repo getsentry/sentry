@@ -1,6 +1,5 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
@@ -94,30 +93,6 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
 }
 
 export default SetupDocs;
-
-const AnimatedContentWrapper = styled(motion.div)`
-  overflow: hidden;
-`;
-
-AnimatedContentWrapper.defaultProps = {
-  initial: {
-    height: 0,
-  },
-  animate: {
-    height: 'auto',
-  },
-  exit: {
-    height: 0,
-  },
-};
-
-const DocsWrapper = styled(motion.div)``;
-
-DocsWrapper.defaultProps = {
-  initial: {opacity: 0, y: 40},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0},
-};
 
 const Wrapper = styled('div')`
   display: flex;
