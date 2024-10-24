@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:41.854977Z'
+created: '2024-10-24T14:22:38.169558+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,7 +7,7 @@ app:
   hash: null
   component:
     app (stacktrace of system takes precedence)
-      stacktrace
+      stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
           filename*
             "foo.py"
