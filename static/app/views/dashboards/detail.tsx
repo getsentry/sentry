@@ -757,7 +757,7 @@ class DashboardDetail extends Component<Props, State> {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
-
+    // console.log(dashboard);
     return (
       <PageFiltersContainer
         disablePersistence
@@ -785,6 +785,7 @@ class DashboardDetail extends Component<Props, State> {
                   <Controls
                     organization={organization}
                     dashboards={dashboards}
+                    dashboardPermissions={dashboard.permissions}
                     onEdit={this.onEdit}
                     onCancel={this.onCancel}
                     onCommit={this.onCommit}
@@ -927,6 +928,7 @@ class DashboardDetail extends Component<Props, State> {
                       <Controls
                         organization={organization}
                         dashboards={dashboards}
+                        dashboardPermissions={dashboard.permissions}
                         hasUnsavedFilters={hasUnsavedFilters}
                         onEdit={this.onEdit}
                         onCancel={this.onCancel}
