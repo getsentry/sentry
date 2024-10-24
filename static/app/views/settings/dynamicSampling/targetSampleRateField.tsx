@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -28,10 +29,16 @@ export function TargetSampleRateField({}) {
           disabled={hasAccess}
           title={t('You do not have permission to change the sample rate.')}
         >
-          <InputGroup>
+          <InputGroup
+            css={css`
+              width: 150px;
+            `}
+          >
             <InputGroup.Input
               width={100}
               type="number"
+              min={0}
+              max={100}
               disabled={!hasAccess}
               value={field.value}
               onChange={event => field.onChange(event.target.value)}
