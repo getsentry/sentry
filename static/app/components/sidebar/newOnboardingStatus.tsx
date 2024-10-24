@@ -4,10 +4,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {
-  NewOnboardingSidebar,
-  useOnboardingTasks,
-} from 'sentry/components/onboardingWizard/newSidebar';
+import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
+import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
+import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -42,8 +41,14 @@ export function NewOnboardingStatus({
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
   const walkthrough = isDemoWalkthrough();
 
+  const supportedTasks = getMergedTasks({
+    organization,
+    projects,
+    onboardingContext,
+  }).filter(task => task.display);
+
   const {allTasks, gettingStartedTasks, beyondBasicsTasks, completeTasks} =
-    useOnboardingTasks(organization, projects, onboardingContext);
+    useOnboardingTasks({supportedTasks});
 
   const handleToggle = useCallback(() => {
     if (!walkthrough && !isActive === true) {
