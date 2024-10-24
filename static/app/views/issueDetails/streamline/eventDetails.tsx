@@ -19,8 +19,9 @@ import {
   useEventDetailsReducer,
 } from 'sentry/views/issueDetails/streamline/context';
 import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
-import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
+import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {IssueContent} from 'sentry/views/issueDetails/streamline/issueContent';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -51,12 +52,15 @@ export function EventDetails({
           mini
           message={t('There was an error loading the event content')}
         >
-          <GroupContent>
-            <StickyEventNav event={event} group={group} searchQuery={searchQuery} />
-            <ContentPadding>
-              <EventDetailsContent group={group} event={event} project={project} />
-            </ContentPadding>
-          </GroupContent>
+          <div>
+            <IssueEventNavigation event={event} group={group} query={searchQuery} />
+            <GroupContent>
+              <StickyEventNav event={event} group={group} />
+              <ContentPadding>
+                <EventDetailsContent group={group} event={event} project={project} />
+              </ContentPadding>
+            </GroupContent>
+          </div>
         </PageErrorBoundary>
       )}
       <PageErrorBoundary mini message={t('There was an error loading the issue content')}>
@@ -70,15 +74,7 @@ export function EventDetails({
   );
 }
 
-function StickyEventNav({
-  event,
-  group,
-  searchQuery,
-}: {
-  event: Event;
-  group: Group;
-  searchQuery: string;
-}) {
+function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const theme = useTheme();
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
   const isStuck = useIsStuck(nav);
@@ -103,13 +99,12 @@ function StickyEventNav({
       event={event}
       group={group}
       ref={setNav}
-      query={searchQuery}
       data-stuck={isStuck}
     />
   );
 }
 
-const FloatingEventNavigation = styled(EventNavigation)`
+const FloatingEventNavigation = styled(EventTitle)`
   position: sticky;
   top: 0;
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
