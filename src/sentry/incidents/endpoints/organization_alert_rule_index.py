@@ -6,7 +6,7 @@ from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Sub
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -625,4 +625,15 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
         """
+        # projects where the user has project membership
+        projects = self.get_projects(request, organization)
+        # if sentry:alerts_member_write is false, then team admins and regular org members don't have alerts:write on an org level
+        if not request.access.has_scope("alerts:write"):
+            # team admins will have alerts:write scoped to their projects, members will not
+            team_admin_has_access = all(
+                [request.access.has_project_scope(project, "alerts:write") for project in projects]
+            )
+            # all() returns True for empty list, so include a check for it
+            if not team_admin_has_access or not projects:
+                raise PermissionDenied
         return self.create_metric_alert(request, organization)
