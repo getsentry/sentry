@@ -1,9 +1,10 @@
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 from django.urls import reverse
 
 from sentry.flags.endpoints.hooks import is_valid_token
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
+from sentry.hybridcloud.models import OrgAuthTokenReplica
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -197,11 +198,46 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             response = self.client.post(url, {})
             assert response.status_code == 404
 
-    def test_post_invalid_token(self):
+    def _test_post_invalid_token(self):
+        # Does not exist
         url = reverse(self.endpoint, args=(self.organization.slug, "launchdarkly", "wrong"))
         with self.feature(self.features):
             response = self.client.post(url, {})
             assert response.status_code == 403
+
+        # Exists in a different org
+        other_org = self.create_organization()
+        token = "sntrys+_abc123_xyz"
+        with assume_test_silo_mode(SiloMode.MONOLITH):
+            token_obj = OrgAuthToken.objects.create(
+                name="Test token",
+                token_hashed=hash_token(unquote(token)),
+                organization_id=other_org.id,
+            )
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            OrgAuthTokenReplica.objects.create(
+                name="Test token",
+                token_hashed=hash_token(unquote(token)),
+                organization_id=other_org.id,
+                orgauthtoken_id=token_obj.id,
+            )
+
+        url = reverse(self.endpoint, args=(self.organization.slug, "launchdarkly", token))
+        with self.feature(self.features):
+            response = self.client.post(url, {})
+            assert response.status_code == 403
+
+    @assume_test_silo_mode(SiloMode.REGION)
+    def test_post_invalid_token_region_silo(self):
+        self._test_post_invalid_token()
+
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def test_post_invalid_token_control_silo(self):
+        self._test_post_invalid_token()
+
+    @assume_test_silo_mode(SiloMode.MONOLITH)
+    def test_post_invalid_token_monolith(self):
+        self._test_post_invalid_token()
 
     def test_post_disabled(self):
         response = self.client.post(self.url, data={})

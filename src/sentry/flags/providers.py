@@ -52,6 +52,8 @@ class InvalidProvider(Exception):
 
 
 class LaunchDarklyItemSerializer(serializers.Serializer):
+    """Docs reference: https://apidocs.launchdarkly.com/tag/Audit-log/#operation/getAuditLogEntry"""
+
     accesses = serializers.ListField(required=True)
     date = serializers.IntegerField(required=True)
     member = serializers.DictField(required=True)
@@ -68,6 +70,27 @@ We started out with a few actions that we think would be useful
 to accept. All other actions will not be logged
 to the audit log. This set of actions is subject to change.
 """
+
+# A subset chosen from https://docs.launchdarkly.com/home/account/role-actions#feature-flag-actions
+SUPPORTED_LAUNCHDARKLY_ACTIONS = (
+    "createFlag",
+    "cloneFlag",
+    "deleteFlag",
+    "updateFallthrough",
+    "updateOffVariation",
+    "updateOn",
+    "updateRules",
+    "updateScheduledChanges",
+    "updateDeprecated",
+    "updateFlagDefaultVariations",
+    "updateFlagVariations",
+    "updateGlobalArchived",
+    "updateRulesWithMeasuredRollout",
+    "updateFallthroughWithMeasuredRollout",
+    "updatePrerequisites",
+    "stopMeasuredRolloutOnFlagFallthrough",
+    "stopMeasuredRolloutOnFlagRule",
+)
 
 
 def handle_launchdarkly_actions(action: str) -> int:
@@ -99,26 +122,7 @@ def handle_launchdarkly_event(
             "tags": {"description": result["description"]},
         }
         for access in result["accesses"]
-        if access["action"]
-        in (
-            "createFlag",
-            "cloneFlag",
-            "deleteFlag",
-            "updateFallthrough",
-            "updateOffVariation",
-            "updateOn",
-            "updateRules",
-            "updateScheduledChanges",
-            "updateDeprecated",
-            "updateFlagDefaultVariations",
-            "updateFlagVariations",
-            "updateGlobalArchived",
-            "updateRulesWithMeasuredRollout",
-            "updateFallthroughWithMeasuredRollout",
-            "updatePrerequisites",
-            "stopMeasuredRolloutOnFlagFallthrough",
-            "stopMeasuredRolloutOnFlagRule",
-        )
+        if access["action"] in SUPPORTED_LAUNCHDARKLY_ACTIONS
     ]
 
 
