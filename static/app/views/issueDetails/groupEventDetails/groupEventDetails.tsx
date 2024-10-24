@@ -3,14 +3,18 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import Feature from 'sentry/components/acl/feature';
 import ArchivedBox from 'sentry/components/archivedBox';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
+import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
+import {t} from 'sentry/locale';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -208,14 +212,27 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                   <EventDetailsHeader event={event} group={group} />
                 ) : null}
                 {hasStreamlinedUI ? (
-                  <div>
-                    <IssueEventNavigation
-                      event={event}
-                      group={group}
-                      query={searchQuery}
-                    />
-                    <GroupContent>{renderContent()}</GroupContent>
-                  </div>
+                  <GroupContent>
+                    <PageErrorBoundary
+                      mini
+                      message={t('There was an error loading the issue summary')}
+                    >
+                      <Feature features={['organizations:ai-summary']}>
+                        <GroupSummary
+                          groupId={group.id}
+                          groupCategory={group.issueCategory}
+                        />
+                      </Feature>
+                    </PageErrorBoundary>
+                    <div>
+                      <IssueEventNavigation
+                        event={event}
+                        group={group}
+                        query={searchQuery}
+                      />
+                      {renderContent()}
+                    </div>
+                  </GroupContent>
                 ) : (
                   <GroupContent>{renderContent()}</GroupContent>
                 )}
@@ -314,6 +331,11 @@ const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     padding-left: ${p => (p.hasStreamlinedUi ? space(0.5) : 0)};
   }
+`;
+
+const PageErrorBoundary = styled(ErrorBoundary)`
+  margin: 0;
+  border: 1px solid ${p => p.theme.translucentBorder};
 `;
 
 export default GroupEventDetails;

@@ -2,9 +2,7 @@ import {useLayoutEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -36,11 +34,6 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <PageErrorBoundary mini message={t('There was an error loading the issue summary')}>
-        <Feature features={['organizations:ai-summary']}>
-          <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-        </Feature>
-      </PageErrorBoundary>
       {/* TODO(issues): We should use the router for this */}
       {currentTab === Tab.EVENTS && (
         <PageErrorBoundary mini message={t('There was an error loading the event list')}>
