@@ -23,7 +23,7 @@ EVENT_TO_ACTION_MAP: dict[str, str] = {
 }
 
 
-class UnleashedItemSerializer(serializers.Serializer):
+class UnleashEventSerializer(serializers.Serializer):
     """Schema reference: https://docs.getunleash.io/reference/events"""
 
     featureName = serializers.CharField(required=True)  # Included by all event types we care about.
@@ -49,14 +49,14 @@ class UnleashedItemSerializer(serializers.Serializer):
     summary = serializers.CharField(required=False)
 
 
-def handle_unleashed_event(
+def handle_unleash_event(
     request_data: dict[str, Any], organization_id: int
 ) -> list[FlagAuditLogRow]:
     event_type = request_data.get("type", "")
     if event_type not in EVENT_TO_ACTION_MAP:
         return []
 
-    serializer = UnleashedItemSerializer(data=request_data)
+    serializer = UnleashEventSerializer(data=request_data)
     if not serializer.is_valid():
         raise DeserializationError(serializer.errors)
     event = serializer.validated_data
