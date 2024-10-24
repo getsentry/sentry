@@ -42,19 +42,28 @@ class ChecksumVariant(BaseVariant):
     """A checksum variant returns a single hardcoded hash."""
 
     type = "checksum"
+    description = "legacy checksum"
 
-    def __init__(self, hash, hashed=False):
-        self.hash = hash
-        self.hashed = hashed
-
-    @property
-    def description(self):
-        if self.hashed:
-            return "hashed legacy checksum"
-        return "legacy checksum"
+    def __init__(self, checksum: str):
+        self.checksum = checksum
 
     def get_hash(self) -> str | None:
-        return self.hash
+        return self.checksum
+
+    def _get_metadata_as_dict(self):
+        return {"checksum": self.checksum}
+
+
+class HashedChecksumVariant(ChecksumVariant):
+    type = "hashed-checksum"
+    description = "hashed legacy checksum"
+
+    def __init__(self, checksum: str, raw_checksum: str):
+        self.checksum = checksum
+        self.raw_checksum = raw_checksum
+
+    def _get_metadata_as_dict(self):
+        return {"checksum": self.checksum, "raw_checksum": self.raw_checksum}
 
 
 class FallbackVariant(BaseVariant):

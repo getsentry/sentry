@@ -26,6 +26,7 @@ from sentry.grouping.variants import (
     ComponentVariant,
     CustomFingerprintVariant,
     FallbackVariant,
+    HashedChecksumVariant,
     SaltedComponentVariant,
 )
 from sentry.models.grouphash import GroupHash
@@ -320,7 +321,7 @@ def get_grouping_variants_for_event(
             return {"checksum": ChecksumVariant(checksum)}
 
         rv: dict[str, BaseVariant] = {
-            "hashed-checksum": ChecksumVariant(hash_from_values(checksum), hashed=True),
+            "hashed-checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
         }
 
         # The legacy code path also supported arbitrary values here but
