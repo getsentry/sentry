@@ -132,7 +132,7 @@ def process_profile_task(
         set_measurement("profile.stacks", len(profile["profile"]["stacks"]))
         set_measurement("profile.frames", len(profile["profile"]["frames"]))
     elif "profiler_id" in profile and profile["platform"] == "android":
-        sentry_sdk.set_tag("format", "chunk")
+        sentry_sdk.set_tag("format", "android_chunk")
     else:
         sentry_sdk.set_tag("format", "legacy")
 
