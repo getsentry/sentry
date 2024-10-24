@@ -7,6 +7,7 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message
 
+from sentry.ingest.types import ConsumerType
 from sentry.models.project import Project
 from sentry.utils import metrics
 
@@ -90,7 +91,12 @@ def process_attachments_and_events(
             if not reprocess_only_stuck_events:
                 process_individual_attachment(message, project)
         elif message_type == "event":
-            process_event(message, project, reprocess_only_stuck_events)
+            process_event(
+                ConsumerType.Events,
+                message,
+                project,
+                reprocess_only_stuck_events,
+            )
         elif message_type == "user_report":
             process_userreport(message, project)
         else:
