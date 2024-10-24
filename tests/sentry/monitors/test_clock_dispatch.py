@@ -8,6 +8,7 @@ from arroyo.backends.kafka import KafkaPayload
 from django.conf import settings
 from django.test.utils import override_settings
 from django.utils import timezone
+from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
 from sentry.monitors.clock_dispatch import (
     MONITOR_VOLUME_DECISION_STEP,
@@ -18,6 +19,7 @@ from sentry.monitors.clock_dispatch import (
     try_monitor_clock_tick,
     update_check_in_volume,
 )
+from sentry.monitors.types import TickVolumeAnomolyResult
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json, redis
 
@@ -156,9 +158,13 @@ def test_dispatch_to_kafka(clock_tick_producer_mock):
     now = timezone.now().replace(second=0, microsecond=0)
     _dispatch_tick(now)
 
+    message: ClockTick = {
+        "ts": now.timestamp(),
+        "volume_anomaly_result": TickVolumeAnomolyResult.NORMAL.value,
+    }
     clock_tick_producer_mock.produce.assert_called_with(
         Topic("clock-tick-test-topic"),
-        KafkaPayload(None, json.dumps({"ts": now.timestamp()}).encode("utf-8"), []),
+        KafkaPayload(None, json.dumps(message).encode("utf-8"), []),
     )
 
 
