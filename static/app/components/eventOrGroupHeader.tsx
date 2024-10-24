@@ -84,20 +84,31 @@ function EventOrGroupHeader({
       );
     }
 
+    const to = createIssueLink({
+      organization,
+      data,
+      eventId,
+      referrer: source,
+      streamIndex: index,
+      location,
+      query,
+    });
+
+    if (hasNewLayout) {
+      return (
+        <NewTitleWithLink
+          {...commonEleProps}
+          to={to}
+          onClick={onClick}
+          data-issue-title-link
+        >
+          {getTitleChildren()}
+        </NewTitleWithLink>
+      );
+    }
+
     return (
-      <TitleWithLink
-        {...commonEleProps}
-        to={createIssueLink({
-          organization,
-          data,
-          eventId,
-          referrer: source,
-          streamIndex: index,
-          location,
-          query,
-        })}
-        onClick={onClick}
-      >
+      <TitleWithLink {...commonEleProps} to={to} onClick={onClick}>
         {getTitleChildren()}
       </TitleWithLink>
     );
@@ -107,7 +118,7 @@ function EventOrGroupHeader({
 
   return (
     <div data-test-id="event-issue-header">
-      <Title>{getTitle()}</Title>
+      <Title extraMargin={hasNewLayout}>{getTitle()}</Title>
       {eventLocation && !hasNewLayout ? <Location>{eventLocation}</Location> : null}
       {!hasNewLayout ? (
         <StyledEventMessage
@@ -129,8 +140,8 @@ const truncateStyles = css`
   white-space: nowrap;
 `;
 
-const Title = styled('div')`
-  margin-bottom: ${space(0.25)};
+const Title = styled('div')<{extraMargin: boolean}>`
+  margin-bottom: ${p => (p.extraMargin ? space(0.75) : space(0.25))};
   font-size: ${p => p.theme.fontSizeLarge};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
@@ -178,8 +189,18 @@ const TitleWithLink = styled(GlobalSelectionLink)`
   display: inline-flex;
   align-items: center;
 `;
+
+const NewTitleWithLink = styled(GlobalSelectionLink)`
+  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.textColor};
+
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
 const TitleWithoutLink = styled('span')`
-  display: inline-flex;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export default withOrganization(EventOrGroupHeader);

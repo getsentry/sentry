@@ -1,3 +1,5 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -21,6 +23,10 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
+
+import {DashboardsMEPProvider} from './dashboardsMEPContext';
+
 jest.mock('sentry/components/charts/simpleTableChart', () => jest.fn(() => <div />));
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 jest.mock('sentry/components/lazyRender', () => ({
@@ -37,7 +43,9 @@ describe('Dashboards > WidgetCard', function () {
 
   const renderWithProviders = (component: React.ReactNode) =>
     render(
-      <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>,
+      <DashboardsMEPProvider>
+        <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+      </DashboardsMEPProvider>,
       {organization, router}
     );
 
@@ -80,6 +88,13 @@ describe('Dashboards > WidgetCard', function () {
   const api = new MockApiClient();
   let eventsMock: jest.Mock;
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([multipleQueryWidget]),
+    organization,
+    router,
+  });
+
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -112,6 +127,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -137,6 +153,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -160,6 +177,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -194,6 +212,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -228,6 +247,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -263,6 +283,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -291,6 +312,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -316,6 +338,7 @@ describe('Dashboards > WidgetCard', function () {
         onDuplicate={mock}
         renderErrorMessage={() => undefined}
         showContextMenu
+        widgetLegendState={widgetLegendState}
         widgetLimitReached
       />
     );
@@ -343,6 +366,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -369,6 +393,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -403,6 +428,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -436,6 +462,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -482,6 +509,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -516,6 +544,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -544,6 +573,7 @@ describe('Dashboards > WidgetCard', function () {
         widgetLimitReached={false}
         index="10"
         isPreview
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -583,6 +613,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         showStoredAlert
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -653,6 +684,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
     await waitFor(function () {
@@ -751,6 +783,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
     await waitFor(function () {
@@ -787,6 +820,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         isPreview
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -810,6 +844,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         isPreview
+        widgetLegendState={widgetLegendState}
       />
     );
 
