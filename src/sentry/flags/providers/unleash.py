@@ -2,6 +2,7 @@ import datetime
 from typing import Any
 
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from sentry.flags.exceptions import DeserializationError
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP
@@ -33,21 +34,37 @@ class UnleashEventSerializer(serializers.Serializer):
     createdAt = serializers.DateTimeField(
         required=True,
         input_formats=["iso-8601"],
-        format=None,  # outputs datetime object
+        format=None,  # Outputs datetime object.
         default_timezone=datetime.UTC,
     )
-    createdBy = serializers.EmailField(required=True)
+    createdBy = serializers.CharField(
+        required=True
+    )  # Contrary to docs, this is either an email or username.
 
-    createdByUserId = serializers.IntegerField(required=False)
-    data = serializers.DictField(required=False)
-    preData = serializers.DictField(required=False)
+    createdByUserId = serializers.IntegerField(required=False, allow_null=True)
+    data = serializers.DictField(required=False, allow_null=True)
+    preData = serializers.DictField(required=False, allow_null=True)
     tags = serializers.ListField(
-        child=serializers.DictField(child=serializers.CharField()), required=False
+        child=serializers.DictField(child=serializers.CharField()), required=False, allow_null=True
     )  # Tag format is {type: str, value: str}. https://docs.getunleash.io/reference/api/unleash/get-tags
-    project = serializers.CharField(required=False)
-    environment = serializers.CharField(required=False)
-    label = serializers.CharField(required=False)
-    summary = serializers.CharField(required=False)
+    project = serializers.CharField(required=False, allow_null=True)
+    environment = serializers.CharField(required=False, allow_null=True)
+    label = serializers.CharField(required=False, allow_null=True)
+    summary = serializers.CharField(required=False, allow_null=True)
+
+
+def _get_user(validated_event: dict[str, Any]) -> tuple[str, int]:
+    """Prefer email > ID > username. Subject to change."""
+    created_by = validated_event["createdBy"]
+    try:
+        serializers.EmailField().run_validation(created_by)
+        return created_by, CREATED_BY_TYPE_MAP["email"]
+    except ValidationError:
+        pass
+
+    if "createdByUserId" in validated_event:
+        return validated_event["createdByUserId"], CREATED_BY_TYPE_MAP["id"]
+    return created_by, CREATED_BY_TYPE_MAP["name"]
 
 
 def handle_unleash_event(
@@ -63,19 +80,22 @@ def handle_unleash_event(
     event = serializer.validated_data
 
     action: int = ACTION_MAP[EVENT_TO_ACTION_MAP[event_type]]
-    formatted_tags = {tag["type"]: tag["value"] for tag in event.get("tags", {})}
-    formatted_tags["project"] = event.get("project")
-    formatted_tags["environment"] = event.get("environment")
+    created_by, created_by_type = _get_user(event)
+
+    unleash_tags = event.get("tags") or []
+    tags = {tag["type"]: tag["value"] for tag in unleash_tags}
+    tags["project"] = event.get("project")
+    tags["environment"] = event.get("environment")
     # TODO: can add 'inferred_value' (bool) tag for some events, using the `data` field + others.
 
     return [
         {
             "action": action,
             "created_at": event["createdAt"],
-            "created_by": event["createdBy"],
-            "created_by_type": CREATED_BY_TYPE_MAP["email"],
+            "created_by": created_by,
+            "created_by_type": created_by_type,
             "flag": event["featureName"],
             "organization_id": organization_id,
-            "tags": formatted_tags,
+            "tags": tags,
         }
     ]
