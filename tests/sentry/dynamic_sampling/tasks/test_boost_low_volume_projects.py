@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
+    SamplingMeasure,
     boost_low_volume_projects_of_org_with_query,
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
@@ -56,7 +57,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             org_id=org1.id,
         )
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, org_ids=[org1.id]
+            context, org_ids=[org1.id], measure=SamplingMeasure.TRANSACTIONS
         )
         assert results[org1.id] == [(p1.id, 4.0, 1, 3)]
 
@@ -136,7 +137,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     org_id=org.id,
                 )
         results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, org_ids=[org1.id, org2.id]
+            context, org_ids=[org1.id, org2.id], measure=SamplingMeasure.TRANSACTIONS
         )
 
         assert len(results) == 2  # two orgs
