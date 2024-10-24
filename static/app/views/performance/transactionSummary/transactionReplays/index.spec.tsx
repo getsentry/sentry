@@ -47,11 +47,12 @@ const renderComponent = ({
       ],
       location: {
         pathname: '/organizations/org-slug/replays/',
+        ...location,
         query: {
           project: '1',
           transaction: 'Settings Page',
+          ...location?.query,
         },
-        ...location,
       },
     },
   });
@@ -216,7 +217,7 @@ describe('TransactionReplays', () => {
     // Mock the system date to be 2022-09-28
     setMockDate(new Date('Sep 28, 2022 11:29:13 PM UTC'));
 
-    renderComponent();
+    renderComponent({location: {query: {query: 'test'}}});
 
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledTimes(1);
@@ -226,7 +227,7 @@ describe('TransactionReplays', () => {
     expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
 
     const expectedQuery =
-      'project=1&query=&referrer=%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2Freplays%2F&statsPeriod=14d&yAxis=count%28%29';
+      'project=1&query=test&referrer=%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2Freplays%2F&statsPeriod=14d&yAxis=count%28%29';
     // Expect the first row to have the correct href
     expect(screen.getAllByRole('link', {name: 'testDisplayName'})[0]).toHaveAttribute(
       'href',

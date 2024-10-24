@@ -4,7 +4,6 @@ from sentry.constants import TICKET_ACTIONS
 from sentry.integrations.github_enterprise.actions import GitHubEnterpriseCreateTicketAction
 from sentry.rules import MatchType
 from sentry.rules import rules as default_rules
-from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.rules.registry import RuleRegistry
 from sentry.testutils.cases import APITestCase
 
@@ -33,7 +32,7 @@ class ProjectRuleConfigurationTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, project1.slug)
         assert len(response.data["actions"]) == 12
-        assert len(response.data["conditions"]) == 9
+        assert len(response.data["conditions"]) == 10
         assert len(response.data["filters"]) == 9
 
     @property
@@ -148,7 +147,7 @@ class ProjectRuleConfigurationTest(APITestCase):
                 "service": {"type": "choice", "choices": [[sentry_app.slug, sentry_app.name]]}
             },
         } in response.data["actions"]
-        assert len(response.data["conditions"]) == 9
+        assert len(response.data["conditions"]) == 10
         assert len(response.data["filters"]) == 9
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
@@ -179,19 +178,17 @@ class ProjectRuleConfigurationTest(APITestCase):
             "formFields": settings_schema["settings"],
             "sentryAppInstallationUuid": str(install.uuid),
         } in response.data["actions"]
-        assert len(response.data["conditions"]) == 9
+        assert len(response.data["conditions"]) == 10
         assert len(response.data["filters"]) == 9
 
     def test_issue_type_and_category_filter_feature(self):
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert len(response.data["actions"]) == 12
-        assert len(response.data["conditions"]) == 9
+
+        assert len(response.data["conditions"]) == 10
         assert len(response.data["filters"]) == 9
+        assert len(response.data["conditions"]) == 10
 
-        filter_ids = {f["id"] for f in response.data["filters"]}
-        assert IssueCategoryFilter.id in filter_ids
-
-    def test_is_in_feature(self):
         response = self.get_success_response(self.organization.slug, self.project.slug)
         tagged_event_filter = next(
             (

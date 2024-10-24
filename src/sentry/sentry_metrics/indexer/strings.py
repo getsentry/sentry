@@ -230,6 +230,7 @@ SPAN_METRICS_NAMES = {
     "g:spans/self_time@millisecond": PREFIX + 419,
     "g:spans/self_time_light@millisecond": PREFIX + 420,
     "g:spans/total_time@millisecond": PREFIX + 421,
+    "c:spans/count_per_root_project@none": PREFIX + 422,
     # Last possible index: 499
 }
 

@@ -146,3 +146,83 @@ export function SpanSearchQueryBuilder({
     />
   );
 }
+
+interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+}
+
+export function EAPSpanSearchQueryBuilder({
+  initialQuery,
+  placeholder,
+  onSearch,
+  searchSource,
+  numberTags,
+  stringTags,
+}: EAPSpanSearchQueryBuilderProps) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const placeholderText = placeholder ?? t('Search for spans, users, tags, and more');
+
+  const tags = useMemo(() => {
+    return {...numberTags, ...stringTags};
+  }, [numberTags, stringTags]);
+
+  const filterKeySections = useMemo(() => {
+    const predefined = new Set(
+      SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children)
+    );
+    return [
+      ...SPANS_FILTER_KEY_SECTIONS,
+      {
+        value: 'custom_fields',
+        label: 'Custom Tags',
+        children: Object.keys(stringTags).filter(key => !predefined.has(key)),
+      },
+    ];
+  }, [stringTags]);
+
+  const getSpanFilterTagValues = useCallback(
+    async (tag: Tag, queryString: string) => {
+      if (isAggregateField(tag.key) || numberTags.hasOwnProperty(tag.key)) {
+        // We can't really auto suggest values for aggregate fields
+        // or measurements, so we simply don't
+        return Promise.resolve([]);
+      }
+
+      try {
+        const results = await fetchSpanFieldValues({
+          api,
+          orgSlug: organization.slug,
+          fieldKey: tag.key,
+          search: queryString,
+          projectIds: selection.projects.map(String),
+          endpointParams: normalizeDateTimeParams(selection.datetime),
+          dataset: 'spans',
+        });
+        return results.filter(({name}) => defined(name)).map(({name}) => name);
+      } catch (e) {
+        throw new Error(`Unable to fetch event field values: ${e}`);
+      }
+    },
+    [api, organization.slug, selection.projects, selection.datetime, numberTags]
+  );
+
+  return (
+    <SearchQueryBuilder
+      placeholder={placeholderText}
+      filterKeys={tags}
+      initialQuery={initialQuery}
+      fieldDefinitionGetter={getSpanFieldDefinition}
+      onSearch={onSearch}
+      searchSource={searchSource}
+      filterKeySections={filterKeySections}
+      getTagValues={getSpanFilterTagValues}
+      disallowUnsupportedFilters
+      recentSearches={SavedSearchType.SPAN}
+      showUnsubmittedIndicator
+    />
+  );
+}

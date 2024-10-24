@@ -15,7 +15,7 @@ class LoginSuccessView(OrganizationView):
             TEMPLATE,
             status=200,
             context={
-                "delay": request.GET.get("delay", 3000),
+                "delay": int(request.GET.get("delay", 3000)),
                 "cookie": f"{session_cookie_name}={request.COOKIES.get(session_cookie_name)}",
             },
         )

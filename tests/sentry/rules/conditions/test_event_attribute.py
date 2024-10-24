@@ -1,7 +1,12 @@
-from sentry.rules.conditions.event_attribute import EventAttributeCondition
+from unittest.mock import patch
+
+import pytest
+
+from sentry.rules.conditions.event_attribute import EventAttributeCondition, attribute_registry
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.registry import NoRegistrationExistsError
 
 pytestmark = [requires_snuba]
 
@@ -82,6 +87,16 @@ class EventAttributeConditionTest(RuleTestCase):
     def test_render_label(self):
         rule = self.get_rule(data={"match": MatchType.EQUAL, "attribute": "\xc3", "value": "\xc4"})
         assert rule.render_label() == "The event's \xc3 value equals \xc4"
+
+    def test_not_in_registry(self):
+        with pytest.raises(NoRegistrationExistsError):
+            attribute_registry.get("transaction")
+
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "transaction", "value": "asdf"}
+        )
+        self.assertDoesNotPass(rule, event)
 
     def test_equals(self):
         event = self.get_event()
@@ -336,6 +351,14 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
+    @patch("sentry.eventstore.models.get_interfaces", return_value={})
+    def test_exception_type_keyerror(self, mock_interface):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "exception.type", "value": "SyntaxError"}
+        )
+        self.assertDoesNotPass(rule, event)
+
     def test_error_handled(self):
         event = self.get_event(
             exception={
@@ -362,6 +385,24 @@ class EventAttributeConditionTest(RuleTestCase):
         event = self.get_event()
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "error.handled", "value": "True"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    @patch("sentry.eventstore.models.get_interfaces", return_value={})
+    def test_error_handled_keyerror(self, mock_interface):
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "Generic",
+                        "value": "hello world",
+                        "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
+                    }
+                ]
+            }
+        )
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.handled", "value": "False"}
         )
         self.assertDoesNotPass(rule, event)
 

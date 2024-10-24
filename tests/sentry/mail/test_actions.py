@@ -132,7 +132,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert len(results) == 1
 
     def test_full_integration(self):
-        one_min_ago = before_now(minutes=1).timestamp()
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "hello",
@@ -171,7 +171,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert "uh oh" in sent.subject
 
     def test_full_integration_fallthrough(self):
-        one_min_ago = before_now(minutes=1).timestamp()
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "hello",
@@ -209,7 +209,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert "uh oh" in sent.subject
 
     def test_full_integration_fallthrough_not_provided(self):
-        one_min_ago = before_now(minutes=1).timestamp()
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "hello",
@@ -285,7 +285,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
             organization=self.organization, members=[gil_workflow, dan_workflow]
         )
         self.project.add_team(team_workflow)
-        one_min_ago = before_now(minutes=1).timestamp()
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "hello",

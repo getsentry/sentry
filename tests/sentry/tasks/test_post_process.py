@@ -126,7 +126,7 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
         mock_process_service_hook,
         mock_processor,
     ):
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "type": "transaction",
@@ -661,7 +661,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
                 "message": "Foo bar",
                 "exception": {"type": "Foo", "value": "oh no"},
                 "level": "error",
-                "timestamp": timezone.now().timestamp(),
+                "timestamp": timezone.now().isoformat(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -695,7 +695,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Foo bar",
                 "level": "info",
-                "timestamp": timezone.now().timestamp(),
+                "timestamp": timezone.now().isoformat(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -716,7 +716,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Foo bar",
                 "level": "info",
-                "timestamp": timezone.now().timestamp(),
+                "timestamp": timezone.now().isoformat(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -739,7 +739,7 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
                 "message": "Foo bar",
                 "level": "error",
                 "exception": {"type": "Foo", "value": "oh no"},
-                "timestamp": timezone.now().timestamp(),
+                "timestamp": timezone.now().isoformat(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -1412,7 +1412,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": before_now(seconds=10).timestamp(),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -2405,6 +2405,50 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.NEW
 
 
+class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
+    @patch("sentry.tasks.post_process.safe_execute")
+    def test_process_similarity(self, mock_safe_execute):
+        from sentry import similarity
+
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        mock_safe_execute.assert_called_with(similarity.record, mock.ANY, mock.ANY)
+
+    def assert_not_called_with(self, mock_function: Mock):
+        """
+        Helper function to check that safe_execute isn't called with similarity.record
+        It can/will be called with other parameters
+        """
+        from sentry import similarity
+
+        try:
+            mock_function.assert_called_with(similarity.record, mock.ANY, mock.ANY)
+        except AssertionError:
+            return
+        raise AssertionError("Expected safe_execute to not be called with similarity.record")
+
+    @with_feature("projects:similarity-embeddings")
+    @patch("sentry.tasks.post_process.safe_execute")
+    def test_skip_process_similarity(self, mock_safe_execute):
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        self.assert_not_called_with(mock_safe_execute)
+
+
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -2422,6 +2466,7 @@ class PostProcessGroupErrorTest(
     DetectNewEscalationTestMixin,
     UserReportEventLinkTestMixin,
     DetectBaseUrlsForUptimeTestMixin,
+    ProcessSimilarityTestMixin,
 ):
     def setUp(self):
         super().setUp()
@@ -2452,7 +2497,7 @@ class PostProcessGroupErrorTest(
     def test_generic_metrics_backend_counter(
         self, metric_timer_mock, metric_incr_mock, generic_metrics_backend_mock
     ):
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         event = self.create_event(
             data={
                 "exception": {

@@ -2,7 +2,8 @@ from enum import Enum
 
 from attr import dataclass
 
-from sentry.integrations.opsgenie.spec import OpsgenieOnCallSpec
+from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.on_call.spec import OnCallSpec
 from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecycleOutcome
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
@@ -18,14 +19,17 @@ class OnCallInteractionType(Enum):
     # General interactions
     ADD_KEY = "ADD_KEY"
     POST_INSTALL = "POST_INSTALL"
-    VERIFY_TEAM = "VERIFY_TEAM"
     # Interacting with external alerts
     CREATE = "CREATE"  # create an alert in Opsgenie/Pagerduty
     RESOLVE = "RESOLVE"  # resolve an alert in Opsgenie/Pagerduty
 
     # Opsgenie only
     VERIFY_KEYS = "VERIFY_KEYS"
+    VERIFY_TEAM = "VERIFY_TEAM"
     MIGRATE_PLUGIN = "MIGRATE_PLUGIN"
+
+    # PagerDuty only
+    VALIDATE_SERVICE = "VALIDATE_SERVICE"
 
     def __str__(self) -> str:
         return self.value.lower()
@@ -38,7 +42,7 @@ class OnCallInteractionEvent(EventLifecycleMetric):
     """
 
     interaction_type: OnCallInteractionType
-    spec: OpsgenieOnCallSpec  # TODO: also add pagerduty oncall spec, or make a common spec class to inherit
+    spec: OnCallSpec
 
     # Optional attributes to populate extras
     user: User | RpcUser | None = None
@@ -46,7 +50,7 @@ class OnCallInteractionEvent(EventLifecycleMetric):
 
     def get_key(self, outcome: EventLifecycleOutcome) -> str:
         return self.get_standard_key(
-            domain="on_call",
+            domain=IntegrationDomain.ON_CALL_SCHEDULING,
             integration_name=self.spec.provider_slug,
             interaction_type=str(self.interaction_type),
             outcome=outcome,

@@ -408,7 +408,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         # result is rounded down to nearest second
         assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
         assert iso_format(result["firstSeen"]) == iso_format(group_env.first_seen)
-        assert iso_format(group_env2.first_seen) > iso_format(group_env.first_seen)
+        assert group_env2.first_seen is not None
+        assert group_env2.first_seen > group_env.first_seen
         assert result["userCount"] == 3
 
         result = serialize(

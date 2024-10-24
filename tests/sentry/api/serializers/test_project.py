@@ -600,7 +600,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def test_stats_errors(self):
         two_min_ago = before_now(minutes=2)
         self.store_event(
-            data={"event_id": "d" * 32, "message": "oh no", "timestamp": two_min_ago.timestamp()},
+            data={"event_id": "d" * 32, "message": "oh no", "timestamp": two_min_ago.isoformat()},
             project_id=self.project.id,
         )
         serializer = ProjectSummarySerializer(stats_period="24h")
@@ -612,7 +612,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def test_stats_with_transactions(self):
         two_min_ago = before_now(minutes=2)
         self.store_event(
-            data={"event_id": "d" * 32, "message": "oh no", "timestamp": two_min_ago.timestamp()},
+            data={"event_id": "d" * 32, "message": "oh no", "timestamp": two_min_ago.isoformat()},
             project_id=self.project.id,
         )
         transaction = load_data("transaction", timestamp=two_min_ago)

@@ -13,7 +13,7 @@ import type {Organization} from 'sentry/types/organization';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
@@ -27,7 +27,7 @@ interface Props {
 }
 
 export function DetailsTimeline({monitor, organization}: Props) {
-  const {location} = useRouter();
+  const location = useLocation();
   const api = useApi();
   const queryClient = useQueryClient();
 

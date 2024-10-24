@@ -125,7 +125,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,
             "db",
-            desc=query,  # TODO - figure out which query to use for description
+            desc=query,  # TODO: figure out which query to use for description
             type=PerformanceConsecutiveDBQueriesGroupType,
             cause_span_ids=cause_span_ids,
             parent_span_ids=None,

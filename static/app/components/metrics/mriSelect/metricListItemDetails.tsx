@@ -156,8 +156,8 @@ export function MetricListItemDetails({
               size="xs"
               to={
                 isVirtualMetric
-                  ? `/settings/projects/${firstMetricProject.slug}/metrics/`
-                  : `/settings/projects/${firstMetricProject.slug}/metrics/${encodeURIComponent(metric.mri)}`
+                  ? `/settings/${organization.slug}/projects/${firstMetricProject.slug}/metrics/`
+                  : `/settings/${organization.slug}/projects/${firstMetricProject.slug}/metrics/${encodeURIComponent(metric.mri)}`
               }
               aria-label={t('Open metric settings')}
               icon={<IconSettings />}
@@ -169,7 +169,7 @@ export function MetricListItemDetails({
               size="xs"
               onClick={() =>
                 navigateTo(
-                  `/settings/projects/:projectId/metrics/${encodeURIComponent(metric.mri)}`,
+                  `/settings/${organization.slug}/projects/:projectId/metrics/${encodeURIComponent(metric.mri)}`,
                   router
                 )
               }

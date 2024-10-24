@@ -193,7 +193,8 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         data = span.get("data", {})
         if data is None:
             return False
-        file_path = data.get("file.path", "").lower()
+        file_path = (data.get("file.path") or "").lower()
+
         if any(glob_match(file_path, ignored_pattern) for ignored_pattern in self.IGNORED_LIST):
             return False
         # doing is True since the value can be any type

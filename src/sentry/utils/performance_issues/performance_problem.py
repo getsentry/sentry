@@ -18,7 +18,7 @@ class PerformanceProblem:
     # The actual bad spans
     offender_span_ids: Sequence[str]
     # Evidence to be used for the group
-    # TODO make evidence_data and evidence_display required once all detectors have been migrated to platform
+    # TODO: make evidence_data and evidence_display required once all detectors have been migrated to platform
     # We can't make it required until we stop loading these from nodestore via EventPerformanceProblem,
     # since there's legacy data in there that won't have these fields.
     # So until we disable transaction based perf issues we'll need to keep this optional.
