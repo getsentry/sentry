@@ -785,7 +785,11 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('displays the discover split warning icon when the dataset source is forced', async function () {
-    const testWidget = {...WidgetFixture(), datasetSource: DatasetSource.FORCED};
+    const testWidget = {
+      ...WidgetFixture(),
+      datasetSource: DatasetSource.FORCED,
+      widgetType: WidgetType.ERRORS,
+    };
 
     renderWithProviders(
       <WidgetCard
