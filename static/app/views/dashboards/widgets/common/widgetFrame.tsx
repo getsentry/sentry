@@ -4,9 +4,8 @@ import Badge, {type BadgeProps} from 'sentry/components/badge/badge';
 import {Button, LinkButton} from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
+import {IconEllipsis, IconExpand, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -70,7 +69,30 @@ export function WidgetFrame(props: WidgetFrameProps) {
           (actions && actions.length > 0)) && (
           <TitleHoverItems>
             {props.description && (
-              <QuestionTooltip title={props.description} size="sm" icon="info" />
+              // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
+              <Tooltip
+                title={
+                  <span>
+                    {props.title && (
+                      <WidgetTooltipTitle>{props.title}</WidgetTooltipTitle>
+                    )}
+                    {props.description && (
+                      <WidgetTooltipDescription>
+                        {props.description}
+                      </WidgetTooltipDescription>
+                    )}
+                  </span>
+                }
+                containerDisplayMode="grid"
+                isHoverable
+              >
+                <WidgetTooltipButton
+                  aria-label={t('Widget description')}
+                  borderless
+                  size="xs"
+                  icon={<IconInfo />}
+                />
+              </Tooltip>
             )}
 
             <TitleActionsWrapper
@@ -214,6 +236,23 @@ const TitleText = styled(HeaderTitle)`
 
 const RigidBadge = styled(Badge)`
   flex-shrink: 0;
+`;
+
+const WidgetTooltipTitle = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-align: left;
+`;
+
+const WidgetTooltipDescription = styled('div')`
+  margin-top: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  text-align: left;
+`;
+
+// We're using a button here to preserve tab accessibility
+const WidgetTooltipButton = styled(Button)`
+  pointer-events: none;
 `;
 
 const VisualizationWrapper = styled('div')`
