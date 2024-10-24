@@ -103,9 +103,6 @@ function WidgetCardContextMenu({
     return null;
   }
 
-  const menuOptions: MenuItemProps[] = [];
-  const disabledKeys: string[] = [];
-
   const openWidgetViewerPath = (id: string | undefined) => {
     if (!isWidgetViewerPath(location.pathname)) {
       router.push({
@@ -153,6 +150,7 @@ function WidgetCardContextMenu({
                   label: t(
                     'This is a preview only. To edit, you must add this dashboard.'
                   ),
+                  disabled: true,
                 },
               ]}
               triggerProps={{
@@ -163,7 +161,6 @@ function WidgetCardContextMenu({
                 icon: <IconEllipsis direction="down" size="sm" />,
               }}
               position="bottom-end"
-              disabledKeys={[...disabledKeys, 'preview']}
             />
             <Button
               aria-label={t('Open Widget Viewer')}
@@ -187,6 +184,94 @@ function WidgetCardContextMenu({
       </WidgetViewerContext.Consumer>
     );
   }
+
+  const menuOptions = getMenuOptions(
+    organization,
+    selection,
+    widget,
+    Boolean(isMetricsData),
+    widgetLimitReached,
+    onDelete,
+    onDuplicate,
+    onEdit
+  );
+
+  if (!menuOptions.length) {
+    return null;
+  }
+
+  return (
+    <WidgetViewerContext.Consumer>
+      {({setData}) => (
+        <ContextWrapper>
+          {indexedEventsWarning ? (
+            <SampledTag tooltipText={indexedEventsWarning}>{t('Indexed')}</SampledTag>
+          ) : null}
+          {title && (
+            <Tooltip
+              title={
+                <span>
+                  <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
+                  {description && (
+                    <WidgetTooltipDescription>{description}</WidgetTooltipDescription>
+                  )}
+                </span>
+              }
+              containerDisplayMode="grid"
+              isHoverable
+            >
+              <WidgetTooltipButton
+                aria-label={t('Widget description')}
+                borderless
+                size="xs"
+                icon={<IconInfo />}
+              />
+            </Tooltip>
+          )}
+          <StyledDropdownMenuControl
+            items={menuOptions}
+            triggerProps={{
+              'aria-label': t('Widget actions'),
+              size: 'xs',
+              borderless: true,
+              showChevron: false,
+              icon: <IconEllipsis direction="down" size="sm" />,
+            }}
+            position="bottom-end"
+          />
+          <Button
+            aria-label={t('Open Widget Viewer')}
+            borderless
+            size="xs"
+            icon={<IconExpand />}
+            onClick={() => {
+              setData({
+                seriesData,
+                tableData,
+                pageLinks,
+                totalIssuesCount,
+                seriesResultsType,
+              });
+              openWidgetViewerPath(widget.id ?? index);
+            }}
+          />
+        </ContextWrapper>
+      )}
+    </WidgetViewerContext.Consumer>
+  );
+}
+
+export function getMenuOptions(
+  organization: Organization,
+  selection: PageFilters,
+  widget: Widget,
+  isMetricsData: boolean,
+  widgetLimitReached: boolean,
+  onDelete?: () => void,
+  onDuplicate?: () => void,
+  onEdit?: () => void
+) {
+  const menuOptions: MenuItemProps[] = [];
 
   if (
     organization.features.includes('discover-basic') &&
@@ -267,8 +352,8 @@ function WidgetCardContextMenu({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
+      disabled: widgetLimitReached,
     });
-    widgetLimitReached && disabledKeys.push('duplicate-widget');
 
     menuOptions.push({
       key: 'edit-widget',
@@ -290,70 +375,7 @@ function WidgetCardContextMenu({
     });
   }
 
-  if (!menuOptions.length) {
-    return null;
-  }
-
-  return (
-    <WidgetViewerContext.Consumer>
-      {({setData}) => (
-        <ContextWrapper>
-          {indexedEventsWarning ? (
-            <SampledTag tooltipText={indexedEventsWarning}>{t('Indexed')}</SampledTag>
-          ) : null}
-          {title && (
-            <Tooltip
-              title={
-                <span>
-                  <WidgetTooltipTitle>{title}</WidgetTooltipTitle>
-                  {description && (
-                    <WidgetTooltipDescription>{description}</WidgetTooltipDescription>
-                  )}
-                </span>
-              }
-              containerDisplayMode="grid"
-              isHoverable
-            >
-              <WidgetTooltipButton
-                aria-label={t('Widget description')}
-                borderless
-                size="xs"
-                icon={<IconInfo />}
-              />
-            </Tooltip>
-          )}
-          <StyledDropdownMenuControl
-            items={menuOptions}
-            triggerProps={{
-              'aria-label': t('Widget actions'),
-              size: 'xs',
-              borderless: true,
-              showChevron: false,
-              icon: <IconEllipsis direction="down" size="sm" />,
-            }}
-            position="bottom-end"
-            disabledKeys={[...disabledKeys]}
-          />
-          <Button
-            aria-label={t('Open Widget Viewer')}
-            borderless
-            size="xs"
-            icon={<IconExpand />}
-            onClick={() => {
-              setData({
-                seriesData,
-                tableData,
-                pageLinks,
-                totalIssuesCount,
-                seriesResultsType,
-              });
-              openWidgetViewerPath(widget.id ?? index);
-            }}
-          />
-        </ContextWrapper>
-      )}
-    </WidgetViewerContext.Consumer>
-  );
+  return menuOptions;
 }
 
 export default WidgetCardContextMenu;
