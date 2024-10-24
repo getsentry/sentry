@@ -174,8 +174,6 @@ const Frame = styled('div')`
   width: 100%;
   min-width: ${MIN_WIDTH}px;
 
-  padding: ${Y_GUTTER} ${X_GUTTER};
-
   border-radius: ${p => p.theme.panelBorderRadius};
   border: ${p => p.theme.border};
   border: 1px ${p => 'solid ' + p.theme.border};
@@ -198,13 +196,14 @@ const Frame = styled('div')`
   }
 `;
 
-const HEADER_HEIGHT = 26;
+const HEADER_HEIGHT = '26px';
 
 const Header = styled('div')`
   display: flex;
   align-items: center;
-  height: ${HEADER_HEIGHT}px;
+  height: calc(${HEADER_HEIGHT} + ${Y_GUTTER});
   gap: ${space(0.75)};
+  padding: ${X_GUTTER} ${Y_GUTTER} 0 ${X_GUTTER};
 `;
 
 const TitleText = styled(HeaderTitle)`
