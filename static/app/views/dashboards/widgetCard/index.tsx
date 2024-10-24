@@ -1,23 +1,19 @@
 import {Fragment, useState} from 'react';
-import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {LazyRender} from 'sentry/components/lazyRender';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -26,13 +22,8 @@ import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-import {
-  MEPConsumer,
-  MEPState,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
@@ -50,21 +41,19 @@ import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
-import {DashboardsMEPConsumer} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
 import WidgetCardContextMenu from './widgetCardContextMenu';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
-export const SESSION_DURATION_ALERT = (
-  <PanelAlert type="warning">
-    {t(
-      'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
-      getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
-    )}
-  </PanelAlert>
+
+export const SESSION_DURATION_ALERT_TEXT = t(
+  'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
+  getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
 );
 
-type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
+export const SESSION_DURATION_ALERT = (
+  <PanelAlert type="warning">{SESSION_DURATION_ALERT_TEXT}</PanelAlert>
+);
 
 type Props = WithRouterProps & {
   api: Client;
@@ -76,8 +65,6 @@ type Props = WithRouterProps & {
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
-  draggableProps?: DraggableProps;
-  hideToolbar?: boolean;
   index?: string;
   isEditingWidget?: boolean;
   isMobile?: boolean;
@@ -99,16 +86,6 @@ type Props = WithRouterProps & {
   tableItemLimit?: number;
   windowWidth?: number;
 };
-
-type SearchFilterKey = {key?: {value: string}};
-
-const ERROR_FIELDS = [
-  'error.handled',
-  'error.unhandled',
-  'error.mechanism',
-  'error.type',
-  'error.value',
-];
 
 type Data = {
   pageLinks?: string;
@@ -139,7 +116,6 @@ function WidgetCard(props: Props) {
     tableItemLimit,
     windowWidth,
     noLazyLoad,
-    showStoredAlert,
     dashboardFilters,
     isWidgetInvalid,
     location,
@@ -164,21 +140,6 @@ function WidgetCard(props: Props) {
 
   const hasSessionDuration = widget.queries.some(query =>
     query.aggregates.some(aggregate => aggregate.includes('session.duration'))
-  );
-
-  // prettier-ignore
-  const widgetContainsErrorFields = widget.queries.some(
-    ({columns, aggregates, conditions}) =>
-      ERROR_FIELDS.some(
-        errorField =>
-          columns.includes(errorField) ||
-          aggregates.some(
-            aggregate => parseFunction(aggregate)?.arguments.includes(errorField)
-          ) ||
-          parseSearch(conditions)?.some(
-            filter => (filter as SearchFilterKey).key?.value === errorField
-          )
-      )
   );
 
   if (widget.widgetType === WidgetType.METRICS) {
@@ -310,56 +271,20 @@ function WidgetCard(props: Props) {
               onEdit={props.onEdit}
               onDelete={props.onDelete}
               onDuplicate={props.onDuplicate}
-              draggableProps={props.draggableProps}
-              hideToolbar={props.hideToolbar}
               isMobile={props.isMobile}
             />
           )}
         </WidgetCardPanel>
       </VisuallyCompleteWithData>
-      {!organization.features.includes('performance-mep-bannerless-ui') && (
-        <MEPConsumer>
-          {metricSettingContext => {
-            return (
-              <DashboardsMEPConsumer>
-                {({isMetricsData}) => {
-                  if (
-                    showStoredAlert &&
-                    isMetricsData === false &&
-                    widget.widgetType === WidgetType.DISCOVER &&
-                    metricSettingContext &&
-                    metricSettingContext.metricSettingState !== MEPState.TRANSACTIONS_ONLY
-                  ) {
-                    if (!widgetContainsErrorFields) {
-                      return (
-                        <StoredDataAlert showIcon>
-                          {tct(
-                            "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
-                            {
-                              indexedData: (
-                                <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
-                              ),
-                            }
-                          )}
-                        </StoredDataAlert>
-                      );
-                    }
-                  }
-                  return null;
-                }}
-              </DashboardsMEPConsumer>
-            );
-          }}
-        </MEPConsumer>
-      )}
     </ErrorBoundary>
   );
 }
 
 export default withApi(withOrganization(withPageFilters(withSentryRouter(WidgetCard))));
 
-function DisplayOnDemandWarnings(props: {widget: Widget}) {
+function useOnDemandWarning(props: {widget: Widget}): string | null {
   const organization = useOrganization();
+
   if (!hasOnDemandMetricWidgetFeature(organization)) {
     return null;
   }
@@ -379,25 +304,26 @@ function DisplayOnDemandWarnings(props: {widget: Widget}) {
   );
 
   if (widgetContainsHighCardinality) {
-    return (
-      <Tooltip
-        containerDisplayMode="inline-flex"
-        title={t(
-          'This widget is using indexed data because it has a column with too many unique values.'
-        )}
-      >
-        <IconWarning color="warningText" />
-      </Tooltip>
+    return t(
+      'This widget is using indexed data because it has a column with too many unique values.'
     );
   }
+
   if (widgetReachedSpecLimit) {
+    return t(
+      "This widget is using indexed data because you've reached your organization limit for dynamically extracted metrics."
+    );
+  }
+
+  return null;
+}
+
+function DisplayOnDemandWarnings(props: {widget: Widget}) {
+  const warning = useOnDemandWarning(props);
+
+  if (warning) {
     return (
-      <Tooltip
-        containerDisplayMode="inline-flex"
-        title={t(
-          "This widget is using indexed data because you've reached your organization limit for dynamically extracted metrics."
-        )}
-      >
+      <Tooltip containerDisplayMode="inline-flex" title={warning}>
         <IconWarning color="warningText" />
       </Tooltip>
     );
@@ -449,11 +375,6 @@ export const WidgetCardPanel = styled(Panel, {
       box-shadow 100ms linear;
     box-shadow: ${p => p.theme.dropShadowLight};
   }
-`;
-
-const StoredDataAlert = styled(Alert)`
-  margin-top: ${space(1)};
-  margin-bottom: 0;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`

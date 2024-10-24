@@ -102,21 +102,6 @@ describe('DatabaseSpanSummaryPage', function () {
       },
     });
 
-    const spanFieldTagsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
-      method: 'GET',
-      body: [
-        {
-          key: 'api_key',
-          name: 'Api Key',
-        },
-        {
-          key: 'bytes.size',
-          name: 'Bytes.Size',
-        },
-      ],
-    });
-
     const transactionListMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -275,20 +260,6 @@ describe('DatabaseSpanSummaryPage', function () {
       })
     );
 
-    // Supported span fields for panel search bar
-    expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
-      1,
-      `/organizations/${organization.slug}/spans/fields/`,
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          project: [],
-          environment: [],
-          statsPeriod: '1h',
-        },
-      })
-    );
-
     // Transactions table
     expect(transactionListMock).toHaveBeenNthCalledWith(
       1,
@@ -321,7 +292,6 @@ describe('DatabaseSpanSummaryPage', function () {
     expect(spanDescriptionRequestMock).toHaveBeenCalledTimes(1);
     expect(eventsRequestMock).toHaveBeenCalledTimes(1);
     expect(eventsStatsRequestMock).toHaveBeenCalledTimes(2);
-    expect(spanFieldTagsMock).toHaveBeenCalledTimes(1);
     expect(transactionListMock).toHaveBeenCalledTimes(1);
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));

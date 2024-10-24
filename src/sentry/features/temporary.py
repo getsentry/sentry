@@ -209,8 +209,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:more-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("organizations:navigation-sidebar-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
-    # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
-    manager.add("organizations:notification-all-recipients", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Drop obsoleted status changes in occurence consumer
     manager.add("organizations:occurence-consumer-prune-status-changes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable User Feedback v1
@@ -437,6 +435,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-initial-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable access to newer Insights modules (Caches, Queues, LLMs, Mobile UI)
     manager.add("organizations:insights-addon-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    # Make insights modules restrict queries to 14 days
+    manager.add("organizations:insights-query-date-range-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Make Insights modules use EAP instead of metrics
     manager.add("organizations:insights-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to insights metrics alerts
