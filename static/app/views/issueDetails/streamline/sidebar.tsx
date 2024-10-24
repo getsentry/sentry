@@ -58,7 +58,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
             viewers={viewers}
           />
         </Fragment>
-      )} 
+      )}
       <StyledBreak />
       <SimilarIssuesSidebarSection />
       <StyledBreak />
