@@ -18,7 +18,6 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.sentry_metrics.indexer.strings import SPAN_METRICS_NAMES, TRANSACTION_METRICS_NAMES
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import first_custom_metric_received
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.naming_layer.mri import is_custom_metric
@@ -51,11 +50,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     #: The IDs of the metrics used to count transactions or spans
     metric_ids = {
-        TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]: (
-            UseCaseID.TRANSACTIONS,
-            DataCategory.TRANSACTION,
-        ),
-        SPAN_METRICS_NAMES["c:spans/usage@none"]: (UseCaseID.SPANS, DataCategory.SPAN),
+        TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]: DataCategory.TRANSACTION,
+        SPAN_METRICS_NAMES["c:spans/usage@none"]: DataCategory.SPAN,
     }
 
     def __init__(self, next_step: ProcessingStrategy[Any]) -> None:
