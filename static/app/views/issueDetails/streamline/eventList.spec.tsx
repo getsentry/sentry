@@ -12,8 +12,9 @@ import {render, renderHook, screen, waitFor} from 'sentry-test/reactTestingLibra
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
-import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {MOCK_EVENTS_TABLE_DATA} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
+
+import {EventList} from './eventList';
 
 describe('EventList', () => {
   const organization = OrganizationFixture();
@@ -90,7 +91,7 @@ describe('EventList', () => {
   });
 
   function renderAllEvents() {
-    render(<EventDetails event={event} group={group} project={project} />, {
+    render(<EventList group={group} project={project} />, {
       organization,
       router: RouterFixture({
         location: LocationFixture({
@@ -146,7 +147,7 @@ describe('EventList', () => {
         query: `${tagKey}:${tagValue}`,
       },
     };
-    render(<EventDetails event={event} group={group} project={project} />, {
+    render(<EventList group={group} project={project} />, {
       organization,
       router: RouterFixture({
         location: LocationFixture({

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -17,10 +16,7 @@ import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNa
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
-import {
-  type ReprocessingStatus,
-  useHasStreamlinedUI,
-} from 'sentry/views/issueDetails/utils';
+import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 interface GroupDetailsLayoutProps {
   children: React.ReactNode;
@@ -39,7 +35,6 @@ export function GroupDetailsLayout({
 }: GroupDetailsLayoutProps) {
   const searchQuery = useEventQuery({group});
   const [sidebarOpen, _] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   return (
     <Fragment>
@@ -68,7 +63,7 @@ export function GroupDetailsLayout({
           </GroupContent>
         </div>
         {sidebarOpen ? (
-          <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
+          <StyledLayoutSide>
             <StreamlinedSidebar group={group} event={event} project={project} />
           </StyledLayoutSide>
         ) : null}
@@ -89,22 +84,11 @@ const StyledLayoutBody = styled(Layout.Body)<{
   }
 `;
 
-const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
-  ${p =>
-    p.hasStreamlinedUi
-      ? css`
-          padding: ${space(1.5)} ${space(2)};
-        `
-      : css`
-          padding: ${space(3)} ${space(2)} ${space(3)};
-
-          @media (min-width: ${p.theme.breakpoints.large}) {
-            padding-right: ${space(4)};
-          }
-        `}
+const StyledLayoutSide = styled(Layout.Side)`
+  padding: ${space(1.5)} ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding-left: ${p => (p.hasStreamlinedUi ? space(0.5) : 0)};
+    padding-left: ${space(0.5)};
   }
 `;
 
