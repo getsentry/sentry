@@ -334,7 +334,6 @@ export const InnerWrap = styled('div', {
   border-radius: ${p => p.theme.borderRadius};
   box-sizing: border-box;
 
-  align-items: center;
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
 
   &,
@@ -413,7 +412,7 @@ const ContentWrap = styled('div')<{
     `}
 `;
 
-const LeadingItems = styled('div')<{
+export const LeadingItems = styled('div')<{
   disabled: boolean;
   size: Props['size'];
   spanFullHeight: boolean;
@@ -422,6 +421,7 @@ const LeadingItems = styled('div')<{
   align-items: center;
   height: 1.4em;
   gap: ${space(1)};
+  margin-top: ${p => getVerticalPadding(p.size)};
   margin-right: ${space(1)};
   flex-shrink: 0;
 

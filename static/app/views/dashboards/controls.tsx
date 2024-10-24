@@ -18,18 +18,24 @@ import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import type {
+  DashboardDetails,
+  DashboardListItem,
+  DashboardPermissions,
+} from 'sentry/views/dashboards/types';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import exportDashboard from './exportDashboard';
-import type {DashboardListItem, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
+  dashboard: DashboardDetails;
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
   onAddWidget: (dataset: DataSet) => void;
   onCancel: () => void;
+  onChangeEditAccess: (newDashboardPermissions: DashboardPermissions) => void;
   onCommit: () => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -41,10 +47,12 @@ type Props = {
 
 function Controls({
   dashboardState,
+  dashboard,
   dashboards,
   dashboardPermissions,
   hasUnsavedFilters,
   widgetLimitReached,
+  onChangeEditAccess,
   onEdit,
   onCommit,
   onDelete,
@@ -161,7 +169,11 @@ function Controls({
                 {t('Export Dashboard')}
               </Button>
             </Feature>
-            <EditAccessSelector dashboardPermissions={dashboardPermissions} />
+            <EditAccessSelector
+              dashboardPermissions={dashboardPermissions}
+              dashboard={dashboard}
+              onChangeEditAccess={onChangeEditAccess}
+            />
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {
