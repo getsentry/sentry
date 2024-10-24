@@ -478,12 +478,12 @@ export function DraggableTabBar({
                 // but enables the animation later on when switching tabs
                 initial={tabListState ? {opacity: 0} : false}
                 animate={{opacity: 1}}
-                transition={{delay: 0.1}}
+                transition={{delay: 0.1, duration: 0.1}}
               >
                 <DraggableTabMenuButton
                   hasUnsavedChanges={!!tab.unsavedChanges}
                   menuOptions={makeMenuOptions(tab)}
-                  aria-label={`${tab.label} Ellipsis Menu`}
+                  aria-label={t(`%s Ellipsis Menu`, tab.label)}
                 />
               </motion.div>
             )}

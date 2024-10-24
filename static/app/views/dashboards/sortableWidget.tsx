@@ -4,7 +4,9 @@ import styled from '@emotion/styled';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 
+import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import type {DashboardFilters, Widget} from './types';
+import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;
 
@@ -15,6 +17,7 @@ type Props = {
   onDuplicate: () => void;
   onEdit: () => void;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
   isMobile?: boolean;
@@ -35,6 +38,7 @@ function SortableWidget(props: Props) {
     windowWidth,
     index,
     dashboardFilters,
+    widgetLegendState,
   } = props;
 
   const widgetProps: ComponentProps<typeof WidgetCard> = {
@@ -48,6 +52,7 @@ function SortableWidget(props: Props) {
     isPreview,
     index,
     dashboardFilters,
+    widgetLegendState,
     renderErrorMessage: errorMessage => {
       return (
         typeof errorMessage === 'string' && (
@@ -62,7 +67,9 @@ function SortableWidget(props: Props) {
 
   return (
     <GridWidgetWrapper>
-      <WidgetCard {...widgetProps} />
+      <DashboardsMEPProvider>
+        <WidgetCard {...widgetProps} />
+      </DashboardsMEPProvider>
     </GridWidgetWrapper>
   );
 }

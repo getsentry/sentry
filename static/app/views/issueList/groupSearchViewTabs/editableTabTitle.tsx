@@ -144,7 +144,6 @@ const UnselectedTabTitle = styled('div')<{isSelected: boolean}>`
   text-overflow: ellipsis;
   padding-right: 1px;
   cursor: pointer;
-  font-weight: ${p => (p.isSelected ? 'bold' : 'normal')};
 `;
 
 const StyledGrowingInput = styled(GrowingInput)<{

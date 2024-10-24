@@ -88,6 +88,11 @@ describe('HTTPSamplesPanel', () => {
         },
       },
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
   afterAll(() => {

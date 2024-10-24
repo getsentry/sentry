@@ -4,6 +4,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
+
 import WidgetBuilder from './widgetBuilder';
 
 interface WidgetBuilderProps
@@ -22,7 +24,18 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
         </Layout.Page>
       )}
     >
-      <WidgetBuilder {...props} organization={organization} />
+      <WidgetBuilder
+        {...props}
+        organization={organization}
+        widgetLegendState={
+          new WidgetLegendSelectionState({
+            location: props.location,
+            organization,
+            dashboard: props.dashboard,
+            router: props.router,
+          })
+        }
+      />
     </Feature>
   );
 }

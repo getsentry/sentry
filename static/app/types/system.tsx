@@ -383,7 +383,7 @@ export interface StatusPageIncidentUpdate {
   /**
    * Status of the incident for tihs update
    */
-  status: 'resolved' | 'monitoring' | 'investigating';
+  status: 'resolved' | 'monitoring' | 'identified' | 'investigating';
   /**
    * ISO Update update time
    */
@@ -439,7 +439,7 @@ export interface StatuspageIncident {
   /**
    * Current status of the incident
    */
-  status: 'resolved' | 'unresolved';
+  status: 'resolved' | 'unresolved' | 'monitoring';
   /**
    * ISO 8601 last updated time
    */

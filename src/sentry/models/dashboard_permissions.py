@@ -20,6 +20,11 @@ class DashboardPermissions(Model):
         "sentry.Dashboard", on_delete=models.CASCADE, related_name="permissions"
     )
 
+    def has_edit_permissions(self, userId):
+        if not self.is_creator_only_editable:
+            return True
+        return userId == self.dashboard.created_by_id
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardpermissions"

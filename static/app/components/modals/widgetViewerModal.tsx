@@ -60,7 +60,6 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
-  getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
@@ -68,6 +67,8 @@ import {
   getWidgetMetricsUrl,
   getWidgetReleasesUrl,
   hasDatasetSelector,
+  isUsingPerformanceScore,
+  performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
 import {
   SESSION_DURATION_ALERT,
@@ -84,6 +85,7 @@ import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQu
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -99,6 +101,7 @@ import {
 export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   dashboardFilters?: DashboardFilters;
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
@@ -117,6 +120,7 @@ interface Props extends ModalRenderProps, WidgetViewerModalOptions {
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const HALF_CONTAINER_HEIGHT = 300;
+const BIG_NUMBER_HEIGHT = 160;
 const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
 const shouldWidgetCardChartMemo = (prevProps, props) => {
@@ -187,6 +191,7 @@ function WidgetViewerModal(props: Props) {
     pageLinks: defaultPageLinks,
     seriesResultsType,
     dashboardFilters,
+    widgetLegendState,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -243,14 +248,6 @@ function WidgetViewerModal(props: Props) {
     }
   }, [end, location, locationPageFilter, start]);
 
-  // Get legends toggle settings from location
-  // We use the legend query params for just the initial state
-  const [disabledLegends, setDisabledLegends] = useState<{[key: string]: boolean}>(
-    decodeList(location.query[WidgetViewerQueryField.LEGEND]).reduce((acc, legend) => {
-      acc[legend] = false;
-      return acc;
-    }, {})
-  );
   const [totalResults, setTotalResults] = useState<string | undefined>();
 
   // Get query selection settings from location
@@ -473,19 +470,7 @@ function WidgetViewerModal(props: Props) {
   }, [selectedQueryIndex]);
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
-    setDisabledLegends(selected);
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          [WidgetViewerQueryField.LEGEND]: Object.keys(selected).filter(
-            key => !selected[key]
-          ),
-        },
-      },
-      {replace: true}
-    );
+    widgetLegendState.setWidgetSelectionState(selected, widget);
     trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,
@@ -869,7 +854,7 @@ function WidgetViewerModal(props: Props) {
                   ].includes(widget.displayType)
                     ? SLIDER_HEIGHT
                     : 0)
-                : null
+                : BIG_NUMBER_HEIGHT
             }
           >
             {(!!seriesData || !!tableData) && chartUnmodified ? (
@@ -885,11 +870,14 @@ function WidgetViewerModal(props: Props) {
                 organization={organization}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={{selected: disabledLegends}}
+                legendOptions={{
+                  selected: widgetLegendState.getWidgetSelectionState(widget),
+                }}
                 expandNumbers
                 showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions}
+                widgetLegendState={widgetLegendState}
               />
             ) : (
               <MemoizedWidgetCardChartContainer
@@ -902,11 +890,14 @@ function WidgetViewerModal(props: Props) {
                 widget={primaryWidget}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={{selected: disabledLegends}}
+                legendOptions={{
+                  selected: widgetLegendState.getWidgetSelectionState(widget),
+                }}
                 expandNumbers
                 showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions}
+                widgetLegendState={widgetLegendState}
               />
             )}
           </Container>
@@ -1030,9 +1021,6 @@ function WidgetViewerModal(props: Props) {
                     <WidgetHeader>
                       <WidgetTitleRow>
                         <h3>{widget.title}</h3>
-                        {widget.thresholds &&
-                          tableData &&
-                          getColoredWidgetIndicator(widget.thresholds, tableData)}
                       </WidgetTitleRow>
                       {widget.description && (
                         <Tooltip
@@ -1073,6 +1061,12 @@ function WidgetViewerModal(props: Props) {
                             organization={organization}
                             selection={modalTableSelection}
                             selectedQueryIndex={selectedQueryIndex}
+                            disabled={isUsingPerformanceScore(widget)}
+                            disabledTooltip={
+                              isUsingPerformanceScore(widget)
+                                ? performanceScoreTooltip
+                                : undefined
+                            }
                           />
                         )}
                       </ButtonBar>
@@ -1093,6 +1087,8 @@ interface OpenButtonProps {
   selectedQueryIndex: number;
   selection: PageFilters;
   widget: Widget;
+  disabled?: boolean;
+  disabledTooltip?: string;
 }
 
 function OpenButton({
@@ -1100,6 +1096,8 @@ function OpenButton({
   selection,
   organization,
   selectedQueryIndex,
+  disabled,
+  disabledTooltip,
 }: OpenButtonProps) {
   let openLabel: string;
   let path: string;
@@ -1136,15 +1134,18 @@ function OpenButton({
 
   return (
     <Tooltip
-      title={t(
-        'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-      )}
-      disabled={!buttonDisabled}
+      title={
+        disabledTooltip ??
+        t(
+          'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
+        )
+      }
+      disabled={defined(disabled) ? !disabled : !buttonDisabled}
     >
       <LinkButton
         to={path}
         priority="primary"
-        disabled={buttonDisabled}
+        disabled={disabled || buttonDisabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
             organization,
@@ -1193,6 +1194,8 @@ export const modalCss = css`
 `;
 
 const Container = styled('div')<{height?: number | null}>`
+  display: flex;
+  flex-direction: column;
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
   padding-bottom: ${space(3)};

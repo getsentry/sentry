@@ -14,6 +14,7 @@ from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, projectoptions
+from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -494,6 +495,7 @@ def post_process_group(
     occurrence_id: str | None = None,
     *,
     project_id: int,
+    eventstream_type: str | None = None,
     **kwargs,
 ):
     """
@@ -503,7 +505,10 @@ def post_process_group(
 
     with snuba.options_override({"consistent": True}):
         from sentry import eventstore
-        from sentry.eventstore.processing import event_processing_store
+        from sentry.eventstore.processing import (
+            event_processing_store,
+            transaction_processing_store,
+        )
         from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,
         )
@@ -512,11 +517,15 @@ def post_process_group(
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
 
+        if eventstream_type == EventStreamEventType.Transaction.value:
+            processing_store = transaction_processing_store
+        else:
+            processing_store = event_processing_store
         if occurrence_id is None:
             # We use the data being present/missing in the processing store
             # to ensure that we don't duplicate work should the forwarding consumers
             # need to rewind history.
-            data = event_processing_store.get(cache_key)
+            data = processing_store.get(cache_key)
             if not data:
                 logger.info(
                     "post_process.skipped",
@@ -524,7 +533,7 @@ def post_process_group(
                 )
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
-                event_processing_store.delete_by_key(cache_key)
+                processing_store.delete_by_key(cache_key)
 
             occurrence = None
             event = process_event(data, group_id)
@@ -1165,7 +1174,11 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
 
     if event.get_event_type() == "error" and _should_send_error_created_hooks(event.project):
         process_resource_change_bound.delay(
-            action="created", sender="Error", instance_id=event.event_id, instance=event
+            action="created",
+            sender="Error",
+            instance_id=event.event_id,
+            project_id=event.project_id,
+            group_id=event.group_id,
         )
     if is_new:
         process_resource_change_bound.delay(
@@ -1192,7 +1205,9 @@ def process_plugins(job: PostProcessJob) -> None:
 
 
 def process_similarity(job: PostProcessJob) -> None:
-    if job["is_reprocessed"]:
+    if job["is_reprocessed"] or features.has(
+        "projects:similarity-embeddings", job["event"].group.project
+    ):
         return
 
     from sentry import similarity

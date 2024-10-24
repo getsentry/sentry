@@ -114,29 +114,28 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         alert_rule = self.create_alert_rule(organization=self.organization, projects=[self.project])
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
 
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "super duper bad",
-                    "timestamp": self.time_1_dt.isoformat(),
-                    "fingerprint": ["group1"],
-                    "tags": {"sentry:user": self.user.email},
-                    "exception": [{"value": "BadError"}],
-                },
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "super bad",
-                    "timestamp": self.time_2_dt.isoformat(),
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user.email},
-                    "exception": [{"value": "BadError"}],
-                },
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "super duper bad",
+                "timestamp": self.time_1_dt.isoformat(),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+                "exception": [{"value": "BadError"}],
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "super bad",
+                "timestamp": self.time_2_dt.isoformat(),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user.email},
+                "exception": [{"value": "BadError"}],
+            },
+            project_id=self.project.id,
+        )
         result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
         assert result
         assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")
@@ -148,29 +147,28 @@ class AnomalyDetectionStoreDataTest(AlertRuleBase, BaseMetricsTestCase, Performa
         snuba_query.query = "is:unresolved"
         snuba_query.save()
 
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "super duper bad",
-                    "timestamp": self.time_1_dt.isoformat(),
-                    "fingerprint": ["group1"],
-                    "tags": {"sentry:user": self.user.email},
-                    "exception": [{"value": "BadError"}],
-                },
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "super bad",
-                    "timestamp": self.time_2_dt.isoformat(),
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user.email},
-                    "exception": [{"value": "BadError"}],
-                },
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "super duper bad",
+                "timestamp": self.time_1_dt.isoformat(),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+                "exception": [{"value": "BadError"}],
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "super bad",
+                "timestamp": self.time_2_dt.isoformat(),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user.email},
+                "exception": [{"value": "BadError"}],
+            },
+            project_id=self.project.id,
+        )
         result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)
         assert result
         assert {"time": int(self.time_1_ts), "count": 1} in result.data.get("data")

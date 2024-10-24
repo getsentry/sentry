@@ -9,7 +9,7 @@ from celery import Task, current_task
 from django.urls import reverse
 from requests.exceptions import RequestException
 
-from sentry import analytics
+from sentry import analytics, nodestore
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
@@ -181,13 +181,19 @@ def _process_resource_change(
     # The class is serialized as a string when enqueueing the class.
     model: type[Event] | type[Model] = TYPES[sender]
     instance: Event | Model | None = None
-    # The Event model has different hooks for the different event types. The sender
-    # determines which type eg. Error and therefore the 'name' eg. error
-    if issubclass(model, Event):
-        if not kwargs.get("instance"):
+
+    project_id: int | None = kwargs.get("project_id", None)
+    group_id: int | None = kwargs.get("group_id", None)
+    if sender == "Error" and project_id and group_id:
+        # Read event from nodestore as Events are heavy in task messages.
+        nodedata = nodestore.backend.get(Event.generate_node_id(project_id, str(instance_id)))
+        if not nodedata:
             extra = {"sender": sender, "action": action, "event_id": instance_id}
             logger.info("process_resource_change.event_missing_event", extra=extra)
             return
+        instance = Event(
+            project_id=project_id, group_id=group_id, event_id=str(instance_id), data=nodedata
+        )
         name = sender.lower()
     else:
         # Some resources are named differently than their model. eg. Group vs Issue.
@@ -200,13 +206,7 @@ def _process_resource_change(
 
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
-    if issubclass(model, Event):
-        # XXX:(Meredith): Passing through the entire event was an intentional choice
-        # to avoid having to query NodeStore again for data we had previously in
-        # post_process. While this is not ideal, changing this will most likely involve
-        # an overhaul of how we do things in post_process, not just this task alone.
-        instance = kwargs.get("instance")
-    else:
+    if not issubclass(model, Event):
         try:
             instance = model.objects.get(id=instance_id)
         except model.DoesNotExist as e:

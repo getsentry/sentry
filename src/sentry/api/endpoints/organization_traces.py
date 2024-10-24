@@ -97,13 +97,24 @@ class OrganizationTracesSerializer(serializers.Serializer):
     query = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
+    sort = serializers.CharField(required=False)
 
     def validate_dataset(self, value):
         if value == "spans":
             return Dataset.EventsAnalyticsPlatform
         if value == "spansIndexed":
             return Dataset.SpansIndexed
-        raise NotImplementedError
+        raise ParseError(detail=f"Unsupported dataset: {value}")
+
+    def validate(self, data):
+        if data["dataset"] == Dataset.EventsAnalyticsPlatform:
+            sort = data.get("sort")
+            if sort is not None:
+                sort_field = sort[1:] if sort.startswith("-") else sort
+
+                if sort_field not in {"timestamp"}:
+                    raise ParseError(detail=f"Unsupported sort: {sort}")
+        return data
 
 
 @contextmanager
@@ -151,6 +162,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             dataset=serialized["dataset"],
             snuba_params=snuba_params,
             user_queries=serialized.get("query", []),
+            sort=serialized.get("sort"),
             metrics_max=serialized.get("metricsMax"),
             metrics_min=serialized.get("metricsMin"),
             metrics_operation=serialized.get("metricsOp"),
@@ -202,7 +214,7 @@ class OrganizationTraceSpansSerializer(serializers.Serializer):
             return Dataset.EventsAnalyticsPlatform
         if value == "spansIndexed":
             return Dataset.SpansIndexed
-        raise NotImplementedError
+        raise ParseError(detail=f"Unsupported dataset: {value}")
 
 
 @region_silo_endpoint
@@ -267,7 +279,7 @@ class OrganizationTracesStatsSerializer(serializers.Serializer):
             return Dataset.EventsAnalyticsPlatform
         if value == "spansIndexed":
             return Dataset.SpansIndexed
-        raise NotImplementedError
+        raise ParseError(detail=f"Unsupported dataset: {value}")
 
 
 @region_silo_endpoint
@@ -344,6 +356,7 @@ class TracesExecutor:
         dataset: Dataset,
         snuba_params: SnubaParams,
         user_queries: list[str],
+        sort: str | None,
         metrics_max: float | None,
         metrics_min: float | None,
         metrics_operation: str | None,
@@ -356,11 +369,13 @@ class TracesExecutor:
         self.dataset = dataset
         self.snuba_params = snuba_params
         self.user_queries = process_user_queries(snuba_params, user_queries, dataset)
+        self.sort = sort
         self.metrics_max = metrics_max
         self.metrics_min = metrics_min
         self.metrics_operation = metrics_operation
         self.metrics_query = metrics_query
         self.mri = mri
+        self.offset = 0
         self.limit = limit
         self.breakdown_slices = breakdown_slices
         self.get_all_projects = get_all_projects
@@ -373,6 +388,12 @@ class TracesExecutor:
         return all_projects_snuba_params
 
     def execute(self, offset: int, limit: int):
+        # To support pagination on only EAP, we use the offset/limit
+        # values from the paginator here.
+        if self.dataset == Dataset.EventsAnalyticsPlatform:
+            self.offset = offset
+            self.limit = limit
+
         return {"data": self._execute()}
 
     def _execute(self):
@@ -426,6 +447,9 @@ class TracesExecutor:
                 traces_occurrences_results=traces_occurrences_results,
                 traces_breakdown_projects_results=traces_breakdown_projects_results,
             )
+
+        ordering = {trace_id: i for i, trace_id in enumerate(trace_ids)}
+        data.sort(key=lambda trace: ordering[trace["trace"]])
 
         return data
 
@@ -607,24 +631,24 @@ class TracesExecutor:
     def get_traces_matching_span_conditions_query(
         self,
         snuba_params: SnubaParams,
-        sort: str | None = None,
     ) -> tuple[BaseQueryBuilder, str]:
         if self.dataset == Dataset.EventsAnalyticsPlatform:
-            return self.get_traces_matching_span_conditions_query_eap(snuba_params, sort)
-        return self.get_traces_matching_span_conditions_query_indexed(snuba_params, sort)
+            return self.get_traces_matching_span_conditions_query_eap(snuba_params)
+        return self.get_traces_matching_span_conditions_query_indexed(snuba_params)
 
     def get_traces_matching_span_conditions_query_eap(
         self,
         snuba_params: SnubaParams,
-        sort: str | None = None,
     ) -> tuple[BaseQueryBuilder, str]:
         if len(self.user_queries) < 2:
             timestamp_column = "timestamp"
         else:
             timestamp_column = "min(timestamp)"
 
-        if sort == "-timestamp":
+        if self.sort == "-timestamp":
             orderby = [f"-{timestamp_column}"]
+        elif self.sort == "timestamp":
+            orderby = [timestamp_column]
         else:
             # The orderby is intentionally `None` here as this query is much faster
             # if we let Clickhouse decide which order to return the results in.
@@ -642,6 +666,7 @@ class TracesExecutor:
                 selected_columns=["trace", timestamp_column],
                 orderby=orderby,
                 limit=self.limit,
+                offset=self.offset,
                 limitby=("trace", 1),
                 config=QueryBuilderConfig(
                     transform_alias_to_input_format=True,
@@ -659,6 +684,7 @@ class TracesExecutor:
                 selected_columns=["trace", timestamp_column],
                 orderby=orderby,
                 limit=self.limit,
+                offset=self.offset,
                 limitby=("trace", 1),
                 config=QueryBuilderConfig(
                     auto_aggregations=True,
@@ -694,20 +720,11 @@ class TracesExecutor:
     def get_traces_matching_span_conditions_query_indexed(
         self,
         snuba_params: SnubaParams,
-        sort: str | None = None,
     ) -> tuple[BaseQueryBuilder, str]:
         if len(self.user_queries) < 2:
             timestamp_column = "timestamp"
         else:
             timestamp_column = "min(timestamp)"
-
-        if sort == "-timestamp":
-            orderby = [f"-{timestamp_column}"]
-        else:
-            # The orderby is intentionally `None` here as this query is much faster
-            # if we let Clickhouse decide which order to return the results in.
-            # This also means we cannot order by any columns or paginate.
-            orderby = None
 
         if len(self.user_queries) < 2:
             # Optimization: If there is only a condition for a single span,
@@ -718,7 +735,6 @@ class TracesExecutor:
                 snuba_params=snuba_params,
                 query=None,
                 selected_columns=["trace", timestamp_column],
-                orderby=orderby,
                 limit=self.limit,
                 limitby=("trace", 1),
                 config=QueryBuilderConfig(
@@ -735,7 +751,6 @@ class TracesExecutor:
                 snuba_params=snuba_params,
                 query=None,
                 selected_columns=["trace", timestamp_column],
-                orderby=orderby,
                 limit=self.limit,
                 config=QueryBuilderConfig(
                     auto_aggregations=True,
@@ -828,25 +843,44 @@ class TracesExecutor:
             context = {"traces": list(sorted(traces_range.keys()))}
             sentry_sdk.capture_exception(e, contexts={"bad_traces": context})
 
+        # This is the name of the trace's root span without a parent span
+        traces_primary_names: MutableMapping[str, tuple[str, str]] = {}
+
+        # This is the name of a span that can take the place of the trace's root
+        # based on some heuristics for that type of trace
+        traces_fallback_names: MutableMapping[str, tuple[str, str]] = {}
+
+        # This is the name of the first span in the trace that will be used if
+        # no other candidates names are found
+        traces_default_names: MutableMapping[str, tuple[str, str]] = {}
+
         # Normally, the name given to a trace is the name of the first root transaction
         # found within the trace.
         #
         # But there are some cases where traces do not have any root transactions. For
         # these traces, we try to pick out a name from the first span that is a good
         # candidate for the trace name.
-        traces_primary_names: MutableMapping[str, tuple[str, str]] = {}
-        traces_fallback_names: MutableMapping[str, tuple[str, str]] = {}
         for row in traces_breakdown_projects_results["data"]:
             if row["trace"] in traces_primary_names:
                 continue
-            else:
-                # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
-                # So make sure to handle both in case something changes.
-                if not row["parent_span"] or int(row["parent_span"], 16) == 0:
-                    traces_primary_names[row["trace"]] = (row["project"], row["transaction"])
 
+            # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
+            # So make sure to handle both in case something changes.
+            if not row["parent_span"] or int(row["parent_span"], 16) == 0:
+                traces_primary_names[row["trace"]] = (row["project"], row["transaction"])
+
+            if row["trace"] in traces_fallback_names:
+                continue
+
+            # This span is a good candidate for the trace name so use it.
             if row["trace"] not in traces_fallback_names and is_trace_name_candidate(row):
                 traces_fallback_names[row["trace"]] = (row["project"], row["transaction"])
+
+            if row["trace"] in traces_default_names:
+                continue
+
+            # This is the first span in this trace.
+            traces_default_names[row["trace"]] = (row["project"], row["transaction"])
 
         def get_trace_name(trace):
             if trace in traces_primary_names:
@@ -854,6 +888,9 @@ class TracesExecutor:
 
             if trace in traces_fallback_names:
                 return traces_fallback_names[trace]
+
+            if trace in traces_default_names:
+                return traces_default_names[trace]
 
             return (None, None)
 

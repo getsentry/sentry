@@ -45,8 +45,10 @@ import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/s
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {WebVital} from '../fields';
 import {MutableSearch} from '../tokenizeSearch';
@@ -1250,6 +1252,7 @@ class EventView {
     options: {
       breakdown?: SpanOperationBreakdownFilter;
       showTransactions?: EventsDisplayFilterName;
+      view?: DomainView;
       webVital?: WebVital;
     }
   ): {pathname: string; query: Query} {
@@ -1274,7 +1277,9 @@ class EventView {
 
     const query = cloneDeep(output as any);
     return {
-      pathname: normalizeUrl(`/organizations/${slug}/performance/summary/events/`),
+      pathname: normalizeUrl(
+        `${getTransactionSummaryBaseUrl(slug, options.view)}/events/`
+      ),
       query,
     };
   }

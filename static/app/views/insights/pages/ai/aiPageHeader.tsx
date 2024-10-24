@@ -15,11 +15,19 @@ type Props = {
   headerTitle: HeaderProps['headerTitle'];
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
+  hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
   module?: HeaderProps['selectedModule'];
+  tabs?: HeaderProps['tabs'];
 };
 
-// TODO - add props to append to breadcrumbs and change title
-export function AiHeader({module, headerTitle, headerActions, breadcrumbs}: Props) {
+export function AiHeader({
+  module,
+  headerTitle,
+  headerActions,
+  breadcrumbs,
+  tabs,
+  hideDefaultTabs,
+}: Props) {
   const {slug} = useOrganization();
 
   const aiBaseUrl = normalizeUrl(
@@ -37,6 +45,8 @@ export function AiHeader({module, headerTitle, headerActions, breadcrumbs}: Prop
       selectedModule={module}
       additonalHeaderActions={headerActions}
       additionalBreadCrumbs={breadcrumbs}
+      tabs={tabs}
+      hideDefaultTabs={hideDefaultTabs}
     />
   );
 }
