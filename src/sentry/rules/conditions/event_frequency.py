@@ -537,6 +537,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
 
 class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCondition):
     id = "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions"
+    label = "The issue is seen by more than {value} users in {interval} with conditions"
 
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
