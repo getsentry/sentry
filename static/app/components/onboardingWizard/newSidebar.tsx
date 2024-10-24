@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
@@ -8,69 +8,43 @@ import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import SkipConfirm from 'sentry/components/onboardingWizard/skipConfirm';
-import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import type {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
+import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
-import {
-  type OnboardingTask,
-  OnboardingTaskGroup,
-  type OnboardingTaskKey,
-} from 'sentry/types/onboarding';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
-import {getMergedTasks} from './taskConfig';
+const orderedGettingStartedTasks = [
+  OnboardingTaskKey.FIRST_PROJECT,
+  OnboardingTaskKey.FIRST_EVENT,
+  OnboardingTaskKey.INVITE_MEMBER,
+  OnboardingTaskKey.ALERT_RULE,
+  OnboardingTaskKey.SOURCEMAPS,
+  OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
+  OnboardingTaskKey.RELEASE_TRACKING,
+];
 
-/**
- * How long (in ms) to delay before beginning to mark tasks complete
- */
-const INITIAL_MARK_COMPLETE_TIMEOUT = 600;
-
-/**
- * How long (in ms) to delay between marking each unseen task as complete.
- */
-const COMPLETION_SEEN_TIMEOUT = 800;
-
-export function useOnboardingTasks(
-  organization: Organization,
-  projects: Project[],
-  onboardingContext: OnboardingContextProps
-) {
-  return useMemo(() => {
-    const all = getMergedTasks({
-      organization,
-      projects,
-      onboardingContext,
-    }).filter(task => task.display);
-    return {
-      allTasks: all,
-      gettingStartedTasks: all.filter(
-        task => task.group === OnboardingTaskGroup.GETTING_STARTED
-      ),
-      beyondBasicsTasks: all.filter(
-        task => task.group !== OnboardingTaskGroup.GETTING_STARTED
-      ),
-      completeTasks: all.filter(findCompleteTasks),
-    };
-  }, [organization, projects, onboardingContext]);
-}
+const orderedBeyondBasicsTasks = [
+  OnboardingTaskKey.REAL_TIME_NOTIFICATIONS,
+  OnboardingTaskKey.SESSION_REPLAY,
+  OnboardingTaskKey.FIRST_TRANSACTION,
+  OnboardingTaskKey.SECOND_PLATFORM,
+];
 
 function groupTasksByCompletion(tasks: OnboardingTask[]) {
-  const [completedTasks, incompletedTasks] = partition(tasks, task =>
-    findCompleteTasks(task)
-  );
+  const [completedTasks, incompletedTasks] = partition(tasks, task => taskIsDone(task));
   return {
     completedTasks,
     incompletedTasks,
@@ -236,7 +210,14 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
       <TaskGroupHeader role="button" onClick={() => setIsExpanded(!isExpanded)}>
         <InteractionStateLayer />
         <div>
-          <strong>{title}</strong>
+          <TaskGroupTitle>
+            <strong>{title}</strong>
+            {incompletedTasks.length === 0 && (
+              <Tooltip title={t('All tasks completed')} containerDisplayMode="flex">
+                <IconCheckmark color="green300" isCircled />
+              </Tooltip>
+            )}
+          </TaskGroupTitle>
           <p>{description}</p>
         </div>
         <Chevron
@@ -289,66 +270,22 @@ export function NewOnboardingSidebar({
   onClose,
   orientation,
   collapsed,
-  allTasks,
   gettingStartedTasks,
   beyondBasicsTasks,
 }: NewSidebarProps) {
-  const api = useApi();
-  const organization = useOrganization();
   const walkthrough = isDemoWalkthrough();
   const {title, description} = getPanelDescription(walkthrough);
 
-  const markCompletionTimeout = useRef<number | undefined>();
-  const markCompletionSeenTimeout = useRef<number | undefined>();
-
-  function completionTimeout(time: number): Promise<void> {
-    window.clearTimeout(markCompletionTimeout.current);
-    return new Promise(resolve => {
-      markCompletionTimeout.current = window.setTimeout(resolve, time);
-    });
-  }
-
-  function seenTimeout(time: number): Promise<void> {
-    window.clearTimeout(markCompletionSeenTimeout.current);
-    return new Promise(resolve => {
-      markCompletionSeenTimeout.current = window.setTimeout(resolve, time);
-    });
-  }
-
-  const markTasksAsSeen = useCallback(
-    async function () {
-      const unseenTasks = allTasks
-        .filter(task => taskIsDone(task) && !task.completionSeen)
-        .map(task => task.task);
-
-      // Incrementally mark tasks as seen. This gives the card completion
-      // animations time before we move each task into the completed section.
-      for (const task of unseenTasks) {
-        await seenTimeout(COMPLETION_SEEN_TIMEOUT);
-        updateOnboardingTask(api, organization, {task, completionSeen: true});
-      }
-    },
-    [api, organization, allTasks]
+  const sortedGettingStartedTasks = gettingStartedTasks.sort(
+    (a, b) =>
+      orderedGettingStartedTasks.indexOf(a.task) -
+      orderedGettingStartedTasks.indexOf(b.task)
   );
 
-  const markSeenOnOpen = useCallback(
-    async function () {
-      // Add a minor delay to marking tasks complete to account for the animation
-      // opening of the sidebar panel
-      await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
-      markTasksAsSeen();
-    },
-    [markTasksAsSeen]
+  const sortedBeyondBasicsTasks = beyondBasicsTasks.sort(
+    (a, b) =>
+      orderedBeyondBasicsTasks.indexOf(a.task) - orderedBeyondBasicsTasks.indexOf(b.task)
   );
-
-  useEffect(() => {
-    markSeenOnOpen();
-
-    return () => {
-      window.clearTimeout(markCompletionTimeout.current);
-      window.clearTimeout(markCompletionSeenTimeout.current);
-    };
-  }, [markSeenOnOpen]);
 
   return (
     <Wrapper
@@ -364,7 +301,7 @@ export function NewOnboardingSidebar({
           description={t(
             'Learn the essentials to set up monitoring, capture errors, and track releases.'
           )}
-          tasks={gettingStartedTasks}
+          tasks={sortedGettingStartedTasks}
           hidePanel={onClose}
           expanded={
             groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length > 0
@@ -375,7 +312,7 @@ export function NewOnboardingSidebar({
           description={t(
             'Explore advanced features like release tracking, performance alerts and more to enhance your monitoring.'
           )}
-          tasks={beyondBasicsTasks}
+          tasks={sortedBeyondBasicsTasks}
           hidePanel={onClose}
           expanded={
             groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
@@ -430,6 +367,13 @@ const TaskGroupHeader = styled('div')`
     font-size: ${p => p.theme.fontSizeSmall};
     color: ${p => p.theme.subText};
   }
+`;
+
+const TaskGroupTitle = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const TaskGroupBody = styled('div')`

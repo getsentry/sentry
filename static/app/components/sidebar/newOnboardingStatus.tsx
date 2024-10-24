@@ -4,10 +4,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {
-  NewOnboardingSidebar,
-  useOnboardingTasks,
-} from 'sentry/components/onboardingWizard/newSidebar';
+import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
+import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
+import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -42,8 +41,14 @@ export function NewOnboardingStatus({
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
   const walkthrough = isDemoWalkthrough();
 
+  const supportedTasks = getMergedTasks({
+    organization,
+    projects,
+    onboardingContext,
+  }).filter(task => task.display);
+
   const {allTasks, gettingStartedTasks, beyondBasicsTasks, completeTasks} =
-    useOnboardingTasks(organization, projects, onboardingContext);
+    useOnboardingTasks({supportedTasks});
 
   const handleToggle = useCallback(() => {
     if (!walkthrough && !isActive === true) {
@@ -95,7 +100,7 @@ export function NewOnboardingStatus({
             font-size: ${theme.fontSizeMedium};
             font-weight: ${theme.fontWeightBold};
           `}
-          text={totalRemainingTasks}
+          text={completeTasks.length}
           value={(completeTasks.length / allTasks.length) * 100}
           backgroundColor="rgba(255, 255, 255, 0.15)"
           progressEndcaps="round"
@@ -106,10 +111,13 @@ export function NewOnboardingStatus({
           <div>
             <Heading>{label}</Heading>
             <Remaining>
-              {tct('[totalRemainingTasks] Remaining [task]', {
-                totalRemainingTasks,
-                task: walkthrough ? 'tours' : 'tasks',
-              })}
+              {walkthrough
+                ? tct('[totalCompletedTasks] completed tours', {
+                    totalCompletedTasks: completeTasks.length,
+                  })
+                : tct('[totalCompletedTasks] completed tasks', {
+                    totalCompletedTasks: completeTasks.length,
+                  })}
               {pendingCompletionSeen && <PendingSeenIndicator />}
             </Remaining>
           </div>

@@ -9,10 +9,10 @@ interface DiscoverSplitAlertProps {
   onSetTransactionsDataset?: () => void;
 }
 
-export function DiscoverSplitAlert({
+export function useDiscoverSplitAlert({
   widget,
   onSetTransactionsDataset,
-}: DiscoverSplitAlertProps) {
+}: DiscoverSplitAlertProps): JSX.Element | null {
   if (
     widget?.datasetSource !== DatasetSource.FORCED ||
     widget.widgetType !== WidgetType.ERRORS
@@ -20,28 +20,41 @@ export function DiscoverSplitAlert({
     return null;
   }
 
-  return (
-    <Tooltip
-      containerDisplayMode="inline-flex"
-      isHoverable
-      title={tct(
-        "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. [editText]",
-        {
-          editText: onSetTransactionsDataset ? (
-            <a
-              onClick={() => {
-                onSetTransactionsDataset();
-              }}
-            >
-              {t('Switch to Transactions')}
-            </a>
-          ) : (
-            t('Edit as you see fit.')
-          ),
-        }
-      )}
-    >
-      <IconWarning color="warningText" aria-label={t('Dataset split warning')} />
-    </Tooltip>
+  return tct(
+    "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. [editText]",
+    {
+      editText: onSetTransactionsDataset ? (
+        <a
+          onClick={() => {
+            onSetTransactionsDataset();
+          }}
+        >
+          {t('Switch to Transactions')}
+        </a>
+      ) : (
+        t('Edit as you see fit.')
+      ),
+    }
   );
+}
+
+export function DiscoverSplitAlert({
+  widget,
+  onSetTransactionsDataset,
+}: DiscoverSplitAlertProps) {
+  const splitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
+
+  if (widget?.datasetSource !== DatasetSource.FORCED) {
+    return null;
+  }
+
+  if (splitAlert) {
+    return (
+      <Tooltip containerDisplayMode="inline-flex" title={splitAlert}>
+        <IconWarning color="warningText" aria-label={t('Dataset split warning')} />
+      </Tooltip>
+    );
+  }
+
+  return null;
 }

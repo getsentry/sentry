@@ -15,9 +15,9 @@ export class Profile {
   timestamp: number | null;
   // Duration of the profile
   duration: number;
-  // Releative timestamp of the first sample in the timestamp.
+  // Relative timestamp of the first sample in the timestamp.
   startedAt: number;
-  // Releative timestamp of the last sample in the timestamp.
+  // Relative timestamp of the last sample in the timestamp.
   endedAt: number;
   threadId: number;
   type: string;

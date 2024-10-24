@@ -84,7 +84,6 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import {getProjectOptions} from '../utils';
 
 import RuleNodeList from './ruleNodeList';
-import SetupAlertIntegrationButton from './setupAlertIntegrationButton';
 
 const FREQUENCY_OPTIONS = [
   {value: '5', label: t('5 minutes')},
@@ -798,17 +797,34 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     if (!organization.features.includes('change-alerts')) {
       return this.state.configs?.conditions ?? null;
     }
+    let conditions = this.state.configs?.conditions ?? null;
 
-    return (
-      this.state.configs?.conditions?.map(condition =>
-        CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
-          ? {
-              ...condition,
-              label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id]}...`,
-            }
-          : condition
-      ) ?? null
+    if (conditions === null) {
+      return null;
+    }
+
+    if (
+      !organization.features.includes(
+        'event-unique-user-frequency-condition-with-conditions'
+      )
+    ) {
+      conditions = conditions?.filter(
+        condition =>
+          condition.id !==
+          'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions'
+      );
+    }
+
+    conditions = conditions?.map(condition =>
+      CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
+        ? {
+            ...condition,
+            label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id]}...`,
+          }
+        : condition
     );
+
+    return conditions;
   }
 
   getTeamId = () => {
@@ -1168,9 +1184,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     const disabled = loading || !(canCreateAlert || isActiveSuperuser());
     const displayDuplicateError =
       detailedError?.name?.some(str => isExactDuplicateExp.test(str)) ?? false;
-    const hasMessagingIntegrationOnboarding = organization.features.includes(
-      'messaging-integration-onboarding'
-    );
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
@@ -1223,21 +1236,13 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
             </ContentIndent>
             <SetConditionsListItem>
               <StepHeader>{t('Set conditions')}</StepHeader>{' '}
-              {hasMessagingIntegrationOnboarding ? (
-                <SetupMessagingIntegrationButton
-                  projectId={project.id}
-                  refetchConfigs={this.refetchConfigs}
-                  analyticsParams={{
-                    view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
-                  }}
-                />
-              ) : (
-                <SetupAlertIntegrationButton
-                  projectSlug={project.slug}
-                  organization={organization}
-                  refetchConfigs={this.refetchConfigs}
-                />
-              )}
+              <SetupMessagingIntegrationButton
+                projectId={project.id}
+                refetchConfigs={this.refetchConfigs}
+                analyticsParams={{
+                  view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
+                }}
+              />
             </SetConditionsListItem>
             <ContentIndent>
               <ConditionsPanel>
@@ -1443,28 +1448,20 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                               </StyledAlert>
                             )
                           }
-                          {...(hasMessagingIntegrationOnboarding && {
-                            additionalAction: {
-                              label: 'Notify integration\u{2026}',
-                              option: {
-                                label: 'Missing an integration? Click here to refresh',
-                                value: {
-                                  enabled: true,
-                                  id: 'refresh_configs',
-                                  label: 'Refresh Integration List',
-                                },
-                              },
-                              onClick: () => {
-                                trackAnalytics(
-                                  'onboarding.messaging_integration_steps_refreshed',
-                                  {
-                                    organization: this.props.organization,
-                                  }
-                                );
-                                this.refetchConfigs();
+                          additionalAction={{
+                            label: 'Notify integration\u{2026}',
+                            option: {
+                              label: 'Missing an integration? Click here to refresh',
+                              value: {
+                                enabled: true,
+                                id: 'refresh_configs',
+                                label: 'Refresh Integration List',
                               },
                             },
-                          })}
+                            onClick: () => {
+                              this.refetchConfigs();
+                            },
+                          }}
                         />
                         <TestButtonWrapper>
                           <Button

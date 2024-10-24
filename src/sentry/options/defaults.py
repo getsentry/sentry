@@ -487,6 +487,12 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "feedback.message.max-size",
+    type=Int,
+    default=4096,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Dev Toolbar Options
 register(
@@ -1922,6 +1928,15 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables a feature flag check in dynamic sampling tasks that switches
+# organizations between transactions and spans for rebalancing. This check is
+# expensive, so it can be disabled using this option.
+register(
+    "dynamic-sampling.check_span_feature_flag",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
 # === Hybrid cloud subsystem options ===
 # UI rollout
 register(
@@ -2009,6 +2024,13 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+# Enables anomaly detection based on the volume of check-ins being processed
+register(
+    "crons.tick_volume_anomaly_detection",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Sets the timeout for webhooks
 register(
