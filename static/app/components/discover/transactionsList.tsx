@@ -364,6 +364,7 @@ class _TransactionsList extends Component<Props> {
       generateLink,
       forceLoading,
       referrer,
+      domainViewFilters,
     } = this.props;
 
     const eventView = this.getEventView();
@@ -396,7 +397,7 @@ class _TransactionsList extends Component<Props> {
           tableData={null}
           header={this.renderHeader({
             numSamples: null,
-            view: this.props.domainViewFilters?.view,
+            view: domainViewFilters?.view,
           })}
         />
       );
@@ -421,7 +422,7 @@ class _TransactionsList extends Component<Props> {
               numSamples: tableData?.data?.length ?? null,
               supportsInvestigationRule: this.props.supportsInvestigationRule,
               cursor,
-              view: this.props.domainViewFilters?.view,
+              view: domainViewFilters?.view,
             })}
           />
         )}
@@ -430,8 +431,15 @@ class _TransactionsList extends Component<Props> {
   }
 
   renderTrendsTable(): React.ReactNode {
-    const {trendView, location, selected, organization, cursorName, generateLink} =
-      this.props;
+    const {
+      trendView,
+      location,
+      selected,
+      organization,
+      cursorName,
+      generateLink,
+      domainViewFilters,
+    } = this.props;
 
     const sortedEventView: TrendView = trendView!.clone();
     sortedEventView.sorts = [selected.sort];
@@ -464,7 +472,7 @@ class _TransactionsList extends Component<Props> {
             header={this.renderHeader({
               numSamples: null,
               supportsInvestigationRule: false,
-              view: this.props.domainViewFilters?.view,
+              view: domainViewFilters?.view,
             })}
             titles={['transaction', 'percentage', 'difference']}
             columnOrder={decodeColumnOrder([
