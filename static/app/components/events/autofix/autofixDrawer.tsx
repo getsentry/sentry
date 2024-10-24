@@ -22,10 +22,11 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventNavigation';
 
 interface AutofixStartBoxProps {
+  groupId: string;
   onSend: (message: string) => void;
 }
 
-function AutofixStartBox({onSend}: AutofixStartBoxProps) {
+function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   const [message, setMessage] = useState('');
 
   const send = () => {
@@ -51,9 +52,27 @@ function AutofixStartBox({onSend}: AutofixStartBoxProps) {
           onChange={e => setMessage(e.target.value)}
           placeholder={'(Optional) Share any extra context or instructions here...'}
         />
-        <Button priority="primary" onClick={send}>
-          Start
-        </Button>
+        {message ? (
+          <Button
+            priority="primary"
+            onClick={send}
+            analyticsEventKey="autofix.give_instructions_clicked"
+            analyticsEventName="Autofix: Give Instructions Clicked"
+            analyticsParams={{group_id: groupId}}
+          >
+            Start
+          </Button>
+        ) : (
+          <Button
+            priority="primary"
+            onClick={send}
+            analyticsEventKey="autofix.start_fix_clicked"
+            analyticsEventName="Autofix: Start Fix Clicked"
+            analyticsParams={{group_id: groupId}}
+          >
+            Start
+          </Button>
+        )}
       </Row>
     </StartBox>
   );
@@ -110,7 +129,7 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
       </AutofixNavigator>
       <AutofixDrawerBody>
         {!autofixData ? (
-          <AutofixStartBox onSend={triggerAutofix} />
+          <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
         ) : (
           <AutofixSteps
             data={autofixData}
