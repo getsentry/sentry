@@ -1,9 +1,6 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {t} from 'sentry/locale';
@@ -33,53 +30,94 @@ export function EventDetailsHeader({
   const searchQuery = useEventQuery({group});
 
   return (
-    <Fragment>
-      <Feature features={['organizations:ai-summary']}>
-        <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-      </Feature>
-      <PageErrorBoundary mini message={t('There was an error loading the event filter')}>
-        <FilterContainer>
-          <EnvironmentPageFilter />
-          <SearchFilter
-            group={group}
-            handleSearch={query => {
-              navigate({...location, query: {...location.query, query}}, {replace: true});
-            }}
-            environments={environments}
-            query={searchQuery}
-            queryBuilderProps={{
-              disallowFreeText: true,
-            }}
-          />
-          <DatePageFilter />
-        </FilterContainer>
-      </PageErrorBoundary>
-      <PageErrorBoundary mini message={t('There was an error loading the event graph')}>
-        <ExtraContent>
-          <EventGraph event={event} group={group} />
-        </ExtraContent>
-      </PageErrorBoundary>
-    </Fragment>
+    <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
+      <FilterContainer>
+        <EnvironmentFilter
+          triggerProps={{
+            borderless: true,
+            style: {
+              borderRadius: 0,
+            },
+          }}
+        />
+        <DateFilter
+          triggerProps={{
+            borderless: true,
+            style: {
+              borderRadius: 0,
+            },
+          }}
+        />
+        <SearchFilter
+          group={group}
+          handleSearch={query => {
+            navigate({...location, query: {...location.query, query}}, {replace: true});
+          }}
+          environments={environments}
+          query={searchQuery}
+          queryBuilderProps={{
+            disallowFreeText: true,
+          }}
+        />
+        <Graph event={event} group={group} />
+      </FilterContainer>
+    </PageErrorBoundary>
   );
 }
 
-const SearchFilter = styled(EventSearch)`
-  border-radius: ${p => p.theme.borderRadius};
+const FilterContainer = styled('div')`
+  padding-left: 24px;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  grid-template-rows: 38px auto;
+  grid-template-areas:
+    'env    date  searchFilter'
+    'graph  graph graph';
+  border: 0px solid ${p => p.theme.translucentBorder};
+  border-width: 0 1px 1px 0;
 `;
 
-const FilterContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: ${space(1.5)};
+const EnvironmentFilter = styled(EnvironmentPageFilter)`
+  grid-area: env;
+  &:before {
+    right: 0;
+    top: ${space(1)};
+    bottom: ${space(1)};
+    width: 1px;
+    content: '';
+    position: absolute;
+    background: ${p => p.theme.translucentInnerBorder};
+  }
+`;
+
+const SearchFilter = styled(EventSearch)`
+  grid-area: searchFilter;
+  border: 0;
+  border-radius: 0;
+`;
+
+const DateFilter = styled(DatePageFilter)`
+  grid-area: date;
+  &:before {
+    right: 0;
+    top: ${space(1)};
+    bottom: ${space(1)};
+    width: 1px;
+    content: '';
+    position: absolute;
+    background: ${p => p.theme.translucentInnerBorder};
+  }
+`;
+
+const Graph = styled(EventGraph)`
+  border-top: 1px solid ${p => p.theme.translucentBorder};
+  grid-area: graph;
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
   margin: 0;
-  border: 1px solid ${p => p.theme.translucentBorder};
-`;
-
-const ExtraContent = styled('div')`
-  border: 1px solid ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 0px solid ${p => p.theme.translucentBorder};
+  border-width: 0 1px 1px 0;
+  border-radius: 0;
+  padding: ${space(1.5)} 24px;
 `;

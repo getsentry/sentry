@@ -59,6 +59,7 @@ export function EnvironmentPageFilter({
   trigger,
   resetParamsOnChange,
   footerMessage,
+  triggerProps = {},
   ...selectProps
 }: EnvironmentPageFilterProps) {
   const router = useRouter();
@@ -203,8 +204,9 @@ export function EnvironmentPageFilter({
       menuFooterMessage={footerMessage}
       trigger={
         trigger ??
-        ((triggerProps, isOpen) => (
+        ((tp, isOpen) => (
           <EnvironmentPageFilterTrigger
+            {...tp}
             {...triggerProps}
             isOpen={isOpen}
             size={selectProps.size}
