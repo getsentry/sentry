@@ -204,27 +204,6 @@ SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"] + JS_PLATFORMS)
 SHOULD_DEOBFUSCATE = frozenset(["android"])
 
 
-def _track_profile_outcomes(org_id: int, project_id: int):
-    """
-    Tracks the outcomes for the ingested profile.
-
-    Since profiles are not dynamically sampled, the `PROFILE` and `PROFILE_INDEXED` outcomes should have the same count.
-    """
-    now = datetime.now(timezone.utc)
-    for category in [DataCategory.PROFILE, DataCategory.PROFILE_INDEXED]:
-        track_outcome(
-            org_id=org_id,
-            project_id=project_id,
-            key_id=None,
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=now,
-            event_id=None,
-            category=category,
-            quantity=1,
-        )
-
-
 def _should_symbolicate(profile: Profile) -> bool:
     platform: str = profile["platform"]
     return platform in SHOULD_SYMBOLICATE and not profile.get("processed_by_symbolicator", False)
