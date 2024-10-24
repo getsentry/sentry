@@ -39,9 +39,11 @@ export function EventDetails({
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <Feature features={['organizations:ai-summary']}>
-        <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-      </Feature>
+      <PageErrorBoundary mini message={t('There was an error loading the issue summary')}>
+        <Feature features={['organizations:ai-summary']}>
+          <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
+        </Feature>
+      </PageErrorBoundary>
       {/* TODO(issues): We should use the router for this */}
       {currentTab === Tab.EVENTS && (
         <PageErrorBoundary mini message={t('There was an error loading the event list')}>

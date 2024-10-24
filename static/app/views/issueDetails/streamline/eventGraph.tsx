@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
@@ -180,28 +180,28 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   if (error) {
     return (
-      <GraphAlert type="error" showIcon>
-        {error.message}
-      </GraphAlert>
+      <GraphWrapper {...styleProps}>
+        <GraphAlert type="error" showIcon>
+          {error.message}
+        </GraphAlert>
+      </GraphWrapper>
     );
   }
 
   if (isLoadingStats) {
     return (
-      <GraphWrapper>
+      <GraphWrapper {...styleProps}>
         <SummaryContainer>
-          <Callout isActive={visibleSeries === EventGraphSeries.EVENT} disabled>
-            <InteractionStateLayer hidden={visibleSeries === EventGraphSeries.EVENT} />
-            <Label isActive={visibleSeries === EventGraphSeries.EVENT}>
-              {tn('Event', 'Events', eventCount)}
-            </Label>
-            <Count isActive={visibleSeries === EventGraphSeries.EVENT}>-</Count>
-          </Callout>
-          <Callout isActive={visibleSeries === EventGraphSeries.USER} disabled>
-            <InteractionStateLayer hidden={visibleSeries === EventGraphSeries.USER} />
-            <Label isActive={visibleSeries === EventGraphSeries.USER}>{t('Users')}</Label>
-            <Count isActive={visibleSeries === EventGraphSeries.USER}>-</Count>
-          </Callout>
+          <GraphButton
+            isActive={visibleSeries === EventGraphSeries.EVENT}
+            disabled
+            label={t('Events')}
+          />
+          <GraphButton
+            isActive={visibleSeries === EventGraphSeries.USER}
+            disabled
+            label={t('Users')}
+          />
         </SummaryContainer>
         <LoadingChartContainer>
           <Placeholder height="96px" />
@@ -213,42 +213,26 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   return (
     <GraphWrapper {...styleProps}>
       <SummaryContainer>
-        <Callout
+        <GraphButton
           onClick={() =>
             visibleSeries === EventGraphSeries.USER &&
             setVisibleSeries(EventGraphSeries.EVENT)
           }
           isActive={visibleSeries === EventGraphSeries.EVENT}
           disabled={visibleSeries === EventGraphSeries.EVENT}
-        >
-          <InteractionStateLayer hidden={visibleSeries === EventGraphSeries.EVENT} />
-          <Flex column>
-            <Label isActive={visibleSeries === EventGraphSeries.EVENT}>
-              {tn('Event', 'Events', eventCount)}
-            </Label>
-            <Count isActive={visibleSeries === EventGraphSeries.EVENT}>
-              {formatAbbreviatedNumber(eventCount)}
-            </Count>
-          </Flex>
-        </Callout>
-        <Callout
+          label={tn('Event', 'Events', eventCount)}
+          count={String(eventCount)}
+        />
+        <GraphButton
           onClick={() =>
             visibleSeries === EventGraphSeries.EVENT &&
             setVisibleSeries(EventGraphSeries.USER)
           }
           isActive={visibleSeries === EventGraphSeries.USER}
           disabled={visibleSeries === EventGraphSeries.USER}
-        >
-          <InteractionStateLayer hidden={visibleSeries === EventGraphSeries.USER} />
-          <Flex column>
-            <Label isActive={visibleSeries === EventGraphSeries.USER}>
-              {tn('User', 'Users', userCount)}
-            </Label>
-            <Count isActive={visibleSeries === EventGraphSeries.USER}>
-              {formatAbbreviatedNumber(userCount)}
-            </Count>
-          </Flex>
-        </Callout>
+          label={tn('User', 'Users', userCount)}
+          count={String(userCount)}
+        />
       </SummaryContainer>
       <ChartContainer role="figure">
         <BarChart
@@ -285,6 +269,27 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
         </OpenInDiscoverButton>
       </ChartContainer>
     </GraphWrapper>
+  );
+}
+
+function GraphButton({
+  isActive,
+  label,
+  count,
+  ...props
+}: {isActive: boolean; label: string; count?: string} & Partial<ButtonProps>) {
+  return (
+    <Callout
+      isActive={isActive}
+      aria-label={t('Toggle [label] series', {label})}
+      {...props}
+    >
+      <InteractionStateLayer hidden={isActive} />
+      <Flex column>
+        <Label isActive={isActive}>{label}</Label>
+        <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
+      </Flex>
+    </Callout>
   );
 }
 

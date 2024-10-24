@@ -1,8 +1,9 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -29,7 +30,7 @@ export function EventDetailsHeader({
   const searchQuery = useEventQuery({group});
 
   return (
-    <Fragment>
+    <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
       <FilterContainer>
         <EnvironmentFilter
           triggerProps={{
@@ -60,7 +61,7 @@ export function EventDetailsHeader({
         />
         <Graph event={event} group={group} />
       </FilterContainer>
-    </Fragment>
+    </PageErrorBoundary>
   );
 }
 
@@ -113,7 +114,10 @@ const Graph = styled(EventGraph)`
   grid-area: graph;
 `;
 
-// const PageErrorBoundary = styled(ErrorBoundary)`
-//   margin: 0;
-//   border: 1px solid ${p => p.theme.translucentBorder};
-// `;
+const PageErrorBoundary = styled(ErrorBoundary)`
+  margin: 0;
+  border: 0px solid ${p => p.theme.translucentBorder};
+  border-width: 0 1px 1px 0;
+  border-radius: 0;
+  padding: ${space(1.5)} 24px;
+`;
