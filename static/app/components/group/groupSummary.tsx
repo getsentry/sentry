@@ -108,7 +108,9 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
               <HeadlinePreview>{data.headline}</HeadlinePreview>
               <SummaryPreview
                 dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(`Details: ${data.summary}`),
+                  __html: singleLineRenderer(
+                    `Details: ${data.summary.replaceAll('\n', ' ').replaceAll('-', '')}`
+                  ),
                 }}
               />
             </Fragment>
@@ -126,16 +128,9 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
             <Content>
               <SummaryContent
                 dangerouslySetInnerHTML={{
-                  __html: marked(`**Details:** ${data.summary}`),
+                  __html: marked(data.summary),
                 }}
               />
-              <ImpactContent>
-                <SummaryContent
-                  dangerouslySetInnerHTML={{
-                    __html: marked(`**Impact:** ${data.impact}`),
-                  }}
-                />
-              </ImpactContent>
             </Content>
           )}
           {openForm && !isPending && (
@@ -234,11 +229,6 @@ const SummaryContent = styled('div')`
   }
 `;
 
-const ImpactContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
@@ -246,7 +236,6 @@ const Content = styled('div')`
 `;
 
 const ButtonContainer = styled('div')`
-  margin-top: ${space(1.5)};
   align-items: center;
   display: flex;
 `;

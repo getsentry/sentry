@@ -91,7 +91,7 @@ describe('GroupSummary', function () {
     expect(await screen.findByText('Test headline')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Test headline'));
-    expect(screen.getByText('Test impact')).toBeInTheDocument();
+    expect(screen.getByText('Test summary')).toBeInTheDocument();
   });
 
   it('does not render the summary if no consent', async function () {
@@ -136,7 +136,6 @@ describe('GroupSummary', function () {
 
     expect(screen.queryByText('Test headline')).not.toBeInTheDocument();
     expect(screen.queryByText('Test summary')).not.toBeInTheDocument();
-    expect(screen.queryByText('Impact: Test impact')).not.toBeInTheDocument();
   });
 
   it('does not render the summary if the issue is not in the error category', function () {
@@ -177,6 +176,5 @@ describe('GroupSummary', function () {
 
     expect(screen.queryByText('Test headline')).not.toBeInTheDocument();
     expect(screen.queryByText('Test summary')).not.toBeInTheDocument();
-    expect(screen.queryByText('Impact: Test impact')).not.toBeInTheDocument();
   });
 });
