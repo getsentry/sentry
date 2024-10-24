@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {ErrorPanel} from './errorPanel';
-import {MIN_HEIGHT, MIN_WIDTH} from './settings';
+import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from './settings';
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
 import {WarningsList} from './warningsList';
@@ -174,7 +174,7 @@ const Frame = styled('div')`
   width: 100%;
   min-width: ${MIN_WIDTH}px;
 
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${Y_GUTTER} ${X_GUTTER};
 
   border-radius: ${p => p.theme.panelBorderRadius};
   border: ${p => p.theme.border};
