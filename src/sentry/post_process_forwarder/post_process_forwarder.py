@@ -20,7 +20,9 @@ logger = logging.getLogger(__name__)
 class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload], ABC):
     @staticmethod
     @abstractmethod
-    def _dispatch_function(message: Message[KafkaPayload], eventstream_type: str) -> None:
+    def _dispatch_function(
+        message: Message[KafkaPayload], eventstream_type: str | None = None
+    ) -> None:
         raise NotImplementedError()
 
     def __init__(
@@ -32,7 +34,7 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
         max_batch_size: int,
         max_batch_time: int,
         concurrency: int,
-        eventstream_type: str,
+        eventstream_type: str | None = None,
     ) -> None:
         self.mode = mode
         self.input_block_size = input_block_size

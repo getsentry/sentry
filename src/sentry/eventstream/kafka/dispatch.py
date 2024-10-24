@@ -45,24 +45,28 @@ def dispatch_post_process_group_task(
     skip_consume: bool = False,
     group_states: GroupStates | None = None,
     occurrence_id: str | None = None,
+    eventstream_type: str | None = None,
 ) -> None:
     if skip_consume:
         logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
     else:
         cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
 
+        kwargs = {
+            "is_new": is_new,
+            "is_regression": is_regression,
+            "is_new_group_environment": is_new_group_environment,
+            "primary_hash": primary_hash,
+            "cache_key": cache_key,
+            "group_id": group_id,
+            "group_states": group_states,
+            "occurrence_id": occurrence_id,
+            "project_id": project_id,
+        }
+        if eventstream_type:
+            kwargs["eventstream_type"] = eventstream_type
         post_process_group.apply_async(
-            kwargs={
-                "is_new": is_new,
-                "is_regression": is_regression,
-                "is_new_group_environment": is_new_group_environment,
-                "primary_hash": primary_hash,
-                "cache_key": cache_key,
-                "group_id": group_id,
-                "group_states": group_states,
-                "occurrence_id": occurrence_id,
-                "project_id": project_id,
-            },
+            kwargs=kwargs,
             queue=queue,
         )
 
@@ -83,8 +87,11 @@ def _get_task_kwargs(message: Message[KafkaPayload]) -> Mapping[str, Any] | None
             return get_task_kwargs_for_message(message.payload.value)
 
 
-def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
+def _get_task_kwargs_and_dispatch(
+    message: Message[KafkaPayload], eventstream_type: str | None = None
+) -> None:
     task_kwargs = _get_task_kwargs(message)
+    task_kwargs["eventstream_type"] = eventstream_type
     if not task_kwargs:
         return None
 
@@ -93,5 +100,7 @@ def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
 
 class EventPostProcessForwarderStrategyFactory(PostProcessForwarderStrategyFactory):
     @staticmethod
-    def _dispatch_function(message: Message[KafkaPayload]) -> None:
-        return _get_task_kwargs_and_dispatch(message)
+    def _dispatch_function(
+        message: Message[KafkaPayload], eventstream_type: str | None = None
+    ) -> None:
+        return _get_task_kwargs_and_dispatch(message, eventstream_type)
