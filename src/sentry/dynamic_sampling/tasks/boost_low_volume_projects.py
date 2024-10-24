@@ -164,8 +164,14 @@ def boost_low_volume_projects_of_org_with_query(
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
     )
 
+    measure = SamplingMeasure.TRANSACTIONS
+    if options.get("dynamic-sampling.check_span_feature_flag"):
+        org = Organization.objects.get_from_cache(id=org_id)
+        if features.has("organizations:dynamic-sampling-spans", org):
+            measure = SamplingMeasure.SPANS
+
     projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
-        context, org_ids=[org_id]
+        context, org_ids=[org_id], measure=measure
     )[org_id]
     adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
 
