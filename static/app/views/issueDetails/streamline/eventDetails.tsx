@@ -19,8 +19,6 @@ import {
   useEventDetailsReducer,
 } from 'sentry/views/issueDetails/streamline/context';
 import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
-import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {IssueContent} from 'sentry/views/issueDetails/streamline/issueContent';
 import {Tab} from 'sentry/views/issueDetails/types';
@@ -32,7 +30,6 @@ export function EventDetails({
   project,
 }: Required<EventDetailsContentProps>) {
   const {eventDetails, dispatch} = useEventDetailsReducer();
-  const searchQuery = useEventQuery({group});
 
   const {currentTab} = useGroupDetailsRoute();
 
@@ -53,7 +50,6 @@ export function EventDetails({
           message={t('There was an error loading the event content')}
         >
           <div>
-            <IssueEventNavigation event={event} group={group} query={searchQuery} />
             <GroupContent>
               <StickyEventNav event={event} group={group} />
               <ContentPadding>

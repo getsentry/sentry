@@ -29,6 +29,8 @@ import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetail
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
+import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
 
 import ReprocessingProgress from '../reprocessingProgress';
@@ -74,6 +76,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const searchQuery = useEventQuery({group});
 
   const [sidebarOpen, _] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
 
@@ -204,7 +207,18 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                 {hasStreamlinedUI ? (
                   <EventDetailsHeader event={event} group={group} />
                 ) : null}
-                {renderContent()}
+                {hasStreamlinedUI ? (
+                  <div>
+                    <IssueEventNavigation
+                      event={event}
+                      group={group}
+                      query={searchQuery}
+                    />
+                    {renderContent()}
+                  </div>
+                ) : (
+                  renderContent()
+                )}
               </MainLayoutComponent>
               {hasStreamlinedUI ? (
                 sidebarOpen ? (

@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -45,7 +45,7 @@ const TabName = {
 };
 
 interface IssueEventNavigationProps {
-  event: Event;
+  event: Event | undefined;
   group: Group;
   query: string | undefined;
 }
@@ -75,8 +75,6 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
     }
   }, [query, params.eventId, defaultIssueEvent]);
 
-  const hasPreviousEvent = defined(event.previousEventID);
-  const hasNextEvent = defined(event.nextEventID);
   const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
   const grayText = css`
@@ -138,73 +136,85 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
         />
         <LargeInThisIssueText>{t('in this issue')}</LargeInThisIssueText>
       </LargeDropdownButtonWrapper>
-      <NavigationWrapper>
-        <Navigation>
-          <Tooltip title={t('Previous Event')} skipWrapper>
+      {event ? (
+        <NavigationWrapper>
+          {currentTab === Tab.DETAILS && (
+            <Fragment>
+              <Navigation>
+                <Tooltip title={t('Previous Event')} skipWrapper>
+                  <LinkButton
+                    aria-label={t('Previous Event')}
+                    borderless
+                    size="xs"
+                    icon={<IconChevron direction="left" />}
+                    disabled={!defined(event.previousEventID)}
+                    to={{
+                      pathname: `${baseEventsPath}${event.previousEventID}/`,
+                      query: {...location.query, referrer: 'previous-event'},
+                    }}
+                    css={grayText}
+                  />
+                </Tooltip>
+                <Tooltip title={t('Next Event')} skipWrapper>
+                  <LinkButton
+                    aria-label={t('Next Event')}
+                    borderless
+                    size="xs"
+                    icon={<IconChevron direction="right" />}
+                    disabled={!defined(event.nextEventID)}
+                    to={{
+                      pathname: `${baseEventsPath}${event.nextEventID}/`,
+                      query: {...location.query, referrer: 'next-event'},
+                    }}
+                    css={grayText}
+                  />
+                </Tooltip>
+              </Navigation>
+              <Tabs value={selectedOption} disableOverflow>
+                <TabList hideBorder variant="floating">
+                  {EventNavOrder.map(label => {
+                    const eventPath =
+                      label === selectedOption
+                        ? undefined
+                        : {
+                            pathname: normalizeUrl(baseEventsPath + label + '/'),
+                            query: {...location.query, referrer: `${label}-event`},
+                          };
+                    return (
+                      <TabList.Item
+                        to={eventPath}
+                        key={label}
+                        hidden={
+                          label === EventNavOptions.CUSTOM &&
+                          selectedOption !== EventNavOptions.CUSTOM
+                        }
+                        textValue={EventNavLabels[label]}
+                      >
+                        {EventNavLabels[label]}
+                      </TabList.Item>
+                    );
+                  })}
+                </TabList>
+              </Tabs>
+            </Fragment>
+          )}
+          {currentTab === Tab.DETAILS ? (
             <LinkButton
-              aria-label={t('Previous Event')}
-              borderless
-              size="xs"
-              icon={<IconChevron direction="left" />}
-              disabled={!hasPreviousEvent}
               to={{
-                pathname: `${baseEventsPath}${event.previousEventID}/`,
-                query: {...location.query, referrer: 'previous-event'},
+                pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                query: location.query,
               }}
-              css={grayText}
-            />
-          </Tooltip>
-          <Tooltip title={t('Next Event')} skipWrapper>
-            <LinkButton
-              aria-label={t('Next Event')}
-              borderless
               size="xs"
-              icon={<IconChevron direction="right" />}
-              disabled={!hasNextEvent}
-              to={{
-                pathname: `${baseEventsPath}${event.nextEventID}/`,
-                query: {...location.query, referrer: 'next-event'},
-              }}
-              css={grayText}
-            />
-          </Tooltip>
-        </Navigation>
-        <Tabs value={selectedOption} disableOverflow>
-          <TabList hideBorder variant="floating">
-            {EventNavOrder.map(label => {
-              const eventPath =
-                label === selectedOption
-                  ? undefined
-                  : {
-                      pathname: normalizeUrl(baseEventsPath + label + '/'),
-                      query: {...location.query, referrer: `${label}-event`},
-                    };
-              return (
-                <TabList.Item
-                  to={eventPath}
-                  key={label}
-                  hidden={
-                    label === EventNavOptions.CUSTOM &&
-                    selectedOption !== EventNavOptions.CUSTOM
-                  }
-                  textValue={EventNavLabels[label]}
-                >
-                  {EventNavLabels[label]}
-                </TabList.Item>
-              );
-            })}
-          </TabList>
-        </Tabs>
-        <LinkButton
-          to={{
-            pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
-            query: location.query,
-          }}
-          size="xs"
-        >
-          {t('All Events')}
-        </LinkButton>
-      </NavigationWrapper>
+            >
+              {t('All Events')}
+            </LinkButton>
+          ) : (
+            <LinkButton to={{pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`}} size="xs">
+              {t('Close')}
+            </LinkButton>
+          )}
+        </NavigationWrapper>
+      ) : null}
     </EventNavigationWrapper>
   );
 }
