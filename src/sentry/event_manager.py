@@ -2615,30 +2615,63 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     organization_ids = {project.organization_id for project in projects.values()}
     organizations = {o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)}
 
-    for project in projects.values():
-        try:
-            project.set_cached_field_value("organization", organizations[project.organization_id])
-        except KeyError:
-            continue
+    with metrics.timer("save_transaction_events.set_organization_cached_field_values"):
+        for project in projects.values():
+            try:
+                project.set_cached_field_value(
+                    "organization", organizations[project.organization_id]
+                )
+            except KeyError:
+                continue
 
     set_measurement(measurement_name="jobs", value=len(jobs))
     set_measurement(measurement_name="projects", value=len(projects))
 
-    _get_or_create_release_many(jobs, projects)
-    _get_event_user_many(jobs, projects)
-    _derive_plugin_tags_many(jobs, projects)
-    _derive_interface_tags_many(jobs)
-    _calculate_span_grouping(jobs, projects)
-    _materialize_metadata_many(jobs)
-    _get_or_create_environment_many(jobs, projects)
-    _get_or_create_release_associated_models(jobs, projects)
-    _tsdb_record_all_metrics(jobs)
-    _materialize_event_metrics(jobs)
-    _nodestore_save_many(jobs=jobs, app_feature="transactions")
-    _eventstream_insert_many(jobs)
-    _track_outcome_accepted_many(jobs)
-    _detect_performance_problems(jobs, projects)
-    _send_occurrence_to_platform(jobs, projects)
+    with metrics.timer("save_transaction_events.get_or_create_release_many"):
+        _get_or_create_release_many(jobs, projects)
+
+    with metrics.timer("save_transaction_events.get_event_user_many"):
+        _get_event_user_many(jobs, projects)
+
+    with metrics.timer("save_transaction_events.derive_plugin_tags_many"):
+        _derive_plugin_tags_many(jobs, projects)
+
+    with metrics.timer("save_transaction_events.derive_interface_tags_many"):
+        _derive_interface_tags_many(jobs)
+
+    with metrics.timer("save_transaction_events.calculate_span_grouping"):
+        _calculate_span_grouping(jobs, projects)
+
+    with metrics.timer("save_transaction_events.materialize_metadata_many"):
+        _materialize_metadata_many(jobs)
+
+    with metrics.timer("save_transaction_events.get_or_create_environment_many"):
+        _get_or_create_environment_many(jobs, projects)
+
+    with metrics.timer("save_transaction_events.get_or_create_release_associated_models"):
+        _get_or_create_release_associated_models(jobs, projects)
+
+    with metrics.timer("save_transaction_events.tsdb_record_all_metrics"):
+        _tsdb_record_all_metrics(jobs)
+
+    with metrics.timer("save_transaction_events.materialize_event_metrics"):
+        _materialize_event_metrics(jobs)
+
+    with metrics.timer("save_transaction_events.nodestore_save_many"):
+        _nodestore_save_many(jobs=jobs, app_feature="transactions")
+
+    with metrics.timer("save_transaction_events.eventstream_insert_many"):
+        _eventstream_insert_many(jobs)
+
+    with metrics.timer("save_transaction_events.track_outcome_accepted_many"):
+        _track_outcome_accepted_many(jobs)
+
+    with metrics.timer("save_transaction_events.detect_performance_problems"):
+        _detect_performance_problems(jobs, projects)
+
+    with metrics.timer("save_transaction_events.send_occurrence_to_platform"):
+        _send_occurrence_to_platform(jobs, projects)
+
     return jobs
 
 
