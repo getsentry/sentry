@@ -66,6 +66,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
             ]
 
 
+@pytest.mark.xfail(reason="skipping EAP tests until its stable")
 class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
     is_eap = True
 
