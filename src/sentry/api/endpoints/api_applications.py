@@ -13,8 +13,8 @@ from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 @control_silo_endpoint
 class ApiApplicationsEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
