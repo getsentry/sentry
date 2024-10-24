@@ -175,7 +175,7 @@ function GroupPriorityLearnMore() {
       <BannerStar2 src={bannerStar} />
       <BannerStar3 src={bannerStar} />
       <p>
-        <strong>{t('Time to prioritize!')}</strong>
+        <strong>{t('Time to prioritize')}</strong>
       </p>
       <p>
         {organization.features.includes('issue-stream-custom-views')
