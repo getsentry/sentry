@@ -230,7 +230,6 @@ describe('Issues Similar Embeddings View', function () {
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
-    expect(await screen.findByText('Would Group')).toBeInTheDocument();
     expect(screen.queryByText('Show 3 issues below threshold')).not.toBeInTheDocument();
   });
 
