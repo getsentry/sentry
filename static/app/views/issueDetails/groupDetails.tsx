@@ -62,7 +62,9 @@ import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails';
 import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
+import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/useMergedIssuesDrawer';
 import {useReplaysDrawer} from 'sentry/views/issueDetails/streamline/useReplaysDrawer';
+import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/useSimilarIssuesDrawer';
 import {useUserFeedbackDrawer} from 'sentry/views/issueDetails/streamline/useUserFeedbackDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -628,6 +630,8 @@ function GroupDetailsContent({
   const {openTagsDrawer} = useGroupTagsDrawer({group});
   const {openUserFeedbackDrawer} = useUserFeedbackDrawer({group, project});
   const {openReplaysDrawer} = useReplaysDrawer({group, project});
+  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
+  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {isDrawerOpen} = useDrawer();
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
@@ -650,9 +654,9 @@ function GroupDetailsContent({
     } else if (currentTab === Tab.REPLAYS) {
       openReplaysDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
-      openReplaysDrawer();
+      openSimilarIssuesDrawer();
     } else if (currentTab === Tab.MERGED) {
-      openReplaysDrawer();
+      openMergedIssuesDrawer();
     }
   }, [
     currentTab,
@@ -662,6 +666,8 @@ function GroupDetailsContent({
     openTagsDrawer,
     openUserFeedbackDrawer,
     openReplaysDrawer,
+    openSimilarIssuesDrawer,
+    openMergedIssuesDrawer,
   ]);
 
   useTrackView({group, event, project, tab: currentTab});
