@@ -15,7 +15,7 @@ export function useDiscoverSplitAlert({
 }: DiscoverSplitAlertProps): JSX.Element | null {
   if (
     widget?.datasetSource !== DatasetSource.FORCED ||
-    widget.widgetType !== WidgetType.ERRORS
+    widget?.widgetType !== WidgetType.ERRORS
   ) {
     return null;
   }
