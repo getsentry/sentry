@@ -49,7 +49,7 @@ from sentry.dynamic_sampling.tasks.constants import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
+from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
@@ -351,7 +351,7 @@ def adjust_sample_rates_of_projects(
 
     # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
     # issues.
-    sample_rate, success = get_sliding_window_org_sample_rate(
+    sample_rate, success = get_org_sample_rate(
         org_id=org_id,
         default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
     )
