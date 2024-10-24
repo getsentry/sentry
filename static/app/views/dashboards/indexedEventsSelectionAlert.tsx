@@ -69,7 +69,7 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
                         "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
                         {
                           indexedData: (
-                            <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
+                            <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#transactions" />
                           ),
                         }
                       )}
