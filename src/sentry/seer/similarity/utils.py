@@ -13,12 +13,21 @@ logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 30
 MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
-SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(["python", "javascript", "node", "ruby"])
+SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(["python", "javascript", "node", "ruby", "php", "go"])
 SEER_ELIGIBLE_PLATFORMS = frozenset(
     [
         "bun",
         "deno",
         "django",
+        "go",
+        "go-echo",
+        "go-fasthttp",
+        "go-fiber",
+        "go-gin",
+        "go-http",
+        "go-iris",
+        "go-martini",
+        "go-negroni",
         "javascript",
         "javascript-angular",
         "javascript-angularjs",
@@ -63,6 +72,12 @@ SEER_ELIGIBLE_PLATFORMS = frozenset(
         "node-profiling-onboarding-2-configure-performance",
         "node-profiling-onboarding-3-configure-profiling",
         "node-serverlesscloud",
+        "PHP",
+        "php",
+        "php-laravel",
+        "php-monolog",
+        "php-symfony",
+        "php-symfony2",
         "python",
         "python-aiohttp",
         "python-asgi",
@@ -199,18 +214,25 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     # Limit the number of chained exceptions
     for exception in reversed(exceptions[-MAX_EXCEPTION_COUNT:]):
         exception_type = exception.get("id")
-        if not exception.get("contributes") or exception_type not in ["exception", "threads"]:
+        if not exception.get("contributes") or exception_type not in [
+            "exception",
+            "threads",
+            "stacktrace",
+        ]:
             continue
 
         # For each exception, extract its type, value, and up to limit number of stacktrace frames
         exc_type, exc_value, frame_strings = "", "", []
-        for exception_value in exception.get("values", []):
-            if exception_value.get("id") == "type":
-                exc_type = _get_value_if_exists(exception_value)
-            elif exception_value.get("id") == "value":
-                exc_value = _get_value_if_exists(exception_value)
-            elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
-                frame_strings = _process_frames(exception_value["values"])
+        if exception_type == "stacktrace":
+            frame_strings = _process_frames(exception.get("values", []))
+        else:
+            for exception_value in exception.get("values", []):
+                if exception_value.get("id") == "type":
+                    exc_type = _get_value_if_exists(exception_value)
+                elif exception_value.get("id") == "value":
+                    exc_value = _get_value_if_exists(exception_value)
+                elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
+                    frame_strings = _process_frames(exception_value["values"])
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
@@ -252,9 +274,10 @@ def event_content_has_stacktrace(event: Event) -> bool:
     # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
     # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
     # PLACEHOLDER_EVENT_TITLES` to this check.
-    return get_path(event.data, "exception", "values", -1, "stacktrace", "frames") or get_path(
-        event.data, "threads", "values", -1, "stacktrace", "frames"
-    )
+    exception_stacktrace = get_path(event.data, "exception", "values", -1, "stacktrace", "frames")
+    threads_stacktrace = get_path(event.data, "threads", "values", -1, "stacktrace", "frames")
+    only_stacktrace = get_path(event.data, "stacktrace", "frames")
+    return exception_stacktrace or threads_stacktrace or only_stacktrace
 
 
 def event_content_is_seer_eligible(event: Event) -> bool:

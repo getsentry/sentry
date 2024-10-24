@@ -15,7 +15,7 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import {DEFAULT_FIELD} from '../common/settings';
+import {DEFAULT_FIELD, X_GUTTER, Y_GUTTER} from '../common/settings';
 
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
@@ -79,15 +79,22 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
   return (
     <Wrapper>
       <NumberAndDifferenceContainer>
-        {props.thresholds && (
-          <ThresholdsIndicator
-            preferredPolarity={props.preferredPolarity}
-            thresholds={props.thresholds}
-            unit={unit ?? ''}
-            value={clampedValue}
-            type={type ?? 'integer'}
-          />
-        )}
+        {defined(props.thresholds?.max_values.max1) &&
+          defined(props.thresholds?.max_values.max2) && (
+            <ThresholdsIndicator
+              preferredPolarity={props.preferredPolarity}
+              thresholds={{
+                unit: props.thresholds.unit ?? undefined,
+                max_values: {
+                  max1: props.thresholds.max_values.max1,
+                  max2: props.thresholds.max_values.max2,
+                },
+              }}
+              unit={unit ?? ''}
+              value={clampedValue}
+              type={type ?? 'integer'}
+            />
+          )}
 
         <NumberContainerOverride>
           <Tooltip
@@ -137,7 +144,7 @@ function Wrapper({children}) {
 
 const AutoResizeParent = styled('div')`
   position: absolute;
-  inset: 0;
+  inset: ${Y_GUTTER} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
 
   color: ${p => p.theme.headingColor};
 

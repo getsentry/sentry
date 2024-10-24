@@ -38,6 +38,7 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 import {COLUMN_TITLES} from '../../data';
 import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
@@ -93,6 +94,7 @@ type Props = {
   transactionName: string;
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
+  domainViewFilters?: DomainViewFilters;
   excludedTags?: string[];
   hidePagination?: boolean;
   isEventLoading?: boolean;
@@ -206,6 +208,7 @@ class EventsTable extends Component<Props, State> {
             organization,
             transactionName: transactionName,
             source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+            view: this.props.domainViewFilters?.view,
           });
         } else {
           target = generateTraceLink(transactionName)(

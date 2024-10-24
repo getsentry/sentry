@@ -55,6 +55,7 @@ from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
+from sentry.api.serializers.models.dashboard import DATASET_SOURCES
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
@@ -83,7 +84,6 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
-from sentry.mediators.project_rules.creator import Creator
 from sentry.models.apitoken import ApiToken
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.commit import Commit
@@ -114,6 +114,7 @@ from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
+from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.rules.base import RuleBase
@@ -2748,6 +2749,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             )
         if "layout" in data:
             assert data["layout"] == expected_widget.detail["layout"]
+        if "datasetSource" in data:
+            assert data["datasetSource"] == DATASET_SOURCES[expected_widget.dataset_source]
 
     def create_user_member_role(self):
         self.user = self.create_user(is_superuser=False)
@@ -3263,16 +3266,16 @@ class MonitorTestCase(APITestCase):
                 "uuid": str(uuid4()),
             },
         ]
-        rule = Creator(
+        rule = ProjectRuleCreator(
             name="New Cool Rule",
             project=self.project,
             conditions=conditions,
-            filterMatch="all",
+            filter_match="all",
             action_match="any",
             actions=actions,
             frequency=5,
             environment=self.environment.id,
-        ).call()
+        ).run()
         rule.update(source=RuleSource.CRON_MONITOR)
 
         config = monitor.config

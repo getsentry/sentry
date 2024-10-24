@@ -162,7 +162,7 @@ export default patterns;
             if isinstance(pat, URLPattern):
                 try:
                     if not pat.name:
-                        name = pat.name
+                        name: str | None = pat.name
                     elif namespace:
                         name = f"{namespace}:{pat.name}"
                     else:

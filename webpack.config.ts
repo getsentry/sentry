@@ -271,7 +271,7 @@ const appConfig: webpack.Configuration = {
       },
       {
         test: /\.pegjs$/,
-        use: ['pegjs-loader?cache=false&optimize=speed'],
+        use: [{loader: path.resolve(__dirname, './build-utils/peggy-loader.ts')}],
       },
       {
         test: /\.css/,

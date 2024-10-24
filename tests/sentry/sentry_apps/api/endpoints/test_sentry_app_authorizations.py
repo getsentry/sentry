@@ -3,9 +3,9 @@ from datetime import timedelta
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
+from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -95,7 +95,7 @@ class TestSentryAppAuthorizations(APITestCase):
     def test_expired_grant(self):
         self.install.api_grant.update(expires_at=timezone.now() - timedelta(minutes=2))
         response = self.get_error_response(status_code=403)
-        assert response.data["error"] == "Grant has already expired."
+        assert response.data["error"] == "Grant has already expired"
 
     def test_request_with_exchanged_access_token(self):
         response = self.get_response()

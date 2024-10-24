@@ -360,9 +360,6 @@ describe('Onboarding', function () {
     };
 
     const {routerProps, router, organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-sdk-selection'],
-      },
       router: {
         params: routeParams,
       },
@@ -396,9 +393,6 @@ describe('Onboarding', function () {
     };
 
     const {routerProps, router, organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-sdk-selection'],
-      },
       router: {
         params: routeParams,
       },

@@ -30,31 +30,61 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
     assert rules._to_config_structure() == {
         "rules": [
             {
+                "text": 'type:"DatabaseUnavailable" -> "DatabaseUnavailable"',
                 "matchers": [["type", "DatabaseUnavailable"]],
                 "fingerprint": ["DatabaseUnavailable"],
                 "attributes": {},
             },
             {
+                "text": 'function:"assertion_failed" module:"foo" -> "AssertionFailedfoo"',
                 "matchers": [["function", "assertion_failed"], ["module", "foo"]],
                 "fingerprint": ["AssertionFailed", "foo"],
                 "attributes": {},
             },
-            {"matchers": [["app", "true"]], "fingerprint": ["aha"], "attributes": {}},
-            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"], "attributes": {}},
-            {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"], "attributes": {}},
-            {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"], "attributes": {}},
             {
+                "text": 'app:"true" -> "aha"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["aha"],
+                "attributes": {},
+            },
+            {
+                "text": 'app:"true" -> "{{ default }}"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["{{ default }}"],
+                "attributes": {},
+            },
+            {
+                "text": '!path:"**/foo/**" -> "everything"',
+                "matchers": [["!path", "**/foo/**"]],
+                "fingerprint": ["everything"],
+                "attributes": {},
+            },
+            {
+                "text": '!path:"**/foo/**" -> "everything"',
+                "matchers": [["!path", "**/foo/**"]],
+                "fingerprint": ["everything"],
+                "attributes": {},
+            },
+            {
+                "text": 'logger:"sentry.*" -> "logger-{{ logger }}"',
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
-            {"matchers": [["message", "\\x\xff"]], "fingerprint": ["stuff"], "attributes": {}},
             {
+                "text": 'message:"\\xÿ" -> "stuff"',
+                "matchers": [["message", "\\x\xff"]],
+                "fingerprint": ["stuff"],
+                "attributes": {},
+            },
+            {
+                "text": 'logger:"sentry.*" -> "logger-{{ logger }}" title="Message from {{ logger }}"',
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {"title": "Message from {{ logger }}"},
             },
             {
+                "text": 'logger:"sentry.*" -> "logger-{{ logger }}" title="Message from {{ logger }}"',
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {"title": "Message from {{ logger }}"},
@@ -81,6 +111,7 @@ logger:sentry.*                                 -> logger, {{ logger }}, title="
         "attributes": {"title": "Message from {{ logger }}"},
         "fingerprint": ["logger", "{{ logger }}"],
         "matchers": [["logger", "sentry.*"]],
+        "text": 'logger:"sentry.*" -> "logger{{ logger }}" title="Message from {{ logger }}"',
     }
 
 
@@ -101,21 +132,25 @@ logger:test2 -> logger-, {{ logger }}, -, {{ level }}
     assert rules._to_config_structure() == {
         "rules": [
             {
+                "text": 'logger:"test" -> "logger-{{ logger }}"',
                 "matchers": [["logger", "test"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
             {
+                "text": 'logger:"test" -> "logger-{{ logger }}"',
                 "matchers": [["logger", "test"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
             {
+                "text": 'logger:"test2" -> "logger-{{ logger }}-{{ level }}"',
                 "matchers": [["logger", "test2"]],
                 "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
                 "attributes": {},
             },
             {
+                "text": 'logger:"test2" -> "logger-{{ logger }}-{{ level }}"',
                 "matchers": [["logger", "test2"]],
                 "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
                 "attributes": {},
@@ -139,18 +174,35 @@ release:foo                                     -> release-foo
     assert rules._to_config_structure() == {
         "rules": [
             {
+                "text": 'type:"DatabaseUnavailable" -> "DatabaseUnavailable"',
                 "matchers": [["type", "DatabaseUnavailable"]],
                 "fingerprint": ["DatabaseUnavailable"],
                 "attributes": {},
             },
             {
+                "text": 'function:"assertion_failed" module:"foo" -> "AssertionFailedfoo"',
                 "matchers": [["function", "assertion_failed"], ["module", "foo"]],
                 "fingerprint": ["AssertionFailed", "foo"],
                 "attributes": {},
             },
-            {"matchers": [["app", "true"]], "fingerprint": ["aha"], "attributes": {}},
-            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"], "attributes": {}},
-            {"matchers": [["release", "foo"]], "fingerprint": ["release-foo"], "attributes": {}},
+            {
+                "text": 'app:"true" -> "aha"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["aha"],
+                "attributes": {},
+            },
+            {
+                "text": 'app:"true" -> "{{ default }}"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["{{ default }}"],
+                "attributes": {},
+            },
+            {
+                "text": 'release:"foo" -> "release-foo"',
+                "matchers": [["release", "foo"]],
+                "fingerprint": ["release-foo"],
+                "attributes": {},
+            },
         ],
         "version": 1,
     }
