@@ -90,14 +90,14 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
     });
   }, [location.query.statsPeriod, traceId]);
 
-  if (trace.isPending || rootEvent.isPending || !rootEvent.data || hasNoTransactions) {
-    return null;
-  }
-
   const scrollToNode = useMemo(() => {
     const firstTransactionEventId = trace.data?.transactions[0]?.event_id;
     return {eventId: firstTransactionEventId};
   }, [trace.data]);
+
+  if (trace.isPending || rootEvent.isPending || !rootEvent.data || hasNoTransactions) {
+    return null;
+  }
 
   return (
     <Fragment>

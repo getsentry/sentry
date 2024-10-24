@@ -67,7 +67,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 
@@ -2524,7 +2524,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         for i in range(4):
             self.store_event(
-                data={"timestamp": iso_format(comparison_date - timedelta(minutes=30 + i))},
+                data={"timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat()},
                 project_id=self.project.id,
             )
 
@@ -2593,7 +2593,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         for i in range(4):
             self.store_event(
                 data={
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -2665,7 +2665,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         for i in range(4):
             data = {
-                "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
                 "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group2"],
                 "level": "error",
@@ -2749,7 +2749,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         for i in range(4):
             self.store_event(
                 data={
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
                     "tags": {"sentry:user": i},
                 },
                 project_id=self.project.id,

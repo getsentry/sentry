@@ -14,6 +14,7 @@ import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {dynamicSamplingForm} from 'sentry/views/settings/dynamicSampling/dynamicSamplingForm';
+import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
 import {TargetSampleRateField} from 'sentry/views/settings/dynamicSampling/targetSampleRateField';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
@@ -109,6 +110,9 @@ export function DynamicSampling() {
             {t('Save changes')}
           </Button>
         </FormActions>
+
+        <h4>{t('Project Preview')}</h4>
+        <ProjectsPreviewTable />
       </form>
     </FormProvider>
   );
@@ -119,4 +123,5 @@ const FormActions = styled('div')`
   grid-template-columns: repeat(2, max-content);
   gap: ${space(1)};
   justify-content: flex-end;
+  padding-bottom: ${space(2)};
 `;

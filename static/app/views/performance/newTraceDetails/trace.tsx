@@ -142,6 +142,11 @@ export function Trace({
   const traceStateRef = useRef<TraceReducerState>(traceState);
   traceStateRef.current = traceState;
 
+  const traceStatePreferencesRef = useRef<
+    Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
+  >(traceState.preferences);
+  traceStatePreferencesRef.current = traceState.preferences;
+
   useLayoutEffect(() => {
     const onTraceViewChange: TraceEvents['set trace view'] = () => {
       manager.recomputeTimelineIntervals();
@@ -197,6 +202,7 @@ export function Trace({
         .zoom(node, value, {
           api,
           organization,
+          preferences: traceStatePreferencesRef.current,
         })
         .then(() => {
           rerenderRef.current();

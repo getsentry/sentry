@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import type {QueryStatus, UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -36,35 +36,26 @@ function getTraceViewQueryStatus(
 export function useTraceTree({
   trace,
   meta,
-  traceSlug,
   replay,
+  traceSlug,
 }: UseTraceTreeParams): TraceTree {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
 
   const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
-  const treeRef = useRef<TraceTree | null>(null);
-  treeRef.current = tree;
-
-  const scrollQueueRef = useTraceScrollToPath(props.scrollToNode);
-  useTraceOnLoad({
-    onTraceLoad,
-    scrollQueueRef,
-    scheduler: traceScheduler,
-    trace: props.trace,
-    meta: props.meta,
-    replay: props.replay,
-  });
 
   useEffect(() => {
     const status = getTraceViewQueryStatus(trace.status, meta.status);
-    if (status === 'error' && treeRef.current?.type !== 'error') {
-      const errorTree = TraceTree.Error({
-        project_slug: projects?.[0]?.slug ?? '',
-        event_id: traceSlug,
-      });
-      setTree(errorTree);
+    if (status === 'error') {
+      setTree(tree =>
+        tree.type === 'error'
+          ? tree
+          : TraceTree.Error({
+              project_slug: projects?.[0]?.slug ?? '',
+              event_id: traceSlug,
+            })
+      );
       return;
     }
 
@@ -72,17 +63,19 @@ export function useTraceTree({
       trace?.data?.transactions.length === 0 &&
       trace?.data?.orphan_errors.length === 0
     ) {
-      setTree(TraceTree.Empty());
+      setTree(tree => (tree.type === 'empty' ? tree : TraceTree.Empty()));
       return;
     }
 
-    if (status === 'pending' && treeRef.current?.type !== 'loading') {
-      const loadingTree = TraceTree.Loading({
-        project_slug: projects?.[0]?.slug ?? '',
-        event_id: traceSlug,
-      });
-
-      setTree(loadingTree);
+    if (status === 'pending') {
+      setTree(tree =>
+        tree.type === 'loading'
+          ? tree
+          : TraceTree.Loading({
+              project_slug: projects?.[0]?.slug ?? '',
+              event_id: traceSlug,
+            })
+      );
       return;
     }
 
@@ -96,7 +89,7 @@ export function useTraceTree({
       newTree.build();
       return;
     }
-  }, [api, organization, projects, replay, meta.data, trace.data, traceSlug]);
+  }, [api, organization, projects, replay, meta.status, trace.status, traceSlug]);
 
   return tree;
 }

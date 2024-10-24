@@ -1,19 +1,13 @@
-import {useLayoutEffect, useRef} from 'react';
+import {useLayoutEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {ReplayRecord} from 'sentry/views/replays/types';
 
-import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceTree} from './traceModels/traceTree';
-import type {TraceTreeNode} from './traceModels/traceTreeNode';
-import type {TraceScheduler} from './traceRenderers/traceScheduler';
+import type {TracePreferencesState} from './traceState/tracePreferences';
 import {useTraceState} from './traceState/traceStateProvider';
 import {isTransactionNode} from './traceGuards';
 import type {TraceReducerState} from './traceState';
@@ -24,8 +18,11 @@ import type {useTraceScrollToPath} from './useTraceScrollToPath';
 const AUTO_EXPAND_TRANSACTION_THRESHOLD = 3;
 async function maybeAutoExpandTrace(
   tree: TraceTree,
-  api: Client,
-  organization: Organization
+  options: {
+    api: Client;
+    organization: Organization;
+    preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
+  }
 ): Promise<TraceTree> {
   const transactions = TraceTree.FindAll(tree.root, node => isTransactionNode(node));
 
@@ -35,7 +32,7 @@ async function maybeAutoExpandTrace(
 
   const promises: Promise<any>[] = [];
   for (const transaction of transactions) {
-    promises.push(tree.zoom(transaction, true, {api, organization}));
+    promises.push(tree.zoom(transaction, true, options));
   }
 
   await Promise.allSettled(promises).catch(_e => {
@@ -48,31 +45,37 @@ async function maybeAutoExpandTrace(
   return tree;
 }
 
-type UseTraceScrollToEventOnLoadProps = {
-  meta: TraceMetaQueryResults;
-  onTraceLoad: (
-    trace: TraceTree,
-    node: TraceTreeNode<TraceTree.NodeValue> | null,
-    index: number | null
-  ) => void;
-  replay: ReplayRecord | null;
-  scheduler: TraceScheduler;
-  scrollQueueRef: ReturnType<typeof useTraceScrollToPath>;
-  trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError>;
+type UseTraceScrollToEventOnLoadOptions = {
+  onTraceLoad: () => void;
+  pathToNodeOrEventId: ReturnType<typeof useTraceScrollToPath>['current'];
+  tree: TraceTree;
 };
 
-export function useTraceOnLoad(options: UseTraceScrollToEventOnLoadProps) {
+export function useTraceOnLoad(
+  options: UseTraceScrollToEventOnLoadOptions
+): 'success' | 'error' | 'pending' | 'idle' {
   const api = useApi();
   const organization = useOrganization();
   const initializedRef = useRef<boolean>(false);
-  const {trace, meta, replay, onTraceLoad, scheduler, scrollQueueRef} = options;
+  const {tree, pathToNodeOrEventId, onTraceLoad} = options;
+
+  const [status, setStatus] = useState<'success' | 'error' | 'pending' | 'idle'>('idle');
 
   const traceState = useTraceState();
   const traceStateRef = useRef<TraceReducerState>(traceState);
   traceStateRef.current = traceState;
 
+  const traceStatePreferencesRef = useRef<
+    Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
+  >(traceState.preferences);
+  traceStatePreferencesRef.current = traceState.preferences;
+
   useLayoutEffect(() => {
     if (initializedRef.current) {
+      return undefined;
+    }
+
+    if (tree.type !== 'trace') {
       return undefined;
     }
 
@@ -81,89 +84,36 @@ export function useTraceOnLoad(options: UseTraceScrollToEventOnLoadProps) {
       cancel = true;
     }
 
-    if (trace.status === 'error' || meta.status === 'error') {
-      initializedRef.current = true;
-      onTraceLoad(
-        TraceTree.Error({
-          event_id: '',
-          project_slug: '',
-        }),
-        null,
-        null
-      );
-      return undefined;
-    }
+    setStatus('pending');
 
-    if (trace.status === 'success' && meta.status === 'success') {
-      initializedRef.current = true;
+    const expandOptions = {
+      api,
+      organization,
+      preferences: traceStatePreferencesRef.current,
+    };
 
-      if (!trace.data.transactions.length && !trace.data.orphan_errors.length) {
-        onTraceLoad(TraceTree.Empty(), null, null);
-        return undefined;
-      }
+    // Node path has higher specificity than eventId. If neither are provided, we check if the
+    // trace should be automatically expanded
+    const promise = pathToNodeOrEventId?.path
+      ? TraceTree.ExpandToPath(tree, pathToNodeOrEventId.path, expandOptions)
+      : pathToNodeOrEventId?.eventId
+        ? TraceTree.ExpandToEventID(tree, pathToNodeOrEventId.eventId, expandOptions)
+        : maybeAutoExpandTrace(tree, expandOptions);
 
-      const tree = TraceTree.FromTrace(trace.data, {
-        meta: meta.data,
-        replay: replay,
-      });
+    promise
+      .then(() => {
+        setStatus('success');
 
-      maybeAutoExpandTrace(tree, api, organization).then(updatedTree => {
         if (cancel) {
           return;
         }
 
-        // Node path has higher specificity than eventId
-        const promise = scrollQueueRef.current?.path
-          ? TraceTree.ExpandToPath(updatedTree, scrollQueueRef.current.path, {
-              api,
-              organization,
-            })
-          : scrollQueueRef.current?.eventId
-            ? TraceTree.ExpandToEventID(updatedTree, scrollQueueRef.current?.eventId, {
-                api,
-                organization,
-              })
-            : Promise.resolve(null);
+        onTraceLoad();
+      })
+      .catch(() => setStatus('error'));
 
-        promise
-          .then(node => {
-            if (cancel) {
-              return;
-            }
+    return cleanup;
+  }, [tree, api, onTraceLoad, organization, pathToNodeOrEventId]);
 
-            if (!node) {
-              Sentry.withScope(scope => {
-                scope.setFingerprint(['trace-scroll-to']);
-                Sentry.captureMessage('Failed to find and scroll to node in tree');
-              });
-            }
-          })
-          .finally(() => {
-            // Important to set scrollQueueRef.current to null and trigger a rerender
-            // after the promise resolves as we show a loading state during scroll,
-            // else the screen could jump around while we fetch span data
-            scrollQueueRef.current = null;
-            // Allow react to rerender before dispatching the init event
-            requestAnimationFrame(() => {
-              scheduler.dispatch('initialize virtualized list');
-            });
-          });
-      });
-
-      return cleanup;
-    }
-
-    return undefined;
-  }, [
-    api,
-    meta.data,
-    trace.data,
-    trace.status,
-    meta.status,
-    scheduler,
-    scrollQueueRef,
-    onTraceLoad,
-    organization,
-    replay,
-  ]);
+  return status;
 }

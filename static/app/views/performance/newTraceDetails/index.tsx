@@ -91,7 +91,9 @@ import {
   traceNodeAnalyticsName,
 } from './traceTreeAnalytics';
 import TraceTypeWarnings from './traceTypeWarnings';
+import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
+import {useTraceScrollToPath} from './useTraceScrollToPath';
 
 function logTraceMetadata(
   tree: TraceTree,
@@ -182,8 +184,8 @@ export function TraceView() {
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
   const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
-  const tree = useTraceTree({traceSlug, trace, meta, replay: null});
   const rootEvent = useTraceRootEvent(trace.data ?? null);
+  const tree = useTraceTree({traceSlug, trace, meta, replay: null});
 
   const title = useMemo(() => {
     return `${t('Trace Details')} - ${traceSlug}`;
@@ -206,13 +208,13 @@ export function TraceView() {
             <TraceInnerLayout>
               <TraceViewWaterfall
                 tree={tree}
-                traceSlug={traceSlug}
                 trace={trace}
-                organization={organization}
-                rootEvent={rootEvent}
-                traceEventView={traceEventView}
                 meta={meta}
                 replay={null}
+                rootEvent={rootEvent}
+                traceSlug={traceSlug}
+                traceEventView={traceEventView}
+                organization={organization}
                 source="performance"
                 isEmbedded={false}
               />
@@ -265,9 +267,10 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
-  const traceScheduler = useMemo(() => new TraceScheduler(), []);
   const traceView = useMemo(() => new TraceViewModel(), []);
+  const traceScheduler = useMemo(() => new TraceScheduler(), []);
 
+  const scrollQueueRef = useTraceScrollToPath(props.scrollToNode);
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
@@ -285,9 +288,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const previouslyScrolledToNodeRef = useRef<TraceTreeNode<TraceTree.NodeValue> | null>(
     null
   );
-
-  const isError = props.trace.status === 'error' || props.meta.status === 'error';
-  const isLoading = props.trace.status === 'pending' || props.meta.status === 'pending';
 
   useEffect(() => {
     if (!props.replayTraces?.length || props.tree?.type !== 'trace') {
@@ -311,6 +311,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
   traceStateRef.current = traceState;
+
+  const traceStatePreferencesRef = useRef<
+    Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
+  >(traceState.preferences);
+  traceStatePreferencesRef.current = traceState.preferences;
 
   // Initialize the view manager right after the state reducer
   const viewManager = useMemo(() => {
@@ -613,6 +618,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return TraceTree.ExpandToPath(props.tree, TraceTree.PathToNode(node), {
         api,
         organization: props.organization,
+        preferences: traceStatePreferencesRef.current,
       }).then(() => {
         const maybeNode = TraceTree.Find(props.tree.root, n => n === node);
 
@@ -620,22 +626,9 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           return null;
         }
 
-        let index = props.tree.list.indexOf(maybeNode);
-
-        if (node && index === -1) {
-          let parent_node = node.parent;
-          while (parent_node) {
-            // Transactions break autogrouping chains, so we can stop here
-            props.tree.expand(parent_node, true);
-            // This is very wasteful as it performs O(n^2) search each time we expand a node...
-            // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
-            // a low autogrouped node count.
-            index = node ? props.tree.list.findIndex(n => n === node) : -1;
-            if (index !== -1) {
-              break;
-            }
-            parent_node = parent_node.parent;
-          }
+        const index = TraceTree.EnforceVisibility(props.tree, maybeNode);
+        if (index === -1) {
+          return null;
         }
 
         scrollRowIntoView(maybeNode, index, 'center if outside', true);
@@ -687,62 +680,85 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
-  const onTraceLoad = useCallback(
-    (
-      _trace: TraceTree,
-      nodeToScrollTo: TraceTreeNode<TraceTree.NodeValue> | null,
-      indexOfNodeToScrollTo: number | null
-    ) => {
-      const query = qs.parse(location.search);
+  const onTraceLoad = useCallback(() => {
+    // The tree has the data fetched, but does not yet respect the user preferences.
+    // We will autogroup and inject missing instrumentation if the preferences are set.
+    // and then we will perform a search to find the node the user is interested in.
+    const query = qs.parse(location.search);
+    if (query.fov && typeof query.fov === 'string') {
+      viewManager.maybeInitializeTraceViewFromQS(query.fov);
+    }
+    if (traceStateRef.current.preferences.missing_instrumentation) {
+      TraceTree.DetectMissingInstrumentation(props.tree.root);
+    }
 
-      if (query.fov && typeof query.fov === 'string') {
-        viewManager.maybeInitializeTraceViewFromQS(query.fov);
+    if (traceStateRef.current.preferences.autogroup) {
+      TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
+      TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
+    }
+
+    props.tree.build();
+
+    const eventId = scrollQueueRef.current?.eventId;
+    const path = scrollQueueRef.current?.path?.[0]?.split('-')?.[1];
+    scrollQueueRef.current = null;
+
+    const node =
+      (path && TraceTree.FindByID(props.tree.root, path)) ??
+      (eventId && TraceTree.FindByID(props.tree.root, eventId));
+
+    const index = node ? TraceTree.EnforceVisibility(props.tree, node) : -1;
+
+    if (index === -1 || !node) {
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['trace-view-scroll-to-node-error']);
+        scope.captureMessage('Failed to scroll to node in trace tree');
+      });
+
+      requestAnimationFrame(() => {
+        traceScheduler.dispatch('initialize virtualized list');
+      });
+      return;
+    }
+
+    // At load time, we want to scroll the row into view, but we need to wait for the view
+    // to initialize before we can do that. We listen for the 'initialize virtualized list' and scroll
+    // to the row in the view if it is not in view yet. If its in the view, then scroll to it immediately.
+    traceScheduler.once('initialize virtualized list', () => {
+      function onTargetRowMeasure() {
+        if (!node || !viewManager.row_measurer.cache.has(node)) {
+          return;
+        }
+        viewManager.row_measurer.off('row measure end', onTargetRowMeasure);
+        if (viewManager.isOutsideOfView(node)) {
+          viewManager.scrollRowIntoViewHorizontally(node!, 0, 48, 'measured');
+        }
       }
+      viewManager.scrollToRow(index, 'center');
+      viewManager.row_measurer.on('row measure end', onTargetRowMeasure);
+      previouslyScrolledToNodeRef.current = node;
 
-      if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
-        // At load time, we want to scroll the row into view, but we need to wait for the view
-        // to initialize before we can do that. We listen for the 'initialize virtualized list' and scroll
-        // to the row in the view if it is not in view yet. If its in the view, then scroll to it immediately.
-        traceScheduler.once('initialize virtualized list', () => {
-          function onTargetRowMeasure() {
-            if (!nodeToScrollTo || !viewManager.row_measurer.cache.has(nodeToScrollTo)) {
-              return;
-            }
-            viewManager.row_measurer.off('row measure end', onTargetRowMeasure);
-            if (viewManager.isOutsideOfView(nodeToScrollTo)) {
-              viewManager.scrollRowIntoViewHorizontally(
-                nodeToScrollTo!,
-                0,
-                48,
-                'measured'
-              );
-            }
-          }
-          viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
-          viewManager.row_measurer.on('row measure end', onTargetRowMeasure);
-          previouslyScrolledToNodeRef.current = nodeToScrollTo;
+      setRowAsFocused(node, null, traceStateRef.current.search.resultsLookup, index);
+      traceDispatch({
+        type: 'set roving index',
+        node: node,
+        index: index,
+        action_source: 'load',
+      });
+    });
 
-          setRowAsFocused(
-            nodeToScrollTo,
-            null,
-            traceStateRef.current.search.resultsLookup,
-            indexOfNodeToScrollTo
-          );
-          traceDispatch({
-            type: 'set roving index',
-            node: nodeToScrollTo,
-            index: indexOfNodeToScrollTo,
-            action_source: 'load',
-          });
-        });
-      }
-
-      if (traceStateRef.current.search.query) {
-        onTraceSearch(traceStateRef.current.search.query, nodeToScrollTo, 'persist');
-      }
-    },
-    [setRowAsFocused, traceDispatch, onTraceSearch, viewManager, traceScheduler]
-  );
+    if (traceStateRef.current.search.query) {
+      onTraceSearch(traceStateRef.current.search.query, node, 'persist');
+    }
+  }, [
+    setRowAsFocused,
+    traceDispatch,
+    onTraceSearch,
+    viewManager,
+    traceScheduler,
+    props.tree,
+    scrollQueueRef,
+  ]);
 
   // Setup the middleware for the trace reducer
   useLayoutEffect(() => {
@@ -863,6 +879,12 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     };
   }, [viewManager, traceScheduler, props.tree]);
 
+  const onLoadScrollStatus = useTraceOnLoad({
+    onTraceLoad,
+    pathToNodeOrEventId: scrollQueueRef.current,
+    tree: props.tree,
+  });
+
   // Sync part of the state with the URL
   const traceQueryStateSync = useMemo(() => {
     return {search: traceState.search.query};
@@ -896,12 +918,12 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           scheduler={traceScheduler}
           forceRerender={forceRender}
           isEmbedded={props.isEmbedded}
-          isLoading={isLoading}
+          isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
         />
 
-        {isLoading ? (
+        {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
           <TraceLoading />
-        ) : isError ? (
+        ) : props.tree.type === 'error' ? (
           <TraceError />
         ) : props.tree.type === 'empty' ? (
           <TraceEmpty />
