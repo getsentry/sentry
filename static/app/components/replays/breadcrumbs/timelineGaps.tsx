@@ -3,8 +3,10 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {VideoEvent} from 'sentry/utils/replays/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   durationMs: number;
@@ -15,26 +17,33 @@ interface Props {
 export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}: Props) {
   const ranges: Array<{left: string; width: string}> = [];
 
-  let start = startTimestampMs;
+  let lastVideoEnd = startTimestampMs;
 
-  // create gap in timeline when there is a gap between video events
+  // create gap in timeline when there is a gap between video events larger than 1.1s
   for (const video of videoEvents) {
-    if (start < video.timestamp) {
+    if (video.timestamp - lastVideoEnd > 1100) {
       ranges.push({
-        left: toPercent((start - startTimestampMs) / durationMs),
-        width: toPercent((video.timestamp - start) / durationMs),
+        left: toPercent((lastVideoEnd - startTimestampMs) / durationMs),
+        width: toPercent((video.timestamp - lastVideoEnd) / durationMs),
       });
     }
-    start = video.timestamp + video.duration;
+    lastVideoEnd = video.timestamp + video.duration;
   }
 
   // add gap at the end if the last video segment ends before the replay ends
-  if (videoEvents.length && start < startTimestampMs + durationMs) {
+  if (videoEvents.length && lastVideoEnd < startTimestampMs + durationMs) {
     ranges.push({
-      left: toPercent((start - startTimestampMs) / durationMs),
+      left: toPercent((lastVideoEnd - startTimestampMs) / durationMs),
       width: toPercent(durationMs / durationMs),
     });
   }
+
+  trackAnalytics('replay.number_of_timeline_gaps', {
+    gaps: ranges.length,
+    max_gap: Math.max(...ranges.map(obj => parseFloat(obj.width))),
+    replay_duration: durationMs,
+    organization: useOrganization(),
+  });
 
   // TODO: Fix tooltip position to follow mouse (it currently goes off the timeline when zoomed too much)
   return (
