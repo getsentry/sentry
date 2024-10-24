@@ -17,8 +17,8 @@ export class ContinuousProfile extends Profile {
 
     const profile = new ContinuousProfile({
       // Duration is in seconds, convert to nanoseconds
-      duration: (lastSample.timestamp - firstSample.timestamp) * 1e3 * 6,
-      endedAt: lastSample.timestamp * 1e3 * 60 * 1000,
+      duration: (lastSample.timestamp - firstSample.timestamp) * 1e3,
+      endedAt: lastSample.timestamp * 1e3,
       startedAt: firstSample.timestamp * 1e3,
       threadId: threadId,
       name: threadName,
