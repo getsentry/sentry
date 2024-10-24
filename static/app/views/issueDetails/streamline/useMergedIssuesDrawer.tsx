@@ -24,6 +24,7 @@ export function useMergedIssuesDrawer({
   const openMergedIssuesDrawer = useCallback(() => {
     openDrawer(() => <MergedIssuesDrawer group={group} project={project} />, {
       ariaLabel: t('Merged Issues'),
+      shouldCloseOnInteractOutside: () => false,
       onClose: () => {
         // Remove drawer state from URL
         navigate(

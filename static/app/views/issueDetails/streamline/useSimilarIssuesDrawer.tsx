@@ -24,6 +24,7 @@ export function useSimilarIssuesDrawer({
   const openSimilarIssuesDrawer = useCallback(() => {
     openDrawer(() => <SimilarIssuesDrawer group={group} project={project} />, {
       ariaLabel: t('Similar Issues'),
+      shouldCloseOnInteractOutside: () => false,
       onClose: () => {
         // Remove drawer state from URL
         navigate(
