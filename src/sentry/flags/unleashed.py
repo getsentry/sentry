@@ -23,8 +23,9 @@ EVENT_TO_ACTION_MAP: dict[str, str] = {
 }
 
 
-# https://docs.getunleash.io/reference/events
 class UnleashedItemSerializer(serializers.Serializer):
+    """Schema reference: https://docs.getunleash.io/reference/events"""
+
     featureName = serializers.CharField(required=True)  # Included by all event types we care about.
     id = serializers.IntegerField(required=True)
     type = serializers.CharField(required=True)
@@ -64,7 +65,7 @@ def handle_unleashed_event(
     formatted_tags = {tag["type"]: tag["value"] for tag in event.get("tags", {})}
     formatted_tags["project"] = event.get("project")
     formatted_tags["environment"] = event.get("environment")
-    # TODO: can add 'inferred_value' (bool) tag for some events, using certain event fields.
+    # TODO: can add 'inferred_value' (bool) tag for some events, using the `data` field + others.
 
     return [
         {
