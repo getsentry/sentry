@@ -111,6 +111,10 @@ class DatasetSourcesTypes(Enum):
     def as_choices(cls):
         return tuple((source.value, source.name.lower()) for source in cls)
 
+    @classmethod
+    def as_text_choices(cls):
+        return tuple((source.name.lower(), source.value) for source in cls)
+
 
 # TODO: Can eventually be replaced solely with TRANSACTION_MULTI once no more dashboards use Discover.
 TransactionWidgetType = [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
