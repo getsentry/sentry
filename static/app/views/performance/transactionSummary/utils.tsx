@@ -138,7 +138,7 @@ export function transactionSummaryRouteWithQuery({
   };
 }
 
-export function generateTraceLink(dateSelection) {
+export function generateTraceLink(dateSelection, view?: DomainView) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -156,11 +156,12 @@ export function generateTraceLink(dateSelection) {
       timestamp: tableRow.timestamp,
       location,
       source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+      view,
     });
   };
 }
 
-export function generateTransactionIdLink(transactionName?: string) {
+export function generateTransactionIdLink(transactionName?: string, view?: DomainView) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -177,6 +178,7 @@ export function generateTransactionIdLink(transactionName?: string) {
       spanId,
       transactionName,
       source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+      view,
     });
   };
 }
