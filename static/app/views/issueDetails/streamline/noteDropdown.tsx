@@ -37,6 +37,7 @@ function NoteDropdown({user, onDelete}: Props) {
           onAction: () =>
             openConfirmModal({
               header: t('Are you sure you want to remove this comment?'),
+              confirmText: t('Remove comment'),
               onConfirm: onDelete,
             }),
           tooltip: activeUser.isSuperuser
