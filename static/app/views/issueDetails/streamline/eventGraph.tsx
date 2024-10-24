@@ -11,7 +11,7 @@ import {Flex} from 'sentry/components/container/flex';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {IconTelescope} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
@@ -180,11 +180,9 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   if (error) {
     return (
-      <GraphWrapper {...styleProps}>
-        <GraphAlert type="error" showIcon>
-          {error.message}
-        </GraphAlert>
-      </GraphWrapper>
+      <GraphAlert type="error" showIcon {...styleProps}>
+        {tct('Graph Query Error: [message]', {message: error.message})}
+      </GraphAlert>
     );
   }
 
@@ -353,6 +351,8 @@ const OpenInDiscoverButton = styled('div')`
 `;
 
 const GraphAlert = styled(Alert)`
-  margin: 0;
-  border: 1px solid ${p => p.theme.translucentBorder};
+  padding-left: 24px;
+  margin: 0 0 0 -24px;
+  border: 0;
+  border-radius: 0;
 `;
