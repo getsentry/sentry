@@ -202,7 +202,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           />
         </SummaryContainer>
         <LoadingChartContainer>
-          <Placeholder height="96px" />
+          <Placeholder height="96px" testId="event-graph-loading" />
         </LoadingChartContainer>
       </GraphWrapper>
     );
