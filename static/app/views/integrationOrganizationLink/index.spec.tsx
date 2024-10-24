@@ -8,11 +8,14 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
+import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import IntegrationOrganizationLink from 'sentry/views/integrationOrganizationLink';
 
 describe('IntegrationOrganizationLink', () => {
-  let org1, org2, getOrgsMock;
+  let org1: Organization;
+  let org2: Organization;
+  let getOrgsMock: jest.Mock;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     window.location.assign = jest.fn();

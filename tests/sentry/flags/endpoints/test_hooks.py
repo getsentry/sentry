@@ -2,7 +2,7 @@ from urllib.parse import quote
 
 from django.urls import reverse
 
-from sentry.flags.endpoints.hooks import get_org_id_from_token
+from sentry.flags.endpoints.hooks import is_valid_token
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
@@ -13,7 +13,7 @@ from sentry.utils.security.orgauthtoken_token import hash_token
 
 
 class OrganizationFlagsHooksEndpointTestCase(APITestCase):
-    endpoint = "sentry-api-0-flag-hooks"
+    endpoint = "sentry-api-0-organization-flag-hooks"
 
     def setUp(self):
         super().setUp()
@@ -27,7 +27,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             scope_list=["org:ci"],
             date_last_used=None,
         )
-        self.url = reverse(self.endpoint, args=("launchdarkly", self.token))
+        self.url = reverse(self.endpoint, args=(self.organization.slug, "launchdarkly", self.token))
 
     @property
     def features(self):
@@ -192,13 +192,15 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             assert FlagAuditLogModel.objects.count() == 0
 
     def test_post_invalid_provider(self):
+        url = reverse(self.endpoint, args=(self.organization.slug, "test", self.token))
         with self.feature(self.features):
-            response = self.client.post(reverse(self.endpoint, args=("test", self.token)), {})
+            response = self.client.post(url, {})
             assert response.status_code == 404
 
     def test_post_invalid_token(self):
+        url = reverse(self.endpoint, args=(self.organization.slug, "launchdarkly", "wrong"))
         with self.feature(self.features):
-            response = self.client.post(reverse(self.endpoint, args=("launchdarkly", "wrong")), {})
+            response = self.client.post(url, {})
             assert response.status_code == 403
 
     def test_post_disabled(self):
@@ -209,7 +211,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
 
 @django_db_all
 @assume_test_silo_mode(SiloMode.CONTROL)
-def test_get_org_id_from_token():
+def test_is_valid_token():
     token_str = "sntrys+_abc123_xyz"
     token_encoded = quote(token_str)
     OrgAuthToken.objects.create(
@@ -220,10 +222,10 @@ def test_get_org_id_from_token():
         scope_list=["org:ci"],
         date_last_used=None,
     )
-    assert get_org_id_from_token(token_encoded) == 1234
+    assert is_valid_token(1234, token_encoded) is True
 
 
 @django_db_all
 @assume_test_silo_mode(SiloMode.CONTROL)
-def test_get_org_id_from_token_invalid_token():
-    assert get_org_id_from_token(quote("sntrys+_abc123_xyz")) is None
+def test_is_valid_token_invalid_token():
+    assert is_valid_token(1234, quote("sntrys+_abc123_xyz")) is False

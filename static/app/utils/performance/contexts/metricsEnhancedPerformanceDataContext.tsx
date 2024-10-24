@@ -132,7 +132,11 @@ export function MEPTag() {
   return <Tag data-test-id="has-metrics-data-tag">{tagText}</Tag>;
 }
 
-export function ExtractedMetricsTag(props: {queryKey: MetricsResultsMetaMapKey}) {
+type ExtractionStatus = 'extracted' | 'not-extracted' | null;
+
+export function useExtractionStatus(props: {
+  queryKey: MetricsResultsMetaMapKey;
+}): ExtractionStatus {
   const resultsMeta = useMetricsResultsMeta();
   const organization = useOrganization();
   const _onDemandControl = useOnDemandControl();
@@ -156,11 +160,25 @@ export function ExtractedMetricsTag(props: {queryKey: MetricsResultsMetaMapKey})
   }
 
   if (!isMetricsExtractedData) {
+    return 'not-extracted';
+  }
+  return 'extracted';
+}
+
+export function ExtractedMetricsTag(props: {queryKey: MetricsResultsMetaMapKey}) {
+  const extractionStatus = useExtractionStatus(props);
+
+  if (extractionStatus === 'extracted') {
+    return (
+      <Tag type="info" data-test-id="has-metrics-data-tag">
+        {t('extracted')}
+      </Tag>
+    );
+  }
+
+  if (extractionStatus === 'not-extracted') {
     return <Tag style={{opacity: 0.25}}>{t('not extracted')}</Tag>;
   }
-  return (
-    <Tag type="info" data-test-id="has-metrics-data-tag">
-      {t('extracted')}
-    </Tag>
-  );
+
+  return null;
 }

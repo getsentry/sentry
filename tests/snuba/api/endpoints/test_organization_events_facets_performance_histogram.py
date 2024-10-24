@@ -68,7 +68,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
                 "transaction": name,
                 "event_id": f"{self._transaction_count:02x}".rjust(32, "0"),
                 "start_timestamp": iso_format(self.two_mins_ago - timedelta(seconds=duration)),
-                "timestamp": iso_format(self.two_mins_ago),
+                "timestamp": self.two_mins_ago.isoformat(),
             }
         )
         if user_id:

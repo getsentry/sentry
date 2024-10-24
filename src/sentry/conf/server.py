@@ -346,6 +346,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "sentry.middleware.devtoolbar.DevToolbarAnalyticsMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
@@ -788,7 +789,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
@@ -836,7 +836,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
 # and a default one as destination. The default one is used when the
 # rollout option is not active.
 CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION: Mapping[str, SplitQueueTaskRoute] = {
-    "events.save_event_transaction": {
+    "sentry.tasks.store.save_event_transaction": {
         "default_queue": "events.save_event_transaction",
         "queues_config": {
             "total": 3,
@@ -1665,6 +1665,14 @@ SENTRY_EVENT_PROCESSING_STORE = (
 )
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
+# Transactions processing backend
+# If these are set, transactions will be written to a different processing store
+# than errors. If these are set to none, Events(errors) and transactions will
+# both write to the EVENT_PROCESSING_STORE.
+SENTRY_TRANSACTION_PROCESSING_STORE: str | None = None
+SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
+
+
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
@@ -2218,9 +2226,6 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 # This flag activates consuming GroupAttribute messages in the development environment
 SENTRY_USE_GROUP_ATTRIBUTES = True
 
-# This flag activates replay analyzer service in the development environment
-SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
-
 # This flag activates Spotlight Sidecar in the development environment
 SENTRY_USE_SPOTLIGHT = False
 
@@ -2470,14 +2475,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "only_if": settings.SENTRY_USE_PROFILING,
         }
     ),
-    "session-replay-analyzer": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/session-replay-analyzer:latest",
-            "environment": {},
-            "ports": {"3000/tcp": 3000},
-            "only_if": settings.SENTRY_USE_REPLAY_ANALYZER_SERVICE,
-        }
-    ),
     "spotlight-sidecar": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/spotlight:latest",
@@ -2502,7 +2499,7 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.9.0"
+SELF_HOSTED_STABLE_VERSION = "24.10.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3150,6 +3147,7 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # In v0.6 of django-pg-zero-downtime-migrations this settings is deprecated for PostreSQLv12+

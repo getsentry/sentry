@@ -132,7 +132,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 export function LandingAggregateFlamegraph(): React.ReactNode {
   const location = useLocation();
 
-  const {data, isPending, isError} = useAggregateFlamegraphQuery({
+  const {data, status} = useAggregateFlamegraphQuery({
     dataSource: 'profiles',
   });
 
@@ -161,6 +161,10 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
     },
     [setFrameFilter]
   );
+
+  const onResetFrameFilter = useCallback(() => {
+    setFrameFilter('all');
+  }, [setFrameFilter]);
 
   const flamegraphFrameFilter: ((frame: Frame) => boolean) | undefined = useMemo(() => {
     if (frameFilter === 'all') {
@@ -212,17 +216,20 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
                 setHideSystemFrames={noop}
                 onHideRegressionsClick={onHideRegressionsClick}
               />
-              {isPending ? (
+              {status === 'pending' ? (
                 <RequestStateMessageContainer>
                   <LoadingIndicator />
                 </RequestStateMessageContainer>
-              ) : isError ? (
+              ) : status === 'error' ? (
                 <RequestStateMessageContainer>
                   {t('There was an error loading the flamegraph.')}
                 </RequestStateMessageContainer>
               ) : null}
               {visualization === 'flamegraph' ? (
                 <AggregateFlamegraph
+                  filter={frameFilter}
+                  status={status}
+                  onResetFilter={onResetFrameFilter}
                   canvasPoolManager={canvasPoolManager}
                   scheduler={scheduler}
                 />

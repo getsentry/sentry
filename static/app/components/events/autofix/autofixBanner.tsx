@@ -41,7 +41,10 @@ function SuccessfulSetup({
         // we don't reopen it immediately, and instead let the button handle this itself.
         shouldCloseOnInteractOutside: element => {
           const viewAllButton = openButtonRef.current;
-          if (viewAllButton?.contains(element)) {
+          if (
+            viewAllButton?.contains(element) ||
+            document.getElementById('sentry-feedback')?.contains(element)
+          ) {
             return false;
           }
           return true;

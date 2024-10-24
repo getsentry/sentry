@@ -48,7 +48,7 @@ class DiscordIssueAlertTest(RuleTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "Event message",
-                "timestamp": before_now(seconds=1).timestamp(),
+                "timestamp": before_now(seconds=1).isoformat(),
             },
             project_id=self.project.id,
         )

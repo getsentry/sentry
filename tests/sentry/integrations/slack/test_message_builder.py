@@ -300,7 +300,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             data={
                 "event_id": "a" * 32,
                 "tags": {"escape": "`room`", "foo": "bar"},
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
                 "release": release.version,
@@ -494,7 +494,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
             },
@@ -559,7 +559,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
             },
@@ -983,7 +983,7 @@ class BuildGroupAttachmentReplaysTest(TestCase):
                 "message": "Hello world",
                 "level": "error",
                 "contexts": {"replay": {"replay_id": replay1_id}},
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )

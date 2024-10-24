@@ -12,7 +12,7 @@ class GroupEventJsonTest(TestCase):
 
     def test_does_render(self):
         self.login_as(self.user)
-        min_ago = before_now(minutes=1).timestamp()
+        min_ago = before_now(minutes=1).isoformat()
         self.event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )

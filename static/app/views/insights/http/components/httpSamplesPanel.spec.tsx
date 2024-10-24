@@ -17,7 +17,7 @@ jest.mock('sentry/utils/usePageFilters');
 describe('HTTPSamplesPanel', () => {
   const organization = OrganizationFixture();
 
-  let eventsRequestMock;
+  let eventsRequestMock: jest.Mock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -95,7 +95,9 @@ describe('HTTPSamplesPanel', () => {
   });
 
   describe('Status panel', () => {
-    let eventsStatsRequestMock, samplesRequestMock, spanFieldTagsMock;
+    let eventsStatsRequestMock: jest.Mock;
+    let samplesRequestMock: jest.Mock;
+    let spanFieldTagsMock: jest.Mock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({
@@ -307,7 +309,9 @@ describe('HTTPSamplesPanel', () => {
   });
 
   describe('Duration panel', () => {
-    let chartRequestMock, samplesRequestMock, spanFieldTagsMock;
+    let chartRequestMock: jest.Mock;
+    let samplesRequestMock: jest.Mock;
+    let spanFieldTagsMock: jest.Mock;
 
     beforeEach(() => {
       jest.mocked(useLocation).mockReturnValue({

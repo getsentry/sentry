@@ -2,7 +2,9 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry import analytics
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
@@ -45,5 +47,13 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
                         key="onboarding:complete",
                         value={"updated": json.datetime_to_str(timezone.now())},
                     )
+
+                organization = Organization.objects.get(id=organization_id)
+                analytics.record(
+                    "onboarding.complete",
+                    user_id=organization.default_owner_id,
+                    organization_id=organization_id,
+                    referrer="onboarding_tasks",
+                )
             except IntegrityError:
                 pass
