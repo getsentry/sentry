@@ -16,6 +16,7 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     generate_sliding_window_org_cache_key,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -62,7 +63,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert results[org1.id] == [(p1.id, 4.0, 1, 3)]
 
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_simple_one_org_one_project_task(self):
+    def test_simple_one_org_one_project_task_sliding_window_sample_rate(self):
         org1 = self.create_organization("test-org")
         p1 = self.create_project(organization=org1)
 
@@ -98,6 +99,43 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
         assert got_value
         assert sample_rate == 1.0
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_simple_one_org_one_project_task_target_sample_rate(self):
+        org1 = self.create_organization("test-org")
+        p1 = self.create_project(organization=org1)
+
+        OrganizationOption.objects.create(
+            organization=org1, key="sentry:target_sample_rate", value=0.5
+        )
+
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "keep"},
+            minutes_before_now=30,
+            value=1,
+            project_id=p1.id,
+            org_id=org1.id,
+        )
+
+        self.store_performance_metric(
+            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo_transaction", "decision": "drop"},
+            minutes_before_now=30,
+            value=3,
+            project_id=p1.id,
+            org_id=org1.id,
+        )
+
+        with self.tasks():
+            boost_low_volume_projects_of_org_with_query.delay(org1.id)
+
+        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
+            org1.id, p1.id, error_sample_rate_fallback=None
+        )
+
+        assert got_value
+        assert sample_rate == 0.5
 
     def test_complex(self):
         context = TaskContext("rebalancing", 20)
