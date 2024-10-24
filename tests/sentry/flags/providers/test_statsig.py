@@ -84,6 +84,45 @@ def test_statsig_update_event():
     ]
 
 
+def test_statsig_archive_event():
+    result = handle_provider_event(
+        "statsig",
+        {
+            "data": [
+                {
+                    "user": {"name": "User Name", "email": "user@site.com"},
+                    "timestamp": 1729792825102,
+                    "eventName": "statsig::config_change",
+                    "metadata": {
+                        "projectName": "sentry",
+                        "projectID": "1TvW",
+                        "type": "Gate",
+                        "name": "test_gate",
+                        "description": "Deleted Config",
+                        "environments": "development,staging,production",
+                        "action": "archived",
+                        "tags": [],
+                        "targetApps": [],
+                    },
+                }
+            ]
+        },
+        1,
+    )
+
+    assert result == [
+        {
+            "action": ACTION_MAP["updated"],
+            "created_at": timestamp_to_datetime(1729792825102),
+            "created_by": "user@site.com",
+            "created_by_type": CREATED_BY_TYPE_MAP["email"],
+            "flag": "test_gate",
+            "organization_id": 1,
+            "tags": {},
+        }
+    ]
+
+
 def test_statsig_delete_event():
     result = handle_provider_event(
         "statsig",

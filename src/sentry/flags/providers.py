@@ -151,9 +151,15 @@ Documentation: https://docs.statsig.com/integrations/event_webhook/
 def handle_statsig_event(
     request_data: dict[str, Any], organization_id: int
 ) -> list[FlagAuditLogRow]:
+    def map_provider_action(action: str) -> str:
+        if action == "archived":
+            return "updated"
+        else:
+            return action
+
     return [
         {
-            "action": ACTION_MAP[item["metadata"]["action"]],
+            "action": ACTION_MAP[map_provider_action(item["metadata"]["action"])],
             "created_at": timestamp_to_datetime(item["timestamp"]),
             "created_by": item["user"]["email"],
             "created_by_type": CREATED_BY_TYPE_MAP["email"],
@@ -163,7 +169,7 @@ def handle_statsig_event(
         }
         for item in request_data["data"]
         if item["eventName"] == "statsig::config_change"
-        and item["metadata"]["action"] in ("created", "updated", "deleted")
+        and item["metadata"]["action"] in ("created", "updated", "deleted", "archived")
         and item["metadata"]["type"] == "Gate"
     ]
 
