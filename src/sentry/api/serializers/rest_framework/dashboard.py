@@ -6,7 +6,7 @@ from typing import TypedDict
 
 from django.db.models import Max
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import features, options
@@ -279,6 +279,7 @@ class ThresholdMaxKeys(Enum):
     MAX_2 = "max2"
 
 
+@extend_schema_serializer(exclude_fields=["dataset_source"])
 class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
