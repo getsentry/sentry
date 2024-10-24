@@ -52,15 +52,13 @@ class InvalidProvider(Exception):
 
 def handle_provider_event(
     provider: str,
-    request_data: Any,
+    request_data: dict[str, Any],
     organization_id: int,
 ) -> list[FlagAuditLogRow]:
     match provider:
         case "launchdarkly":
-            assert isinstance(request_data, dict)
             return handle_launchdarkly_event(request_data, organization_id)
         case "statsig":
-            assert isinstance(request_data, list)
             return handle_statsig_event(request_data, organization_id)
         case _:
             raise InvalidProvider(provider)
@@ -151,19 +149,19 @@ Documentation: https://docs.statsig.com/integrations/event_webhook/
 
 
 def handle_statsig_event(
-    request_data: list[dict[str, Any]], organization_id: int
+    request_data: dict[str, Any], organization_id: int
 ) -> list[FlagAuditLogRow]:
     return [
         {
-            "action": item["metadata"]["action"],
+            "action": ACTION_MAP[item["metadata"]["action"]],
             "created_at": timestamp_to_datetime(item["timestamp"]),
             "created_by": item["user"]["email"],
-            "created_by_type": "email",
+            "created_by_type": CREATED_BY_TYPE_MAP["email"],
             "flag": item["metadata"]["name"],
             "organization_id": organization_id,
             "tags": {},
         }
-        for item in request_data
+        for item in request_data["data"]
         if item["eventName"] == "statsig::config_change"
         and item["metadata"]["action"] in ("created", "updated", "deleted")
     ]
