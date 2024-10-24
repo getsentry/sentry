@@ -8,12 +8,12 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
-import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -25,6 +25,7 @@ export type Props = {
   additionalBreadCrumbs?: Crumb[];
   additonalHeaderActions?: React.ReactNode;
   hideDefaultTabs?: boolean;
+  moduleTitleOveride?: Record<ModuleName, string>; // overrides existing titles within the module
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
 };
 
@@ -47,6 +48,7 @@ export function DomainViewHeader({
   const navigate = useNavigate();
   const organization = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
+  const moduleTitles = useModuleTitles();
 
   const baseCrumbs: Crumb[] = [
     {
@@ -60,7 +62,7 @@ export function DomainViewHeader({
       preservePageFilters: true,
     },
     {
-      label: selectedModule ? MODULE_TITLES[selectedModule] : OVERVIEW_PAGE_TITLE,
+      label: selectedModule ? moduleTitles[selectedModule] : OVERVIEW_PAGE_TITLE,
       to: `${moduleURLBuilder(selectedModule as RoutableModuleNames)}/`,
       preservePageFilters: true,
     },
@@ -100,7 +102,7 @@ export function DomainViewHeader({
     tabList.push(
       ...modules.map(moduleName => ({
         key: moduleName,
-        label: MODULE_TITLES[moduleName],
+        label: moduleTitles[moduleName],
       }))
     );
   }
