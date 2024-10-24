@@ -301,7 +301,7 @@ class SentryPermission(ScopedPermission):
 
 
 def is_readonly_user(request: Request) -> bool:
-    return request.user and request.user.email == "readonly@sentry.io"
+    return request.user and getattr(request.user, "email") == "readonly@sentry.io"
 
 
 def get_readonly_scopes() -> frozenset[str]:
