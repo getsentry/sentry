@@ -34,8 +34,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
     };
   }, [group, activeUser.id]);
 
-  const hasParticipants = group.participants.length > 0;
-  const hasViewers = viewers.length > 0;
+  const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
 
   return (
     <div>
@@ -48,7 +47,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         </ErrorBoundary>
       )}
       <StreamlinedActivitySection group={group} />
-      {(hasParticipants || hasViewers) && (
+      {showPeopleSection && (
         <Fragment>
           <StyledBreak />
           <PeopleSection
