@@ -89,6 +89,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
 
     for _ in range(2):
         process_event(
+            ConsumerType.Events,
             {
                 "payload": orjson.dumps(payload).decode(),
                 "start_time": start_time,
@@ -97,7 +98,6 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
                 "remote_addr": "127.0.0.1",
             },
             project=default_project,
-            consumer_type=ConsumerType.Events,
         )
 
     (kwargs,) = preprocess_event
@@ -140,6 +140,7 @@ def test_transactions_spawn_save_event_transaction(
     event_id = payload["event_id"]
     start_time = time.time() - 3600
     process_event(
+        ConsumerType.Events,
         {
             "payload": orjson.dumps(payload).decode(),
             "start_time": start_time,
@@ -148,7 +149,6 @@ def test_transactions_spawn_save_event_transaction(
             "remote_addr": "127.0.0.1",
         },
         project=default_project,
-        consumer_type=ConsumerType.Events,
     )
     assert not len(preprocess_event)
     assert save_event_transaction.delay.call_args[0] == ()
@@ -193,6 +193,7 @@ def test_accountant_transaction(default_project):
     payload = get_normalized_event(event, default_project)
     serialized = orjson.dumps(payload).decode()
     process_event(
+        ConsumerType.Events,
         {
             "payload": serialized,
             "start_time": time.time() - 3600,
@@ -201,7 +202,6 @@ def test_accountant_transaction(default_project):
             "remote_addr": "127.0.0.1",
         },
         project=default_project,
-        consumer_type=ConsumerType.Events,
     )
 
     accountant._shutdown()
@@ -244,6 +244,7 @@ def test_feedbacks_spawn_save_event_feedback(
     event_id = payload["event_id"]
     start_time = time.time() - 3600
     process_event(
+        ConsumerType.Events,
         {
             "payload": orjson.dumps(payload).decode(),
             "start_time": start_time,
@@ -252,7 +253,6 @@ def test_feedbacks_spawn_save_event_feedback(
             "remote_addr": "127.0.0.1",
         },
         project=default_project,
-        consumer_type=ConsumerType.Events,
     )
     assert not len(preprocess_event)
     assert save_event_feedback.delay.call_args[0] == ()
@@ -297,6 +297,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
 
     with task_runner():
         process_event(
+            ConsumerType.Events,
             {
                 "payload": orjson.dumps(payload).decode(),
                 "start_time": start_time,
@@ -314,7 +315,6 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
                 ],
             },
             project=default_project,
-            consumer_type=ConsumerType.Events,
         )
 
     persisted_attachments = list(
@@ -382,6 +382,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner, set_sentry_opt
 
         with task_runner():
             process_event(
+                ConsumerType.Events,
                 {
                     "payload": orjson.dumps(payload).decode(),
                     "start_time": start_time,
@@ -399,7 +400,6 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner, set_sentry_opt
                     ],
                 },
                 project=default_project,
-                consumer_type=ConsumerType.Events,
             )
 
         persisted_attachments = list(

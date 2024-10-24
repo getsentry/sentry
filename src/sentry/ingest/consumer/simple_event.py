@@ -60,11 +60,11 @@ def process_simple_event_message(
             return
 
         return process_event(
+            consumer_type,
             message,
             project,
             reprocess_only_stuck_events,
             no_celery_mode,
-            consumer_type=consumer_type,
         )
 
     except Exception as exc:

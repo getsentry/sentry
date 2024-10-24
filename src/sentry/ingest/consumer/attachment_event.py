@@ -92,10 +92,10 @@ def process_attachments_and_events(
                 process_individual_attachment(message, project)
         elif message_type == "event":
             process_event(
+                ConsumerType.Events,
                 message,
                 project,
                 reprocess_only_stuck_events,
-                consumer_type=ConsumerType.Events,
             )
         elif message_type == "user_report":
             process_userreport(message, project)
