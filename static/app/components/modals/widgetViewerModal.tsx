@@ -60,7 +60,6 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
-  getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
@@ -1022,9 +1021,6 @@ function WidgetViewerModal(props: Props) {
                     <WidgetHeader>
                       <WidgetTitleRow>
                         <h3>{widget.title}</h3>
-                        {widget.thresholds &&
-                          tableData &&
-                          getColoredWidgetIndicator(widget.thresholds, tableData)}
                       </WidgetTitleRow>
                       {widget.description && (
                         <Tooltip
