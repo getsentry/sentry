@@ -176,7 +176,7 @@ function WidgetCard(props: Props) {
       props.router.push({
         pathname: `${location.pathname}${
           location.pathname.endsWith('/') ? '' : '/'
-        }widget/${widget.id}/`,
+        }widget/${props.index}/`,
         query: location.query,
       });
     }
