@@ -28,6 +28,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {ProfilingTransactionHovercard} from './profilingTransactionHovercard';
@@ -47,6 +51,7 @@ export function ProfileEventsTable<F extends FieldType>(
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const domainViewFilters = useDomainViewFilters();
 
   const generateSortLink = useCallback(
     (column: F) => () => {
@@ -81,7 +86,7 @@ export function ProfileEventsTable<F extends FieldType>(
         }),
         renderBodyCell: renderTableBody(
           props.data?.meta ?? ({fields: {}, units: {}} as EventsResults<F>['meta']),
-          {location, organization, projects}
+          {location, organization, projects, view: domainViewFilters?.view}
         ),
       }}
     />
@@ -92,6 +97,7 @@ type RenderBagger = {
   location: Location;
   organization: Organization;
   projects: Project[];
+  view?: DomainView;
 };
 
 function renderTableBody<F extends FieldType>(
@@ -176,6 +182,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
             dateSelection: dataSelection,
             timestamp,
             location: props.baggage.location,
+            view: props.baggage.view,
           })}
         >
           {getShortEventId(traceId)}

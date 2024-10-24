@@ -211,7 +211,7 @@ class EventsTable extends Component<Props, State> {
             view: this.props.domainViewFilters?.view,
           });
         } else {
-          target = generateTraceLink(transactionName)(
+          target = generateTraceLink(transactionName, this.props.domainViewFilters?.view)(
             organization,
             dataRow,
             locationWithTab
