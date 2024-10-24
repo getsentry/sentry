@@ -4,6 +4,7 @@ from typing import Any, TypedDict
 from rest_framework import serializers
 
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
+from sentry.flags.unleashed import handle_unleashed_event
 from sentry.silo.base import SiloLimit
 
 
@@ -129,6 +130,8 @@ def handle_provider_event(
     match provider:
         case "launchdarkly":
             return handle_launchdarkly_event(request_data, organization_id)
+        case "unleashed":
+            return handle_unleashed_event(request_data, organization_id)
         case _:
             raise InvalidProvider(provider)
 
