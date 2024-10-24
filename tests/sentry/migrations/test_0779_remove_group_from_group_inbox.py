@@ -1,7 +1,8 @@
-from sentry.models.group import Group, GroupStatus, GroupSubStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestMigrations
+from sentry.types.group import GroupSubStatus
 
 
 class RemoveGroupsFromGroupInbox(TestMigrations):
