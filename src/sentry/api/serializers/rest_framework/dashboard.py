@@ -17,6 +17,7 @@ from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -583,6 +584,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             self.update_widgets(self.instance, validated_data["widgets"])
 
         self.update_dashboard_filters(self.instance, validated_data)
+        if "permissions" in validated_data:
+            DashboardPermissions.objects.create(
+                dashboard=self.instance, **validated_data["permissions"]
+            )
 
         schedule_update_project_configs(self.instance)
 
@@ -607,6 +612,10 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             self.update_widgets(instance, validated_data["widgets"])
 
         self.update_dashboard_filters(instance, validated_data)
+        if "permissions" in validated_data:
+            DashboardPermissions.objects.update_or_create(
+                dashboard=instance, defaults=validated_data["permissions"]
+            )
 
         schedule_update_project_configs(instance)
 
