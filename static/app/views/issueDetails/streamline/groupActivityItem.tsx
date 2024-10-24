@@ -639,7 +639,7 @@ export default function getGroupActivityItem(
       }
       case GroupActivityType.AUTO_SET_ONGOING: {
         return {
-          title: t('Marked As Ongoing'),
+          title: t('Marked as Ongoing'),
           message: activity.data?.afterDays
             ? tct('automatically by [author] after [afterDays] days', {
                 author,
