@@ -89,11 +89,10 @@ def _get_task_kwargs_and_dispatch(
     message: Message[KafkaPayload], eventstream_type: str | None = None
 ) -> None:
     task_kwargs = _get_task_kwargs(message)
-    task_kwargs["eventstream_type"] = eventstream_type
     if not task_kwargs:
         return None
 
-    dispatch_post_process_group_task(**task_kwargs)
+    dispatch_post_process_group_task(**task_kwargs, eventstream_type=eventstream_type)
 
 
 class EventPostProcessForwarderStrategyFactory(PostProcessForwarderStrategyFactory):
