@@ -1,0 +1,68 @@
+## * The default configuration of stacktrace grouping enhancers
+
+# iOS known apps
+family:native package:/var/containers/Bundle/Application/**          +app
+family:native package:/private/var/containers/Bundle/Application/**  +app
+
+# iOS apps in simulator
+family:native package:**/Developer/CoreSimulator/Devices/**          +app
+family:native package:**/Containers/Bundle/Application/**            +app
+
+# known well locations for unix paths
+family:native package:/lib/**                                        -app
+family:native package:/usr/lib/**                                    -app
+family:native path:/usr/local/lib/**                                 -app
+family:native path:/usr/local/Cellar/**                              -app
+family:native package:linux-gate.so*                                 -app
+
+# well known path components for mac paths
+family:native package:**.app/Contents/**                             +app
+family:native package:/Users/**                                      +app
+
+# rust common modules
+family:native function:std::*                                     -app
+family:native function:core::*                                    -app
+family:native function:alloc::*                                   -app
+family:native function:__rust_*                                   -app
+
+# rust borders
+family:native function:std::panicking::begin_panic                ^-group -group ^-app -app
+family:native function:core::panicking::begin_panic               ^-group -group ^-app -app
+family:native function:failure::backtrace::Backtrace::new         ^-group -group ^-app -app
+family:native function:error_chain::make_backtrace                ^-group -group ^-app -app
+
+# C++ borders
+family:native function:_CxxThrowException                         ^-group -group ^-app -app
+family:native function:__cxa_throw                                ^-group -group ^-app -app
+family:native function:__assert_rtn                               ^-group -group ^-app -app
+
+# Objective-C
+family:native function:_NSRaiseError                              ^-group -group ^-app -app
+family:native function:_mh_execute_header                         -group -app
+
+# Breakpad
+family:native function:google_breakpad::*                         -app -group
+family:native function:google_breakpad::ExceptionHandler::SignalHandler ^-group -group
+family:native function:google_breakpad::ExceptionHandler::WriteMinidumpWithException ^-group -group
+
+# Support frameworks that are not in-app
+family:native package:**/Frameworks/libswift*.dylib                  -app
+family:native package:**/Frameworks/KSCrash.framework/**             -app
+family:native package:**/Frameworks/SentrySwift.framework/**         -app
+family:native package:**/Frameworks/Sentry.framework/**              -app
+
+# Needed for versions < sentry-cocoa 7.0.0 and static linking.
+# Before sentry-cocoa 7.0.0, we marked all packages located inside the application bundle as inApp.
+# Since 7.0.0, the Cocoa SKD only marks the main executable as inApp. This change doesn't impact
+# applications using static libraries, as when using static libraries, all of them end up in the
+# main executable.
+family:native function:kscm_*                                     -app -group
+family:native function:sentrycrashcm_*                            -app -group
+family:native function:kscrash_*                                  -app -group
+family:native function:*sentrycrash_*                             -app -group
+family:native function:"?[[]KSCrash*"                             -app -group
+family:native function:"?[[]RNSentry*"                            -app -group
+
+# Projects shipping their own class called "SentryFoo" can then easily override this in their
+# own grouping enhancers.
+family:native function:"?[[]Sentry*"                              -app -group
