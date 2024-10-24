@@ -39,11 +39,11 @@ class WidgetLegendSelectionState {
     let newLegendQuery: string[];
     if (!location.query.unselectedSeries && widgets) {
       newLegendQuery = widgets
-        .filter(dashboardWidget => this.widgetRequiresLegendUnselection(dashboardWidget))
+        .filter(dashboardWidget => this.widgetIsChart(dashboardWidget))
         .map(dashboardWidget => {
           return dashboardWidget.id === widget.id
             ? this.encodeLegendQueryParam(widget, selected)
-            : this.formatLegendDefaultQuery(dashboardWidget.id);
+            : this.formatLegendDefaultQuery(dashboardWidget);
         })
         .filter(unselectedSeries => unselectedSeries !== undefined);
 
@@ -136,9 +136,19 @@ class WidgetLegendSelectionState {
     );
   }
 
-  formatLegendDefaultQuery(widgetId?: string) {
-    return this.organization.features.includes('dashboards-releases-on-charts')
-      ? `${widgetId}${WIDGET_ID_DELIMITER}Releases`
+  widgetIsChart(widget: Widget) {
+    return (
+      widget.displayType === DisplayType.AREA ||
+      widget.displayType === DisplayType.LINE ||
+      widget.displayType === DisplayType.BAR ||
+      widget.displayType === DisplayType.TOP_N
+    );
+  }
+
+  formatLegendDefaultQuery(widget: Widget) {
+    return this.organization.features.includes('dashboards-releases-on-charts') &&
+      this.widgetRequiresLegendUnselection(widget)
+      ? `${widget.id}${WIDGET_ID_DELIMITER}Releases`
       : undefined;
   }
 
@@ -189,17 +199,12 @@ class WidgetLegendSelectionState {
 
     // if widget was updated it returns updated widget to default selection state
     if (newWidget && newDashboard.widgets.includes(newWidget)) {
-      const formattedDefaultQuery = this.widgetRequiresLegendUnselection(newWidget)
-        ? this.formatLegendDefaultQuery(newWidget.id)
-        : undefined;
+      const formattedDefaultQuery = this.formatLegendDefaultQuery(newWidget);
 
       const newQuery = Array.isArray(location.query.unselectedSeries)
         ? location.query.unselectedSeries.map(legend => {
             if (legend.includes(newWidget.id!)) {
-              if (this.widgetRequiresLegendUnselection(newWidget)) {
-                return this.formatLegendDefaultQuery(newWidget.id);
-              }
-              return undefined;
+              return this.formatLegendDefaultQuery(newWidget);
             }
             return legend;
           })
@@ -231,15 +236,13 @@ class WidgetLegendSelectionState {
           legend.includes(widget.id!)
         );
         if (!widgetLegendQuery && this.widgetRequiresLegendUnselection(widget)) {
-          return this.formatLegendDefaultQuery(widget.id);
+          return this.formatLegendDefaultQuery(widget);
         }
         return widgetLegendQuery;
       }
       return location.query.unselectedSeries?.includes(widget.id!)
         ? location.query.unselectedSeries
-        : this.widgetRequiresLegendUnselection(widget)
-          ? this.formatLegendDefaultQuery(widget.id)
-          : undefined;
+        : this.formatLegendDefaultQuery(widget);
     });
     return unselectedSeries;
   }
