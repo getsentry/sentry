@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
     from sentry.users.models.user import User
     from sentry.workflow_engine.models.detector import DetectorHandler
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -592,6 +593,7 @@ class FeedbackGroup(GroupType):
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig(context=[])
     in_default_search = False  # hide from issues stream
+    released = True
 
 
 @dataclass(frozen=True)
