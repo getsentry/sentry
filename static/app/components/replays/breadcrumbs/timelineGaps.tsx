@@ -3,8 +3,10 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {VideoEvent} from 'sentry/utils/replays/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   durationMs: number;
@@ -35,6 +37,11 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
       width: toPercent(durationMs / durationMs),
     });
   }
+
+  trackAnalytics('replay.number_of_timeline_gaps', {
+    gaps: ranges.length,
+    organization: useOrganization(),
+  });
 
   // TODO: Fix tooltip position to follow mouse (it currently goes off the timeline when zoomed too much)
   return (
