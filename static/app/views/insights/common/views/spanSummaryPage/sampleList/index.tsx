@@ -5,14 +5,12 @@ import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -35,7 +33,6 @@ import {
   SpanMetricsField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
@@ -85,7 +82,6 @@ export function SampleList({
   const {projects} = useProjects();
 
   const spanSearchQuery = decodeScalar(location.query.spanSearchQuery);
-  const {data: supportedTags} = useSpanFieldSupportedTags();
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),
@@ -225,26 +221,13 @@ export function SampleList({
         />
 
         <StyledSearchBar>
-          {organization.features.includes('search-query-builder-performance') ? (
-            <SpanSearchQueryBuilder
-              projects={selection.projects}
-              initialQuery={spanSearchQuery ?? ''}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              searchSource={`${moduleName}-sample-panel`}
-            />
-          ) : (
-            <SearchBar
-              searchSource={`${moduleName}-sample-panel`}
-              query={spanSearchQuery}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              organization={organization}
-              supportedTags={supportedTags}
-              dataset={DiscoverDatasets.SPANS_INDEXED}
-              projectIds={selection.projects}
-            />
-          )}
+          <SpanSearchQueryBuilder
+            projects={selection.projects}
+            initialQuery={spanSearchQuery ?? ''}
+            onSearch={handleSearch}
+            placeholder={t('Search for span attributes')}
+            searchSource={`${moduleName}-sample-panel`}
+          />
         </StyledSearchBar>
 
         <SampleTable

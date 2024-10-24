@@ -5,7 +5,6 @@ import omit from 'lodash/omit';
 
 import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -228,22 +227,12 @@ function Search(props: Props) {
         <DatePageFilter />
       </PageFilterBar>
       <StyledSearchBarWrapper>
-        {organization.features.includes('search-query-builder-performance') ? (
-          <TransactionSearchQueryBuilder
-            projects={projectIds}
-            initialQuery={query}
-            onSearch={handleSearch}
-            searchSource="transaction_events"
-          />
-        ) : (
-          <SearchBar
-            organization={organization}
-            projectIds={eventView.project}
-            query={query}
-            fields={eventView.fields}
-            onSearch={handleSearch}
-          />
-        )}
+        <TransactionSearchQueryBuilder
+          projects={projectIds}
+          initialQuery={query}
+          onSearch={handleSearch}
+          searchSource="transaction_events"
+        />
       </StyledSearchBarWrapper>
       <CompactSelect
         triggerProps={{prefix: t('Percentile')}}

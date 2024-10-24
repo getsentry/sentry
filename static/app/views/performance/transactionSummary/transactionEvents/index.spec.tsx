@@ -130,6 +130,14 @@ const setupMockApiResponeses = () => {
     url: '/organizations/org-slug/replay-count/',
     body: {},
   });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/recent-searches/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/tags/`,
+    body: [],
+  });
 };
 
 const setupMocks = () => {
