@@ -109,6 +109,7 @@ class SnubaProtocolEventStream(EventStream):
         received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
+        eventstream_type: str | None = None,
         **kwargs: Any,
     ) -> None:
         if event.get_tag("sample_event") == "true":
