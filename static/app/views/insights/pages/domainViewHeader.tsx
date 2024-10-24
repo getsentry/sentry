@@ -61,7 +61,9 @@ export function DomainViewHeader({
     },
     {
       label: selectedModule ? MODULE_TITLES[selectedModule] : OVERVIEW_PAGE_TITLE,
-      to: `${moduleURLBuilder(selectedModule as RoutableModuleNames)}/`,
+      to: selectedModule
+        ? `${moduleURLBuilder(selectedModule as RoutableModuleNames)}/`
+        : domainBaseUrl,
       preservePageFilters: true,
     },
     ...additionalBreadCrumbs,
