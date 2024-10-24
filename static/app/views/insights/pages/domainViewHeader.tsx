@@ -25,7 +25,6 @@ export type Props = {
   additionalBreadCrumbs?: Crumb[];
   additonalHeaderActions?: React.ReactNode;
   hideDefaultTabs?: boolean;
-  moduleTitleOveride?: Record<ModuleName, string>; // overrides existing titles within the module
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
 };
 
