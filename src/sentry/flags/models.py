@@ -1,4 +1,6 @@
+import datetime
 from enum import Enum
+from typing import Any, TypedDict
 
 from django.db import models
 from django.utils import timezone
@@ -83,3 +85,30 @@ class FlagAuditLogModel(Model):
         indexes = (models.Index(fields=("flag",)),)
 
     __repr__ = sane_repr("organization_id", "flag")
+
+
+"""
+Utility types
+"""
+
+
+class FlagAuditLogRow(TypedDict):
+    """Represents a complete flag audit log row instance."""
+
+    action: int
+    created_at: datetime.datetime
+    created_by: str
+    created_by_type: int
+    flag: str
+    organization_id: int
+    tags: dict[str, Any]
+
+
+class FlagAuditLogItem(TypedDict):
+    """A simplified type which is easier to work with than the row definition."""
+
+    action: str
+    flag: str
+    created_at: datetime.datetime
+    created_by: str
+    tags: dict[str, str]
