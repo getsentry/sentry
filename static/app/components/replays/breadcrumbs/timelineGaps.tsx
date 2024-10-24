@@ -17,9 +17,9 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
 
   let start = startTimestampMs;
 
-  // create gap in timeline when there is a gap between video events
+  // create gap in timeline when there is a gap between video events larger than 1s
   for (const video of videoEvents) {
-    if (start < video.timestamp) {
+    if (video.timestamp - start > 1000) {
       ranges.push({
         left: toPercent((start - startTimestampMs) / durationMs),
         width: toPercent((video.timestamp - start) / durationMs),
