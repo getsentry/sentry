@@ -15,7 +15,7 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import {DEFAULT_FIELD} from '../common/settings';
+import {DEFAULT_FIELD, X_GUTTER, Y_GUTTER} from '../common/settings';
 
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
@@ -144,7 +144,7 @@ function Wrapper({children}) {
 
 const AutoResizeParent = styled('div')`
   position: absolute;
-  inset: 0;
+  inset: ${Y_GUTTER} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
 
   color: ${p => p.theme.headingColor};
 
