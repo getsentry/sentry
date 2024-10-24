@@ -685,7 +685,8 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             action="created",
             sender="Error",
             instance_id=event.event_id,
-            instance=EventMatcher(event),
+            group_id=event.group_id,
+            project_id=self.project.id,
         )
 
     @with_feature("organizations:integrations-event-hooks")

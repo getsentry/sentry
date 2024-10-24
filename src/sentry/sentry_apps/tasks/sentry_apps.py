@@ -184,30 +184,21 @@ def _process_resource_change(
 
     project_id: int | None = kwargs.get("project_id", None)
     group_id: int | None = kwargs.get("group_id", None)
-    if sender == "Error" and not kwargs.get("instance", None) and project_id and group_id:
-        # Read event from nodestore as we're trying to move away from passing events in task
-        # messages.
-        node_id = Event.generate_node_id(project_id, str(instance_id))
-        nodedata = nodestore.backend.get(node_id)
-        node_event = Event(
+    if sender == "Error" and project_id and group_id:
+        # Read event from nodestore as Events are heavy in task messages.
+        nodedata = nodestore.backend.get(Event.generate_node_id(project_id, str(instance_id)))
+        if not nodedata:
+            extra = {"sender": sender, "action": action, "event_id": instance_id}
+            logger.info("process_resource_change.event_missing_event", extra=extra)
+            return
+        instance = Event(
             project_id=project_id, group_id=group_id, event_id=str(instance_id), data=nodedata
         )
-
-        kwargs["instance"] = node_event
         name = sender.lower()
     else:
-        # The Event model has different hooks for the different event types. The sender
-        # determines which type eg. Error and therefore the 'name' eg. error
-        if issubclass(model, Event):
-            if not kwargs.get("instance"):
-                extra = {"sender": sender, "action": action, "event_id": instance_id}
-                logger.info("process_resource_change.event_missing_event", extra=extra)
-                return
-            name = sender.lower()
-        else:
-            # Some resources are named differently than their model. eg. Group vs Issue.
-            # Looks up the human name for the model. Defaults to the model name.
-            name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
+        # Some resources are named differently than their model. eg. Group vs Issue.
+        # Looks up the human name for the model. Defaults to the model name.
+        name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
 
     # By default, use Celery's `current_task` but allow a value to be passed for the
     # bound Task.
@@ -215,13 +206,7 @@ def _process_resource_change(
 
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
-    if issubclass(model, Event):
-        # XXX:(Meredith): Passing through the entire event was an intentional choice
-        # to avoid having to query NodeStore again for data we had previously in
-        # post_process. While this is not ideal, changing this will most likely involve
-        # an overhaul of how we do things in post_process, not just this task alone.
-        instance = kwargs.get("instance")
-    else:
+    if not issubclass(model, Event):
         try:
             instance = model.objects.get(id=instance_id)
         except model.DoesNotExist as e:
