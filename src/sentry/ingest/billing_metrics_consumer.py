@@ -17,13 +17,8 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
-from sentry.sentry_metrics.indexer.strings import (
-    SHARED_TAG_STRINGS,
-    SPAN_METRICS_NAMES,
-    TRANSACTION_METRICS_NAMES,
-)
+from sentry.sentry_metrics.indexer.strings import SPAN_METRICS_NAMES, TRANSACTION_METRICS_NAMES
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.utils import reverse_resolve_tag_value
 from sentry.signals import first_custom_metric_received
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.naming_layer.mri import is_custom_metric
