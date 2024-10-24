@@ -144,30 +144,6 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
 
 export default GetStarted;
 
-const AnimatedContentWrapper = styled(motion.div)`
-  overflow: hidden;
-`;
-
-AnimatedContentWrapper.defaultProps = {
-  initial: {
-    height: 0,
-  },
-  animate: {
-    height: 'auto',
-  },
-  exit: {
-    height: 0,
-  },
-};
-
-const DocsWrapper = styled(motion.div)``;
-
-DocsWrapper.defaultProps = {
-  initial: {opacity: 0, y: 40},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0},
-};
-
 const Wrapper = styled('div')`
   margin-left: auto;
   margin-right: auto;
