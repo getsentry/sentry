@@ -37,7 +37,6 @@ from sentry.incidents.logic import (
     AlertTarget,
     ChannelLookupTimeoutError,
     InvalidTriggerActionError,
-    ProjectsNotAssociatedWithAlertRuleError,
     create_alert_rule,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
@@ -52,7 +51,6 @@ from sentry.incidents.logic import (
     get_actions_for_trigger,
     get_alert_resolution,
     get_available_action_integrations_for_org,
-    get_excluded_projects_for_alert_rule,
     get_incident_aggregates,
     get_incident_subscribers,
     get_triggers_for_alert_rule,
@@ -658,20 +656,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
 
-    def test_include_all_projects(self):
-        include_all_projects = True
-        self.project
-        alert_rule = self.create_alert_rule(projects=[], include_all_projects=include_all_projects)
-        assert alert_rule.snuba_query.subscriptions.get().project == self.project
-        assert alert_rule.include_all_projects == include_all_projects
-
-        new_project = self.create_project(fire_project_created=True)
-        alert_rule = self.create_alert_rule(
-            projects=[], include_all_projects=include_all_projects, excluded_projects=[self.project]
-        )
-        assert alert_rule.snuba_query.subscriptions.get().project == new_project
-        assert alert_rule.include_all_projects == include_all_projects
-
     # This test will fail unless real migrations are run. Refer to migration 0061.
     @pytest.mark.migrations  # requires custom migration 0061
     @override_settings(SILO_MODE=SiloMode.MONOLITH)
@@ -1109,52 +1093,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert set(updated_projects) == set(project_updates)
         for sub in updated_subscriptions:
             assert sub.snuba_query.query == query_update
-
-    def test_update_to_include_all(self):
-        orig_project = self.project
-        alert_rule = self.create_alert_rule(projects=[orig_project])
-        new_project = self.create_project(fire_project_created=True)
-        assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
-        update_alert_rule(alert_rule, include_all_projects=True)
-        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == {
-            new_project,
-            orig_project,
-        }
-
-    def test_update_to_include_all_with_exclude(self):
-        orig_project = self.project
-        alert_rule = self.create_alert_rule(projects=[orig_project])
-        new_project = self.create_project(fire_project_created=True)
-        excluded_project = self.create_project()
-        assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
-        update_alert_rule(
-            alert_rule, include_all_projects=True, excluded_projects=[excluded_project]
-        )
-        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == {
-            orig_project,
-            new_project,
-        }
-
-    def test_update_include_all_exclude_list(self):
-        new_project = self.create_project(fire_project_created=True)
-        projects = {new_project, self.project}
-        alert_rule = self.create_alert_rule(include_all_projects=True)
-        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == projects
-        with self.tasks():
-            update_alert_rule(alert_rule, excluded_projects=[self.project])
-        assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
-
-        update_alert_rule(alert_rule, excluded_projects=[])
-        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == projects
-
-    def test_update_from_include_all(self):
-        new_project = self.create_project(fire_project_created=True)
-        projects = {new_project, self.project}
-        alert_rule = self.create_alert_rule(include_all_projects=True)
-        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == projects
-        with self.tasks():
-            update_alert_rule(alert_rule, projects=[new_project], include_all_projects=False)
-        assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
 
     def test_with_attached_incident(self):
         # A snapshot of the pre-updated rule should be created, and the incidents should also be resolved.
@@ -2420,21 +2358,6 @@ class DisableAlertRuleTest(TestCase, BaseIncidentsTest):
                 assert subscription.status == QuerySubscription.Status.DISABLED.value
 
 
-class TestGetExcludedProjectsForAlertRule(TestCase):
-    def test(self):
-        excluded = [self.create_project(fire_project_created=True)]
-        alert_rule = self.create_alert_rule(
-            projects=[], include_all_projects=True, excluded_projects=excluded
-        )
-        exclusions = get_excluded_projects_for_alert_rule(alert_rule)
-        assert [exclusion.project for exclusion in exclusions] == excluded
-
-    def test_no_excluded(self):
-        self.create_project(fire_project_created=True)
-        alert_rule = self.create_alert_rule(projects=[], include_all_projects=True)
-        assert list(get_excluded_projects_for_alert_rule(alert_rule)) == []
-
-
 class CreateAlertRuleTriggerTest(TestCase):
     @cached_property
     def alert_rule(self):
@@ -2447,22 +2370,6 @@ class CreateAlertRuleTriggerTest(TestCase):
         assert trigger.label == label
         assert trigger.alert_threshold == alert_threshold
         assert not AlertRuleTriggerExclusion.objects.filter(alert_rule_trigger=trigger).exists()
-
-    def test_excluded_projects(self):
-        excluded_project = self.create_project(fire_project_created=True)
-        alert_rule = self.create_alert_rule(projects=[self.project, excluded_project])
-        trigger = create_alert_rule_trigger(
-            alert_rule, "hi", 100, excluded_projects=[excluded_project]
-        )
-        # We should have only one exclusion
-        exclusion = AlertRuleTriggerExclusion.objects.get(alert_rule_trigger=trigger)
-        assert exclusion.query_subscription.project == excluded_project
-
-    def test_excluded_projects_not_associated_with_rule(self):
-        other_project = self.create_project(fire_project_created=True)
-        alert_rule = self.create_alert_rule(projects=[self.project])
-        with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
-            create_alert_rule_trigger(alert_rule, "hi", 100, excluded_projects=[other_project])
 
     def test_existing_label(self):
         name = "uh oh"
@@ -2511,38 +2418,6 @@ class UpdateAlertRuleTriggerTest(TestCase):
         with pytest.raises(AlertRuleTriggerLabelAlreadyUsedError):
             update_alert_rule_trigger(trigger, label=label)
 
-    def test_exclude_projects(self):
-        other_project = self.create_project(fire_project_created=True)
-
-        alert_rule = self.create_alert_rule(projects=[other_project, self.project])
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        update_alert_rule_trigger(trigger, excluded_projects=[other_project])
-        assert trigger.exclusions.get().query_subscription.project == other_project
-
-    def test_complex_exclude_projects(self):
-        excluded_project = self.create_project()
-        other_project = self.create_project(fire_project_created=True)
-
-        alert_rule = self.create_alert_rule(
-            projects=[excluded_project, self.project, other_project]
-        )
-        trigger = create_alert_rule_trigger(
-            alert_rule, "hi", 1000, excluded_projects=[excluded_project, self.project]
-        )
-        update_alert_rule_trigger(trigger, excluded_projects=[other_project, excluded_project])
-        excluded_projects = [
-            exclusion.query_subscription.project for exclusion in trigger.exclusions.all()
-        ]
-        assert set(excluded_projects) == {other_project, excluded_project}
-
-    def test_excluded_projects_not_associated_with_rule(self):
-        other_project = self.create_project(fire_project_created=True)
-        alert_rule = self.create_alert_rule(projects=[self.project])
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-
-        with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
-            update_alert_rule_trigger(trigger, excluded_projects=[other_project])
-
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @patch(
@@ -2566,19 +2441,10 @@ class UpdateAlertRuleTriggerTest(TestCase):
 class DeleteAlertRuleTriggerTest(TestCase):
     def test(self):
         alert_rule = self.create_alert_rule()
-        trigger = create_alert_rule_trigger(
-            alert_rule, "hi", 1000, excluded_projects=[self.project]
-        )
+        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         trigger_id = trigger.id
-        assert AlertRuleTriggerExclusion.objects.filter(
-            alert_rule_trigger=trigger_id, query_subscription__project=self.project
-        ).exists()
         delete_alert_rule_trigger(trigger)
-
         assert not AlertRuleTrigger.objects.filter(id=trigger_id).exists()
-        assert not AlertRuleTriggerExclusion.objects.filter(
-            alert_rule_trigger=trigger_id, query_subscription__project=self.project
-        ).exists()
 
 
 class GetTriggersForAlertRuleTest(TestCase):

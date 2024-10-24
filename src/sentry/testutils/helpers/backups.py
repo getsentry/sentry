@@ -477,7 +477,6 @@ class ExhaustiveFixtures(Fixtures):
         alert = self.create_alert_rule(
             organization=org,
             projects=[project],
-            include_all_projects=True,
             excluded_projects=[other_project],
             user=owner,
         )
