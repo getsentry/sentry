@@ -84,6 +84,7 @@ class OAuthAuthorizeView(AuthLoginView):
         if not client_id:
             return self.error(
                 request=request,
+                client_id=client_id,
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 name="unauthorized_client",
