@@ -24,8 +24,10 @@ from sentry.integrations.slack.metrics import (
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.service import SlackService
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
+from sentry.integrations.slack.utils.errors import CHANNEL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.organizations.services.organization import organization_service
 from sentry.utils import metrics
@@ -116,7 +118,25 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 text=payload["text"],
                 **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
             )
-        except SlackApiError:
+        except SlackApiError as e:
+            # If the channel is not found, it could be because the bot doesn't have access to the channel to send an ephemeral message
+            # In this case, we should send the message to the user in the bot <> user DM
+            if unpack_slack_api_error(e) == CHANNEL_NOT_FOUND:
+                service = SlackService.default()
+                service.send_message_to_slack_channel(
+                    integration_id=slack_request.integration.id,
+                    payload={
+                        "text": payload["text"],
+                        **SlackPromptLinkMessageBuilder(
+                            associate_url, ephemeral=False, channel_name=slack_request.channel_id
+                        ).as_payload(),
+                        # by passing the user_id as the channel, we send the message to the user in the bot <> user DM
+                        # https://api.slack.com/methods/chat.postMessage#dm
+                        "channel": slack_request.user_id,
+                    },
+                    log_error_message="prompt_link.post-message-error",
+                    log_params=logger_params,
+                )
             _logger.exception("prompt_link.post-ephemeral-error", extra=logger_params)
             metrics.incr(self._METRIC_FAILURE_KEY + ".prompt_link.post_ephemeral", sample_rate=1.0)
 
