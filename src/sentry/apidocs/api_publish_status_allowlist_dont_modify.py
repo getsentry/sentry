@@ -22,7 +22,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/{var}/{issue_id}/reprocessing/": {"POST"},
     "/api/0/{var}/{issue_id}/stats/": {"GET"},
     "/api/0/{var}/{issue_id}/tags/": {"GET"},
-    "/api/0/{var}/{issue_id}/tags/{key}/": {"GET"},
     "/api/0/{var}/{issue_id}/tags/{key}/values/": {"GET"},
     "/api/0/{var}/{issue_id}/attachments/": {"GET"},
     "/api/0/{var}/{issue_id}/similar/": {"GET"},
