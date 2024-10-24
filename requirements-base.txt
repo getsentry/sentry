@@ -97,7 +97,7 @@ cryptography>=38.0.3
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
 # See https://github.com/grpc/grpc/issues/23796 and
 # https://github.com/grpc/grpc/blob/v1.35.x/doc/core/grpc-polling-engines.md#polling-engine-implementations-in-grpc
-grpcio>=1.59.0
+grpcio>=1.66.1
 
 # not directly used, but provides a speedup for redis
 hiredis>=2.3.2
