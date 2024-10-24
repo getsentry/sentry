@@ -1,6 +1,7 @@
 export const CHANGE_ALERT_CONDITION_IDS = [
   'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
   'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
+  'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions',
   'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
 ];
 
@@ -9,6 +10,8 @@ export const CHANGE_ALERT_PLACEHOLDERS_LABELS = {
     'Number of events in an issue is',
   'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition':
     'Number of users affected by an issue is',
+  'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions':
+    'Number of users affected by an issue (with tag values equal) is',
   'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition':
     'Percent of sessions affected by an issue is',
 };
