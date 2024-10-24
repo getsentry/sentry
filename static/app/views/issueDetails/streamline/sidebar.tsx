@@ -25,7 +25,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       {event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />
-          <StyledBreak />
+          <StyledBreak style={{marginBottom: space(0.5)}} />
         </ErrorBoundary>
       )}
       <StreamlinedActivitySection group={group} />
