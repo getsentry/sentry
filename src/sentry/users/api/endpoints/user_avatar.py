@@ -18,8 +18,8 @@ from sentry.users.services.user.service import user_service
 @control_silo_endpoint
 class UserAvatarEndpoint(AvatarMixin[UserAvatar], UserEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     object_type = "user"
     model = UserAvatar
