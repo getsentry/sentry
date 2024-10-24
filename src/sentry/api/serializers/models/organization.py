@@ -46,6 +46,7 @@ from sentry.constants import (
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
     SAFE_FIELDS_DEFAULT,
+    SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
@@ -616,6 +617,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if features.has("organizations:dynamic-sampling-custom", obj, actor=user):
             context["targetSampleRate"] = float(
                 obj.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
+            )
+            context["samplingMode"] = str(
+                obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
             )
 
         trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []
