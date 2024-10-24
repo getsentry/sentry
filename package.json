@@ -53,7 +53,7 @@
     "@react-stately/tree": "^3.8.4",
     "@react-types/shared": "^3.24.1",
     "@rsdoctor/webpack-plugin": "0.4.4",
-    "@sentry-internal/global-search": "^1.0.0",
+    "@sentry-internal/global-search": "^1.1.0",
     "@sentry-internal/rrweb": "2.26.0",
     "@sentry-internal/rrweb-player": "2.26.0",
     "@sentry-internal/rrweb-snapshot": "2.26.0",
