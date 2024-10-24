@@ -224,6 +224,7 @@ const Header = styled('div')`
   display: flex;
   align-items: center;
   height: calc(${HEADER_HEIGHT} + ${Y_GUTTER});
+  flex-shrink: 0;
   gap: ${space(0.75)};
   padding: ${X_GUTTER} ${Y_GUTTER} 0 ${X_GUTTER};
 `;
@@ -257,5 +258,6 @@ const WidgetTooltipButton = styled(Button)`
 const VisualizationWrapper = styled('div')`
   display: flex;
   flex-grow: 1;
+  min-height: 0;
   position: relative;
 `;
