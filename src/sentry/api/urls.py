@@ -2042,6 +2042,11 @@ ORGANIZATION_URLS = [
         OrganizationFlagLogDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-flag-log",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/token/(?P<token>.+)/$",
+        OrganizationFlagsHooksEndpoint.as_view(),
+        name="sentry-api-0-organization-flag-hooks",
+    ),
     # Replays
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/replays/$",
@@ -3182,12 +3187,6 @@ urlpatterns = [
         r"^prompts-activity/$",
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-prompts-activity",
-    ),
-    # Feature Flag Providers
-    re_path(
-        r"^flags/hooks/provider/(?P<provider>[\w-]+)/token/(?P<token>.+)/$",
-        OrganizationFlagsHooksEndpoint.as_view(),
-        name="sentry-api-0-flag-hooks",
     ),
     # List Authenticators
     re_path(

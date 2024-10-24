@@ -83,11 +83,11 @@ Retrieve a single flag log instance.
   }
   ```
 
-## Webhooks [/webhooks/flags/organization/<organization_id_or_slug>/provider/<provider>/]
+## Webhooks [/organizations/<organization_id_or_slug>/flags/hooks/provider/<provider>/token/<token>/]
 
 ### Create Flag Log [POST]
 
-The shape of the request object varies by provider. The `<provider>` URI parameter informs the server of the shape of the request and it is on the server to handle the provider. The following providers are supported: Unleash, Split, and LaunchDarkly.
+The shape of the request object varies by provider. The `<provider>` URI parameter informs the server of the shape of the request and it is on the server to handle the provider. The following providers are supported: Unleash, Split, Statsig, and LaunchDarkly.
 
 **Flag Pole Example:**
 

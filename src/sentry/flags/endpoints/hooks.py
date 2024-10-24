@@ -44,16 +44,24 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def convert_args(self, request: Request, token: str, *args, **kwargs):
-        organization_id = get_org_id_from_token(token)
-        if not organization_id:
-            raise AuthenticationFailed("Invalid token specified.")
-
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str,
+        token: str,
+        *args,
+        **kwargs,
+    ):
         try:
-            organization = Organization.objects.get(id=organization_id)
+            if str(organization_id_or_slug).isdigit():
+                organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
+            else:
+                organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
         except Organization.DoesNotExist:
-            logger.exception("Flags Webhook: lookup failed for organization `%d`", organization_id)
             raise ResourceDoesNotExist
+
+        if not is_valid_token(organization.id, token):
+            raise AuthenticationFailed("Invalid token specified.")
 
         kwargs["organization"] = organization
         return args, kwargs
@@ -74,23 +82,26 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
             return Response(exc.errors, status=200)
 
 
-def get_org_id_from_token(token: str) -> int | None:
+def is_valid_token(organization_id: int, token: str) -> bool:
     token_hashed = hash_token(unquote(token))
+
     if SiloMode.get_current_mode() == SiloMode.REGION:
         try:
-            org_token_replica = OrgAuthTokenReplica.objects.get(
+            OrgAuthTokenReplica.objects.get(
                 token_hashed=token_hashed,
                 date_deactivated__isnull=True,
+                organization_id=organization_id,
             )
-            return org_token_replica.organization_id
+            return True
         except OrgAuthTokenReplica.DoesNotExist:
-            return None
+            return False
     else:
         try:
-            org_token = OrgAuthToken.objects.get(
+            OrgAuthToken.objects.get(
                 token_hashed=token_hashed,
                 date_deactivated__isnull=True,
+                organization_id=organization_id,
             )
-            return org_token.organization_id
+            return True
         except OrgAuthToken.DoesNotExist:
-            return None
+            return False
