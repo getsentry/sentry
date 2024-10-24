@@ -46,12 +46,13 @@ class EventLookupError(Exception):
     pass
 
 
-def create_rate_limit_key(fingerprint: str) -> str:
-    rate_limit_key = f"occurrence_rate_limit:{fingerprint}"
+def create_rate_limit_key(project_id: int, fingerprint: str) -> str:
+    rate_limit_key = f"occurrence_rate_limit:{project_id}-{fingerprint}"
     return rate_limit_key
 
 
 def is_rate_limited(
+    project_id: int,
     fingerprint: str,
 ) -> bool:
     try:
@@ -59,7 +60,7 @@ def is_rate_limited(
         if not rate_limit_enabled:
             return False
 
-        rate_limit_key = create_rate_limit_key(fingerprint)
+        rate_limit_key = create_rate_limit_key(project_id, fingerprint)
         rate_limit_quota = Quota(**options.get("issues.occurrence-consumer.rate-limit.quota"))
         granted_quota = rate_limiter.check_and_use_quotas(
             [
@@ -353,7 +354,7 @@ def process_occurrence_message(
         txn.set_tag("result", "dropped_feature_disabled")
         return None
 
-    if is_rate_limited(fingerprint=occurrence_data["fingerprint"][0]):
+    if is_rate_limited(project.id, fingerprint=occurrence_data["fingerprint"][0]):
         metrics.incr(
             "occurrence_ingest.dropped_rate_limited",
             sample_rate=1.0,
