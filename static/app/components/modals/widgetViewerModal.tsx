@@ -107,7 +107,6 @@ export interface WidgetViewerModalOptions {
   dashboardFilters?: DashboardFilters;
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
-  onSetTransactionsDataset?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
   seriesResultsType?: Record<string, AggregationOutputType>;
@@ -194,7 +193,6 @@ function WidgetViewerModal(props: Props) {
     seriesResultsType,
     dashboardFilters,
     widgetLegendState,
-    onSetTransactionsDataset,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -1024,10 +1022,7 @@ function WidgetViewerModal(props: Props) {
                     <WidgetHeader>
                       <WidgetTitleRow>
                         <h3>{widget.title}</h3>
-                        <DiscoverSplitAlert
-                          widget={widget}
-                          onSetTransactionsDataset={onSetTransactionsDataset}
-                        />
+                        <DiscoverSplitAlert widget={widget} />
                         {widget.thresholds &&
                           tableData &&
                           getColoredWidgetIndicator(widget.thresholds, tableData)}

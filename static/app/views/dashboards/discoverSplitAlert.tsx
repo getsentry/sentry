@@ -25,16 +25,18 @@ export function DiscoverSplitAlert({
       containerDisplayMode="inline-flex"
       isHoverable
       title={tct(
-        "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. [link]",
+        "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. [editText]",
         {
-          link: (
+          editText: onSetTransactionsDataset ? (
             <a
               onClick={() => {
-                onSetTransactionsDataset?.();
+                onSetTransactionsDataset();
               }}
             >
               {t('Switch to Transactions')}
             </a>
+          ) : (
+            t('Edit as you see fit.')
           ),
         }
       )}
