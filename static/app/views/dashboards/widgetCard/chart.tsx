@@ -554,7 +554,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                               }
                             : {}),
                           legend,
-                          series: [...series, ...modifiedReleaseSeriesResults],
+                          series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
                           onLegendSelectChanged,
                           forwardedRef,
                         }),
@@ -638,7 +638,6 @@ const BigNumberResizeWrapper = styled('div')`
   flex-grow: 1;
   overflow: hidden;
   position: relative;
-  margin: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
 `;
 
 const BigNumber = styled('div')`
