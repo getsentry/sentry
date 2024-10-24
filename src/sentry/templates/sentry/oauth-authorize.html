@@ -14,10 +14,31 @@
       <p><strong>{{ application.name }}</strong> is requesting access to your Sentry account ({{ user.username }}):</p>
       <ul>
         <li>Access to your account details, including your name and email address.</li>
+      </ul>
+      <p>
+        {% if organization_options|length == 0 %}
+          As well as the following access to your Sentry organizations:
+        {% elif organization_options|length == 1 %}
+        <!-- If user only has one org and application requires org level access, choose that org by default -->
+          As well as the following access to your Sentry organization <strong>{{organization_options.0.name}}</strong>:
+          <input type="hidden" name="selected_organization_id" value="{{ organization_options.0.id }}">
+        {% endif %}
+      </p>
+      <ul>
         {% for permission in permissions %}
           <li>{{ permission }}</li>
         {% endfor %}
       </ul>
+
+      {% if organization_options|length > 1 %}
+        <!-- If there are multiple organizations and application requires org level access, show the selector -->
+        <label for="organization">Select one of your sentry organizations to grant access to:</label>
+        <select name="selected_organization_id" id="organization_id">
+            {% for organization in organization_options %}
+                <option value="{{ organization.id }}">{{ organization.name }}</option>
+            {% endfor %}
+        </select>
+      {% endif %}
       {% if application.terms_url or application.privacy_url %}
         <p><small>
           {% if application.terms_url %}
