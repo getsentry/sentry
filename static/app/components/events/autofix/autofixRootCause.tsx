@@ -42,6 +42,7 @@ type AutofixRootCauseProps = {
   repos: AutofixRepository[];
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
+  terminationReason?: string;
 };
 
 const contentAnimationProps: AnimationProps = {
@@ -474,9 +475,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
             <Alert type="warning">
-              {t(
-                'No root cause found. Maybe help Autofix rethink by editing an insight above?'
-              )}
+              {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
             </Alert>
           </NoCausesPadding>
         </AnimationWrapper>
