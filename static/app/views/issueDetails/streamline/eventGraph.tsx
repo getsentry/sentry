@@ -255,15 +255,13 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           }}
           {...chartZoomProps}
         />
-        <OpenInDiscoverButton>
-          <LinkButton
-            size="xs"
-            icon={<IconTelescope />}
-            to={discoverUrl}
-            aria-label={t('Open in Discover')}
-          >
-            {t('Discover')}
-          </LinkButton>
+        <OpenInDiscoverButton
+          size="xs"
+          icon={<IconTelescope />}
+          to={discoverUrl}
+          aria-label={t('Open in Discover')}
+        >
+          {t('Discover')}
         </OpenInDiscoverButton>
       </ChartContainer>
     </GraphWrapper>
@@ -279,7 +277,7 @@ function GraphButton({
   return (
     <Callout
       isActive={isActive}
-      aria-label={t('Toggle [label] series', {label})}
+      aria-label={`${t('Toggle graph series')} - ${label}`}
       {...props}
     >
       <InteractionStateLayer hidden={isActive} />
@@ -344,7 +342,7 @@ const LoadingChartContainer = styled('div')`
   padding: ${space(1)} ${space(1)};
 `;
 
-const OpenInDiscoverButton = styled('div')`
+const OpenInDiscoverButton = styled(LinkButton)`
   position: absolute;
   top: ${space(1)};
   right: ${space(1)};

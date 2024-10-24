@@ -57,15 +57,10 @@ describe('EventDetailsHeader', () => {
 
   it('displays allows toggling data sets', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {organization});
-    await screen.findByRole('button', {name: 'Events 444'});
-
-    const count = EventsStatsFixture().data.reduce(
-      (currentCount, item) => currentCount + item[1][0].count,
-      0
-    );
-
-    const eventsToggle = screen.getByRole('button', {name: `Events ${count}`});
-    const usersToggle = screen.getByRole('button', {name: `Users ${count}`});
+    const eventsToggle = await screen.findByRole('button', {
+      name: 'Toggle graph series - Events',
+    });
+    const usersToggle = screen.getByRole('button', {name: 'Toggle graph series - Users'});
 
     // Defaults to events graph
     expect(eventsToggle).toBeDisabled();
@@ -89,7 +84,10 @@ describe('EventDetailsHeader', () => {
 
   it('renders the graph using a discover event stats query', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {organization});
-    await screen.findByRole('button', {name: 'Events 444'});
+    await screen.findByRole('button', {
+      name: 'Toggle graph series - Events',
+    });
+
     expect(mockEventStats).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
@@ -109,8 +107,6 @@ describe('EventDetailsHeader', () => {
       })
     );
 
-    expect(screen.queryByLabelText('Open in Discover')).not.toBeInTheDocument();
-    await userEvent.hover(screen.getByRole('figure'));
     const discoverButton = screen.getByLabelText('Open in Discover');
     expect(discoverButton).toBeInTheDocument();
     expect(discoverButton).toHaveAttribute(
@@ -121,7 +117,9 @@ describe('EventDetailsHeader', () => {
 
   it('allows filtering by environment', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {organization});
-    await screen.findByRole('button', {name: 'Events 444'});
+    await screen.findByRole('button', {
+      name: 'Toggle graph series - Events',
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
     await userEvent.click(screen.getByRole('row', {name: 'production'}));
@@ -146,8 +144,11 @@ describe('EventDetailsHeader', () => {
     const router = RouterFixture({
       location: LocationFixture(locationQuery),
     });
+
     render(<EventDetailsHeader {...defaultProps} />, {organization, router});
-    await screen.findByRole('button', {name: 'Events 444'});
+    await screen.findByRole('button', {
+      name: 'Toggle graph series - Events',
+    });
 
     expect(mockEventStats).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -161,7 +162,9 @@ describe('EventDetailsHeader', () => {
 
   it('allows filtering by date', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {organization});
-    await screen.findByRole('button', {name: 'Events 444'});
+    await screen.findByRole('button', {
+      name: 'Toggle graph series - Events',
+    });
 
     await userEvent.click(screen.getByRole('button', {name: '14D'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Last 7 days'}));
@@ -189,7 +192,7 @@ describe('EventDetailsHeader', () => {
     await screen.findByRole('button', {name: '14D'});
 
     expect(mockStats).toHaveBeenCalled();
-    expect(screen.getByText(errorMessage)).toBeInTheDocument();
+    expect(screen.getByText(RegExp(errorMessage))).toBeInTheDocument();
     // Omit the graph
     expect(screen.queryByRole('figure')).not.toBeInTheDocument();
   });
@@ -214,7 +217,9 @@ describe('EventDetailsHeader', () => {
     });
 
     render(<EventDetailsHeader {...defaultProps} />, {organization});
-    await screen.findByRole('button', {name: 'Events 444'});
+    await screen.findByRole('button', {
+      name: 'Toggle graph series - Events',
+    });
 
     const search = screen.getAllByRole('combobox', {name: 'Add a search term'})[0];
     await userEvent.type(search, `${tagKey}:`);
