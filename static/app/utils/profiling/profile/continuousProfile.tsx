@@ -13,13 +13,13 @@ export class ContinuousProfile extends Profile {
     const firstSample = chunk.samples[0];
     const lastSample = chunk.samples[chunk.samples.length - 1];
 
-    const duration = lastSample.timestamp - firstSample.timestamp;
     const {threadId, threadName} = getThreadData(chunk);
 
     const profile = new ContinuousProfile({
-      duration,
-      endedAt: lastSample.timestamp,
-      startedAt: firstSample.timestamp,
+      // Duration is in seconds, convert to nanoseconds
+      duration: (lastSample.timestamp - firstSample.timestamp) * 1e3,
+      endedAt: lastSample.timestamp * 1e3,
+      startedAt: firstSample.timestamp * 1e3,
       threadId: threadId,
       name: threadName,
       type: 'flamechart',
