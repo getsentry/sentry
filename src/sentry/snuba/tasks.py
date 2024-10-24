@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry import features
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
+    TraceItemTableRequest,
     get_entity_key_from_query_builder,
     get_entity_key_from_request,
     get_entity_key_from_snuba_query,
@@ -216,17 +217,31 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             subscription.project.organization_id,
         )
         query_string = build_query_strings(subscription, snuba_query).query_string
-        snql_query = entity_subscription.build_query_builder(
-            query=query_string,
-            project_ids=[subscription.project_id],
-            environment=snuba_query.environment,
-            params={
-                "organization_id": subscription.project.organization_id,
-                "project_id": [subscription.project_id],
-            },
-        ).get_snql_query()
 
-        return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
+        if entity_subscription.dataset == Dataset.EventsAnalyticsPlatform:
+            rpc_table_request = entity_subscription.build_table_request(
+                query=query_string,
+                project_ids=[subscription.project_id],
+                environment=snuba_query.environment,
+                params={
+                    "organization_id": subscription.project.organization_id,
+                    "project_id": [subscription.project_id],
+                },
+            )
+            return _create_rpc_in_snuba(
+                subscription, snuba_query, rpc_table_request, entity_subscription
+            )
+        else:
+            snql_query = entity_subscription.build_query_builder(
+                query=query_string,
+                project_ids=[subscription.project_id],
+                environment=snuba_query.environment,
+                params={
+                    "organization_id": subscription.project.organization_id,
+                    "project_id": [subscription.project_id],
+                },
+            ).get_snql_query()
+            return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
 
 
 # This indirection function only exists such that snql queries can be rewritten
@@ -247,6 +262,39 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
         )
 
     entity_key = get_entity_key_from_request(snql_query)
+
+    post_body: str | bytes = orjson.dumps(body)
+    response = _snuba_pool.urlopen(
+        "POST",
+        f"/{snuba_query.dataset}/{entity_key.value}/subscriptions",
+        body=post_body,
+    )
+    if response.status != 202:
+        metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
+        raise SnubaError("HTTP %s response from Snuba!" % response.status)
+
+    return orjson.loads(response.data)["subscription_id"]
+
+
+def _create_rpc_in_snuba(
+    subscription, snuba_query, rpc_table_request: TraceItemTableRequest, entity_subscription
+):
+    body = {
+        "project_id": subscription.project_id,
+        "trace_item_table_request": str(rpc_table_request.SerializeToString()),
+        "time_window": snuba_query.time_window,
+        "resolution": snuba_query.resolution,
+        **entity_subscription.get_entity_extra_params(),
+    }
+    if SNUBA_INFO:
+        import pprint
+
+        print(  # NOQA: only prints when an env variable is set
+            f"subscription.body:\n {pprint.pformat(body)}"
+        )
+
+    # Only EAPSpans are supported for now
+    entity_key = EntityKey.EAPSpans
 
     post_body: str | bytes = orjson.dumps(body)
     response = _snuba_pool.urlopen(

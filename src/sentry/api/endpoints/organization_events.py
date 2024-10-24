@@ -23,11 +23,13 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba import (
     discover,
     errors,
     metrics_enhanced_performance,
     metrics_performance,
+    spans_rpc,
     transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -400,6 +402,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
+        use_rpc = request.GET.get("spans_rpc")
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
@@ -415,6 +418,17 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
             query_source = self.get_request_source(request)
+            if use_rpc:
+                return spans_rpc.run_table_query(
+                    params=snuba_params,
+                    query_string=query,
+                    selected_columns=self.get_field_list(organization, request),
+                    orderby=self.get_orderby(request),
+                    offset=offset,
+                    limit=limit,
+                    referrer=referrer,
+                    config=SearchResolverConfig(),
+                )
             return scoped_dataset.query(
                 selected_columns=self.get_field_list(organization, request),
                 query=query,

@@ -58,6 +58,10 @@ class ResolvedColumn:
                 else constants.TYPE_MAP[self.search_type],
             )
 
+    @property
+    def is_aggregate(self) -> bool:
+        return isinstance(self.internal_name, Function.ValueType)
+
 
 @dataclass
 class ArgumentDefinition:
@@ -222,7 +226,12 @@ SPAN_FUNCTION_DEFINITIONS = {
     "sum": FunctionDefinition(
         internal_function=Function.FUNCTION_SUM,
         search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+        arguments=[
+            ArgumentDefinition(
+                argument_type="duration",
+                default_arg="span.duration",
+            )
+        ],
     ),
     "avg": FunctionDefinition(
         internal_function=Function.FUNCTION_AVERAGE,
