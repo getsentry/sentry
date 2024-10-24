@@ -299,7 +299,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     layout = LayoutField(required=False, allow_null=True)
     query_warnings: QueryWarning = {"queries": [], "columns": {}}
     dataset_source = serializers.ChoiceField(
-        choices=DatasetSourcesTypes.as_text_choices(), required=False, allow_null=True
+        choices=DatasetSourcesTypes.as_text_choices(),
+        required=False,
+        help_text="A widgets's unique id.",
     )
 
     def validate_display_type(self, display_type):
