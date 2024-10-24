@@ -50,6 +50,27 @@ class InvalidProvider(Exception):
     ...
 
 
+def handle_provider_event(
+    provider: str,
+    request_data: dict[str, Any],
+    organization_id: int,
+) -> list[FlagAuditLogRow]:
+    match provider:
+        case "launchdarkly":
+            return handle_launchdarkly_event(request_data, organization_id)
+        case "statsig":
+            return handle_statsig_event(request_data, organization_id)
+        case _:
+            raise InvalidProvider(provider)
+
+
+def timestamp_to_datetime(timestamp: float | int) -> datetime.datetime:
+    return datetime.datetime.fromtimestamp(timestamp / 1000.0, datetime.UTC)
+
+
+"""LaunchDarkly Provider."""
+
+
 class LaunchDarklyItemSerializer(serializers.Serializer):
     accesses = serializers.ListField(required=True)
     date = serializers.IntegerField(required=True)
@@ -58,18 +79,16 @@ class LaunchDarklyItemSerializer(serializers.Serializer):
     description = serializers.CharField(required=True)
 
 
-"""
-LaunchDarkly has a lot more flag actions than what's in our
-ACTION_MAP. The "updated" action is the catch-all for actions
-that don't fit in the other buckets.
-
-We started out with a few actions that we think would be useful
-to accept. All other actions will not be logged
-to the audit log. This set of actions is subject to change.
-"""
-
-
 def handle_launchdarkly_actions(action: str) -> int:
+    """
+    LaunchDarkly has a lot more flag actions than what's in our
+    ACTION_MAP. The "updated" action is the catch-all for actions
+    that don't fit in the other buckets.
+
+    We started out with a few actions that we think would be useful
+    to accept. All other actions will not be logged
+    to the audit log. This set of actions is subject to change.
+    """
     if action == "createFlag" or action == "cloneFlag":
         return ACTION_MAP["created"]
     if action == "deleteFlag":
@@ -121,16 +140,32 @@ def handle_launchdarkly_event(
     ]
 
 
-def handle_provider_event(
-    provider: str,
-    request_data: dict[str, Any],
-    organization_id: int,
+"""Statsig Provider.
+
+Docs are light on details. Most of the test cases will be based on trial and error.
+
+Documentation: https://docs.statsig.com/integrations/event_webhook/
+"""
+
+
+def handle_statsig_event(
+    request_data: dict[str, Any], organization_id: int
 ) -> list[FlagAuditLogRow]:
-    match provider:
-        case "launchdarkly":
-            return handle_launchdarkly_event(request_data, organization_id)
-        case _:
-            raise InvalidProvider(provider)
+    return [
+        {
+            "action": ACTION_MAP[item["metadata"]["action"]],
+            "created_at": timestamp_to_datetime(item["timestamp"]),
+            "created_by": item["user"]["email"],
+            "created_by_type": CREATED_BY_TYPE_MAP["email"],
+            "flag": item["metadata"]["name"],
+            "organization_id": organization_id,
+            "tags": {},
+        }
+        for item in request_data["data"]
+        if item["eventName"] == "statsig::config_change"
+        and item["metadata"]["action"] in ("created", "updated", "deleted")
+        and item["metadata"]["type"] == "Gate"
+    ]
 
 
 """Internal flag-pole provider.
