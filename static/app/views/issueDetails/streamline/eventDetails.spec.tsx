@@ -88,10 +88,10 @@ describe('EventDetails', function () {
     await screen.findByText(event.id);
 
     // Navigation
-    expect(screen.getByRole('tab', {name: 'Recommended Event'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'First Event'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Recommended'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'First'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next Event'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'View All Events'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'All Events'})).toBeInTheDocument();
     // Content
     expect(mockActionableItems).toHaveBeenCalled();
     // All Events (should not query initially)
