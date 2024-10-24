@@ -1,5 +1,5 @@
 ---
-created: '2024-05-28T08:36:54.505879+00:00'
+created: '2024-10-24T14:19:06.131971+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,7 +7,7 @@ app:
   hash: null
   component:
     app
-      stacktrace
+      stacktrace (ignored because it contains no in-app frames)
         frame (marked out of app by stack trace rule (path:package:sentry_flutter/** -app -group))
           filename*
             "sentry_exception_factory.dart"
@@ -21,7 +21,7 @@ system:
   hash: null
   component:
     system
-      stacktrace
+      stacktrace (ignored because it contains no contributing frames)
         frame (ignored by stack trace rule (path:package:sentry_flutter/** -app -group))
           filename*
             "sentry_exception_factory.dart"

@@ -1,5 +1,5 @@
 ---
-created: '2020-08-25T09:17:15.905761Z'
+created: '2024-10-24T14:22:39.688455+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,7 +9,7 @@ app:
     app*
       chained-exception*
         exception*
-          stacktrace
+          stacktrace (ignored because it contains no in-app frames)
             frame (non app frame)
               module*
                 "io.sentry.example.Application"
@@ -176,7 +176,7 @@ app:
           value*
             "Address already in use"
         exception*
-          stacktrace
+          stacktrace (ignored because it contains no in-app frames)
             frame (non app frame)
               module*
                 "io.sentry.example.Application"

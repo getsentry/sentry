@@ -1,5 +1,5 @@
 ---
-created: '2023-11-28T16:01:07.159219Z'
+created: '2024-10-24T14:20:20.681033+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,7 +9,7 @@ app:
     app (exception of system takes precedence)
       chained-exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         exception*
-          stacktrace
+          stacktrace (ignored because it contains no in-app frames)
             frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
               module*
                 "io.sentry.example.Application"
@@ -176,7 +176,7 @@ app:
           value*
             "Address already in use"
         exception*
-          stacktrace
+          stacktrace (ignored because it contains no in-app frames)
             frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
               module*
                 "io.sentry.example.Application"
@@ -287,7 +287,7 @@ app:
           value*
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
         exception*
-          stacktrace
+          stacktrace (ignored because it contains no in-app frames)
             frame (marked out of app by stack trace rule (module:io.sentry.* -app -group))
               module*
                 "io.sentry.example.Application"
