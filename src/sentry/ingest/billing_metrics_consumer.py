@@ -89,16 +89,14 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     def _count_processed_items(self, generic_metric: GenericMetric) -> Mapping[DataCategory, int]:
         metric_id = generic_metric["metric_id"]
         try:
-            (use_case_id, data_category) = self.metric_ids[metric_id]
+            data_category = self.metric_ids[metric_id]
         except KeyError:
             return {}
 
         # In the new world, if we are see a usage metric which has the `indexed` tag set to `true` it means that an
         # indexed payload was supposed to be received and counted by the respective consumer, so we will not count it
         # here to avoid double counting.
-        if options.get("consumers.use_new_counting_strategy") and self._has_indexed(
-            generic_metric, use_case_id
-        ):
+        if options.get("consumers.use_new_counting_strategy") and self._has_indexed(generic_metric):
             return {}
 
         value = generic_metric["value"]
@@ -110,7 +108,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         items = {data_category: quantity}
 
-        if self._has_profile(generic_metric, use_case_id):
+        if self._has_profile(generic_metric):
             # The bucket is tagged with the "has_profile" tag,
             # so we also count the quantity of this bucket towards profiles.
             # This assumes a "1 to 0..1" relationship between transactions / spans and profiles.
@@ -118,13 +116,13 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         return items
 
-    def _has_profile(self, generic_metric: GenericMetric, use_case_id: UseCaseID) -> bool:
-        return self._has_tag(generic_metric, use_case_id, "has_profile")
+    def _has_profile(self, generic_metric: GenericMetric) -> bool:
+        return self._has_tag(generic_metric, "has_profile")
 
-    def _has_indexed(self, generic_metric: GenericMetric, use_case_id: UseCaseID) -> bool:
-        return self._has_tag(generic_metric, use_case_id, "indexed")
+    def _has_indexed(self, generic_metric: GenericMetric) -> bool:
+        return self._has_tag(generic_metric, "indexed")
 
-    def _has_tag(self, generic_metric: GenericMetric, use_case_id: UseCaseID, tag_key: str) -> bool:
+    def _has_tag(self, generic_metric: GenericMetric, tag_key: str) -> bool:
         indexed_tag_key = self._resolve(generic_metric, tag_key)
         if indexed_tag_key is None:
             return False
