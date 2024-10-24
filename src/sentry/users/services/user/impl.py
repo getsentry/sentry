@@ -144,12 +144,9 @@ class DatabaseBackedUserService(UserService):
         org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
             "organization_id", flat=True
         )
-        print("*****org ids", org_ids)
         org_query = OrganizationMapping.objects.filter(organization_id__in=org_ids)
-        print("*****org query", org_query)
         if only_visible:
             org_query = org_query.filter(status=OrganizationStatus.ACTIVE)
-
         return [serialize_organization_mapping(o) for o in org_query]
 
     def get_member_region_names(self, *, user_id: int) -> list[str]:
