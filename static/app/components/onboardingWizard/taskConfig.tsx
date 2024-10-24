@@ -197,10 +197,22 @@ export function getOnboardingTasks({
       location: getOnboardingInstructionsUrl({projects, organization}),
       display: true,
       SupplementComponent: withApi(
-        ({api, task, onCompleteTask}: FirstEventWaiterProps) =>
-          !!projects?.length &&
-          task.requisiteTasks.length === 0 &&
-          !task.completionSeen ? (
+        ({api, task, onCompleteTask}: FirstEventWaiterProps) => {
+          if (hasQuickStartUpdatesFeature(organization)) {
+            if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
+              return null;
+            }
+            return (
+              <EventWaitingIndicator
+                text={t('Waiting for error')}
+                hasQuickStartUpdatesFeature
+              />
+            );
+          }
+
+          return !!projects?.length &&
+            task.requisiteTasks.length === 0 &&
+            !task.completionSeen ? (
             <EventWaiter
               api={api}
               organization={organization}
@@ -208,14 +220,10 @@ export function getOnboardingTasks({
               eventType="error"
               onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
             >
-              {() => (
-                <EventWaitingIndicator
-                  text={t('Waiting for error')}
-                  hasQuickStartUpdatesFeature={hasQuickStartUpdatesFeature(organization)}
-                />
-              )}
+              {() => <EventWaitingIndicator text={t('Waiting for error')} />}
             </EventWaiter>
-          ) : null
+          ) : null;
+        }
       ),
       group: OnboardingTaskGroup.GETTING_STARTED,
     },
@@ -330,10 +338,17 @@ export function getOnboardingTasks({
       },
       display: true,
       SupplementComponent: withApi(
-        ({api, task, onCompleteTask}: FirstEventWaiterProps) =>
-          !!projects?.length &&
-          task.requisiteTasks.length === 0 &&
-          !task.completionSeen ? (
+        ({api, task, onCompleteTask}: FirstEventWaiterProps) => {
+          if (hasQuickStartUpdatesFeature(organization)) {
+            if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
+              return null;
+            }
+            return <EventWaitingIndicator hasQuickStartUpdatesFeature />;
+          }
+
+          return !!projects?.length &&
+            task.requisiteTasks.length === 0 &&
+            !task.completionSeen ? (
             <EventWaiter
               api={api}
               organization={organization}
@@ -341,13 +356,10 @@ export function getOnboardingTasks({
               eventType="transaction"
               onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
             >
-              {() => (
-                <EventWaitingIndicator
-                  hasQuickStartUpdatesFeature={hasQuickStartUpdatesFeature(organization)}
-                />
-              )}
+              {() => <EventWaitingIndicator />}
             </EventWaiter>
-          ) : null
+          ) : null;
+        }
       ),
     },
     {
@@ -387,10 +399,23 @@ export function getOnboardingTasks({
       },
       display: organization.features?.includes('session-replay'),
       SupplementComponent: withApi(
-        ({api, task, onCompleteTask}: FirstEventWaiterProps) =>
-          !!projects?.length &&
-          task.requisiteTasks.length === 0 &&
-          !task.completionSeen ? (
+        ({api, task, onCompleteTask}: FirstEventWaiterProps) => {
+          if (hasQuickStartUpdatesFeature(organization)) {
+            if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
+              return null;
+            }
+
+            return (
+              <EventWaitingIndicator
+                text={t('Waiting for user session')}
+                hasQuickStartUpdatesFeature
+              />
+            );
+          }
+
+          return !!projects?.length &&
+            task.requisiteTasks.length === 0 &&
+            !task.completionSeen ? (
             <EventWaiter
               api={api}
               organization={organization}
@@ -398,14 +423,10 @@ export function getOnboardingTasks({
               eventType="replay"
               onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
             >
-              {() => (
-                <EventWaitingIndicator
-                  hasQuickStartUpdatesFeature={hasQuickStartUpdatesFeature(organization)}
-                  text={t('Waiting for user session')}
-                />
-              )}
+              {() => <EventWaitingIndicator text={t('Waiting for user session')} />}
             </EventWaiter>
-          ) : null
+          ) : null;
+        }
       ),
     },
     {
@@ -513,7 +534,7 @@ const EventWaitingIndicator = styled(
     text,
     ...p
   }: React.HTMLAttributes<HTMLDivElement> & {
-    hasQuickStartUpdatesFeature: boolean;
+    hasQuickStartUpdatesFeature?: boolean;
     text?: string;
   }) => {
     if (quickStartUpdatesFeature) {
