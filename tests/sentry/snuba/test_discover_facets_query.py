@@ -4,7 +4,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class GetFacetsTest(SnubaTestCase, TestCase):
@@ -36,7 +36,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "red", "paying": "1"},
             },
             project_id=self.project.id,
@@ -45,7 +45,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "blue", "paying": "0"},
             },
             project_id=self.project.id,
@@ -65,7 +65,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -75,7 +75,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"toy": "train"},
             },
             project_id=other_project.id,
@@ -103,7 +103,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
                     "message": "very bad",
                     "type": "default",
                     "environment": env,
-                    "timestamp": iso_format(before_now(minutes=2)),
+                    "timestamp": before_now(minutes=2).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -122,7 +122,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -131,7 +131,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "oh my",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"toy": "train"},
             },
             project_id=self.project.id,
@@ -152,7 +152,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -161,7 +161,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "oh my",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"toy": "train"},
             },
             project_id=self.project.id,
@@ -182,7 +182,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -191,7 +191,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "oh my",
                 "type": "default",
-                "timestamp": iso_format(before_now(days=2)),
+                "timestamp": before_now(days=2).isoformat(),
                 "tags": {"toy": "train"},
             },
             project_id=self.project.id,
@@ -211,7 +211,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
                 data={
                     "message": "very bad",
                     "type": "default",
-                    "timestamp": iso_format(before_now(minutes=2)),
+                    "timestamp": before_now(minutes=2).isoformat(),
                     "tags": {"color": "zzz"},
                 },
                 project_id=self.project.id,
@@ -221,7 +221,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "oh my",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "aaa"},
             },
             project_id=self.project.id,

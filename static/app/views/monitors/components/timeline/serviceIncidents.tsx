@@ -32,6 +32,7 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
     // TODO(epurkhiser): There is also the EU region. We should make sure we
     // filter down to that region as well
     componentFilter: [StatusPageComponent.US_CRON_MONITORING],
+    includeResolved: true,
   });
 
   const getIncidentTimes = useCallback(
@@ -118,6 +119,8 @@ function CronServiceIncidents({timeWindowConfig}: CronServiceIncidentsProps) {
 
 const IncidentHovercard = styled(Hovercard)`
   width: 400px;
+  max-height: 500px;
+  overflow-y: scroll;
 `;
 
 const IncidentOverlay = styled('div')`

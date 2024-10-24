@@ -40,11 +40,11 @@ import type {ReprocessingStatus} from './utils';
 
 type Props = {
   baseUrl: string;
+  event: Event | null;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
-  event?: Event;
 };
 
 interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'project'> {
@@ -248,6 +248,7 @@ function GroupHeader({
               />
             </TitleHeading>
             <EventMessage
+              data={group}
               message={message}
               level={group.level}
               levelIndicatorSize="11px"

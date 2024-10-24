@@ -3,7 +3,6 @@ import {useCallback} from 'react';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 export enum TabKey {
-  A11Y = 'a11y',
   BREADCRUMBS = 'breadcrumbs',
   CONSOLE = 'console',
   ERRORS = 'errors',

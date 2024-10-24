@@ -677,10 +677,10 @@ function GroupDetailsContent({
   return hasStreamlinedUI ? (
     <div>
       <StreamlinedGroupHeader
+        event={event}
         group={group}
         project={project}
         groupReprocessingStatus={groupReprocessingStatus}
-        baseUrl={baseUrl}
       />
       <GroupEventDetails
         location={router.location}
@@ -707,7 +707,7 @@ function GroupDetailsContent({
       <GroupHeader
         organization={organization}
         groupReprocessingStatus={groupReprocessingStatus}
-        event={event ?? undefined}
+        event={event}
         group={group}
         baseUrl={baseUrl}
         project={project as Project}

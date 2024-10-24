@@ -1,3 +1,5 @@
+import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+
 export type Meta = {
   fields: Record<string, string>;
   units?: Record<string, string | null>;
@@ -18,3 +20,5 @@ export interface StateProps {
   isLoading?: boolean;
   onRetry?: () => void;
 }
+
+export type Thresholds = ThresholdsConfig;

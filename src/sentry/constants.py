@@ -272,6 +272,7 @@ _SENTRY_RULES = (
     "sentry.rules.conditions.tagged_event.TaggedEventCondition",
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+    "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions",
     "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
     "sentry.rules.conditions.event_attribute.EventAttributeCondition",
     "sentry.rules.conditions.level.LevelCondition",
@@ -710,6 +711,7 @@ METRICS_ACTIVATE_PERCENTILES_DEFAULT = True
 METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
 UPTIME_AUTODETECTION = True
+TARGET_SAMPLE_RATE_DEFAULT = 1.0
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
@@ -781,6 +783,7 @@ HEALTH_CHECK_GLOBS = [
     "*/ready",
     "*/readyz",
     "*/ping",
+    "*/up",
 ]
 
 

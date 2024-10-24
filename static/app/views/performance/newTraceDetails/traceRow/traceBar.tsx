@@ -1,16 +1,58 @@
 import {Fragment, useCallback} from 'react';
+import type {Theme} from '@emotion/react';
 
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {TraceBackgroundPatterns} from 'sentry/views/performance/newTraceDetails/traceRow/traceBackgroundPatterns';
+
+import {getStylingSliceName} from '../../../traces/utils';
 import {
-  TraceErrorIcons,
-  TracePerformanceIssueIcons,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
+  isAutogroupedNode,
+  isMissingInstrumentationNode,
+  isSpanNode,
+  isTraceErrorNode,
+  isTransactionNode,
+} from '../traceGuards';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
+import {TraceBackgroundPatterns} from '../traceRow/traceBackgroundPatterns';
+import {TraceErrorIcons, TracePerformanceIssueIcons} from '../traceRow/traceIcons';
+
+export function makeTraceNodeBarColor(
+  theme: Theme,
+  node: TraceTreeNode<TraceTree.NodeValue>
+): string {
+  if (isTransactionNode(node)) {
+    return pickBarColor(
+      getStylingSliceName(node.value.project_slug, node.value.sdk_name) ??
+        node.value['transaction.op']
+    );
+  }
+  if (isSpanNode(node)) {
+    return pickBarColor(node.value.op);
+  }
+  if (isAutogroupedNode(node)) {
+    if (node.errors.size > 0) {
+      return theme.red300;
+    }
+    return theme.blue300;
+  }
+  if (isMissingInstrumentationNode(node)) {
+    return theme.gray300;
+  }
+
+  if (isTraceErrorNode(node)) {
+    // Theme defines this as orange, yet everywhere in our product we show red for errors
+    if (node.value.level === 'error' || node.value.level === 'fatal') {
+      return theme.red300;
+    }
+    if (node.value.level) {
+      return theme.level[node.value.level] ?? theme.red300;
+    }
+    return theme.red300;
+  }
+  return pickBarColor('default');
+}
 
 interface InvisibleTraceBarProps {
   children: React.ReactNode;
@@ -18,7 +60,6 @@ interface InvisibleTraceBarProps {
   node_space: [number, number] | null;
   virtualizedIndex: number;
 }
-
 export function InvisibleTraceBar(props: InvisibleTraceBarProps) {
   const registerInvisibleBarRef = useCallback(
     (ref: HTMLDivElement | null) => {

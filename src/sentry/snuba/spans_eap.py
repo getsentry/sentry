@@ -49,9 +49,10 @@ def query(
     dataset: Dataset = Dataset.Discover,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
+    enable_rpc: bool | None = False,
 ):
     builder = SpansEAPQueryBuilder(
-        Dataset.SpansEAP,
+        Dataset.EventsAnalyticsPlatform,
         {},
         snuba_params=snuba_params,
         query=query,
@@ -104,7 +105,7 @@ def timeseries_query(
 
     with sentry_sdk.start_span(op="spans_indexed", name="TimeseriesSpanIndexedQueryBuilder"):
         querybuilder = TimeseriesSpanEAPIndexedQueryBuilder(
-            Dataset.SpansEAP,
+            Dataset.EventsAnalyticsPlatform,
             {},
             rollup,
             snuba_params=snuba_params,
@@ -184,7 +185,7 @@ def top_events_timeseries(
             )
 
     top_events_builder = TopEventsSpanEAPQueryBuilder(
-        Dataset.SpansEAP,
+        Dataset.EventsAnalyticsPlatform,
         {},
         rollup,
         top_events["data"],
@@ -201,7 +202,7 @@ def top_events_timeseries(
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsSpanEAPQueryBuilder(
-            Dataset.SpansEAP,
+            Dataset.EventsAnalyticsPlatform,
             {},
             rollup,
             top_events["data"],

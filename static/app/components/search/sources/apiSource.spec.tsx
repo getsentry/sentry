@@ -15,13 +15,13 @@ import ConfigStore from 'sentry/stores/configStore';
 
 describe('ApiSource', function () {
   const {organization, router} = initializeOrg();
-  let orgsMock;
-  let projectsMock;
-  let teamsMock;
-  let membersMock;
-  let shortIdMock;
-  let eventIdMock;
-  let configState;
+  let orgsMock: jest.Mock;
+  let projectsMock: jest.Mock;
+  let teamsMock: jest.Mock;
+  let membersMock: jest.Mock;
+  let shortIdMock: jest.Mock;
+  let eventIdMock: jest.Mock;
+  let configState: ReturnType<typeof ConfigStore.getState>;
 
   const defaultProps: ComponentProps<typeof ApiSource> = {
     query: '',

@@ -6,7 +6,6 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
@@ -83,14 +82,7 @@ function getFeedbackFilterKeys(supportedTags: TagCollection) {
   return Object.fromEntries(keys.map(key => [key, allTags[key]]));
 }
 
-const getFilterKeySections = (
-  tags: TagCollection,
-  organization: Organization
-): FilterKeySection[] => {
-  if (!organization.features.includes('search-query-builder-user-feedback')) {
-    return [];
-  }
-
+const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   const customTags: Tag[] = Object.values(tags).filter(
     tag =>
       tag.kind === FieldKind.TAG &&
@@ -160,8 +152,8 @@ export default function FeedbackSearch() {
   );
 
   const filterKeySections = useMemo(() => {
-    return getFilterKeySections(issuePlatformTags, organization);
-  }, [issuePlatformTags, organization]);
+    return getFilterKeySections(issuePlatformTags);
+  }, [issuePlatformTags]);
 
   const getTagValues = useCallback(
     (tag: Tag, searchQuery: string): Promise<string[]> => {

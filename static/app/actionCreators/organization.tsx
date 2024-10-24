@@ -42,7 +42,9 @@ async function fetchOrg(
   }
 
   FeatureFlagOverrides.singleton().loadOrg(org);
-  FeatureObserver.singleton().observeFlags({organization: org, bufferSize: 10});
+  FeatureObserver.singleton({}).observeOrganizationFlags({
+    organization: org,
+  });
 
   OrganizationStore.onUpdate(org, {replace: true});
   setActiveOrganization(org);

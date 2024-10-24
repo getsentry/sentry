@@ -65,6 +65,47 @@ describe('BigNumberWidget', () => {
       expect(screen.getByText('Value is not a finite number.')).toBeInTheDocument();
     });
 
+    it('Formats dates', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'max(timestamp)': '2024-10-17T16:08:07+00:00',
+            },
+          ]}
+          meta={{
+            fields: {
+              'max(timestamp)': 'date',
+            },
+            units: {
+              'max(timestamp)': null,
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('Oct 17, 2024 4:08:07 PM UTC')).toBeInTheDocument();
+    });
+
+    it('Renders strings', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'any(transaction)': '/api/0/fetch',
+            },
+          ]}
+          meta={{
+            fields: {
+              'max(timestamp)': 'string',
+            },
+          }}
+        />
+      );
+
+      expect(screen.getByText('/api/0/fetch')).toBeInTheDocument();
+    });
+
     it('Formats duration data', () => {
       render(
         <BigNumberWidget
@@ -214,6 +255,99 @@ describe('BigNumberWidget', () => {
 
       expect(screen.getByText('14.23%')).toBeInTheDocument();
       expect(screen.getByText('3.05%')).toBeInTheDocument();
+    });
+  });
+
+  describe('Thresholds', () => {
+    it('Evaluates the current value against a threshold', async () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'eps()': 14.227123,
+            },
+          ]}
+          meta={{
+            fields: {
+              'eps()': 'rate',
+            },
+            units: {
+              'eps()': '1/second',
+            },
+          }}
+          thresholds={{
+            max_values: {
+              max1: 10,
+              max2: 20,
+            },
+            unit: '1/second',
+          }}
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'meh');
+
+      await userEvent.hover(screen.getByRole('status'));
+      expect(await screen.findByText('Thresholds in /second')).toBeInTheDocument();
+    });
+
+    it('Normalizes the units', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'mystery_error_rate()': 135, //  2.25/s
+            },
+          ]}
+          meta={{
+            fields: {
+              'mystery_error_rate()': 'rate',
+            },
+            units: {
+              'mystery_error_rate()': '1/minute',
+            },
+          }}
+          thresholds={{
+            max_values: {
+              max1: 2,
+              max2: 5,
+            },
+            unit: '1/second',
+          }}
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'meh');
+    });
+
+    it('Respects the preferred polarity', () => {
+      render(
+        <BigNumberWidget
+          data={[
+            {
+              'mystery_error_rate()': 135,
+            },
+          ]}
+          meta={{
+            fields: {
+              'mystery_error_rate()': 'rate',
+            },
+            units: {
+              'mystery_error_rate()': '1/second',
+            },
+          }}
+          thresholds={{
+            max_values: {
+              max1: 200,
+              max2: 500,
+            },
+            unit: '1/second',
+          }}
+          preferredPolarity="-"
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveAttribute('aria-label', 'good');
     });
   });
 });

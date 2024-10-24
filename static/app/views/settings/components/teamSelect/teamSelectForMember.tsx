@@ -98,7 +98,6 @@ function TeamSelect({
     <Panel>
       <TeamPanelHeader hasButtons>
         <div>{t('Team')}</div>
-        <div />
         <div>
           <TeamRoleColumnLabel />
         </div>
@@ -151,7 +150,7 @@ function TeamRow({
         </Link>
       </div>
 
-      <div>
+      <div style={{whiteSpace: 'nowrap'}}>
         <TeamRoleSelect
           disabled={disabled}
           size="xs"

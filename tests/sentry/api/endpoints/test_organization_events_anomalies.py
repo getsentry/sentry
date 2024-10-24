@@ -122,6 +122,47 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
+    def test_member_permission(self, mock_seer_request):
+        """Test that even a member (lowest permissions) can access this endpoint"""
+        user = self.create_user(is_superuser=False)
+        member = self.create_member(
+            user=user, organization=self.organization, role="member", teams=[]
+        )
+        self.create_team(organization=self.organization, members=[member])
+        self.login_as(member)
+
+        seer_return_value = DetectAnomaliesResponse(
+            success=True,
+            message="",
+            timeseries=[
+                TimeSeriesPoint(
+                    timestamp=self.current_timestamp_1,
+                    value=2,
+                    anomaly=Anomaly(anomaly_score=-0.1, anomaly_type="none"),
+                ),
+                TimeSeriesPoint(
+                    timestamp=self.current_timestamp_2,
+                    value=3,
+                    anomaly=Anomaly(anomaly_score=-0.2, anomaly_type="none"),
+                ),
+            ],
+        )
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug, status_code=200, raw_data=orjson.dumps(self.data)
+            )
+
+        assert mock_seer_request.call_count == 1
+        assert resp.data == seer_return_value["timeseries"]
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
+    )
     def test_not_enough_historical_data(self, mock_seer_request):
         data = {
             "project_id": 1,

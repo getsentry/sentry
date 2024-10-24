@@ -4,13 +4,14 @@ import pytest
 
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
-from sentry.testutils.pytest.fixtures import django_db_all
-from tests.sentry.grouping import with_fingerprint_input
+from sentry.grouping.variants import BaseVariant
+from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
+from tests.sentry.grouping import FingerprintInput, with_fingerprint_input
 
 GROUPING_CONFIG = get_default_grouping_config_dict()
 
 
-def test_basic_parsing(insta_snapshot: object) -> None:
+def test_basic_parsing() -> None:
     rules = FingerprintingRules.from_config_string(
         """
 # This is a config
@@ -29,31 +30,61 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
     assert rules._to_config_structure() == {
         "rules": [
             {
+                "text": 'type:"DatabaseUnavailable" -> "DatabaseUnavailable"',
                 "matchers": [["type", "DatabaseUnavailable"]],
                 "fingerprint": ["DatabaseUnavailable"],
                 "attributes": {},
             },
             {
+                "text": 'function:"assertion_failed" module:"foo" -> "AssertionFailedfoo"',
                 "matchers": [["function", "assertion_failed"], ["module", "foo"]],
                 "fingerprint": ["AssertionFailed", "foo"],
                 "attributes": {},
             },
-            {"matchers": [["app", "true"]], "fingerprint": ["aha"], "attributes": {}},
-            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"], "attributes": {}},
-            {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"], "attributes": {}},
-            {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"], "attributes": {}},
             {
+                "text": 'app:"true" -> "aha"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["aha"],
+                "attributes": {},
+            },
+            {
+                "text": 'app:"true" -> "{{ default }}"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["{{ default }}"],
+                "attributes": {},
+            },
+            {
+                "text": '!path:"**/foo/**" -> "everything"',
+                "matchers": [["!path", "**/foo/**"]],
+                "fingerprint": ["everything"],
+                "attributes": {},
+            },
+            {
+                "text": '!path:"**/foo/**" -> "everything"',
+                "matchers": [["!path", "**/foo/**"]],
+                "fingerprint": ["everything"],
+                "attributes": {},
+            },
+            {
+                "text": 'logger:"sentry.*" -> "logger-{{ logger }}"',
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
-            {"matchers": [["message", "\\x\xff"]], "fingerprint": ["stuff"], "attributes": {}},
             {
+                "text": 'message:"\\xÿ" -> "stuff"',
+                "matchers": [["message", "\\x\xff"]],
+                "fingerprint": ["stuff"],
+                "attributes": {},
+            },
+            {
+                "text": 'logger:"sentry.*" -> "logger-{{ logger }}" title="Message from {{ logger }}"',
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {"title": "Message from {{ logger }}"},
             },
             {
+                "text": 'logger:"sentry.*" -> "logger-{{ logger }}" title="Message from {{ logger }}"',
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {"title": "Message from {{ logger }}"},
@@ -80,6 +111,7 @@ logger:sentry.*                                 -> logger, {{ logger }}, title="
         "attributes": {"title": "Message from {{ logger }}"},
         "fingerprint": ["logger", "{{ logger }}"],
         "matchers": [["logger", "sentry.*"]],
+        "text": 'logger:"sentry.*" -> "logger{{ logger }}" title="Message from {{ logger }}"',
     }
 
 
@@ -100,21 +132,25 @@ logger:test2 -> logger-, {{ logger }}, -, {{ level }}
     assert rules._to_config_structure() == {
         "rules": [
             {
+                "text": 'logger:"test" -> "logger-{{ logger }}"',
                 "matchers": [["logger", "test"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
             {
+                "text": 'logger:"test" -> "logger-{{ logger }}"',
                 "matchers": [["logger", "test"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
             {
+                "text": 'logger:"test2" -> "logger-{{ logger }}-{{ level }}"',
                 "matchers": [["logger", "test2"]],
                 "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
                 "attributes": {},
             },
             {
+                "text": 'logger:"test2" -> "logger-{{ logger }}-{{ level }}"',
                 "matchers": [["logger", "test2"]],
                 "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
                 "attributes": {},
@@ -124,7 +160,7 @@ logger:test2 -> logger-, {{ logger }}, -, {{ level }}
     }
 
 
-def test_discover_field_parsing(insta_snapshot: object) -> None:
+def test_discover_field_parsing() -> None:
     rules = FingerprintingRules.from_config_string(
         """
 # This is a config
@@ -138,18 +174,35 @@ release:foo                                     -> release-foo
     assert rules._to_config_structure() == {
         "rules": [
             {
+                "text": 'type:"DatabaseUnavailable" -> "DatabaseUnavailable"',
                 "matchers": [["type", "DatabaseUnavailable"]],
                 "fingerprint": ["DatabaseUnavailable"],
                 "attributes": {},
             },
             {
+                "text": 'function:"assertion_failed" module:"foo" -> "AssertionFailedfoo"',
                 "matchers": [["function", "assertion_failed"], ["module", "foo"]],
                 "fingerprint": ["AssertionFailed", "foo"],
                 "attributes": {},
             },
-            {"matchers": [["app", "true"]], "fingerprint": ["aha"], "attributes": {}},
-            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"], "attributes": {}},
-            {"matchers": [["release", "foo"]], "fingerprint": ["release-foo"], "attributes": {}},
+            {
+                "text": 'app:"true" -> "aha"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["aha"],
+                "attributes": {},
+            },
+            {
+                "text": 'app:"true" -> "{{ default }}"',
+                "matchers": [["app", "true"]],
+                "fingerprint": ["{{ default }}"],
+                "attributes": {},
+            },
+            {
+                "text": 'release:"foo" -> "release-foo"',
+                "matchers": [["release", "foo"]],
+                "fingerprint": ["release-foo"],
+                "attributes": {},
+            },
         ],
         "version": 1,
     }
@@ -164,11 +217,11 @@ release:foo                                     -> release-foo
 
 @with_fingerprint_input("input")
 @django_db_all  # because of `options` usage
-def test_event_hash_variant(insta_snapshot: Any, input: Any) -> None:
-    config, evt = input.create_event()
+def test_event_hash_variant(insta_snapshot: InstaSnapshotter, input: FingerprintInput) -> None:
+    config, event = input.create_event()
 
-    def dump_variant(v: Any) -> dict[str, Any]:
-        rv = v.as_dict()
+    def dump_variant(variant: BaseVariant) -> dict[str, Any]:
+        rv = variant.as_dict()
 
         for key in "hash", "description", "config":
             rv.pop(key, None)
@@ -182,11 +235,13 @@ def test_event_hash_variant(insta_snapshot: Any, input: Any) -> None:
     insta_snapshot(
         {
             "config": config.to_json(),
-            "fingerprint": evt.data["fingerprint"],
-            "title": evt.data["title"],
+            "fingerprint": event.data["fingerprint"],
+            "title": event.data["title"],
             "variants": {
-                k: dump_variant(v)
-                for (k, v) in evt.get_grouping_variants(force_config=GROUPING_CONFIG).items()
+                variant_name: dump_variant(variant)
+                for (variant_name, variant) in event.get_grouping_variants(
+                    force_config=GROUPING_CONFIG
+                ).items()
             },
         }
     )

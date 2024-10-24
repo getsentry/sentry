@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -94,12 +94,15 @@ export function DomainSelector({
 
   const {options: domainOptions, clear: clearDomainOptionsCache} =
     useCompactSelectOptionsCache(
-      incomingDomains.filter(Boolean).map(datum => {
-        return {
-          value: datum,
-          label: datum,
-        };
-      })
+      incomingDomains
+        .filter(Boolean)
+        .filter(domain => domain !== EMPTY_OPTION_VALUE)
+        .map(datum => {
+          return {
+            value: datum,
+            label: datum,
+          };
+        })
     );
 
   useEffect(() => {
@@ -112,16 +115,17 @@ export function DomainSelector({
     }
   }, [additionalQuery, clearDomainOptionsCache]);
 
-  const emptyOption = {
+  const emptyOption: SelectOption<string> = {
     value: EMPTY_OPTION_VALUE,
     label: (
       <EmptyContainer>
         {t('(No %s)', domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName])}
       </EmptyContainer>
     ),
+    textValue: t('(No %s)', domainAlias ?? LABEL_FOR_MODULE_NAME[moduleName]),
   };
 
-  const options = [
+  const options: SelectOption<string>[] = [
     {value: '', label: 'All'},
     ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
     ...domainOptions,
@@ -178,6 +182,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   resource: t('Resource'),
   other: t('Domain'),
   ai: t('Domain'),
+  'screen-rendering': t('Domain'),
   'mobile-ui': t('Domain'),
   'mobile-screens': t('Domain'),
 };

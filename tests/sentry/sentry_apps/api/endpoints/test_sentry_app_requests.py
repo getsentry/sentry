@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry.sentry_apps.api.endpoints.sentry_app_requests import INVALID_DATE_FORMAT_MESSAGE
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
@@ -202,7 +202,7 @@ class SentryAppRequestsGetTest(APITestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"event_id": self.event_id, "timestamp": iso_format(before_now(minutes=1))},
+            data={"event_id": self.event_id, "timestamp": before_now(minutes=1).isoformat()},
             project_id=self.project.id,
         )
 
@@ -230,7 +230,7 @@ class SentryAppRequestsGetTest(APITestCase):
         self.login_as(user=self.user)
 
         self.store_event(
-            data={"event_id": self.event_id, "timestamp": iso_format(before_now(minutes=1))},
+            data={"event_id": self.event_id, "timestamp": before_now(minutes=1).isoformat()},
             project_id=self.project.id,
         )
 

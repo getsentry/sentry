@@ -1,6 +1,6 @@
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
@@ -10,7 +10,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 data={
                     "tags": {"foo": "bar"},
                     "fingerprint": ["group1"],
-                    "timestamp": iso_format(before_now(seconds=1)),
+                    "timestamp": before_now(seconds=1).isoformat(),
                 },
                 project_id=self.project.id,
             )

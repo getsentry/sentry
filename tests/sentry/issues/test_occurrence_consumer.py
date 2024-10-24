@@ -1,6 +1,7 @@
 import datetime
 import logging
 import uuid
+from collections import namedtuple
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import timezone
@@ -11,7 +12,7 @@ import pytest
 from django.core.cache import cache
 from jsonschema import ValidationError
 
-from sentry import eventstore
+from sentry import eventstore, options
 from sentry.eventstore.models import Event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileFileIOGroupType
@@ -27,9 +28,10 @@ from sentry.issues.producer import _prepare_status_change_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.ratelimits.sliding_windows import Quota
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import PriorityLevel
@@ -37,6 +39,7 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 logger = logging.getLogger(__name__)
+MockGranted = namedtuple("MockGranted", ["granted"])
 
 
 def get_test_message(
@@ -243,6 +246,40 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         with pytest.raises(GroupAssignee.DoesNotExist):
             GroupAssignee.objects.get(group=group)
 
+    @mock.patch(
+        "sentry.issues.occurrence_consumer.rate_limiter.check_and_use_quotas",
+        return_value=[MockGranted(granted=False)],
+    )
+    def test_rate_limit(self, is_limited: mock.MagicMock) -> None:
+        message = get_test_message(self.project.id)
+        with (
+            self.feature("organizations:profile-file-io-main-thread-ingest"),
+            self.options({"issues.occurrence-consumer.rate-limit.enabled": True}),
+        ):
+            result = _process_message(message)
+        assert result is None
+
+    @mock.patch(
+        "sentry.issues.occurrence_consumer.rate_limiter.check_and_use_quotas",
+        return_value=[MockGranted(granted=True)],
+    )
+    def test_rate_limit_granted(self, is_limited: mock.MagicMock) -> None:
+        message = get_test_message(self.project.id)
+        with (
+            self.feature("organizations:profile-file-io-main-thread-ingest"),
+            self.options({"issues.occurrence-consumer.rate-limit.enabled": True}),
+        ):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+
+    def test_occurrence_rate_limit_quota(self) -> None:
+        rate_limit_quota = Quota(**options.get("issues.occurrence-consumer.rate-limit.quota"))
+        assert rate_limit_quota.window_seconds == 3600
+        assert rate_limit_quota.granularity_seconds == 60
+        assert rate_limit_quota.limit == 1000
+
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
     def test_lookup_event_doesnt_exist(self) -> None:
@@ -256,8 +293,8 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
         from sentry.event_manager import EventManager
 
         event_data = load_data("transaction")
-        event_data["timestamp"] = iso_format(before_now(minutes=1))
-        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=1))
+        event_data["timestamp"] = before_now(minutes=1).isoformat()
+        event_data["start_timestamp"] = before_now(minutes=1, seconds=1).isoformat()
         event_data["event_id"] = "d" * 32
 
         manager = EventManager(data=event_data)
@@ -557,7 +594,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(datetime.datetime.now()),
+                "timestamp": datetime.datetime.now().isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,

@@ -4,13 +4,19 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
+from sentry import eventstore, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
+from sentry.api.serializers.models.event import IssueEventSerializerResponse
 from sentry.eventstore.models import Event, GroupEvent
+
+
+class GroupEventDetailsResponse(IssueEventSerializerResponse):
+    nextEventID: str | None
+    previousEventID: str | None
 
 
 def wrap_event_response(
@@ -18,7 +24,7 @@ def wrap_event_response(
     event: Event | GroupEvent,
     environments: list[str],
     include_full_release_data: bool = False,
-):
+) -> GroupEventDetailsResponse:
     event_data = serialize(
         event,
         request_user,
@@ -31,16 +37,25 @@ def wrap_event_response(
     prev_event_id = None
 
     if event.group_id:
-        conditions = []
-        if environments:
-            conditions.append(["environment", "IN", environments])
-        _filter = eventstore.Filter(
-            conditions=conditions,
-            project_ids=[event.project_id],
-            group_ids=[event.group_id],
-        )
+        if options.get("eventstore.adjacent_event_ids_use_snql"):
+            prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids_snql(
+                organization_id=event.organization.id,
+                project_id=event.project_id,
+                group_id=event.group_id,
+                environments=environments,
+                event=event,
+            )
+        else:
+            conditions = []
+            if environments:
+                conditions.append(["environment", "IN", environments])
+            _filter = eventstore.Filter(
+                conditions=conditions,
+                project_ids=[event.project_id],
+                group_ids=[event.group_id],
+            )
 
-        prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids(event, filter=_filter)
+            prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids(event, filter=_filter)
 
         next_event_id = next_ids[1] if next_ids else None
         prev_event_id = prev_ids[1] if prev_ids else None

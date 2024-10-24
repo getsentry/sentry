@@ -9,6 +9,7 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {GroupStatus} from 'sentry/types/group';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props
   extends Pick<
@@ -24,7 +25,8 @@ export default function FeedbackListBulkSelection({
   selectedIds,
   deselectAll,
 }: Props) {
-  const {onToggleResovled, onMarkAsRead, onMarkUnread} = useBulkEditFeedbacks({
+  const organization = useOrganization();
+  const {onDelete, onToggleResolved, onMarkAsRead, onMarkUnread} = useBulkEditFeedbacks({
     selectedIds,
     deselectAll,
   });
@@ -35,6 +37,10 @@ export default function FeedbackListBulkSelection({
   // reuse the issues ignored category for spam feedbacks
   const newMailboxSpam =
     mailbox === 'ignored' ? GroupStatus.UNRESOLVED : GroupStatus.IGNORED;
+
+  const hasDelete =
+    organization.features.includes('issue-platform-deletion-ui') && selectedIds !== 'all';
+  const disableDelete = !organization.access.includes('event:admin');
 
   return (
     <Flex gap={space(1)} align="center" justify="space-between" flex="1 0 auto">
@@ -49,7 +55,7 @@ export default function FeedbackListBulkSelection({
         <ErrorBoundary mini>
           <Button
             size="xs"
-            onClick={() => onToggleResovled({newMailbox: newMailboxResolve})}
+            onClick={() => onToggleResolved({newMailbox: newMailboxResolve})}
           >
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
           </Button>
@@ -58,7 +64,7 @@ export default function FeedbackListBulkSelection({
           <Button
             size="xs"
             onClick={() =>
-              onToggleResovled({
+              onToggleResolved({
                 newMailbox: newMailboxSpam,
                 moveToInbox: mailbox === 'ignored',
               })
@@ -86,6 +92,14 @@ export default function FeedbackListBulkSelection({
                 key: 'mark unread',
                 label: t('Mark Unread'),
                 onAction: onMarkUnread,
+              },
+              {
+                key: 'delete',
+                priority: 'danger' as const,
+                label: t('Delete'),
+                hidden: !hasDelete,
+                disabled: disableDelete,
+                onAction: onDelete,
               },
             ]}
           />

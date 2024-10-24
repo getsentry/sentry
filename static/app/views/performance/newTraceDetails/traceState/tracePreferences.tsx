@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/react';
 
 import clamp from 'sentry/utils/number/clamp';
-import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
+
+import {traceReducerExhaustiveActionCheck} from '../traceState';
 
 type TraceLayoutPreferences = 'drawer left' | 'drawer bottom' | 'drawer right';
 

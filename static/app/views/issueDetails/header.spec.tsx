@@ -25,6 +25,7 @@ describe('GroupHeader', () => {
       group: GroupFixture({issueCategory: IssueCategory.ERROR}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
+      event: null,
     };
 
     it('displays the correct tabs with all features enabled', async () => {
@@ -113,6 +114,7 @@ describe('GroupHeader', () => {
       group: GroupFixture({issueCategory: IssueCategory.ERROR}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
+      event: null,
     };
 
     it('displays the correct tabs with all features enabled', async () => {
@@ -160,6 +162,7 @@ describe('GroupHeader', () => {
       group: GroupFixture({issueCategory: IssueCategory.PERFORMANCE}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
+      event: null,
     };
 
     it('displays the correct tabs with all features enabled', async () => {
@@ -241,6 +244,7 @@ describe('GroupHeader', () => {
           })}
           project={ProjectFixture()}
           groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
+          event={null}
         />
       );
 
@@ -262,6 +266,7 @@ describe('GroupHeader', () => {
           group={GroupFixture({priority: PriorityLevel.MEDIUM})}
           project={ProjectFixture()}
           groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
+          event={null}
         />
       );
 
