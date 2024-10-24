@@ -58,9 +58,9 @@ describe('StreamlinedActivitySection', function () {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Remove'}));
 
     expect(
-      screen.getByText('Are you sure you wish to delete this comment?')
+      screen.getByText('Are you sure you want to remove this comment?')
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Remove comment'}));
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
 
