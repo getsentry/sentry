@@ -17,6 +17,7 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.integration import Integration
@@ -2488,6 +2489,7 @@ class PostProcessGroupErrorTest(
             cache_key=cache_key,
             group_id=event.group_id,
             project_id=event.project_id,
+            eventstream_type=EventStreamEventType.Error,
         )
         return cache_key
 
@@ -2562,6 +2564,7 @@ class PostProcessGroupPerformanceTest(
                 cache_key=cache_key,
                 group_id=event.group_id,
                 project_id=event.project_id,
+                eventstream_type=EventStreamEventType.Error,
             )
         return cache_key
 
@@ -2597,6 +2600,7 @@ class PostProcessGroupPerformanceTest(
             group_id=None,
             group_states=None,
             project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Transaction,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
@@ -2641,6 +2645,7 @@ class PostProcessGroupPerformanceTest(
             group_id=event.group_id,
             occurrence_id=event.occurrence_id,
             project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Error,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
@@ -2687,6 +2692,7 @@ class PostProcessGroupAggregateEventTest(
                 cache_key=cache_key,
                 group_id=event.group_id,
                 project_id=event.project_id,
+                eventstream_type=EventStreamEventType.Error,
             )
         return cache_key
 
@@ -2721,6 +2727,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             cache_key=cache_key,
             group_id=None,
             project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Transaction,
         )
 
         assert mock_store_transaction_name.mock_calls == [
@@ -2763,6 +2770,7 @@ class PostProcessGroupGenericTest(
                 group_id=event.group_id,
                 occurrence_id=event.occurrence.id,
                 project_id=event.group.project_id,
+                eventstream_type=EventStreamEventType.Generic,
             )
         return cache_key
 
@@ -2917,6 +2925,7 @@ class PostProcessGroupFeedbackTest(
                 group_id=event.group_id,
                 occurrence_id=event.occurrence.id,
                 project_id=event.group.project_id,
+                eventstream_type=EventStreamEventType.Error,
             )
         return cache_key
 

@@ -52,21 +52,19 @@ def dispatch_post_process_group_task(
     else:
         cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
 
-        kwargs = {
-            "is_new": is_new,
-            "is_regression": is_regression,
-            "is_new_group_environment": is_new_group_environment,
-            "primary_hash": primary_hash,
-            "cache_key": cache_key,
-            "group_id": group_id,
-            "group_states": group_states,
-            "occurrence_id": occurrence_id,
-            "project_id": project_id,
-        }
-        if eventstream_type:
-            kwargs["eventstream_type"] = eventstream_type
         post_process_group.apply_async(
-            kwargs=kwargs,
+            kwargs={
+                "is_new": is_new,
+                "is_regression": is_regression,
+                "is_new_group_environment": is_new_group_environment,
+                "primary_hash": primary_hash,
+                "cache_key": cache_key,
+                "group_id": group_id,
+                "group_states": group_states,
+                "occurrence_id": occurrence_id,
+                "project_id": project_id,
+                "eventstream_type": eventstream_type,
+            },
             queue=queue,
         )
 

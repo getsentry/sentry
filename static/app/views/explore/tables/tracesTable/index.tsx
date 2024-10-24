@@ -7,6 +7,7 @@ import Count from 'sentry/components/count';
 import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {DEFAULT_PER_PAGE, SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -15,6 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -45,11 +47,16 @@ import {
 export function TracesTable() {
   const [dataset] = useDataset();
   const [query] = useUserQuery();
-  const {data, isPending, isError} = useTraces({
+
+  const location = useLocation();
+  const cursor = decodeScalar(location.query.cursor);
+
+  const {data, isPending, isError, getResponseHeader} = useTraces({
     dataset,
     query,
     limit: DEFAULT_PER_PAGE,
     sort: '-timestamp',
+    cursor,
   });
 
   const showErrorState = useMemo(() => {
@@ -61,66 +68,69 @@ export function TracesTable() {
   }, [data, isPending, showErrorState]);
 
   return (
-    <StyledPanel>
-      <TracePanelContent>
-        <StyledPanelHeader align="left" lightText>
-          {t('Trace ID')}
-        </StyledPanelHeader>
-        <StyledPanelHeader align="left" lightText>
-          {t('Trace Root')}
-        </StyledPanelHeader>
-        <StyledPanelHeader align="right" lightText>
-          {!query ? t('Total Spans') : t('Matching Spans')}
-        </StyledPanelHeader>
-        <StyledPanelHeader align="left" lightText>
-          {t('Timeline')}
-        </StyledPanelHeader>
-        <StyledPanelHeader align="right" lightText>
-          {t('Duration')}
-        </StyledPanelHeader>
-        <StyledPanelHeader align="right" lightText>
-          {t('Timestamp')}
-        </StyledPanelHeader>
-        {isPending && (
-          <StyledPanelItem span={6} overflow>
-            <LoadingIndicator />
-          </StyledPanelItem>
-        )}
-        {showErrorState && ( // TODO: need an error state
-          <StyledPanelItem span={7} overflow>
-            <EmptyStreamWrapper>
-              <IconWarning color="gray300" size="lg" />
-            </EmptyStreamWrapper>
-          </StyledPanelItem>
-        )}
-        {showEmptyState && (
-          <StyledPanelItem span={7} overflow>
-            <EmptyStateWarning withIcon>
-              <EmptyStateText size="fontSizeExtraLarge">
-                {t('No trace results found')}
-              </EmptyStateText>
-              <EmptyStateText size="fontSizeMedium">
-                {tct('Try adjusting your filters or refer to [docSearchProps].', {
-                  docSearchProps: (
-                    <ExternalLink href={SPAN_PROPS_DOCS_URL}>
-                      {t('docs for search properties')}
-                    </ExternalLink>
-                  ),
-                })}
-              </EmptyStateText>
-            </EmptyStateWarning>
-          </StyledPanelItem>
-        )}
-        {data?.data?.map((trace, i) => (
-          <TraceRow
-            key={trace.trace}
-            trace={trace}
-            defaultExpanded={query && i === 0}
-            query={query}
-          />
-        ))}
-      </TracePanelContent>
-    </StyledPanel>
+    <Fragment>
+      <StyledPanel>
+        <TracePanelContent>
+          <StyledPanelHeader align="left" lightText>
+            {t('Trace ID')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="left" lightText>
+            {t('Trace Root')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="right" lightText>
+            {!query ? t('Total Spans') : t('Matching Spans')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="left" lightText>
+            {t('Timeline')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="right" lightText>
+            {t('Duration')}
+          </StyledPanelHeader>
+          <StyledPanelHeader align="right" lightText>
+            {t('Timestamp')}
+          </StyledPanelHeader>
+          {isPending && (
+            <StyledPanelItem span={6} overflow>
+              <LoadingIndicator />
+            </StyledPanelItem>
+          )}
+          {showErrorState && ( // TODO: need an error state
+            <StyledPanelItem span={7} overflow>
+              <EmptyStreamWrapper>
+                <IconWarning color="gray300" size="lg" />
+              </EmptyStreamWrapper>
+            </StyledPanelItem>
+          )}
+          {showEmptyState && (
+            <StyledPanelItem span={7} overflow>
+              <EmptyStateWarning withIcon>
+                <EmptyStateText size="fontSizeExtraLarge">
+                  {t('No trace results found')}
+                </EmptyStateText>
+                <EmptyStateText size="fontSizeMedium">
+                  {tct('Try adjusting your filters or refer to [docSearchProps].', {
+                    docSearchProps: (
+                      <ExternalLink href={SPAN_PROPS_DOCS_URL}>
+                        {t('docs for search properties')}
+                      </ExternalLink>
+                    ),
+                  })}
+                </EmptyStateText>
+              </EmptyStateWarning>
+            </StyledPanelItem>
+          )}
+          {data?.data?.map((trace, i) => (
+            <TraceRow
+              key={trace.trace}
+              trace={trace}
+              defaultExpanded={query && i === 0}
+              query={query}
+            />
+          ))}
+        </TracePanelContent>
+      </StyledPanel>
+      <Pagination pageLinks={getResponseHeader?.('Link')} />
+    </Fragment>
   );
 }
 
