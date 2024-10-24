@@ -311,6 +311,9 @@ export function EventDetailsContent({
       {issueTypeConfig.replays.enabled && (
         <EventReplay event={event} group={group} projectSlug={project.slug} />
       )}
+      {hasStreamlinedUI && (
+        <ScreenshotDataSection event={event} projectSlug={project.slug} />
+      )}
       {defined(eventEntries[EntryType.HPKP]) && (
         <EntryErrorBoundary type={EntryType.HPKP}>
           <Generic
@@ -400,9 +403,6 @@ export function EventDetailsContent({
       <EventPackageData event={event} />
       <EventDevice event={event} />
       <EventViewHierarchy event={event} project={project} />
-      {hasStreamlinedUI && (
-        <ScreenshotDataSection event={event} projectSlug={project.slug} />
-      )}
       <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {hasStreamlinedUI && (
