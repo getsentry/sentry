@@ -135,7 +135,7 @@ save_search_created = BetterSignal()  # ["project", "user"]
 inbound_filter_toggled = BetterSignal()  # ["project"]
 sso_enabled = BetterSignal()  # ["organization_id", "user_id", "provider"]
 data_scrubber_enabled = BetterSignal()  # ["organization"]
-# ["project", "rule", "user", "rule_type", "is_api_token", "duplicate_rule", "wizard_v3"]
+# ["project", "rule", "user", "rule_type", "is_api_token", "duplicate_rule", "wizard_v3", "query_type"]
 alert_rule_created = BetterSignal()
 alert_rule_edited = BetterSignal()  # ["project", "rule", "user", "rule_type", "is_api_token"]
 repo_linked = BetterSignal()  # ["repo", "user"]

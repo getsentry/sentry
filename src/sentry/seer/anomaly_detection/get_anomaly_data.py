@@ -39,10 +39,10 @@ def get_anomaly_data_from_seer(
 
     # XXX: we know we have these things because the serializer makes sure we do, but mypy insists
     if (
-        not snuba_query.time_window
+        alert_rule.threshold_type is None
         or not alert_rule.sensitivity
-        or not alert_rule.threshold_type
         or not alert_rule.seasonality
+        or not snuba_query.time_window
     ):
         return None
 
@@ -70,6 +70,7 @@ def get_anomaly_data_from_seer(
         "alert_rule_id": alert_rule.id,
     }
     try:
+        logger.info("Sending subscription update data to Seer", extra=extra_data)
         response = make_signed_seer_api_request(
             SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             SEER_ANOMALY_DETECTION_ENDPOINT_URL,

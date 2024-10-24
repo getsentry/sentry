@@ -43,7 +43,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             event = self.store_event(
                 data={
                     "message": "oh no",
-                    "timestamp": before_now(days=1).timestamp(),
+                    "timestamp": before_now(days=1).isoformat(),
                     "fingerprint": [fingerprint],
                 },
                 project_id=self.project.id,
@@ -165,7 +165,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         digests.enabled.return_value = True
         timestamp_raw = before_now(days=1)
         timestamp_secs = int(timestamp_raw.timestamp())
-        timestamp = timestamp_raw.timestamp()
+        timestamp = timestamp_raw.isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
         rule = Rule.objects.create(project=self.project, label="my rule")
         event1 = self.store_event(

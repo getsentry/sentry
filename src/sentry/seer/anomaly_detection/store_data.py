@@ -163,8 +163,11 @@ def send_historical_data_to_seer(
     dataset = get_dataset_from_label(snuba_query.dataset)
     query_columns = get_query_columns([snuba_query.aggregate], window_min)
     event_types = get_event_types(snuba_query, event_types)
+    if not alert_rule.organization:
+        raise ValidationError("Alert rule doesn't belong to an organization")
+
     historical_data = fetch_historical_data(
-        alert_rule=alert_rule,
+        organization=alert_rule.organization,
         snuba_query=snuba_query,
         query_columns=query_columns,
         project=project,

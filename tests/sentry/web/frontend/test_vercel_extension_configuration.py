@@ -158,7 +158,7 @@ class VercelExtensionConfigurationTest(TestCase):
         resp = self.client.get(
             self.path,
             self.params,
-            SERVER_NAME=f"{self.org.slug}.testserver",
+            HTTP_HOST=f"{self.org.slug}.testserver",
         )
 
         mock_request = responses.calls[0].request

@@ -8,10 +8,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.constants import SentryAppStatus
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.sentry_apps.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
 from sentry.sentry_apps.logic import SentryAppUpdater
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import email

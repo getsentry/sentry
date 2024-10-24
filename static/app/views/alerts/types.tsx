@@ -113,17 +113,15 @@ export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
 
 export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert;
 
-// TODO: This is a placeholder type for now
-// Assume this is a timestamp of when the anomaly occurred and for how long
 export type Anomaly = {
-  anomaly: {[key: string]: number | string};
-  timestamp: string;
+  anomaly: {anomaly_score: number; anomaly_type: AnomalyType};
+  timestamp: string | number;
   value: number;
 };
 
-export const AnomalyType = {
-  high: 'anomaly_higher_confidence',
-  low: 'anomaly_lower_confidence',
-  none: 'none',
-  noData: 'no_data',
-};
+export enum AnomalyType {
+  HIGH_CONFIDENCE = 'anomaly_higher_confidence',
+  LOW_CONFIDENCE = 'anomaly_lower_confidence',
+  NONE = 'none',
+  NO_DATA = 'no_data',
+}

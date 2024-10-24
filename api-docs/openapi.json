@@ -144,12 +144,6 @@
     "/api/0/issues/{issue_id}/hashes/": {
       "$ref": "paths/events/issue-hashes.json"
     },
-    "/api/0/issues/{issue_id}/events/oldest/": {
-      "$ref": "paths/events/oldest-event.json"
-    },
-    "/api/0/issues/{issue_id}/events/latest/": {
-      "$ref": "paths/events/latest-event.json"
-    },
     "/api/0/issues/{issue_id}/": {
       "$ref": "paths/events/issue-details.json"
     },

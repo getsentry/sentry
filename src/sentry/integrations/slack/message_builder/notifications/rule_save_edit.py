@@ -48,7 +48,7 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
         else:
             rule_text = "*Alert rule updated*\n\n"
             rule_text += f"{rule_url} in the {project_url} project was recently updated."
-            # TODO potentially use old name if it's changed?
+            # TODO: potentially use old name if it's changed?
 
         blocks.append(self.get_markdown_block(rule_text))
 

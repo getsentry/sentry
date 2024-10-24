@@ -21,7 +21,7 @@ from sentry.integrations.api.bases.organization_integrations import (
     OrganizationIntegrationBaseEndpoint,
 )
 from sentry.integrations.api.serializers.models.integration import OrganizationIntegrationResponse
-from sentry.integrations.base import INTEGRATION_TYPE_TO_PROVIDER
+from sentry.integrations.base import INTEGRATION_TYPE_TO_PROVIDER, IntegrationDomain
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization.model import (
@@ -112,14 +112,12 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
             queryset = queryset.filter(integration__provider=provider_key.lower())
 
         if integration_type:
-            if integration_type not in INTEGRATION_TYPE_TO_PROVIDER:
-                return Response(
-                    {"detail": "Invalid integration type"},
-                    status=400,
-                )
+            try:
+                integration_domain = IntegrationDomain(integration_type)
+            except ValueError:
+                return Response({"detail": "Invalid integration type"}, status=400)
             provider_slugs = [
-                provider.value
-                for provider in INTEGRATION_TYPE_TO_PROVIDER.get(integration_type, [])
+                provider for provider in INTEGRATION_TYPE_TO_PROVIDER.get(integration_domain, [])
             ]
             queryset = queryset.filter(integration__provider__in=provider_slugs)
 

@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.users.models.user import User
+    from sentry.workflow_engine.models.detector import DetectorHandler
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class GroupCategory(Enum):
     REPLAY = 5
     FEEDBACK = 6
     UPTIME = 7
+    METRIC_ALERT = 8
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
@@ -152,8 +154,10 @@ class GroupType:
     enable_auto_resolve: bool = True
     # Allow escalation forecasts and detection
     enable_escalation_detection: bool = True
+    # Quota around many of these issue types can be created per project in a given time window
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
     notification_config: NotificationConfig = NotificationConfig()
+    detector_handler: type[DetectorHandler] | None = None
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)

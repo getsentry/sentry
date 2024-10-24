@@ -10,3 +10,5 @@ export const MODULE_DESCRIPTION = t(
 );
 export const MODULE_DOC_LINK =
   'https://docs.sentry.io/product/insights/mobile-vitals/app-starts/';
+
+export const MODULE_FEATURES = ['insights-initial-modules'];

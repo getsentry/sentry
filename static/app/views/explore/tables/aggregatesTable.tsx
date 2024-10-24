@@ -149,7 +149,6 @@ export function AggregatesTable({}: AggregatesTableProps) {
                       )}
                       <FieldRenderer
                         column={columns[j]}
-                        dataset={dataset}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}

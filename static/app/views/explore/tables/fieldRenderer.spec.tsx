@@ -5,7 +5,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import {FieldRenderer} from './fieldRenderer';
 
@@ -15,6 +14,7 @@ const mockedEventData = {
   trace: 'traceId',
   'span.op': 'test_op',
   'transaction.id': 'transactionId',
+  'transaction.span_id': 'transactionSpanId',
 };
 
 describe('FieldRenderer tests', function () {
@@ -46,7 +46,6 @@ describe('FieldRenderer tests', function () {
       <FieldRenderer
         column={eventView.getColumns()[3]}
         data={mockedEventData}
-        dataset={DiscoverDatasets.SPANS_INDEXED}
         meta={{}}
       />,
       {organization}
@@ -60,7 +59,6 @@ describe('FieldRenderer tests', function () {
       <FieldRenderer
         column={eventView.getColumns()[0]}
         data={mockedEventData}
-        dataset={DiscoverDatasets.SPANS_INDEXED}
         meta={{}}
       />,
       {organization}
@@ -69,7 +67,7 @@ describe('FieldRenderer tests', function () {
     expect(screen.getByText('spanId')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/performance/trace/traceId/?eventId=transactionId&node=span-spanId&node=txn-transactionId&source=traces&statsPeriod=14d&timestamp=1727964900`
+      `/organizations/org-slug/performance/trace/traceId/?node=span-spanId&node=txn-transactionSpanId&source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
     );
   });
 
@@ -78,7 +76,6 @@ describe('FieldRenderer tests', function () {
       <FieldRenderer
         column={eventView.getColumns()[4]}
         data={mockedEventData}
-        dataset={DiscoverDatasets.SPANS_INDEXED}
         meta={{}}
       />,
       {organization}
@@ -87,7 +84,7 @@ describe('FieldRenderer tests', function () {
     expect(screen.getByText('transactionId')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/performance/trace/traceId/?eventId=transactionId&source=traces&statsPeriod=14d&timestamp=1727964900`
+      `/organizations/org-slug/performance/trace/traceId/?source=traces&statsPeriod=14d&targetId=transactionSpanId&timestamp=1727964900`
     );
   });
 
@@ -96,7 +93,6 @@ describe('FieldRenderer tests', function () {
       <FieldRenderer
         column={eventView.getColumns()[2]}
         data={mockedEventData}
-        dataset={DiscoverDatasets.SPANS_INDEXED}
         meta={{}}
       />,
       {organization}
@@ -114,7 +110,6 @@ describe('FieldRenderer tests', function () {
       <FieldRenderer
         column={eventView.getColumns()[1]}
         data={mockedEventData}
-        dataset={DiscoverDatasets.SPANS_INDEXED}
         meta={{}}
       />,
       {organization}

@@ -31,10 +31,7 @@ export type OnboardingEventParameters = {
   'onboarding.messaging_integration_external_install_clicked': {
     provider_key: string;
   };
-  'onboarding.messaging_integration_modal_rendered': {
-    project_id: string;
-  };
-  'onboarding.messaging_integration_steps_refreshed': {};
+  'onboarding.messaging_integration_modal_rendered': {};
   'onboarding.next_step_clicked': {
     newOrg: boolean;
     platform: string;
@@ -106,8 +103,6 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: Messaging Integration Modal Rendered',
   'onboarding.messaging_integration_external_install_clicked':
     'Onboarding: Messaging Integration External Install Clicked',
-  'onboarding.messaging_integration_steps_refreshed':
-    'Onboarding: Messaging Integration Steps Refreshed',
   'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
   'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
   'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',

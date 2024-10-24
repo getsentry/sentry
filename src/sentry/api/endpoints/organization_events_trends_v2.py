@@ -177,7 +177,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     results[result_key]["data"].append(row)
                 else:
                     discarded += 1
-                    # TODO filter out entries that don't have transaction or trend_function
+                    # TODO: filter out entries that don't have transaction or trend_function
                     logger.warning(
                         "trends.top-events.timeseries.key-mismatch",
                         extra={

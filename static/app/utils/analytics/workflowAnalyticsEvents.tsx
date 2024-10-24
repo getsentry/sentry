@@ -144,10 +144,12 @@ export type TeamInsightsEventParameters = {
   };
   'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
+    created_integration_notification: boolean;
+    has_onboarding_feature_flag: boolean;
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     platform: string;
     project_id: string;
-    rule_id: string;
+    rule_ids: string[];
   };
   'project_detail.change_chart': {chart_index: number; metric: string};
   'project_detail.open_anr_issues': {};

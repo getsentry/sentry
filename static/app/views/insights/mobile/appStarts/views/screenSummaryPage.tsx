@@ -15,6 +15,7 @@ import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -34,6 +35,7 @@ import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/s
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 import AppStartWidgets from '../components/widgets';
@@ -53,8 +55,11 @@ type Query = {
 export function ScreenSummary() {
   const location = useLocation<Query>();
   const {transaction: transactionName} = location.query;
+  const organization = useOrganization();
   const crumbs = useModuleBreadcrumbs('app_start');
   const {isInDomainView} = useDomainViewFilters();
+
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
 
   return (
     <Layout.Page>
@@ -76,8 +81,10 @@ export function ScreenSummary() {
         )}
         {isInDomainView && (
           <MobileHeader
-            hideDefaultTabs
-            module={ModuleName.MOBILE_SCREENS}
+            hideDefaultTabs={isMobileScreensEnabled}
+            module={
+              isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.APP_START
+            }
             headerTitle={transactionName}
             breadcrumbs={[
               {

@@ -126,7 +126,10 @@ def schedule_on_demand_check() -> None:
 
     for (widget_query_id,) in RangeQuerySetWrapper(
         DashboardWidgetQuery.objects.filter(
-            widget__widget_type=DashboardWidgetTypes.DISCOVER
+            widget__widget_type__in=[
+                DashboardWidgetTypes.DISCOVER,
+                DashboardWidgetTypes.TRANSACTION_LIKE,
+            ]
         ).values_list("id"),
         result_value_getter=lambda item: item[0],
     ):

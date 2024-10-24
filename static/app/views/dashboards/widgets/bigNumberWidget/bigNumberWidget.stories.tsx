@@ -31,6 +31,12 @@ export default storyBook(BigNumberWidget, story => {
           visualization shows a tooltip with the full value.
         </p>
 
+        <p>
+          <JSXNode name="BigNumberWidget" /> also supports string values. This is not
+          commonly used, but it's capable of rendering timestamps and in fact most fields
+          defined in our field renderer pipeline
+        </p>
+
         <SideBySide>
           <SmallSizingWindow>
             <BigNumberWidget
@@ -95,6 +101,25 @@ export default storyBook(BigNumberWidget, story => {
               }}
             />
           </SmallSizingWindow>
+          <SmallSizingWindow>
+            <BigNumberWidget
+              title="Latest Timestamp"
+              description=""
+              data={[
+                {
+                  'max(timestamp)': '2024-10-17T16:08:07+00:00',
+                },
+              ]}
+              meta={{
+                fields: {
+                  'max(timestamp)': 'date',
+                },
+                units: {
+                  'max(timestamp)': null,
+                },
+              }}
+            />
+          </SmallSizingWindow>
         </SideBySide>
         <p>
           The <code>maximumValue</code> prop allows setting the maximum displayable value.
@@ -105,7 +130,7 @@ export default storyBook(BigNumberWidget, story => {
           <JSXProperty name="maximumValue" value={1000000} /> will show &gt;1m.
         </p>
         <SideBySide>
-          <NormalWidget>
+          <SmallWidget>
             <BigNumberWidget
               title="Count"
               data={[
@@ -120,7 +145,7 @@ export default storyBook(BigNumberWidget, story => {
                 },
               }}
             />
-          </NormalWidget>
+          </SmallWidget>
         </SideBySide>
       </Fragment>
     );
@@ -136,31 +161,37 @@ export default storyBook(BigNumberWidget, story => {
         </p>
 
         <SideBySide>
-          <NormalWidget>
+          <SmallWidget>
             <BigNumberWidget title="Loading Count" isLoading />
-          </NormalWidget>
-          <NormalWidget>
-            <BigNumberWidget
-              title="Text"
-              data={[{'max(user.email)': 'bufo@example.com'}]}
-            />
-          </NormalWidget>
-          <NormalWidget>
+          </SmallWidget>
+          <SmallWidget>
             <BigNumberWidget title="Missing Count" data={[{}]} />
-          </NormalWidget>
-          <NormalWidget>
+          </SmallWidget>
+          <SmallWidget>
             <BigNumberWidget
               title="Count Error"
               error={new Error('Something went wrong!')}
             />
-          </NormalWidget>
-          <NormalWidget>
+          </SmallWidget>
+          <SmallWidget>
             <BigNumberWidget
               title="Data Error"
               error={new Error('Something went wrong!')}
               onRetry={() => {}}
             />
-          </NormalWidget>
+          </SmallWidget>
+        </SideBySide>
+
+        <p>The contents of the error adjust slightly as the widget gets bigger.</p>
+
+        <SideBySide>
+          <MediumWidget>
+            <BigNumberWidget
+              title="Data Error"
+              error={new Error('Something went wrong!')}
+              onRetry={() => {}}
+            />
+          </MediumWidget>
         </SideBySide>
       </Fragment>
     );
@@ -184,7 +215,7 @@ export default storyBook(BigNumberWidget, story => {
         </p>
 
         <SideBySide>
-          <NormalWidget>
+          <SmallWidget>
             <BigNumberWidget
               title="eps()"
               data={[
@@ -206,9 +237,9 @@ export default storyBook(BigNumberWidget, story => {
                 },
               }}
             />
-          </NormalWidget>
+          </SmallWidget>
 
-          <NormalWidget>
+          <SmallWidget>
             <BigNumberWidget
               title="http_rate(500)"
               data={[
@@ -228,8 +259,8 @@ export default storyBook(BigNumberWidget, story => {
                 },
               }}
             />
-          </NormalWidget>
-          <NormalWidget>
+          </SmallWidget>
+          <SmallWidget>
             <BigNumberWidget
               title="http_rate(200)"
               data={[
@@ -249,7 +280,7 @@ export default storyBook(BigNumberWidget, story => {
                 },
               }}
             />
-          </NormalWidget>
+          </SmallWidget>
         </SideBySide>
       </Fragment>
     );
@@ -282,7 +313,7 @@ export default storyBook(BigNumberWidget, story => {
         </p>
 
         <SideBySide>
-          <NormalWidget>
+          <SmallWidget>
             <BigNumberWidget
               title="eps()"
               data={[
@@ -294,9 +325,9 @@ export default storyBook(BigNumberWidget, story => {
               thresholds={thresholds}
               preferredPolarity="+"
             />
-          </NormalWidget>
+          </SmallWidget>
 
-          <NormalWidget>
+          <SmallWidget>
             <BigNumberWidget
               title="eps()"
               data={[
@@ -308,9 +339,9 @@ export default storyBook(BigNumberWidget, story => {
               thresholds={thresholds}
               preferredPolarity="-"
             />
-          </NormalWidget>
+          </SmallWidget>
 
-          <NormalWidget>
+          <SmallWidget>
             <BigNumberWidget
               title="eps()"
               data={[
@@ -322,7 +353,7 @@ export default storyBook(BigNumberWidget, story => {
               thresholds={thresholds}
               preferredPolarity="+"
             />
-          </NormalWidget>
+          </SmallWidget>
         </SideBySide>
 
         <p>
@@ -331,7 +362,7 @@ export default storyBook(BigNumberWidget, story => {
         </p>
 
         <SideBySide>
-          <NormalWidget>
+          <SmallWidget>
             <BigNumberWidget
               title="eps()"
               data={[
@@ -343,9 +374,9 @@ export default storyBook(BigNumberWidget, story => {
               thresholds={thresholds}
               preferredPolarity="-"
             />
-          </NormalWidget>
+          </SmallWidget>
 
-          <NormalWidget>
+          <SmallWidget>
             <BigNumberWidget
               title="eps()"
               data={[
@@ -357,9 +388,9 @@ export default storyBook(BigNumberWidget, story => {
               thresholds={thresholds}
               preferredPolarity="-"
             />
-          </NormalWidget>
+          </SmallWidget>
 
-          <NormalWidget>
+          <SmallWidget>
             <BigNumberWidget
               title="eps()"
               data={[
@@ -371,7 +402,7 @@ export default storyBook(BigNumberWidget, story => {
               thresholds={thresholds}
               preferredPolarity="-"
             />
-          </NormalWidget>
+          </SmallWidget>
         </SideBySide>
       </Fragment>
     );
@@ -383,6 +414,10 @@ const SmallSizingWindow = styled(SizingWindow)`
   height: 200px;
 `;
 
-const NormalWidget = styled('div')`
+const SmallWidget = styled('div')`
   width: 250px;
+`;
+
+const MediumWidget = styled('div')`
+  width: 420px;
 `;

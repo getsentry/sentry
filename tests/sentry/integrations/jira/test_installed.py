@@ -10,7 +10,10 @@ from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.utils import AtlassianConnectValidationError, get_query_hash
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_query_hash,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri

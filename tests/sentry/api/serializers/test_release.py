@@ -45,7 +45,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                "timestamp": before_now(seconds=1).timestamp(),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "release": release_version,
                 "environment": "prod",
             },
@@ -149,7 +149,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                "timestamp": before_now(seconds=1).timestamp(),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "release": release_version,
                 "environment": "prod",
             },
@@ -612,7 +612,7 @@ class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                "timestamp": before_now(seconds=1).timestamp(),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "release": release_version,
                 "environment": "prod",
             },
