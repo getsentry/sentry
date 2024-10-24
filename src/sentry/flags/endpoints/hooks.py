@@ -11,12 +11,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.flags.providers import (
-    DeserializationError,
-    InvalidProvider,
-    handle_provider_event,
-    write,
-)
+from sentry.flags.exceptions import DeserializationError, InvalidProvider
+from sentry.flags.providers import handle_provider_event, write
 from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken

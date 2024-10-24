@@ -3,8 +3,9 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry.flags.exceptions import DeserializationError
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP
-from sentry.flags.providers import DeserializationError, FlagAuditLogRow
+from sentry.flags.providers import FlagAuditLogRow
 
 # Keys are a subset of the list at https://docs.getunleash.io/reference/integrations/webhook#configuration.
 EVENT_TO_ACTION_MAP: dict[str, str] = {

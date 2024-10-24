@@ -3,7 +3,8 @@ import logging
 from datetime import datetime, timezone
 
 from sentry import options
-from sentry.flags.providers import FlagAuditLogItem, handle_flag_pole_event_internal
+from sentry.flags.models import FlagAuditLogItem
+from sentry.flags.providers import handle_flag_pole_event_internal
 from sentry.runner.commands.presenters.webhookpresenter import WebhookPresenter
 
 logger = logging.getLogger()

@@ -2,12 +2,10 @@ import pytest
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.flags.exceptions import DeserializationError
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP
-from sentry.flags.providers import (
-    DeserializationError,
-    LaunchDarklyItemSerializer,
-    handle_provider_event,
-)
+from sentry.flags.providers import handle_provider_event
+from sentry.flags.providers.launchdarkly import LaunchDarklyItemSerializer
 
 default_timezone = timezone.get_default_timezone()
 
