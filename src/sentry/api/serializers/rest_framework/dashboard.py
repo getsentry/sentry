@@ -6,7 +6,7 @@ from typing import TypedDict
 
 from django.db.models import Max
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import features, options
@@ -23,6 +23,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
+    DatasetSourcesTypes,
 )
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.events.builder.discover import UnresolvedQuery
@@ -42,6 +43,7 @@ AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
 EQUATION_PREFIX = "equation|"
 
 OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
+DATASET_SOURCE_MAP = {source[1]: source[0] for source in DatasetSourcesTypes.as_choices()}
 
 
 class QueryWarning(TypedDict):
@@ -277,6 +279,7 @@ class ThresholdMaxKeys(Enum):
     MAX_2 = "max2"
 
 
+@extend_schema_serializer(exclude_fields=["dataset_source"])
 class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -296,6 +299,11 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     limit = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
     layout = LayoutField(required=False, allow_null=True)
     query_warnings: QueryWarning = {"queries": [], "columns": {}}
+    dataset_source = serializers.ChoiceField(
+        choices=DatasetSourcesTypes.as_text_choices(),
+        required=False,
+        help_text="A widgets's unique id.",
+    )
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
@@ -452,6 +460,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             DashboardWidgetTypes.TRANSACTION_LIKE,
         }:
             data["discover_widget_split"] = widget_type
+
+        dataset_source = data.get("dataset_source")
+        if dataset_source is not None:
+            data["dataset_source"] = DATASET_SOURCE_MAP[dataset_source]
 
         return data
 
@@ -644,6 +656,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             order=order,
             limit=widget_data.get("limit", None),
             detail={"layout": widget_data.get("layout")},
+            dataset_source=widget_data.get("dataset_source", DatasetSourcesTypes.USER.value),
         )
 
         new_queries = []
@@ -705,6 +718,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         )
         widget.order = order
         widget.limit = data.get("limit", widget.limit)
+        widget.dataset_source = data.get("dataset_source", widget.dataset_source)
         widget.detail = {"layout": data.get("layout", prev_layout)}
         widget.save()
 

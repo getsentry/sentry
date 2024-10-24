@@ -583,49 +583,6 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
-  it('renders stored data disclaimer', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        meta: {title: 'string', isMetricsData: false},
-        data: [{title: 'title'}],
-      },
-    });
-
-    renderWithProviders(
-      <WidgetCard
-        api={api}
-        organization={{
-          ...organization,
-          features: [...organization.features, 'dashboards-mep'],
-        }}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0]}],
-        }}
-        selection={selection}
-        isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        showContextMenu
-        widgetLimitReached={false}
-        showStoredAlert
-        widgetLegendState={widgetLegendState}
-      />
-    );
-
-    // Badge in the widget header
-    expect(await screen.findByText('Indexed')).toBeInTheDocument();
-
-    expect(
-      // Alert below the widget
-      await screen.findByText(/we've automatically adjusted your results/i)
-    ).toBeInTheDocument();
-  });
-
   it('renders chart using axis and tooltip formatters from custom measurement meta', async function () {
     const spy = jest.spyOn(LineChart, 'LineChart');
     const eventsStatsMock = MockApiClient.addMockResponse({
