@@ -108,7 +108,7 @@ class Interface:
             self._data[name] = value
 
     @classmethod
-    def to_python(cls, data, datapath: DataPath | None = None):
+    def to_python(cls: Any, data: dict[str, Any], **kwargs: Any) -> dict[str, Any] | None:
         """Creates a python interface object from the given raw data.
 
         This function can assume fully normalized and valid data. It can create
@@ -119,6 +119,7 @@ class Interface:
             return None
 
         rv = cls(**data)
+        datapath = kwargs.pop("datapath", None)
         object.__setattr__(rv, "datapath", datapath)
         return rv
 
