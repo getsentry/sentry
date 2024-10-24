@@ -8,7 +8,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as useMedia from 'sentry/utils/useMedia';
 import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
-import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
+
+import {IssueEventNavigation} from './eventNavigation';
 
 jest.mock('sentry/views/issueDetails/streamline/context');
 
@@ -27,9 +28,10 @@ describe('EventNavigation', () => {
     previousEventID: 'prev-event-id',
     nextEventID: 'next-event-id',
   });
-  const defaultProps: React.ComponentProps<typeof EventNavigation> = {
+  const defaultProps: React.ComponentProps<typeof IssueEventNavigation> = {
     event: testEvent,
     group: GroupFixture({id: 'group-id'}),
+    query: undefined,
   };
 
   beforeEach(() => {
@@ -42,25 +44,13 @@ describe('EventNavigation', () => {
       },
       dispatch: jest.fn(),
     });
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
-    window.open = jest.fn();
-
-    MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/events/event-id/actionable-items/`,
-      body: {
-        errors: [],
-      },
-      method: 'GET',
-    });
   });
 
   describe('recommended event tabs', () => {
     it('can navigate to the oldest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<EventNavigation {...defaultProps} />, {router});
+      render(<IssueEventNavigation {...defaultProps} />, {router});
 
       await userEvent.click(screen.getByRole('tab', {name: 'First'}));
 
@@ -73,7 +63,7 @@ describe('EventNavigation', () => {
     it('can navigate to the latest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<EventNavigation {...defaultProps} />, {router});
+      render(<IssueEventNavigation {...defaultProps} />, {router});
 
       await userEvent.click(screen.getByRole('tab', {name: 'Last'}));
 
@@ -93,11 +83,11 @@ describe('EventNavigation', () => {
         }),
       });
 
-      render(<EventNavigation {...defaultProps} />, {
+      render(<IssueEventNavigation {...defaultProps} />, {
         router: recommendedEventRouter,
       });
 
-      await userEvent.click(screen.getByRole('tab', {name: 'Recommended'}));
+      await userEvent.click(screen.getByRole('tab', {name: 'Rec.'}));
 
       expect(recommendedEventRouter.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
@@ -107,7 +97,7 @@ describe('EventNavigation', () => {
   });
 
   it('can navigate next/previous events', () => {
-    render(<EventNavigation {...defaultProps} />);
+    render(<IssueEventNavigation {...defaultProps} />);
 
     expect(screen.getByLabelText(/Previous Event/)).toHaveAttribute(
       'href',
@@ -117,80 +107,5 @@ describe('EventNavigation', () => {
       'href',
       `/organizations/org-slug/issues/group-id/events/next-event-id/?referrer=next-event`
     );
-  });
-
-  it('does not show jump to sections by default', () => {
-    jest.mocked(useEventDetails).mockReturnValue({
-      sectionData: {},
-      dispatch: jest.fn(),
-    });
-    render(<EventNavigation {...defaultProps} />);
-    expect(screen.queryByText('Jump To:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Replay')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
-    expect(screen.queryByText('Highlights')).not.toBeInTheDocument();
-  });
-
-  it('does show jump to sections when the sections render', () => {
-    render(<EventNavigation {...defaultProps} />);
-    expect(screen.getByText('Jump to:')).toBeInTheDocument();
-    expect(screen.getByText('Highlights')).toBeInTheDocument();
-    expect(screen.getByText('Replay')).toBeInTheDocument();
-    expect(screen.getByText('Tags')).toBeInTheDocument();
-  });
-
-  it('can copy event ID', async () => {
-    render(<EventNavigation {...defaultProps} />);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event ID'}));
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
-  });
-
-  it('shows event actions dropdown', async () => {
-    render(<EventNavigation {...defaultProps} />);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event ID'}));
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event Link'}));
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      `http://localhost/organizations/org-slug/issues/group-id/events/event-id/`
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'View JSON'}));
-
-    expect(window.open).toHaveBeenCalledWith(
-      `https://us.sentry.io/api/0/projects/org-slug/project-slug/events/event-id/json/`
-    );
-  });
-
-  it('shows processing issue button if there is an event error', async () => {
-    MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/events/event-id/actionable-items/`,
-      body: {
-        errors: [
-          {
-            type: 'invalid_data',
-            data: {
-              name: 'logentry',
-            },
-            message: 'no message present',
-          },
-        ],
-      },
-      method: 'GET',
-    });
-    render(<EventNavigation {...defaultProps} />);
-
-    expect(
-      await screen.findByRole('button', {name: 'Processing Error'})
-    ).toBeInTheDocument();
   });
 });

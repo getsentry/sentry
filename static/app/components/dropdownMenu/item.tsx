@@ -118,9 +118,15 @@ function BaseDropdownMenuItem(
   const {key, onAction, to, label, isSubmenu, trailingItems, ...itemProps} =
     node.value ?? {};
   const {size} = node.props;
+  const {rootOverlayState} = useContext(DropdownMenuContext);
 
   const actionHandler = () => {
     if (to) {
+      // Close the menu after the click event has bubbled to the link
+      // Only needed on links that do not unmount the menu
+      if (closeOnSelect) {
+        requestAnimationFrame(() => rootOverlayState?.close());
+      }
       return;
     }
     if (isSubmenu) {
@@ -178,7 +184,6 @@ function BaseDropdownMenuItem(
   });
 
   // Manage interactive events & create aria attributes
-  const {rootOverlayState} = useContext(DropdownMenuContext);
   const {menuItemProps, labelProps, descriptionProps} = useMenuItem(
     {
       key: node.key,

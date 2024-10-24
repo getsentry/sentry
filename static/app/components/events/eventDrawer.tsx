@@ -4,7 +4,7 @@ import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumb
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {InputGroup} from 'sentry/components/inputGroup';
 import {space} from 'sentry/styles/space';
-import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventNavigation';
+import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 export const Header = styled('h3')`
   display: block;
