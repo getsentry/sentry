@@ -87,6 +87,8 @@ export type ReplayEventParameters = {
   'replay.list-view-setup-sidebar': {};
   'replay.number_of_timeline_gaps': {
     gaps: number;
+    max_gap: number;
+    replay_duration: number;
   };
   'replay.play-pause': {
     context: string;
