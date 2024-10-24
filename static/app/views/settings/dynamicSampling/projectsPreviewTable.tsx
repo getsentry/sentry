@@ -178,7 +178,7 @@ const TableRow = memo(function TableRow({
           >
             <InputGroup.Input
               disabled
-              value={formatNumberWithDynamicDecimalPoints(sampleRate, 3)}
+              value={formatNumberWithDynamicDecimalPoints(sampleRate * 100, 3)}
             />
             <InputGroup.TrailingItems>
               <TrailingPercent>%</TrailingPercent>
