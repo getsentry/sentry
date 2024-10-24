@@ -9,7 +9,7 @@ describe('WidgetFrame', () => {
 
       expect(screen.getByText('EPS')).toBeInTheDocument();
 
-      await userEvent.hover(screen.getByTestId('more-information'));
+      await userEvent.hover(screen.getByRole('button', {name: 'Widget description'}));
       expect(await screen.findByText('Number of events per second')).toBeInTheDocument();
     });
   });
