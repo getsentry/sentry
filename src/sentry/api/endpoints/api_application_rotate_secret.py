@@ -1,5 +1,4 @@
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,6 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.permissions import SentryPermission
 from sentry.api.serializers import serialize
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus, generate_token
 
@@ -18,7 +18,7 @@ class ApiApplicationRotateSecretEndpoint(Endpoint):
     }
     owner = ApiOwner.ENTERPRISE
     authentication_classes = (SessionAuthentication,)
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SentryPermission,)
 
     def post(self, request: Request, app_id) -> Response:
         try:
