@@ -236,7 +236,6 @@ const Content = styled('div')`
 `;
 
 const ButtonContainer = styled('div')`
-  margin-top: ${space(1.5)};
   align-items: center;
   display: flex;
 `;
