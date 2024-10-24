@@ -85,8 +85,8 @@ function List({
         )}
         {hasSimilarityEmbeddingsFeature && (
           <SimilarSpectrum
-            highSpectrumLabel={'Most Similar'}
-            lowSpectrumLabel={'Less Similar'}
+            highSpectrumLabel={t('Most Similar')}
+            lowSpectrumLabel={t('Less Similar')}
           />
         )}
       </Header>
