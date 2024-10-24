@@ -91,6 +91,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     },
     layoutOptions: [],
   },
+  missing_instrumentation: true,
   autogroup: {
     parent: true,
     sibling: true,
@@ -101,7 +102,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   },
 };
 
-function Trace({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
+function Trace({replay}: {replay: undefined | ReplayRecord}) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {
@@ -123,7 +124,7 @@ function Trace({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
     );
   }
 
-  if (!replayRecord || !didInit || (isFetching && !traces?.length) || !eventView) {
+  if (!replay || !didInit || (isFetching && !traces?.length) || !eventView) {
     // Show the blank screen until we start fetching, thats when you get a spinner
     return (
       <StyledPlaceholder height="100%">
@@ -132,7 +133,7 @@ function Trace({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
     );
   }
 
-  const project = projects.find(p => p.id === replayRecord.project_id);
+  const project = projects.find(p => p.id === replay.project_id);
   const hasPerformance = project?.firstTransactionEvent === true;
   const performanceActive =
     organization.features.includes('performance-view') && hasPerformance;
@@ -152,24 +153,24 @@ function Trace({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
   );
 }
 
-export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
+export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {eventView, indexComplete, indexError, replayTraces} = useReplayTraces({
-    replayRecord,
+    replayRecord: replay,
   });
 
   const firstTrace = replayTraces?.[0];
-  const traceResults = useTrace({
+  const trace = useTrace({
     traceSlug: firstTrace?.traceSlug,
     timestamp: firstTrace?.timestamp,
   });
-  const rootEvent = useTraceRootEvent(traceResults.data ?? null);
-  const metaResults = useReplayTraceMeta(replayRecord);
-  const traceTree = useTraceTree({
-    traceResults,
-    metaResults,
-    replayRecord: replayRecord ?? null,
+  const rootEvent = useTraceRootEvent(trace.data ?? null);
+  const meta = useReplayTraceMeta(replay);
+  const tree = useTraceTree({
+    trace,
+    meta,
+    replay: replay ?? null,
   });
 
   const preferences = useMemo(
@@ -198,7 +199,7 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
     );
   }
 
-  if (!replayRecord || !indexComplete || !replayTraces || !eventView) {
+  if (!replay || !indexComplete || !replayTraces || !eventView) {
     // Show the blank screen until we start fetching, thats when you get a spinner
     return (
       <StyledPlaceholder height="100%">
@@ -207,7 +208,7 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
     );
   }
 
-  const project = projects.find(p => p.id === replayRecord.project_id);
+  const project = projects.find(p => p.id === replay.project_id);
   const hasPerformance = project?.firstTransactionEvent === true;
   const performanceActive =
     organization.features.includes('performance-view') && hasPerformance;
@@ -224,14 +225,15 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
       <TraceViewWaterfallWrapper>
         <TraceViewWaterfall
           traceSlug={undefined}
-          tree={traceTree}
+          trace={trace}
+          tree={tree}
           rootEvent={rootEvent}
           replayTraces={otherReplayTraces}
           organization={organization}
           traceEventView={eventView}
-          metaResults={metaResults}
+          meta={meta}
           source="replay"
-          replayRecord={replayRecord}
+          replay={replay}
           // Replays might want to enable this in the future
           isEmbedded={false}
         />

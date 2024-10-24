@@ -53,10 +53,10 @@ class MockResizeObserver {
 type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
 type ResponseType = Arguments<typeof MockApiClient.addMockResponse>[0];
 
-function mockQueryString(query: string) {
+function mockQueryString(queryString: string) {
   Object.defineProperty(window, 'location', {
     value: {
-      search: query,
+      search: queryString,
     },
   });
 }
@@ -655,19 +655,15 @@ async function completeTestSetup() {
 
 const DRAWER_TABS_TEST_ID = 'trace-drawer-tab';
 const DRAWER_TABS_PIN_BUTTON_TEST_ID = 'trace-drawer-tab-pin-button';
-
-// @ts-expect-error ignore this line
-// eslint-disable-next-line
-const DRAWER_TABS_CONTAINER_TEST_ID = 'trace-drawer-tabs';
 const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
 const ACTIVE_SEARCH_HIGHLIGHT_ROW = '.TraceRow.SearchResult.Highlight:not(.Hidden)';
+
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const searchToUpdate = async (): Promise<void> => {
   await wait(500);
 };
-
 const scrollToEnd = async (): Promise<void> => {
-  await wait(1000);
+  await wait(500);
 };
 
 // @ts-expect-error ignore this line
@@ -738,10 +734,11 @@ function assertHighlightedRowAtIndex(virtualizedContainer: HTMLElement, index: n
   expect(r.indexOf(highlighted_row!)).toBe(index);
 }
 
-describe('trace', () => {
+describe('trace view', () => {
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     globalThis.ResizeObserver = MockResizeObserver as any;
+    mockQueryString('');
     MockDate.reset();
   });
   afterEach(() => {
@@ -759,8 +756,23 @@ describe('trace', () => {
     expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
   });
 
-  it('renders error state', async () => {
+  it('renders error state if trace fails to load', async () => {
     mockTraceResponse({statusCode: 404});
+    mockTraceMetaResponse({statusCode: 404});
+    mockTraceTagsResponse({statusCode: 404});
+
+    render(<TraceView />, {router});
+    expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
+  });
+
+  it.only('renders error state if meta fails to load', async () => {
+    mockTraceResponse({
+      statusCode: 200,
+      body: {
+        transactions: [makeTransaction()],
+        orphan_errors: [],
+      },
+    });
     mockTraceMetaResponse({statusCode: 404});
     mockTraceTagsResponse({statusCode: 404});
 
@@ -981,7 +993,6 @@ describe('trace', () => {
 
     it('if search on load does not match anything, it does not steal focus or highlight first result', async () => {
       mockQueryString('?search=dead&node=txn-5');
-
       const {container} = await pageloadTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       expect(searchInput).toHaveValue('dead');
@@ -995,6 +1006,10 @@ describe('trace', () => {
       const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       expect(rows[6]).toHaveFocus();
     });
+
+    it.todo('autogroups direct children spans on pageload');
+    it.todo('autogroups sibling spans spans on pageload');
+    it.todo('detects missing instrumentation on pageload');
   });
 
   describe('keyboard navigation', () => {

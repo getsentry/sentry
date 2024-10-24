@@ -34,6 +34,7 @@ export type TracePreferencesState = {
   list: {
     width: number;
   };
+  missing_instrumentation: boolean;
 };
 
 export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
@@ -56,6 +57,7 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     parent: true,
     sibling: true,
   },
+  missing_instrumentation: true,
   layout: 'drawer right',
   list: {
     width: 0.5,
@@ -118,6 +120,15 @@ function isValidAutogrouping(
   return true;
 }
 
+function isValidMissingInstrumentation(
+  state: TracePreferencesState
+): state is TracePreferencesState & {missing_instrumentation: undefined} {
+  if (typeof state.missing_instrumentation !== 'boolean') {
+    return false;
+  }
+  return true;
+}
+
 export function loadTraceViewPreferences(key: string): TracePreferencesState | null {
   const stored = localStorage.getItem(key);
 
@@ -132,6 +143,10 @@ export function loadTraceViewPreferences(key: string): TracePreferencesState | n
         // Correct old preferences that are missing autogrouping
         if (!isValidAutogrouping(parsed)) {
           parsed.autogroup = {...DEFAULT_TRACE_VIEW_PREFERENCES.autogroup};
+        }
+        if (!isValidMissingInstrumentation(parsed)) {
+          parsed.missing_instrumentation =
+            DEFAULT_TRACE_VIEW_PREFERENCES.missing_instrumentation;
         }
         return parsed;
       }
