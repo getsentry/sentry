@@ -25,6 +25,35 @@ enum Tab {
   TRACE = 'trace',
 }
 
+function useTab(): [Tab, (tab: Tab) => void] {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const tab = useMemo(() => {
+    const rawTab = decodeScalar(location.query.table);
+    if (rawTab === 'trace') {
+      return Tab.TRACE;
+    }
+    return Tab.SPAN;
+  }, [location.query.table]);
+
+  const setTab = useCallback(
+    (newTab: Tab) => {
+      navigate({
+        ...location,
+        query: {
+          ...location.query,
+          table: newTab,
+          cursor: undefined,
+        },
+      });
+    },
+    [location, navigate]
+  );
+
+  return [tab, setTab];
+}
+
 interface ExploreTablesProps {}
 
 export function ExploreTables({}: ExploreTablesProps) {
@@ -43,15 +72,7 @@ function ExploreAggregatesTable() {
 }
 
 function ExploreSamplesTable() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const tab = useMemo(() => {
-    const rawTab = decodeScalar(location.query.table);
-    if (rawTab === 'trace') {
-      return Tab.TRACE;
-    }
-    return Tab.SPAN;
-  }, [location.query.table]);
+  const [tab, setTab] = useTab();
 
   const [fields, setFields] = useSampleFields();
   const numberTags = useSpanTags('number');
@@ -71,20 +92,6 @@ function ExploreSamplesTable() {
       {closeEvents: 'escape-key'}
     );
   }, [fields, setFields, stringTags, numberTags]);
-
-  const setTab = useCallback(
-    newTab => {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          table: newTab,
-          cursor: undefined,
-        },
-      });
-    },
-    [location, navigate]
-  );
 
   return (
     <Fragment>
