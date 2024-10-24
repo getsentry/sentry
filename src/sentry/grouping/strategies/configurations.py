@@ -1,6 +1,5 @@
 from sentry.grouping.strategies.base import (
     RISK_LEVEL_HIGH,
-    RISK_LEVEL_MEDIUM,
     StrategyConfiguration,
     create_strategy_configuration,
 )
@@ -70,35 +69,9 @@ def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     return rv
 
 
-# Legacy groupings
-#
-# These we do not plan on changing much, but bugfixes here might still go
-# into new grouping versions.
+# Configurations
 
-register_strategy_config(
-    id="legacy:2019-03-12",
-    strategies=[
-        "threads:legacy",
-        "stacktrace:legacy",
-        "chained-exception:legacy",
-    ],
-    delegates=["frame:legacy", "stacktrace:legacy", "single-exception:legacy"],
-    changelog="""
-        * Traditional grouping algorithm
-        * Some known weaknesses with regards to grouping of native frames
-    """,
-    initial_context={
-        "normalize_message": False,
-    },
-    enhancements_base="legacy:2019-03-12",
-)
-
-# Simple newstyle grouping
-#
-# This is a grouping strategy that applies very simple rules and will
-# become the new default at one point.  Optimized for native and
-# javascript but works for all platforms.
-
+# This is left behind in order to have less changes happen in one pull request.
 register_strategy_config(
     id="newstyle:2019-05-08",
     risk=RISK_LEVEL_HIGH,
@@ -124,32 +97,23 @@ register_strategy_config(
     enhancements_base="common:2019-03-23",
 )
 
+# This is the grouping strategy used for new projects.
 register_strategy_config(
-    id="newstyle:2019-10-29",
+    id="newstyle:2023-01-11",
     base="newstyle:2019-05-08",
-    risk=RISK_LEVEL_MEDIUM,
+    risk=RISK_LEVEL_HIGH,
     changelog="""
         * Better rules for when to take context lines into account for
           JavaScript platforms for grouping purposes.
         * Better support for PHP7 anonymous classes.
-    """,
-    initial_context={
-        "php_detect_anonymous_classes": True,
-        "with_context_line_file_origin_bug": False,
-    },
-)
-
-register_strategy_config(
-    id="newstyle:2023-01-11",
-    base="newstyle:2019-10-29",
-    risk=RISK_LEVEL_MEDIUM,
-    changelog="""
         * Added new language/platform specific stack trace grouping enhancements rules
           that should make the default grouping experience better.
           This includes JavaScript, Python, PHP, Go, Java and Kotlin.
         * Added ChukloadErrors via new built-in fingerprinting support.
     """,
     initial_context={
+        "php_detect_anonymous_classes": True,
+        "with_context_line_file_origin_bug": False,
         "java_cglib_hibernate_logic": True,
     },
     enhancements_base="newstyle:2023-01-11",

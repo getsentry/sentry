@@ -8,6 +8,7 @@ import pytest
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import _cached, create_match_frame
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 
 
 def dump_obj(obj):
@@ -61,7 +62,7 @@ error.value:"*something*"                       max-frames=12
 def test_parse_empty_with_base():
     enhancement = Enhancements.from_config_string(
         "",
-        bases=["newstyle:2023-01-11"],
+        bases=[DEFAULT_GROUPING_CONFIG],
     )
     assert enhancement
 
