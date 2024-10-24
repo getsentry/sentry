@@ -5,10 +5,10 @@ from typing import cast
 from unittest import mock
 
 import orjson
+import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.core.cache import cache
-from sentry.testutils.helpers import override_options
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
 from sentry.constants import DataCategory
@@ -18,23 +18,22 @@ from sentry.ingest.billing_metrics_consumer import (
 )
 from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.strings import (
-    SPAN_METRICS_NAMES,
-    TRANSACTION_METRICS_NAMES,
-)
+from sentry.sentry_metrics.indexer.strings import SPAN_METRICS_NAMES, TRANSACTION_METRICS_NAMES
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.testutils.helpers import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.outcomes import Outcome
-import pytest
 
 
 @django_db_all
 @mock.patch("sentry.ingest.billing_metrics_consumer.track_outcome")
 @pytest.mark.parametrize("use_new_counting_strategy", [True, False])
 def test_outcomes_consumed(track_outcome, factories, use_new_counting_strategy):
-    with override_options({
-        "consumers.use_new_counting_strategy": use_new_counting_strategy,
-    }):
+    with override_options(
+        {
+            "consumers.use_new_counting_strategy": use_new_counting_strategy,
+        }
+    ):
         # Based on test_ingest_consumer_kafka.py
         topic = Topic("snuba-generic-metrics")
 
@@ -74,7 +73,10 @@ def test_outcomes_consumed(track_outcome, factories, use_new_counting_strategy):
 
         empty_tags: dict[str, str] = {}
         profile_tags: dict[str, str] = {str(has_profile_id): "true"}
-        profile_and_indexed_tags: dict[str, str] = {str(has_profile_id): "true", str(indexed_id): "true"}
+        profile_and_indexed_tags: dict[str, str] = {
+            str(has_profile_id): "true",
+            str(indexed_id): "true",
+        }
         generic_metrics: list[GenericMetric] = [
             {  # Counter metric with wrong ID will not generate an outcome
                 "mapping_meta": {"c": {str(counter_custom_metric_id): counter_custom_metric_mri}},
@@ -169,7 +171,10 @@ def test_outcomes_consumed(track_outcome, factories, use_new_counting_strategy):
             },
             # Bucket with profiles
             {
-                "mapping_meta": {"c": {str(transaction_usage_id): transaction_usage_mri}, "d": {str(has_profile_id): has_profile}},
+                "mapping_meta": {
+                    "c": {str(transaction_usage_id): transaction_usage_mri},
+                    "d": {str(has_profile_id): has_profile},
+                },
                 "metric_id": transaction_usage_id,
                 "type": "c",
                 "org_id": organization.id,
@@ -181,7 +186,10 @@ def test_outcomes_consumed(track_outcome, factories, use_new_counting_strategy):
                 "retention_days": 90,
             },
             {
-                "mapping_meta": {"c": {str(transaction_duration_id): transaction_duration_mri}, "d": {str(has_profile_id): has_profile}},
+                "mapping_meta": {
+                    "c": {str(transaction_duration_id): transaction_duration_mri},
+                    "d": {str(has_profile_id): has_profile},
+                },
                 "metric_id": transaction_duration_id,
                 "type": "d",
                 "org_id": organization.id,
@@ -207,7 +215,10 @@ def test_outcomes_consumed(track_outcome, factories, use_new_counting_strategy):
             },
             # Transaction usage with `indexed = true` should be counted only if the old counting is used:
             {
-                "mapping_meta": {"c": {str(transaction_usage_id): transaction_usage_mri}, "d": {str(indexed_id): indexed, str(has_profile_id): has_profile}},
+                "mapping_meta": {
+                    "c": {str(transaction_usage_id): transaction_usage_mri},
+                    "d": {str(indexed_id): indexed, str(has_profile_id): has_profile},
+                },
                 "metric_id": transaction_usage_id,
                 "type": "c",
                 "org_id": organization.id,
@@ -220,7 +231,10 @@ def test_outcomes_consumed(track_outcome, factories, use_new_counting_strategy):
             },
             # Span usage with `indexed = true` should be counted only if the old counting is used:
             {
-                "mapping_meta": {"c": {str(span_usage_id): span_usage_mri}, "d": {str(indexed_id): indexed, str(has_profile_id): has_profile}},
+                "mapping_meta": {
+                    "c": {str(span_usage_id): span_usage_mri},
+                    "d": {str(indexed_id): indexed, str(has_profile_id): has_profile},
+                },
                 "metric_id": span_usage_id,
                 "type": "d",
                 "org_id": organization.id,
@@ -240,6 +254,7 @@ def test_outcomes_consumed(track_outcome, factories, use_new_counting_strategy):
         )
 
         generate_kafka_message_counter = 0
+
         def generate_kafka_message(generic_metric: GenericMetric) -> Message[KafkaPayload]:
             nonlocal generate_kafka_message_counter
 
@@ -396,8 +411,15 @@ def test_outcomes_consumed(track_outcome, factories, use_new_counting_strategy):
         strategy.join()
         assert next_step.join.call_count == 1
 
-        assert cache.get(_get_project_flag_updated_cache_key(organization.id, project_1.id)) is not None
-        assert cache.get(_get_project_flag_updated_cache_key(organization.id, project_2.id)) is not None
         assert (
-            cache.get(_get_project_flag_updated_cache_key(organization.id, missing_project_id)) is None
+            cache.get(_get_project_flag_updated_cache_key(organization.id, project_1.id))
+            is not None
+        )
+        assert (
+            cache.get(_get_project_flag_updated_cache_key(organization.id, project_2.id))
+            is not None
+        )
+        assert (
+            cache.get(_get_project_flag_updated_cache_key(organization.id, missing_project_id))
+            is None
         )
