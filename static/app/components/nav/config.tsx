@@ -1,3 +1,5 @@
+import {lazy} from 'react';
+
 import type {NavConfig, NavSidebarItem} from 'sentry/components/nav/utils';
 import {
   IconDashboard,
@@ -5,6 +7,7 @@ import {
   IconIssues,
   IconLightning,
   IconProject,
+  IconQuestion,
   IconSearch,
   IconSettings,
   IconSiren,
@@ -209,6 +212,11 @@ export function createNavConfig({organization}: {organization: Organization}): N
       {label: t('Alerts'), to: `/${prefix}/alerts/rules/`, icon: <IconSiren />},
     ],
     footer: [
+      {
+        label: t('Help'),
+        icon: <IconQuestion />,
+        overlay: lazy(() => import('./overlay/help')),
+      },
       {
         label: t('Settings'),
         to: `/settings/${organization.slug}/`,

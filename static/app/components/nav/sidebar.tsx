@@ -1,10 +1,13 @@
-import {Fragment} from 'react';
+import {Fragment, type PropsWithChildren, Suspense} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
+import {linkStyles} from 'sentry/components/links/styles';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useNavContext} from 'sentry/components/nav/context';
+import {OverlayMenu} from 'sentry/components/nav/overlay';
 import Submenu from 'sentry/components/nav/submenu';
 import {
   isNavItemActive,
@@ -18,6 +21,7 @@ import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOverlay from 'sentry/utils/useOverlay';
 
 function Sidebar() {
   return (
@@ -89,12 +93,13 @@ const SidebarItemList = styled('ul')`
   }
 `;
 
-function SidebarItem({item}: {item: NavSidebarItem}) {
-  const location = useLocation();
-  const isActive = isNavItemActive(item, location);
-  const isSubmenuActive = isSubmenuItemActive(item, location);
-  const _to = resolveNavItemTo(item);
-  const linkProps = _to ? makeLinkPropsFromTo(_to) : {to: '#'};
+interface SidebarItemProps {
+  item: NavSidebarItem;
+}
+
+function SidebarItem({item}: SidebarItemProps) {
+  const to = resolveNavItemTo(item);
+  const Component = to ? SidebarLink : SidebarOverlay;
 
   const FeatureGuard = item.feature ? Feature : Fragment;
   const featureGuardProps: any = item.feature ?? {};
@@ -102,23 +107,70 @@ function SidebarItem({item}: {item: NavSidebarItem}) {
   return (
     <FeatureGuard {...featureGuardProps}>
       <SidebarItemWrapper>
-        <SidebarLink
-          {...linkProps}
-          aria-current={isActive ? 'page' : undefined}
-          aria-selected={isActive || isSubmenuActive}
-        >
-          <InteractionStateLayer hasSelectedBackground={isActive || isSubmenuActive} />
+        <Component item={item} key={item.label}>
           {item.icon}
           <span>{item.label}</span>
-        </SidebarLink>
+        </Component>
       </SidebarItemWrapper>
     </FeatureGuard>
   );
 }
 
-const SidebarLink = styled(Link)`
+const StyledLink = styled(Link)`
   position: relative;
 `;
+
+const StyledButton = styled('button')`
+  border: none;
+  position: relative;
+
+  ${linkStyles}
+`;
+
+function SidebarLink({children, item}: PropsWithChildren<SidebarItemProps>) {
+  const location = useLocation();
+  const isActive = isNavItemActive(item, location);
+  const isSubmenuActive = isSubmenuItemActive(item, location);
+  const to = resolveNavItemTo(item);
+  const linkProps = makeLinkPropsFromTo(to!);
+
+  return (
+    <StyledLink
+      {...linkProps}
+      className={isActive || isSubmenuActive ? 'active' : undefined}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      <InteractionStateLayer hasSelectedBackground={isActive || isSubmenuActive} />
+      {children}
+    </StyledLink>
+  );
+}
+
+function SidebarOverlay({children, item}: PropsWithChildren<SidebarItemProps>) {
+  const {isOpen, triggerProps, overlayProps} = useOverlay({
+    isDismissable: true,
+    shouldApplyMinWidth: false,
+    shouldCloseOnBlur: true,
+    position: 'right-end',
+    offset: 0,
+  });
+
+  return (
+    <Fragment>
+      <StyledButton {...triggerProps} className={isOpen ? 'active' : undefined}>
+        <InteractionStateLayer hasSelectedBackground={isOpen} />
+        {children}
+      </StyledButton>
+      {isOpen && (
+        <OverlayMenu {...overlayProps}>
+          <Suspense fallback={<LoadingIndicator />}>
+            {item.overlay ? <item.overlay /> : null}
+          </Suspense>
+        </OverlayMenu>
+      )}
+    </Fragment>
+  );
+}
 
 const SidebarItemWrapper = styled('li')`
   svg {
@@ -131,13 +183,18 @@ const SidebarItemWrapper = styled('li')`
       padding-top: ${space(0.5)};
     }
   }
-  a {
+  > button {
+    background: transparent;
+    min-width: 58px;
+  }
+  > a,
+  > button {
     display: flex;
     flex-direction: row;
-    height: 32px;
+    height: 40px;
     gap: ${space(1.5)};
     align-items: center;
-    padding: 0 ${space(1.5)};
+    padding: auto ${space(1.5)};
     color: var(--color, currentColor);
     font-size: ${theme.fontSizeMedium};
     font-weight: ${theme.fontWeightNormal};
