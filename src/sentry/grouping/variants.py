@@ -43,8 +43,8 @@ class ChecksumVariant(BaseVariant):
 
     type = "checksum"
 
-    def __init__(self, hash: str, hashed: bool = False):
-        self.hash = hash
+    def __init__(self, checksum: str, hashed: bool = False):
+        self.checksum = checksum
         self.hashed = hashed
 
     @property
@@ -54,7 +54,7 @@ class ChecksumVariant(BaseVariant):
         return "legacy checksum"
 
     def get_hash(self) -> str | None:
-        return self.hash
+        return self.checksum
 
 
 class FallbackVariant(BaseVariant):
