@@ -79,14 +79,15 @@ describe('StreamlinedSidebar', function () {
       organization,
     });
 
-    expect(mockFirstLastRelease).toHaveBeenCalled();
-    expect(screen.getByText('First seen')).toBeInTheDocument();
+    expect(await screen.findByText('First seen')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();
+    expect(mockFirstLastRelease).toHaveBeenCalled();
 
-    expect(mockExternalIssues).toHaveBeenCalled();
     expect(screen.getByRole('heading', {name: 'Issue Tracking'})).toBeInTheDocument();
-    expect(await screen.findByTestId('issue-tracking-loading')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: issueTrackingKey})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: issueTrackingKey})
+    ).toBeInTheDocument();
+    expect(mockExternalIssues).toHaveBeenCalled();
 
     expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Add a comment...')).toBeInTheDocument();
