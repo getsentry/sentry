@@ -346,3 +346,52 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert fragment_d == {"error": ["access_denied"]}
 
         assert not ApiToken.objects.filter(user=self.user).exists()
+
+
+@control_silo_test
+class OAuthAuthorizeOrgScopedTest(TestCase):
+    @cached_property
+    def path(self):
+        return "/oauth/authorize/"
+
+    def setUp(self):
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+            requires_org_level_access=True,
+            scopes=["org:read", "project:read"],
+        )
+
+    def test_rich_params(self):
+        self.login_as(self.user)
+
+        # Putting scope in the query string to show that this will be overridden by the scopes that are stored on the application model
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org%3write&state=foo"
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+        assert resp.context["application"] == self.application
+
+        resp = self.client.post(
+            self.path, {"op": "approve", "selected_organization_id": self.organization.id}
+        )
+
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.redirect_uri == self.application.get_default_redirect_uri()
+        assert grant.application == self.application
+        assert grant.get_scopes() == ["org:read", "project:read"]
+        assert "org:write" not in grant.get_scopes()
+        assert grant.organization_id == self.organization.id
+
+        assert resp.status_code == 302
+
+        # XXX: Compare parsed query strings to avoid ordering differences
+        # between py2/3
+        assert parse_qs(urlparse(resp["Location"]).query) == parse_qs(
+            f"state=foo&code={grant.code}"
+        )
+
+        assert not ApiToken.objects.filter(user=self.user).exists()
