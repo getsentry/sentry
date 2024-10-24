@@ -62,8 +62,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         ),
         SPAN_METRICS_NAMES["c:spans/usage@none"]: (UseCaseID.SPANS, DataCategory.SPAN),
     }
-    profile_tag_key = str(SHARED_TAG_STRINGS["has_profile"])
-    indexed_tag_key = str(SHARED_TAG_STRINGS["indexed"])
 
     def __init__(self, next_step: ProcessingStrategy[Any]) -> None:
         self.__next_step = next_step
@@ -126,19 +124,20 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         return items
 
     def _has_profile(self, generic_metric: GenericMetric, use_case_id: UseCaseID) -> bool:
-        return self._has_tag(generic_metric, use_case_id, self.profile_tag_key)
+        return self._has_tag(generic_metric, use_case_id, "has_profile")
 
     def _has_indexed(self, generic_metric: GenericMetric, use_case_id: UseCaseID) -> bool:
-        return self._has_tag(generic_metric, use_case_id, self.indexed_tag_key)
+        return self._has_tag(generic_metric, use_case_id, "indexed")
 
     def _has_tag(
-        self, generic_metric: GenericMetric, use_case_id: UseCaseID, indexed_tag_key: str
+        self, generic_metric: GenericMetric, use_case_id: UseCaseID, tag_key: str
     ) -> bool:
-        return bool(
-            (tag_value := generic_metric["tags"].get(self.indexed_tag_key))
-            and "true"
-            == reverse_resolve_tag_value(use_case_id, generic_metric["org_id"], tag_value)
-        )
+        indexed_tag_key = self._resolve(generic_metric["mapping_meta"], tag_key)
+        if indexed_tag_key is None:
+            return False
+
+        tag_value = generic_metric["tags"].get(self.indexed_tag_key)
+        return tag_value == "true"
 
     def _produce_billing_outcomes(self, generic_metric: GenericMetric) -> None:
         for category, quantity in self._count_processed_items(generic_metric).items():
