@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib import messages
+from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -58,7 +59,7 @@ class AuthOrganizationLoginView(AuthLoginView):
         return self.respond("sentry/organization-login.html", context)
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, organization_slug) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, organization_slug) -> HttpResponseBase:
         org_context = organization_service.get_organization_by_slug(
             slug=organization_slug, only_visible=True
         )
