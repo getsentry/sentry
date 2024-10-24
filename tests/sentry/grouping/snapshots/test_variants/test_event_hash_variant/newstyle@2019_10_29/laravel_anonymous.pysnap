@@ -1,0 +1,64 @@
+---
+created: '2020-02-26T19:54:42.536997Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "a728cdf5d62c8e017c35c3fe04051b6e"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function* (anonymous class method)
+              "run"
+            context-line*
+              "return $callable($passable);"
+          frame (non app frame)
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            context-line*
+              "? $pipe->{$this->method}(...$parameters)"
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
+--------------------------------------------------------------------------
+system:
+  hash: "63c67781779781d9b0a442a5b2bdb976"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
+          frame*
+            filename*
+              "pipeline.php"
+            function* (anonymous class method)
+              "run"
+            context-line*
+              "return $callable($passable);"
+          frame*
+            filename*
+              "pipeline.php"
+            function*
+              "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            context-line*
+              "? $pipe->{$this->method}(...$parameters)"
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
