@@ -24,16 +24,16 @@ export function TargetSampleRateField({}) {
       )}
       error={field.error}
     >
-      <InputWrapper>
+      <InputWrapper
+        css={css`
+          width: 150px;
+        `}
+      >
         <Tooltip
           disabled={hasAccess}
           title={t('You do not have permission to change the sample rate.')}
         >
-          <InputGroup
-            css={css`
-              width: 150px;
-            `}
-          >
+          <InputGroup>
             <InputGroup.Input
               width={100}
               type="number"

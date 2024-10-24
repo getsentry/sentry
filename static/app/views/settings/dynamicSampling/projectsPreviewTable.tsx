@@ -2,7 +2,6 @@ import {Fragment, memo, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingError from 'sentry/components/loadingError';
@@ -10,8 +9,10 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {MRI} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {
   type MetricsQueryApiQueryParams,
   useMetricsQuery,
@@ -112,25 +113,26 @@ export function ProjectsPreviewTable() {
       headers={[
         t('Project'),
         <div key={'spans'} style={{display: 'flex', alignItems: 'center'}}>
-          {t('Spans')} {'('}
-          {/* TODO(aknaus): Refine period selection or drop it */}
-          <Button
-            priority="link"
-            onClick={() => setPeriod(value => (value === '24h' ? '30d' : '24h'))}
-          >
-            {period}
-          </Button>
-          {')'}
-          &nbsp;
-          <Button
-            aria-label={t('Sort by Spans')}
-            borderless
-            size="zero"
+          <SortableHeader
             onClick={() => setTableSort(value => (value === 'asc' ? 'desc' : 'asc'))}
-            icon={
-              <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
-            }
-          />
+          >
+            {t('Spans')}
+            <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
+          </SortableHeader>
+          <ToggleWrapper>
+            <PeriodToggle
+              data-is-active={period === '24h'}
+              onClick={() => setPeriod('24h')}
+            >
+              {t('24h')}
+            </PeriodToggle>
+            <PeriodToggle
+              data-is-active={period === '30d'}
+              onClick={() => setPeriod('30d')}
+            >
+              {t('30d')}
+            </PeriodToggle>
+          </ToggleWrapper>
         </div>,
         t('Projected Rate'),
       ]}
@@ -164,9 +166,7 @@ const TableRow = memo(function TableRow({
       <Cell>
         <ProjectBadge project={project} avatarSize={20} />
       </Cell>
-      <Cell data-align="right">
-        <div>{count}</div>
-      </Cell>
+      <Cell data-align="right">{formatAbbreviatedNumber(count, 2)}</Cell>
       <Cell>
         <Tooltip
           title={t('To edit project sample rates, switch to manual sampling mode.')}
@@ -192,6 +192,32 @@ const TableRow = memo(function TableRow({
 
 const ProjectsTable = styled(PanelTable)`
   grid-template-columns: 1fr max-content max-content;
+`;
+
+const SortableHeader = styled('button')`
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  text-transform: inherit;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const ToggleWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
+  padding: 0 0 0 ${space(1)};
+`;
+
+const PeriodToggle = styled('button')`
+  border: none;
+  background: none;
+  color: ${p => (p['data-is-active'] ? p.theme.textColor : p.theme.disabled)};
+  cursor: pointer;
+  padding: 0;
+  text-transform: uppercase;
 `;
 
 const Cell = styled('div')`
