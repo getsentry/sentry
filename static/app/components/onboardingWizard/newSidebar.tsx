@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
@@ -8,8 +8,8 @@ import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import SkipConfirm from 'sentry/components/onboardingWizard/skipConfirm';
+import type {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
@@ -19,20 +19,12 @@ import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
-import {
-  type OnboardingTask,
-  OnboardingTaskGroup,
-  OnboardingTaskKey,
-} from 'sentry/types/onboarding';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-
-import {getMergedTasks} from './taskConfig';
 
 /**
  * How long (in ms) to delay before beginning to mark tasks complete
@@ -60,30 +52,6 @@ const orderedBeyondBasicsTasks = [
   OnboardingTaskKey.FIRST_TRANSACTION,
   OnboardingTaskKey.SECOND_PLATFORM,
 ];
-
-export function useOnboardingTasks(
-  organization: Organization,
-  projects: Project[],
-  onboardingContext: OnboardingContextProps
-) {
-  return useMemo(() => {
-    const all = getMergedTasks({
-      organization,
-      projects,
-      onboardingContext,
-    }).filter(task => task.display);
-    return {
-      allTasks: all,
-      gettingStartedTasks: all.filter(
-        task => task.group === OnboardingTaskGroup.GETTING_STARTED
-      ),
-      beyondBasicsTasks: all.filter(
-        task => task.group !== OnboardingTaskGroup.GETTING_STARTED
-      ),
-      completeTasks: all.filter(findCompleteTasks),
-    };
-  }, [organization, projects, onboardingContext]);
-}
 
 function groupTasksByCompletion(tasks: OnboardingTask[]) {
   const [completedTasks, incompletedTasks] = partition(tasks, task =>
