@@ -265,7 +265,10 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
-      location: `/settings/${organization.slug}/integrations/?category=codeowners`,
+      location: {
+        pathname: `/settings/${organization.slug}/integrations/`,
+        query: {category: 'source code management'},
+      },
       display: hasQuickStartUpdatesFeature(organization),
       group: OnboardingTaskGroup.GETTING_STARTED,
     },
