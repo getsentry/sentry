@@ -65,7 +65,7 @@ def handle_provider_event(
             raise InvalidProvider(provider)
 
 
-def timestamp_to_datetime(timestamp: float | int) -> datetime.datetime:
+def milliseconds_to_datetime(timestamp: float | int) -> datetime.datetime:
     return datetime.datetime.fromtimestamp(timestamp / 1000.0, datetime.UTC)
 
 
@@ -110,7 +110,7 @@ def handle_launchdarkly_event(
     return [
         {
             "action": handle_launchdarkly_actions(access["action"]),
-            "created_at": timestamp_to_datetime(result["date"]),
+            "created_at": milliseconds_to_datetime(result["date"]),
             "created_by": result["member"]["email"],
             "created_by_type": CREATED_BY_TYPE_MAP["email"],
             "flag": result["name"],
@@ -170,7 +170,7 @@ def handle_splitio_event(
     return [
         {
             "action": action,
-            "created_at": timestamp_to_datetime(request_data["time"]),
+            "created_at": milliseconds_to_datetime(request_data["time"]),
             "created_by": request_data["editor"],
             "created_by_type": CREATED_BY_TYPE_MAP["name"],
             "flag": request_data["name"],
