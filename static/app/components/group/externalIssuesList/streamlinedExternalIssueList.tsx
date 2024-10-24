@@ -41,7 +41,7 @@ export function StreamlinedExternalIssueList({
       <div data-test-id="linked-issues">
         <SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>
         <SidebarSection.Content>
-          <Placeholder height="25px" />
+          <Placeholder height="25px" testId="issue-tracking-loading" />
         </SidebarSection.Content>
       </div>
     );
