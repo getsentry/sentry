@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -7,6 +7,9 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 
@@ -20,6 +23,35 @@ import {SpansTable} from './spansTable';
 enum Tab {
   SPAN = 'span',
   TRACE = 'trace',
+}
+
+function useTab(): [Tab, (tab: Tab) => void] {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const tab = useMemo(() => {
+    const rawTab = decodeScalar(location.query.table);
+    if (rawTab === 'trace') {
+      return Tab.TRACE;
+    }
+    return Tab.SPAN;
+  }, [location.query.table]);
+
+  const setTab = useCallback(
+    (newTab: Tab) => {
+      navigate({
+        ...location,
+        query: {
+          ...location.query,
+          table: newTab,
+          cursor: undefined,
+        },
+      });
+    },
+    [location, navigate]
+  );
+
+  return [tab, setTab];
 }
 
 interface ExploreTablesProps {}
@@ -40,7 +72,8 @@ function ExploreAggregatesTable() {
 }
 
 function ExploreSamplesTable() {
-  const [tab, setTab] = useState(Tab.SPAN);
+  const [tab, setTab] = useTab();
+
   const [fields, setFields] = useSampleFields();
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');

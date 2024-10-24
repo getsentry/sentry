@@ -55,6 +55,7 @@ interface TraceResults {
 }
 
 interface UseTracesOptions {
+  cursor?: string;
   dataset?: DiscoverDatasets;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
@@ -64,6 +65,7 @@ interface UseTracesOptions {
 }
 
 export function useTraces({
+  cursor,
   dataset,
   datetime,
   enabled,
@@ -86,6 +88,7 @@ export function useTraces({
       query,
       sort, // only has an effect when `dataset` is `EAPSpans`
       per_page: limit,
+      cursor,
       breakdownSlices: BREAKDOWN_SLICES,
     },
   };
