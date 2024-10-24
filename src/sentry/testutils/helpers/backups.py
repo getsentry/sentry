@@ -473,17 +473,14 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # AlertRule*
-        other_project = self.create_project(name=f"other-project-{slug}", teams=[team])
         alert = self.create_alert_rule(
             organization=org,
             projects=[project],
-            include_all_projects=True,
-            excluded_projects=[other_project],
             user=owner,
         )
         alert.user_id = owner_id
         alert.save()
-        trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
+        trigger = self.create_alert_rule_trigger(alert_rule=alert)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         activated_alert = self.create_alert_rule(
             organization=org,
