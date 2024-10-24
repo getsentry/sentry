@@ -704,6 +704,8 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                             "project_id": self.project.id,
                             "profiler_id": profiler_id,
                             "chunk_id": chunk["chunk_id"],
+                            "start": str(int((start_timestamp - buffer).timestamp() * 1e9)),
+                            "end": str(int((finish_timestamp + buffer).timestamp() * 1e9)),
                         },
                     ],
                 },
