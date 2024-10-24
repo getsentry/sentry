@@ -503,7 +503,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "queries": [
                 {
                     "name": "timestamp filter",
-                    "conditions": f"timestamp.to_day:<{before_now(hours=1)}",
+                    "conditions": f"timestamp.to_day:<{before_now(hours=1).isoformat()}",
                     "fields": [],
                 }
             ],
