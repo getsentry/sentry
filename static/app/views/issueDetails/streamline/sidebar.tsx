@@ -1,3 +1,4 @@
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -5,8 +6,9 @@ import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssu
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {useUser} from 'sentry/utils/useUser';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/firstLastSeenSection';
 import PeopleSection from 'sentry/views/issueDetails/streamline/peopleSection';
@@ -20,6 +22,22 @@ type Props = {
 };
 
 export default function StreamlinedSidebar({group, event, project}: Props) {
+  const activeUser = useUser();
+
+  const {userParticipants, teamParticipants, viewers} = useMemo(() => {
+    return {
+      userParticipants: group.participants.filter(
+        (p): p is UserParticipant => p.type === 'user'
+      ),
+      teamParticipants: group.participants.filter(
+        (p): p is TeamParticipant => p.type === 'team'
+      ),
+      viewers: group.seenBy.filter(user => activeUser.id !== user.id),
+    };
+  }, [group, activeUser.id]);
+
+  const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
+
   return (
     <div>
       <FirstLastSeenSection group={group} />
@@ -31,8 +49,16 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         </ErrorBoundary>
       )}
       <StreamlinedActivitySection group={group} />
-      <StyledBreak />
-      <PeopleSection group={group} />
+      {showPeopleSection && (
+        <Fragment>
+          <StyledBreak />
+          <PeopleSection
+            userParticipants={userParticipants}
+            teamParticipants={teamParticipants}
+            viewers={viewers}
+          />
+        </Fragment>
+      )}
       <StyledBreak />
       <SimilarIssuesSidebarSection />
       <StyledBreak />
