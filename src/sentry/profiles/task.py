@@ -131,6 +131,8 @@ def process_profile_task(
         set_measurement("profile.samples", len(profile["profile"]["samples"]))
         set_measurement("profile.stacks", len(profile["profile"]["stacks"]))
         set_measurement("profile.frames", len(profile["profile"]["frames"]))
+    elif "profiler_id" in profile and profile["platform"] == "android":
+        sentry_sdk.set_tag("format", "android_chunk")
     else:
         sentry_sdk.set_tag("format", "legacy")
 
@@ -193,7 +195,7 @@ def process_profile_task(
                     _track_duration_outcome(profile=profile, project=project)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
-            if profile.get("version") != "2":
+            if "profiler_id" not in profile:
                 _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
 
 
@@ -997,7 +999,7 @@ def _track_outcome(
 def _insert_vroom_profile(profile: Profile) -> bool:
     with sentry_sdk.start_span(op="task.profiling.insert_vroom"):
         try:
-            path = "/chunk" if profile.get("version") == "2" else "/profile"
+            path = "/chunk" if "profiler_id" in profile else "/profile"
             response = get_from_profiling_service(method="POST", path=path, json_data=profile)
 
             if response.status == 204:
@@ -1073,7 +1075,10 @@ class _ProjectKeyKwargs(TypedDict):
 
 @lru_cache(maxsize=100)
 def get_metrics_dsn(project_id: int) -> str:
-    kwargs: _ProjectKeyKwargs = {"project_id": project_id, "use_case": UseCase.PROFILING.value}
+    kwargs: _ProjectKeyKwargs = {
+        "project_id": project_id,
+        "use_case": UseCase.PROFILING.value,
+    }
     try:
         project_key, _ = ProjectKey.objects.get_or_create(**kwargs)
     except ProjectKey.MultipleObjectsReturned:
