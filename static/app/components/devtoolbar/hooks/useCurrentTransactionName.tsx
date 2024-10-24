@@ -81,7 +81,7 @@ export function toSearchTerm(transaction) {
   // ([{]([^\/]*)[}]) matches {param} used by ASP.NET Core, Laravel, Symfony
   // ([<]([^\/]*)[>]) matches <param> used by Flask, Django
   const parameterizedRegex =
-    / ([\/]) (([:]([^\/]*)) | ([\[]([^\/]*)[\]]) | ([{]([^\/]*)[}]) | ([<]([^\/]*)[>])) /g;
+    /([\/])(([:]([^\/]*))|([\[]([^\/]*)[\]])|([{]([^\/]*)[}])|([<]([^\/]*)[>]))/g;
   modifiedTransaction = modifiedTransaction.replaceAll(parameterizedRegex, '/*');
 
   // transaction name could contain the resolved URL instead of the route pattern (ie actual id instead of :id)
