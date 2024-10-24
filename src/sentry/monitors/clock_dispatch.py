@@ -187,6 +187,13 @@ def _evaluate_tick_decision(tick: datetime):
     )
 
 
+def _safe_evaluate_tick_decision(tick: datetime):
+    try:
+        _evaluate_tick_decision(tick)
+    except Exception:
+        logging.exception("monitors.clock_dispatch.evaluate_tick_decision_failed")
+
+
 def update_check_in_volume(ts_list: Sequence[datetime]):
     """
     Increment counters for a list of check-in timestamps. Each timestamp will be
@@ -282,9 +289,9 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
             extra = {"reference_datetime": str(backfill_tick)}
             logger.info("monitors.consumer.clock_tick_backfill", extra=extra)
 
-            _evaluate_tick_decision(backfill_tick)
+            _safe_evaluate_tick_decision(backfill_tick)
             _dispatch_tick(backfill_tick)
             backfill_tick = backfill_tick + timedelta(minutes=1)
 
-    _evaluate_tick_decision(tick)
+    _safe_evaluate_tick_decision(tick)
     _dispatch_tick(tick)
