@@ -1,13 +1,12 @@
-import {Fragment, type PropsWithChildren, Suspense} from 'react';
+import {Fragment, type PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useNavContext} from 'sentry/components/nav/context';
-import {OverlayMenu} from 'sentry/components/nav/overlay';
 import Submenu from 'sentry/components/nav/submenu';
 import {
   isNavItemActive,
@@ -21,7 +20,6 @@ import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOverlay from 'sentry/utils/useOverlay';
 
 function Sidebar() {
   return (
@@ -99,7 +97,7 @@ interface SidebarItemProps {
 
 function SidebarItem({item}: SidebarItemProps) {
   const to = resolveNavItemTo(item);
-  const Component = to ? SidebarLink : SidebarOverlay;
+  const Component = to ? SidebarLink : SidebarMenu;
 
   const FeatureGuard = item.feature ? Feature : Fragment;
   const featureGuardProps: any = item.feature ?? {};
@@ -123,6 +121,8 @@ const StyledLink = styled(Link)`
 const StyledButton = styled('button')`
   border: none;
   position: relative;
+  background: transparent;
+  min-width: 58px;
 
   ${linkStyles}
 `;
@@ -146,29 +146,21 @@ function SidebarLink({children, item}: PropsWithChildren<SidebarItemProps>) {
   );
 }
 
-function SidebarOverlay({children, item}: PropsWithChildren<SidebarItemProps>) {
-  const {isOpen, triggerProps, overlayProps} = useOverlay({
-    isDismissable: true,
-    shouldApplyMinWidth: false,
-    shouldCloseOnBlur: true,
-    position: 'right-end',
-    offset: 0,
-  });
-
+function SidebarMenu({item}: PropsWithChildren<SidebarItemProps>) {
   return (
-    <Fragment>
-      <StyledButton {...triggerProps} className={isOpen ? 'active' : undefined}>
-        <InteractionStateLayer hasSelectedBackground={isOpen} />
-        {children}
-      </StyledButton>
-      {isOpen && (
-        <OverlayMenu {...overlayProps}>
-          <Suspense fallback={<LoadingIndicator />}>
-            {item.overlay ? <item.overlay /> : null}
-          </Suspense>
-        </OverlayMenu>
-      )}
-    </Fragment>
+    <DropdownMenu
+      position="right-end"
+      trigger={(props, isOpen) => {
+        return (
+          <StyledButton {...props}>
+            <InteractionStateLayer hasSelectedBackground={isOpen} />
+            {item.icon}
+            <span>{item.label}</span>
+          </StyledButton>
+        );
+      }}
+      items={item.menu!}
+    />
   );
 }
 
@@ -183,12 +175,8 @@ const SidebarItemWrapper = styled('li')`
       padding-top: ${space(0.5)};
     }
   }
-  > button {
-    background: transparent;
-    min-width: 58px;
-  }
   > a,
-  > button {
+  button {
     display: flex;
     flex-direction: row;
     height: 40px;

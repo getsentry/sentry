@@ -1,7 +1,8 @@
-import type {ComponentProps, LazyExoticComponent, ReactElement} from 'react';
+import type {ComponentProps, ReactElement} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import type Feature from 'sentry/components/acl/feature';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {isItemActive} from 'sentry/components/sidebar/sidebarItem';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -26,7 +27,7 @@ export interface NavSidebarItem extends NavItem {
   /** The icon to render in the sidebar */
   icon: ReactElement;
   /** if te items to display when this SidebarItem is active */
-  overlay?: LazyExoticComponent<any>;
+  menu?: MenuItemProps[];
   /** Optionally, the submenu items to display when this SidebarItem is active */
   submenu?: NavSubmenuItem[] | NavItemLayout<NavSubmenuItem>;
   /**
@@ -128,7 +129,7 @@ export function resolveNavItemTo(
   if (item.to) {
     return item.to;
   }
-  if (isSidebarItem(item) && item.overlay) {
+  if (isSidebarItem(item) && item.menu) {
     return undefined;
   }
   if (isSidebarItem(item) && isNonEmptyArray(item.submenu)) {

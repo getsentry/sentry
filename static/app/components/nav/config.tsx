@@ -1,5 +1,4 @@
-import {lazy} from 'react';
-
+import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import type {NavConfig, NavSidebarItem} from 'sentry/components/nav/utils';
 import {
   IconDashboard,
@@ -13,6 +12,7 @@ import {
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -215,7 +215,30 @@ export function createNavConfig({organization}: {organization: Organization}): N
       {
         label: t('Help'),
         icon: <IconQuestion />,
-        overlay: lazy(() => import('./overlay/help')),
+        menu: [
+          {
+            key: 'search',
+            label: t('Search Support, Docs and More'),
+            onAction() {
+              openHelpSearchModal({organization});
+            },
+          },
+          {
+            key: 'help',
+            label: t('Visit Help Center'),
+            to: 'https://sentry.zendesk.com/hc/en-us',
+          },
+          {
+            key: 'discord',
+            label: t('Join our Discord'),
+            to: 'https://discord.com/invite/sentry',
+          },
+          {
+            key: 'support',
+            label: t('Contact Support'),
+            to: `mailto:${ConfigStore.get('supportEmail')}`,
+          },
+        ],
       },
       {
         label: t('Settings'),
