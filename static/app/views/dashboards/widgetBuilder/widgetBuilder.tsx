@@ -1232,7 +1232,6 @@ function WidgetBuilder({
                                         newDisplayType
                                       );
                                     }}
-                                    noDashboardsMEPProvider
                                     isWidgetInvalid={!state.queryConditionsValid}
                                     onWidgetSplitDecision={
                                       handleUpdateWidgetSplitDecision
