@@ -173,7 +173,7 @@ requests-oauthlib==1.2.0
 responses==0.23.1
 rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
-rpds-py==0.15.2
+rpds-py==0.20.0
 rsa==4.8
 s3transfer==0.10.0
 selenium==4.16.0
