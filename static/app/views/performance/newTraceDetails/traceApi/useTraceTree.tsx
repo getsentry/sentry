@@ -47,10 +47,11 @@ export function useTraceTree({
 
   useEffect(() => {
     const status = getTraceViewQueryStatus(trace.status, meta.status);
+
     if (status === 'error') {
-      setTree(tree =>
-        tree.type === 'error'
-          ? tree
+      setTree(t =>
+        t.type === 'error'
+          ? t
           : TraceTree.Error({
               project_slug: projects?.[0]?.slug ?? '',
               event_id: traceSlug,
@@ -63,14 +64,14 @@ export function useTraceTree({
       trace?.data?.transactions.length === 0 &&
       trace?.data?.orphan_errors.length === 0
     ) {
-      setTree(tree => (tree.type === 'empty' ? tree : TraceTree.Empty()));
+      setTree(t => (t.type === 'empty' ? t : TraceTree.Empty()));
       return;
     }
 
     if (status === 'pending') {
-      setTree(tree =>
-        tree.type === 'loading'
-          ? tree
+      setTree(t =>
+        t.type === 'loading'
+          ? t
           : TraceTree.Loading({
               project_slug: projects?.[0]?.slug ?? '',
               event_id: traceSlug,
@@ -89,7 +90,17 @@ export function useTraceTree({
       newTree.build();
       return;
     }
-  }, [api, organization, projects, replay, meta.status, trace.status, traceSlug]);
+  }, [
+    api,
+    organization,
+    projects,
+    replay,
+    meta.status,
+    trace.status,
+    trace.data,
+    meta.data,
+    traceSlug,
+  ]);
 
   return tree;
 }

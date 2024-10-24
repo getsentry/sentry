@@ -82,7 +82,12 @@ import {
 } from './traceState/traceStateProvider';
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
-import {isTraceNode} from './traceGuards';
+import {
+  isAutogroupedNode,
+  isParentAutogroupedNode,
+  isSiblingAutogroupedNode,
+  isTraceNode,
+} from './traceGuards';
 import {TraceMetadataHeader} from './traceMetadataHeader';
 import {TraceShortcuts} from './traceShortcutsModal';
 import type {TraceReducer, TraceReducerState} from './traceState';
@@ -453,7 +458,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
             resultsLookup: lookup,
             resultIteratorIndex: undefined,
             resultIndex: undefined,
-            previousNode: activeNodeSearchResult,
+            previousNode: null,
             node: activeNode,
           });
           return;
@@ -462,6 +467,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         const resultIndex: number | undefined = matches?.[0]?.index;
         const resultIteratorIndex: number | undefined = matches?.[0] ? 0 : undefined;
         const node: TraceTreeNode<TraceTree.NodeValue> | null = matches?.[0]?.value;
+
         traceDispatch({
           type: 'set results',
           results: matches,
@@ -684,6 +690,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
+
     const query = qs.parse(location.search);
     if (query.fov && typeof query.fov === 'string') {
       viewManager.maybeInitializeTraceViewFromQS(query.fov);
@@ -697,17 +704,39 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
     }
 
+    // Construct the visual representation of the tree
     props.tree.build();
 
     const eventId = scrollQueueRef.current?.eventId;
-    const path = scrollQueueRef.current?.path?.[0]?.split('-')?.[1];
+    const [type, path] = scrollQueueRef.current?.path?.[0]?.split('-') ?? [];
     scrollQueueRef.current = null;
 
-    const node =
-      (path && TraceTree.FindByID(props.tree.root, path)) ??
-      (eventId && TraceTree.FindByID(props.tree.root, eventId));
+    let node =
+      (path === 'root' && props.tree.root.children[0]) ||
+      (path && TraceTree.FindByID(props.tree.root, path)) ||
+      (eventId && TraceTree.FindByID(props.tree.root, eventId)) ||
+      null;
+
+    // If the node points to a span, but we found an autogrouped node, then
+    // perform another search inside the autogrouped node to find the more detailed
+    // location of the span. This is necessary because the id of the autogrouped node
+    // is in some cases inferred from the spans it contains and searching by the span id
+    // just gives us the first match which may not be the one the user is looking for.
+    if (node) {
+      if (isAutogroupedNode(node) && type !== 'ag') {
+        if (isParentAutogroupedNode(node)) {
+          node = TraceTree.FindByID(node.head, eventId ?? path) ?? node;
+        } else if (isSiblingAutogroupedNode(node)) {
+          node = node.children.find(n => TraceTree.FindByID(n, eventId ?? path)) ?? node;
+        }
+      }
+    }
 
     const index = node ? TraceTree.EnforceVisibility(props.tree, node) : -1;
+
+    if (traceStateRef.current.search.query) {
+      onTraceSearch(traceStateRef.current.search.query, node, 'persist');
+    }
 
     if (index === -1 || !node) {
       Sentry.withScope(scope => {
@@ -715,9 +744,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         scope.captureMessage('Failed to scroll to node in trace tree');
       });
 
-      requestAnimationFrame(() => {
-        traceScheduler.dispatch('initialize virtualized list');
-      });
       return;
     }
 
@@ -746,10 +772,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         action_source: 'load',
       });
     });
-
-    if (traceStateRef.current.search.query) {
-      onTraceSearch(traceStateRef.current.search.query, node, 'persist');
-    }
   }, [
     setRowAsFocused,
     traceDispatch,

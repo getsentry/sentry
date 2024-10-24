@@ -79,11 +79,11 @@ export function GeneralInfo(props: GeneralInfoProps) {
 
   const isLoading = useMemo(() => {
     return (
-      props.meta.isLoading ||
+      props.meta.status === 'pending' ||
       (props.rootEventResults.isPending && props.rootEventResults.fetchStatus !== 'idle')
     );
   }, [
-    props.meta.isLoading,
+    props.meta.status,
     props.rootEventResults.isPending,
     props.rootEventResults.fetchStatus,
   ]);

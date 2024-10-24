@@ -85,6 +85,7 @@ export function useTraceOnLoad(
     }
 
     setStatus('pending');
+    initializedRef.current = true;
 
     const expandOptions = {
       api,

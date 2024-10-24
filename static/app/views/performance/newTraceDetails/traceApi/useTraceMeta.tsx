@@ -153,10 +153,11 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   const results = useMemo(() => {
     return {
       data: query.data?.meta,
-      errors: query.data?.apiErrors || [],
-      status: query.status,
+      errors: query.data?.apiErrors ?? [],
+      status:
+        query.data?.apiErrors?.length === replayTraces.length ? 'error' : query.status,
     };
-  }, [query]);
+  }, [query, replayTraces.length]);
 
   // When projects don't have performance set up, we allow them to view a sample transaction.
   // The backend creates the sample transaction, however the trace is created async, so when the

@@ -532,7 +532,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
       subTreeSpaceBounds[1] = 0;
     }
 
-    node.space = subTreeSpaceBounds;
     return [node, subTreeSpaceBounds];
   }
 
@@ -1206,6 +1205,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           return child.value.span_id === eventId;
         }
       }
+
+      if (eventId === 'root' && isTraceNode(n)) {
+        return true;
+      }
+
       // If we dont have an exact match, then look for an event_id in the errors or performance issues
       for (const e of n.errors) {
         if (e.event_id === eventId) {
