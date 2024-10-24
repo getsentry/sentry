@@ -1,6 +1,9 @@
-import datetime
-
-from sentry.flags.providers import ACTION_MAP, CREATED_BY_TYPE_MAP, handle_provider_event
+from sentry.flags.providers import (
+    ACTION_MAP,
+    CREATED_BY_TYPE_MAP,
+    handle_provider_event,
+    timestamp_to_datetime,
+)
 
 
 def test_statsig_create_event():
@@ -32,7 +35,7 @@ def test_statsig_create_event():
     assert result == [
         {
             "action": ACTION_MAP["created"],
-            "created_at": datetime.datetime.fromtimestamp(1729792096601 / 1000.0, datetime.UTC),
+            "created_at": timestamp_to_datetime(1729792096601),
             "created_by": "user@site.com",
             "created_by_type": CREATED_BY_TYPE_MAP["email"],
             "flag": "new_flag",
@@ -71,7 +74,7 @@ def test_statsig_update_event():
     assert result == [
         {
             "action": ACTION_MAP["updated"],
-            "created_at": datetime.datetime.fromtimestamp(1729792096601 / 1000.0, datetime.UTC),
+            "created_at": timestamp_to_datetime(1729792096601),
             "created_by": "user@site.com",
             "created_by_type": CREATED_BY_TYPE_MAP["email"],
             "flag": "new_flag",
@@ -110,7 +113,7 @@ def test_statsig_delete_event():
     assert result == [
         {
             "action": ACTION_MAP["deleted"],
-            "created_at": datetime.datetime.fromtimestamp(1729792825102 / 1000.0, datetime.UTC),
+            "created_at": timestamp_to_datetime(1729792825102),
             "created_by": "user@site.com",
             "created_by_type": CREATED_BY_TYPE_MAP["email"],
             "flag": "test_gate",
