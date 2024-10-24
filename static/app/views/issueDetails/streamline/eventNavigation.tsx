@@ -44,15 +44,13 @@ const TabName = {
   [Tab.USER_FEEDBACK]: t('User Feedback'),
 };
 
-export function IssueEventNavigation({
-  event,
-  group,
-  query,
-}: {
+interface IssueEventNavigationProps {
   event: Event;
   group: Group;
   query: string | undefined;
-}) {
+}
+
+export function IssueEventNavigation({event, group, query}: IssueEventNavigationProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const {baseUrl, currentTab} = useGroupDetailsRoute();
