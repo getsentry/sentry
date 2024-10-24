@@ -91,6 +91,7 @@ export function Step({
                   runId={runId}
                   causes={step.causes}
                   rootCauseSelection={step.selection}
+                  terminationReason={step.termination_reason}
                   repos={repos}
                 />
               )}

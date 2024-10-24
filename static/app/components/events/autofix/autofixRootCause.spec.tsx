@@ -42,15 +42,14 @@ describe('AutofixRootCause', function () {
         {...{
           ...defaultProps,
           causes: [],
+          terminationReason: 'The error comes from outside the codebase.',
         }}
       />
     );
 
     // Displays all root cause and code context info
     expect(
-      screen.getByText(
-        'No root cause found. Maybe help Autofix rethink by editing an insight above?'
-      )
+      screen.getByText('No root cause found. The error comes from outside the codebase.')
     ).toBeInTheDocument();
   });
 
