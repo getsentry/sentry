@@ -206,8 +206,8 @@ def dump_variant(
         if isinstance(value, GroupingComponent):
             lines.append("{}{}:".format("  " * indent, key))
             _dump_component(value, indent + 1)
-        elif key == "config":
-            # We do not want to dump the config
+        elif key in ["config", "hash"]:
+            # We do not want to dump the config, and we've already dumped the hash
             continue
         else:
             lines.append("{}{}: {}".format("  " * indent, key, to_json(value)))

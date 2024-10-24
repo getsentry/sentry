@@ -306,6 +306,14 @@ def get_grouping_variants_for_event(
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this
     # event is the checksum variant.
+    #
+    # TODO: Is there a reason we don't treat a checksum like a custom fingerprint, and run the other
+    # strategies but mark them as non-contributing, with explanations why?
+    #
+    # TODO: In the case where we have to hash the checksum to get a value in the right format, we
+    # store the raw value as well (provided it's not so long that it will overflow the DB field).
+    # Even when we do this, though, we don't set the raw value as non-cotributing, and we don't add
+    # an "ignored because xyz" hint on the variant, which we should.
     checksum = event.data.get("checksum")
     if checksum:
         if HASH_RE.match(checksum):
