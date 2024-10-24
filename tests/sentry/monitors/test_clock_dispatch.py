@@ -323,3 +323,76 @@ def test_evaluate_tick_decision_volume_drop(metrics, logger):
         52.0,
         sample_rate=1.0,
     )
+
+
+@mock.patch("sentry.monitors.clock_dispatch.logger")
+@mock.patch("sentry.monitors.clock_dispatch.metrics")
+@override_options({"crons.tick_volume_anomaly_detection": True})
+def test_evaluate_tick_decision_low_history(metrics, logger):
+    tick = timezone.now().replace(second=0, microsecond=0)
+
+    # This is the timestamp we're looking at just after the tick
+    past_ts = tick - timedelta(minutes=1)
+
+    # Only add one historic value (and the current value being evaluated)
+    update_check_in_volume([past_ts - MONITOR_VOLUME_DECISION_STEP] * 900)
+    update_check_in_volume([past_ts] * 900)
+
+    _evaluate_tick_decision(tick)
+
+    # We should do nothing because there was not enough daata to make any
+    # calculation
+    assert not logger.info.called
+    assert not metrics.gauge.called
+
+
+@mock.patch("sentry.monitors.clock_dispatch.logger")
+@mock.patch("sentry.monitors.clock_dispatch.metrics")
+@override_options({"crons.tick_volume_anomaly_detection": True})
+def test_evaluate_tick_decision_uniform(metrics, logger):
+    tick = timezone.now().replace(second=0, microsecond=0)
+
+    # This is the timestamp we're looking at just after the tick
+    past_ts = tick - timedelta(minutes=1)
+
+    # Fill with a uniform history (all values the same). This will give us a
+    # standard deviation of 0. In this case the z-value needs to be computed
+    # differently.
+    fill_historic_volume(
+        start=past_ts - MONITOR_VOLUME_DECISION_STEP,
+        length=MONITOR_VOLUME_RETENTION,
+        step=MONITOR_VOLUME_DECISION_STEP,
+        counts=[1000],
+    )
+    update_check_in_volume([past_ts] * 1000)
+
+    _evaluate_tick_decision(tick)
+
+    logger.info.assert_called_with(
+        "monitors.clock_dispatch.volume_history",
+        extra={
+            "reference_datetime": str(tick),
+            "evaluation_minute": past_ts.strftime("%H:%M"),
+            "history_count": 30,
+            "z_score": 0.0,
+            "pct_deviation": 0.0,
+            "historic_mean": 1000,
+            "historic_stdev": 0.0,
+        },
+    )
+
+    metrics.gauge.assert_any_call(
+        "monitors.task.volume_history.count",
+        30,
+        sample_rate=1.0,
+    )
+    metrics.gauge.assert_any_call(
+        "monitors.task.volume_history.z_score",
+        0.0,
+        sample_rate=1.0,
+    )
+    metrics.gauge.assert_any_call(
+        "monitors.task.volume_history.pct_deviation",
+        0.0,
+        sample_rate=1.0,
+    )
