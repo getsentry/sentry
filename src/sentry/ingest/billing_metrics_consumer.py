@@ -14,6 +14,7 @@ from arroyo.types import Commit, Message, Partition
 from django.core.cache import cache
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.sentry_metrics.indexer.strings import (
@@ -55,10 +56,14 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     #: The IDs of the metrics used to count transactions or spans
     metric_ids = {
-        TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]: DataCategory.TRANSACTION,
-        SPAN_METRICS_NAMES["c:spans/usage@none"]: DataCategory.SPAN,
+        TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]: (
+            UseCaseID.TRANSACTIONS,
+            DataCategory.TRANSACTION,
+        ),
+        SPAN_METRICS_NAMES["c:spans/usage@none"]: (UseCaseID.SPANS, DataCategory.SPAN),
     }
     profile_tag_key = str(SHARED_TAG_STRINGS["has_profile"])
+    indexed_tag_key = str(SHARED_TAG_STRINGS["indexed"])
 
     def __init__(self, next_step: ProcessingStrategy[Any]) -> None:
         self.__next_step = next_step
@@ -91,8 +96,16 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     def _count_processed_items(self, generic_metric: GenericMetric) -> Mapping[DataCategory, int]:
         metric_id = generic_metric["metric_id"]
         try:
-            data_category = self.metric_ids[metric_id]
+            (use_case_id, data_category) = self.metric_ids[metric_id]
         except KeyError:
+            return {}
+
+        # In the new world, if we are see a usage metric which has the `indexed` tag set to `true` it means that an
+        # indexed payload was supposed to be received and counted by the respective consumer, so we will not count it
+        # here to avoid double counting.
+        if options.get("consumers.use_new_counting_strategy") and self._has_indexed(
+            generic_metric, use_case_id
+        ):
             return {}
 
         value = generic_metric["value"]
@@ -104,7 +117,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         items = {data_category: quantity}
 
-        if self._has_profile(generic_metric):
+        if self._has_profile(generic_metric, use_case_id):
             # The bucket is tagged with the "has_profile" tag,
             # so we also count the quantity of this bucket towards profiles.
             # This assumes a "1 to 0..1" relationship between transactions / spans and profiles.
@@ -112,13 +125,19 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         return items
 
-    def _has_profile(self, generic_metric: GenericMetric) -> bool:
+    def _has_profile(self, generic_metric: GenericMetric, use_case_id: UseCaseID) -> bool:
+        return self._has_tag(generic_metric, use_case_id, self.profile_tag_key)
+
+    def _has_indexed(self, generic_metric: GenericMetric, use_case_id: UseCaseID) -> bool:
+        return self._has_tag(generic_metric, use_case_id, self.indexed_tag_key)
+
+    def _has_tag(
+        self, generic_metric: GenericMetric, use_case_id: UseCaseID, indexed_tag_key: str
+    ) -> bool:
         return bool(
-            (tag_value := generic_metric["tags"].get(self.profile_tag_key))
+            (tag_value := generic_metric["tags"].get(self.indexed_tag_key))
             and "true"
-            == reverse_resolve_tag_value(
-                UseCaseID.TRANSACTIONS, generic_metric["org_id"], tag_value
-            )
+            == reverse_resolve_tag_value(use_case_id, generic_metric["org_id"], tag_value)
         )
 
     def _produce_billing_outcomes(self, generic_metric: GenericMetric) -> None:

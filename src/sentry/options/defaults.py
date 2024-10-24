@@ -2821,3 +2821,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Billing and transaction/span consumers
+
+register(
+    "consumers.use_new_counting_strategy",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
