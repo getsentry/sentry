@@ -649,6 +649,10 @@ function GroupDetailsContent({
       openUserFeedbackDrawer();
     } else if (currentTab === Tab.REPLAYS) {
       openReplaysDrawer();
+    } else if (currentTab === Tab.SIMILAR_ISSUES) {
+      openReplaysDrawer();
+    } else if (currentTab === Tab.MERGED) {
+      openReplaysDrawer();
     }
   }, [
     currentTab,
