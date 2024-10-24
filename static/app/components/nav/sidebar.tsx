@@ -1,11 +1,13 @@
 import {Fragment, type PropsWithChildren, Suspense} from 'react';
 import styled from '@emotion/styled';
-import { AnimatePresence } from 'framer-motion'
 
 import Feature from 'sentry/components/acl/feature';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
+import {linkStyles} from 'sentry/components/links/styles';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useNavContext} from 'sentry/components/nav/context';
+import {OverlayMenu} from 'sentry/components/nav/overlay';
 import Submenu from 'sentry/components/nav/submenu';
 import {
   isNavItemActive,
@@ -15,7 +17,6 @@ import {
   type NavSidebarItem,
   resolveNavItemTo,
 } from 'sentry/components/nav/utils';
-import {Overlay} from 'sentry/components/overlay';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
@@ -106,7 +107,7 @@ function SidebarItem({item}: SidebarItemProps) {
   return (
     <FeatureGuard {...featureGuardProps}>
       <SidebarItemWrapper>
-        <Component item={item}>
+        <Component item={item} key={item.label}>
           {item.icon}
           <span>{item.label}</span>
         </Component>
@@ -117,6 +118,13 @@ function SidebarItem({item}: SidebarItemProps) {
 
 const StyledLink = styled(Link)`
   position: relative;
+`;
+
+const StyledButton = styled('button')`
+  border: none;
+  position: relative;
+
+  ${linkStyles}
 `;
 
 function SidebarLink({children, item}: PropsWithChildren<SidebarItemProps>) {
@@ -140,31 +148,26 @@ function SidebarLink({children, item}: PropsWithChildren<SidebarItemProps>) {
 
 function SidebarOverlay({children, item}: PropsWithChildren<SidebarItemProps>) {
   const {isOpen, triggerProps, overlayProps} = useOverlay({
-    defaultOpen: false,
-    position: 'auto-end',
+    isDismissable: true,
+    shouldApplyMinWidth: false,
+    shouldCloseOnBlur: true,
+    position: 'right-end',
+    offset: 0,
   });
-
-  if (!item.overlay) {
-    return null;
-  }
 
   return (
     <Fragment>
-      <button {...triggerProps} className={isOpen ? 'active' : undefined}>
+      <StyledButton {...triggerProps} className={isOpen ? 'active' : undefined}>
+        <InteractionStateLayer hasSelectedBackground={isOpen} />
         {children}
-      </button>
-      <AnimatePresence>
-        {isOpen && (
-          <Overlay
-            overlayStyle={{color: theme.black, fontSize: '1rem'}}
-            {...(overlayProps as any)}
-          >
-            <Suspense fallback={null}>
-              <item.overlay />
-            </Suspense>
-          </Overlay>
-        )}
-      </AnimatePresence>
+      </StyledButton>
+      {isOpen && (
+        <OverlayMenu {...overlayProps}>
+          <Suspense fallback={<LoadingIndicator />}>
+            {item.overlay ? <item.overlay /> : null}
+          </Suspense>
+        </OverlayMenu>
+      )}
     </Fragment>
   );
 }
@@ -180,18 +183,18 @@ const SidebarItemWrapper = styled('li')`
       padding-top: ${space(0.5)};
     }
   }
-  button {
+  > button {
     background: transparent;
     min-width: 58px;
   }
-  a,
-  button {
+  > a,
+  > button {
     display: flex;
     flex-direction: row;
-    height: 32px;
+    height: 40px;
     gap: ${space(1.5)};
     align-items: center;
-    padding: 0 ${space(1.5)};
+    padding: auto ${space(1.5)};
     color: var(--color, currentColor);
     font-size: ${theme.fontSizeMedium};
     font-weight: ${theme.fontWeightNormal};
