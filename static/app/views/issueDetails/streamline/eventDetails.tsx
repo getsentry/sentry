@@ -23,7 +23,6 @@ import {
 import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
 import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
-import {IssueContent} from 'sentry/views/issueDetails/streamline/issueContent';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -66,13 +65,6 @@ export function EventDetails({
           </GroupContent>
         </PageErrorBoundary>
       )}
-      <PageErrorBoundary mini message={t('There was an error loading the issue content')}>
-        <ExtraContent>
-          <ContentPadding>
-            <IssueContent group={group} project={project} />
-          </ContentPadding>
-        </ExtraContent>
-      </PageErrorBoundary>
     </EventDetailsContext.Provider>
   );
 }
