@@ -1,10 +1,13 @@
 ---
+created: '2024-10-24T14:22:47.170014+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   component:
     app
+      stacktrace (ignored because it contains no frames)
 --------------------------------------------------------------------------
 fallback:
   hash: "d41d8cd98f00b204e9800998ecf8427e"
@@ -13,3 +16,4 @@ system:
   hash: null
   component:
     system
+      stacktrace (ignored because it contains no frames)

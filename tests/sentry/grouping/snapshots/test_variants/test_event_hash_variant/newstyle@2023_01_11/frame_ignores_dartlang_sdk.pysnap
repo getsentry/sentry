@@ -1,5 +1,5 @@
 ---
-created: '2023-02-01T08:22:07.524066Z'
+created: '2024-10-24T14:18:29.686779+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,7 +7,7 @@ app:
   hash: null
   component:
     app
-      stacktrace
+      stacktrace (ignored because it contains no in-app frames)
         frame (marked out of app by stack trace rule (family:javascript path:org-dartlang-sdk:///** -app -group))
           filename*
             "async_patch.dart"
@@ -21,7 +21,7 @@ system:
   hash: null
   component:
     system
-      stacktrace
+      stacktrace (ignored because it contains no contributing frames)
         frame (ignored by stack trace rule (family:javascript path:org-dartlang-sdk:///** -app -group))
           filename*
             "async_patch.dart"
