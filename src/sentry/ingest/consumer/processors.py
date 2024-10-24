@@ -12,8 +12,9 @@ from usageaccountant import UsageUnit
 from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import EventManager, save_attachment
-from sentry.eventstore.processing import event_processing_store
+from sentry.eventstore.processing import event_processing_store, transaction_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, is_in_feedback_denylist
+from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
@@ -73,13 +74,14 @@ def process_transaction_no_celery(
         data = dict(data.items())
 
     with sentry_sdk.start_span(op="event_processing_store.store"):
-        cache_key = event_processing_store.store(data)
+        cache_key = transaction_processing_store.store(data)
     save_attachments(attachments, cache_key)
 
 
 @trace_func(name="ingest_consumer.process_event")
 @metrics.wraps("ingest_consumer.process_event")
 def process_event(
+    consumer_type: str,
     message: IngestMessage,
     project: Project,
     reprocess_only_stuck_events: bool = False,
@@ -94,6 +96,11 @@ def process_event(
     project_id = int(message["project_id"])
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
+
+    if consumer_type == ConsumerType.Transactions:
+        processing_store = transaction_processing_store
+    else:
+        processing_store = event_processing_store
 
     sentry_sdk.set_extra("event_id", event_id)
     sentry_sdk.set_extra("len_attachments", len(attachments))
@@ -174,7 +181,7 @@ def process_event(
         # process and consume the event from the `processing_store`, whereby getting it "unstuck".
         if reprocess_only_stuck_events:
             with sentry_sdk.start_span(op="event_processing_store.exists"):
-                if not event_processing_store.exists(data):
+                if not processing_store.exists(data):
                     return
 
         # The no_celery_mode version of the transactions consumer skips one trip to rc-processing
@@ -184,7 +191,7 @@ def process_event(
             cache_key = None
         else:
             with metrics.timer("ingest_consumer._store_event"):
-                cache_key = event_processing_store.store(data)
+                cache_key = processing_store.store(data)
             save_attachments(attachments, cache_key)
 
         try:
