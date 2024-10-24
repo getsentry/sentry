@@ -581,6 +581,18 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
+        logger = logging.getLogger(
+            "sentry.rules.event_frequency.EventUniqueUserFrequencyConditionWithConditions"
+        )
+        logger.info(
+            "batch_query_hook_start",
+            extra={
+                "group_ids": group_ids,
+                "start": start,
+                "end": end,
+                "environment_id": environment_id,
+            },
+        )
         assert self.rule
         if not features.has(
             "organizations:event-unique-user-frequency-condition-with-conditions",
@@ -611,6 +623,10 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
             if snuba_condition:
                 conditions.append(snuba_condition)
 
+        logger.info(
+            "batch_query_hook_conditions",
+            extra={"conditions": conditions},
+        )
         if error_issue_ids and organization_id:
             error_totals = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_distinct_counts_totals_with_conditions,
@@ -639,6 +655,10 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
             )
             batch_totals.update(error_totals)
 
+        logger.info(
+            "batch_query_hook_end",
+            extra={"batch_totals": batch_totals},
+        )
         return batch_totals
 
     def get_snuba_query_result(
