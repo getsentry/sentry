@@ -125,7 +125,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
                   items={actions}
                   isDisabled={props.actionsDisabled}
                   triggerProps={{
-                    'aria-label': t('Actions'),
+                    'aria-label': t('Widget actions'),
                     size: 'xs',
                     borderless: true,
                     showChevron: false,
