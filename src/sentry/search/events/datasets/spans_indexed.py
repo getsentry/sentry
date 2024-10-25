@@ -1238,34 +1238,6 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 def extract_attr(
     column: str | SelectType | int | float,
 ) -> tuple[Column, str] | None:
-    # This check exists to handle the temporay prefixing.
-    # Once that's removed, this condition should become much simpler
-
-    if isinstance(column, Column):
-        if column.subscriptable not in {"attr_str", "attr_num"}:
-            return None
+    if isinstance(column, Column) and column.subscriptable in {"attr_str", "attr_num"}:
         return Column(column.subscriptable), column.key
-
-    if isinstance(column, Function):
-        if column.function != "if":
-            return None
-
-        if len(column.parameters) != 3:
-            return None
-
-        if (
-            not isinstance(column.parameters[0], Function)
-            or column.parameters[0].function != "mapContains"
-            or len(column.parameters[0].parameters) != 2
-        ):
-            return None
-
-        attr_col = column.parameters[0].parameters[0]
-        attr_name = column.parameters[0].parameters[1]
-
-        if not isinstance(attr_col, Column) or not isinstance(attr_name, str):
-            return None
-
-        return attr_col, attr_name
-
     return None
