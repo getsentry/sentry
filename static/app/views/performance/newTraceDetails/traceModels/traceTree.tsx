@@ -198,8 +198,6 @@ export declare namespace TraceTree {
   type CollectedVital = {key: string; measurement: Measurement};
 }
 
-const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation'];
-
 export enum TraceShape {
   ONE_ROOT = 'one_root',
   NO_ROOT = 'no_root',
@@ -1670,44 +1668,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     throw new Error('Unknown trace type');
-  }
-
-  get title(): TraceTree.Title {
-    const trace = this.root.children[0];
-
-    if (!trace) {
-      return null;
-    }
-
-    if (!isTraceNode(trace)) {
-      throw new TypeError('Not trace node');
-    }
-
-    let firstRootTransaction: TraceTree.Title = null;
-    let candidateTransaction: TraceTree.Title = null;
-    let firstTransaction: TraceTree.Title = null;
-
-    for (const transaction of trace.value.transactions || []) {
-      const title = {
-        op: transaction['transaction.op'],
-        transaction: transaction.transaction,
-      };
-
-      if (!firstRootTransaction && isRootTransaction(transaction)) {
-        firstRootTransaction = title;
-        break;
-      } else if (
-        !candidateTransaction &&
-        CANDIDATE_TRACE_TITLE_OPS.includes(transaction['transaction.op'])
-      ) {
-        candidateTransaction = title;
-        continue;
-      } else if (!firstTransaction) {
-        firstTransaction = title;
-      }
-    }
-
-    return firstRootTransaction ?? candidateTransaction ?? firstTransaction;
   }
 
   fetchAdditionalTraces(options: {

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -6,7 +6,11 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 
+import {isRootTransaction} from '../../traceDetails/utils';
+import {isTraceNode} from '../traceGuards';
 import type {TraceTree} from '../traceModels/traceTree';
+
+const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation'];
 
 interface TitleProps {
   traceSlug: string;
@@ -14,16 +18,59 @@ interface TitleProps {
 }
 
 export function Title({traceSlug, tree}: TitleProps) {
-  const title = tree.title;
+  const traceTitle: {
+    op: string;
+    transaction?: string;
+  } | null = useMemo(() => {
+    const trace = tree.root.children[0];
+
+    if (!trace) {
+      return null;
+    }
+
+    if (!isTraceNode(trace)) {
+      throw new TypeError('Not trace node');
+    }
+
+    let firstRootTransaction: TraceTree.Title = null;
+    let candidateTransaction: TraceTree.Title = null;
+    let firstTransaction: TraceTree.Title = null;
+
+    for (const transaction of trace.value.transactions || []) {
+      const title = {
+        op: transaction['transaction.op'],
+        transaction: transaction.transaction,
+      };
+
+      if (!firstRootTransaction && isRootTransaction(transaction)) {
+        firstRootTransaction = title;
+        break;
+      } else if (
+        !candidateTransaction &&
+        CANDIDATE_TRACE_TITLE_OPS.includes(transaction['transaction.op'])
+      ) {
+        candidateTransaction = title;
+        continue;
+      } else if (!firstTransaction) {
+        firstTransaction = title;
+      }
+    }
+
+    return firstRootTransaction ?? candidateTransaction ?? firstTransaction;
+  }, [tree.root.children]);
 
   return (
     <div>
       <HeaderTitle>
-        {title ? (
-          <Fragment>
-            <strong>{title.op} - </strong>
-            {title.transaction}
-          </Fragment>
+        {traceTitle ? (
+          traceTitle.transaction ? (
+            <Fragment>
+              <strong>{traceTitle.op} - </strong>
+              {traceTitle.transaction}
+            </Fragment>
+          ) : (
+            '\u2014'
+          )
         ) : (
           <Tooltip
             title={tct(
