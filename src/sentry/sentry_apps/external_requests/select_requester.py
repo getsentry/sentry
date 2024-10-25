@@ -57,7 +57,9 @@ class SelectRequester:
                     "install_uuid": self.install.uuid,
                     "project_slug": self.project_slug,
                     "error_message": str(e),
-                    "url": url,
+                    "uri": self.uri,
+                    "dependent_data": self.dependent_data,
+                    "webhook_url": self.sentry_app.webhook_url,
                 },
             )
             raise APIError from e
