@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from multiprocessing.context import TimeoutError
 
-from sentry_protos.sentry.v1alpha.taskworker_pb2 import RetryState
+from sentry_protos.sentry.v1.taskworker_pb2 import RetryState
 
 
 class Retry:
