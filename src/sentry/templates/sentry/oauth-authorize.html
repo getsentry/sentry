@@ -11,16 +11,17 @@
     {% csrf_token %}
 
     <div>
-      <p><strong>{{ application.name }}</strong> is requesting access to your Sentry account ({{ user.username }}):</p>
+      <p><strong>{{ application.name }}</strong> is requesting access to your Sentry account linked to ({{ user.username }}):</p>
       <ul>
-        <li>Access to your account details, including your name and email address.</li>
+        <li>Your name</li>
+        <li>Your email address</li>
       </ul>
       <p>
         {% if organization_options|length == 0 %}
-          As well as the following access to your Sentry organizations:
+          {{ application.name }} will have the following permissions to your Sentry organizations:
         {% elif organization_options|length == 1 %}
         <!-- If user only has one org and application requires org level access, choose that org by default -->
-          As well as the following access to your Sentry organization <strong>{{organization_options.0.name}}</strong>:
+          {{ application.name }} will have the following permissions to your Sentry organization <strong>{{organization_options.0.name}}</strong>:
           <input type="hidden" name="selected_organization_id" value="{{ organization_options.0.id }}">
         {% endif %}
       </p>
