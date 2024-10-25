@@ -1997,7 +1997,10 @@ function buildRoutes() {
       <Fragment>
         <IndexRoute
           component={hoc(
-            make(() => import('sentry/views/issueDetails/groupEventDetails'))
+            make(
+              () =>
+                import('sentry/views/issueDetails/groupEventDetails/groupEventDetails')
+            )
           )}
         />
         <Route

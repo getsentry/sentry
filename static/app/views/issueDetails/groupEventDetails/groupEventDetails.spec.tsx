@@ -103,7 +103,10 @@ const makeDefaultMockData = (
 };
 
 function TestComponent(
-  props: Partial<GroupEventDetailsProps> & {query?: Record<string, string | string[]>}
+  props: Partial<GroupEventDetailsProps> & {
+    organization?: Organization;
+    query?: Record<string, string | string[]>;
+  }
 ) {
   const {organization, project, group, event, router} = makeDefaultMockData(
     props.organization,
@@ -115,8 +118,7 @@ function TestComponent(
     group,
     event,
     project,
-    organization,
-    params: {groupId: group.id, eventId: '1'},
+    params: {groupId: group.id, orgId: organization.slug, eventId: '1'},
     router,
     location: {} as Location<any>,
     route: {},
