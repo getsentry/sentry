@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
   BigNumberWidgetVisualization,
@@ -85,7 +84,6 @@ export function BigNumberWidget(props: Props) {
 const BigNumberResizeWrapper = styled('div')`
   position: relative;
   flex-grow: 1;
-  margin-top: ${space(1)};
 `;
 
 const LoadingPlaceholder = styled('span')`
