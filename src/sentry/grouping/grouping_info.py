@@ -28,6 +28,8 @@ def get_grouping_info(
 
             problems = EventPerformanceProblem.fetch_multi([(event, h) for h in hashes])
 
+            raise Exception("I'm here!")
+
             # Create a variant for every problem associated with the event
             # TODO: Generate more unique keys, in case this event has more than
             # one problem of a given type
