@@ -570,6 +570,7 @@ class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     category = GroupCategory.REPLAY.value
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig()
+    released = True
 
 
 @dataclass(frozen=True)
@@ -580,6 +581,7 @@ class ReplayHydrationErrorType(ReplayGroupTypeDefaults, GroupType):
     category = GroupCategory.REPLAY.value
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig()
+    released = True
 
 
 @dataclass(frozen=True)
