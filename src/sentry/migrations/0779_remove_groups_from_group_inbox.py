@@ -7,6 +7,8 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
+BATCH_SIZE = 100
+
 
 class GroupStatus:
     RESOLVED = 1
@@ -23,7 +25,12 @@ def remove_groups_from_group_inbox(apps: Apps, schema_editor: BaseDatabaseSchema
         if group.status == GroupStatus.RESOLVED or group.status == GroupStatus.IGNORED:
             group_ids_to_delete.append(group_inbox.group_id)
 
-    GroupInbox.objects.filter(group_id__in=group_ids_to_delete).delete()
+        if len(group_ids_to_delete) >= BATCH_SIZE:
+            GroupInbox.objects.filter(group_id__in=group_ids_to_delete).delete()
+            group_ids_to_delete = []
+
+    if group_ids_to_delete:
+        GroupInbox.objects.filter(group_id__in=group_ids_to_delete).delete()
 
 
 class Migration(CheckedMigration):
