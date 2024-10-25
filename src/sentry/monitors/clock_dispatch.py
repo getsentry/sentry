@@ -142,8 +142,8 @@ def _evaluate_tick_decision(tick: datetime):
     if past_minute_volume is None:
         return
 
-    # Can't make any decisions if we don't have historic data
-    if len(historic_volume) == 0:
+    # We need AT LEAST two data points to calculate standard deviation
+    if len(historic_volume) < 2:
         return
 
     # Record some statistics about the past_minute_volume volume in comparison
@@ -157,7 +157,10 @@ def _evaluate_tick_decision(tick: datetime):
     # Calculate the z-score of our past minutes volume in comparison to the
     # historic volume data. The z-score is measured in terms of standard
     # deviations from the mean
-    z_score = (past_minute_volume - historic_mean) / historic_stdev
+    if historic_stdev != 0.0:
+        z_score = (past_minute_volume - historic_mean) / historic_stdev
+    else:
+        z_score = 0.0
 
     # Percentage deviation from the mean for our past minutes volume
     pct_deviation = (abs(past_minute_volume - historic_mean) / historic_mean) * 100
@@ -185,6 +188,13 @@ def _evaluate_tick_decision(tick: datetime):
             "historic_stdev": historic_stdev,
         },
     )
+
+
+def _safe_evaluate_tick_decision(tick: datetime):
+    try:
+        _evaluate_tick_decision(tick)
+    except Exception:
+        logging.exception("monitors.clock_dispatch.evaluate_tick_decision_failed")
 
 
 def update_check_in_volume(ts_list: Sequence[datetime]):
@@ -282,9 +292,9 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
             extra = {"reference_datetime": str(backfill_tick)}
             logger.info("monitors.consumer.clock_tick_backfill", extra=extra)
 
-            _evaluate_tick_decision(backfill_tick)
+            _safe_evaluate_tick_decision(backfill_tick)
             _dispatch_tick(backfill_tick)
             backfill_tick = backfill_tick + timedelta(minutes=1)
 
-    _evaluate_tick_decision(tick)
+    _safe_evaluate_tick_decision(tick)
     _dispatch_tick(tick)
