@@ -21,9 +21,7 @@ import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 import type {AugmentedEChartDataZoomHandler} from './chart';
 import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
-import IssueWidgetQueries from './issueWidgetQueries';
-import ReleaseWidgetQueries from './releaseWidgetQueries';
-import WidgetQueries from './widgetQueries';
+import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 type Props = {
   api: Client;
@@ -61,7 +59,6 @@ type Props = {
 };
 
 export function WidgetCardChartContainer({
-  api,
   organization,
   selection,
   widget,
@@ -85,18 +82,32 @@ export function WidgetCardChartContainer({
 }: Props) {
   const location = useLocation();
 
-  if (widget.widgetType === WidgetType.ISSUE) {
-    return (
-      <IssueWidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        limit={tableItemLimit}
-        onDataFetched={onDataFetched}
-        dashboardFilters={dashboardFilters}
-      >
-        {({tableResults, errorMessage, loading}) => {
+  function keepLegendState({
+    selected,
+  }: {
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }) {
+    widgetLegendState.setWidgetSelectionState(selected, widget);
+  }
+
+  return (
+    <WidgetCardDataLoader
+      widget={widget}
+      dashboardFilters={dashboardFilters}
+      selection={selection}
+      onDataFetched={onDataFetched}
+      onWidgetSplitDecision={onWidgetSplitDecision}
+      tableItemLimit={tableItemLimit}
+    >
+      {({
+        tableResults,
+        timeseriesResults,
+        errorMessage,
+        loading,
+        timeseriesResultsTypes,
+      }) => {
+        if (widget.widgetType === WidgetType.ISSUE) {
           return (
             <Fragment>
               {typeof renderErrorMessage === 'function'
@@ -113,101 +124,12 @@ export function WidgetCardChartContainer({
               />
             </Fragment>
           );
-        }}
-      </IssueWidgetQueries>
-    );
-  }
+        }
 
-  function keepLegendState({
-    selected,
-  }: {
-    selected: Record<string, boolean>;
-    type: 'legendselectchanged';
-  }) {
-    widgetLegendState.setWidgetSelectionState(selected, widget);
-  }
-
-  if (widget.widgetType === WidgetType.RELEASE) {
-    return (
-      <ReleaseWidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        limit={widget.limit ?? tableItemLimit}
-        onDataFetched={onDataFetched}
-        dashboardFilters={dashboardFilters}
-      >
-        {({tableResults, timeseriesResults, errorMessage, loading}) => {
-          // Bind timeseries to widget for ability to control each widget's legend individually
-          // NOTE: e-charts legends control all charts that have the same series name so attaching
-          // widget id will differentiate the charts allowing them to be controlled individually
-          const modifiedTimeseriesResults =
-            WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(
-              widget,
-              timeseriesResults
-            );
-          return (
-            <Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <WidgetCardChart
-                timeseriesResults={modifiedTimeseriesResults}
-                tableResults={tableResults}
-                errorMessage={errorMessage}
-                loading={loading}
-                location={location}
-                widget={widget}
-                selection={selection}
-                organization={organization}
-                isMobile={isMobile}
-                windowWidth={windowWidth}
-                expandNumbers={expandNumbers}
-                onZoom={onZoom}
-                showSlider={showSlider}
-                noPadding={noPadding}
-                chartZoomOptions={chartZoomOptions}
-                chartGroup={chartGroup}
-                shouldResize={shouldResize}
-                onLegendSelectChanged={
-                  onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
-                }
-                legendOptions={
-                  legendOptions
-                    ? legendOptions
-                    : {selected: widgetLegendState.getWidgetSelectionState(widget)}
-                }
-                widgetLegendState={widgetLegendState}
-              />
-            </Fragment>
-          );
-        }}
-      </ReleaseWidgetQueries>
-    );
-  }
-
-  return (
-    <WidgetQueries
-      api={api}
-      organization={organization}
-      widget={widget}
-      selection={selection}
-      limit={tableItemLimit}
-      onDataFetched={onDataFetched}
-      dashboardFilters={dashboardFilters}
-      onWidgetSplitDecision={onWidgetSplitDecision}
-    >
-      {({
-        tableResults,
-        timeseriesResults,
-        errorMessage,
-        loading,
-        timeseriesResultsTypes,
-      }) => {
         // Bind timeseries to widget for ability to control each widget's legend individually
         const modifiedTimeseriesResults =
           WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
+
         return (
           <Fragment>
             {typeof renderErrorMessage === 'function'
@@ -224,7 +146,14 @@ export function WidgetCardChartContainer({
               organization={organization}
               isMobile={isMobile}
               windowWidth={windowWidth}
+              expandNumbers={expandNumbers}
               onZoom={onZoom}
+              showSlider={showSlider}
+              timeseriesResultsTypes={timeseriesResultsTypes}
+              noPadding={noPadding}
+              chartZoomOptions={chartZoomOptions}
+              chartGroup={chartGroup}
+              shouldResize={shouldResize}
               onLegendSelectChanged={
                 onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
               }
@@ -233,19 +162,12 @@ export function WidgetCardChartContainer({
                   ? legendOptions
                   : {selected: widgetLegendState.getWidgetSelectionState(widget)}
               }
-              expandNumbers={expandNumbers}
-              showSlider={showSlider}
-              noPadding={noPadding}
-              chartZoomOptions={chartZoomOptions}
-              timeseriesResultsTypes={timeseriesResultsTypes}
-              chartGroup={chartGroup}
-              shouldResize={shouldResize}
               widgetLegendState={widgetLegendState}
             />
           </Fragment>
         );
       }}
-    </WidgetQueries>
+    </WidgetCardDataLoader>
   );
 }
 
