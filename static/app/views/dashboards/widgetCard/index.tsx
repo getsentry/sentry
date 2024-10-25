@@ -34,7 +34,6 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
-import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
 import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
@@ -285,14 +284,6 @@ function WidgetCard(props: Props) {
             </LazyRender>
           )}
         </WidgetFrame>
-        {props.isEditingDashboard && (
-          <Toolbar
-            onEdit={props.onEdit}
-            onDelete={props.onDelete}
-            onDuplicate={props.onDuplicate}
-            isMobile={props.isMobile}
-          />
-        )}
       </VisuallyCompleteWithData>
     </ErrorBoundary>
   );
