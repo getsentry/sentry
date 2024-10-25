@@ -577,7 +577,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
+    await userEvent.click(await screen.findByLabelText('Open Full-Screen View'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
     );
@@ -809,7 +809,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await userEvent.hover(screen.getByLabelText('Dataset split warning'));
+    await userEvent.hover(screen.getByLabelText('Widget warnings'));
 
     expect(
       await screen.findByText(/We're splitting our datasets up/)

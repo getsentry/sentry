@@ -4,14 +4,14 @@ import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
+import type {BadgeProps} from 'sentry/components/badge/badge';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {LazyRender} from 'sentry/components/lazyRender';
+import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,7 +23,7 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
-import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import {useExtractionStatus} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
@@ -32,7 +32,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
-import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
+import {useDiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import {MetricWidgetCard} from 'sentry/views/dashboards/metrics/widgetCard';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
@@ -40,9 +40,11 @@ import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
+import {WidgetFrame} from '../widgets/common/widgetFrame';
 
+import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
-import WidgetCardContextMenu from './widgetCardContextMenu';
+import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
@@ -123,6 +125,7 @@ function WidgetCard(props: Props) {
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
+    onSetTransactionsDataset,
     legendOptions,
     widgetLegendState,
   } = props;
@@ -142,6 +145,13 @@ function WidgetCard(props: Props) {
   const hasSessionDuration = widget.queries.some(query =>
     query.aggregates.some(aggregate => aggregate.includes('session.duration'))
   );
+
+  const {isMetricsData} = useDashboardsMEPContext();
+  const extractionStatus = useExtractionStatus({queryKey: widget});
+  const indexedEventsWarning = useIndexedEventsWarning();
+  const onDemandWarning = useOnDemandWarning({widget});
+  const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
+  const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
 
   if (widget.widgetType === WidgetType.METRICS) {
     return (
@@ -163,6 +173,82 @@ function WidgetCard(props: Props) {
     );
   }
 
+  const onFullScreenViewClick = () => {
+    if (!isWidgetViewerPath(location.pathname)) {
+      props.router.push({
+        pathname: `${location.pathname}${
+          location.pathname.endsWith('/') ? '' : '/'
+        }widget/${props.index}/`,
+        query: location.query,
+      });
+    }
+  };
+
+  const onDemandExtractionBadge: BadgeProps | undefined =
+    extractionStatus === 'extracted'
+      ? {
+          text: t('Extracted'),
+        }
+      : extractionStatus === 'not-extracted'
+        ? {
+            text: t('Not Extracted'),
+          }
+        : undefined;
+
+  const indexedDataBadge: BadgeProps | undefined = indexedEventsWarning
+    ? {
+        text: t('Indexed'),
+      }
+    : undefined;
+
+  const badges = [indexedDataBadge, onDemandExtractionBadge].filter(
+    Boolean
+  ) as BadgeProps[];
+
+  const warnings = [onDemandWarning, discoverSplitAlert, sessionDurationWarning].filter(
+    Boolean
+  ) as string[];
+
+  const actionsDisabled = Boolean(props.isPreview);
+  const actionsMessage = actionsDisabled
+    ? t('This is a preview only. To edit, you must add this dashboard.')
+    : undefined;
+
+  const actions = props.showContextMenu
+    ? getMenuOptions(
+        organization,
+        selection,
+        widget,
+        Boolean(isMetricsData),
+        props.widgetLimitReached,
+        props.onDelete,
+        props.onDuplicate,
+        props.onEdit
+      )
+    : [];
+
+  const visualization = (
+    <WidgetCardChartContainer
+      location={location}
+      api={api}
+      organization={organization}
+      selection={selection}
+      widget={widget}
+      isMobile={isMobile}
+      renderErrorMessage={renderErrorMessage}
+      tableItemLimit={tableItemLimit}
+      windowWidth={windowWidth}
+      onDataFetched={onDataFetched}
+      dashboardFilters={dashboardFilters}
+      chartGroup={DASHBOARD_CHART_GROUP}
+      onWidgetSplitDecision={onWidgetSplitDecision}
+      shouldResize={shouldResize}
+      onLegendSelectChanged={onLegendSelectChanged}
+      legendOptions={legendOptions}
+      widgetLegendState={widgetLegendState}
+    />
+  );
+
   return (
     <ErrorBoundary
       customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -174,52 +260,16 @@ function WidgetCard(props: Props) {
         }
         disabled={Number(props.index) !== 0}
       >
-        <WidgetCardPanel isDragging={false} aria-label={t('Widget panel')}>
-          <WidgetHeaderWrapper>
-            <WidgetHeaderDescription>
-              <WidgetTitleRow>
-                <Tooltip
-                  title={widget.title}
-                  containerDisplayMode="grid"
-                  showOnlyOnOverflow
-                >
-                  <WidgetTitle>{widget.title}</WidgetTitle>
-                </Tooltip>
-                <ExtractedMetricsTag queryKey={widget} />
-                <DisplayOnDemandWarnings widget={widget} />
-                <DiscoverSplitAlert
-                  widget={widget}
-                  onSetTransactionsDataset={props.onSetTransactionsDataset}
-                />
-              </WidgetTitleRow>
-            </WidgetHeaderDescription>
-            {!props.isEditingDashboard && (
-              <WidgetCardContextMenuContainer>
-                <WidgetCardContextMenu
-                  organization={organization}
-                  widget={widget}
-                  selection={selection}
-                  showContextMenu={props.showContextMenu}
-                  isPreview={props.isPreview}
-                  widgetLimitReached={props.widgetLimitReached}
-                  onDuplicate={props.onDuplicate}
-                  onEdit={props.onEdit}
-                  onDelete={props.onDelete}
-                  router={props.router}
-                  location={props.location}
-                  index={props.index}
-                  seriesData={data?.timeseriesResults}
-                  seriesResultsType={data?.timeseriesResultsTypes}
-                  tableData={data?.tableResults}
-                  pageLinks={data?.pageLinks}
-                  totalIssuesCount={data?.totalIssuesCount}
-                  description={widget.description}
-                  title={widget.title}
-                />
-              </WidgetCardContextMenuContainer>
-            )}
-          </WidgetHeaderWrapper>
-          {hasSessionDuration && SESSION_DURATION_ALERT}
+        <WidgetFrame
+          title={widget.title}
+          description={widget.description}
+          badgeProps={badges}
+          warnings={warnings}
+          actionsDisabled={actionsDisabled}
+          actionsMessage={actionsMessage}
+          actions={actions}
+          onFullScreenViewClick={onFullScreenViewClick}
+        >
           {isWidgetInvalid ? (
             <Fragment>
               {renderErrorMessage?.('Widget query condition is invalid.')}
@@ -228,57 +278,21 @@ function WidgetCard(props: Props) {
               </StyledErrorPanel>
             </Fragment>
           ) : noLazyLoad ? (
-            <WidgetCardChartContainer
-              location={location}
-              api={api}
-              organization={organization}
-              selection={selection}
-              widget={widget}
-              isMobile={isMobile}
-              renderErrorMessage={renderErrorMessage}
-              tableItemLimit={tableItemLimit}
-              windowWidth={windowWidth}
-              onDataFetched={onDataFetched}
-              dashboardFilters={dashboardFilters}
-              chartGroup={DASHBOARD_CHART_GROUP}
-              onWidgetSplitDecision={onWidgetSplitDecision}
-              shouldResize={shouldResize}
-              onLegendSelectChanged={onLegendSelectChanged}
-              legendOptions={legendOptions}
-              widgetLegendState={widgetLegendState}
-            />
+            visualization
           ) : (
             <LazyRender containerHeight={200} withoutContainer>
-              <WidgetCardChartContainer
-                location={location}
-                api={api}
-                organization={organization}
-                selection={selection}
-                widget={widget}
-                isMobile={isMobile}
-                renderErrorMessage={renderErrorMessage}
-                tableItemLimit={tableItemLimit}
-                windowWidth={windowWidth}
-                onDataFetched={onDataFetched}
-                dashboardFilters={dashboardFilters}
-                chartGroup={DASHBOARD_CHART_GROUP}
-                onWidgetSplitDecision={onWidgetSplitDecision}
-                shouldResize={shouldResize}
-                onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={legendOptions}
-                widgetLegendState={widgetLegendState}
-              />
+              {visualization}
             </LazyRender>
           )}
-          {props.isEditingDashboard && (
-            <Toolbar
-              onEdit={props.onEdit}
-              onDelete={props.onDelete}
-              onDuplicate={props.onDuplicate}
-              isMobile={props.isMobile}
-            />
-          )}
-        </WidgetCardPanel>
+        </WidgetFrame>
+        {props.isEditingDashboard && (
+          <Toolbar
+            onEdit={props.onEdit}
+            onDelete={props.onDelete}
+            onDuplicate={props.onDuplicate}
+            isMobile={props.isMobile}
+          />
+        )}
       </VisuallyCompleteWithData>
     </ErrorBoundary>
   );
@@ -316,20 +330,6 @@ function useOnDemandWarning(props: {widget: Widget}): string | null {
   if (widgetReachedSpecLimit) {
     return t(
       "This widget is using indexed data because you've reached your organization limit for dynamically extracted metrics."
-    );
-  }
-
-  return null;
-}
-
-function DisplayOnDemandWarnings(props: {widget: Widget}) {
-  const warning = useOnDemandWarning(props);
-
-  if (warning) {
-    return (
-      <Tooltip containerDisplayMode="inline-flex" title={warning}>
-        <IconWarning color="warningText" />
-      </Tooltip>
     );
   }
 
@@ -394,24 +394,4 @@ export const WidgetTitleRow = styled('span')`
 export const WidgetDescription = styled('small')`
   ${p => p.theme.overflowEllipsis}
   color: ${p => p.theme.gray300};
-`;
-
-const WidgetTitle = styled(HeaderTitle)`
-  ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightBold};
-`;
-
-const WidgetHeaderWrapper = styled('div')`
-  padding: ${space(2)} ${space(1)} 0 ${space(3)};
-  min-height: 36px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const WidgetHeaderDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
 `;

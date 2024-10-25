@@ -62,7 +62,7 @@ type Props = {
   totalIssuesCount?: string;
 };
 
-const useIndexedEventsWarning = (): string | null => {
+export const useIndexedEventsWarning = (): string | null => {
   const {isMetricsData} = useDashboardsMEPContext();
   const organization = useOrganization();
   const metricSettingContext = useMEPSettingContext();
