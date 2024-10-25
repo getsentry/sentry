@@ -50,18 +50,24 @@ class SelectRequester:
 
             response = json.loads(body)
         except Exception as e:
-            logger.info(
-                "select-requester.error",
-                extra={
-                    "sentry_app_slug": self.sentry_app.slug,
-                    "install_uuid": self.install.uuid,
-                    "project_slug": self.project_slug,
-                    "error_message": str(e),
-                    "uri": self.uri,
-                    "dependent_data": self.dependent_data,
-                    "webhook_url": self.sentry_app.webhook_url,
-                },
-            )
+            extra = {
+                "sentry_app_slug": self.sentry_app.slug,
+                "install_uuid": self.install.uuid,
+                "project_slug": self.project_slug,
+                "error_message": str(e),
+                "url": url or "",
+            }
+
+            if not url:
+                extra.update(
+                    {
+                        "uri": self.uri,
+                        "dependent_data": self.dependent_data,
+                        "webhook_url": self.sentry_app.webhook_url,
+                    }
+                )
+
+            logger.info("select-requester.error", extra)
             raise APIError from e
 
         if not self._validate_response(response):
