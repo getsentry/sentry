@@ -14,6 +14,7 @@ type TracePreferencesAction =
     }
   | {payload: number; type: 'set list width'}
   | {payload: boolean; type: 'minimize drawer'}
+  | {payload: boolean; type: 'set missing instrumentation'}
   | {payload: boolean; type: 'set autogrouping'};
 
 type TraceDrawerPreferences = {
@@ -188,6 +189,11 @@ export function tracePreferencesReducer(
         autogroup: {sibling: action.payload, parent: action.payload},
       };
     }
+    case 'set missing instrumentation':
+      return {
+        ...state,
+        missing_instrumentation: action.payload,
+      };
     case 'set list width':
       return {
         ...state,

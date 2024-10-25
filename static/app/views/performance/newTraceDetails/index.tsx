@@ -89,6 +89,7 @@ import {
   isTraceNode,
 } from './traceGuards';
 import {TraceMetadataHeader} from './traceMetadataHeader';
+import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceShortcuts} from './traceShortcutsModal';
 import type {TraceReducer, TraceReducerState} from './traceState';
 import {
@@ -690,7 +691,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
-
     const query = qs.parse(location.search);
     if (query.fov && typeof query.fov === 'string') {
       viewManager.maybeInitializeTraceViewFromQS(query.fov);
@@ -914,6 +914,38 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   }, [traceState.search.query]);
   useTraceQueryParamStateSync(traceQueryStateSync);
 
+  const onAutogroupChange = useCallback(() => {
+    const value = !traceState.preferences.autogroup.parent;
+    if (!value) {
+      TraceTree.RemoveSiblingAutogroupNodes(props.tree.root);
+      TraceTree.RemoveDirectChildrenAutogroupNodes(props.tree.root);
+    } else {
+      TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
+      TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
+    }
+    TraceTree.invalidate(props.tree.root, true);
+    props.tree.build();
+    traceDispatch({
+      type: 'set autogrouping',
+      payload: value,
+    });
+  }, [traceDispatch, traceState.preferences, props.tree]);
+
+  const onMissingInstrumentationChange = useCallback(() => {
+    const value = !traceState.preferences.missing_instrumentation;
+    if (!value) {
+      TraceTree.RemoveMissingInstrumentationNodes(props.tree.root);
+    } else {
+      TraceTree.DetectMissingInstrumentation(props.tree.root);
+    }
+    TraceTree.invalidate(props.tree.root, true);
+    props.tree.build();
+    traceDispatch({
+      type: 'set missing instrumentation',
+      payload: value,
+    });
+  }, [traceDispatch, traceState.preferences, props.tree]);
+
   return (
     <Fragment>
       <TraceTypeWarnings
@@ -928,6 +960,10 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           organization={props.organization}
         />
         <TraceShortcuts />
+        <TracePreferencesDropdown
+          onAutogroupChange={onAutogroupChange}
+          onMissingInstrumentationChange={onMissingInstrumentationChange}
+        />
       </TraceToolbar>
       <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
         <Trace
@@ -1021,7 +1057,7 @@ const TraceInnerLayout = styled('div')`
 const TraceToolbar = styled('div')`
   flex-grow: 0;
   display: grid;
-  grid-template-columns: 1fr min-content min-content;
+  grid-template-columns: 1fr min-content min-content min-content;
   gap: ${space(1)};
 `;
 
