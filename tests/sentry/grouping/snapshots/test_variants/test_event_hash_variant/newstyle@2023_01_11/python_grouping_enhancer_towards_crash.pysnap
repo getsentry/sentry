@@ -1,4 +1,6 @@
 ---
+created: '2024-10-24T14:21:57.991389+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
@@ -6,7 +8,7 @@ app:
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
+        stacktrace (ignored because it contains no contributing frames)
           frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "django.core.handlers.base"

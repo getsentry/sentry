@@ -79,6 +79,7 @@ type Props = WithRouterProps & {
   onDuplicate?: () => void;
   onEdit?: () => void;
   onLegendSelectChanged?: () => void;
+  onSetTransactionsDataset?: () => void;
   onUpdate?: (widget: Widget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
@@ -124,6 +125,7 @@ function WidgetCard(props: Props) {
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
+    onSetTransactionsDataset,
     legendOptions,
     widgetLegendState,
   } = props;
@@ -148,7 +150,7 @@ function WidgetCard(props: Props) {
   const extractionStatus = useExtractionStatus({queryKey: widget});
   const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
-  const discoverSplitAlert = useDiscoverSplitAlert({widget});
+  const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
 
   if (widget.widgetType === WidgetType.METRICS) {
