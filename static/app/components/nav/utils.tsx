@@ -8,27 +8,43 @@ import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {useLocation} from 'sentry/utils/useLocation';
 
-/** NavItem is the base class for both SidebarItem and SubmenuItem  */
+/**
+ ** NavItem is the base class for both SidebarItem and SubmenuItem
+ */
 interface NavItem {
-  /** User-facing item label, surfaced in the UI. Should be translated! */
+  /**
+   ** User-facing item label, surfaced in the UI. Should be translated!
+   */
   label: string;
-  /** Optionally, props which should be passed to a wrapping `<Feature>` guard */
+  /**
+   ** Optionally, props which should be passed to a wrapping `<Feature>` guard
+   */
   feature?: Omit<ComponentProps<typeof Feature>, 'children'>;
 }
 
-/** NavItems are displayed in either `main` and `footer` sections */
+/**
+ ** NavItems are displayed in either `main` and `footer` sections
+ */
 export interface NavItemLayout<Item extends NavSidebarItem | NavSubmenuItem> {
   main: Item[];
   footer?: Item[];
 }
 
-/** SidebarItem is a top-level NavItem which is always displayed in the app sidebar */
+/**
+ ** SidebarItem is a top-level NavItem which is always displayed in the app sidebar
+ */
 export interface NavSidebarItem extends NavItem {
-  /** The icon to render in the sidebar */
+  /**
+   ** The icon to render in the sidebar
+   */
   icon: ReactElement;
-  /** if te items to display when this SidebarItem is active */
+  /**
+   ** if te items to display when this SidebarItem is active
+   */
   menu?: MenuItemProps[];
-  /** Optionally, the submenu items to display when this SidebarItem is active */
+  /**
+   ** Optionally, the submenu items to display when this SidebarItem is active
+   */
   submenu?: NavSubmenuItem[] | NavItemLayout<NavSubmenuItem>;
   /**
    * The pathname (including `search` params) to navigate to when the item is clicked.
@@ -37,7 +53,9 @@ export interface NavSidebarItem extends NavItem {
   to?: string;
 }
 
-/** SubmenuItem is a secondary NavItem which is only displayed when its parent SidebarItem is active */
+/**
+ ** SubmenuItem is a secondary NavItem which is only displayed when its parent SidebarItem is active
+ */
 export interface NavSubmenuItem extends NavItem {
   /**
    * The pathname (including `search` params) to navigate to when the item is clicked.
@@ -49,7 +67,9 @@ export type NavConfig = NavItemLayout<NavSidebarItem>;
 
 export type NavigationItemStatus = 'inactive' | 'active' | 'active-parent';
 
-/** Determine if a given SidebarItem or SubmenuItem is active */
+/**
+ ** Determine if a given SidebarItem or SubmenuItem is active
+ */
 export function isNavItemActive(
   item: NavSidebarItem | NavSubmenuItem,
   location: ReturnType<typeof useLocation>
@@ -100,7 +120,9 @@ export function isSubmenuItemActive(
   );
 }
 
-/** Creates a `LocationDescriptor` from a URL string that may contain search params */
+/**
+ ** Creates a `LocationDescriptor` from a URL string that may contain search params
+ */
 export function makeLinkPropsFromTo(to: string): {
   state: object;
   to: LocationDescriptor;
@@ -124,7 +146,9 @@ export function isNonEmptyArray(item: unknown): item is any[] {
   return Array.isArray(item) && item.length > 0;
 }
 
-/** SidebarItem `to` can be derived from the first submenu item if necessary */
+/**
+ ** SidebarItem `to` can be derived from the first submenu item if necessary
+ */
 export function resolveNavItemTo(
   item: NavSidebarItem | NavSubmenuItem
 ): string | undefined {
