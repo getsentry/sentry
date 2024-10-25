@@ -3,12 +3,14 @@ import random
 import string
 from email.headerregistry import Address
 
+from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from django.utils.text import slugify
 from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
+from typing_extensions import TypeIs
 
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
@@ -24,6 +26,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.signals import project_created, team_created
+from sentry.users.models.user import User
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 CONFLICTING_TEAM_SLUG_ERROR = "A team with this slug already exists."
@@ -59,8 +62,8 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
     logger = logging.getLogger("team-project.create")
     owner = ApiOwner.ENTERPRISE
 
-    def should_add_creator_to_team(self, request: Request):
-        return request.user.is_authenticated
+    def should_add_creator_to_team(self, user: User | AnonymousUser) -> TypeIs[User]:
+        return user.is_authenticated
 
     def post(self, request: Request, organization: Organization) -> Response:
         """
@@ -83,7 +86,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
 
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
-        if not self.should_add_creator_to_team(request):
+        if not self.should_add_creator_to_team(request.user):
             raise NotAuthenticated("User is not authenticated")
 
         result = serializer.validated_data
