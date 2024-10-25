@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 import type {DashboardFilters, Widget} from '../types';
 import {WidgetType} from '../types';
@@ -26,6 +26,7 @@ type Results = {
 
 type Props = {
   children: (props: Results) => React.ReactNode;
+  selection: PageFilters;
   widget: Widget;
   dashboardFilters?: DashboardFilters;
   onDataFetched?: (
@@ -45,6 +46,7 @@ type Props = {
 export function WidgetCardDataLoader({
   children,
   widget,
+  selection,
   dashboardFilters,
   tableItemLimit,
   onDataFetched,
@@ -52,7 +54,6 @@ export function WidgetCardDataLoader({
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
 
   if (widget.widgetType === WidgetType.ISSUE) {
     return (
