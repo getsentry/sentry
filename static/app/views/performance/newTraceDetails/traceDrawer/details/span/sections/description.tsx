@@ -111,9 +111,9 @@ export function SpanDescription({
   const value =
     resolvedModule === ModuleName.DB ? (
       <Fragment>
-        <CodeSnippet language="sql" isRounded={false}>
+        <StyledCodeSnippet language="sql" isRounded={false}>
           {formattedDescription}
-        </CodeSnippet>
+        </StyledCodeSnippet>
         {span?.data?.['code.filepath'] ? (
           <StackTraceMiniFrame
             projectId={node.event?.projectID}
@@ -169,4 +169,10 @@ const ButtonGroup = styled('div')`
   gap: ${space(0.5)};
   flex-wrap: wrap;
   justify-content: flex-end;
+`;
+
+const StyledCodeSnippet = styled(CodeSnippet)`
+  code {
+    text-wrap: wrap;
+  }
 `;
