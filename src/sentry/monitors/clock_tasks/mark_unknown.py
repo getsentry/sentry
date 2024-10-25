@@ -30,7 +30,10 @@ def dispatch_mark_unknown(ts: datetime):
     This will dispatch MarkUnknown messages into monitors-clock-tasks.
     """
     unknown_checkins = list(
-        MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS, date_added__lte=ts,).values(
+        MonitorCheckIn.objects.filter(
+            status=CheckInStatus.IN_PROGRESS,
+            date_added__lte=ts,
+        ).values(
             "id", "monitor_environment_id"
         )[:CHECKINS_LIMIT]
     )
