@@ -23,6 +23,8 @@ import {
   makeTraceError,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 class MockResizeObserver {
   callback: ResizeObserverCallback;
@@ -59,6 +61,26 @@ function mockQueryString(queryString: string) {
       search: queryString,
     },
   });
+}
+
+function mockTracePreferences(preferences: Partial<TracePreferencesState>) {
+  const merged: TracePreferencesState = {
+    ...DEFAULT_TRACE_VIEW_PREFERENCES,
+    ...preferences,
+    autogroup: {
+      ...DEFAULT_TRACE_VIEW_PREFERENCES.autogroup,
+      ...preferences.autogroup,
+    },
+    drawer: {
+      ...DEFAULT_TRACE_VIEW_PREFERENCES.drawer,
+      ...preferences.drawer,
+    },
+    list: {
+      ...DEFAULT_TRACE_VIEW_PREFERENCES.list,
+      ...preferences.list,
+    },
+  };
+  localStorage.setItem('trace-view-preferences', JSON.stringify(merged));
 }
 
 function mockTraceResponse(resp?: Partial<ResponseType>) {
@@ -965,6 +987,28 @@ describe('trace view', () => {
           'Failed to scroll to node in trace tree'
         );
       });
+    });
+
+    it('does not autogroup if user preference is disabled', async () => {
+      mockTracePreferences({autogroup: {parent: false, sibling: false}});
+      mockQueryString('?node=span-span0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+
+      await findAllByText(virtualizedContainer, /process/i);
+      printVirtualizedList(virtualizedContainer);
+      expect(screen.queryByText(/Autogrouped/i)).not.toBeInTheDocument();
+    });
+
+    it('does not inject missing instrumentation if user preference is disabled', async () => {
+      mockTracePreferences({missing_instrumentation: false});
+      mockQueryString('?node=span-span0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+
+      await findAllByText(virtualizedContainer, /process/i);
+      printVirtualizedList(virtualizedContainer);
+      expect(screen.queryByText(/Missing instrumentation/i)).not.toBeInTheDocument();
     });
 
     it('triggers search on load', async () => {

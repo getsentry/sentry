@@ -1440,8 +1440,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
           TraceTree.DetectMissingInstrumentation(this.root);
         }
 
-        if (options.preferences.autogroup) {
+        if (options.preferences.autogroup.sibling) {
           TraceTree.AutogroupSiblingSpanNodes(this.root);
+        }
+        if (options.preferences.autogroup.parent) {
           TraceTree.AutogroupDirectChildrenSpanNodes(this.root);
         }
 
