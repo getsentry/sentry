@@ -1,8 +1,9 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
+import {useScopeAndClient} from 'sentry/components/devtoolbar/hooks/useSentryClientAndScope';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -11,7 +12,7 @@ import {IconChat, IconFatal, IconImage, IconMegaphone, IconPlay} from 'sentry/ic
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 
 import useConfiguration from '../../hooks/useConfiguration';
-import useCurrentTransactionName from '../../hooks/useCurrentTransactionName';
+import toSearchTerm from '../../hooks/useCurrentTransactionName';
 import {useSDKFeedbackButton} from '../../hooks/useSDKFeedbackButton';
 import useVisibility from '../../hooks/useVisibility';
 import {
@@ -49,7 +50,20 @@ export default function FeedbackPanel() {
       [setVisible]
     )
   );
-  const transactionName = useCurrentTransactionName();
+
+  const {scope, client} = useScopeAndClient();
+  const [transactionName, setTransactionName] = useState(
+    scope?.getScopeData().transactionName
+  );
+
+  useEffect(() => {
+    if (client) {
+      client.on('startNavigationSpan', options => {
+        setTransactionName(toSearchTerm(options.name));
+      });
+    }
+  }, [client]);
+
   const queryResult = useInfiniteFeedbackList({
     query: `url:*${transactionName}`,
   });

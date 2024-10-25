@@ -1,4 +1,4 @@
-import {toSearchTerm} from 'sentry/components/devtoolbar/hooks/useCurrentTransactionName';
+import toSearchTerm from 'sentry/components/devtoolbar/hooks/useCurrentTransactionName';
 
 describe('getSearchTerm', () => {
   it.each([
