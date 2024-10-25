@@ -146,6 +146,7 @@ class IntegrationProviderSlug(StrEnum):
     GITHUB_ENTERPRISE = "github_enterprise"
     GITLAB = "gitlab"
     BITBUCKET = "bitbucket"
+    BITBUCKET_SERVER = "bitbucket_server"
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
 
@@ -159,22 +160,23 @@ INTEGRATION_TYPE_TO_PROVIDER = {
     IntegrationDomain.PROJECT_MANAGEMENT: [
         IntegrationProviderSlug.JIRA,
         IntegrationProviderSlug.JIRA_SERVER,
-        IntegrationProviderSlug.GITHUB,
-        IntegrationProviderSlug.GITHUB_ENTERPRISE,
-        IntegrationProviderSlug.GITLAB,
-        IntegrationProviderSlug.AZURE_DEVOPS,
     ],
     IntegrationDomain.SOURCE_CODE_MANAGEMENT: [
         IntegrationProviderSlug.GITHUB,
         IntegrationProviderSlug.GITHUB_ENTERPRISE,
         IntegrationProviderSlug.GITLAB,
         IntegrationProviderSlug.BITBUCKET,
+        IntegrationProviderSlug.BITBUCKET_SERVER,
         IntegrationProviderSlug.AZURE_DEVOPS,
     ],
     IntegrationDomain.ON_CALL_SCHEDULING: [
         IntegrationProviderSlug.PAGERDUTY,
         IntegrationProviderSlug.OPSGENIE,
     ],
+}
+
+INTEGRATION_PROVIDER_TO_TYPE = {
+    v: k for k, values in INTEGRATION_TYPE_TO_PROVIDER.items() for v in values
 }
 
 
