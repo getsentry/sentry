@@ -554,7 +554,7 @@ class EventManager:
             except ProjectKey.DoesNotExist:
                 pass
 
-        _derive_plugin_tags_many(jobs, projects, True)
+        _derive_plugin_tags_many(jobs, projects, is_transaction=True)
         _derive_interface_tags_many(jobs)
 
         # Load attachments first, but persist them at the very last after
