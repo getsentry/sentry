@@ -277,7 +277,7 @@ describe('Dashboards > Dashboard', () => {
       </OrganizationContext.Provider>
     );
 
-    await userEvent.hover(screen.getByLabelText('Dataset split warning'));
+    await userEvent.hover(screen.getByLabelText('Widget warnings'));
 
     expect(
       await screen.findByText(/We're splitting our datasets up/)
