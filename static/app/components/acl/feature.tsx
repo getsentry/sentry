@@ -14,7 +14,7 @@ import ComingSoon from './comingSoon';
 
 const renderComingSoon = () => <ComingSoon />;
 
-export type FeatureProps = {
+type Props = {
   /**
    * If children is a function then will be treated as a render prop and
    * passed FeatureRenderProps.
@@ -70,6 +70,11 @@ export type FeatureProps = {
 };
 
 /**
+ * Normalized props for feature configuration objects
+ */
+export type FeatureProps = Omit<Props, 'children' | 'config' | 'organization'>;
+
+/**
  * Common props passed to children and disabled render handlers.
  */
 type FeatureRenderProps = {
@@ -108,7 +113,7 @@ type AllFeatures = {
 /**
  * Component to handle feature flags.
  */
-class Feature extends Component<FeatureProps> {
+class Feature extends Component<Props> {
   static defaultProps = {
     renderDisabled: false,
     requireAll: true,
