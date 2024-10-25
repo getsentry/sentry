@@ -14,7 +14,11 @@ from rest_framework.request import Request
 from sentry import features, options
 from sentry.organizations.absolute_url import customer_domain_path, generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.types.region import subdomain_is_region
+from sentry.types.region import (
+    find_all_multitenant_region_names,
+    get_region_by_name,
+    subdomain_is_region,
+)
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.http import is_using_customer_domain, query_string
 from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
@@ -64,6 +68,16 @@ class ReactMixin:
     def meta_tags(self, request: Request, **kwargs):
         return {}
 
+    def dns_prefetch(self) -> list[str]:
+        regions = find_all_multitenant_region_names()
+        domains = []
+        if len(regions) < 2:
+            return domains
+        for region_name in regions:
+            region = get_region_by_name(region_name)
+            domains.append(region.address)
+        return domains
+
     def handle_react(self, request: Request, **kwargs) -> HttpResponse:
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
@@ -71,6 +85,7 @@ class ReactMixin:
                 {"property": key, "content": value}
                 for key, value in self.meta_tags(request, **kwargs).items()
             ],
+            "dns_prefetch": self.dns_prefetch(),
             # Rendering the layout requires serializing the active organization.
             # Since we already have it here from the OrganizationMixin, we can
             # save some work and render it faster.
