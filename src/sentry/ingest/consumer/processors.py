@@ -1,5 +1,6 @@
 import functools
 import logging
+import os
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
@@ -42,10 +43,19 @@ def trace_func(**span_kwargs):
     def wrapper(f):
         @functools.wraps(f)
         def inner(*args, **kwargs):
+            # First we check a local env var
+            # if that's not set we check our conf file
+            # if neither are set use 0
+            sample_rate = float(
+                os.getenv(
+                    "SENTRY_INGEST_CONSUMER_APM_SAMPLING",
+                    default=getattr(settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0),
+                )
+            )
             # New behavior is to add a custom `sample_rate` that is picked up by `traces_sampler`
             span_kwargs.setdefault(
                 "custom_sampling_context",
-                {"sample_rate": getattr(settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0)},
+                {"sample_rate": sample_rate},
             )
             with sentry_sdk.start_transaction(**span_kwargs):
                 return f(*args, **kwargs)

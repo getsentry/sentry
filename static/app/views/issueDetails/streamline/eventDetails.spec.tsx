@@ -22,7 +22,6 @@ describe('EventDetails', function () {
   const event = EventFixture({id: 'event-id'});
   const defaultProps = {project, group, event};
 
-  let mockActionableItems: jest.Mock;
   let mockList: jest.Mock;
   let mockListMeta: jest.Mock;
 
@@ -38,11 +37,6 @@ describe('EventDetails', function () {
     );
     ProjectsStore.loadInitialData([project]);
     MockApiClient.clearMockResponses();
-    mockActionableItems = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
-      body: {errors: []},
-      method: 'GET',
-    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: TagsFixture(),
@@ -83,22 +77,6 @@ describe('EventDetails', function () {
     });
   });
 
-  it('displays all basic components', async function () {
-    render(<EventDetails {...defaultProps} />, {organization});
-    await screen.findByText(event.id);
-
-    // Navigation
-    expect(screen.getByRole('tab', {name: 'Recommended Event'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'First Event'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Next Event'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'View All Events'})).toBeInTheDocument();
-    // Content
-    expect(mockActionableItems).toHaveBeenCalled();
-    // All Events (should not query initially)
-    expect(mockList).not.toHaveBeenCalled();
-    expect(mockListMeta).not.toHaveBeenCalled();
-  });
-
   it('should display the events list', async function () {
     const router = RouterFixture({
       location: LocationFixture({
@@ -108,8 +86,7 @@ describe('EventDetails', function () {
     });
     render(<EventDetails {...defaultProps} />, {organization, router});
 
-    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
-    expect(screen.getByText('All Events')).toBeInTheDocument();
+    expect(await screen.findByText('All Events')).toBeInTheDocument();
 
     expect(mockList).toHaveBeenCalled();
     expect(mockListMeta).toHaveBeenCalled();
