@@ -257,6 +257,7 @@ const WidgetTooltipButton = styled(Button)`
 
 const VisualizationWrapper = styled('div')`
   display: flex;
+  flex-direction: column;
   flex-grow: 1;
   min-height: 0;
   position: relative;
