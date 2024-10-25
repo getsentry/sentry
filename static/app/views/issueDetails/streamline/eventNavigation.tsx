@@ -130,7 +130,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
           offset={[-2, 1]}
           trigger={triggerProps => (
             <NavigationDropdownButton {...triggerProps} borderless size="sm">
-              {TabName[currentTab]}
+              {TabName[currentTab] ?? TabName[Tab.DETAILS]}
             </NavigationDropdownButton>
           )}
         />
