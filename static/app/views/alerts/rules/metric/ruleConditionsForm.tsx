@@ -804,7 +804,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               >
                 {args => {
                   if (
-                    args.value.includes('is:unresolved') &&
+                    args.value?.includes('is:unresolved') &&
                     comparisonType === AlertRuleComparisonType.DYNAMIC
                   ) {
                     return (
