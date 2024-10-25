@@ -1,6 +1,6 @@
 import type {LocationDescriptor} from 'history';
 
-import type {FeatureRenderProps} from 'sentry/components/acl/feature';
+import type {FeatureProps} from 'sentry/components/acl/feature';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {isItemActive} from 'sentry/components/sidebar/sidebarItem';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
@@ -18,7 +18,7 @@ interface NavItem {
   /**
    * Optionally, props which should be passed to a wrapping `<Feature>` guard
    */
-  feature?: Omit<FeatureRenderProps, 'children'>;
+  feature?: FeatureProps;
 }
 
 /**
