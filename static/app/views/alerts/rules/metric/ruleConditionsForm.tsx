@@ -639,6 +639,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       isErrorMigration,
       aggregate,
       project,
+      comparisonType,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -740,7 +741,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         searchSource="alert_builder"
                         filterKeys={filterKeys}
                         disabled={disabled || isErrorMigration}
-                        onChange={onChange}
+                        onChange={query => {
+                          onChange(query, {});
+                        }}
                         invalidMessages={{
                           [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
                             'The wildcard operator is not supported here.'
@@ -789,11 +792,21 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 }}
               </FormField>
             </FormRow>
-            {
-              <OnDemandMetricAlert
-                message={t('To die, to sleep. To sleep—perchance to dream.')}
-              />
-            }
+            <FormField name="query" inline>
+              {args => {
+                if (
+                  args.value.includes('is:unresolved') &&
+                  comparisonType === AlertRuleComparisonType.DYNAMIC
+                ) {
+                  return (
+                    <OnDemandMetricAlert
+                      message={t('To die, to sleep. To sleep—perchance to dream.')}
+                    />
+                  );
+                }
+                return null;
+              }}
+            </FormField>
           </Fragment>
         )}
       </Fragment>
