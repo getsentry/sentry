@@ -272,7 +272,6 @@ module = [
     "sentry.integrations.vsts.repository",
     "sentry.integrations.vsts_extension.integration",
     "sentry.issues.search",
-    "sentry.middleware.access_log",
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.middleware.superuser",
