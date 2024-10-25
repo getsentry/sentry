@@ -1,11 +1,13 @@
 ---
+created: '2024-10-24T14:18:24.523926+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   component:
     app (stacktrace of system takes precedence)
-      stacktrace
+      stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
           module* (removed codegen marker)
             "com.example.api.OutboundController$$EnhancerByGuice$$<auto>"

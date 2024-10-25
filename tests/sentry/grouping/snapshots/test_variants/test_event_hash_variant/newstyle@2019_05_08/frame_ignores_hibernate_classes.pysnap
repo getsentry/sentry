@@ -1,11 +1,13 @@
 ---
+created: '2024-10-24T14:22:47.857304+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   component:
     app (stacktrace of system takes precedence)
-      stacktrace
+      stacktrace (ignored because it contains no in-app frames)
         frame (non app frame)
           module*
             "com.example.model.User$HibernateProxy$oRWxjAWT"

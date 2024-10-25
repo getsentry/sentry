@@ -8,8 +8,8 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 @region_silo_endpoint
 class OrganizationAvatarEndpoint(AvatarMixin[OrganizationAvatar], OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     object_type = "organization"
     model = OrganizationAvatar
