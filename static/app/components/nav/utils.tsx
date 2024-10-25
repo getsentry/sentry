@@ -128,6 +128,9 @@ export function makeLinkPropsFromTo(to: string): {
 } {
   const {pathname, search, hash} = new URL(
     to,
+    // For partial URLs (pathname + hash? + params?), we use a
+    // placeholder base URL to create a parseable URL string.
+    // Note that both the URL scheme and domain are discarded.
     !to.startsWith('http') ? 'https://sentry.io/' : undefined
   );
 
