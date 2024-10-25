@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import Count from 'sentry/components/count';
 import ErrorLevel from 'sentry/components/events/errorLevel';
+import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -62,6 +63,8 @@ export default function StreamlinedGroupHeader({
     true
   );
 
+  const statusProps = getBadgeProperties(group.status, group.substatus);
+
   return (
     <Fragment>
       <Header>
@@ -115,14 +118,23 @@ export default function StreamlinedGroupHeader({
           <Flex gap={space(1)} align="center" justify="flex-start">
             <ErrorLevel level={group.level} size={'10px'} />
             {group.isUnhandled && <UnhandledTag />}
+            {statusProps?.status ? (
+              <Fragment>
+                <Divider />
+                <Tooltip title={statusProps?.tooltip}>
+                  <Subtext>{statusProps?.status}</Subtext>
+                </Tooltip>
+              </Fragment>
+            ) : null}
             {subtitle && (
               <Fragment>
                 <Divider />
                 <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={1000}>
-                  {subtitle}
+                  <Subtext>{subtitle}</Subtext>
                 </Subtitle>
               </Fragment>
             )}
+
             <AttachmentsBadge group={group} />
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
@@ -213,11 +225,14 @@ const StatCount = styled(Count)`
   text-align: right;
 `;
 
+const Subtext = styled('span')`
+  color: ${p => p.theme.subText};
+`;
+
 const Subtitle = styled(Tooltip)`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: ${p => p.theme.subText};
 `;
 
 const ActionBar = styled('div')<{isComplete: boolean}>`
