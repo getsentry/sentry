@@ -792,21 +792,33 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 }}
               </FormField>
             </FormRow>
-            <FormField name="query" inline>
-              {args => {
-                if (
-                  args.value.includes('is:unresolved') &&
-                  comparisonType === AlertRuleComparisonType.DYNAMIC
-                ) {
-                  return (
-                    <OnDemandMetricAlert
-                      message={t('To die, to sleep. To sleep—perchance to dream.')}
-                    />
-                  );
-                }
-                return null;
-              }}
-            </FormField>
+            <FormRow noMargin>
+              <FormField
+                name="query"
+                inline={false}
+                style={{
+                  ...this.formElemBaseStyle,
+                  flex: '6 0 500px',
+                }}
+                flexibleControlStateSize
+              >
+                {args => {
+                  if (
+                    args.value.includes('is:unresolved') &&
+                    comparisonType === AlertRuleComparisonType.DYNAMIC
+                  ) {
+                    return (
+                      <OnDemandMetricAlert
+                        message={t(
+                          "'is:unresolved' queries are not supported by Anomaly Detection alerts."
+                        )}
+                      />
+                    );
+                  }
+                  return null;
+                }}
+              </FormField>
+            </FormRow>
           </Fragment>
         )}
       </Fragment>
