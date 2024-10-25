@@ -60,6 +60,11 @@ export type ReplayEventParameters = {
     frame: string;
   };
 
+  'replay.gaps_detected': {
+    gaps: number;
+    max_gap: number;
+    replay_duration: number;
+  };
   'replay.hydration-error.issue-details-opened': {};
   'replay.hydration-modal.slider-interaction': {};
   'replay.hydration-modal.tab-change': {
@@ -148,6 +153,7 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.list-sorted': 'Sorted Replay List',
   'replay.list-time-spent': 'Time Spent Viewing Replay List',
   'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
+  'replay.gaps_detected': 'Number of Gaps in Replay Timeline',
   'replay.play-pause': 'Played/Paused Replay',
   'replay.rage-click-sdk-banner.dismissed': 'Replay Rage Click SDK Banner Dismissed',
   'replay.rage-click-sdk-banner.rendered': 'Replay Rage Click SDK Banner Rendered',
