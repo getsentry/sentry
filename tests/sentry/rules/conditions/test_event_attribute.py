@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.interfaces.base import Interface
 from sentry.rules.conditions.event_attribute import EventAttributeCondition, attribute_registry
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
@@ -491,27 +490,19 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
-    @patch("sentry.eventstore.models.get_interfaces", return_value={"exceptions": Interface()})
-    def test_stacktrace_attributeerror(self, mock_interface):
-        """Stacktrace.filename should match frames anywhere in the stack."""
-
+    def test_stacktrace_attributeerror(self):
         event = self.get_event(
             exception={
                 "values": [
                     {
                         "type": "SyntaxError",
                         "value": "hello world",
-                        "stacktrace": {
-                            "frames": [
-                                {"filename": "example.php", "module": "example"},
-                                {"filename": "somecode.php", "module": "somecode"},
-                                {"filename": "othercode.php", "module": "othercode"},
-                            ]
-                        },
                     }
                 ]
             }
         )
+        # hack to trigger attributeerror
+        event.interfaces["exception"]._data["values"][0] = None
 
         # correctly matching filenames, at various locations in the stacktrace
         for value in ["example.php", "somecode.php", "othercode.php"]:
