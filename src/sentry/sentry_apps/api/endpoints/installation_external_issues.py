@@ -44,13 +44,16 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
 
         serializer = PlatformExternalIssueSerializer(data=request.data)
         if serializer.is_valid():
-            external_issue = ExternalIssueCreator(
-                install=installation,
-                group=group,
-                web_url=data["webUrl"],
-                project=data["project"],
-                identifier=data["identifier"],
-            ).run()
+            try:
+                external_issue = ExternalIssueCreator(
+                    install=installation,
+                    group=group,
+                    web_url=data["webUrl"],
+                    project=data["project"],
+                    identifier=data["identifier"],
+                ).run()
+            except Exception:
+                return Response({"error": "Failed to create external issue"}, status=400)
             return Response(
                 serialize(
                     objects=external_issue, serializer=ResponsePlatformExternalIssueSerializer()
