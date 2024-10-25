@@ -112,7 +112,7 @@ openapi-schema-validator==0.6.2
 openapi-spec-validator==0.7.1
 orjson==3.10.3
 outcome==1.2.0
-packaging==21.3
+packaging==24.1
 parse==1.19.0
 parsimonious==0.10.0
 pathable==0.4.3
@@ -141,7 +141,6 @@ pydantic==1.10.17
 pyflakes==3.2.0
 pyjwt==2.4.0
 pymemcache==4.0.0
-pyparsing==3.0.9
 pysocks==1.7.1
 pytest==8.1.2
 pytest-cov==4.0.0
