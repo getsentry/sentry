@@ -32,6 +32,7 @@ type Props = {
   roleOptions: OrgRole[];
   teams: string[];
   className?: string;
+  isOverMemberLimit?: boolean;
 };
 
 function ValueComponent(
@@ -59,6 +60,7 @@ function InviteRowControl({
   onChangeRole,
   onChangeTeams,
   disableRemove,
+  isOverMemberLimit,
 }: Props) {
   const [inputValue, setInputValue] = useState('');
 
@@ -74,7 +76,7 @@ function InviteRowControl({
     },
     [roleOptions]
   );
-  const isTeamRolesAllowed = isTeamRolesAllowedForRole(role);
+  const isTeamRolesAllowed = isOverMemberLimit ? false : isTeamRolesAllowedForRole(role);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     switch (event.key) {
@@ -123,8 +125,8 @@ function InviteRowControl({
       <RoleSelectControl
         aria-label={t('Role')}
         data-test-id="select-role"
-        disabled={disabled}
-        value={role}
+        disabled={isOverMemberLimit}
+        value={isOverMemberLimit ? 'billing' : role}
         roles={roleOptions}
         disableUnallowed={roleDisabledUnallowed}
         onChange={roleOption => {

@@ -76,6 +76,18 @@ export const ALLOWED_SCOPES = [
   'team:write',
 ] as const;
 
+// TODO Find a way to create Billing members without defining this role in the sentry repo
+export const BILLING_ROLE: OrgRole[] = [
+  {
+    id: 'billing',
+    name: 'Billing',
+    isAllowed: true,
+    desc: 'Can manage subscription and billing details.',
+    minimumTeamRole: 'contributor',
+    isTeamRolesAllowed: true,
+  },
+];
+
 // These should only be used in the case where we cannot obtain roles through
 // the members endpoint (primarily in cases where a user is admining a
 // different organization they are not a OrganizationMember of ).

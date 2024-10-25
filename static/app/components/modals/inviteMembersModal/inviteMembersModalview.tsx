@@ -15,11 +15,11 @@ import type {
   InviteStatus,
   NormalizedInvite,
 } from 'sentry/components/modals/inviteMembersModal/types';
-import {ORG_ROLES} from 'sentry/constants';
+import {BILLING_ROLE, ORG_ROLES} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member} from 'sentry/types/organization';
+import type {Member, OrgRole} from 'sentry/types/organization';
 
 interface Props {
   Footer: ModalRenderProps['Footer'];
@@ -70,6 +70,12 @@ export default function InviteMembersModalView({
   const hasDuplicateEmails = inviteEmails.length !== new Set(inviteEmails).size;
   const isValidInvites = invites.length > 0 && !hasDuplicateEmails;
 
+  // TODO Find a way to calculate this value without the Subscription object
+  const isOverLimit: boolean = true;
+  const roleOptions: OrgRole[] = isOverLimit
+    ? BILLING_ROLE
+    : member?.orgRoleList ?? ORG_ROLES;
+
   const errorAlert = error ? (
     <Alert type="error" showIcon>
       {error}
@@ -107,7 +113,7 @@ export default function InviteMembersModalView({
             emails={[...emails]}
             role={role}
             teams={[...teams]}
-            roleOptions={member?.orgRoleList ?? ORG_ROLES}
+            roleOptions={roleOptions}
             roleDisabledUnallowed={willInvite}
             inviteStatus={inviteStatus}
             onRemove={() => removeInviteRow(i)}
@@ -115,6 +121,7 @@ export default function InviteMembersModalView({
             onChangeRole={value => setRole(value?.value, i)}
             onChangeTeams={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
             disableRemove={disableInputs || pendingInvites.length === 1}
+            isOverMemberLimit={isOverLimit}
           />
         ))}
       </Rows>
