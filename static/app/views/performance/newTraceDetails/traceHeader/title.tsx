@@ -5,38 +5,25 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 
-import {TraceShape, type TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from '../traceModels/traceTree';
 
 interface TitleProps {
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traceSlug: string;
   tree: TraceTree;
 }
 
-export function Title({rootEventResults, traceSlug, tree}: TitleProps) {
-  const title = rootEventResults.data?.title;
-  const op = rootEventResults.data?.contexts.trace?.op;
-  const hasRoot =
-    ![TraceShape.EMPTY_TRACE, TraceShape.NO_ROOT, TraceShape.ONLY_ERRORS].includes(
-      tree.shape
-    ) || tree.eventsCount === 1;
+export function Title({traceSlug, tree}: TitleProps) {
+  const title = tree.title;
 
   return (
     <div>
       <HeaderTitle>
-        {hasRoot ? (
-          op ? (
-            <Fragment>
-              <strong>{op} - </strong>
-              {title}
-            </Fragment>
-          ) : (
-            title ?? '\u2014'
-          )
+        {title ? (
+          <Fragment>
+            <strong>{title.op} - </strong>
+            {title.transaction}
+          </Fragment>
         ) : (
           <Tooltip
             title={tct(

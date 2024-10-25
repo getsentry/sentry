@@ -55,7 +55,7 @@ function NewTraceMetadataHeader({
           <Breadcrumbs crumbs={getTraceViewBreadcrumbs(organization, location)} />
         </HeaderRow>
         <HeaderRow>
-          <Title rootEventResults={rootEventResults} traceSlug={traceSlug} tree={tree} />
+          <Title traceSlug={traceSlug} tree={tree} />
           <Meta
             organization={organization}
             rootEventResults={rootEventResults}
