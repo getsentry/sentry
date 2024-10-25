@@ -38,9 +38,7 @@ function OrganizationAuditLog({location}: Props) {
   const organization = useOrganization();
   const api = useApi();
 
-  const hasPermission = !(
-    organization.access.includes('org:write') || isActiveSuperuser()
-  );
+  const hasPermission = organization.access.includes('org:write') || isActiveSuperuser();
 
   const handleCursor: CursorHandler = resultsCursor => {
     setState(prevState => ({
