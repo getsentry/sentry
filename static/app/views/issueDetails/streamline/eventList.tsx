@@ -160,6 +160,9 @@ const EventListHeaderItem = styled('div')`
 `;
 
 const StreamlineEventsTable = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+
   ${Panel} {
     border: 0;
     margin-bottom: 0;

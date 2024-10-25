@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,7 +11,6 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -28,7 +28,8 @@ describe('groupEvents', () => {
     routes: [],
     location: {},
     environments: [],
-    group: GroupFixture() as Group,
+    group: GroupFixture(),
+    project: ProjectFixture(),
   });
 
   let organization: Organization;
