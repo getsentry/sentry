@@ -114,11 +114,11 @@ function SidebarItem({item}: SidebarItemProps) {
   );
 }
 
-const StyledLink = styled(Link)`
+const NavLink = styled(Link)`
   position: relative;
 `;
 
-const StyledButton = styled('button')`
+const NavButton = styled('button')`
   border: none;
   position: relative;
   background: transparent;
@@ -135,14 +135,14 @@ function SidebarLink({children, item}: SidebarItemProps & {children: React.React
   const linkProps = makeLinkPropsFromTo(to!);
 
   return (
-    <StyledLink
+    <NavLink
       {...linkProps}
       className={isActive || isSubmenuActive ? 'active' : undefined}
       aria-current={isActive ? 'page' : undefined}
     >
       <InteractionStateLayer hasSelectedBackground={isActive || isSubmenuActive} />
       {children}
-    </StyledLink>
+    </NavLink>
   );
 }
 
@@ -152,11 +152,11 @@ function SidebarMenu({item}: SidebarItemProps & {children: React.ReactNode}) {
       position="right-end"
       trigger={(props, isOpen) => {
         return (
-          <StyledButton {...props}>
+          <NavButton {...props}>
             <InteractionStateLayer hasSelectedBackground={isOpen} />
             {item.icon}
             <span>{item.label}</span>
-          </StyledButton>
+          </NavButton>
         );
       }}
       items={item.menu!}
