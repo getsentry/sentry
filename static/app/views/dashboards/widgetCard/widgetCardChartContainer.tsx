@@ -129,44 +129,6 @@ export function WidgetCardChartContainer({
         const modifiedTimeseriesResults =
           WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
 
-        if (widget.widgetType === WidgetType.RELEASE) {
-          return (
-            <Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <WidgetCardChart
-                timeseriesResults={modifiedTimeseriesResults}
-                tableResults={tableResults}
-                errorMessage={errorMessage}
-                loading={loading}
-                location={location}
-                widget={widget}
-                selection={selection}
-                organization={organization}
-                isMobile={isMobile}
-                windowWidth={windowWidth}
-                expandNumbers={expandNumbers}
-                onZoom={onZoom}
-                showSlider={showSlider}
-                noPadding={noPadding}
-                chartZoomOptions={chartZoomOptions}
-                chartGroup={chartGroup}
-                shouldResize={shouldResize}
-                onLegendSelectChanged={
-                  onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
-                }
-                legendOptions={
-                  legendOptions
-                    ? legendOptions
-                    : {selected: widgetLegendState.getWidgetSelectionState(widget)}
-                }
-                widgetLegendState={widgetLegendState}
-              />
-            </Fragment>
-          );
-        }
-
         return (
           <Fragment>
             {typeof renderErrorMessage === 'function'
