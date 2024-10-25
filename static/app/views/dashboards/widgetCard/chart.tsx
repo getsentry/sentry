@@ -167,7 +167,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
       return (
         <TableWrapper key={`table:${result.title}`}>
-          <SimpleTableChart
+          <StyledSimpleTableChart
             eventView={eventView}
             fieldAliases={fieldAliases}
             location={location}
@@ -672,12 +672,14 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
 
 const TableWrapper = styled('div')`
   margin-top: ${space(1.5)};
-  width: 100%;
-  flex-grow: 0;
-  flex-shrink: 0;
+  min-height: 0;
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
+`;
+
+const StyledSimpleTableChart = styled(SimpleTableChart)`
   overflow: auto;
+  height: 100%;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
