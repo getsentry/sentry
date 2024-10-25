@@ -189,7 +189,6 @@ module = [
     "sentry.api.serializers.rest_framework.mentions",
     "sentry.api.serializers.rest_framework.notification_action",
     "sentry.api.serializers.rest_framework.rule",
-    "sentry.api.serializers.snuba",
     "sentry.auth.helper",
     "sentry.auth.provider",
     "sentry.auth.system",
