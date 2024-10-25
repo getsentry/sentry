@@ -17,6 +17,9 @@ import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+import {IconChevron} from 'sentry/icons';
+import {Button} from 'sentry/components/button';
+import {SidebarToggle} from 'sentry/views/issueDetails/streamline/sidebar/toggle';
 
 interface GroupDetailsLayoutProps {
   children: React.ReactNode;
@@ -34,8 +37,11 @@ export function GroupDetailsLayout({
   children,
 }: GroupDetailsLayoutProps) {
   const searchQuery = useEventQuery({group});
-  const [sidebarOpen, _] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
-
+  const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
+    'issue-details-sidebar-open',
+    true
+  );
+  const direction = sidebarOpen ? 'right' : 'left';
   return (
     <Fragment>
       <StreamlinedGroupHeader
@@ -62,11 +68,12 @@ export function GroupDetailsLayout({
             </div>
           </GroupContent>
         </div>
-        {sidebarOpen ? (
-          <StyledLayoutSide>
+        <Side>
+          <SidebarToggle />
+          {sidebarOpen ? (
             <StreamlinedSidebar group={group} event={event} project={project} />
-          </StyledLayoutSide>
-        ) : null}
+          ) : null}
+        </Side>
       </StyledLayoutBody>
     </Fragment>
   );
@@ -75,20 +82,11 @@ export function GroupDetailsLayout({
 const StyledLayoutBody = styled(Layout.Body)<{
   sidebarOpen: boolean;
 }>`
-  /* Makes the borders align correctly */
   padding: 0 !important;
+  gap: 0 !important;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     align-content: stretch;
-    gap: ${space(1.5)};
-    display: ${p => (p.sidebarOpen ? 'grid' : 'block')};
-  }
-`;
-
-const StyledLayoutSide = styled(Layout.Side)`
-  padding: ${space(1.5)} ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding-left: ${space(0.5)};
+    grid-template-columns: minmax(100px, auto) ${p => (p.sidebarOpen ? '325px' : '0px')};
   }
 `;
 
@@ -110,4 +108,9 @@ const GroupContent = styled(Layout.Main)`
 const PageErrorBoundary = styled(ErrorBoundary)`
   margin: 0;
   border: 1px solid ${p => p.theme.translucentBorder};
+`;
+
+const Side = styled(Layout.Side)`
+  position: relative;
+  padding: ${space(1.5)} ${space(2)};
 `;

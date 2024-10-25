@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
+import * as Layout from 'sentry/components/layouts/thirds';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -14,6 +15,9 @@ import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/firstLast
 import PeopleSection from 'sentry/views/issueDetails/streamline/peopleSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
+import {Button} from 'sentry/components/button';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {IconChevron} from 'sentry/icons';
 
 type Props = {
   group: Group;
