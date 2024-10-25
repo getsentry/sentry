@@ -45,7 +45,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
       : props.actions) ?? [];
 
   return (
-    <Frame>
+    <Frame aria-label="Widget panel">
       <Header>
         {props.warnings && props.warnings.length > 0 && (
           <Tooltip title={<WarningsList warnings={props.warnings} />} isHoverable>
