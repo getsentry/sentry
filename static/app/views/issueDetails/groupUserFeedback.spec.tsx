@@ -37,7 +37,7 @@ describe('GroupUserFeedback', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/user-reports/`,
       body: [
         {
-          id: '113632849',
+          id: '1111',
           eventID: 'abc',
           name: 'Test User',
           email: 'test@example.com',
