@@ -57,15 +57,11 @@ import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
 import GroupHeader from 'sentry/views/issueDetails//header';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
-import {useGroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachmentsDrawer';
-import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails';
 import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
+import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/useMergedIssuesDrawer';
-import {useReplaysDrawer} from 'sentry/views/issueDetails/streamline/useReplaysDrawer';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/useSimilarIssuesDrawer';
-import {useUserFeedbackDrawer} from 'sentry/views/issueDetails/streamline/useUserFeedbackDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -622,14 +618,7 @@ function GroupDetailsContent({
   refetchData,
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
-  const router = useRouter();
-  const {openAttachmentDrawer} = useGroupEventAttachmentsDrawer({
-    group,
-    project,
-  });
   const {openTagsDrawer} = useGroupTagsDrawer({group});
-  const {openUserFeedbackDrawer} = useUserFeedbackDrawer({group, project});
-  const {openReplaysDrawer} = useReplaysDrawer({group, project});
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {isDrawerOpen} = useDrawer();
@@ -645,14 +634,8 @@ function GroupDetailsContent({
       return;
     }
 
-    if (currentTab === Tab.ATTACHMENTS) {
-      openAttachmentDrawer();
-    } else if (currentTab === Tab.TAGS) {
+    if (currentTab === Tab.TAGS) {
       openTagsDrawer();
-    } else if (currentTab === Tab.USER_FEEDBACK) {
-      openUserFeedbackDrawer();
-    } else if (currentTab === Tab.REPLAYS) {
-      openReplaysDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
     } else if (currentTab === Tab.MERGED) {
@@ -662,10 +645,7 @@ function GroupDetailsContent({
     currentTab,
     hasStreamlinedUI,
     isDrawerOpen,
-    openAttachmentDrawer,
     openTagsDrawer,
-    openUserFeedbackDrawer,
-    openReplaysDrawer,
     openSimilarIssuesDrawer,
     openMergedIssuesDrawer,
   ]);
@@ -685,30 +665,14 @@ function GroupDetailsContent({
   };
 
   return hasStreamlinedUI ? (
-    <div>
-      <StreamlinedGroupHeader
-        event={event}
-        group={group}
-        project={project}
-        groupReprocessingStatus={groupReprocessingStatus}
-      />
-      <GroupEventDetails
-        location={router.location}
-        route={router.routes.at(-1)!}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        params={router.params}
-        organization={organization}
-        event={event!}
-        group={group}
-        project={project}
-        loadingEvent={loadingEvent}
-        eventError={eventError}
-        groupReprocessingStatus={groupReprocessingStatus}
-        onRetry={refetchData}
-      />
-    </div>
+    <GroupDetailsLayout
+      group={group}
+      event={event ?? undefined}
+      project={project}
+      groupReprocessingStatus={groupReprocessingStatus}
+    >
+      {isValidElement(children) ? cloneElement(children, childProps) : children}
+    </GroupDetailsLayout>
   ) : (
     <Tabs
       value={currentTab}

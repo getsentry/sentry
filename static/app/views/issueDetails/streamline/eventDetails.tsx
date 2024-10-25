@@ -18,10 +18,7 @@ import {
   useEventDetails,
   useEventDetailsReducer,
 } from 'sentry/views/issueDetails/streamline/context';
-import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
-import {Tab} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function EventDetails({
   group,
@@ -30,34 +27,16 @@ export function EventDetails({
 }: Required<EventDetailsContentProps>) {
   const {eventDetails, dispatch} = useEventDetailsReducer();
 
-  const {currentTab} = useGroupDetailsRoute();
-
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      {/* TODO(issues): We should use the router for this */}
-      {currentTab === Tab.EVENTS && (
-        <PageErrorBoundary mini message={t('There was an error loading the event list')}>
-          {/* Overflow added only to this instance to scroll table. Acts weird with sticky nav. */}
-          <GroupContent style={{overflowX: 'auto'}}>
-            <EventList group={group} project={project} />
-          </GroupContent>
-        </PageErrorBoundary>
-      )}
-      {currentTab !== Tab.EVENTS && (
-        <PageErrorBoundary
-          mini
-          message={t('There was an error loading the event content')}
-        >
-          <div>
-            <GroupContent>
-              <StickyEventNav event={event} group={group} />
-              <ContentPadding>
-                <EventDetailsContent group={group} event={event} project={project} />
-              </ContentPadding>
-            </GroupContent>
-          </div>
-        </PageErrorBoundary>
-      )}
+      <PageErrorBoundary mini message={t('There was an error loading the event content')}>
+        <GroupContent>
+          <StickyEventNav event={event} group={group} />
+          <ContentPadding>
+            <EventDetailsContent group={group} event={event} project={project} />
+          </ContentPadding>
+        </GroupContent>
+      </PageErrorBoundary>
     </EventDetailsContext.Provider>
   );
 }
