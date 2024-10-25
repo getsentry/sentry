@@ -554,7 +554,7 @@ class EventManager:
             except ProjectKey.DoesNotExist:
                 pass
 
-        _derive_plugin_tags_many(jobs, projects)
+        _derive_plugin_tags_many(jobs, projects, is_transaction=True)
         _derive_interface_tags_many(jobs)
 
         # Load attachments first, but persist them at the very last after
@@ -829,14 +829,21 @@ def _get_event_user_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None
 
 
 @sentry_sdk.tracing.trace
-def _derive_plugin_tags_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+def _derive_plugin_tags_many(
+    jobs: Sequence[Job], projects: ProjectsMapping, is_transaction: bool = False
+) -> None:
     # XXX: We ought to inline or remove this one for sure
     plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
 
     for job in jobs:
         for plugin in plugins_for_projects[job["project_id"]]:
             added_tags = safe_execute(plugin.get_tags, job["event"])
+
             if added_tags:
+                # XXX: Temporarily record if any transactions actually have added tags, in order to
+                # determine whether this can be safely removed. This metric should be removed once validated.
+                if is_transaction:
+                    metrics.incr("save_transaction_events.has_added_tags")
                 data = job["data"]
                 # plugins should not override user provided tags
                 for key, value in added_tags:
