@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import React, {useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -85,6 +85,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   const dropdownOptions = [
     makeCreatorOption(),
     {
+      value: '_everyone_section',
       options: [
         {
           value: '_everyone',
@@ -141,7 +142,10 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       searchable
       options={dropdownOptions}
       value={selectedOptions}
-      triggerLabel={[t('Edit Access:'), triggerAvatars]}
+      triggerLabel={[
+        <React.Fragment key="edit-access-label">{t('Edit Access:')}</React.Fragment>,
+        <React.Fragment key="trigger-avatars">{triggerAvatars}</React.Fragment>,
+      ]}
       searchPlaceholder="Search Teams"
       disableSearchFilter
     />
