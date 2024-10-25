@@ -2,9 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
+import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
 
+import type {TimeseriesData} from '../common/types';
+
 import {LineChartWidget} from './lineChartWidget';
+import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
+import sampleThroughputTimeSeries from './sampleThroughputTimeSeries.json';
 
 export default storyBook(LineChartWidget, story => {
   story('Getting Started', () => {
@@ -27,20 +32,38 @@ export default storyBook(LineChartWidget, story => {
           some bells and whistles including automatic axes labels, and a hover tooltip.
         </p>
 
-        <MediumWidget>
-          <LineChartWidget
-            title="EPS"
-            description="Number of events per second"
-            meta={{
-              fields: {
-                'eps()': 'rate',
-              },
-              units: {
-                'eps()': '1/second',
-              },
-            }}
-          />
-        </MediumWidget>
+        <SideBySide>
+          <MediumWidget>
+            <LineChartWidget
+              title="eps()"
+              description="Number of events per second"
+              timeseries={[sampleThroughputTimeSeries as unknown as TimeseriesData]}
+              meta={{
+                fields: {
+                  'eps()': 'rate',
+                },
+                units: {
+                  'eps()': '1/second',
+                },
+              }}
+            />
+          </MediumWidget>
+
+          <MediumWidget>
+            <LineChartWidget
+              title="span.duration"
+              timeseries={[sampleDurationTimeSeries as unknown as TimeseriesData]}
+              meta={{
+                fields: {
+                  'span.duration': 'duration',
+                },
+                units: {
+                  'span.duration': 'millisecond',
+                },
+              }}
+            />
+          </MediumWidget>
+        </SideBySide>
       </Fragment>
     );
   });

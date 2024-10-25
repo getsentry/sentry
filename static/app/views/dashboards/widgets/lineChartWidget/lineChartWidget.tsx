@@ -18,6 +18,8 @@ interface Props
     LineChartWidgetVisualizationProps {}
 
 export function LineChartWidget(props: Props) {
+  const {timeseries} = props;
+
   if (props.isLoading) {
     return (
       <WidgetFrame title={props.title} description={props.description}>
@@ -35,12 +37,13 @@ export function LineChartWidget(props: Props) {
       onRetry={props.onRetry}
     >
       <LineChartWrapper>
-        <LineChartWidgetVisualization />
+        <LineChartWidgetVisualization timeseries={timeseries} />
       </LineChartWrapper>
     </WidgetFrame>
   );
 }
 
 const LineChartWrapper = styled('div')`
-  padding: ${X_GUTTER} 0 ${X_GUTTER} ${Y_GUTTER};
+  flex-grow: 1;
+  padding: 0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
 `;
