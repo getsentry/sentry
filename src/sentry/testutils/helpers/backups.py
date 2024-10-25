@@ -43,7 +43,11 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
+from sentry.incidents.models.alert_rule import (
+    AlertRuleExcludedProjects,
+    AlertRuleMonitorTypeInt,
+    AlertRuleTriggerExclusion,
+)
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
@@ -477,12 +481,16 @@ class ExhaustiveFixtures(Fixtures):
         alert = self.create_alert_rule(
             organization=org,
             projects=[project],
-            excluded_projects=[other_project],
             user=owner,
         )
+        alert.subscribe_projects(projects=[project])
+        AlertRuleExcludedProjects.objects.create(alert_rule=alert, project=other_project)
         alert.user_id = owner_id
         alert.save()
-        trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
+        trigger = self.create_alert_rule_trigger(alert_rule=alert)
+        AlertRuleTriggerExclusion.objects.create(
+            alert_rule_trigger=trigger, query_subscription=alert.snuba_query.subscriptions.first()
+        )
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         activated_alert = self.create_alert_rule(
             organization=org,

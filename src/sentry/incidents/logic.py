@@ -515,7 +515,6 @@ def create_alert_rule(
     owner: Actor | None = None,
     resolve_threshold: int | float | None = None,
     environment: Environment | None = None,
-    excluded_projects: Collection[Project] | None = None,
     query_type: SnubaQuery.Type = SnubaQuery.Type.ERROR,
     dataset: Dataset = Dataset.Events,
     user: RpcUser | None = None,
@@ -669,7 +668,6 @@ def create_alert_rule(
         )
 
     schedule_update_project_config(alert_rule, projects)
-
     return alert_rule
 
 
@@ -1085,7 +1083,6 @@ def create_alert_rule_trigger(
     alert_rule: AlertRule,
     label: str,
     alert_threshold: int | float,
-    excluded_projects: Collection[Project] = (),
 ) -> AlertRuleTrigger:
     """
     Creates a new AlertRuleTrigger
