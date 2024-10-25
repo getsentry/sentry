@@ -91,7 +91,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
                 content_type="application/json",
             )
             response["Content-Length"] = len(segment_bytes)
-            response[
-                "Content-Disposition"
-            ] = f'attachment; filename="{make_recording_filename(segment)}"'
+            response["Content-Disposition"] = (
+                f'attachment; filename="{make_recording_filename(segment)}"'
+            )
             return response

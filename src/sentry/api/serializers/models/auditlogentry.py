@@ -49,9 +49,11 @@ class AuditLogEntrySerializer(Serializer):
 
         return {
             item: {
-                "actor": users[str(item.actor_id)]
-                if item.actor_id and not override_actor_id(item.actor)
-                else {"name": item.get_actor_name()},
+                "actor": (
+                    users[str(item.actor_id)]
+                    if item.actor_id and not override_actor_id(item.actor)
+                    else {"name": item.get_actor_name()}
+                ),
                 "targetUser": users.get(str(item.target_user_id)) or item.target_user_id,
             }
             for item in item_list

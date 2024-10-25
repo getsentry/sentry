@@ -283,8 +283,9 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        with assume_test_silo_mode_of(OrganizationMember), unguarded_write(
-            using=router.db_for_write(OrganizationMember)
+        with (
+            assume_test_silo_mode_of(OrganizationMember),
+            unguarded_write(using=router.db_for_write(OrganizationMember)),
         ):
             OrganizationMember.objects.filter(id=om.id).update(
                 token_expires_at=om.token_expires_at - timedelta(days=31)

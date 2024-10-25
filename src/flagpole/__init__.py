@@ -59,6 +59,7 @@ prepared by the application.
 Each condition has a single operator. An operator takes a kind (`OperatorKind` enum)
 and a value, the type of which depends on the operator specified.
 """
+
 from __future__ import annotations
 
 import dataclasses

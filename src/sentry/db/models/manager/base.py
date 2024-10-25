@@ -549,22 +549,26 @@ def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseMana
         "bulk_create": limit.create_override(cls.bulk_create),
         "bulk_update": limit.create_override(cls.bulk_update),
         "create": limit.create_override(cls.create),
-        "create_or_update": limit.create_override(cls.create_or_update)
-        if hasattr(cls, "create_or_update")
-        else None,
+        "create_or_update": (
+            limit.create_override(cls.create_or_update)
+            if hasattr(cls, "create_or_update")
+            else None
+        ),
         "get_or_create": limit.create_override(cls.get_or_create),
-        "post_delete": limit.create_override(cls.post_delete)
-        if hasattr(cls, "post_delete")
-        else None,
+        "post_delete": (
+            limit.create_override(cls.post_delete) if hasattr(cls, "post_delete") else None
+        ),
         "select_for_update": limit.create_override(cls.select_for_update),
         "update": limit.create_override(cls.update),
         "update_or_create": limit.create_override(cls.update_or_create),
-        "get_from_cache": limit.create_override(cls.get_from_cache)
-        if hasattr(cls, "get_from_cache")
-        else None,
-        "get_many_from_cache": limit.create_override(cls.get_many_from_cache)
-        if hasattr(cls, "get_many_from_cache")
-        else None,
+        "get_from_cache": (
+            limit.create_override(cls.get_from_cache) if hasattr(cls, "get_from_cache") else None
+        ),
+        "get_many_from_cache": (
+            limit.create_override(cls.get_many_from_cache)
+            if hasattr(cls, "get_many_from_cache")
+            else None
+        ),
     }
     manager_subclass = type(cls.__name__, (cls,), overrides)
     manager_instance = manager_subclass()

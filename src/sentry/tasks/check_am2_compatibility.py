@@ -428,9 +428,9 @@ class CheckAM2Compatibility:
 
     @classmethod
     def get_outdated_sdks(cls, found_sdks_per_project):
-        outdated_sdks_per_project: Mapping[
-            str, Mapping[str, set[tuple[str, str | None]]]
-        ] = defaultdict(lambda: defaultdict(set))
+        outdated_sdks_per_project: Mapping[str, Mapping[str, set[tuple[str, str | None]]]] = (
+            defaultdict(lambda: defaultdict(set))
+        )
 
         for project, found_sdks in found_sdks_per_project.items():
             for sdk_name, sdk_versions in found_sdks.items():

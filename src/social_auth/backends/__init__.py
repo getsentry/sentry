@@ -9,6 +9,7 @@ Also the modules *must* define a BACKENDS dictionary with the backend name
 (which is used for URLs matching) and Auth class, otherwise it won't be
 enabled.
 """
+
 from __future__ import annotations
 
 import logging

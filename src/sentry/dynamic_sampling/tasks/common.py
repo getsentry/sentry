@@ -60,8 +60,7 @@ class LogStateCallable(Protocol):
 
     """
 
-    def __call__(self, state: DynamicSamplingLogState, *args, **kwargs) -> Any:
-        ...
+    def __call__(self, state: DynamicSamplingLogState, *args, **kwargs) -> Any: ...
 
     __name__: str
 
@@ -95,11 +94,9 @@ class ContextIterator(Protocol):
     An iterator that also can return its current state ( used for logging)
     """
 
-    def __iter__(self):
-        ...
+    def __iter__(self): ...
 
-    def __next__(self):
-        ...
+    def __next__(self): ...
 
     def get_current_state(self) -> DynamicSamplingLogState:
         """

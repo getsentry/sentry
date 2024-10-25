@@ -119,11 +119,14 @@ class JiraServerRequestParserTest(TestCase):
         )
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
 
-        with mock.patch(
-            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited"
-        ) as mock_is_limited, mock.patch(
-            "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
-        ) as mock_get_token:
+        with (
+            mock.patch(
+                "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited"
+            ) as mock_is_limited,
+            mock.patch(
+                "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
+            ) as mock_get_token,
+        ):
             mock_is_limited.return_value = True
             mock_get_token.return_value = self.integration
             response = parser.get_response()

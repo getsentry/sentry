@@ -665,9 +665,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule = self.alert_rule
         serialized_alert_rule = self.get_serialized_alert_rule()
         serialized_alert_rule["monitorType"] = AlertRuleMonitorTypeInt.ACTIVATED
-        serialized_alert_rule[
-            "activationCondition"
-        ] = AlertRuleActivationConditionType.RELEASE_CREATION.value
+        serialized_alert_rule["activationCondition"] = (
+            AlertRuleActivationConditionType.RELEASE_CREATION.value
+        )
         with (
             outbox_runner(),
             self.feature(["organizations:incidents", "organizations:activated-alert-rules"]),

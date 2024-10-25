@@ -260,9 +260,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             "html_frames": (
                 "none"
                 if html_frame_count == 0
-                else "all"
-                if html_frame_count == final_frame_count
-                else "some"
+                else "all" if html_frame_count == final_frame_count else "some"
             )
         },
     )
