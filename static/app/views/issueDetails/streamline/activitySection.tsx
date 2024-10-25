@@ -9,6 +9,7 @@ import {Flex} from 'sentry/components/container/flex';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -54,15 +55,15 @@ function TimelineItem({
     <ActivityTimelineItem
       title={
         <TitleWrapper>
-          {title}
-          <NoteDropdownWrapper>
-            {item.type === GroupActivityType.NOTE && (
-              <NoteDropdown onDelete={() => handleDelete(item)} user={item.user} />
-            )}
-          </NoteDropdownWrapper>
+          <TitleTooltip title={title} showOnlyOnOverflow skipWrapper>
+            {title}
+          </TitleTooltip>
+          {item.type === GroupActivityType.NOTE && (
+            <TitleDropdown onDelete={() => handleDelete(item)} user={item.user} />
+          )}
         </TitleWrapper>
       }
-      timestamp={<SmallTimestamp date={item.dateCreated} />}
+      timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
       icon={
         Icon && (
           <Icon {...groupActivityTypeIconMapping[item.type].defaultProps} size="xs" />
@@ -213,22 +214,31 @@ const Author = styled('span')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const NoteDropdownWrapper = styled('span')`
-  font-weight: normal;
-`;
-
 const TitleWrapper = styled('div')`
-  display: flex;
+  display: grid;
   align-items: center;
   gap: ${space(0.5)};
+  grid-template-columns: minmax(50px, 1fr) auto;
+`;
+
+const TitleTooltip = styled(Tooltip)`
+  justify-self: start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const TitleDropdown = styled(NoteDropdown)`
+  font-weight: normal;
 `;
 
 const ActivityTimelineItem = styled(Timeline.Item)`
   align-items: center;
 `;
 
-const SmallTimestamp = styled(TimeSince)`
+const Timestamp = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeSmall};
+  white-space: nowrap;
 `;
 
 const ShowAllButton = styled(Button)`
