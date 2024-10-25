@@ -301,7 +301,6 @@ const ButtonWrapper = styled('div')`
   flex-direction: row;
   gap: ${space(1.5)};
   align-items: center;
-  width: auto;
 `;
 
 const RefreshButton = styled(Button)`
