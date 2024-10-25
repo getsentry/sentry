@@ -154,7 +154,7 @@ export function resolveNavItemTo(
   if (item.to) {
     return item.to;
   }
-  if (isSidebarItem(item) && item.menu) {
+  if (isSidebarItem(item) && item.dropdown) {
     return undefined;
   }
   if (isSidebarItem(item) && isNonEmptyArray(item.submenu)) {
