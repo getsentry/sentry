@@ -131,16 +131,18 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                         )
 
                 elif key == "query":
-                    value = " ".join(value)
-                    queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
+                    joined_value = " ".join(value)
+                    queryset = queryset.filter(
+                        Q(name__icontains=joined_value) | Q(slug__icontains=joined_value)
+                    )
                 elif key == "slug":
                     queryset = queryset.filter(slug__in=value)
                 elif key == "id":
                     try:
-                        value = [int(item) for item in value]
+                        int_values = [int(item) for item in value]
                     except ValueError:
                         raise ParseError(detail="Invalid id value")
-                    queryset = queryset.filter(id__in=value)
+                    queryset = queryset.filter(id__in=int_values)
                 else:
                     queryset = queryset.none()
 
