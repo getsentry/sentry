@@ -967,8 +967,6 @@ describe('trace view', () => {
       });
     });
 
-    it('scrolls to head of');
-
     it('triggers search on load', async () => {
       mockQueryString('?search=transaction-op-5');
       await pageloadTestSetup();
