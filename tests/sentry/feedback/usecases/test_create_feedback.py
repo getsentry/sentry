@@ -20,7 +20,6 @@ from sentry.feedback.usecases.create_feedback import (
 )
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.helpers import Feature
-from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
 
@@ -86,7 +85,7 @@ def mock_feedback_event(project_id: int, dt: datetime):
         },
         "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
         "timestamp": dt.timestamp(),
-        "received": iso_format(dt),
+        "received": dt.isoformat(),
         "environment": "prod",
         "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
         "user": {

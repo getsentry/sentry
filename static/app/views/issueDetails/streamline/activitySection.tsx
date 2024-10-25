@@ -191,7 +191,7 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
                   borderless
                   size="zero"
                 >
-                  {t('%s comments hidden', group.activity.length - 3)}
+                  {t('%s activities hidden', group.activity.length - 3)}
                 </TextButton>
               }
               icon={<RotatedEllipsisIcon direction={'up'} />}
