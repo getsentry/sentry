@@ -14,7 +14,7 @@ import ComingSoon from './comingSoon';
 
 const renderComingSoon = () => <ComingSoon />;
 
-type Props = {
+export type FeatureProps = {
   /**
    * If children is a function then will be treated as a render prop and
    * passed FeatureRenderProps.
@@ -108,7 +108,7 @@ type AllFeatures = {
 /**
  * Component to handle feature flags.
  */
-class Feature extends Component<Props> {
+class Feature extends Component<FeatureProps> {
   static defaultProps = {
     renderDisabled: false,
     requireAll: true,
