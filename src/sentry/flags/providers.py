@@ -50,9 +50,22 @@ class InvalidProvider(Exception):
     ...
 
 
-class LaunchDarklyItemSerializer(serializers.Serializer):
-    """Docs reference: https://apidocs.launchdarkly.com/tag/Audit-log/#operation/getAuditLogEntry"""
+def handle_provider_event(
+    provider: str,
+    request_data: dict[str, Any],
+    organization_id: int,
+) -> list[FlagAuditLogRow]:
+    match provider:
+        case "launchdarkly":
+            return handle_launchdarkly_event(request_data, organization_id)
+        case _:
+            raise InvalidProvider(provider)
 
+
+"""LaunchDarkly provider."""
+
+
+class LaunchDarklyItemSerializer(serializers.Serializer):
     accesses = serializers.ListField(required=True)
     date = serializers.IntegerField(required=True)
     member = serializers.DictField(required=True)
@@ -60,18 +73,7 @@ class LaunchDarklyItemSerializer(serializers.Serializer):
     description = serializers.CharField(required=True)
 
 
-"""
-LaunchDarkly has a lot more flag actions than what's in our
-ACTION_MAP. The "updated" action is the catch-all for actions
-that don't fit in the other buckets.
-
-We started out with a few actions that we think would be useful
-to accept. All other actions will not be logged
-to the audit log. This set of actions is subject to change.
-"""
-
-# A subset chosen from https://docs.launchdarkly.com/home/account/role-actions#feature-flag-actions
-SUPPORTED_LAUNCHDARKLY_ACTIONS = (
+SUPPORTED_LAUNCHDARKLY_ACTIONS = {
     "createFlag",
     "cloneFlag",
     "deleteFlag",
@@ -89,7 +91,7 @@ SUPPORTED_LAUNCHDARKLY_ACTIONS = (
     "updatePrerequisites",
     "stopMeasuredRolloutOnFlagFallthrough",
     "stopMeasuredRolloutOnFlagRule",
-)
+}
 
 
 def handle_launchdarkly_actions(action: str) -> int:
@@ -123,18 +125,6 @@ def handle_launchdarkly_event(
         for access in result["accesses"]
         if access["action"] in SUPPORTED_LAUNCHDARKLY_ACTIONS
     ]
-
-
-def handle_provider_event(
-    provider: str,
-    request_data: dict[str, Any],
-    organization_id: int,
-) -> list[FlagAuditLogRow]:
-    match provider:
-        case "launchdarkly":
-            return handle_launchdarkly_event(request_data, organization_id)
-        case _:
-            raise InvalidProvider(provider)
 
 
 """Internal flag-pole provider.
