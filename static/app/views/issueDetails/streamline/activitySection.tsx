@@ -5,6 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
@@ -136,14 +137,14 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
 
   return (
     <div>
-      <TitleSection>
+      <Flex justify="space-between" align="center">
         <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
         {showAll && (
           <CollapseButton borderless size="zero" onClick={() => setShowAll(false)}>
             {t('Collapse')}
           </CollapseButton>
         )}
-      </TitleSection>
+      </Flex>
       <Timeline.Container>
         <NoteInputWithStorage
           key={inputId}
@@ -236,16 +237,11 @@ const ShowAllButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
-const TitleSection = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-`;
-
 const CollapseButton = styled(Button)`
   font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+  height: unset;
 `;
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
