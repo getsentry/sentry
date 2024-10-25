@@ -17,12 +17,15 @@ class GroupStatus:
 
 def remove_groups_from_group_inbox(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     GroupInbox = apps.get_model("sentry", "GroupInbox")
-    Group = apps.get_model("sentry", "Group")
 
     group_ids_to_delete = []
-    for group_inbox in RangeQuerySetWrapperWithProgressBarApprox(GroupInbox.objects.all()):
-        group = Group.objects.get(id=group_inbox.group_id)
-        if group.status == GroupStatus.RESOLVED or group.status == GroupStatus.IGNORED:
+    for group_inbox in RangeQuerySetWrapperWithProgressBarApprox(
+        GroupInbox.objects.select_related("group").all()
+    ):
+        if (
+            group_inbox.group.status == GroupStatus.RESOLVED
+            or group_inbox.group.status == GroupStatus.IGNORED
+        ):
             group_ids_to_delete.append(group_inbox.group_id)
 
         if len(group_ids_to_delete) >= BATCH_SIZE:
