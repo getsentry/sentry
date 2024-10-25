@@ -504,7 +504,6 @@ class EventAttributeConditionTest(RuleTestCase):
         # hack to trigger attributeerror
         event.interfaces["exception"]._data["values"][0] = None
 
-        # correctly matching filenames, at various locations in the stacktrace
         for value in ["example.php", "somecode.php", "othercode.php"]:
             rule = self.get_rule(
                 data={"match": MatchType.EQUAL, "attribute": "stacktrace.filename", "value": value}
