@@ -8,8 +8,8 @@ from sentry_protos.sentry.v1.taskworker_pb2 import RetryState
 
 class Retry:
     __times: int
-    __on: Sequence[type] | None
-    __ignore: Sequence[type] | None
+    __allowed_exception_types: Sequence[type] | None
+    __denied_exception_types: Sequence[type] | None
     __deadletter: bool | None
     __discard: bool | None
 
@@ -24,8 +24,8 @@ class Retry:
         discard: bool | None = None,
     ):
         self.__times = times
-        self.__on = on
-        self.__ignore = ignore
+        self.__allowed_exception_types = on
+        self.__denied_exception_types = ignore
         self.__deadletter = deadletter
         self.__discard = discard
 
@@ -34,12 +34,21 @@ class Retry:
         if state.attempts >= self.__times:
             return False
         # No retries for types on the ignore list
-        if self.__ignore and isinstance(exc, self.__ignore):
+        if any(
+            isinstance(exc, ignored_exception_type)
+            for ignored_exception_type in self.__denied_exception_types or []
+        ):
             return False
         # In the retry allow list or processing deadline is exceeded
         # When processing deadline is exceeded, the subprocess raises a TimeoutError
-        if (self.__on and isinstance(exc, self.__on)) or isinstance(exc, TimeoutError):
+        if isinstance(exc, TimeoutError) or (
+            any(
+                isinstance(exc, allowed_exception_type)
+                for allowed_exception_type in self.__allowed_exception_types or []
+            )
+        ):
             return True
+
         # TODO add logging/assertion for no funny business
         return False
 

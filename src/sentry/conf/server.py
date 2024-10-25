@@ -713,6 +713,10 @@ BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
+TASK_WORKER_ALWAYS_EAGER = False
+
+# Ensure workers run async by default
+# in Development you might want them to run in-process
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 

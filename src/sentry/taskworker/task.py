@@ -8,8 +8,10 @@ from typing import TYPE_CHECKING, Any
 from django.utils import timezone
 
 if TYPE_CHECKING:
+    from sentry_protos.sentry.v1.taskworker_pb2 import RetryState
+
     from sentry.taskworker.registry import TaskNamespace
-    from sentry.taskworker.retry import Retry, RetryState
+    from sentry.taskworker.retry import Retry
 
 
 class Task:

@@ -42,7 +42,7 @@ class TaskNamespace:
     def producer(self) -> KafkaProducer:
         if self.__producer:
             return self.__producer
-        cluster_name = get_topic_definition(Topic.HACKWEEK)["cluster"]
+        cluster_name = get_topic_definition(Topic.TASK_WORKER)["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
         self.__producer = KafkaProducer(producer_config)
 
@@ -109,7 +109,7 @@ class TaskNamespace:
             id=uuid4().hex,
             namespace=self.name,
             taskname=task.name,
-            parameters=orjson.dumps({"args": args, "kwargs": kwargs}),
+            parameters=str(orjson.dumps({"args": args, "kwargs": kwargs})),
             retry_state=retry_state,
             received_at=Timestamp(seconds=int(time.time())),
         ).SerializeToString()
