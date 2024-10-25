@@ -283,6 +283,9 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       )}
+      {hasStreamlinedUI && (
+        <ScreenshotDataSection event={event} projectSlug={project.slug} />
+      )}
       {isANR && (
         <QuickTraceQuery
           event={event}
@@ -310,9 +313,6 @@ export function EventDetailsContent({
       <EventHydrationDiff event={event} group={group} />
       {issueTypeConfig.replays.enabled && (
         <EventReplay event={event} group={group} projectSlug={project.slug} />
-      )}
-      {hasStreamlinedUI && (
-        <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
       {defined(eventEntries[EntryType.HPKP]) && (
         <EntryErrorBoundary type={EntryType.HPKP}>
