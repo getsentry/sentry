@@ -55,7 +55,6 @@ class SelectRequester:
                 "install_uuid": self.install.uuid,
                 "project_slug": self.project_slug,
                 "error_message": str(e),
-                "url": url or "",
             }
 
             if not url:
@@ -66,8 +65,12 @@ class SelectRequester:
                         "webhook_url": self.sentry_app.webhook_url,
                     }
                 )
+                message = "select-requester.missing-url"
+            else:
+                extra.update({"url": url})
+                message = "select-requester.request-failed"
 
-            logger.info("select-requester.error", extra)
+            logger.info(message, extra=extra)
             raise APIError from e
 
         if not self._validate_response(response):
