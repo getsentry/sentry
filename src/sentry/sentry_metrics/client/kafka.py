@@ -66,7 +66,6 @@ class KafkaMetricsBackend(GenericMetricsBackend):
         tags: dict[str, str],
         unit: str | None,
     ) -> None:
-
         """
         Emit a counter metric for internal use cases only.
         Note that, as of now, this function will return

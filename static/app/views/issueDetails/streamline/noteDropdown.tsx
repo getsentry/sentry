@@ -1,5 +1,5 @@
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
@@ -10,7 +10,7 @@ type Props = {
   user?: User | null;
 };
 
-function NoteDropdown({user, onDelete}: Props) {
+function NoteDropdown({user, onDelete, ...props}: Props & Partial<DropdownMenuProps>) {
   const activeUser = useUser();
   const canEdit = activeUser && (activeUser.isSuperuser || user?.id === activeUser.id);
 
@@ -47,6 +47,7 @@ function NoteDropdown({user, onDelete}: Props) {
             : undefined,
         },
       ]}
+      {...props}
     />
   );
 }
