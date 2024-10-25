@@ -397,7 +397,7 @@ describe('Modals -> WidgetViewerModal', function () {
           expect.objectContaining({
             option: expect.objectContaining({
               legend: expect.objectContaining({
-                selected: {[`Query Name:${mockWidget.id}`]: false},
+                selected: {[`Query Name;${mockWidget.id}`]: false},
               }),
             }),
           }),
