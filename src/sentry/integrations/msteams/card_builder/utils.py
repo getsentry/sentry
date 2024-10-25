@@ -120,7 +120,7 @@ class IssueConstants:
         ("1,000 times", 1000),
         ("10,000 times", 10000),
     ]
-    STOP_ARCHIVE = "Unarchive"
+    UNARCHIVE = "Unarchive"
 
     ASSIGN = "Assign"
     ASSIGN_INPUT_TITLE = "Assign to..."
