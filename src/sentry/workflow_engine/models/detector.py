@@ -187,7 +187,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             results[gk] = DetectorStateData(
                 group_key=gk,
                 active=detector_state.active if detector_state else False,
-                status=PriorityLevel(detector_state.state)
+                status=PriorityLevel(int(detector_state.state))
                 if detector_state
                 else PriorityLevel.OK,
                 dedupe_value=group_key_dedupe_values[gk],
