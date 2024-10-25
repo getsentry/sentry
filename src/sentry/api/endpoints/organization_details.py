@@ -390,6 +390,18 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             )
         return value
 
+    def validate_aggregatedDataConsent(self, value):
+        request = self.context["request"]
+        if not request.access.has_scope("org:billing"):
+            raise serializers.ValidationError("You do not have permission to change this option")
+        return value
+
+    def validate_genAIConsent(self, value):
+        request = self.context["request"]
+        if not request.access.has_scope("org:billing"):
+            raise serializers.ValidationError("You do not have permission to change this option")
+        return value
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
