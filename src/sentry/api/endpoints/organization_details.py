@@ -90,6 +90,7 @@ from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
 )
+from sentry.types.region import get_local_region
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
@@ -398,7 +399,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def validate_genAIConsent(self, value):
         request = self.context["request"]
-        if not request.access.has_scope("org:billing"):
+        if not request.access.has_scope("org:billing") or get_local_region().name != "us":
             raise serializers.ValidationError("You do not have permission to change this option")
         return value
 
