@@ -436,6 +436,23 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
     }
     permission_classes = (OrganizationAlertRulePermission,)
 
+    def has_create_alert_permission(self, request: Request, organization: Organization) -> None:
+        """
+        Determine if the requesting user has access to alert creation.
+        """
+        #
+        if request.access.has_scope("alerts:write"):
+            return
+        # team admins should be able to crete alerts for the projects they have access to
+        projects = self.get_projects(request, organization)
+        # team admins will have alerts:write scoped to their projects, members will not
+        team_admin_has_access = all(
+            [request.access.has_project_scope(project, "alerts:write") for project in projects]
+        )
+        # all() returns True for empty list, so include a check for it
+        if not team_admin_has_access or not projects:
+            raise PermissionDenied
+
     @extend_schema(
         operation_id="List an Organization's Metric Alert Rules",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
@@ -625,15 +642,5 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
         """
-        # projects where the user has project membership
-        projects = self.get_projects(request, organization)
-        # if sentry:alerts_member_write is false, then team admins and regular org members don't have alerts:write on an org level
-        if not request.access.has_scope("alerts:write"):
-            # team admins will have alerts:write scoped to their projects, members will not
-            team_admin_has_access = all(
-                [request.access.has_project_scope(project, "alerts:write") for project in projects]
-            )
-            # all() returns True for empty list, so include a check for it
-            if not team_admin_has_access or not projects:
-                raise PermissionDenied
+
         return self.create_metric_alert(request, organization)
