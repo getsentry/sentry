@@ -1,10 +1,9 @@
-from urllib.parse import quote, unquote
+from urllib.parse import quote
 
 from django.urls import reverse
 
 from sentry.flags.endpoints.hooks import is_valid_token
 from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
-from sentry.hybridcloud.models import OrgAuthTokenReplica
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -198,46 +197,27 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             response = self.client.post(url, {})
             assert response.status_code == 404
 
-    def _test_post_invalid_token(self):
-        # Does not exist
+    def test_post_invalid_token(self):
         url = reverse(self.endpoint, args=(self.organization.slug, "launchdarkly", "wrong"))
         with self.feature(self.features):
             response = self.client.post(url, {})
             assert response.status_code == 403
 
-        # Exists in a different org
+    def test_post_cross_org_token(self):
         other_org = self.create_organization()
-        token = "sntrys+_abc123_xyz"
-        with assume_test_silo_mode(SiloMode.MONOLITH):
-            token_obj = OrgAuthToken.objects.create(
-                name="Test token",
-                token_hashed=hash_token(unquote(token)),
-                organization_id=other_org.id,
-            )
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            OrgAuthTokenReplica.objects.create(
-                name="Test token",
-                token_hashed=hash_token(unquote(token)),
-                organization_id=other_org.id,
-                orgauthtoken_id=token_obj.id,
-            )
+        self.create_org_auth_token(
+            name="Test Token 1",
+            token_hashed=hash_token("abc"),
+            organization_id=other_org.id,
+            token_last_characters="xyz",
+            scope_list=["org:ci"],
+            date_last_used=None,
+        )
 
-        url = reverse(self.endpoint, args=(self.organization.slug, "launchdarkly", token))
+        url = reverse(self.endpoint, args=(self.organization.slug, "launchdarkly", "abc"))
         with self.feature(self.features):
             response = self.client.post(url, {})
             assert response.status_code == 403
-
-    @assume_test_silo_mode(SiloMode.REGION)
-    def test_post_invalid_token_region_silo(self):
-        self._test_post_invalid_token()
-
-    @assume_test_silo_mode(SiloMode.CONTROL)
-    def test_post_invalid_token_control_silo(self):
-        self._test_post_invalid_token()
-
-    @assume_test_silo_mode(SiloMode.MONOLITH)
-    def test_post_invalid_token_monolith(self):
-        self._test_post_invalid_token()
 
     def test_post_disabled(self):
         response = self.client.post(self.url, data={})
