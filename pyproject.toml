@@ -345,7 +345,6 @@ module = [
     "sentry.web.frontend.auth_logout",
     "sentry.web.frontend.auth_organization_login",
     "sentry.web.frontend.base",
-    "sentry.web.frontend.disabled_member_view",
     "sentry.web.frontend.group_plugin_action",
     "sentry.web.frontend.oauth_authorize",
     "sentry.web.frontend.oauth_token",
