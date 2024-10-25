@@ -23,5 +23,4 @@ class ReactivateAccountView(BaseView):
 
             return self.redirect(auth.get_login_redirect(request))
 
-        context = {}
-        return self.respond("sentry/reactivate-account.html", context)
+        return self.respond("sentry/reactivate-account.html", {})
