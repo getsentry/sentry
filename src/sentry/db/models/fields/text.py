@@ -13,7 +13,6 @@ python to allow us to size up the lengths without any
 migrations.
 """
 
-
 from django.db import models
 from django.db.backends.base.base import BaseDatabaseWrapper
 

@@ -3081,8 +3081,7 @@ class PostProcessGroupFeedbackTest(
     @pytest.mark.skip(
         reason="Skip this test since there's no way to have issueless events in the issue platform"
     )
-    def test_issueless(self):
-        ...
+    def test_issueless(self): ...
 
     def test_no_cache_abort(self):
         # We don't use the cache for generic issues, so skip this test

@@ -159,13 +159,11 @@ class Actor(RpcModel):
 
     @overload
     @classmethod
-    def from_identifier(cls, id: None) -> None:
-        ...
+    def from_identifier(cls, id: None) -> None: ...
 
     @overload
     @classmethod
-    def from_identifier(cls, id: int | str) -> "Actor":
-        ...
+    def from_identifier(cls, id: int | str) -> "Actor": ...
 
     @classmethod
     def from_identifier(cls, id: str | int | None) -> "Actor | None":
@@ -268,12 +266,10 @@ class ActorOwned(Protocol):
     """Protocol for objects that are owned by Actor but need to store ownership in discrete columns"""
 
     @property
-    def owner(self) -> Actor | None:
-        ...
+    def owner(self) -> Actor | None: ...
 
     @owner.setter
-    def owner(self, actor: Actor | None) -> None:
-        ...
+    def owner(self, actor: Actor | None) -> None: ...
 
 
 def parse_and_validate_actor(actor_identifier: str | None, organization_id: int) -> Actor | None:

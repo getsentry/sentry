@@ -658,9 +658,9 @@ def merge_transactions(
         "org_id": left["org_id"],
         "project_id": left["project_id"],
         "transaction_counts": merged_transactions,
-        "total_num_transactions": totals.get("total_num_transactions")
-        if totals is not None
-        else None,
+        "total_num_transactions": (
+            totals.get("total_num_transactions") if totals is not None else None
+        ),
         "total_num_classes": totals.get("total_num_classes") if totals is not None else None,
     }
 

@@ -495,9 +495,9 @@ class GetStacktraceStringTest(TestCase):
 
     def test_contributing_exception_no_contributing_frames(self):
         data_no_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
-        data_no_contributing_frame["app"]["component"]["values"][0]["values"][0][
-            "values"
-        ] = self.create_frames(1, False)
+        data_no_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = (
+            self.create_frames(1, False)
+        )
         stacktrace_str = get_stacktrace_string(data_no_contributing_frame)
         assert stacktrace_str == "ZeroDivisionError: division by zero"
 

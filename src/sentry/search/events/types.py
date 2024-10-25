@@ -177,9 +177,9 @@ class SnubaParams:
             "project_objects": list(self.projects),
             "environment": list(self.environment_names),
             "team_id": list(self.team_ids),
-            "environment_objects": [env for env in self.environments if env is not None]
-            if self.environments
-            else [],
+            "environment_objects": (
+                [env for env in self.environments if env is not None] if self.environments else []
+            ),
         }
         if self.organization_id:
             filter_params["organization_id"] = self.organization_id

@@ -55,9 +55,9 @@ def test_process_pending_one_batch(mocked_attachment_cache, mock_client):
 
 
 def test_chunked(mocked_attachment_cache, mock_client):
-    mock_client.data[
-        KEY_FMT % "foo:a"
-    ] = '[{"name":"foo.txt","content_type":"text/plain","chunks":3}]'
+    mock_client.data[KEY_FMT % "foo:a"] = (
+        '[{"name":"foo.txt","content_type":"text/plain","chunks":3}]'
+    )
     mock_client.data[KEY_FMT % "foo:a:0:0"] = zlib.compress(b"Hello World!")
     mock_client.data[KEY_FMT % "foo:a:0:1"] = zlib.compress(b" This attachment is ")
     mock_client.data[KEY_FMT % "foo:a:0:2"] = zlib.compress(b"chunked up.")

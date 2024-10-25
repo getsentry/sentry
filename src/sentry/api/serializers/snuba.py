@@ -101,15 +101,17 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             rv.append((k, row))
 
         res = {
-            "data": zerofill(
-                rv,
-                result.start,
-                result.end,
-                result.rollup,
-                allow_partial_buckets=allow_partial_buckets,
+            "data": (
+                zerofill(
+                    rv,
+                    result.start,
+                    result.end,
+                    result.rollup,
+                    allow_partial_buckets=allow_partial_buckets,
+                )
+                if zerofill_results
+                else rv
             )
-            if zerofill_results
-            else rv
         }
 
         if result.data.get("totals"):

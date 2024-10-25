@@ -61,9 +61,10 @@ class LockTestCase(unittest.TestCase):
             def incr(cls, delta):
                 cls.time += delta
 
-        with patch(
-            "sentry.utils.locking.lock.time.monotonic", side_effect=lambda: MockTime.time
-        ), patch("sentry.utils.locking.lock.time.sleep", side_effect=MockTime.incr) as mock_sleep:
+        with (
+            patch("sentry.utils.locking.lock.time.monotonic", side_effect=lambda: MockTime.time),
+            patch("sentry.utils.locking.lock.time.sleep", side_effect=MockTime.incr) as mock_sleep,
+        ):
             with pytest.raises(UnableToAcquireLock):
                 lock.blocking_acquire(initial_delay=0.1, timeout=1, exp_base=2)
 

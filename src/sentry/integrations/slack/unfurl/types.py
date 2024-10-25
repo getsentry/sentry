@@ -32,8 +32,7 @@ class HandlerCallable(Protocol):
         integration: Integration,
         links: list[UnfurlableUrl],
         user: User | None = None,
-    ) -> UnfurledUrl:
-        ...
+    ) -> UnfurledUrl: ...
 
 
 class Handler(NamedTuple):

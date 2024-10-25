@@ -5,6 +5,7 @@ sudo.settings
 :copyright: (c) 2020 by Matt Robenolt.
 :license: BSD, see LICENSE for more details.
 """
+
 from django.conf import settings
 
 # Default url to be redirected to after elevating permissions

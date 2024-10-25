@@ -42,13 +42,11 @@ def create_redirect_url(request: HttpRequest, redirect_url: str) -> str:
 
 
 @overload
-def origin_from_url(url: str) -> str:
-    ...
+def origin_from_url(url: str) -> str: ...
 
 
 @overload
-def origin_from_url(url: None) -> None:
-    ...
+def origin_from_url(url: None) -> None: ...
 
 
 def origin_from_url(url: str | None) -> str | None:

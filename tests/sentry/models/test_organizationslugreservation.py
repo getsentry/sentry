@@ -44,9 +44,9 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug_res = org_slug_reservations.get(slug)
             assert slug_res is not None
 
-            org_slug_reservation_replica: None | (
-                OrganizationSlugReservationReplica
-            ) = org_slug_replicas.pop(slug, None)
+            org_slug_reservation_replica: None | (OrganizationSlugReservationReplica) = (
+                org_slug_replicas.pop(slug, None)
+            )
 
             if org_slug_reservation_replica is None:
                 slug_reservations_missing_replicas.append(slug_res)

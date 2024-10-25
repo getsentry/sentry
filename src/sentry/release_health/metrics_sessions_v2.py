@@ -148,14 +148,12 @@ class Field(ABC):
         self.metric_fields = self._get_metric_fields(raw_groupby, status_filter)
 
     @abstractmethod
-    def _get_session_status(self, metric_field: MetricField) -> SessionStatus | None:
-        ...
+    def _get_session_status(self, metric_field: MetricField) -> SessionStatus | None: ...
 
     @abstractmethod
     def _get_metric_fields(
         self, raw_groupby: Sequence[str], status_filter: StatusFilter
-    ) -> Sequence[MetricField]:
-        ...
+    ) -> Sequence[MetricField]: ...
 
     def extract_values(
         self,

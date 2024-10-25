@@ -268,13 +268,13 @@ def has_pending_commit_resolution(group: Group) -> bool:
 
 
 @overload
-def get_max_crashreports(model: Project | Organization) -> int:
-    ...
+def get_max_crashreports(model: Project | Organization) -> int: ...
 
 
 @overload
-def get_max_crashreports(model: Project | Organization, *, allow_none: Literal[True]) -> int | None:
-    ...
+def get_max_crashreports(
+    model: Project | Organization, *, allow_none: Literal[True]
+) -> int | None: ...
 
 
 def get_max_crashreports(model: Project | Organization, *, allow_none: bool = False) -> int | None:

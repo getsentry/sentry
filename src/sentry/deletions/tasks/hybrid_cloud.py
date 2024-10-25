@@ -8,6 +8,7 @@ Notably, this job is only responsible for cascading to models that are related t
 opposing silo and are stored in Tombstone rows.  Deletions that are not successfully synchronized via Outbox to a
 Tombstone row will not, therefore, cascade to any related cross silo rows.
 """
+
 import datetime
 from collections import defaultdict
 from dataclasses import dataclass
@@ -369,7 +370,7 @@ def _get_model_ids_for_tombstone_cascade(
                 },
             )
 
-            for (row_id, tomb_created) in conn.fetchall():
+            for row_id, tomb_created in conn.fetchall():
                 to_delete_ids.append(row_id)
                 oldest_seen = min(oldest_seen, tomb_created)
 

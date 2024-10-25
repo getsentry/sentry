@@ -20,8 +20,7 @@ if TYPE_CHECKING:
 
 
 class EventPreprocessor(Protocol):
-    def __call__(self, data: MutableMapping[str, Any]) -> MutableMapping[str, Any] | None:
-        ...
+    def __call__(self, data: MutableMapping[str, Any]) -> MutableMapping[str, Any] | None: ...
 
 
 class PluginMount(type):

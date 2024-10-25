@@ -241,9 +241,9 @@ def simulate_on_commit(request: Any):
         if is_django_test_case:
             simulated_transaction_watermarks.state[conn.alias] = 2
         else:
-            simulated_transaction_watermarks.state[
-                conn.alias
-            ] = simulated_transaction_watermarks.get_transaction_depth(conn)
+            simulated_transaction_watermarks.state[conn.alias] = (
+                simulated_transaction_watermarks.get_transaction_depth(conn)
+            )
 
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
     functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)

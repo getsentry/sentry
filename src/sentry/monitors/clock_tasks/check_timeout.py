@@ -30,7 +30,10 @@ def dispatch_check_timeout(ts: datetime):
     This will dispatch MarkTimeout messages into monitors-clock-tasks.
     """
     timed_out_checkins = list(
-        MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS, timeout_at__lte=ts,).values(
+        MonitorCheckIn.objects.filter(
+            status=CheckInStatus.IN_PROGRESS,
+            timeout_at__lte=ts,
+        ).values(
             "id", "monitor_environment_id"
         )[:CHECKINS_LIMIT]
     )

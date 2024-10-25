@@ -5,6 +5,7 @@ sudo.middleware
 :copyright: (c) 2020 by Matt Robenolt.
 :license: BSD, see LICENSE for more details.
 """
+
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.deprecation import MiddlewareMixin

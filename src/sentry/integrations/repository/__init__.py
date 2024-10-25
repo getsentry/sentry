@@ -9,6 +9,7 @@ For self-hosted, if the user wants to utilize another datastore, they are able t
 What we query from an interface level won't change, simply how we query will change, and these classes should be the
 only thing that need to change after we make the migration.
 """
+
 from sentry.integrations.repository.issue_alert import IssueAlertNotificationMessageRepository
 from sentry.integrations.repository.metric_alert import MetricAlertNotificationMessageRepository
 

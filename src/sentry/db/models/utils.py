@@ -94,12 +94,10 @@ class Creator(Generic[FieldSetType, FieldGetType]):
         self.field = field
 
     @overload
-    def __get__(self, inst: Model, owner: type[Any]) -> Any:
-        ...
+    def __get__(self, inst: Model, owner: type[Any]) -> Any: ...
 
     @overload
-    def __get__(self, inst: None, owner: type[Any]) -> Self:
-        ...
+    def __get__(self, inst: None, owner: type[Any]) -> Self: ...
 
     def __get__(self, inst: Model | None, owner: type[Any]) -> Self | Any:
         if inst is None:

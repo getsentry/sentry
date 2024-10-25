@@ -470,10 +470,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         ):
                             if not result.data.get("meta"):
                                 result.data["meta"] = {}
-                            result.data["meta"][
-                                "discoverSplitDecision"
-                            ] = DashboardWidgetTypes.get_type_name(
-                                DashboardWidgetTypes.TRANSACTION_LIKE
+                            result.data["meta"]["discoverSplitDecision"] = (
+                                DashboardWidgetTypes.get_type_name(
+                                    DashboardWidgetTypes.TRANSACTION_LIKE
+                                )
                             )
                         return original_results
                     elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
@@ -484,10 +484,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         ):
                             if not result.data.get("meta"):
                                 result.data["meta"] = {}
-                            result.data["meta"][
-                                "discoverSplitDecision"
-                            ] = DashboardWidgetTypes.get_type_name(
-                                DashboardWidgetTypes.ERROR_EVENTS
+                            result.data["meta"]["discoverSplitDecision"] = (
+                                DashboardWidgetTypes.get_type_name(
+                                    DashboardWidgetTypes.ERROR_EVENTS
+                                )
                             )
                         return error_results
                     else:

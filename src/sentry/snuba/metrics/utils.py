@@ -455,25 +455,21 @@ class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeE
 
 
 @overload
-def to_intervals(start: None, end: datetime, interval_seconds: int) -> tuple[None, None, int]:
-    ...
+def to_intervals(start: None, end: datetime, interval_seconds: int) -> tuple[None, None, int]: ...
 
 
 @overload
-def to_intervals(start: datetime, end: None, interval_seconds: int) -> tuple[None, None, int]:
-    ...
+def to_intervals(start: datetime, end: None, interval_seconds: int) -> tuple[None, None, int]: ...
 
 
 @overload
-def to_intervals(start: None, end: None, interval_seconds: int) -> tuple[None, None, int]:
-    ...
+def to_intervals(start: None, end: None, interval_seconds: int) -> tuple[None, None, int]: ...
 
 
 @overload
 def to_intervals(
     start: datetime, end: datetime, interval_seconds: int
-) -> tuple[datetime, datetime, int]:
-    ...
+) -> tuple[datetime, datetime, int]: ...
 
 
 def to_intervals(

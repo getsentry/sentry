@@ -223,9 +223,9 @@ class JiraWebhookBaseTest(TestCase):
         mock_endpoint = MockErroringJiraEndpoint.as_view(error=MethodNotAllowed("GET"))
 
         request = self.make_request(method="GET")
-        request.META[
-            "HTTP_USER_AGENT"
-        ] = "CSRT (github.com/atlassian-labs/connect-security-req-tester)"
+        request.META["HTTP_USER_AGENT"] = (
+            "CSRT (github.com/atlassian-labs/connect-security-req-tester)"
+        )
         response = mock_endpoint(request)
 
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED

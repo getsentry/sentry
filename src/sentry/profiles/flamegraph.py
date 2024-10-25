@@ -391,21 +391,21 @@ class FlamegraphExecutor:
         )
         results = builder.process_results(results)
 
-        continuous_profile_candidates: list[
-            ContinuousProfileCandidate
-        ] = self.get_chunks_for_profilers(
-            [
-                ProfilerMeta(
-                    project_id=row["project.id"],
-                    profiler_id=row["profiler.id"],
-                    thread_id=row["thread.id"],
-                    start=row["precise.start_ts"],
-                    end=row["precise.finish_ts"],
-                    transaction_id=row["id"],
-                )
-                for row in results["data"]
-                if row["profiler.id"] is not None and row["thread.id"]
-            ]
+        continuous_profile_candidates: list[ContinuousProfileCandidate] = (
+            self.get_chunks_for_profilers(
+                [
+                    ProfilerMeta(
+                        project_id=row["project.id"],
+                        profiler_id=row["profiler.id"],
+                        thread_id=row["thread.id"],
+                        start=row["precise.start_ts"],
+                        end=row["precise.finish_ts"],
+                        transaction_id=row["id"],
+                    )
+                    for row in results["data"]
+                    if row["profiler.id"] is not None and row["thread.id"]
+                ]
+            )
         )
 
         transaction_profile_candidates: list[TransactionProfileCandidate] = [

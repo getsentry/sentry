@@ -41,13 +41,11 @@ _EnvTypes = Union[str, float, int, list, dict]
 
 
 @overload
-def env(key: str) -> str:
-    ...
+def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes:
-    ...
+def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
 
 
 def env(

@@ -15,7 +15,13 @@ class EventLinkKafkaMessage(TypedDict):
     replay_id: str
     project_id: int
     segment_id: None
-    payload: EventLinkPayloadDebugId | EventLinkPayloadInfoId | EventLinkPayloadWarningId | EventLinkPayloadErrorId | EventLinkPayloadFatalId
+    payload: (
+        EventLinkPayloadDebugId
+        | EventLinkPayloadInfoId
+        | EventLinkPayloadWarningId
+        | EventLinkPayloadErrorId
+        | EventLinkPayloadFatalId
+    )
     retention_days: int
 
 

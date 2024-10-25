@@ -100,7 +100,11 @@ def backfill_seer_grouping_records_for_project(
     )
 
     try:
-        (project, last_processed_group_id, last_processed_project_index,) = initialize_backfill(
+        (
+            project,
+            last_processed_group_id,
+            last_processed_project_index,
+        ) = initialize_backfill(
             current_project_id,
             last_processed_group_id_input,
             last_processed_project_index_input,

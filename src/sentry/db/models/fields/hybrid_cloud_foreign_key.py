@@ -43,6 +43,7 @@ To add this field to a model, you need to do a few preparatory steps:
 Ideally, when applying this field, you write model test that validates that deletion of your parent model produces
 the expected cascade behavior in your field.
 """
+
 from __future__ import annotations
 
 from enum import IntEnum

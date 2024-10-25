@@ -159,10 +159,13 @@ def handle_message(
         sentry_sdk.set_tag("query_subscription_id", contents["subscription_id"])
 
         callback = subscriber_registry[subscription.type]
-        with sentry_sdk.start_span(op="process_message") as span, metrics.timer(
-            "snuba_query_subscriber.callback.duration",
-            instance=subscription.type,
-            tags={"dataset": dataset},
+        with (
+            sentry_sdk.start_span(op="process_message") as span,
+            metrics.timer(
+                "snuba_query_subscriber.callback.duration",
+                instance=subscription.type,
+                tags={"dataset": dataset},
+            ),
         ):
             span.set_data("payload", contents)
             span.set_data("subscription_dataset", subscription.snuba_query.dataset)

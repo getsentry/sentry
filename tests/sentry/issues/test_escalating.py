@@ -190,9 +190,11 @@ class HistoricGroupCounts(
 
         # Force pagination to only three elements per page
         # Once we get to Python 3.10+ the formating of this multiple with statement will not be an eye sore
-        with patch("sentry.issues.escalating._query_with_pagination") as query_mock, patch(
-            "sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=3
-        ), patch("sentry.issues.escalating.BUCKETS_PER_GROUP", new=2):
+        with (
+            patch("sentry.issues.escalating._query_with_pagination") as query_mock,
+            patch("sentry.issues.escalating.ELEMENTS_PER_SNUBA_PAGE", new=3),
+            patch("sentry.issues.escalating.BUCKETS_PER_GROUP", new=2),
+        ):
             query_groups_past_counts(groups)
             # Proj X will expect potentially 4 elements because it has two groups, thus, no other
             # project will be called with it.

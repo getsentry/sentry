@@ -125,8 +125,7 @@ class _HasRespond(Protocol):
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200
-    ) -> HttpResponseBase:
-        ...
+    ) -> HttpResponseBase: ...
 
 
 class OrganizationMixin:

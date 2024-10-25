@@ -483,9 +483,9 @@ class GetRulesToFireTest(TestCase):
             ): {self.group1.id: 2, self.group2.id: 1}
         }
 
-        self.rules_to_slow_conditions: DefaultDict[
-            Rule, list[EventFrequencyConditionData]
-        ] = defaultdict(list)
+        self.rules_to_slow_conditions: DefaultDict[Rule, list[EventFrequencyConditionData]] = (
+            defaultdict(list)
+        )
         self.rules_to_slow_conditions[self.rule1].append(TEST_RULE_SLOW_CONDITION)
 
         self.rules_to_groups: DefaultDict[int, set[int]] = defaultdict(set)

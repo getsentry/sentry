@@ -956,8 +956,9 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
     @freeze_time(MOCK_DATETIME)
     def test_snuba_limit_exceeded(self):
         # 2 * 4 => only show two groups
-        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 8), patch(
-            "sentry.snuba.metrics.query.MAX_POINTS", 8
+        with (
+            patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 8),
+            patch("sentry.snuba.metrics.query.MAX_POINTS", 8),
         ):
             response = self.do_request(
                 {
@@ -996,8 +997,9 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
     def test_snuba_limit_exceeded_groupby_status(self):
         """Get consistent result when grouping by status"""
         # 2 * 4 => only show two groups
-        with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 8), patch(
-            "sentry.snuba.metrics.query.MAX_POINTS", 8
+        with (
+            patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 8),
+            patch("sentry.snuba.metrics.query.MAX_POINTS", 8),
         ):
             response = self.do_request(
                 {
