@@ -1,4 +1,4 @@
-import {Fragment, type PropsWithChildren} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -127,7 +127,7 @@ const StyledButton = styled('button')`
   ${linkStyles}
 `;
 
-function SidebarLink({children, item}: PropsWithChildren<SidebarItemProps>) {
+function SidebarLink({children, item}: SidebarItemProps & {children: React.ReactNode}) {
   const location = useLocation();
   const isActive = isNavItemActive(item, location);
   const isSubmenuActive = isSubmenuItemActive(item, location);
@@ -146,7 +146,7 @@ function SidebarLink({children, item}: PropsWithChildren<SidebarItemProps>) {
   );
 }
 
-function SidebarMenu({item}: PropsWithChildren<SidebarItemProps>) {
+function SidebarMenu({item}: SidebarItemProps & {children: React.ReactNode}) {
   return (
     <DropdownMenu
       position="right-end"
