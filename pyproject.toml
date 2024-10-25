@@ -150,7 +150,6 @@ module = [
     "sentry.api.endpoints.organization_metrics_meta",
     "sentry.api.endpoints.organization_onboarding_continuation_email",
     "sentry.api.endpoints.organization_projects",
-    "sentry.api.endpoints.organization_projects_experiment",
     "sentry.api.endpoints.organization_releases",
     "sentry.api.endpoints.organization_request_project_creation",
     "sentry.api.endpoints.organization_search_details",
