@@ -68,6 +68,7 @@ class AuthenticatedToken(RpcModel):
     @classmethod
     def kinds(cls) -> Mapping[str, Collection[type[Any]]]:
         from sentry.auth.system import SystemToken
+        from sentry.auth.user_jwt import UserJWTToken
         from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
         from sentry.models.apikey import ApiKey
         from sentry.models.apitoken import ApiToken
@@ -75,7 +76,7 @@ class AuthenticatedToken(RpcModel):
 
         return {
             "system": frozenset([SystemToken]),
-            "api_token": frozenset([ApiToken, ApiTokenReplica]),
+            "api_token": frozenset([ApiToken, ApiTokenReplica, UserJWTToken]),
             "org_auth_token": frozenset([OrgAuthToken, OrgAuthTokenReplica]),
             "api_key": frozenset([ApiKey, ApiKeyReplica]),
         }

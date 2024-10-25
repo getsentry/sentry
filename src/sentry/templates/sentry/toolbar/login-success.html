@@ -17,7 +17,7 @@
     <script>
       (function() {
         const delay = {{ delay|escapejs }};
-        const cookie = '{{ cookie|escapejs }}';
+        const token = '{{ token|escapejs }}';
 
         document.getElementById('close-popup').addEventListener('click', () => {
           window.close();
@@ -31,7 +31,7 @@
           window.opener.postMessage({
             source: 'sentry-toolbar',
             message: 'did-login',
-            cookie: cookie,
+            token,
           }, window.location.origin);
 
           if (delay && typeof delay === 'number') {

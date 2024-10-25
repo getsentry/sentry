@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from django.http import HttpRequest
@@ -15,9 +15,11 @@ from sentry.api.authentication import (
     RelayAuthentication,
     RpcSignatureAuthentication,
     UserAuthTokenAuthentication,
+    UserJWTTokenAuthentication,
 )
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_system_auth
+from sentry.auth.user_jwt import get_jwt_token
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.hybridcloud.rpc.service import (
     RpcAuthenticationSetupException,
@@ -205,6 +207,43 @@ class TestTokenAuthentication(TestCase):
     def test_no_match(self):
         request = HttpRequest()
         request.META["HTTP_AUTHORIZATION"] = "Bearer abc"
+
+        with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+
+@control_silo_test
+class TestUserJWTTokenAuthentication(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
+        self.auth = UserJWTTokenAuthentication()
+
+    def test_authenticate(self):
+        token = get_jwt_token(
+            self.user,
+            self.organization,
+            self.project,
+            datetime.now() + timedelta(days=1),
+        )
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        result = self.auth.authenticate(request)
+        assert result is not None
+        user, auth = result
+        assert user.is_anonymous is False
+        assert user.id == self.user.id
+        assert auth == token
+
+    def test_invalid_token(self):
+        token = get_jwt_token(
+            self.user, self.organization, self.project, expiration=datetime(2020, 5, 17)
+        )
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
