@@ -215,7 +215,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
       {
         label: t('Help'),
         icon: <IconQuestion />,
-        menu: [
+        dropdown: [
           {
             key: 'search',
             label: t('Search Support, Docs and More'),

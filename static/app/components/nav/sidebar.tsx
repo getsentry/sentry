@@ -147,6 +147,11 @@ function SidebarLink({children, item}: SidebarItemProps & {children: React.React
 }
 
 function SidebarMenu({item}: SidebarItemProps & {children: React.ReactNode}) {
+  if (!item.dropdown) {
+    throw new Error(
+      `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
+    );
+  }
   return (
     <DropdownMenu
       position="right-end"
@@ -159,7 +164,7 @@ function SidebarMenu({item}: SidebarItemProps & {children: React.ReactNode}) {
           </NavButton>
         );
       }}
-      items={item.menu!}
+      items={item.dropdown}
     />
   );
 }

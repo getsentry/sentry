@@ -38,9 +38,9 @@ export interface NavSidebarItem extends NavItem {
    */
   icon: React.ReactElement;
   /**
-   * if te items to display when this SidebarItem is active
+   * dropdown menu to display when this SidebarItem is clicked
    */
-  menu?: MenuItemProps[];
+  dropdown?: MenuItemProps[];
   /**
    * Optionally, the submenu items to display when this SidebarItem is active
    */
