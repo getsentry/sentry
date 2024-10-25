@@ -229,7 +229,6 @@ class IntegrationPipelineViewType(Enum):
     # IdentityProviderPipeline
     IDENTITY_LOGIN = "IDENTITY_LOGIN"
     IDENTITY_LINK = "IDENTITY_LINK"
-    TOKEN_EXCHANGE = "TOKEN_EXCHANGE"
 
     # GitHub
     OAUTH_LOGIN = "OAUTH_LOGIN"
