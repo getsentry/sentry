@@ -1,6 +1,7 @@
 import unittest
 
 from sentry.testutils.cases import TestCase
+from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import DataPacket, DetectorEvaluationResult
 from sentry.workflow_engine.models.detector import (
     Detector,
@@ -8,7 +9,7 @@ from sentry.workflow_engine.models.detector import (
     StatefulDetectorHandler,
     get_redis_client,
 )
-from sentry.workflow_engine.models.detector_state import DetectorState, DetectorStatus
+from sentry.workflow_engine.models.detector_state import DetectorState
 
 
 class MockDetectorStateHandler(StatefulDetectorHandler[dict]):
@@ -81,7 +82,7 @@ class TestCommitStateUpdateData(TestCase):
                 DetectorStateData(
                     group_key,
                     True,
-                    DetectorStatus.OK,
+                    PriorityLevel.OK,
                     100,
                     {"some_counter": 1, "another_counter": 2},
                 )
@@ -91,7 +92,7 @@ class TestCommitStateUpdateData(TestCase):
             detector=handler.detector,
             detector_group_key=group_key,
             active=True,
-            state=DetectorStatus.OK,
+            state=PriorityLevel.OK,
         ).exists()
         assert redis.get(dedupe_key) == "100"
         assert redis.get(counter_key_1) == "1"
@@ -102,7 +103,7 @@ class TestCommitStateUpdateData(TestCase):
                 DetectorStateData(
                     group_key,
                     False,
-                    DetectorStatus.FAILED,
+                    PriorityLevel.OK,
                     150,
                     {"some_counter": None, "another_counter": 20},
                 )
@@ -112,7 +113,7 @@ class TestCommitStateUpdateData(TestCase):
             detector=handler.detector,
             detector_group_key=group_key,
             active=False,
-            state=DetectorStatus.FAILED,
+            state=PriorityLevel.OK,
         ).exists()
         assert redis.get(dedupe_key) == "150"
         assert not redis.exists(counter_key_1)

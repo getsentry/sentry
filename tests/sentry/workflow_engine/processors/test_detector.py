@@ -8,7 +8,6 @@ from sentry.workflow_engine.models.detector import (
     DetectorHandler,
     DetectorStateData,
 )
-from sentry.workflow_engine.models.detector_state import DetectorStatus
 from sentry.workflow_engine.processors.detector import process_detectors
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
@@ -45,7 +44,7 @@ class TestProcessDetectors(BaseGroupTypeTest):
                         DetectorStateData(
                             group_key,
                             True,
-                            DetectorStatus.OK,
+                            PriorityLevel.OK,
                             100,
                             {},
                         ),
@@ -84,7 +83,7 @@ class TestProcessDetectors(BaseGroupTypeTest):
             True,
             PriorityLevel.HIGH,
             data_packet,
-            DetectorStateData(None, True, DetectorStatus.OK, 100, {}),
+            DetectorStateData(None, True, PriorityLevel.OK, 100, {}),
         )
         assert results == [
             (
@@ -101,13 +100,13 @@ class TestProcessDetectors(BaseGroupTypeTest):
             True,
             PriorityLevel.HIGH,
             data_packet,
-            DetectorStateData("group_1", True, DetectorStatus.OK, 100, {}),
+            DetectorStateData("group_1", True, PriorityLevel.OK, 100, {}),
         )
         result_2 = DetectorEvaluationResult(
             True,
             PriorityLevel.HIGH,
             data_packet,
-            DetectorStateData("group_2", True, DetectorStatus.OK, 100, {}),
+            DetectorStateData("group_2", True, PriorityLevel.OK, 100, {}),
         )
         assert results == [
             (
@@ -126,7 +125,7 @@ class TestProcessDetectors(BaseGroupTypeTest):
             True,
             PriorityLevel.HIGH,
             data_packet,
-            DetectorStateData("dupe", True, DetectorStatus.OK, 100, {}),
+            DetectorStateData("dupe", True, PriorityLevel.OK, 100, {}),
         )
         assert results == [
             (

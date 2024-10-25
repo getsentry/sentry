@@ -4,7 +4,7 @@ import abc
 import dataclasses
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from django.conf import settings
 from django.db import models
@@ -19,9 +19,6 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import redis
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.detector_state import DetectorState
-
-if TYPE_CHECKING:
-    from sentry.workflow_engine.models.detector_state import DetectorStatus
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +93,7 @@ class Detector(DefaultFieldsModel, OwnerModel):
 class DetectorStateData:
     group_key: str | None
     active: bool
-    status: DetectorStatus
+    status: PriorityLevel
     # Stateful detectors always process data packets in order. Once we confirm that a data packet has been fully
     # processed and all workflows have been done, this value will be used by the stateful detector to prevent
     # reprocessing
@@ -155,11 +152,36 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         }
 
     def commit_state_update_data(self, state_updates: list[DetectorStateData]):
+        self._bulk_commit_detector_state(state_updates)
+        self._bulk_commit_redis_state(state_updates)
+
+    def _bulk_commit_redis_state(self, state_updates: list[DetectorStateData]):
+        dedupe_values = []
+        group_counter_updates = {}
+        for state_update in state_updates:
+            dedupe_values.append((state_update.group_key, state_update.dedupe_value))
+            group_counter_updates[state_update.group_key] = state_update.counter_updates
+
+        pipeline = get_redis_client().pipeline()
+        if dedupe_values:
+            for group_key, dedupe_value in dedupe_values:
+                pipeline.set(self.build_dedupe_value_key(group_key), dedupe_value, ex=REDIS_TTL)
+
+        if group_counter_updates:
+            for group_key, counter_updates in group_counter_updates.items():
+                for counter_name, counter_value in counter_updates.items():
+                    key_name = self.build_counter_value_key(group_key, counter_name)
+                    if counter_value is None:
+                        pipeline.delete(key_name)
+                    else:
+                        pipeline.set(key_name, counter_value, ex=REDIS_TTL)
+
+        pipeline.execute()
+
+    def _bulk_commit_detector_state(self, state_updates: list[DetectorStateData]):
         detector_state_lookup = self.bulk_get_detector_state(state_updates)
         created_detector_states = []
         updated_detector_states = []
-        dedupe_values = []
-        group_counter_updates = {}
         for state_update in state_updates:
             detector_state = detector_state_lookup.get(state_update.group_key)
             if not detector_state:
@@ -179,27 +201,8 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
                 detector_state.state = state_update.status
                 updated_detector_states.append(detector_state)
 
-            dedupe_values.append((state_update.group_key, state_update.dedupe_value))
-            group_counter_updates[state_update.group_key] = state_update.counter_updates
-
         if created_detector_states:
             DetectorState.objects.bulk_create(created_detector_states)
 
         if updated_detector_states:
             DetectorState.objects.bulk_update(updated_detector_states, ["active", "state"])
-
-        pipeline = get_redis_client().pipeline()
-        if dedupe_values:
-            for group_key, dedupe_value in dedupe_values:
-                pipeline.set(self.build_dedupe_value_key(group_key), dedupe_value, ex=REDIS_TTL)
-
-        if group_counter_updates:
-            for group_key, counter_updates in group_counter_updates.items():
-                for counter_name, counter_value in counter_updates.items():
-                    key_name = self.build_counter_value_key(group_key, counter_name)
-                    if counter_value is None:
-                        pipeline.delete(key_name)
-                    else:
-                        pipeline.set(key_name, counter_value, ex=REDIS_TTL)
-
-        pipeline.execute()
