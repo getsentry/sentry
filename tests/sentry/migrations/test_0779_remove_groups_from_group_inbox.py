@@ -7,7 +7,7 @@ from sentry.types.group import GroupSubStatus
 
 class RemoveGroupsFromGroupInbox(TestMigrations):
     migrate_from = "0778_userreport_comments_max_length"
-    migrate_to = "0779_remove_group_from_group_inbox"
+    migrate_to = "0779_remove_groups_from_group_inbox"
 
     def setup_before_migration(self, app):
         self.organization = Organization.objects.create(name="test", slug="test")
