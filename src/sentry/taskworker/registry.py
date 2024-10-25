@@ -11,7 +11,7 @@ import orjson
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
 from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_protos.sentry.v1alpha.taskworker_pb2 import RetryState, TaskActivation
+from sentry_protos.sentry.v1.taskworker_pb2 import RetryState, TaskActivation
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.retry import FALLBACK_RETRY, Retry
