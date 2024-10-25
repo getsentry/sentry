@@ -12,6 +12,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const WIDGET_ID_DELIMITER = ':';
+const SERIES_NAME_DELIMITER = ';';
 
 describe('WidgetLegend functions util', () => {
   let legendFunctions: WidgetLegendSelectionState;
@@ -69,7 +70,7 @@ describe('WidgetLegend functions util', () => {
 
     it('set initial unselected legend options', () => {
       expect(legendFunctions.getWidgetSelectionState(widget)).toEqual({
-        'Releases:12345': false,
+        [`Releases${SERIES_NAME_DELIMITER}12345`]: false,
       });
     });
 
@@ -84,7 +85,10 @@ describe('WidgetLegend functions util', () => {
       location = {...location, query: {...location.query, unselectedSeries: []}};
 
       legendFunctions.setWidgetSelectionState(
-        {'Releases:12345': false, 'count():12345': true},
+        {
+          [`Releases${SERIES_NAME_DELIMITER}12345`]: false,
+          [`count()${SERIES_NAME_DELIMITER}12345`]: true,
+        },
         widget
       );
       expect(router.replace).toHaveBeenCalledWith({
@@ -124,13 +128,15 @@ describe('WidgetLegend functions util', () => {
 
     it('formats to query param format from selected', () => {
       expect(
-        legendFunctions.encodeLegendQueryParam(widget, {[`Releases:${widget.id}`]: false})
+        legendFunctions.encodeLegendQueryParam(widget, {
+          [`Releases${SERIES_NAME_DELIMITER}${widget.id}`]: false,
+        })
       ).toEqual(`${widget.id}${WIDGET_ID_DELIMITER}Releases`);
     });
 
     it('formats to selected format from query param', () => {
       expect(legendFunctions.decodeLegendQueryParam(widget)).toEqual({
-        [`Releases:${widget.id}`]: false,
+        [`Releases${SERIES_NAME_DELIMITER}${widget.id}`]: false,
       });
     });
   });
