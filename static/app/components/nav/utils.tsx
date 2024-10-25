@@ -105,14 +105,16 @@ export function makeLinkPropsFromTo(to: string): {
   state: object;
   to: LocationDescriptor;
 } {
-  const [rawPathname, search] = to.split('?');
-  const [pathname, hash] = rawPathname.split('#');
+  const {pathname, search, hash} = new URL(
+    to,
+    !to.startsWith('http') ? 'https://sentry.io/' : undefined
+  );
 
   return {
     to: {
       pathname,
-      search: search ? `?${search}` : undefined,
-      hash: hash ? `#${hash}` : undefined,
+      search,
+      hash,
     },
     state: {source: SIDEBAR_NAVIGATION_SOURCE},
   };
