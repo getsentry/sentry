@@ -146,11 +146,11 @@ describe('WidgetFrame', () => {
         />
       );
 
-      await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Widget actions'}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'One'}));
       expect(onAction1).toHaveBeenCalledTimes(1);
 
-      await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Widget actions'}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Two'}));
       expect(onAction2).toHaveBeenCalledTimes(1);
     });
@@ -175,7 +175,7 @@ describe('WidgetFrame', () => {
         />
       );
 
-      const $trigger = screen.getByRole('button', {name: 'Actions'});
+      const $trigger = screen.getByRole('button', {name: 'Widget actions'});
       await userEvent.click($trigger);
 
       expect(screen.queryByRole('menuitemradio', {name: 'One'})).not.toBeInTheDocument();
