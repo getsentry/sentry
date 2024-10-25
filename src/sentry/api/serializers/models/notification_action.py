@@ -20,7 +20,7 @@ class OutgoingNotificationActionSerializer(Serializer):
     Model serializer for outgoing NotificationAction API payloads
     """
 
-    def get_attrs(self, item_list: Sequence[NotificationAction], user):
+    def get_attrs(self, item_list: Sequence[NotificationAction], user, **kwargs):
         action_ids = {i.id for i in item_list}
         projects_by_action_id = manytoone_to_dict(
             NotificationActionProject.objects.filter(action_id__in=action_ids),
