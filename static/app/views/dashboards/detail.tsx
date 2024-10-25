@@ -77,6 +77,7 @@ import type {
   DashboardDetails,
   DashboardFilters,
   DashboardListItem,
+  DashboardPermissions,
   Widget,
 } from './types';
 import {
@@ -594,6 +595,24 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
+  /* Handles POST request for Edit Access Selector Changes */
+  onChangeEditAccess = (newDashboardPermissions?: DashboardPermissions) => {
+    if (!defined(newDashboardPermissions)) {
+      return;
+    }
+    const {dashboard, api, organization} = this.props;
+
+    const dashboardCopy = cloneDashboard(dashboard);
+    dashboardCopy.permissions = newDashboardPermissions;
+
+    updateDashboard(api, organization.slug, dashboardCopy).then(
+      (newDashboard: DashboardDetails) => {
+        addSuccessMessage(t('Dashboard Edit Access updated'));
+        return newDashboard;
+      }
+    );
+  };
+
   onCommit = () => {
     const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
@@ -785,11 +804,12 @@ class DashboardDetail extends Component<Props, State> {
                   <Controls
                     organization={organization}
                     dashboards={dashboards}
-                    dashboardPermissions={dashboard.permissions}
+                    dashboard={dashboard}
                     onEdit={this.onEdit}
                     onCancel={this.onCancel}
                     onCommit={this.onCommit}
                     onAddWidget={this.onAddWidget}
+                    onChangeEditAccess={this.onChangeEditAccess}
                     onDelete={this.onDelete(dashboard)}
                     dashboardState={dashboardState}
                     widgetLimitReached={widgetLimitReached}
@@ -928,13 +948,14 @@ class DashboardDetail extends Component<Props, State> {
                       <Controls
                         organization={organization}
                         dashboards={dashboards}
-                        dashboardPermissions={dashboard.permissions}
+                        dashboard={dashboard}
                         hasUnsavedFilters={hasUnsavedFilters}
                         onEdit={this.onEdit}
                         onCancel={this.onCancel}
                         onCommit={this.onCommit}
                         onAddWidget={this.onAddWidget}
                         onDelete={this.onDelete(dashboard)}
+                        onChangeEditAccess={this.onChangeEditAccess}
                         dashboardState={dashboardState}
                         widgetLimitReached={widgetLimitReached}
                       />

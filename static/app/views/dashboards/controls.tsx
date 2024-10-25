@@ -22,29 +22,31 @@ import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import exportDashboard from './exportDashboard';
-import type {DashboardListItem, DashboardPermissions} from './types';
+import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
+  dashboard: DashboardDetails;
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
   onAddWidget: (dataset: DataSet) => void;
   onCancel: () => void;
+  onChangeEditAccess: (newDashboardPermissions?: DashboardPermissions) => void;
   onCommit: () => void;
   onDelete: () => void;
   onEdit: () => void;
   organization: Organization;
   widgetLimitReached: boolean;
-  dashboardPermissions?: DashboardPermissions;
   hasUnsavedFilters?: boolean;
 };
 
 function Controls({
   dashboardState,
+  dashboard,
   dashboards,
-  dashboardPermissions,
   hasUnsavedFilters,
   widgetLimitReached,
+  onChangeEditAccess,
   onEdit,
   onCommit,
   onDelete,
@@ -161,7 +163,10 @@ function Controls({
                 {t('Export Dashboard')}
               </Button>
             </Feature>
-            <EditAccessSelector dashboardPermissions={dashboardPermissions} />
+            <EditAccessSelector
+              dashboard={dashboard}
+              onChangeEditAccess={onChangeEditAccess}
+            />
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {

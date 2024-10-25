@@ -112,7 +112,7 @@ export type WidgetPreview = {
 };
 
 export type DashboardPermissions = {
-  is_creator_only_editable: boolean;
+  isCreatorOnlyEditable: boolean;
 };
 
 /**
