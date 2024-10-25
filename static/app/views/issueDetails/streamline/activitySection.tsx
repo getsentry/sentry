@@ -45,7 +45,7 @@ function TimelineItem({
     item,
     organization,
     group.project.id,
-    <Author>{authorName}</Author>,
+    <strong>{authorName}</strong>,
     teams
   );
 
@@ -54,14 +54,14 @@ function TimelineItem({
   return (
     <ActivityTimelineItem
       title={
-        <TitleWrapper>
+        <Flex gap={space(0.5)} align="center" justify="flex-start">
           <TitleTooltip title={title} showOnlyOnOverflow skipWrapper>
             {title}
           </TitleTooltip>
           {item.type === GroupActivityType.NOTE && (
             <TitleDropdown onDelete={() => handleDelete(item)} user={item.user} />
           )}
-        </TitleWrapper>
+        </Flex>
       }
       timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
       icon={
@@ -141,9 +141,9 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
       <Flex justify="space-between" align="center">
         <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
         {showAll && (
-          <CollapseButton borderless size="zero" onClick={() => setShowAll(false)}>
+          <TextButton borderless size="zero" onClick={() => setShowAll(false)}>
             {t('Collapse')}
-          </CollapseButton>
+          </TextButton>
         )}
       </Flex>
       <Timeline.Container>
@@ -185,16 +185,16 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
             })}
             <ActivityTimelineItem
               title={
-                <ShowAllButton
+                <TextButton
                   aria-label={t('Show all activity')}
                   onClick={() => setShowAll(true)}
                   borderless
                   size="zero"
                 >
                   {t('%s comments hidden', group.activity.length - 3)}
-                </ShowAllButton>
+                </TextButton>
               }
-              icon={<RotatedEllipsisIcon />}
+              icon={<RotatedEllipsisIcon direction={'up'} />}
             />
             <TimelineItem
               item={group.activity[group.activity.length - 1]}
@@ -210,17 +210,6 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
   );
 }
 
-const Author = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
-`;
-
-const TitleWrapper = styled('div')`
-  display: grid;
-  align-items: center;
-  gap: ${space(0.5)};
-  grid-template-columns: minmax(50px, 1fr) auto;
-`;
-
 const TitleTooltip = styled(Tooltip)`
   justify-self: start;
   overflow: hidden;
@@ -234,6 +223,7 @@ const TitleDropdown = styled(NoteDropdown)`
 
 const ActivityTimelineItem = styled(Timeline.Item)`
   align-items: center;
+  grid-template-columns: 22px minmax(50px, 1fr) auto;
 `;
 
 const Timestamp = styled(TimeSince)`
@@ -241,19 +231,12 @@ const Timestamp = styled(TimeSince)`
   white-space: nowrap;
 `;
 
-const ShowAllButton = styled(Button)`
+const TextButton = styled(Button)`
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-`;
-
-const CollapseButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  height: unset;
 `;
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
-  transform: rotate(90deg);
+  transform: rotate(90deg) translateY(1px);
 `;
