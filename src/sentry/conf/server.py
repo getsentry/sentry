@@ -385,7 +385,9 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
 INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.humanize",
     "django.contrib.messages",
+    "django.contrib.postgres",
     "django.contrib.sessions",
     "django.contrib.sites",
     "drf_spectacular",
