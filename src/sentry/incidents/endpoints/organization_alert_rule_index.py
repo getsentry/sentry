@@ -438,7 +438,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
 
     def has_create_alert_permission(self, request: Request, organization: Organization) -> None:
         """
-        Determine if the requesting user has access to alert creation.
+        Determine if the requesting user has access to alert creation. If the request does not have the "alerts:write"
+        permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
+        in their request.
         """
         #
         if request.access.has_scope("alerts:write"):
@@ -642,5 +644,5 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
         """
-
+        self.has_create_alert_permission(request, organization)
         return self.create_metric_alert(request, organization)
