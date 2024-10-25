@@ -671,16 +671,15 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
 `;
 
 const TableWrapper = styled('div')`
-  width: 100%;
-  flex-grow: 0;
-  flex-shrink: 0;
+  margin-top: ${space(1.5)};
+  min-height: 0;
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
-  overflow: auto;
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
-  margin-top: ${space(1.5)};
+  overflow: auto;
+  height: 100%;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
