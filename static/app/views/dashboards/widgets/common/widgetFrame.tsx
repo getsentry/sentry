@@ -4,14 +4,13 @@ import Badge, {type BadgeProps} from 'sentry/components/badge/badge';
 import {Button, LinkButton} from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
+import {IconEllipsis, IconExpand, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {ErrorPanel} from './errorPanel';
-import {MIN_HEIGHT, MIN_WIDTH} from './settings';
+import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from './settings';
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
 import {WarningsList} from './warningsList';
@@ -20,7 +19,7 @@ export interface WidgetFrameProps extends StateProps {
   actions?: MenuItemProps[];
   actionsDisabled?: boolean;
   actionsMessage?: string;
-  badgeProps?: BadgeProps;
+  badgeProps?: BadgeProps | BadgeProps[];
   children?: React.ReactNode;
   description?: string;
   onFullScreenViewClick?: () => void;
@@ -46,7 +45,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
       : props.actions) ?? [];
 
   return (
-    <Frame>
+    <Frame aria-label="Widget panel">
       <Header>
         {props.warnings && props.warnings.length > 0 && (
           <Tooltip title={<WarningsList warnings={props.warnings} />} isHoverable>
@@ -60,14 +59,40 @@ export function WidgetFrame(props: WidgetFrameProps) {
           <TitleText>{props.title}</TitleText>
         </Tooltip>
 
-        {props.badgeProps && <RigidBadge {...props.badgeProps} />}
+        {props.badgeProps &&
+          (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
+            (currentBadgeProps, i) => <RigidBadge key={i} {...currentBadgeProps} />
+          )}
 
         {(props.description ||
           props.onFullScreenViewClick ||
           (actions && actions.length > 0)) && (
           <TitleHoverItems>
             {props.description && (
-              <QuestionTooltip title={props.description} size="sm" icon="info" />
+              // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
+              <Tooltip
+                title={
+                  <span>
+                    {props.title && (
+                      <WidgetTooltipTitle>{props.title}</WidgetTooltipTitle>
+                    )}
+                    {props.description && (
+                      <WidgetTooltipDescription>
+                        {props.description}
+                      </WidgetTooltipDescription>
+                    )}
+                  </span>
+                }
+                containerDisplayMode="grid"
+                isHoverable
+              >
+                <WidgetTooltipButton
+                  aria-label={t('Widget description')}
+                  borderless
+                  size="xs"
+                  icon={<IconInfo />}
+                />
+              </Tooltip>
             )}
 
             <TitleActionsWrapper
@@ -100,7 +125,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
                   items={actions}
                   isDisabled={props.actionsDisabled}
                   triggerProps={{
-                    'aria-label': t('Actions'),
+                    'aria-label': t('Widget actions'),
                     size: 'xs',
                     borderless: true,
                     showChevron: false,
@@ -171,8 +196,6 @@ const Frame = styled('div')`
   width: 100%;
   min-width: ${MIN_WIDTH}px;
 
-  padding: ${space(1.5)} ${space(2)};
-
   border-radius: ${p => p.theme.panelBorderRadius};
   border: ${p => p.theme.border};
   border: 1px ${p => 'solid ' + p.theme.border};
@@ -195,13 +218,15 @@ const Frame = styled('div')`
   }
 `;
 
-const HEADER_HEIGHT = 26;
+const HEADER_HEIGHT = '26px';
 
 const Header = styled('div')`
   display: flex;
   align-items: center;
-  height: ${HEADER_HEIGHT}px;
+  height: calc(${HEADER_HEIGHT} + ${Y_GUTTER});
+  flex-shrink: 0;
   gap: ${space(0.75)};
+  padding: ${X_GUTTER} ${Y_GUTTER} 0 ${X_GUTTER};
 `;
 
 const TitleText = styled(HeaderTitle)`
@@ -213,8 +238,26 @@ const RigidBadge = styled(Badge)`
   flex-shrink: 0;
 `;
 
+const WidgetTooltipTitle = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-align: left;
+`;
+
+const WidgetTooltipDescription = styled('div')`
+  margin-top: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  text-align: left;
+`;
+
+// We're using a button here to preserve tab accessibility
+const WidgetTooltipButton = styled(Button)`
+  pointer-events: none;
+`;
+
 const VisualizationWrapper = styled('div')`
   display: flex;
   flex-grow: 1;
+  min-height: 0;
   position: relative;
 `;

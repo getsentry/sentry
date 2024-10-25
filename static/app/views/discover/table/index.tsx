@@ -164,7 +164,9 @@ class Table extends PureComponent<TableProps, TableState> {
 
       // We need to include the event.type field because we want to
       // route to issue details for error and default event types.
-      apiPayload.field.push('event.type');
+      if (!hasDatasetSelector(organization)) {
+        apiPayload.field.push('event.type');
+      }
     }
 
     // To generate the target url for TRACE ID and EVENT ID links we always include a timestamp,
