@@ -1,4 +1,3 @@
-import type {ComponentProps, ReactElement} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import type Feature from 'sentry/components/acl/feature';
@@ -19,7 +18,7 @@ interface NavItem {
   /**
    ** Optionally, props which should be passed to a wrapping `<Feature>` guard
    */
-  feature?: Omit<ComponentProps<typeof Feature>, 'children'>;
+  feature?: Omit<React.ComponentProps<typeof Feature>, 'children'>;
 }
 
 /**
@@ -37,7 +36,7 @@ export interface NavSidebarItem extends NavItem {
   /**
    ** The icon to render in the sidebar
    */
-  icon: ReactElement;
+  icon: React.ReactElement;
   /**
    ** if te items to display when this SidebarItem is active
    */
