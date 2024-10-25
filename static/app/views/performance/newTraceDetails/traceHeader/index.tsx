@@ -39,79 +39,6 @@ interface TraceMetadataHeaderProps {
   tree: TraceTree;
 }
 
-function NewTraceMetadataHeader({
-  rootEventResults,
-  metaResults,
-  tree,
-  traceSlug,
-  organization,
-}: TraceMetadataHeaderProps) {
-  const location = useLocation();
-
-  return (
-    <Layout.Header>
-      <HeaderContent>
-        <HeaderRow>
-          <Breadcrumbs crumbs={getTraceViewBreadcrumbs(organization, location)} />
-        </HeaderRow>
-        <HeaderRow>
-          <Title traceSlug={traceSlug} tree={tree} />
-          <Meta
-            organization={organization}
-            rootEventResults={rootEventResults}
-            tree={tree}
-            meta={metaResults.data}
-          />
-        </HeaderRow>
-        <StyledBreak />
-        {rootEventResults.data ? (
-          <HeaderRow>
-            <StyledWrapper>
-              <HighlightsIconSummary event={rootEventResults.data} />
-            </StyledWrapper>
-            <ProjectsRenderer
-              projectSlugs={Array.from(tree.projects).map(({slug}) => slug)}
-              visibleAvatarSize={24}
-              maxVisibleProjects={3}
-            />
-          </HeaderRow>
-        ) : null}
-      </HeaderContent>
-    </Layout.Header>
-  );
-}
-
-const HeaderRow = styled('div')`
-  display: flex;
-  justify-content: space-between;
-
-  &:not(:first-child) {
-    margin: ${space(1)} 0;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    flex-direction: column;
-  }
-`;
-
-const HeaderContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
-const StyledBreak = styled('hr')`
-  margin: 0;
-  border-color: ${p => p.theme.border};
-`;
-
-const StyledWrapper = styled('span')`
-  display: flex;
-  align-items: center;
-  & > div {
-    padding: 0;
-  }
-`;
-
 function PlaceHolder({organization}: {organization: Organization}) {
   const location = useLocation();
 
@@ -202,20 +129,82 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
 }
 
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
+  const location = useLocation();
   const hasNewTraceViewUi = useHasTraceNewUi();
+
+  if (!hasNewTraceViewUi) {
+    return <LegacyTraceMetadataHeader {...props} />;
+  }
 
   const isLoading =
     props.metaResults.isLoading ||
     props.rootEventResults.isPending ||
     props.tree.type === 'loading';
 
-  if (hasNewTraceViewUi) {
-    return isLoading ? (
-      <PlaceHolder organization={props.organization} />
-    ) : (
-      <NewTraceMetadataHeader {...props} />
-    );
+  if (isLoading) {
+    return <PlaceHolder organization={props.organization} />;
   }
 
-  return <LegacyTraceMetadataHeader {...props} />;
+  return (
+    <Layout.Header>
+      <HeaderContent>
+        <HeaderRow>
+          <Breadcrumbs crumbs={getTraceViewBreadcrumbs(props.organization, location)} />
+        </HeaderRow>
+        <HeaderRow>
+          <Title traceSlug={props.traceSlug} tree={props.tree} />
+          <Meta
+            organization={props.organization}
+            rootEventResults={props.rootEventResults}
+            tree={props.tree}
+            meta={props.metaResults.data}
+          />
+        </HeaderRow>
+        <StyledBreak />
+        {props.rootEventResults.data ? (
+          <HeaderRow>
+            <StyledWrapper>
+              <HighlightsIconSummary event={props.rootEventResults.data} />
+            </StyledWrapper>
+            <ProjectsRenderer
+              projectSlugs={Array.from(props.tree.projects).map(({slug}) => slug)}
+              visibleAvatarSize={24}
+              maxVisibleProjects={3}
+            />
+          </HeaderRow>
+        ) : null}
+      </HeaderContent>
+    </Layout.Header>
+  );
 }
+
+const HeaderRow = styled('div')`
+  display: flex;
+  justify-content: space-between;
+
+  &:not(:first-child) {
+    margin: ${space(1)} 0;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-direction: column;
+  }
+`;
+
+const HeaderContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const StyledBreak = styled('hr')`
+  margin: 0;
+  border-color: ${p => p.theme.border};
+`;
+
+const StyledWrapper = styled('span')`
+  display: flex;
+  align-items: center;
+  & > div {
+    padding: 0;
+  }
+`;
