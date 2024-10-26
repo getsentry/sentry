@@ -14,6 +14,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -21,7 +22,7 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -917,14 +918,31 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const onAutogroupChange = useCallback(() => {
     const value = !traceState.preferences.autogroup.parent;
     if (!value) {
-      TraceTree.RemoveSiblingAutogroupNodes(props.tree.root);
-      TraceTree.RemoveDirectChildrenAutogroupNodes(props.tree.root);
+      let removeCount = 0;
+      removeCount += TraceTree.RemoveSiblingAutogroupNodes(props.tree.root);
+      removeCount += TraceTree.RemoveDirectChildrenAutogroupNodes(props.tree.root);
+
+      addSuccessMessage(
+        removeCount > 0
+          ? tct('Autogrouping disabled, removed [count] autogroup spans', {
+              count: removeCount,
+            })
+          : t('Autogrouping disabled')
+      );
     } else {
-      TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
-      TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
+      let autogroupCount = 0;
+      autogroupCount += TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
+      autogroupCount += TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
+      addSuccessMessage(
+        autogroupCount > 0
+          ? tct('Autogrouping enabled, detected [count] autogrouping cases', {
+              count: autogroupCount,
+            })
+          : t('Autogrouping enabled')
+      );
     }
-    TraceTree.invalidate(props.tree.root, true);
-    props.tree.build();
+
+    props.tree.rebuild();
     traceDispatch({
       type: 'set autogrouping',
       payload: value,
@@ -934,12 +952,34 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const onMissingInstrumentationChange = useCallback(() => {
     const value = !traceState.preferences.missing_instrumentation;
     if (!value) {
-      TraceTree.RemoveMissingInstrumentationNodes(props.tree.root);
+      const removeCount = TraceTree.RemoveMissingInstrumentationNodes(props.tree.root);
+      addSuccessMessage(
+        removeCount > 0
+          ? tct(
+              'Missing instrumentation disabled, removed [count] missing instrumentation spans',
+              {
+                count: removeCount,
+              }
+            )
+          : t('Missing instrumentation disabled')
+      );
     } else {
-      TraceTree.DetectMissingInstrumentation(props.tree.root);
+      const missingInstrumentationCount = TraceTree.DetectMissingInstrumentation(
+        props.tree.root
+      );
+      addSuccessMessage(
+        missingInstrumentationCount > 0
+          ? tct(
+              'Missing instrumentation enabled, found [count] missing instrumentation spans',
+              {
+                count: missingInstrumentationCount,
+              }
+            )
+          : t('Missing instrumentation enabled')
+      );
     }
-    TraceTree.invalidate(props.tree.root, true);
-    props.tree.build();
+
+    props.tree.rebuild();
     traceDispatch({
       type: 'set missing instrumentation',
       payload: value,
@@ -961,6 +1001,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         />
         <TraceShortcuts />
         <TracePreferencesDropdown
+          autogroup={
+            traceState.preferences.autogroup.parent &&
+            traceState.preferences.autogroup.sibling
+          }
+          missingInstrumentation={traceState.preferences.missing_instrumentation}
           onAutogroupChange={onAutogroupChange}
           onMissingInstrumentationChange={onMissingInstrumentationChange}
         />
