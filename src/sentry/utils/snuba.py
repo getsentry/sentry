@@ -142,6 +142,7 @@ SPAN_COLUMN_MAP = {
     "user.id": "sentry_tags[user.id]",
     "user.email": "sentry_tags[user.email]",
     "user.username": "sentry_tags[user.username]",
+    "user.ip": "sentry_tags[user.ip]",
     "profile.id": "profile_id",
     "cache.hit": "sentry_tags[cache.hit]",
     "transaction.method": "sentry_tags[transaction.method]",
@@ -220,6 +221,15 @@ SPAN_EAP_COLUMN_MAP = {
     "browser.name": "attr_str[sentry.browser.name]",
     "ai.total_tokens.used": "attr_num[ai_total_tokens_used]",
     "ai.total_cost": "attr_num[ai_total_cost]",
+    "sdk.name": "attr_str[sentry.sdk.name]",
+    "release": "attr_str[release]",
+    "user": "attr_str[sentry.user]",
+    "user.id": "attr_str[sentry.user.id]",
+    "user.email": "attr_str[sentry.user.email]",
+    "user.username": "attr_str[sentry.user.username]",
+    "user.ip": "attr_str[sentry.user.ip]",
+    "user.geo.subregion": "attr_str[sentry.user.geo.subregion]",
+    "user.geo.country_code": "attr_str[sentry.user.geo.country_code]",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
