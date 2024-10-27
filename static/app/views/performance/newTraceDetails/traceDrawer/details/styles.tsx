@@ -306,14 +306,18 @@ function IssuesLink({
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = params.traceSlug?.trim() ?? '';
 
+  // Adding a buffer since a trace can just be made of errors, where there is no concept of
+  // trace duration and start equals end timestamps.
+  const buffer = 60 * 60 * 1000; // 1 hour in milliseconds
+
   return (
     <Link
       to={{
         pathname: `/organizations/${organization.slug}/issues/`,
         query: {
           query: `trace:${traceSlug}`,
-          start: new Date(node.space[0]).toISOString(),
-          end: new Date(node.space[0] + node.space[1]).toISOString(),
+          start: new Date(node.space[0] - buffer).toISOString(),
+          end: new Date(node.space[0] + node.space[1] + buffer).toISOString(),
           // If we don't pass the project param, the issues page will filter by the last selected project.
           // Traces can have multiple projects, so we query issues by all projects and rely on our search query to filter the results.
           project: -1,
