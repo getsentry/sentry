@@ -162,6 +162,14 @@ describe('Performance Transaction Events Content', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/recent-searches/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/tags/`,
+      body: [],
+    });
     initialData = initializeData();
     eventView = EventView.fromNewQueryWithLocation(
       {

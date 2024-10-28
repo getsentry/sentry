@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {
   CrumbContainer,
@@ -14,11 +12,12 @@ import {
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import GroupReplays, {
-  StyledLayoutPage,
-} from 'sentry/views/issueDetails/groupReplays/groupReplays';
+import {useLocation} from 'sentry/utils/useLocation';
+import GroupMergedView from 'sentry/views/issueDetails/groupMerged';
 
-export function ReplayDrawer({group, project}: {group: Group; project: Project}) {
+export function MergedIssuesDrawer({group, project}: {group: Group; project: Project}) {
+  const location = useLocation();
+
   return (
     <EventDrawerContainer>
       <EventDrawerHeader>
@@ -32,23 +31,20 @@ export function ReplayDrawer({group, project}: {group: Group; project: Project})
                 </CrumbContainer>
               ),
             },
-            {label: t('Replays')},
+            {label: t('Merged Issues')},
           ]}
         />
       </EventDrawerHeader>
       <EventNavigator>
-        <Header>{t('Replays')}</Header>
+        <Header>{t('Merged Issues')}</Header>
       </EventNavigator>
-      <ReplayBody>
-        <GroupReplays group={group} />
-      </ReplayBody>
+      <EventDrawerBody>
+        <GroupMergedView
+          project={project}
+          params={{groupId: group.id}}
+          location={location}
+        />
+      </EventDrawerBody>
     </EventDrawerContainer>
   );
 }
-
-const ReplayBody = styled(EventDrawerBody)`
-  ${StyledLayoutPage} {
-    box-shadow: unset;
-    padding: unset;
-  }
-`;

@@ -23,7 +23,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
+import {
+  mergeAndSortTagValues,
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 
 interface EventSearchProps {
@@ -135,6 +138,7 @@ export function EventSearch({
 }: EventSearchProps) {
   const api = useApi();
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {data = []} = useGroupTags({
     groupId: group.id,
@@ -186,8 +190,8 @@ export function EventSearch({
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
-      placeholder={t('Search events...')}
-      label={t('Search events')}
+      placeholder={hasStreamlinedUI ? t('Filter events...') : t('Search events...')}
+      label={hasStreamlinedUI ? t('Filter events...') : t('Search events')}
       searchSource="issue_events_tab"
       className={className}
       showUnsubmittedIndicator

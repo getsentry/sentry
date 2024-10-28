@@ -12,6 +12,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import mergeRefs from 'sentry/utils/mergeRefs';
@@ -114,6 +115,8 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
     },
     [organization, sectionKey, isCollapsed, setIsCollapsed]
   );
+  const labelPrefix = isCollapsed ? t('View') : t('Collapse');
+  const labelSuffix = typeof title === 'string' ? title + t(' Section') : t('Section');
 
   return (
     <Fragment>
@@ -125,8 +128,12 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
         <SectionExpander
           preventCollapse={preventCollapse}
           onClick={preventCollapse ? e => e.preventDefault() : toggleCollapse}
+          role="button"
+          aria-label={`${labelPrefix} ${labelSuffix}`}
+          aria-expanded={!isCollapsed}
         >
           <InteractionStateLayer
+            hasSelectedBackground={false}
             hidden={preventCollapse ? preventCollapse : !isLayerEnabled}
           />
           <TitleWithActions>
@@ -158,7 +165,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
 
 export const SectionDivider = styled('hr')`
   border-color: ${p => p.theme.translucentBorder};
-  margin: ${space(1)} 0;
+  margin: ${space(1.5)} 0;
   &:last-child {
     display: none;
   }
@@ -176,15 +183,16 @@ const SectionExpander = styled('div')<{preventCollapse: boolean}>`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${space(1)} ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   cursor: ${p => (p.preventCollapse ? 'initial' : 'pointer')};
   position: relative;
 `;
 
 const TitleWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightBold};
+  user-select: none;
 `;
 
 const IconWrapper = styled('div')<{preventCollapse: boolean}>`

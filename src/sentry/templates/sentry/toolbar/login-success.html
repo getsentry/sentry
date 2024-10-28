@@ -32,7 +32,7 @@
             source: 'sentry-toolbar',
             message: 'did-login',
             cookie: cookie,
-          }, window.location.origin);
+          }, origin);
 
           if (delay && typeof delay === 'number') {
             setTimeout(() => {

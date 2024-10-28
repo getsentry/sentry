@@ -75,8 +75,9 @@ class VercelExtensionConfigurationTest(TestCase):
 
     @responses.activate
     def test_logged_in_as_member(self):
-        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
-            using=router.db_for_write(OrganizationMember)
+        with (
+            assume_test_silo_mode(SiloMode.REGION),
+            unguarded_write(using=router.db_for_write(OrganizationMember)),
         ):
             OrganizationMember.objects.filter(user_id=self.user.id, organization=self.org).update(
                 role="member"

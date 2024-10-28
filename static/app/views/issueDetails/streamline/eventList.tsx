@@ -24,7 +24,6 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 interface EventListProps {
@@ -41,7 +40,6 @@ export function EventList({group}: EventListProps) {
   const [_error, setError] = useState('');
   const {fields, columnTitles} = useEventColumns(group, organization);
   const eventView = useIssueDetailsEventView({group, queryProps: {fields}});
-  const {baseUrl} = useGroupDetailsRoute();
 
   const grayText = css`
     color: ${theme.subText};
@@ -127,20 +125,6 @@ export function EventList({group}: EventListProps) {
                   />
                 </ButtonBar>
               </EventListHeaderItem>
-
-              <EventListHeaderItem>
-                <LinkButton
-                  borderless
-                  size="xs"
-                  css={grayText}
-                  to={{
-                    pathname: baseUrl,
-                    query: location.query,
-                  }}
-                >
-                  {t('Close')}
-                </LinkButton>
-              </EventListHeaderItem>
             </EventListHeader>
           );
         }}
@@ -176,6 +160,9 @@ const EventListHeaderItem = styled('div')`
 `;
 
 const StreamlineEventsTable = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+
   ${Panel} {
     border: 0;
     margin-bottom: 0;

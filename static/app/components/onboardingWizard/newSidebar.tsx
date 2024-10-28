@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 import partition from 'lodash/partition';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -10,7 +11,7 @@ import {Chevron} from 'sentry/components/chevron';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import SkipConfirm from 'sentry/components/onboardingWizard/skipConfirm';
 import type {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {findCompleteTasks} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -44,7 +45,9 @@ const orderedBeyondBasicsTasks = [
 ];
 
 function groupTasksByCompletion(tasks: OnboardingTask[]) {
-  const [completedTasks, incompletedTasks] = partition(tasks, task => taskIsDone(task));
+  const [completedTasks, incompletedTasks] = partition(tasks, task =>
+    findCompleteTasks(task)
+  );
   return {
     completedTasks,
     incompletedTasks,
@@ -142,7 +145,7 @@ function Task({task, completed, hidePanel}: TaskProps) {
 
   if (completed) {
     return (
-      <TaskWrapper completed>
+      <TaskWrapper css={taskCompletedCss}>
         <strong>{task.title}</strong>
         <IconCheckmark color="green300" isCircled />
       </TaskWrapper>
@@ -150,7 +153,7 @@ function Task({task, completed, hidePanel}: TaskProps) {
   }
 
   return (
-    <TaskWrapper onClick={handleClick}>
+    <TaskWrapper onClick={handleClick} css={taskIncompleteCss}>
       <InteractionStateLayer />
       <div>
         <strong>{task.title}</strong>
@@ -262,7 +265,10 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
 
 interface NewSidebarProps
   extends Pick<CommonSidebarProps, 'orientation' | 'collapsed'>,
-    ReturnType<typeof useOnboardingTasks> {
+    Pick<
+      ReturnType<typeof useOnboardingTasks>,
+      'gettingStartedTasks' | 'beyondBasicsTasks'
+    > {
   onClose: () => void;
 }
 
@@ -398,7 +404,20 @@ const TaskGroupProgress = styled('div')<{completed?: boolean}>`
         `}
 `;
 
-const TaskWrapper = styled('div')<{completed?: boolean}>`
+const taskIncompleteCss = css`
+  position: relative;
+  cursor: pointer;
+  align-items: flex-start;
+`;
+
+const taskCompletedCss = css`
+  strong {
+    opacity: 0.5;
+  }
+  align-items: center;
+`;
+
+const TaskWrapper = styled(motion.li)`
   padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
   display: grid;
@@ -410,21 +429,11 @@ const TaskWrapper = styled('div')<{completed?: boolean}>`
     font-size: ${p => p.theme.fontSizeSmall};
     color: ${p => p.theme.subText};
   }
-
-  ${p =>
-    p.completed
-      ? css`
-          strong {
-            opacity: 0.5;
-          }
-          align-items: center;
-        `
-      : css`
-          position: relative;
-          cursor: pointer;
-          align-items: flex-start;
-        `}
 `;
+
+TaskWrapper.defaultProps = {
+  layout: true,
+};
 
 const TaskActions = styled('div')`
   display: flex;
