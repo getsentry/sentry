@@ -22,6 +22,10 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
+import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
@@ -95,6 +99,7 @@ export default function SpanMetricsTable(props: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const sort = useSpansTabTableSort();
+  const domainViewFilters = useDomainViewFilters();
 
   const query = useLocationQuery({
     fields: {
@@ -166,7 +171,8 @@ export default function SpanMetricsTable(props: Props) {
               location,
               organization,
               transactionName,
-              project
+              project,
+              domainViewFilters?.view
             ),
           }}
         />
@@ -180,7 +186,8 @@ function renderBodyCell(
   location: Location,
   organization: Organization,
   transactionName: string,
-  project?: Project
+  project?: Project,
+  view?: DomainView
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
     if (column.key === SpanMetricsField.SPAN_OP) {
@@ -190,6 +197,7 @@ function renderBodyCell(
         query: location.query,
         spanSlug: {op: dataRow['span.op'], group: ''},
         projectID: project?.id,
+        view,
       });
 
       return (
@@ -210,6 +218,7 @@ function renderBodyCell(
         query: location.query,
         spanSlug: {op: dataRow['span.op'], group: dataRow['span.group']},
         projectID: project?.id,
+        view,
       });
 
       return (
