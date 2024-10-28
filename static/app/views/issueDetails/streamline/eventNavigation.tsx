@@ -184,10 +184,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                       <TabList.Item
                         to={eventPath}
                         key={label}
-                        hidden={
-                          label === EventNavOptions.CUSTOM &&
-                          selectedOption !== EventNavOptions.CUSTOM
-                        }
+                        hidden={label === EventNavOptions.CUSTOM}
                         textValue={EventNavLabels[label]}
                       >
                         {EventNavLabels[label]}
