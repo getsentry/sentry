@@ -198,9 +198,17 @@ interface TaskGroupProps {
   tasks: OnboardingTask[];
   title: string;
   expanded?: boolean;
+  toggleable?: boolean;
 }
 
-function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupProps) {
+function TaskGroup({
+  title,
+  description,
+  tasks,
+  expanded,
+  hidePanel,
+  toggleable = true,
+}: TaskGroupProps) {
   const [isExpanded, setIsExpanded] = useState(expanded);
   const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
 
@@ -210,8 +218,11 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
 
   return (
     <TaskGroupWrapper>
-      <TaskGroupHeader role="button" onClick={() => setIsExpanded(!isExpanded)}>
-        <InteractionStateLayer />
+      <TaskGroupHeader
+        role="button"
+        onClick={toggleable ? () => setIsExpanded(!isExpanded) : undefined}
+      >
+        {toggleable && <InteractionStateLayer />}
         <div>
           <TaskGroupTitle>
             <strong>{title}</strong>
@@ -223,11 +234,13 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
           </TaskGroupTitle>
           <p>{description}</p>
         </div>
-        <Chevron
-          direction={isExpanded ? 'up' : 'down'}
-          role="presentation"
-          size="large"
-        />
+        {toggleable && (
+          <Chevron
+            direction={isExpanded ? 'up' : 'down'}
+            role="presentation"
+            size="large"
+          />
+        )}
       </TaskGroupHeader>
       {isExpanded && (
         <Fragment>
@@ -312,18 +325,21 @@ export function NewOnboardingSidebar({
           expanded={
             groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length > 0
           }
+          toggleable={sortedBeyondBasicsTasks.length > 0}
         />
-        <TaskGroup
-          title={t('Beyond the Basics')}
-          description={t(
-            'Explore advanced features like release tracking, performance alerts and more to enhance your monitoring.'
-          )}
-          tasks={sortedBeyondBasicsTasks}
-          hidePanel={onClose}
-          expanded={
-            groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
-          }
-        />
+        {sortedBeyondBasicsTasks.length > 0 && (
+          <TaskGroup
+            title={t('Beyond the Basics')}
+            description={t(
+              'Explore advanced features like release tracking, performance alerts and more to enhance your monitoring.'
+            )}
+            tasks={sortedBeyondBasicsTasks}
+            hidePanel={onClose}
+            expanded={
+              groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
+            }
+          />
+        )}
       </Content>
     </Wrapper>
   );
@@ -358,8 +374,8 @@ const TaskGroupWrapper = styled('div')`
   }
 `;
 
-const TaskGroupHeader = styled('div')`
-  cursor: pointer;
+const TaskGroupHeader = styled('div')<{toggleable?: boolean}>`
+  cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   display: grid;
   grid-template-columns: 1fr max-content;
   padding: ${space(1)} ${space(1.5)};
