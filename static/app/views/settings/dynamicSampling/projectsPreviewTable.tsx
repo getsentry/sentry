@@ -87,7 +87,7 @@ export function ProjectsPreviewTable({period}: Props) {
           const subProjects = hasSubProjects
             ? fakeSubProjects.map(slug => ({
                 slug: slug,
-                count: Math.random() * Math.pow(10, countMagnitude + 1),
+                count: Math.floor(Math.random() * Math.pow(10, countMagnitude + 1)),
               }))
             : [];
 
@@ -238,8 +238,10 @@ const TableRow = memo(function TableRow({
         <FirstCellLine data-has-chevron={hasSubProjects}>
           {hasSubProjects && (
             <StyledIconChevron
-              onClick={() => setIsExpanded(value => !value)}
+              role="button"
+              aria-label={isExpanded ? t('Collapse') : t('Expand')}
               direction={isExpanded ? 'down' : 'right'}
+              onClick={() => setIsExpanded(value => !value)}
             />
           )}
           <ProjectBadge project={project} avatarSize={16} />
