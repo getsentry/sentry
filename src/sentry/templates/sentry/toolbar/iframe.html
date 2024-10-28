@@ -35,16 +35,20 @@ Required context variables:
           }
         }
 
+        function requestAuthn(delay_ms) {
+          window.open(
+            `/toolbar/${organizationSlug}/${projectIdOrSlug}/login-success/?delay=${delay_ms ?? '0'}`,
+            'sentry-toolbar-auth-popup',
+            'popup=true,innerWidth=800,innerHeight=550,noopener=false'
+          );
+        }
+
         function setupLoginForm() {
           log('setupLoginForm()');
           const form = document.getElementById('login-form');
           form.addEventListener('submit', submitEvent => {
             submitEvent.preventDefault();
-            window.open(
-              `/toolbar/${organizationSlug}/${projectIdOrSlug}/login-success/`,
-              'sentry-toolbar-auth-popup',
-              'popup=true,innerWidth=800,innerHeight=550,noopener=false'
-            );
+            requestAuthn();
           });
         }
 
@@ -65,7 +69,7 @@ Required context variables:
             log('window.onMessage', messageEvent.data, messageEvent);
             if (messageEvent.data.message === 'did-login') {
               saveAccessToken(messageEvent.data);
-              setupMessageChannel();
+              sendStateMessage('logged-in');
             }
           });
         }
@@ -75,12 +79,11 @@ Required context variables:
           if (data.cookie) {
             const value = `${data.cookie}; domain=${window.location.hostname}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
             document.cookie = value
-            log('Saved a cookie', document.cookie.indexOf(cookie) >= 0, cookie);
-            localStorage.setItem('cookie', data.cookie);
+            log('Saved a cookie', document.cookie.indexOf(value) >= 0);
           }
           if (data.token) {
             localStorage.setItem('accessToken', data.token);
-            log('Saved an accessToken to localStorage', data.token);
+            log('Saved an accessToken to localStorage');
           }
           if (!data.cookie && !data.token) {
             log('Unexpected: No access token found!');
@@ -93,12 +96,24 @@ Required context variables:
 
           const messageDispatch = {
             'log': log,
+            'request-authn': requestAuthn,
+            'clear-authn': () => {
+              document.cookie = '';
+              log('Cleared the current cookie');
+              const accessToken = localStorage.removeItem('accessToken')
+              log('Removed accessToken from localStorage');
+
+              sendStateMessage('logged-out');
+            },
             'fetch': async (url, init) => {
-              // For mock/test purposes we're fetching the accessToken and injecting it
-              const accessToken = localStorage.getItem('accessToken')
+              // If we have an accessToken lets use it. Otherwise we presume a cookie will be set.
+              const accessToken = localStorage.getItem('accessToken');
               const bearer = accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {};
 
-              log('Found access info', {cookie: document.cookie, accessToken, lsCookie: localStorage.getItem('cookie')});
+              // If either of these is invalid, or both are missing, we will
+              // forward the resulting 401 to the application, which will request
+              // tokens be destroyed and reload the iframe in an unauth state.
+              log('Has access info', {cookie: Boolean(document.cookie), accessToken: Boolean(accessToken)});
 
               const initWithCreds = {
                 ...init,
@@ -131,7 +146,7 @@ Required context variables:
               return; // No-op without a $function to call
             }
 
-            messageDispatch[message.$function]
+            Promise.resolve(messageDispatch[message.$function])
               .apply(undefined, message.$args || [])
               .then($result => port1.postMessage({ $id, $result }))
               .catch(error => port1.postMessage({ $id, $error: error }));
@@ -148,14 +163,11 @@ Required context variables:
 
         log('Init', { referrer, state });
 
-        if (state === 'success') {
-          setupMessageChannel();
-        } else {
-          setupLoginForm();
-          // enum of: logged-out, missing-project, invalid-domain
-          sendStateMessage(state);
-          listenForLoginSuccess();
-        }
+        setupMessageChannel();
+        setupLoginForm();
+        listenForLoginSuccess();
+        // enum of: logged-out, missing-project, invalid-domain, logged-in
+        sendStateMessage(state === 'success' ? 'logged-in' : state);
       })();
     </script>
     {% endscript %}
