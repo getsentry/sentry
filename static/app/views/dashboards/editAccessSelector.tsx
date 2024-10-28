@@ -62,6 +62,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         displayEmail="Creator"
       />
     ),
+    textValue: '_creatorbadge',
     disabled: dashboardCreator?.id !== currentUser.id,
     checkboxProps: {
       isDisabled: true,
@@ -76,11 +77,12 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   });
 
   // Avatars/Badges in the Edit Selector Button
-  const triggerAvatars = isEverythingSelected ? (
-    <StyledBadge text={'All'} />
-  ) : (
-    <StyledAvatarList key="avatar-list" users={[currentUser]} avatarSize={25} />
-  );
+  const triggerAvatars =
+    isEverythingSelected || !dashboardCreator ? (
+      <StyledBadge text={'All'} />
+    ) : (
+      <StyledAvatarList key="avatar-list" users={[dashboardCreator]} avatarSize={25} />
+    );
 
   const dropdownOptions = [
     makeCreatorOption(),

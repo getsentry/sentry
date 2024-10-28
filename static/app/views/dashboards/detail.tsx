@@ -626,7 +626,7 @@ class DashboardDetail extends Component<Props, State> {
 
     updateDashboard(api, organization.slug, dashboardCopy).then(
       (newDashboard: DashboardDetails) => {
-        addSuccessMessage(t('Dashboard Edit Access updated'));
+        addSuccessMessage(t('Dashboard Edit Access updated.'));
         return newDashboard;
       }
     );
