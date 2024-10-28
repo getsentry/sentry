@@ -7,7 +7,7 @@ import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
 import sentry.workflow_engine.models.detector_state
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class Migration(CheckedMigration):
@@ -46,7 +46,7 @@ class Migration(CheckedMigration):
                 (
                     "state",
                     models.CharField(
-                        default=PriorityLevel.OK,
+                        default=DetectorPriorityLevel.OK,
                         max_length=200,
                     ),
                 ),

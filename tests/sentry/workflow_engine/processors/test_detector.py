@@ -1,7 +1,6 @@
 from unittest import mock
 
 from sentry.issues.grouptype import GroupCategory, GroupType
-from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.detector import (
     DetectorEvaluationResult,
@@ -9,6 +8,7 @@ from sentry.workflow_engine.models.detector import (
     DetectorStateData,
 )
 from sentry.workflow_engine.processors.detector import process_detectors
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
@@ -24,7 +24,7 @@ class TestProcessDetectors(BaseGroupTypeTest):
 
         class MockDetectorHandler(DetectorHandler[dict]):
             def evaluate(self, data_packet: DataPacket[dict]) -> list[DetectorEvaluationResult]:
-                return [DetectorEvaluationResult(True, PriorityLevel.HIGH, data_packet)]
+                return [DetectorEvaluationResult(True, DetectorPriorityLevel.HIGH, data_packet)]
 
         class HandlerGroupType(GroupType):
             type_id = 2
@@ -39,12 +39,12 @@ class TestProcessDetectors(BaseGroupTypeTest):
                 return [
                     DetectorEvaluationResult(
                         True,
-                        PriorityLevel.HIGH,
+                        DetectorPriorityLevel.HIGH,
                         data_packet,
                         DetectorStateData(
                             group_key,
                             True,
-                            PriorityLevel.OK,
+                            DetectorPriorityLevel.OK,
                             100,
                             {},
                         ),
@@ -72,7 +72,7 @@ class TestProcessDetectors(BaseGroupTypeTest):
         data_packet = self.build_data_packet()
         results = process_detectors(data_packet, [detector])
         assert results == [
-            (detector, [DetectorEvaluationResult(True, PriorityLevel.HIGH, data_packet)])
+            (detector, [DetectorEvaluationResult(True, DetectorPriorityLevel.HIGH, data_packet)])
         ]
 
     def test_state_results(self):
@@ -81,9 +81,9 @@ class TestProcessDetectors(BaseGroupTypeTest):
         results = process_detectors(data_packet, [detector])
         result = DetectorEvaluationResult(
             True,
-            PriorityLevel.HIGH,
+            DetectorPriorityLevel.HIGH,
             data_packet,
-            DetectorStateData(None, True, PriorityLevel.OK, 100, {}),
+            DetectorStateData(None, True, DetectorPriorityLevel.OK, 100, {}),
         )
         assert results == [
             (
@@ -98,15 +98,15 @@ class TestProcessDetectors(BaseGroupTypeTest):
         results = process_detectors(data_packet, [detector])
         result_1 = DetectorEvaluationResult(
             True,
-            PriorityLevel.HIGH,
+            DetectorPriorityLevel.HIGH,
             data_packet,
-            DetectorStateData("group_1", True, PriorityLevel.OK, 100, {}),
+            DetectorStateData("group_1", True, DetectorPriorityLevel.OK, 100, {}),
         )
         result_2 = DetectorEvaluationResult(
             True,
-            PriorityLevel.HIGH,
+            DetectorPriorityLevel.HIGH,
             data_packet,
-            DetectorStateData("group_2", True, PriorityLevel.OK, 100, {}),
+            DetectorStateData("group_2", True, DetectorPriorityLevel.OK, 100, {}),
         )
         assert results == [
             (
@@ -123,9 +123,9 @@ class TestProcessDetectors(BaseGroupTypeTest):
             assert mock_logger.error.call_args[0][0] == "Duplicate detector state group keys found"
         result = DetectorEvaluationResult(
             True,
-            PriorityLevel.HIGH,
+            DetectorPriorityLevel.HIGH,
             data_packet,
-            DetectorStateData("dupe", True, PriorityLevel.OK, 100, {}),
+            DetectorStateData("dupe", True, DetectorPriorityLevel.OK, 100, {}),
         )
         assert results == [
             (

@@ -4,7 +4,7 @@ from django.db.models.functions import Coalesce
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
-from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 @region_silo_model
@@ -21,7 +21,7 @@ class DetectorState(DefaultFieldsModel):
     active = models.BooleanField(default=False)
 
     # The current state of the detector
-    state = models.CharField(max_length=200, default=PriorityLevel.OK)
+    state = models.CharField(max_length=200, default=DetectorPriorityLevel.OK)
 
     class Meta:
         constraints = [

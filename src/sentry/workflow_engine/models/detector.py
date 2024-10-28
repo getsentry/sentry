@@ -15,10 +15,10 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.issues import grouptype
 from sentry.models.owner_base import OwnerModel
-from sentry.types.group import PriorityLevel
 from sentry.utils import redis
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.detector_state import DetectorState
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ class Detector(DefaultFieldsModel, OwnerModel):
 class DetectorStateData:
     group_key: str | None
     active: bool
-    status: PriorityLevel
+    status: DetectorPriorityLevel
     # Stateful detectors always process data packets in order. Once we confirm that a data packet has been fully
     # processed and all workflows have been done, this value will be used by the stateful detector to prevent
     # reprocessing
@@ -108,7 +108,7 @@ class DetectorStateData:
 @dataclasses.dataclass(frozen=True)
 class DetectorEvaluationResult:
     is_active: bool
-    priority: PriorityLevel
+    priority: DetectorPriorityLevel
     data: Any
     state_update_data: DetectorStateData | None = None
 
