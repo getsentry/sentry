@@ -290,4 +290,37 @@ describe('DropdownMenu', function () {
     });
     expect(onAction).toHaveBeenCalledTimes(1);
   });
+
+  it('navigates to link on meta key', async function () {
+    const onAction = jest.fn();
+    const router = RouterFixture();
+    const user = userEvent.setup();
+
+    const errorFn = jest.fn();
+    jest.spyOn(console, 'error').mockImplementation(errorFn);
+
+    render(
+      <DropdownMenu
+        items={[
+          {key: 'item1', label: 'Item One', to: '/test'},
+          {key: 'item2', label: 'Item Two', to: '/test2', onAction},
+        ]}
+        triggerLabel="Menu"
+      />,
+      {router}
+    );
+
+    await user.click(screen.getByRole('button', {name: 'Menu'}));
+    await user.keyboard('{ArrowDown}');
+    await user.keyboard('[MetaLeft>]'); // Press meta key without releasing
+    await user.keyboard('{Enter}');
+    await user.keyboard('[/MetaLeft]'); // Release meta key
+
+    expect(onAction).toHaveBeenCalledTimes(1);
+    // JSDOM throws an error on navigation to random urls
+    expect(errorFn).toHaveBeenCalledTimes(1);
+
+    // eslint-disable-next-line no-console
+    jest.mocked(console.error).mockRestore();
+  });
 });

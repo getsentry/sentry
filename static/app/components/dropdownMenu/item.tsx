@@ -8,7 +8,9 @@ import type {LocationDescriptor} from 'history';
 
 import Link from 'sentry/components/links/link';
 import type {MenuListItemProps} from 'sentry/components/menuListItem';
-import MenuListItem from 'sentry/components/menuListItem';
+import MenuListItem, {
+  InnerWrap as MenuListItemInnerWrap,
+} from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -166,6 +168,18 @@ function BaseDropdownMenuItem(
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
       if (e.key === 'Enter' && to) {
+        // If the user is holding down the meta key, we want to dispatch a mouse event
+        if (e.metaKey || e.ctrlKey) {
+          const mouseEvent = new MouseEvent('click', {
+            ctrlKey: e.ctrlKey,
+            metaKey: e.metaKey,
+          });
+          ref.current
+            ?.querySelector(`${MenuListItemInnerWrap}`)
+            ?.dispatchEvent(mouseEvent);
+          return;
+        }
+
         navigate(to);
         return;
       }

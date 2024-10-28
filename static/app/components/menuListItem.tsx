@@ -317,7 +317,7 @@ function getTextColor({
   }
 }
 
-const InnerWrap = styled('div', {
+export const InnerWrap = styled('div', {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
     isPropValid(prop) &&
