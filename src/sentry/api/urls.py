@@ -2043,7 +2043,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-flag-log",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/token/(?P<token>.+)/$",
         OrganizationFlagsHooksEndpoint.as_view(),
         name="sentry-api-0-organization-flag-hooks",
     ),

@@ -31,7 +31,7 @@ def test_audit_log_item_generation():
 
 
 class AuditLogPresenterFunctionalTestCase(APITestCase):
-    endpoint = "sentry-api-0-organization-flag-hooks"
+    endpoint = "sentry-api-0-flag-hooks"
 
     def test_audit_log_presenter_flush(self):
         with self.options(
