@@ -130,6 +130,7 @@ export function getOnboardingTasks({
         actionType: 'app',
         location: `/organizations/${organization.slug}/issues/`,
         display: true,
+        group: OnboardingTaskGroup.GETTING_STARTED,
       },
       {
         task: OnboardingTaskKey.PERFORMANCE_GUIDE,
@@ -142,6 +143,7 @@ export function getOnboardingTasks({
         actionType: 'app',
         location: `/organizations/${organization.slug}/performance/`,
         display: true,
+        group: OnboardingTaskGroup.GETTING_STARTED,
       },
       {
         task: OnboardingTaskKey.RELEASE_GUIDE,
@@ -154,6 +156,7 @@ export function getOnboardingTasks({
         actionType: 'app',
         location: `/organizations/${organization.slug}/releases/`,
         display: true,
+        group: OnboardingTaskGroup.GETTING_STARTED,
       },
       {
         task: OnboardingTaskKey.SIDEBAR_GUIDE,
@@ -164,6 +167,7 @@ export function getOnboardingTasks({
         actionType: 'app',
         location: `/organizations/${organization.slug}/projects/`,
         display: true,
+        group: OnboardingTaskGroup.GETTING_STARTED,
       },
     ];
   }
