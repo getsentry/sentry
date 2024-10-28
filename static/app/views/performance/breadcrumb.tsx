@@ -158,7 +158,6 @@ export const getTabCrumbs = ({
         });
         break;
       }
-      case Tab.TRANSACTION_SUMMARY:
       case Tab.REPLAYS: {
         crumbs.push({
           label: t('Replays'),
@@ -177,6 +176,7 @@ export const getTabCrumbs = ({
         });
         break;
       }
+      case Tab.TRANSACTION_SUMMARY:
       default: {
         const summaryTarget = transactionSummaryRouteWithQuery(routeQuery);
         crumbs.push({
