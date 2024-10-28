@@ -31,7 +31,10 @@ export function TraceLink({event}: TraceLinkProps) {
         groupId: event.groupID,
       },
     },
-    TraceViewSources.ISSUE_DETAILS // TODO: extend this enum and switch it based on the surface
+    surface.startsWith('feedback')
+      ? TraceViewSources.FEEDBACK_DETAILS
+      : TraceViewSources.ISSUE_DETAILS
+    // TODO: leverage surface for other view sources. Right now these are the only 2 that use a TraceLink.
   );
 
   if (!event.contexts?.trace?.trace_id) {
