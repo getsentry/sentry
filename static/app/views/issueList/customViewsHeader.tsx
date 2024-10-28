@@ -337,6 +337,14 @@ function CustomViewsIssueListHeaderTabsContent({
     if (query) {
       if (!tabListState?.selectionManager.isSelected(TEMPORARY_TAB_KEY)) {
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
+        setTempTab({
+          id: TEMPORARY_TAB_KEY,
+          key: TEMPORARY_TAB_KEY,
+          label: t('Unsaved'),
+          query: query,
+          querySort: sort ?? IssueSortOptions.DATE,
+          isCommitted: true,
+        });
         navigate(
           normalizeUrl({
             ...location,
@@ -361,6 +369,7 @@ function CustomViewsIssueListHeaderTabsContent({
     queryParamsWithPageFilters,
     draggableTabs,
     organization,
+    tempTab,
   ]);
 
   // Update local tabs when new views are received from mutation request
