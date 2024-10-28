@@ -168,6 +168,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "register",
         "remote",
         "resources",
+        "rollback",
         "sa1",
         "sales",
         "security",

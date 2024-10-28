@@ -1,6 +1,7 @@
 """
 Metrics Service Layer Tests for Release Health
 """
+
 import time
 
 import pytest
