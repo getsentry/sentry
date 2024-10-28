@@ -184,12 +184,11 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         self.client.get(self.path)
 
         project_path = reverse("project-details", kwargs={"project_slug": "project"})
-
         resp = self.client.get(project_path, HTTP_HOST=f"{org.slug}.testserver")
-        # redirect to login page
+
         assert resp.status_code == 302
-        # loads auth org login page by parsing customer domain
-        assert resp.url == reverse("sentry-auth-organization", args=[org.slug])
+        # redirect to auth org login page by parsing customer domain
+        assert getattr(resp, "url", None) == reverse("sentry-auth-organization", args=[org.slug])
 
     def test_registration_disabled(self):
         with self.feature({"auth:register": False}), self.allow_registration():
