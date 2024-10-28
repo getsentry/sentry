@@ -51,7 +51,17 @@ export const useModuleURL = (
 
 type URLBuilder = (moduleName: RoutableModuleNames, domainView?: DomainView) => string;
 
-export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
+/**
+ *  This hook returns a function to build URLs for the module summary pages.
+ *  This function will return the domain specific module url, the domain is determined in the following order of priority:
+ *    1. The domain view passed in by the user
+ *    2. (when detectDomainView=true) The current domain view (i.e if the current url is `/performance/frontend`, the current view is frontned)
+ *    3. The default view for the module
+ */
+export function useModuleURLBuilder(
+  bare: boolean = false,
+  detectDomainView: boolean = true
+): URLBuilder {
   const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
   const hasDomainViewFeature = organization?.features.includes('insights-domain-view');
   const {view: currentView} = useDomainViewFilters();
@@ -65,7 +75,12 @@ export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
 
   if (hasDomainViewFeature) {
     return function (moduleName: RoutableModuleNames, domainView?: DomainView) {
-      const view = domainView ?? currentView ?? getModuleView(moduleName as ModuleName);
+      let view = detectDomainView ? currentView : currentView ?? domainView;
+
+      if (!view) {
+        view = getModuleView(moduleName as ModuleName);
+      }
+
       return bare
         ? `${DOMAIN_VIEW_BASE_URL}/${view}/${MODULE_BASE_URLS[moduleName]}`
         : normalizeUrl(
