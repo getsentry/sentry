@@ -21,6 +21,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import {handleUpdateDashboardSplit} from 'sentry/views/dashboards/detail';
+import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -1630,6 +1631,26 @@ describe('Dashboards > Detail', function () {
       // Validate that after search is cleared, search result still appears
       expect(await screen.findByText('Latest Release(s)')).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'search-result'})).toBeInTheDocument();
+    });
+
+    it('renders edit access selector', async function () {
+      render(
+        <EditAccessSelector
+          dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
+          onChangeEditAccess={jest.fn()}
+        />,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access'],
+            ...initialData.organization,
+          },
+        }
+      );
+
+      await userEvent.click(await screen.findByText('Edit Access:'));
+      expect(screen.getByText('Creator')).toBeInTheDocument();
+      expect(screen.getByText('Everyone')).toBeInTheDocument();
     });
 
     describe('discover split', function () {
