@@ -156,16 +156,9 @@ function ProjectVelocityScoreCard(props: Props) {
     <BigNumberWidget
       title={cardTitle}
       description={cardHelp}
-      data={[
-        {
-          'count()': currentReleases?.length,
-        },
-      ]}
-      previousPeriodData={[
-        {
-          'count()': previousReleases?.length,
-        },
-      ]}
+      value={currentReleases?.length}
+      previousPeriodValue={previousReleases?.length}
+      field="count()"
       maximumValue={API_LIMIT}
       meta={{
         fields: {

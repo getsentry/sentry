@@ -123,16 +123,9 @@ function ProjectApdexScoreCard(props: Props) {
     <BigNumberWidget
       title={cardTitle}
       description={cardHelp}
-      data={[
-        {
-          'apdex()': apdex,
-        },
-      ]}
-      previousPeriodData={[
-        {
-          'apdex()': previousApdex,
-        },
-      ]}
+      value={apdex}
+      previousPeriodValue={previousApdex}
+      field="apdex()"
       meta={{
         fields: {
           'apdex()': 'number',

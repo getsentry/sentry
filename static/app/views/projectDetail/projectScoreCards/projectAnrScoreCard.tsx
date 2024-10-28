@@ -142,16 +142,9 @@ export function ProjectAnrScoreCard({
     <BigNumberWidget
       title={t('ANR Rate')}
       description={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
-      data={[
-        {
-          'anr_rate()': value ?? undefined,
-        },
-      ]}
-      previousPeriodData={[
-        {
-          'anr_rate()': previousValue ?? undefined,
-        },
-      ]}
+      value={value ?? undefined}
+      previousPeriodValue={previousValue ?? undefined}
+      field="anr_rate()"
       preferredPolarity="-"
       meta={{
         fields: {

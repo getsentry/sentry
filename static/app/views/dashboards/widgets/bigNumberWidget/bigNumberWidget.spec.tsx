@@ -10,11 +10,8 @@ describe('BigNumberWidget', () => {
         <BigNumberWidget
           title="EPS"
           description="Number of events per second"
-          data={[
-            {
-              'eps()': 0.01087819860850493,
-            },
-          ]}
+          value={0.01087819860850493}
+          field="eps()"
           meta={{
             fields: {
               'eps()': 'rate',
@@ -34,7 +31,8 @@ describe('BigNumberWidget', () => {
     it('Explains missing data', () => {
       render(
         <BigNumberWidget
-          data={[{}]}
+          value={undefined}
+          field={'p95(span.duration)'}
           meta={{
             fields: {
               'p95(span.duration)': 'number',
@@ -49,11 +47,8 @@ describe('BigNumberWidget', () => {
     it('Explains non-numeric data', () => {
       render(
         <BigNumberWidget
-          data={[
-            {
-              'count()': Infinity,
-            },
-          ]}
+          value={Infinity}
+          field="count()"
           meta={{
             fields: {
               'count()': 'number',
@@ -68,11 +63,8 @@ describe('BigNumberWidget', () => {
     it('Formats dates', () => {
       render(
         <BigNumberWidget
-          data={[
-            {
-              'max(timestamp)': '2024-10-17T16:08:07+00:00',
-            },
-          ]}
+          value={'2024-10-17T16:08:07+00:00'}
+          field="max(timestamp)"
           meta={{
             fields: {
               'max(timestamp)': 'date',
@@ -90,11 +82,8 @@ describe('BigNumberWidget', () => {
     it('Renders strings', () => {
       render(
         <BigNumberWidget
-          data={[
-            {
-              'any(transaction)': '/api/0/fetch',
-            },
-          ]}
+          value={'/api/0/fetch'}
+          field="any(transaction)"
           meta={{
             fields: {
               'max(timestamp)': 'string',
@@ -109,11 +98,8 @@ describe('BigNumberWidget', () => {
     it('Formats duration data', () => {
       render(
         <BigNumberWidget
-          data={[
-            {
-              'p95(span.duration)': 17.28,
-            },
-          ]}
+          value={17.28}
+          field="p95(span.duration)"
           meta={{
             fields: {
               'p95(span.duration)': 'duration',
@@ -131,11 +117,8 @@ describe('BigNumberWidget', () => {
     it('Shows the full unformatted value on hover', async () => {
       render(
         <BigNumberWidget
-          data={[
-            {
-              'count()': 178451214,
-            },
-          ]}
+          value={178451214}
+          field="count()"
           meta={{
             fields: {
               'count()': 'integer',
@@ -156,11 +139,8 @@ describe('BigNumberWidget', () => {
       render(
         <BigNumberWidget
           title="Count"
-          data={[
-            {
-              'count()': 178451214,
-            },
-          ]}
+          value={178451214}
+          field="count()"
           maximumValue={100000000}
           meta={{
             fields: {
@@ -232,16 +212,9 @@ describe('BigNumberWidget', () => {
       render(
         <BigNumberWidget
           title="http_response_code_rate(500)"
-          data={[
-            {
-              'http_response_code_rate(500)': 0.14227123,
-            },
-          ]}
-          previousPeriodData={[
-            {
-              'http_response_code_rate(500)': 0.1728139,
-            },
-          ]}
+          value={0.14227123}
+          previousPeriodValue={0.1728139}
+          field="http_response_code_rate(500)"
           meta={{
             fields: {
               'http_response_code_rate(500)': 'percentage',
@@ -262,11 +235,8 @@ describe('BigNumberWidget', () => {
     it('Evaluates the current value against a threshold', async () => {
       render(
         <BigNumberWidget
-          data={[
-            {
-              'eps()': 14.227123,
-            },
-          ]}
+          value={14.227123}
+          field="eps()"
           meta={{
             fields: {
               'eps()': 'rate',
@@ -294,11 +264,8 @@ describe('BigNumberWidget', () => {
     it('Normalizes the units', () => {
       render(
         <BigNumberWidget
-          data={[
-            {
-              'mystery_error_rate()': 135, //  2.25/s
-            },
-          ]}
+          value={135} //  2.25/s
+          field="mystery_error_rate()"
           meta={{
             fields: {
               'mystery_error_rate()': 'rate',
@@ -323,11 +290,8 @@ describe('BigNumberWidget', () => {
     it('Respects the preferred polarity', () => {
       render(
         <BigNumberWidget
-          data={[
-            {
-              'mystery_error_rate()': 135,
-            },
-          ]}
+          value={135}
+          field="mystery_error_rate()"
           meta={{
             fields: {
               'mystery_error_rate()': 'rate',

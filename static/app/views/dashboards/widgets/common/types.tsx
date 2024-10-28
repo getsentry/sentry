@@ -8,11 +8,6 @@ export type Meta = {
 type TableRow = Record<string, number | string | undefined>;
 export type TableData = TableRow[];
 
-export interface DataProps {
-  data?: TableData;
-  previousPeriodData?: TableData;
-}
-
 export type ErrorProp = Error | string;
 
 export interface StateProps {
