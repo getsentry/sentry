@@ -192,12 +192,6 @@ def _get_and_save_split_decision_for_dashboard_widget(
             )
         return DashboardWidgetTypes.ERROR_EVENTS, False
 
-    # If either builder fails to initialize, the query was only compatible with the other dataset.
-    if errors_builder is None:
-        return DashboardWidgetTypes.TRANSACTION_LIKE, False
-    if transactions_builder is None:
-        return DashboardWidgetTypes.ERROR_EVENTS, False
-
     dataset_inferred_from_query = _dataset_split_decision_inferred_from_query(
         errors_builder, transactions_builder
     )
