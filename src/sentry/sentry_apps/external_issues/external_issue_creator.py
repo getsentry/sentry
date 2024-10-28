@@ -31,7 +31,7 @@ class ExternalIssueCreator:
                     web_url=self.web_url,
                 )
 
-                # Return only the external issue, of the tuple (external_issue, created)
+                # Return only the external issue, of the tuple (external_issue, created) from update_or_create
                 return self.external_issue[0]
         except Exception as e:
             logger.info(
