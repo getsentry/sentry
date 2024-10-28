@@ -163,11 +163,11 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         # For normal users, let parent class handle (e.g. redirect to login page)
         return super().handle_auth_required(request, *args, **kwargs)
 
-    def handle(self, request: Request, organization, **kwargs) -> HttpResponse:
+    def handle(self, request: HttpRequest, organization, **kwargs) -> HttpResponse:
         request.organization = organization
         return self.handle_react(request)
 
 
 class GenericReactPageView(BaseView, ReactMixin):
-    def handle(self, request: Request, **kwargs) -> HttpResponse:
+    def handle(self, request: HttpRequest, **kwargs) -> HttpResponse:
         return self.handle_react(request, **kwargs)

@@ -283,6 +283,9 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       )}
+      {hasStreamlinedUI && (
+        <ScreenshotDataSection event={event} projectSlug={project.slug} />
+      )}
       {isANR && (
         <QuickTraceQuery
           event={event}
@@ -400,9 +403,6 @@ export function EventDetailsContent({
       <EventPackageData event={event} />
       <EventDevice event={event} />
       <EventViewHierarchy event={event} project={project} />
-      {hasStreamlinedUI && (
-        <ScreenshotDataSection event={event} projectSlug={project.slug} />
-      )}
       <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {hasStreamlinedUI && (

@@ -140,6 +140,7 @@ export interface AutofixRootCauseStep extends BaseStep {
   causes: AutofixRootCauseData[];
   selection: AutofixRootCauseSelection;
   type: AutofixStepType.ROOT_CAUSE_ANALYSIS;
+  termination_reason?: string;
 }
 
 export type AutofixCodebaseChange = {

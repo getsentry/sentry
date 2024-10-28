@@ -613,9 +613,9 @@ class BuiltInFingerprintingTest(TestCase):
 
         event_message1 = self.store_event(data=self.hydration_error_trace, project_id=self.project)
         data_message2 = self.hydration_error_trace.copy()
-        data_message2[
-            "message"
-        ] = "Hydration failed because the initial UI does not match what was rendered on the server."
+        data_message2["message"] = (
+            "Hydration failed because the initial UI does not match what was rendered on the server."
+        )
         event_message2 = self.store_event(data=data_message2, project_id=self.project)
 
         assert event_message1.data.data["fingerprint"] == ["hydrationerror", "{{tags.transaction}}"]

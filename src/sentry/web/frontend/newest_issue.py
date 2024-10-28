@@ -1,6 +1,5 @@
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
-from rest_framework.request import Request
 
 from sentry.models.group import Group, GroupStatus
 from sentry.web.frontend.base import OrganizationView, region_silo_view
@@ -8,7 +7,9 @@ from sentry.web.frontend.base import OrganizationView, region_silo_view
 
 @region_silo_view
 class NewestIssueView(OrganizationView):
-    def handle(self, request: Request, organization, issue_type="error", **kwargs) -> HttpResponse:
+    def handle(
+        self, request: HttpRequest, organization, issue_type="error", **kwargs
+    ) -> HttpResponse:
         issue_list_url = organization.absolute_url(
             reverse("sentry-organization-issue-list", args=[organization.slug])
         )

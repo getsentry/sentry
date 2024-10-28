@@ -1,33 +1,22 @@
-import {useMemo} from 'react';
-
 import {Flex} from 'sentry/components/container/flex';
 import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
-import {useUser} from 'sentry/utils/useUser';
+import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
 
-export default function PeopleSection({group}: {group: Group}) {
-  const activeUser = useUser();
-  const {userParticipants, teamParticipants, viewers} = useMemo(() => {
-    return {
-      userParticipants: group.participants.filter(
-        (p): p is UserParticipant => p.type === 'user'
-      ),
-      teamParticipants: group.participants.filter(
-        (p): p is TeamParticipant => p.type === 'team'
-      ),
-      viewers: group.seenBy.filter(user => activeUser.id !== user.id),
-    };
-  }, [group, activeUser.id]);
-
-  const hasParticipants = group.participants.length > 0;
+export default function PeopleSection({
+  userParticipants,
+  teamParticipants,
+  viewers,
+}: {
+  teamParticipants: TeamParticipant[];
+  userParticipants: UserParticipant[];
+  viewers: User[];
+}) {
+  const hasParticipants = userParticipants.length > 0 || teamParticipants.length > 0;
   const hasViewers = viewers.length > 0;
-
-  if (!hasParticipants && !hasViewers) {
-    return null;
-  }
 
   return (
     <div>
