@@ -55,6 +55,7 @@ from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry import auth, eventstore
+from sentry.api.serializers.models.dashboard import DATASET_SOURCES
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
@@ -2748,6 +2749,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             )
         if "layout" in data:
             assert data["layout"] == expected_widget.detail["layout"]
+        if "datasetSource" in data:
+            assert data["datasetSource"] == DATASET_SOURCES[expected_widget.dataset_source]
 
     def create_user_member_role(self):
         self.user = self.create_user(is_superuser=False)

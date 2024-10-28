@@ -771,14 +771,14 @@ def _get_group_limit_filters(
     # Creates a mapping of groupBy fields to their equivalent SnQL
     key_to_condition_dict: dict[Groupable, Any] = {}
     for metric_groupby_obj in metrics_query.groupby:
-        key_to_condition_dict[
-            metric_groupby_obj.name
-        ] = SnubaQueryBuilder.generate_snql_for_action_by_fields(
-            metric_action_by_field=metric_groupby_obj,
-            use_case_id=use_case_id,
-            org_id=metrics_query.org_id,
-            projects=Project.objects.get_many_from_cache(metrics_query.project_ids),
-            is_column=True,
+        key_to_condition_dict[metric_groupby_obj.name] = (
+            SnubaQueryBuilder.generate_snql_for_action_by_fields(
+                metric_action_by_field=metric_groupby_obj,
+                use_case_id=use_case_id,
+                org_id=metrics_query.org_id,
+                projects=Project.objects.get_many_from_cache(metrics_query.project_ids),
+                is_column=True,
+            )
         )
 
     aliased_group_keys: tuple[str] = tuple(

@@ -41,13 +41,11 @@ _EnvTypes = Union[str, float, int, list, dict]
 
 
 @overload
-def env(key: str) -> str:
-    ...
+def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes:
-    ...
+def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
 
 
 def env(
@@ -385,7 +383,9 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
 INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.humanize",
     "django.contrib.messages",
+    "django.contrib.postgres",
     "django.contrib.sessions",
     "django.contrib.sites",
     "drf_spectacular",
@@ -3129,10 +3129,6 @@ ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
 
 # A set of extra tasks to sample
 ADDITIONAL_SAMPLED_TASKS: dict[str, float] = {}
-
-# This controls whether Sentry is run in a demo mode.
-# Enabling this will allow users to create accounts without an email or password.
-DEMO_MODE = False
 
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL: str | None = None

@@ -249,4 +249,19 @@ describe('DropdownMenu', function () {
     // Items should not appear
     expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
   });
+
+  it('closes after clicking link', async function () {
+    render(
+      <DropdownMenu
+        items={[{key: 'item1', label: 'Item One', to: '/test'}]}
+        triggerLabel="Menu"
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Item One'}));
+    await waitFor(() => {
+      expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+    });
+  });
 });
