@@ -256,7 +256,7 @@ class ExceptionAttributeHandler(AttributeHandler):
             return []
 
         return [
-            getattr(e, path[1], None)
+            str(getattr(e, path[1], None))
             for e in getattr(event.interfaces.get("exception"), "values", [])
             if e is not None
         ]
