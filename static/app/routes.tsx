@@ -18,6 +18,7 @@ import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -1679,17 +1680,8 @@ function buildRoutes() {
     </Route>
   );
 
-  const performanceRoutes = (
-    <Route
-      path="/performance/"
-      component={make(() => import('sentry/views/performance'))}
-      withOrgPath
-    >
-      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
-      <Route
-        path="trends/"
-        component={make(() => import('sentry/views/performance/trends'))}
-      />
+  const domainViewRoutes = (
+    <Route path={`/${DOMAIN_VIEW_BASE_URL}/`}>
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
           component={make(
@@ -1931,6 +1923,20 @@ function buildRoutes() {
           />
         </Route>
       </Route>
+    </Route>
+  );
+
+  const performanceRoutes = (
+    <Route
+      path="/performance/"
+      component={make(() => import('sentry/views/performance'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
+      <Route
+        path="trends/"
+        component={make(() => import('sentry/views/performance/trends'))}
+      />
       {transactionSummaryRoutes}
       <Route
         path="vitaldetail/"
@@ -2368,6 +2374,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {domainViewRoutes}
       {tracesRoutes}
       {insightsRoutes}
       {llmMonitoringRedirects}
