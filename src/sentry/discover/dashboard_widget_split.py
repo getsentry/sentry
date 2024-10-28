@@ -136,7 +136,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
                 ),
             )
         except snuba.UnqualifiedQueryError as e:
-            sentry_sdk.capture_message(e)
+            sentry_sdk.capture_exception(e)
             # Handle unqualified errors because the query may not be compatible,
             # with the dataset. There's a chance we can still inspect the other
             # dataset, so make an empty query builder
