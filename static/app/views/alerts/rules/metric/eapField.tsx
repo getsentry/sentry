@@ -4,9 +4,13 @@ import styled from '@emotion/styled';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import {parseFunction} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  SpanTagsProvider,
+  useSpanTags,
+} from 'sentry/views/explore/contexts/spanTagsContext';
 
 export const DEFAULT_EAP_FIELD = 'span.duration';
 export const DEFAULT_EAP_METRICS_ALERT_FIELD = `count(${DEFAULT_EAP_FIELD})`;
@@ -14,7 +18,6 @@ export const DEFAULT_EAP_METRICS_ALERT_FIELD = `count(${DEFAULT_EAP_FIELD})`;
 interface Props {
   aggregate: string;
   onChange: (value: string, meta: Record<string, any>) => void;
-  project: Project;
 }
 
 // Use the same aggregates/operations available in the explore view
@@ -25,15 +28,13 @@ const OPERATIONS = [
   })),
 ];
 
-// TODD(edward): Just hardcode the EAP fields for now. We should use SpanTagsProvider in the future to match the Explore UI.
-const EAP_FIELD_OPTIONS = [
-  {
-    name: 'span.duration',
-  },
-  {
-    name: 'span.self_time',
-  },
-];
+function EAPFieldWrapper({aggregate, onChange}: Props) {
+  return (
+    <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <EAPField aggregate={aggregate} onChange={onChange} />
+    </SpanTagsProvider>
+  );
+}
 
 function EAPField({aggregate, onChange}: Props) {
   // We parse out the aggregation and field from the aggregate string.
@@ -43,27 +44,30 @@ function EAPField({aggregate, onChange}: Props) {
     arguments: [field],
   } = parseFunction(aggregate) ?? {arguments: [undefined]};
 
+  const numberTags = useSpanTags('number');
+  const fieldsArray = Object.values(numberTags);
+
   useEffect(() => {
-    const selectedMriMeta = EAP_FIELD_OPTIONS.find(metric => metric.name === field);
-    if (field && !selectedMriMeta) {
-      const newSelection = EAP_FIELD_OPTIONS[0];
+    const selectedMeta = field ? numberTags[field] : undefined;
+    if (field && !selectedMeta) {
+      const newSelection = fieldsArray[0];
       if (newSelection) {
         onChange(`count(${newSelection.name})`, {});
       } else if (aggregate !== DEFAULT_EAP_METRICS_ALERT_FIELD) {
         onChange(DEFAULT_EAP_METRICS_ALERT_FIELD, {});
       }
     }
-  }, [onChange, aggregate, aggregation, field]);
+  }, [onChange, aggregate, aggregation, field, numberTags, fieldsArray]);
 
   const handleFieldChange = useCallback(
     option => {
-      const selectedMeta = EAP_FIELD_OPTIONS.find(metric => metric.name === option.value);
+      const selectedMeta = numberTags[option.value];
       if (!selectedMeta) {
         return;
       }
-      onChange(`${aggregation}(${option.value})`, {});
+      onChange(`${aggregation}(${selectedMeta.key})`, {});
     },
-    [onChange, aggregation]
+    [numberTags, onChange, aggregation]
   );
 
   const handleOperationChange = useCallback(
@@ -79,20 +83,23 @@ function EAPField({aggregate, onChange}: Props) {
 
   // As SelectControl does not support an options size limit out of the box
   // we work around it by using the async variant of the control
-  const getFieldOptions = useCallback((searchText: string) => {
-    const filteredMeta = EAP_FIELD_OPTIONS.filter(
-      ({name}) =>
-        searchText === '' || name.toLowerCase().includes(searchText.toLowerCase())
-    );
+  const getFieldOptions = useCallback(
+    (searchText: string) => {
+      const filteredMeta = fieldsArray.filter(
+        ({name}) =>
+          searchText === '' || name.toLowerCase().includes(searchText.toLowerCase())
+      );
 
-    const options = filteredMeta.map(metric => {
-      return {
-        label: metric.name,
-        value: metric.name,
-      };
-    });
-    return options;
-  }, []);
+      const options = filteredMeta.map(metric => {
+        return {
+          label: metric.name,
+          value: metric.key,
+        };
+      });
+      return options;
+    },
+    [fieldsArray]
+  );
 
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
   const selectedOption = field && {
@@ -113,9 +120,7 @@ function EAPField({aggregate, onChange}: Props) {
         searchable
         placeholder={t('Select a metric')}
         noOptionsMessage={() =>
-          EAP_FIELD_OPTIONS.length === 0
-            ? t('No metrics in this project')
-            : t('No options')
+          fieldsArray.length === 0 ? t('No metrics in this project') : t('No options')
         }
         async
         defaultOptions={getFieldOptions('')}
@@ -128,7 +133,7 @@ function EAPField({aggregate, onChange}: Props) {
   );
 }
 
-export default EAPField;
+export default EAPFieldWrapper;
 
 const Wrapper = styled('div')`
   display: flex;
