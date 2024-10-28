@@ -1,9 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
-import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {type IntegrationAction, IssueAlertActionType} from 'sentry/types/alerts';
@@ -71,7 +69,6 @@ export type IssueAlertNotificationProps = {
   provider: string | undefined;
   providersToIntegrations: Record<string, OrganizationIntegration[]>;
   querySuccess: boolean;
-  refetchIntegrations: () => void;
   setActions: (action: MultipleCheckboxOptions[]) => void;
   setChannel: (channel: string | undefined) => void;
   setIntegration: (integration: OrganizationIntegration | undefined) => void;
@@ -85,7 +82,7 @@ export function useCreateNotificationAction() {
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
     [`/organizations/${organization.slug}/integrations/?integrationType=messaging`],
-    {staleTime: Infinity}
+    {staleTime: 0, refetchOnWindowFocus: true}
   );
 
   const providersToIntegrations = useMemo(() => {
@@ -219,7 +216,6 @@ export function useCreateNotificationAction() {
       providersToIntegrations,
       querySuccess: messagingIntegrationsQuery.isSuccess,
       shouldRenderSetupButton,
-      refetchIntegrations: messagingIntegrationsQuery.refetch,
     },
   };
 }
@@ -227,13 +223,7 @@ export function useCreateNotificationAction() {
 export default function IssueAlertNotificationOptions(
   notificationProps: IssueAlertNotificationProps
 ) {
-  const {
-    actions,
-    setActions,
-    querySuccess,
-    shouldRenderSetupButton,
-    refetchIntegrations,
-  } = notificationProps;
+  const {actions, setActions, querySuccess, shouldRenderSetupButton} = notificationProps;
 
   const shouldRenderNotificationConfigs = actions.some(
     v => v !== MultipleCheckboxOptions.EMAIL
@@ -271,20 +261,11 @@ export default function IssueAlertNotificationOptions(
         </Wrapper>
       </MultipleCheckbox>
       {shouldRenderSetupButton && (
-        <ButtonWrapper>
-          <SetupMessagingIntegrationButton
-            analyticsParams={{
-              view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
-            }}
-          />
-          <RefreshButton
-            aria-label="Refresh integrations"
-            title={t('Already have an integration? Click to refresh')}
-            onClick={refetchIntegrations}
-          >
-            <IconRefresh />
-          </RefreshButton>
-        </ButtonWrapper>
+        <SetupMessagingIntegrationButton
+          analyticsParams={{
+            view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
+          }}
+        />
       )}
     </Fragment>
   );
@@ -294,17 +275,4 @@ const Wrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
-`;
-
-const ButtonWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1.5)};
-  align-items: center;
-`;
-
-const RefreshButton = styled(Button)`
-  border: 0;
-  padding: 0;
-  box-shadow: none;
 `;
