@@ -483,7 +483,6 @@ class ExhaustiveFixtures(Fixtures):
             projects=[project],
             user=owner,
         )
-        alert.subscribe_projects(projects=[project])
         AlertRuleExcludedProjects.objects.create(alert_rule=alert, project=other_project)
         alert.user_id = owner_id
         alert.save()
