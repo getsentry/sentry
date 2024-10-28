@@ -24,11 +24,14 @@ class ExternalIssueCreator:
             with transaction.atomic(using=router.db_for_write(PlatformExternalIssue)):
                 display_name = f"{escape(self.project)}#{escape(self.identifier)}"
                 self.external_issue = PlatformExternalIssue.objects.update_or_create(
+                    defaults={
+                        "project_id": self.group.project_id,
+                        "display_name": display_name,
+                        "web_url": self.web_url,
+                    },
                     group_id=self.group.id,
                     project_id=self.group.project_id,
                     service_type=self.install.sentry_app.slug,
-                    display_name=display_name,
-                    web_url=self.web_url,
                 )
 
                 # Return only the external issue, of the tuple (external_issue, created) from update_or_create
@@ -40,7 +43,7 @@ class ExternalIssueCreator:
                     "error": str(e),
                     "installtion_id": self.install.uuid,
                     "group_id": self.group.id,
-                    "url": self.web_url,
+                    "sentry_app_slug": self.install.sentry_app.slug,
                 },
             )
             raise
