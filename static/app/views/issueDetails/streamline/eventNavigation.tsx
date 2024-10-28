@@ -130,7 +130,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
           offset={[-2, 1]}
           trigger={triggerProps => (
             <NavigationDropdownButton {...triggerProps} borderless size="sm">
-              {TabName[currentTab]}
+              {TabName[currentTab] ?? TabName[Tab.DETAILS]}
             </NavigationDropdownButton>
           )}
         />
@@ -198,7 +198,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
               </Tabs>
             </Fragment>
           )}
-          {currentTab === Tab.DETAILS ? (
+          {currentTab === Tab.DETAILS && (
             <LinkButton
               to={{
                 pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
@@ -208,7 +208,8 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             >
               {t('All Events')}
             </LinkButton>
-          ) : (
+          )}
+          {currentTab === Tab.EVENTS && (
             <LinkButton to={{pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`}} size="xs">
               {t('Close')}
             </LinkButton>

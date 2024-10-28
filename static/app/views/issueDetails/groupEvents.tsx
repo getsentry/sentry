@@ -5,18 +5,22 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {ISSUE_PROPERTY_FIELDS} from 'sentry/utils/fields';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
+import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import AllEventsTable from './allEventsTable';
 
 interface Props extends RouteComponentProps<{groupId: string}, {}> {
   environments: string[];
   group: Group;
+  project: Project;
 }
 
 export const ALL_EVENTS_EXCLUDED_TAGS = [
@@ -77,4 +81,15 @@ const AllEventsFilters = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export default GroupEvents;
+// TODO(streamlined-ui): Remove this file completely and change rotue to new events list
+function IssueEventsList(props: Props) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
+  if (hasStreamlinedUI) {
+    return <EventList {...props} />;
+  }
+
+  return <GroupEvents {...props} />;
+}
+
+export default IssueEventsList;
