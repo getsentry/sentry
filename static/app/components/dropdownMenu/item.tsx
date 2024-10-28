@@ -8,11 +8,10 @@ import type {LocationDescriptor} from 'history';
 
 import Link from 'sentry/components/links/link';
 import type {MenuListItemProps} from 'sentry/components/menuListItem';
-import MenuListItem, {
-  InnerWrap as MenuListItemInnerWrap,
-} from 'sentry/components/menuListItem';
+import MenuListItem from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
 import mergeRefs from 'sentry/utils/mergeRefs';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './list';
@@ -119,6 +118,7 @@ function BaseDropdownMenuItem(
     node.value ?? {};
   const {size} = node.props;
   const {rootOverlayState} = useContext(DropdownMenuContext);
+  const navigate = useNavigate();
 
   const actionHandler = () => {
     if (to) {
@@ -166,11 +166,7 @@ function BaseDropdownMenuItem(
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
       if (e.key === 'Enter' && to) {
-        const mouseEvent = new MouseEvent('click', {
-          ctrlKey: e.ctrlKey,
-          metaKey: e.metaKey,
-        });
-        ref.current?.querySelector(`${MenuListItemInnerWrap}`)?.dispatchEvent(mouseEvent);
+        navigate(to);
         return;
       }
 
