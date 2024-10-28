@@ -369,7 +369,6 @@ function CustomViewsIssueListHeaderTabsContent({
     queryParamsWithPageFilters,
     draggableTabs,
     organization,
-    tempTab,
   ]);
 
   // Update local tabs when new views are received from mutation request
