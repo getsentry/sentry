@@ -73,6 +73,19 @@ export default function useSuspectFlags({
 
   const {data, isError, isPending} = apiQueryResponse;
 
+  // remove duplicate flags - keeps the one closest to the firstSeen date
+  // TODO: cap the number of suspect flags to 3
+  const suspectFlags = useMemo(() => {
+    return data
+      ? data.data
+          .reverse()
+          .filter(
+            (rawFlag, idx, rawFlagArray) =>
+              idx === rawFlagArray.findIndex(f => f.flag === rawFlag.flag)
+          )
+      : [];
+  }, [data]);
+
   // track the funnel from
   // all audit log flags -> event level flags -> suspect flags
   useEffect(() => {
@@ -80,16 +93,16 @@ export default function useSuspectFlags({
       trackAnalytics('flags.event_and_suspect_flags_found', {
         numTotalFlags: hydratedFlagData.length,
         numEventFlags: intersectionFlags.length,
-        numSuspectFlags: data ? data.data.length : 0,
+        numSuspectFlags: suspectFlags.length,
         organization,
       });
     }
   }, [
-    data,
-    hydratedFlagData.length,
+    hydratedFlagData,
     isError,
     isPending,
-    intersectionFlags.length,
+    suspectFlags,
+    intersectionFlags,
     organization,
   ]);
 

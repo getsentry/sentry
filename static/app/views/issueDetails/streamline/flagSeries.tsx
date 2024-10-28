@@ -48,11 +48,7 @@ export default function useFlagSeries({query = {}, event, group}: FlagSeriesProp
   } = useOrganizationFlagLog({organization, query});
   const {selection} = usePageFilters();
 
-  const {
-    data: _suspectFlags,
-    isError: _isSuspectFlagsError,
-    isPending: _isSuspectFlagsPending,
-  } = useSuspectFlags({
+  useSuspectFlags({
     organization,
     query,
     firstSeen: group.firstSeen,
