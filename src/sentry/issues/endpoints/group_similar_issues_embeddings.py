@@ -16,7 +16,11 @@ from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
-from sentry.seer.similarity.utils import get_stacktrace_string, killswitch_enabled
+from sentry.seer.similarity.utils import (
+    event_content_has_stacktrace,
+    get_stacktrace_string,
+    killswitch_enabled,
+)
 from sentry.users.models.user import User
 from sentry.utils.safe import get_path
 
@@ -68,7 +72,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         latest_event = group.get_latest_event()
         stacktrace_string = ""
-        if latest_event and latest_event.data.get("exception"):
+        if latest_event and event_content_has_stacktrace(latest_event):
             grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
             stacktrace_string = get_stacktrace_string(grouping_info)
 
