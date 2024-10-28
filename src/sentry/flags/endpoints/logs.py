@@ -21,9 +21,9 @@ from sentry.models.organization import Organization
 class FlagAuditLogModelSerializerResponse(TypedDict):
     id: int
     action: str
-    created_at: datetime
-    created_by: str
-    created_by_type: str
+    createdAt: datetime
+    createdBy: str
+    createdByType: str
     flag: str
     tags: dict[str, Any]
 
@@ -34,9 +34,9 @@ class FlagAuditLogModelSerializer(Serializer):
         return {
             "id": obj.id,
             "action": ActionEnum.to_string(obj.action),
-            "created_at": obj.created_at.isoformat(),
-            "created_by": obj.created_by,
-            "created_by_type": CreatedByTypeEnum.to_string(obj.created_by_type),
+            "createdAt": obj.created_at.isoformat(),
+            "createdBy": obj.created_by,
+            "createdByType": CreatedByTypeEnum.to_string(obj.created_by_type),
             "flag": obj.flag,
             "tags": obj.tags,
         }
