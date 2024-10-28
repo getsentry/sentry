@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import Badge from 'sentry/components/badge/badge';
 import {Button, LinkButton} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -23,8 +22,7 @@ import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 type SearchSuggestion = {
   label: string;
   query: string;
-  isOrganizationSavedSearch?: boolean;
-  isPersonalSavedSearch?: boolean;
+  scope?: 'personal' | 'organization';
 };
 
 interface SearchSuggestionListProps {
@@ -79,16 +77,16 @@ function AddViewPage({
   );
 
   const savedSearchSuggestions: SearchSuggestion[] = [
-    ...personalSavedSearches.map(search => ({
+    ...(personalSavedSearches.map(search => ({
       label: search.name,
       query: search.query,
-      isPersonalSavedSearch: true,
-    })),
-    ...organizationSavedSearches.map(search => ({
+      scope: 'personal',
+    })) as SearchSuggestion[]),
+    ...(organizationSavedSearches.map(search => ({
       label: search.name,
       query: search.query,
-      isOrganizationSavedSearch: true,
-    })),
+      scope: 'organization',
+    })) as SearchSuggestion[]),
   ];
 
   return (
@@ -256,11 +254,13 @@ function SearchSuggestionList({
             <OverflowEllipsisTextContainer>
               {suggestion.label}
             </OverflowEllipsisTextContainer>
-            {suggestion.isPersonalSavedSearch ? (
-              <Badge type="internal">{t('Personal')}</Badge>
-            ) : (
-              <div />
-            )}
+            <ScopeTagContainer>
+              {suggestion.scope === 'personal' ? (
+                <Scope>{t('Private')}</Scope>
+              ) : suggestion.scope === 'organization' ? (
+                <Scope>{t('Public')}</Scope>
+              ) : null}
+            </ScopeTagContainer>
             <QueryWrapper>
               <FormattedQuery query={suggestion.query} />
               <ActionsWrapper className="data-actions-wrapper">
@@ -297,6 +297,14 @@ function SearchSuggestionList({
 }
 
 export default AddViewPage;
+
+const Scope = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const ScopeTagContainer = styled('div')`
+  display: flex;
+`;
 
 const Suggestions = styled('section')`
   width: 100%;
