@@ -137,7 +137,7 @@ function GroupTimestamp({date, label}: {date: string | null | undefined; label: 
   }
 
   return (
-    <TimeSince
+    <PositionedTimeSince
       aria-label={label}
       tooltipPrefix={label}
       date={date}
@@ -743,7 +743,7 @@ const Wrapper = styled(PanelItem)<{
       min-height: 66px;
 
       [data-issue-title-link] {
-        &::after {
+        &::before {
           content: '';
           position: absolute;
           top: 0;
@@ -1044,4 +1044,9 @@ const ProgressColumn = styled('div')`
     display: block;
     width: 160px;
   }
+`;
+
+// Needs to be positioned so that hovering events don't get swallowed by the anchor pseudo-element
+const PositionedTimeSince = styled(TimeSince)`
+  position: relative;
 `;
