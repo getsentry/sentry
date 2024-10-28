@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
-from sentry import features
+from sentry import features, options
 from sentry.api.exceptions import (
     DataSecrecyError,
     MemberDisabledOverLimit,
@@ -301,11 +301,18 @@ class SentryPermission(ScopedPermission):
 
 
 def is_readonly_user(request: Request) -> bool:
-    return request.user and getattr(request.user, "email") == "readonly@sentry.io"
+    if not options.get("demo-mode.enabled"):
+        return False
+
+    if not request.user:
+        return False
+
+    email = getattr(request.user, "email")
+
+    return email in options.get("demo-mode.users")
 
 
 def get_readonly_scopes() -> frozenset[str]:
-
     return frozenset(
         [
             "project:read",
