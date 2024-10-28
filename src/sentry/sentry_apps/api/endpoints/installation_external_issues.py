@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,6 +18,8 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer as ResponsePlatformExternalIssueSerializer,
 )
 from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
+
+logger = logging.getLogger("sentry.sentry_apps.external_issues")
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
@@ -52,7 +56,15 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
                     project=data["project"],
                     identifier=data["identifier"],
                 ).run()
-            except Exception:
+            except Exception as e:
+                logger.info(
+                    "create-failed",
+                    extras={
+                        "error": str(e),
+                        "group_id": group.id,
+                        "url": data["webUrl"],
+                    },
+                )
                 return Response({"error": "Failed to create external issue"}, status=400)
             return Response(
                 serialize(
