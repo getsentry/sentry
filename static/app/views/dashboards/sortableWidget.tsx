@@ -5,6 +5,7 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
+import {Toolbar} from './widgetCard/toolbar';
 import type {DashboardFilters, Widget} from './types';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -72,6 +73,14 @@ function SortableWidget(props: Props) {
     <GridWidgetWrapper>
       <DashboardsMEPProvider>
         <WidgetCard {...widgetProps} />
+        {props.isEditingDashboard && (
+          <Toolbar
+            onEdit={props.onEdit}
+            onDelete={props.onDelete}
+            onDuplicate={props.onDuplicate}
+            isMobile={props.isMobile}
+          />
+        )}
       </DashboardsMEPProvider>
     </GridWidgetWrapper>
   );

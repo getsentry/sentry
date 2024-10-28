@@ -2830,3 +2830,23 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Demo mode
+register(
+    "demo-mode.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-mode.orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-mode.users",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
