@@ -741,9 +741,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         searchSource="alert_builder"
                         filterKeys={filterKeys}
                         disabled={disabled || isErrorMigration}
-                        onChange={query => {
-                          onChange(query, {});
-                        }}
                         invalidMessages={{
                           [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
                             'The wildcard operator is not supported here.'
