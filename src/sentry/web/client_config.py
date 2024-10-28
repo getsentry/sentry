@@ -395,6 +395,13 @@ class _ClientConfig:
 
         return True
 
+    @property
+    def demo_mode(self) -> bool:
+        if not options.get("demo-mode.enabled"):
+            return False
+
+        return self.user.email in options.get("demo-mode.users")
+
     def get_context(self) -> Mapping[str, Any]:
         return {
             "initialTrace": self.tracing_data,
@@ -447,7 +454,7 @@ class _ClientConfig:
             "memberRegions": self.member_regions,
             "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
-            "demoMode": self.user.email in options.get("demo-mode.users"),
+            "demoMode": self.demo_mode,
             "enableAnalytics": settings.ENABLE_ANALYTICS,
             "validateSUForm": getattr(
                 settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False
