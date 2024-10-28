@@ -16,8 +16,10 @@ type Props = {
 
 type LegendSelection = Record<string, boolean>;
 
-const SERIES_DELIMITER = ',';
+const SERIES_LIST_DELIMITER = ',';
 const WIDGET_ID_DELIMITER = ':';
+
+const SERIES_NAME_DELIMITER = ';';
 
 class WidgetLegendSelectionState {
   dashboard: DashboardDetails | null;
@@ -49,10 +51,10 @@ class WidgetLegendSelectionState {
 
       const thisWidgetWithReleasesWasSelected =
         Object.values(selected).filter(value => value === false).length !== 1 &&
-        Object.keys(selected).includes(`Releases:${widget.id}`);
+        Object.keys(selected).includes(`Releases${SERIES_NAME_DELIMITER}${widget.id}`);
 
       const thisWidgetWithoutReleasesWasSelected =
-        !Object.keys(selected).includes(`Releases:${widget.id}`) &&
+        !Object.keys(selected).includes(`Releases${SERIES_NAME_DELIMITER}${widget.id}`) &&
         Object.values(selected).filter(value => value === false).length === 1;
 
       if (thisWidgetWithReleasesWasSelected || thisWidgetWithoutReleasesWasSelected) {
@@ -164,7 +166,7 @@ class WidgetLegendSelectionState {
             WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)
           )
         )
-        .join(SERIES_DELIMITER)
+        .join(SERIES_LIST_DELIMITER)
     );
   }
 
@@ -177,7 +179,7 @@ class WidgetLegendSelectionState {
     );
     if (widgetLegendString) {
       const [_, seriesNameString] = widgetLegendString.split(WIDGET_ID_DELIMITER);
-      const seriesNames = seriesNameString.split(SERIES_DELIMITER);
+      const seriesNames = seriesNameString.split(SERIES_LIST_DELIMITER);
       return seriesNames.reduce((acc, series) => {
         acc[
           decodeURIComponent(

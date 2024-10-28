@@ -76,9 +76,9 @@ class PluginSerializer(Serializer):
             ],
             "doc": doc,
             "firstPartyAlternative": getattr(obj, "alternative", None),
-            "deprecationDate": deprecation_date.strftime("%b %-d, %Y")
-            if deprecation_date
-            else None,
+            "deprecationDate": (
+                deprecation_date.strftime("%b %-d, %Y") if deprecation_date else None
+            ),
             "altIsSentryApp": getattr(obj, "alt_is_sentry_app", None),
         }
         if self.project:

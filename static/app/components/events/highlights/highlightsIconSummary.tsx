@@ -67,7 +67,7 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
           ))}
         </ScrollCarousel>
       </IconBar>
-      <SectionDivider />
+      <SectionDivider style={{marginTop: space(1)}} />
     </Fragment>
   ) : null;
 }

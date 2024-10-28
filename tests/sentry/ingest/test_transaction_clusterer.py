@@ -321,8 +321,9 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     # Add a transaction to project2 so it runs again
     _record_sample(ClustererNamespace.TRANSACTIONS, project2, "foo")
 
-    with mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1), freeze_time(
-        "2000-01-01 01:00:01"
+    with (
+        mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1),
+        freeze_time("2000-01-01 01:00:01"),
     ):
         spawn_clusterers()
 

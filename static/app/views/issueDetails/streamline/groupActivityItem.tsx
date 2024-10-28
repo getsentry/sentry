@@ -451,7 +451,7 @@ export default function getGroupActivityItem(
         }
         return {
           title: t('Unresolved'),
-          message: tct('by [author] as unresolved', {author}),
+          message: tct('by [author]', {author}),
         };
       }
       case GroupActivityType.SET_IGNORED: {
@@ -639,7 +639,7 @@ export default function getGroupActivityItem(
       }
       case GroupActivityType.AUTO_SET_ONGOING: {
         return {
-          title: t('Marked As Ongoing'),
+          title: t('Marked as Ongoing'),
           message: activity.data?.afterDays
             ? tct('automatically by [author] after [afterDays] days', {
                 author,
