@@ -4,35 +4,21 @@ import moment from 'moment-timezone';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-
-type RawFlag = {
-  action: string;
-  created_at: string;
-  created_by: string;
-  created_by_type: string;
-  flag: string;
-  id: number;
-  tags: Record<string, any>;
-};
-
-export type RawFlagData = {data: RawFlag[]};
-
-type FlagSeriesDatapoint = {
-  // flag action
-  label: {formatter: () => string};
-  // flag name
-  name: string;
-  // unix timestamp
-  xAxis: number;
-};
+import {
+  hydrateToFlagSeries,
+  type RawFlagData,
+} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
+import useSuspectFlags from 'sentry/views/issueDetails/streamline/useSuspectFlags';
 
 interface FlagSeriesProps {
   event: Event | undefined;
+  group: Group;
   query: Record<string, any>;
 }
 
@@ -43,34 +29,16 @@ function useOrganizationFlagLog({
   organization: Organization;
   query: Record<string, any>;
 }) {
-  const {data, isError, isPending} = useApiQuery<RawFlagData>(
+  return useApiQuery<RawFlagData>(
     [`/organizations/${organization.slug}/flags/logs/`, {query}],
     {
       staleTime: 0,
       enabled: organization.features?.includes('feature-flag-ui'),
     }
   );
-  return {data, isError, isPending};
 }
 
-function hydrateFlagData({
-  rawFlagData,
-}: {
-  rawFlagData: RawFlagData;
-}): FlagSeriesDatapoint[] {
-  // transform raw flag data into series data
-  // each data point needs to be type FlagSeriesDatapoint
-  const flagData = rawFlagData.data.map(f => {
-    return {
-      xAxis: Date.parse(f.created_at),
-      label: {formatter: () => f.action},
-      name: `${f.flag}`,
-    };
-  });
-  return flagData;
-}
-
-export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
+export default function useFlagSeries({query = {}, event, group}: FlagSeriesProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const {
@@ -80,6 +48,14 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
   } = useOrganizationFlagLog({organization, query});
   const {selection} = usePageFilters();
 
+  useSuspectFlags({
+    organization,
+    query,
+    firstSeen: group.firstSeen,
+    rawFlagData,
+    event,
+  });
+
   if (!rawFlagData || isError || isPending) {
     return {
       seriesName: t('Feature Flags'),
@@ -88,7 +64,7 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
     };
   }
 
-  const hydratedFlagData: FlagSeriesDatapoint[] = hydrateFlagData({rawFlagData});
+  const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
 
   // create a markline series using hydrated flag data
   const markLine = MarkLine({
