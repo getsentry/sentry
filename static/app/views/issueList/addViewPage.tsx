@@ -121,7 +121,7 @@ function AddViewBanner({hasSavedSearches}: {hasSavedSearches: boolean}) {
       <SubTitle>
         <div>
           {t(
-            'Issues just got a lot more personalized! Save your frequent issue searches for quick access.'
+            'Issues just got a lot more personalized. Save your frequent issue searches for quick access.'
           )}
         </div>
         <div>{t('A few notes before you get started:')}</div>

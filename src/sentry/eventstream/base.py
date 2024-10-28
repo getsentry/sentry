@@ -71,6 +71,7 @@ class EventStream(Service):
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
         occurrence_id: str | None = None,
+        eventstream_type: str | None = None,
     ) -> None:
         if skip_consume:
             logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
@@ -88,6 +89,7 @@ class EventStream(Service):
                     "group_states": group_states,
                     "occurrence_id": occurrence_id,
                     "project_id": project_id,
+                    "eventstream_type": eventstream_type,
                 },
                 queue=queue,
             )
@@ -122,6 +124,7 @@ class EventStream(Service):
         received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
+        eventstream_type: str | None = None,
     ) -> None:
         self._dispatch_post_process_group_task(
             event.event_id,
@@ -135,6 +138,7 @@ class EventStream(Service):
             skip_consume,
             group_states,
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
+            eventstream_type=eventstream_type,
         )
 
     def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:

@@ -351,7 +351,6 @@ describe('TableView > CellActions', function () {
         transaction: 'string',
         timestamp: 'date',
         project: 'string',
-        'event.type': 'string',
       },
       data: [
         {
@@ -360,7 +359,6 @@ describe('TableView > CellActions', function () {
           transaction: '/organizations/',
           timestamp: '2019-05-23T22:12:48+00:00',
           project: 'project-slug',
-          'event.type': '',
         },
       ],
     };

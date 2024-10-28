@@ -1,4 +1,4 @@
-import {findCompleteTasks} from 'sentry/components/onboardingWizard/utils';
+import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {
   type OnboardingTask,
   OnboardingTaskGroup,
@@ -6,6 +6,7 @@ import {
 } from 'sentry/types/onboarding';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+
 // Refetch the data every second
 const DEFAULT_POLL_INTERVAL_MS = 1000;
 
@@ -41,6 +42,7 @@ export function useOnboardingTasks({
   allTasks: OnboardingTask[];
   beyondBasicsTasks: OnboardingTask[];
   completeTasks: OnboardingTask[];
+  doneTasks: OnboardingTask[];
   gettingStartedTasks: OnboardingTask[];
 } {
   const organization = useOrganization();
@@ -73,6 +75,7 @@ export function useOnboardingTasks({
   return {
     allTasks: mergedTasks,
     completeTasks: mergedTasks.filter(findCompleteTasks),
+    doneTasks: mergedTasks.filter(taskIsDone),
     gettingStartedTasks: mergedTasks.filter(
       task => task.group === OnboardingTaskGroup.GETTING_STARTED
     ),
