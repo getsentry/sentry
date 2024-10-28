@@ -1,8 +1,8 @@
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import AnalyticsSurfaceProvider from 'sentry/components/analyticsSurfaceProvider';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import SurfaceProvider from 'sentry/components/surfaceProvider';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,9 +20,9 @@ export default function FeedbackContainer({children}: Props) {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <AnalyticsSurfaceProvider suffix="feedback">
+      <SurfaceProvider suffix="feedback">
         <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
-      </AnalyticsSurfaceProvider>
+      </SurfaceProvider>
     </Feature>
   );
 }

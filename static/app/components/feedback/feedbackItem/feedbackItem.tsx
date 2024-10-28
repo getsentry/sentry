@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import AnalyticsSurfaceProvider from 'sentry/components/analyticsSurfaceProvider';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
@@ -15,6 +14,7 @@ import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
 import TraceDataSection from 'sentry/components/feedback/feedbackItem/traceDataSection';
 import PanelItem from 'sentry/components/panels/panelItem';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import SurfaceProvider from 'sentry/components/surfaceProvider';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconChat, IconFire, IconLink, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -55,7 +55,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   return (
     <Fragment>
-      <AnalyticsSurfaceProvider suffix="details">
+      <SurfaceProvider suffix="details">
         <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
         <OverflowPanelItem ref={overflowRef}>
           <Section>
@@ -127,7 +127,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             </Section>
           ) : null}
         </OverflowPanelItem>
-      </AnalyticsSurfaceProvider>
+      </SurfaceProvider>
     </Fragment>
   );
 }
