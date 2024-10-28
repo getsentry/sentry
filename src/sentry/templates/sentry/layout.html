@@ -4,10 +4,8 @@
 {% load sentry_features %}
 {% load sentry_helpers %}
 {% load sentry_react %}
-
 {% load sentry_status %}
 {% get_sentry_version %}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,10 +24,13 @@
   <meta property="{{ tag.property }}" content="{{ tag.content }}" />
   {% endfor %}
 
+  {% for domain in dns_prefetch %}
+  <link rel="dns-prefetch" href="{{ domain }}" />
+  {% endfor %}
+
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
 
   <link href="{% frontend_app_asset_url "sentry" "entrypoints/sentry.css" %}" rel="stylesheet"/>
-
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
@@ -69,7 +70,6 @@
 </head>
 
 
-
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
@@ -80,8 +80,6 @@
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
-
-
 
     <div class="container">
       <div class="content">

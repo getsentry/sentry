@@ -85,8 +85,8 @@ class MsTeamsIntegrationResolve(MsTeamsIntegrationAnalytics):
     type = "integrations.msteams.resolve"
 
 
-class MsTeamsIntegrationIgnore(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.ignore"
+class MsTeamsIntegrationArchive(MsTeamsIntegrationAnalytics):
+    type = "integrations.msteams.archive"
 
 
 class MsTeamsIntegrationUnresolve(MsTeamsIntegrationAnalytics):
@@ -99,7 +99,7 @@ class MsTeamsIntegrationUnassign(MsTeamsIntegrationAnalytics):
 
 analytics.register(MsTeamsIntegrationAssign)
 analytics.register(MsTeamsIntegrationResolve)
-analytics.register(MsTeamsIntegrationIgnore)
+analytics.register(MsTeamsIntegrationArchive)
 analytics.register(MsTeamsIntegrationUnresolve)
 analytics.register(MsTeamsIntegrationUnassign)
 
@@ -446,8 +446,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
                     action_data.update({"statusDetails": {"inNextRelease": True}})
                 elif resolve_type == "inCurrentRelease":
                     action_data.update({"statusDetails": {"inRelease": "latest"}})
-        elif action_type == ACTION_TYPE.IGNORE:
-            ignore_count = data.get("ignoreInput")
+        # ignore has been renamed to archive, but ignore is still used in the payload
+        elif action_type == ACTION_TYPE.ARCHIVE:
+            ignore_count = data.get("archiveInput")
             if ignore_count:
                 action_data = {"status": "ignored"}
                 if int(ignore_count) > 0:
@@ -463,7 +464,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
     _ACTION_TYPES = {
         ACTION_TYPE.RESOLVE: ("resolve", MessagingInteractionType.RESOLVE),
-        ACTION_TYPE.IGNORE: ("ignore", MessagingInteractionType.IGNORE),
+        ACTION_TYPE.ARCHIVE: ("archive", MessagingInteractionType.ARCHIVE),
         ACTION_TYPE.ASSIGN: ("assign", MessagingInteractionType.ASSIGN),
         ACTION_TYPE.UNRESOLVE: ("unresolve", MessagingInteractionType.UNRESOLVE),
         ACTION_TYPE.UNASSIGN: ("unassign", MessagingInteractionType.UNASSIGN),
