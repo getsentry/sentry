@@ -56,10 +56,16 @@ const getInstallConfig = (params: Params) => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct("Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.", {
-      remixLink: <ExternalLink href="https://remix.run/" />,
-    }),
+  introduction: () => (
+    <p>
+      {tct(
+        "Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.",
+        {
+          remixLink: <ExternalLink href="https://remix.run/" />,
+        }
+      )}
+    </p>
+  ),
   install: (params: Params) => [
     {
       title: t('Automatic Configuration (Recommended)'),

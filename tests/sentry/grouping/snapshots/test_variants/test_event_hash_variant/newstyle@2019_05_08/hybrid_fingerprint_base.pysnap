@@ -1,5 +1,5 @@
 ---
-created: '2024-10-15T17:04:04.584664+00:00'
+created: '2024-10-15T17:23:41.868667+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,5 +12,5 @@ app:
           "FailedToFetchError"
         value*
           "FailedToFetchError: Charlie didn't bring the ball back!"
-  info: null
+  info: {"client_fingerprint":["{{ default }}","dogs are great"]}
   values: ["{{ default }}","dogs are great"]

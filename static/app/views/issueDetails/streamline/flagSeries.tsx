@@ -17,7 +17,7 @@ import {
 import useSuspectFlags from 'sentry/views/issueDetails/streamline/useSuspectFlags';
 
 interface FlagSeriesProps {
-  event: Event;
+  event: Event | undefined;
   group: Group;
   query: Record<string, any>;
 }
@@ -97,7 +97,7 @@ export default function useFlagSeries({query = {}, event, group}: FlagSeriesProp
           '</div>',
           '<div class="tooltip-footer">',
           time,
-          event.dateCreated &&
+          event?.dateCreated &&
             ` (${moment(time).from(event.dateCreated, true)} ${t('before this event')})`,
           '</div>',
           '<div class="tooltip-arrow"></div>',

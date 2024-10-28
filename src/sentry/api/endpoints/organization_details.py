@@ -60,6 +60,7 @@ from sentry.constants import (
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     SAFE_FIELDS_DEFAULT,
+    SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
@@ -67,6 +68,9 @@ from sentry.constants import (
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
+    boost_low_volume_projects_of_org_with_query,
+)
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -217,6 +221,7 @@ ORG_OPTIONS = (
     ),
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
+    ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
@@ -279,6 +284,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
     targetSampleRate = serializers.FloatField(required=False)
+    samplingMode = serializers.ChoiceField(
+        choices=[("organization", "Organization"), ("project", "Project")], required=False
+    )
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -385,6 +393,23 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             raise serializers.ValidationError(
                 "The targetSampleRate option must be in the range [0:1]"
             )
+        return value
+
+    def validate_samplingMode(self, value):
+        from sentry import features
+
+        organization = self.context["organization"]
+        request = self.context["request"]
+        has_dynamic_sampling_custom = features.has(
+            "organizations:dynamic-sampling-custom", organization, actor=request.user
+        )
+        if not has_dynamic_sampling_custom:
+            raise serializers.ValidationError(
+                "Organization does not have the custom dynamic sample rate feature enabled."
+            )
+
+        # as this is handled by a choice field, we don't need to check the values of the field
+
         return value
 
     def validate(self, attrs):
@@ -933,6 +958,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     )
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
+
+            if "targetSampleRate" in changed_data:
+                boost_low_volume_projects_of_org_with_query.delay(organization.id)
 
             if was_pending_deletion:
                 self.create_audit_entry(

@@ -5,6 +5,7 @@ from urllib.parse import urlencode, urlparse, urlunparse
 from uuid import uuid4
 
 from django.utils.functional import cached_property
+from jsonschema import ValidationError
 
 from sentry.coreapi import APIError
 from sentry.http import safe_urlread
@@ -36,9 +37,10 @@ class SelectRequester:
     def run(self) -> dict[str, Any]:
         response: list[dict[str, str]] = []
         try:
+            url = self._build_url()
             body = safe_urlread(
                 send_and_save_sentry_app_request(
-                    self._build_url(),
+                    url,
                     self.sentry_app,
                     self.install.organization_id,
                     "select_options.requested",
@@ -48,19 +50,41 @@ class SelectRequester:
 
             response = json.loads(body)
         except Exception as e:
+            extra = {
+                "sentry_app_slug": self.sentry_app.slug,
+                "install_uuid": self.install.uuid,
+                "project_slug": self.project_slug,
+                "error_message": str(e),
+            }
+
+            if not url:
+                extra.update(
+                    {
+                        "uri": self.uri,
+                        "dependent_data": self.dependent_data,
+                        "webhook_url": self.sentry_app.webhook_url,
+                    }
+                )
+                message = "select-requester.missing-url"
+            else:
+                extra.update({"url": url})
+                message = "select-requester.request-failed"
+
+            logger.info(message, extra=extra)
+            raise APIError from e
+
+        if not self._validate_response(response):
             logger.info(
-                "select-requester.error",
+                "select-requester.invalid-response",
                 extra={
+                    "response": response,
                     "sentry_app_slug": self.sentry_app.slug,
                     "install_uuid": self.install.uuid,
                     "project_slug": self.project_slug,
-                    "uri": self.uri,
-                    "error_message": str(e),
+                    "url": url,
                 },
             )
-
-        if not self._validate_response(response) or not response:
-            raise APIError(
+            raise ValidationError(
                 f"Invalid response format for SelectField in {self.sentry_app} from uri: {self.uri}"
             )
         return self._format_response(response)
@@ -95,7 +119,14 @@ class SelectRequester:
 
         for option in resp:
             if not ("value" in option and "label" in option):
-                raise APIError("Missing `value` or `label` in option data for SelectField")
+                logger.info(
+                    "select-requester.invalid-response",
+                    extra={
+                        "resposnse": resp,
+                        "error_msg": "Missing `value` or `label` in option data for SelectField",
+                    },
+                )
+                raise ValidationError("Missing `value` or `label` in option data for SelectField")
 
             choices.append([option["value"], option["label"]])
 

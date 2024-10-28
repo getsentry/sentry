@@ -718,10 +718,7 @@ function WidgetBuilder({
       return newQuery;
     });
 
-    if (
-      organization.features.includes('dashboards-bignumber-equations') &&
-      defined(newSelectedAggregate)
-    ) {
+    if (defined(newSelectedAggregate)) {
       newQueries[0].selectedAggregate = newSelectedAggregate;
     }
 
@@ -1235,7 +1232,6 @@ function WidgetBuilder({
                                         newDisplayType
                                       );
                                     }}
-                                    noDashboardsMEPProvider
                                     isWidgetInvalid={!state.queryConditionsValid}
                                     onWidgetSplitDecision={
                                       handleUpdateWidgetSplitDecision

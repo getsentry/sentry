@@ -46,6 +46,7 @@ from sentry.constants import (
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
     SAFE_FIELDS_DEFAULT,
+    SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
@@ -54,7 +55,7 @@ from sentry.constants import (
 )
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.dynamic_sampling.tasks.common import get_organization_volume
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
+from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
@@ -617,6 +618,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             context["targetSampleRate"] = float(
                 obj.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
             )
+            context["samplingMode"] = str(
+                obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
+            )
 
         trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []
         # serialize trusted relays info into their external form
@@ -644,9 +648,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if sample_rate is not None:
             context["planSampleRate"] = sample_rate
 
-        desired_sample_rate, _ = get_sliding_window_org_sample_rate(
-            org_id=obj.id, default_sample_rate=sample_rate
-        )
+        desired_sample_rate, _ = get_org_sample_rate(org_id=obj.id, default_sample_rate=sample_rate)
         if desired_sample_rate is not None:
             context["desiredSampleRate"] = desired_sample_rate
 

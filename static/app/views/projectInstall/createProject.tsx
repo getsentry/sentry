@@ -88,10 +88,6 @@ function CreateProject() {
 
   const {createNotificationAction, notificationProps} = useCreateNotificationAction();
 
-  const frameworkSelectionEnabled = !!organization?.features.includes(
-    'onboarding-sdk-selection'
-  );
-
   const createProject = useCallback(
     async (selectedFramework?: OnboardingSelectedSDK) => {
       const {slug} = organization;
@@ -166,6 +162,10 @@ function CreateProject() {
           project_id: projectData.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
+          has_onboarding_feature_flag: organization.features.includes(
+            'messaging-integration-onboarding-project-creation'
+          ),
+          created_integration_notification: shouldCreateRule ?? false,
         });
 
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
@@ -400,7 +400,7 @@ function CreateProject() {
             onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
               // Prevent the page from reloading
               event.preventDefault();
-              frameworkSelectionEnabled ? handleProjectCreation() : createProject();
+              handleProjectCreation();
             }}
           >
             <div>

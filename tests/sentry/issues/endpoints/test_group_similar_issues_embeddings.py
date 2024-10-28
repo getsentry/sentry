@@ -20,6 +20,27 @@ from sentry.utils.types import NonNone
 
 EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
 
+EVENT_WITH_THREADS_STACKTRACE = {
+    "threads": {
+        "values": [
+            {
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "run",
+                            "module": "java.lang.Thread",
+                            "filename": "Thread.java",
+                            "abs_path": "Thread.java",
+                            "lineno": 834,
+                            "in_app": False,
+                        },
+                    ]
+                }
+            }
+        ]
+    },
+}
+
 
 class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     def setUp(self):
@@ -246,6 +267,26 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 "outcome": "matching_group_found",
                 "referrer": "similar_issues",
             },
+        )
+
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_simple_threads(self, mock_seer_request):
+        event = self.store_event(data=EVENT_WITH_THREADS_STACKTRACE, project_id=self.project)
+        data = {
+            "parent_hash": NonNone(self.similar_event.get_primary_hash()),
+            "should_group": True,
+            "stacktrace_distance": 0.01,
+        }
+        mock_seer_request.return_value = HTTPResponse(
+            orjson.dumps({"responses": [data]}), status=200
+        )
+
+        assert event.group
+        path = f"/api/0/issues/{event.group.id}/similar-issues-embeddings/"
+        response = self.client.get(path, data={"k": "1", "threshold": "0.01"})
+
+        assert response.data == self.get_expected_response(
+            [NonNone(self.similar_event.group_id)], [0.99], ["Yes"]
         )
 
     @mock.patch("sentry.analytics.record")

@@ -41,13 +41,11 @@ _EnvTypes = Union[str, float, int, list, dict]
 
 
 @overload
-def env(key: str) -> str:
-    ...
+def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes:
-    ...
+def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
 
 
 def env(
@@ -138,6 +136,7 @@ SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
 SENTRY_ASSEMBLE_CLUSTER = "default"
 SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
+SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -385,7 +384,9 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
 INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.humanize",
     "django.contrib.messages",
+    "django.contrib.postgres",
     "django.contrib.sessions",
     "django.contrib.sites",
     "drf_spectacular",
@@ -789,7 +790,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
@@ -1665,6 +1665,14 @@ SENTRY_EVENT_PROCESSING_STORE = (
     "sentry.eventstore.processing.redis.RedisClusterEventProcessingStore"
 )
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
+
+# Transactions processing backend
+# If these are set, transactions will be written to a different processing store
+# than errors. If these are set to none, Events(errors) and transactions will
+# both write to the EVENT_PROCESSING_STORE.
+SENTRY_TRANSACTION_PROCESSING_STORE: str | None = None
+SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
+
 
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
@@ -3122,10 +3130,6 @@ ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
 
 # A set of extra tasks to sample
 ADDITIONAL_SAMPLED_TASKS: dict[str, float] = {}
-
-# This controls whether Sentry is run in a demo mode.
-# Enabling this will allow users to create accounts without an email or password.
-DEMO_MODE = False
 
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL: str | None = None

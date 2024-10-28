@@ -17,6 +17,7 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.integration import Integration
@@ -685,7 +686,8 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             action="created",
             sender="Error",
             instance_id=event.event_id,
-            instance=EventMatcher(event),
+            group_id=event.group_id,
+            project_id=self.project.id,
         )
 
     @with_feature("organizations:integrations-event-hooks")
@@ -2405,6 +2407,50 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.NEW
 
 
+class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
+    @patch("sentry.tasks.post_process.safe_execute")
+    def test_process_similarity(self, mock_safe_execute):
+        from sentry import similarity
+
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        mock_safe_execute.assert_called_with(similarity.record, mock.ANY, mock.ANY)
+
+    def assert_not_called_with(self, mock_function: Mock):
+        """
+        Helper function to check that safe_execute isn't called with similarity.record
+        It can/will be called with other parameters
+        """
+        from sentry import similarity
+
+        try:
+            mock_function.assert_called_with(similarity.record, mock.ANY, mock.ANY)
+        except AssertionError:
+            return
+        raise AssertionError("Expected safe_execute to not be called with similarity.record")
+
+    @with_feature("projects:similarity-embeddings")
+    @patch("sentry.tasks.post_process.safe_execute")
+    def test_skip_process_similarity(self, mock_safe_execute):
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        self.assert_not_called_with(mock_safe_execute)
+
+
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -2422,6 +2468,7 @@ class PostProcessGroupErrorTest(
     DetectNewEscalationTestMixin,
     UserReportEventLinkTestMixin,
     DetectBaseUrlsForUptimeTestMixin,
+    ProcessSimilarityTestMixin,
 ):
     def setUp(self):
         super().setUp()
@@ -2442,6 +2489,7 @@ class PostProcessGroupErrorTest(
             cache_key=cache_key,
             group_id=event.group_id,
             project_id=event.project_id,
+            eventstream_type=EventStreamEventType.Error,
         )
         return cache_key
 
@@ -2516,6 +2564,7 @@ class PostProcessGroupPerformanceTest(
                 cache_key=cache_key,
                 group_id=event.group_id,
                 project_id=event.project_id,
+                eventstream_type=EventStreamEventType.Error,
             )
         return cache_key
 
@@ -2551,6 +2600,7 @@ class PostProcessGroupPerformanceTest(
             group_id=None,
             group_states=None,
             project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Transaction,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
@@ -2595,6 +2645,7 @@ class PostProcessGroupPerformanceTest(
             group_id=event.group_id,
             occurrence_id=event.occurrence_id,
             project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Error,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
@@ -2641,6 +2692,7 @@ class PostProcessGroupAggregateEventTest(
                 cache_key=cache_key,
                 group_id=event.group_id,
                 project_id=event.project_id,
+                eventstream_type=EventStreamEventType.Error,
             )
         return cache_key
 
@@ -2675,6 +2727,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             cache_key=cache_key,
             group_id=None,
             project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Transaction,
         )
 
         assert mock_store_transaction_name.mock_calls == [
@@ -2717,6 +2770,7 @@ class PostProcessGroupGenericTest(
                 group_id=event.group_id,
                 occurrence_id=event.occurrence.id,
                 project_id=event.group.project_id,
+                eventstream_type=EventStreamEventType.Generic,
             )
         return cache_key
 
@@ -2871,6 +2925,7 @@ class PostProcessGroupFeedbackTest(
                 group_id=event.group_id,
                 occurrence_id=event.occurrence.id,
                 project_id=event.group.project_id,
+                eventstream_type=EventStreamEventType.Error,
             )
         return cache_key
 
@@ -3026,8 +3081,7 @@ class PostProcessGroupFeedbackTest(
     @pytest.mark.skip(
         reason="Skip this test since there's no way to have issueless events in the issue platform"
     )
-    def test_issueless(self):
-        ...
+    def test_issueless(self): ...
 
     def test_no_cache_abort(self):
         # We don't use the cache for generic issues, so skip this test

@@ -58,14 +58,16 @@ DEFAULT_OPTIONS: dict[str, Any] = {
 
 class UserReportForm(forms.ModelForm):
     name = forms.CharField(
-        max_length=128, widget=forms.TextInput(attrs={"placeholder": _("Jane Bloggs")})
+        max_length=UserReport._meta.get_field("name").max_length,
+        widget=forms.TextInput(attrs={"placeholder": _("Jane Bloggs")}),
     )
     email = forms.EmailField(
-        max_length=75,
+        max_length=UserReport._meta.get_field("email").max_length,
         widget=forms.TextInput(attrs={"placeholder": _("jane@example.com"), "type": "email"}),
     )
     comments = forms.CharField(
-        widget=forms.Textarea(attrs={"placeholder": _("I clicked on 'X' and then hit 'Confirm'")})
+        max_length=UserReport._meta.get_field("comments").max_length,
+        widget=forms.Textarea(attrs={"placeholder": _("I clicked on 'X' and then hit 'Confirm'")}),
     )
 
     class Meta:
@@ -104,9 +106,9 @@ class ErrorPageEmbedView(View):
         response["Access-Control-Allow-Origin"] = request.META.get("HTTP_ORIGIN", "")
         response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
         response["Access-Control-Max-Age"] = "1000"
-        response[
-            "Access-Control-Allow-Headers"
-        ] = "Content-Type, Authorization, X-Requested-With, baggage, sentry-trace"
+        response["Access-Control-Allow-Headers"] = (
+            "Content-Type, Authorization, X-Requested-With, baggage, sentry-trace"
+        )
         response["Vary"] = "Accept"
         if content == "" and context:
             response["X-Sentry-Context"] = json_context
