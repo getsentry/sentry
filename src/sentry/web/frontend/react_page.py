@@ -12,6 +12,7 @@ from django.urls import resolve
 from rest_framework.request import Request
 
 from sentry import features, options
+from sentry.api.utils import generate_region_url
 from sentry.organizations.absolute_url import customer_domain_path, generate_organization_url
 from sentry.organizations.services.organization import organization_service
 from sentry.types.region import (
@@ -75,7 +76,7 @@ class ReactMixin:
             return domains
         for region_name in regions:
             region = get_region_by_name(region_name)
-            domains.append(region.address)
+            domains.append(generate_region_url(region.name))
         return domains
 
     def handle_react(self, request: Request, **kwargs) -> HttpResponse:
