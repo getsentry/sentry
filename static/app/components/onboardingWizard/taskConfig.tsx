@@ -28,6 +28,7 @@ import type {Project} from 'sentry/types/project';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
@@ -191,10 +192,11 @@ export function getOnboardingTasks({
       location: getOnboardingInstructionsUrl({projects, organization}),
       display: true,
       SupplementComponent: ({
-        api,
         task,
         onCompleteTask,
       }: OnboardingSupplementComponentProps) => {
+        const api = useApi();
+
         if (hasQuickStartUpdatesFeature(organization)) {
           if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
             return null;
@@ -354,10 +356,11 @@ export function getOnboardingTasks({
       },
       display: true,
       SupplementComponent: ({
-        api,
         task,
         onCompleteTask,
       }: OnboardingSupplementComponentProps) => {
+        const api = useApi();
+
         if (hasQuickStartUpdatesFeature(organization)) {
           if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
             return null;
@@ -417,10 +420,11 @@ export function getOnboardingTasks({
       },
       display: organization.features?.includes('session-replay'),
       SupplementComponent: ({
-        api,
         task,
         onCompleteTask,
       }: OnboardingSupplementComponentProps) => {
+        const api = useApi();
+
         if (hasQuickStartUpdatesFeature(organization)) {
           if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
             return null;

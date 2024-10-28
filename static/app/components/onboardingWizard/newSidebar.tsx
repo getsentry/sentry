@@ -184,7 +184,6 @@ function Task({task, completed, hidePanel}: TaskProps) {
             <task.SupplementComponent
               task={task}
               onCompleteTask={() => handleMarkComplete(task.task)}
-              api={api}
             />
           )}
         </TaskActions>
