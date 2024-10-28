@@ -19,6 +19,7 @@ import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
 import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -59,6 +60,8 @@ type Props = {
 };
 
 function Task(props: Props) {
+  const api = useApi();
+
   const {task, onSkip, onMarkComplete, forwardedRef, organization, hidePanel} = props;
   const router = useRouter();
   const handleSkip = () => {
@@ -136,7 +139,11 @@ function Task(props: Props) {
 
   const {SupplementComponent} = task;
   const supplement = SupplementComponent && (
-    <SupplementComponent task={task} onCompleteTask={() => onMarkComplete(task.task)} />
+    <SupplementComponent
+      task={task}
+      onCompleteTask={() => onMarkComplete(task.task)}
+      api={api}
+    />
   );
 
   const skipAction = task.skippable && (

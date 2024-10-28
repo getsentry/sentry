@@ -1,5 +1,6 @@
 import type {Query} from 'history';
 
+import type {Client} from 'sentry/api';
 import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import type {Category} from 'sentry/components/platformPicker';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -42,6 +43,7 @@ export enum OnboardingTaskKey {
 }
 
 export type OnboardingSupplementComponentProps = {
+  api: Client;
   onCompleteTask: () => void;
   task: OnboardingTask;
 };
