@@ -296,8 +296,7 @@ describe('DropdownMenu', function () {
     const router = RouterFixture();
     const user = userEvent.setup();
 
-    const errorFn = jest.fn();
-    jest.spyOn(console, 'error').mockImplementation(errorFn);
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
       <DropdownMenu
@@ -318,9 +317,9 @@ describe('DropdownMenu', function () {
 
     expect(onAction).toHaveBeenCalledTimes(1);
     // JSDOM throws an error on navigation to random urls
-    expect(errorFn).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledTimes(1);
 
     // eslint-disable-next-line no-console
-    jest.mocked(console.error).mockRestore();
+    errorSpy.mockRestore();
   });
 });
