@@ -121,7 +121,7 @@ pep517==0.12.0
 petname==2.6
 phabricator==0.7.0
 phonenumberslite==8.12.55
-pillow==10.2.0
+pillow==10.4.0
 pip-tools==7.1.0
 platformdirs==4.2.0
 pluggy==1.5.0
