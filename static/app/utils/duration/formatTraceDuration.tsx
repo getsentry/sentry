@@ -2,7 +2,7 @@ const format = (v: number, abbrev: string, precision: number) => {
   if (v === 0) {
     return '0' + abbrev;
   }
-  return v.toFixed(precision) + abbrev;
+  return parseFloat(v.toFixed(precision)) + abbrev;
 };
 
 // We avoid the moment date formatter as it creates a lot of intermediary strings,
