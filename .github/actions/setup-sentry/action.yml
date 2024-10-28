@@ -114,7 +114,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
-        install-cmd: cd ${{ inputs.workdir }} && python3 -m tools.hack_pip && pip install -r requirements-dev-frozen.txt
+        install-cmd: cd ${{ inputs.workdir }} && pip install -r requirements-dev-frozen.txt
 
     - name: Set up outputs
       id: config
