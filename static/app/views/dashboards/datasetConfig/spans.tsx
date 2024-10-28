@@ -39,18 +39,18 @@ import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['span.op', 'count()'],
+  fields: ['span.op', 'count(span.op)'],
   columns: ['span.op'],
   fieldAliases: [],
-  aggregates: ['count()'],
+  aggregates: ['count(span.op)'],
   conditions: '',
-  orderby: '-count()',
+  orderby: '-count(span.op)',
 };
 
 const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
   acc[aggregate] = {
     isSortable: true,
-    outputType: 'number',
+    outputType: null,
     parameters: [
       {
         kind: 'column',
