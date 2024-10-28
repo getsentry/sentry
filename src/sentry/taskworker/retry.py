@@ -14,13 +14,13 @@ class RetryError(Exception):
 
 
 class Retry:
+    """Used with tasks to define the retry policy for a task"""
+
     __times: int
     __allowed_exception_types: Sequence[type] | None
     __denied_exception_types: Sequence[type] | None
     __deadletter: bool | None
     __discard: bool | None
-
-    """Used with tasks to define the retry policy for a task"""
 
     def __init__(
         self,
@@ -64,7 +64,7 @@ class Retry:
         ):
             return True
 
-        # TODO add logging/assertion for no funny business
+        # TODO(taskworker) add logging/assertion for no funny business
         return False
 
     def initial_state(self) -> RetryState:

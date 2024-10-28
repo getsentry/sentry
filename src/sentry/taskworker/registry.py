@@ -32,6 +32,7 @@ class TaskNamespace:
     __producer: KafkaProducer | None = None
 
     def __init__(self, name: str, topic: str, deadletter_topic: str, retry: Retry | None):
+        # TODO(taskworker) implement default deadlines for tasks
         self.name = name
         self.topic = topic
         self.deadletter_topic = deadletter_topic
@@ -47,6 +48,14 @@ class TaskNamespace:
         self.__producer = KafkaProducer(producer_config)
 
         return self.__producer
+
+    @producer.setter
+    def producer(self, producer: KafkaProducer) -> None:
+        self.__producer = producer
+
+    @producer.deleter
+    def producer(self) -> None:
+        self.__producer = None
 
     def get(self, name: str) -> Task:
         if name not in self.__registered_tasks:
@@ -72,9 +81,9 @@ class TaskNamespace:
                 namespace=self,
                 idempotent=idempotent,
                 deadline=deadline,
-                retry=retry,
+                retry=retry or self.default_retry,
             )
-            # TODO tasks should be registered into the registry
+            # TODO(taskworker) tasks should be registered into the registry
             # so that we can ensure task names are globally unique
             self.__registered_tasks[name] = task
             return task
@@ -89,14 +98,15 @@ class TaskNamespace:
 
     def send_task(self, task: Task, args, kwargs) -> None:
         task_message = self._serialize_task_call(task, args, kwargs)
-        # TODO this could use an RPC instead of appending to the topic directly
-        # TODO callback handling
+        # TODO(taskworker) this could use an RPC instead of appending to the topic directly
+        # TODO(taskworker) callback handling
         self.producer.produce(
             ArroyoTopic(name=self.topic),
             KafkaPayload(key=None, value=task_message, headers=[]),
         )
 
     def _serialize_task_call(self, task: Task, args: list[Any], kwargs: Mapping[Any, Any]) -> bytes:
+        # TODO(taskworker) There shouldn't be a FALLBACK_RETRY
         retry = task.retry or self.default_retry or FALLBACK_RETRY
 
         retry_state = RetryState(
