@@ -148,16 +148,9 @@ function ProjectStabilityScoreCard(props: Props) {
     <BigNumberWidget
       title={cardTitle}
       description={cardHelp}
-      data={[
-        {
-          [`${props.field}()`]: score ? score / 100 : undefined,
-        },
-      ]}
-      previousPeriodData={[
-        {
-          [`${props.field}()`]: previousScore ? previousScore / 100 : undefined,
-        },
-      ]}
+      value={score ? score / 100 : undefined}
+      previousPeriodValue={previousScore ? previousScore / 100 : undefined}
+      field={`${props.field}()`}
       meta={{
         fields: {
           [`${props.field}()`]: 'percentage',

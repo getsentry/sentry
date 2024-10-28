@@ -15,13 +15,13 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import {DEFAULT_FIELD, X_GUTTER, Y_GUTTER} from '../common/settings';
+import {X_GUTTER, Y_GUTTER} from '../common/settings';
 
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
 export interface BigNumberWidgetVisualizationProps {
+  field: string;
   value: number | string;
-  field?: string;
   maximumValue?: number;
   meta?: Meta;
   preferredPolarity?: Polarity;
@@ -31,7 +31,7 @@ export interface BigNumberWidgetVisualizationProps {
 
 export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualizationProps) {
   const {
-    field = DEFAULT_FIELD,
+    field,
     value,
     previousPeriodValue,
     maximumValue = Number.MAX_VALUE,
@@ -43,10 +43,9 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
   const organization = useOrganization();
 
   // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
-  const fieldRenderer =
-    meta && field
-      ? getFieldRenderer(field, meta as MetaType, false)
-      : renderableValue => renderableValue.toString();
+  const fieldRenderer = meta
+    ? getFieldRenderer(field, meta as MetaType, false)
+    : renderableValue => renderableValue.toString();
 
   const unit = meta?.units?.[field];
   const type = meta?.fields?.[field];
