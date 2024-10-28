@@ -56,7 +56,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
           <Link
             to={generateTraceTarget(event, organization, location)}
             onClick={() => {
-              if (surface.startsWith('issue_details')) {
+              if (surface.includes('issue_details')) {
                 // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
                 trackAnalytics(
                   'issue_details.issue_tab.trace_timeline_more_events_clicked',
@@ -106,13 +106,13 @@ function EventItem({timelineEvent, location}: EventItemProps) {
         query: {
           ...location.query,
           project: undefined,
-          referrer: surface.startsWith('issue_details')
-            ? 'issues_trace_timeline'
-            : getSnakeCasedSurface(surface), // TODO:
+          referrer: surface.includes('issue_details')
+            ? 'issues_trace_timeline' // TODO: remove this condition after queries are migrated
+            : getSnakeCasedSurface(surface),
         },
       }}
       onClick={() => {
-        if (surface.startsWith('issue_details')) {
+        if (surface.includes('issue_details')) {
           // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
           trackAnalytics('issue_details.issue_tab.trace_timeline_clicked', {
             organization,

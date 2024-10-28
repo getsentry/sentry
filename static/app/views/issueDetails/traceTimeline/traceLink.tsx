@@ -53,7 +53,7 @@ export function TraceLink({event}: TraceLinkProps) {
     <StyledLink
       to={traceTarget}
       onClick={() => {
-        if (surface.startsWith('issue_details')) {
+        if (surface.includes('issue_details')) {
           // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
           trackAnalytics('quick_trace.trace_id.clicked', {
             organization,
