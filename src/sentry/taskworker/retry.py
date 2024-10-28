@@ -6,6 +6,13 @@ from multiprocessing.context import TimeoutError
 from sentry_protos.sentry.v1.taskworker_pb2 import RetryState
 
 
+class RetryError(Exception):
+    """
+    Exception that tasks can raise to indicate that the current task
+    should be retried.
+    """
+
+
 class Retry:
     __times: int
     __allowed_exception_types: Sequence[type] | None
@@ -23,6 +30,8 @@ class Retry:
         deadletter: bool | None = None,
         discard: bool | None = None,
     ):
+        if discard and deadletter:
+            raise AssertionError("You cannot enable both discard and deadletter modes")
         self.__times = times
         self.__allowed_exception_types = on
         self.__denied_exception_types = ignore
@@ -33,12 +42,18 @@ class Retry:
         # No more attempts left
         if state.attempts >= self.__times:
             return False
+
+        # Explicit RetryError with attempts left.
+        if isinstance(exc, RetryError):
+            return True
+
         # No retries for types on the ignore list
         if any(
             isinstance(exc, ignored_exception_type)
             for ignored_exception_type in self.__denied_exception_types or []
         ):
             return False
+
         # In the retry allow list or processing deadline is exceeded
         # When processing deadline is exceeded, the subprocess raises a TimeoutError
         if isinstance(exc, TimeoutError) or (
