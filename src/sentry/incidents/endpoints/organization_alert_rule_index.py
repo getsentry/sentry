@@ -6,7 +6,7 @@ from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Sub
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -436,6 +436,25 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
     }
     permission_classes = (OrganizationAlertRulePermission,)
 
+    def check_can_create_alert(self, request: Request, organization: Organization) -> None:
+        """
+        Determine if the requesting user has access to alert creation. If the request does not have the "alerts:write"
+        permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
+        in their request.
+        """
+        #
+        if request.access.has_scope("alerts:write"):
+            return
+        # team admins should be able to crete alerts for the projects they have access to
+        projects = self.get_projects(request, organization)
+        # team admins will have alerts:write scoped to their projects, members will not
+        team_admin_has_access = all(
+            [request.access.has_project_scope(project, "alerts:write") for project in projects]
+        )
+        # all() returns True for empty list, so include a check for it
+        if not team_admin_has_access or not projects:
+            raise PermissionDenied
+
     @extend_schema(
         operation_id="List an Organization's Metric Alert Rules",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
@@ -625,4 +644,5 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         }
         ```
         """
+        self.check_can_create_alert(request, organization)
         return self.create_metric_alert(request, organization)
