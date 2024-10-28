@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
+import {useSurface} from 'sentry/components/surfaceProvider';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,7 +24,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   const {title, subtitle, message} = getTitleSubtitleMessage(event);
   const avatarSize = parseInt(space(4), 10);
 
-  const referrer = 'issue_details.related_trace_issue';
+  const surface = useSurface();
 
   return (
     <Fragment>
@@ -31,13 +32,23 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         to={{
           pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${event.id}/`,
           query: {
-            referrer: referrer,
+            referrer: surface.includes('issue_details')
+              ? 'issue_details.related_trace_issue' // TODO: remove this condition after queries are migrated
+              : surface,
           },
         }}
         onClick={() => {
-          trackAnalytics(`${referrer}.trace_issue_clicked`, {
+          // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
+          if (surface.includes('issue_details')) {
+            trackAnalytics('issue_details.related_trace_issue.trace_issue_clicked', {
+              organization,
+              group_id: issueId,
+            });
+          }
+          trackAnalytics('one_other_related_trace_issue.clicked', {
             organization,
             group_id: issueId,
+            surface: surface,
           });
         }}
       >

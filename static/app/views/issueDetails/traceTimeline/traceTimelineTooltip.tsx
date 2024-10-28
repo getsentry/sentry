@@ -108,7 +108,7 @@ function EventItem({timelineEvent, location}: EventItemProps) {
           project: undefined,
           referrer: surface.includes('issue_details')
             ? 'issues_trace_timeline' // TODO: remove this condition after queries are migrated
-            : getSnakeCasedSurface(surface),
+            : surface,
         },
       }}
       onClick={() => {
@@ -141,10 +141,6 @@ function EventItem({timelineEvent, location}: EventItemProps) {
       </EventTitleWrapper>
     </EventItemRoot>
   );
-}
-
-function getSnakeCasedSurface(surface: string) {
-  return surface.toLowerCase().split('.').join('_');
 }
 
 const UnstyledUnorderedList = styled('div')`
