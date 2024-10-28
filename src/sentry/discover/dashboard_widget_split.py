@@ -24,7 +24,6 @@ from sentry.models.dashboard_widget import (
     DatasetSourcesTypes,
 )
 from sentry.models.project import Project
-from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.errors import ErrorsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
@@ -70,39 +69,6 @@ def _save_split_decision_for_widget(
         widget.dataset_source = dataset_source.value
 
     widget.save()
-
-
-def init_query_builder(
-    Builder: type[BaseQueryBuilder],
-    widget: DashboardWidget,
-    fallback_dataset: int,
-    builder_kwargs=None,
-    dry_run=False,
-):
-    try:
-        return Builder(
-            **(builder_kwargs or {}),
-        )
-    except (
-        snuba.UnqualifiedQueryError,
-        InvalidSearchQuery,
-        InvalidQueryError,
-        snuba.QueryExecutionError,
-    ) as e:
-        sentry_sdk.capture_exception(e)
-        if dry_run:
-            logger.info(
-                "Split decision for %s: %s (forced fallback)",
-                widget.id,
-                fallback_dataset,
-            )
-        else:
-            _save_split_decision_for_widget(
-                widget,
-                fallback_dataset,
-                DatasetSourcesTypes.FORCED,
-            )
-        return None
 
 
 @sentry_sdk.trace
@@ -152,49 +118,79 @@ def _get_and_save_split_decision_for_dashboard_widget(
     equations = [equation for equation in _get_equation_list(widget_query.fields or []) if equation]
     query = widget_query.conditions
 
-    errors_builder = init_query_builder(
-        ErrorsQueryBuilder,
-        widget,
-        DashboardWidgetTypes.TRANSACTION_LIKE,
-        builder_kwargs={
-            "dataset": Dataset.Events,
-            "params": {},
-            "snuba_params": snuba_dataclass,
-            "query": query,
-            "selected_columns": selected_columns,
-            "equations": equations,
-            "limit": 1,
-            "config": QueryBuilderConfig(
+    try:
+        errors_builder = ErrorsQueryBuilder(
+            dataset=Dataset.Events,
+            params={},
+            snuba_params=snuba_dataclass,
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
+            limit=1,
+            config=QueryBuilderConfig(
                 auto_aggregations=True,
                 equation_config={
                     "auto_add": True,
                 },
             ),
-        },
-        dry_run=dry_run,
-    )
+        )
+    except (
+        snuba.UnqualifiedQueryError,
+        InvalidSearchQuery,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+    ) as e:
+        sentry_sdk.capture_exception(e)
+        if dry_run:
+            logger.info(
+                "Split decision for %s: %s (forced fallback)",
+                widget.id,
+                DashboardWidgetTypes.TRANSACTION_LIKE,
+            )
+        else:
+            _save_split_decision_for_widget(
+                widget,
+                DashboardWidgetTypes.TRANSACTION_LIKE,
+                DatasetSourcesTypes.FORCED,
+            )
+        return DashboardWidgetTypes.TRANSACTION_LIKE, False
 
-    transactions_builder = init_query_builder(
-        DiscoverQueryBuilder,
-        widget,
-        DashboardWidgetTypes.ERROR_EVENTS,
-        builder_kwargs={
-            "dataset": Dataset.Transactions,
-            "params": {},
-            "snuba_params": snuba_dataclass,
-            "query": query,
-            "selected_columns": selected_columns,
-            "equations": equations,
-            "limit": 1,
-            "config": QueryBuilderConfig(
+    try:
+        transactions_builder = DiscoverQueryBuilder(
+            dataset=Dataset.Transactions,
+            params={},
+            snuba_params=snuba_dataclass,
+            query=query,
+            selected_columns=selected_columns,
+            equations=equations,
+            limit=1,
+            config=QueryBuilderConfig(
                 auto_aggregations=True,
                 equation_config={
                     "auto_add": True,
                 },
             ),
-        },
-        dry_run=dry_run,
-    )
+        )
+    except (
+        snuba.UnqualifiedQueryError,
+        InvalidSearchQuery,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+    ) as e:
+        sentry_sdk.capture_exception(e)
+        if dry_run:
+            logger.info(
+                "Split decision for %s: %s (forced fallback)",
+                widget.id,
+                DashboardWidgetTypes.ERROR_EVENTS,
+            )
+        else:
+            _save_split_decision_for_widget(
+                widget,
+                DashboardWidgetTypes.ERROR_EVENTS,
+                DatasetSourcesTypes.FORCED,
+            )
+        return DashboardWidgetTypes.ERROR_EVENTS, False
 
     # If either builder fails to initialize, the query was only compatible with the other dataset.
     if errors_builder is None:
