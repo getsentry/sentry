@@ -123,6 +123,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
+        eventstream_type: str | None = None,
         **kwargs: Any,
     ) -> None:
 
@@ -170,6 +171,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             received_timestamp,
             skip_consume,
             group_states,
+            eventstream_type=eventstream_type,
             **kwargs,
         )
 

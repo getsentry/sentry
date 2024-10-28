@@ -16,13 +16,13 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
@@ -42,22 +42,21 @@ const EscalatingIssuesFeedback = HookOrDefault({
 });
 
 export interface GroupEventDetailsProps
-  extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
+  extends RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}> {
   eventError: boolean;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   loadingEvent: boolean;
   onRetry: () => void;
-  organization: Organization;
   project: Project;
   event?: Event;
 }
 
 function GroupEventDetails(props: GroupEventDetailsProps) {
+  const organization = useOrganization();
   const {
     group,
     project,
-    organization,
     location,
     event,
     groupReprocessingStatus,
