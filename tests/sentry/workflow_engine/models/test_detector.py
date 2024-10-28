@@ -78,13 +78,17 @@ class TestGetStateData(StatefulDetectorHandlerTestMixin):
         handler = self.build_handler()
         key = "test_key"
         assert handler.get_state_data([key]) == {
-            key: DetectorStateData(key, False, PriorityLevel.OK, 0, {"test1": None, "test2": None})
+            key: DetectorStateData(
+                key, False, DetectorPriorityLevel.OK, 0, {"test1": None, "test2": None}
+            )
         }
 
     def test_existing(self):
         handler = self.build_handler()
         key = "test_key"
-        state_data = DetectorStateData(key, True, PriorityLevel.OK, 10, {"test1": 5, "test2": 200})
+        state_data = DetectorStateData(
+            key, True, DetectorPriorityLevel.OK, 10, {"test1": 5, "test2": 200}
+        )
         handler.commit_state_update_data([state_data])
         assert handler.get_state_data([key]) == {key: state_data}
 
@@ -92,15 +96,15 @@ class TestGetStateData(StatefulDetectorHandlerTestMixin):
         handler = self.build_handler()
         key_1 = "test_key_1"
         state_data_1 = DetectorStateData(
-            key_1, True, PriorityLevel.OK, 100, {"test1": 50, "test2": 300}
+            key_1, True, DetectorPriorityLevel.OK, 100, {"test1": 50, "test2": 300}
         )
         key_2 = "test_key_2"
         state_data_2 = DetectorStateData(
-            key_2, True, PriorityLevel.OK, 10, {"test1": 55, "test2": 12}
+            key_2, True, DetectorPriorityLevel.OK, 10, {"test1": 55, "test2": 12}
         )
         key_uncommitted = "test_key_uncommitted"
         state_data_uncommitted = DetectorStateData(
-            key_uncommitted, False, PriorityLevel.OK, 0, {"test1": None, "test2": None}
+            key_uncommitted, False, DetectorPriorityLevel.OK, 0, {"test1": None, "test2": None}
         )
         handler.commit_state_update_data([state_data_1, state_data_2])
         assert handler.get_state_data([key_1, key_2, key_uncommitted]) == {
