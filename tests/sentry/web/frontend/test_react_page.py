@@ -423,3 +423,18 @@ class ReactPageViewTest(TestCase):
         )
         assert response.status_code == 200
         assert "Document-Policy" not in response.headers
+
+    def test_dns_prefetch(self):
+        us_region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
+        de_region = Region("de", 1, "https://de.testserver", RegionCategory.MULTI_TENANT)
+        with override_regions(regions=[us_region, de_region]):
+            user = self.create_user("bar@example.com")
+            org = self.create_organization(owner=user)
+            self.login_as(user)
+
+            response = self.client.get("/issues/", HTTP_HOST=f"{org.slug}.testserver")
+            assert response.status_code == 200
+            response_body = response.content
+            assert '<link rel="dns-prefetch" href="https://us.testserver"' in response_body.decode(
+                "utf-8"
+            )
