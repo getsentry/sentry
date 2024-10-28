@@ -166,21 +166,22 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const eventView = eventViewFromWidget(widget.title, widget.queries[0], selection);
 
       return (
-        <StyledSimpleTableChart
-          key={`table:${result.title}`}
-          eventView={eventView}
-          fieldAliases={fieldAliases}
-          location={location}
-          fields={fields}
-          title={tableResults.length > 1 ? result.title : ''}
-          loading={loading}
-          loader={<LoadingPlaceholder />}
-          metadata={result.meta}
-          data={result.data}
-          stickyHeaders
-          fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-          getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
-        />
+        <TableWrapper key={`table:${result.title}`}>
+          <StyledSimpleTableChart
+            eventView={eventView}
+            fieldAliases={fieldAliases}
+            location={location}
+            fields={fields}
+            title={tableResults.length > 1 ? result.title : ''}
+            loading={loading}
+            loader={<LoadingPlaceholder />}
+            metadata={result.meta}
+            data={result.data}
+            stickyHeaders
+            fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
+            getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
+          />
+        </TableWrapper>
       );
     });
   }
@@ -370,13 +371,20 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     const bucketSize = getBucketSize(timeseriesResults);
 
     const valueFormatter = (value: number, seriesName?: string) => {
-      const aggregateName = seriesName?.split(':').pop()?.trim();
+      const decodedSeriesName = seriesName
+        ? WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName)
+        : seriesName;
+      const aggregateName = decodedSeriesName?.split(':').pop()?.trim();
       if (aggregateName) {
         return timeseriesResultsTypes
           ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
           : tooltipFormatter(value, aggregateOutputType(aggregateName));
       }
       return tooltipFormatter(value, 'number');
+    };
+
+    const nameFormatter = (name: string) => {
+      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name);
     };
 
     const chartOptions = {
@@ -408,6 +416,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
           return getFormatter({
             valueFormatter,
+            nameFormatter,
             isGroupedByDate: true,
             bucketSize,
             addSecondsToTimeFormat: false,
@@ -554,7 +563,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                               }
                             : {}),
                           legend,
-                          series: [...series, ...modifiedReleaseSeriesResults],
+                          series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
                           onLegendSelectChanged,
                           forwardedRef,
                         }),
@@ -638,7 +647,6 @@ const BigNumberResizeWrapper = styled('div')`
   flex-grow: 1;
   overflow: hidden;
   position: relative;
-  margin: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
 `;
 
 const BigNumber = styled('div')`
@@ -658,15 +666,20 @@ const BigNumber = styled('div')`
 
 const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
-  padding: ${p => (p.noPadding ? `0` : `0 ${space(3)} ${space(3)}`)};
+  width: 100%;
+  padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
+`;
+
+const TableWrapper = styled('div')`
+  margin-top: ${space(1.5)};
+  min-height: 0;
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
-  margin-top: ${space(1.5)};
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
-  box-shadow: none;
+  overflow: auto;
+  height: 100%;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`

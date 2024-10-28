@@ -524,7 +524,10 @@ def test_process_symbolicator_results_for_sample():
     ]
 
     _process_symbolicator_results_for_sample(
-        profile, stacktraces, set(range(len(profile["profile"]["frames"]))), profile["platform"]
+        profile,
+        stacktraces,
+        set(range(len(profile["profile"]["frames"]))),
+        profile["platform"],
     )
 
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
@@ -948,7 +951,7 @@ def test_process_profile_task_should_emit_profile_duration_outcome(
 
     assert _track_duration_outcome.call_count == 1
 
-    if profile.get("version") != "2":
+    if "profiler_id" not in profile:
         assert _track_outcome.call_count == 1
     else:
         assert _track_outcome.call_count == 0
@@ -994,7 +997,7 @@ def test_process_profile_task_should_not_emit_profile_duration_outcome(
         organization=organization, profile=profile
     )
 
-    if profile.get("version") != "2":
+    if "profiler_id" not in profile:
         assert _track_outcome.call_count == 1
     else:
         assert _track_outcome.call_count == 0

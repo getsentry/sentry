@@ -55,12 +55,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
-  getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
@@ -1022,9 +1022,7 @@ function WidgetViewerModal(props: Props) {
                     <WidgetHeader>
                       <WidgetTitleRow>
                         <h3>{widget.title}</h3>
-                        {widget.thresholds &&
-                          tableData &&
-                          getColoredWidgetIndicator(widget.thresholds, tableData)}
+                        <DiscoverSplitAlert widget={widget} />
                       </WidgetTitleRow>
                       {widget.description && (
                         <Tooltip
@@ -1199,6 +1197,7 @@ export const modalCss = css`
 
 const Container = styled('div')<{height?: number | null}>`
   display: flex;
+  flex-direction: column;
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
   padding-bottom: ${space(3)};

@@ -35,15 +35,13 @@ class StrategyFunc(Protocol[ConcreteInterface]):
         event: Event,
         context: "GroupingContext",
         **meta: Any,
-    ) -> ReturnedVariants:
-        ...
+    ) -> ReturnedVariants: ...
 
 
 class VariantProcessor(Protocol):
     def __call__(
         self, variants: ReturnedVariants, context: "GroupingContext", **meta: Any
-    ) -> ReturnedVariants:
-        ...
+    ) -> ReturnedVariants: ...
 
 
 def strategy(
