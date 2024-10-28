@@ -108,6 +108,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       statsPeriod: eventView.statsPeriod,
     },
     event,
+    group,
   });
 
   const series = useMemo((): BarChartSeries[] => {
