@@ -935,7 +935,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       autogroupCount += TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
       addSuccessMessage(
         autogroupCount > 0
-          ? tct('Autogrouping enabled, detected [count] autogrouping cases', {
+          ? tct('Autogrouping enabled, detected [count] autogrouping spans', {
               count: autogroupCount,
             })
           : t('Autogrouping enabled')

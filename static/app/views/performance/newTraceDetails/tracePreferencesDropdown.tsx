@@ -23,8 +23,8 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       items={[
         {
           key: 'autogroup',
-          label: t('Autogroup'),
-          submenuTitle: t('Autogroup'),
+          label: t('Autogrouping'),
+          submenuTitle: t('Autogrouping'),
           onAction: props.onAutogroupChange,
           leadingItems: [<Checkbox key="autogroup" checked={props.autogroup} />],
         },
