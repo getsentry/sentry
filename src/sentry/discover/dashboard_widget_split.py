@@ -146,7 +146,10 @@ def _get_and_save_split_decision_for_dashboard_widget(
     snuba_dataclass = _get_snuba_dataclass_for_dashboard_widget(widget, list(projects))
 
     selected_columns = _get_field_list(widget_query.fields or [])
-    equations = _get_equation_list(widget_query.fields or [])
+
+    # Empty equations are filtered out in the UI when making a query,
+    # do the same here to avoid unnecessary errors.
+    equations = [equation for equation in _get_equation_list(widget_query.fields or []) if equation]
     query = widget_query.conditions
 
     errors_builder = init_query_builder(
