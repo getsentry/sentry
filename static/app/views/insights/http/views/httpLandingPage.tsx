@@ -23,6 +23,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
@@ -37,7 +38,6 @@ import {
   BASE_FILTERS,
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
-  MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -50,6 +50,7 @@ export function HTTPLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
   const {isInDomainView, view} = useDomainViewFilters();
+  const moduleTitle = useModuleTitle(ModuleName.HTTP);
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
@@ -166,7 +167,7 @@ export function HTTPLandingPage() {
 
   const headerTitle = (
     <Fragment>
-      {MODULE_TITLE}
+      {moduleTitle}
       <PageHeadingQuestionTooltip docsUrl={MODULE_DOC_LINK} title={MODULE_DESCRIPTION} />
     </Fragment>
   );
@@ -192,7 +193,7 @@ export function HTTPLandingPage() {
         <FrontendHeader
           headerTitle={
             <Fragment>
-              {MODULE_TITLE}
+              {moduleTitle}
               <PageHeadingQuestionTooltip
                 docsUrl={MODULE_DOC_LINK}
                 title={MODULE_DESCRIPTION}
