@@ -19,7 +19,7 @@ import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboar
 
 interface EditAccessSelectorProps {
   dashboard: DashboardDetails;
-  onChangeEditAccess: (newDashboardPermissions?: DashboardPermissions) => void;
+  onChangeEditAccess?: (newDashboardPermissions?: DashboardPermissions) => void;
 }
 
 /**
@@ -135,7 +135,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       }}
       onClose={() => {
         if (!isEqual(newDashboardPermissions, dashboard.permissions)) {
-          onChangeEditAccess(newDashboardPermissions);
+          onChangeEditAccess?.(newDashboardPermissions);
         }
       }}
       multiple

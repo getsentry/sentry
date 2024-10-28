@@ -1,5 +1,7 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
+import type {User} from '@sentry/types';
+// import type {User} from '@sentry/types';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
@@ -166,6 +168,23 @@ export function handleUpdateDashboardSplit({
       },
     }));
   }
+}
+
+/* Checks if current user has permissions to edit dashboard */
+export function checkUserHasEditAccess(
+  dashboard: DashboardDetails,
+  currentUser: User,
+  organization: Organization
+): boolean {
+  if (organization.features.includes('dashboards-edit-access')) {
+    if (!dashboard.permissions) {
+      return true;
+    }
+    return dashboard.permissions.isCreatorOnlyEditable
+      ? dashboard.createdBy?.id === currentUser.id
+      : !dashboard.permissions.isCreatorOnlyEditable;
+  }
+  return true;
 }
 
 class DashboardDetail extends Component<Props, State> {
@@ -776,7 +795,6 @@ class DashboardDetail extends Component<Props, State> {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
-    // console.log(dashboard);
     return (
       <PageFiltersContainer
         disablePersistence
