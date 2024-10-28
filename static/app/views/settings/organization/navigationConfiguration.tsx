@@ -114,12 +114,8 @@ const organizationNavigation: NavigationSection[] = [
         path: `${organizationSettingsPathPrefix}/dynamic-sampling/`,
         title: t('Dynamic Sampling'),
         description: t('Manage your sampling rate'),
-        show: ({organization, isSelfHosted}) =>
-          !!(
-            organization &&
-            hasDynamicSamplingCustomFeature(organization) &&
-            isSelfHosted
-          ),
+        show: ({organization}) =>
+          !!organization && hasDynamicSamplingCustomFeature(organization),
       },
     ],
   },
