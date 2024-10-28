@@ -1,8 +1,8 @@
 type RawFlag = {
   action: string;
-  created_at: string;
-  created_by: string;
-  created_by_type: string;
+  createdAt: string;
+  createdBy: string;
+  createdByType: string;
   flag: string;
   id: number;
   tags: Record<string, any>;
@@ -30,7 +30,7 @@ export function hydrateToFlagSeries(
   // each data point needs to be type FlagSeriesDatapoint
   const flagData = rawFlagData.data.map<FlagSeriesDatapoint>(f => {
     return {
-      xAxis: Date.parse(f.created_at),
+      xAxis: Date.parse(f.createdAt),
       label: {formatter: () => f.action},
       name: f.flag,
     };
