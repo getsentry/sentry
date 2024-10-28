@@ -13,6 +13,9 @@ export const isModuleEnabled = (module: ModuleName, organization: Organization) 
 };
 
 export const getModuleView = (module: ModuleName): DomainView => {
+  if (DOMAIN_VIEW_MODULES.backend.includes(module)) {
+    return 'backend';
+  }
   if (DOMAIN_VIEW_MODULES.frontend.includes(module)) {
     return 'frontend';
   }
