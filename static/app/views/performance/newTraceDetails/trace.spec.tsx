@@ -996,7 +996,6 @@ describe('trace view', () => {
       const {virtualizedContainer} = await completeTestSetup();
 
       await findAllByText(virtualizedContainer, /process/i);
-      printVirtualizedList(virtualizedContainer);
       expect(screen.queryByText(/Autogrouped/i)).not.toBeInTheDocument();
     });
 
