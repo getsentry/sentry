@@ -32,7 +32,7 @@ import GridPreview from './gridPreview';
 
 type Props = {
   api: Client;
-  dashboards: DashboardListItem[] | null;
+  dashboards: DashboardListItem[] | null | undefined;
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;

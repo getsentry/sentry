@@ -1,16 +1,16 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -23,17 +23,17 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {MetricsRemovedAlertsWidgetsAlert} from 'sentry/views/metrics/metricsRemovedAlertsWidgetsAlert';
+import RouteError from 'sentry/views/routeError';
 
 import {getDashboardTemplates} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
@@ -52,75 +52,56 @@ const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('Recently Viewed'), value: 'recentlyViewed'},
 ];
 
-type Props = {
-  api: Client;
-  location: Location;
-  organization: Organization;
-  router: InjectedRouter;
-} & DeprecatedAsyncView['props'];
-
-type State = {
-  dashboards: DashboardListItem[] | null;
-  dashboardsPageLinks: string;
-  showTemplates: boolean;
-} & DeprecatedAsyncView['state'];
-
-class ManageDashboards extends DeprecatedAsyncView<Props, State> {
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      showTemplates: shouldShowTemplates(),
-    };
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization, location} = this.props;
-    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
-      [
-        'dashboards',
-        `/organizations/${organization.slug}/dashboards/`,
-        {
-          query: {
-            ...pick(location.query, ['cursor', 'query']),
-            sort: this.getActiveSort().value,
-            per_page: '9',
-          },
+function ManageDashboards() {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const api = useApi();
+  const {
+    data: dashboards,
+    isLoading,
+    isError,
+    error,
+    getResponseHeader,
+    refetch: refetchDashboards,
+  } = useApiQuery<DashboardListItem[]>(
+    [
+      `/organizations/${organization.slug}/dashboards/`,
+      {
+        query: {
+          ...pick(location.query, ['cursor', 'query']),
+          sort: getActiveSort().value,
+          per_page: '9',
         },
-      ],
-    ];
-    return endpoints;
-  }
+      },
+    ],
+    {staleTime: 0}
+  );
 
-  getActiveSort() {
-    const {location} = this.props;
+  const [showTemplates, setShowTemplatesLocal] = useState(shouldShowTemplates());
 
+  function getActiveSort() {
     const urlSort = decodeScalar(location.query.sort, 'mydashboards');
     return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
   }
 
-  onDashboardsChange() {
-    this.reloadData();
-  }
-
-  handleSearch(query: string) {
-    const {location, router, organization} = this.props;
+  function handleSearch(query: string) {
     trackAnalytics('dashboards_manage.search', {
       organization,
     });
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {...location.query, cursor: undefined, query},
     });
   }
 
-  handleSortChange = (value: string) => {
-    const {location, organization} = this.props;
+  const handleSortChange = (value: string) => {
     trackAnalytics('dashboards_manage.change_sort', {
       organization,
       sort: value,
     });
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -130,36 +111,31 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     });
   };
 
-  toggleTemplates = () => {
-    const {showTemplates} = this.state;
-    const {organization} = this.props;
-
+  const toggleTemplates = () => {
     trackAnalytics('dashboards_manage.templates.toggle', {
       organization,
       show_templates: !showTemplates,
     });
 
-    this.setState({showTemplates: !showTemplates}, () => {
-      setShowTemplates(!showTemplates);
-    });
+    setShowTemplatesLocal(!showTemplates);
+    setShowTemplates(!showTemplates);
   };
 
-  getQuery() {
-    const {query} = this.props.location.query;
+  function getQuery() {
+    const {query} = location.query;
 
     return typeof query === 'string' ? query : undefined;
   }
 
-  renderTemplates() {
-    const {organization} = this.props;
+  function renderTemplates() {
     return (
       <TemplateContainer>
         {getDashboardTemplates(organization).map(dashboard => (
           <TemplateCard
             title={dashboard.title}
             description={dashboard.description}
-            onPreview={() => this.onPreview(dashboard.id)}
-            onAdd={() => this.onAdd(dashboard)}
+            onPreview={() => onPreview(dashboard.id)}
+            onAdd={() => onAdd(dashboard)}
             key={dashboard.title}
           />
         ))}
@@ -167,28 +143,28 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  renderActions() {
-    const activeSort = this.getActiveSort();
+  function renderActions() {
+    const activeSort = getActiveSort();
     return (
       <StyledActions>
         <SearchBar
           defaultQuery=""
-          query={this.getQuery()}
+          query={getQuery()}
           placeholder={t('Search Dashboards')}
-          onSearch={query => this.handleSearch(query)}
+          onSearch={query => handleSearch(query)}
         />
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
           value={activeSort.value}
           options={SORT_OPTIONS}
-          onChange={opt => this.handleSortChange(opt.value)}
+          onChange={opt => handleSortChange(opt.value)}
           position="bottom-end"
         />
       </StyledActions>
     );
   }
 
-  renderNoAccess() {
+  function renderNoAccess() {
     return (
       <Layout.Page>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
@@ -196,9 +172,8 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  renderDashboards() {
-    const {dashboards, dashboardsPageLinks} = this.state;
-    const {organization, location, api} = this.props;
+  function renderDashboards() {
+    const dashboardsPageLinks = getResponseHeader?.('Link') ?? '';
     return (
       <DashboardList
         api={api}
@@ -206,22 +181,17 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
         organization={organization}
         pageLinks={dashboardsPageLinks}
         location={location}
-        onDashboardsChange={() => this.onDashboardsChange()}
+        onDashboardsChange={() => refetchDashboards()}
       />
     );
   }
 
-  getTitle() {
-    return t('Dashboards');
-  }
-
-  onCreate() {
-    const {organization, location} = this.props;
+  function onCreate() {
     trackAnalytics('dashboards_manage.create.start', {
       organization,
     });
 
-    browserHistory.push(
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/`,
         query: location.query,
@@ -229,8 +199,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  async onAdd(dashboard: DashboardDetails) {
-    const {organization, api} = this.props;
+  async function onAdd(dashboard: DashboardDetails) {
     trackAnalytics('dashboards_manage.templates.add', {
       organization,
       dashboard_id: dashboard.id,
@@ -248,12 +217,11 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
       true
     );
     addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
-    this.loadDashboard(newDashboard.id);
+    loadDashboard(newDashboard.id);
   }
 
-  loadDashboard(dashboardId: string) {
-    const {organization, location} = this.props;
-    browserHistory.push(
+  function loadDashboard(dashboardId: string) {
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
         query: location.query,
@@ -261,14 +229,13 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  onPreview(dashboardId: string) {
-    const {organization, location} = this.props;
+  function onPreview(dashboardId: string) {
     trackAnalytics('dashboards_manage.templates.preview', {
       organization,
       dashboard_id: dashboardId,
     });
 
-    browserHistory.push(
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
         query: location.query,
@@ -276,7 +243,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  renderLoading() {
+  if (isLoading) {
     return (
       <Layout.Page withPadding>
         <LoadingIndicator />
@@ -284,16 +251,21 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  renderBody() {
-    const {showTemplates} = this.state;
-    const {organization, api, location} = this.props;
-
+  if (isError) {
     return (
-      <Feature
-        organization={organization}
-        features="dashboards-edit"
-        renderDisabled={this.renderNoAccess}
-      >
+      <Layout.Page withPadding>
+        <RouteError error={error} />
+      </Layout.Page>
+    );
+  }
+
+  return (
+    <Feature
+      organization={organization}
+      features="dashboards-edit"
+      renderDisabled={renderNoAccess}
+    >
+      <ErrorBoundary>
         <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
           <Layout.Page>
             <NoProjectMessage organization={organization}>
@@ -316,7 +288,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
                       <Switch
                         isActive={showTemplates}
                         size="lg"
-                        toggle={this.toggleTemplates}
+                        toggle={toggleTemplates}
                       />
                     </TemplateSwitch>
                     <FeedbackWidgetButton />
@@ -325,7 +297,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
                       data-test-id="dashboard-create"
                       onClick={event => {
                         event.preventDefault();
-                        this.onCreate();
+                        onCreate();
                       }}
                       size="sm"
                       priority="primary"
@@ -356,17 +328,17 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
                 <Layout.Main fullWidth>
                   <MetricsRemovedAlertsWidgetsAlert organization={organization} />
 
-                  {showTemplates && this.renderTemplates()}
-                  {this.renderActions()}
-                  {this.renderDashboards()}
+                  {showTemplates && renderTemplates()}
+                  {renderActions()}
+                  {renderDashboards()}
                 </Layout.Main>
               </Layout.Body>
             </NoProjectMessage>
           </Layout.Page>
         </SentryDocumentTitle>
-      </Feature>
-    );
-  }
+      </ErrorBoundary>
+    </Feature>
+  );
 }
 
 const StyledActions = styled('div')`
@@ -404,4 +376,4 @@ const TemplateContainer = styled('div')`
   }
 `;
 
-export default withApi(withOrganization(ManageDashboards));
+export default ManageDashboards;
