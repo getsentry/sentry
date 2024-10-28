@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {useAnalyticsSurface} from 'sentry/components/analyticsSurfaceProvider';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
@@ -19,6 +20,7 @@ interface TraceLinkProps {
 export function TraceLink({event}: TraceLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const surface = useAnalyticsSurface();
   const traceTarget = generateTraceTarget(
     event,
     organization,
@@ -29,7 +31,7 @@ export function TraceLink({event}: TraceLinkProps) {
         groupId: event.groupID,
       },
     },
-    TraceViewSources.ISSUE_DETAILS
+    TraceViewSources.ISSUE_DETAILS // TODO: extend this enum and switch it based on the surface
   );
 
   if (!event.contexts?.trace?.trace_id) {
@@ -51,9 +53,16 @@ export function TraceLink({event}: TraceLinkProps) {
     <StyledLink
       to={traceTarget}
       onClick={() => {
+        if (surface.startsWith('issue_details')) {
+          // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
+          trackAnalytics('quick_trace.trace_id.clicked', {
+            organization,
+            source: 'issues',
+          });
+        }
         trackAnalytics('quick_trace.trace_id.clicked', {
           organization,
-          source: 'issues',
+          source: surface,
         });
       }}
     >
