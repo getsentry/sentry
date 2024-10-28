@@ -119,21 +119,36 @@ def _get_and_save_split_decision_for_dashboard_widget(
         # Optimizing the query we're running a little - we're omitting the order by
         # and setting limit = 1 since the only check happening with the data returned
         # is if data exists.
-        errors_builder = ErrorsQueryBuilder(
-            Dataset.Events,
-            params={},
-            snuba_params=snuba_dataclass,
-            query=query,
-            selected_columns=selected_columns,
-            equations=equations,
-            limit=1,
-            config=QueryBuilderConfig(
-                auto_aggregations=True,
-                equation_config={
-                    "auto_add": True,
-                },
-            ),
-        )
+        try:
+            errors_builder = ErrorsQueryBuilder(
+                Dataset.Events,
+                params={},
+                snuba_params=snuba_dataclass,
+                query=query,
+                selected_columns=selected_columns,
+                equations=equations,
+                limit=1,
+                config=QueryBuilderConfig(
+                    auto_aggregations=True,
+                    equation_config={
+                        "auto_add": True,
+                    },
+                ),
+            )
+        except snuba.UnqualifiedQueryError as e:
+            sentry_sdk.capture_message(e)
+            # Handle unqualified errors because the query may not be compatible,
+            # with the dataset. There's a chance we can still inspect the other
+            # dataset, so make an empty query builder
+            errors_builder = ErrorsQueryBuilder(
+                Dataset.Events,
+                params={},
+                snuba_params=snuba_dataclass,
+                query="",
+                selected_columns=[],
+                equations=[],
+                limit=1,
+            )
 
         transactions_builder = DiscoverQueryBuilder(
             Dataset.Transactions,
