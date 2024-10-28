@@ -400,7 +400,9 @@ class _ClientConfig:
         if not options.get("demo-mode.enabled"):
             return False
 
-        return self.user.email in options.get("demo-mode.users")
+        email = getattr(self.user, "email", None)
+
+        return email in options.get("demo-mode.users")
 
     def get_context(self) -> Mapping[str, Any]:
         return {
