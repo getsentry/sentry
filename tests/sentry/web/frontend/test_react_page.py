@@ -435,6 +435,6 @@ class ReactPageViewTest(TestCase):
             response = self.client.get("/issues/", HTTP_HOST=f"{org.slug}.testserver")
             assert response.status_code == 200
             response_body = response.content
-            assert '<link rel="dns-prefetch" href="https://us.testserver"' in response_body.decode(
+            assert '<link rel="dns-prefetch" href="http://us.testserver"' in response_body.decode(
                 "utf-8"
             )
