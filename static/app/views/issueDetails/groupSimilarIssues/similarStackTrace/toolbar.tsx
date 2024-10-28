@@ -104,9 +104,6 @@ class SimilarToolbar extends Component<Props, State> {
           {!hasSimilarityEmbeddingsFeature && (
             <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
           )}
-          {hasSimilarityEmbeddingsFeature && (
-            <StyledToolbarHeader>{t('Would Group')}</StyledToolbarHeader>
-          )}
         </Columns>
       </PanelHeader>
     );

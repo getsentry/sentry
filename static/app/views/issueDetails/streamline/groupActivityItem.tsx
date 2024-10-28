@@ -451,7 +451,7 @@ export default function getGroupActivityItem(
         }
         return {
           title: t('Unresolved'),
-          message: tct('by [author] as unresolved', {author}),
+          message: tct('by [author]', {author}),
         };
       }
       case GroupActivityType.SET_IGNORED: {
