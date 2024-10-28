@@ -32,7 +32,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
-  const moduleURL = useModuleURL('vital');
+  const moduleURL = useModuleURL('vital', false);
 
   return (
     <GenericPerformanceWidget
