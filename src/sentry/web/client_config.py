@@ -447,7 +447,7 @@ class _ClientConfig:
             "memberRegions": self.member_regions,
             "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
-            "demoMode": settings.DEMO_MODE,
+            "demoMode": self.user.email in options.get("demo-mode.users"),
             "enableAnalytics": settings.ENABLE_ANALYTICS,
             "validateSUForm": getattr(
                 settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False
