@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
@@ -32,19 +32,6 @@ export function markEventSeen(
     },
     {}
   );
-}
-
-export function fetchGroupUserReports(
-  orgSlug: string,
-  groupId: string,
-  query: Record<string, string>
-) {
-  const api = new Client();
-
-  return api.requestPromise(`/organizations/${orgSlug}/issues/${groupId}/user-reports/`, {
-    includeAllArgs: true,
-    query,
-  });
 }
 
 export function useDefaultIssueEvent() {
