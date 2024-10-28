@@ -26,8 +26,9 @@ class TeamKeyTransactionTestBase(APITestCase, SnubaTestCase):
 
 
 class ClientCallable(Protocol):
-    def __call__(self, url: str, data: dict[str, Any], format: str, **kwargs: Any) -> HttpResponse:
-        ...
+    def __call__(
+        self, url: str, data: dict[str, Any], format: str, **kwargs: Any
+    ) -> HttpResponse: ...
 
 
 class TeamKeyTransactionTest(TeamKeyTransactionTestBase):

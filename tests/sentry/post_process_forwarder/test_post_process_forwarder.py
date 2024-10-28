@@ -14,6 +14,7 @@ from django.conf import settings
 from django.test import override_settings
 
 from sentry.consumers import get_stream_processor
+from sentry.eventstream.types import EventStreamEventType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_kafka
 from sentry.utils import json, kafka_config
@@ -149,6 +150,7 @@ class PostProcessForwarderTest(TestCase):
                 is_new_group_environment=False,
                 group_states=None,
                 occurrence_id=None,
+                eventstream_type=EventStreamEventType.Error.value,
             )
 
         processor.signal_shutdown()

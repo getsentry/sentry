@@ -142,6 +142,7 @@ SPAN_COLUMN_MAP = {
     "user.id": "sentry_tags[user.id]",
     "user.email": "sentry_tags[user.email]",
     "user.username": "sentry_tags[user.username]",
+    "user.ip": "sentry_tags[user.ip]",
     "profile.id": "profile_id",
     "cache.hit": "sentry_tags[cache.hit]",
     "transaction.method": "sentry_tags[transaction.method]",
@@ -181,7 +182,7 @@ SPAN_EAP_COLUMN_MAP = {
     "project": "project_id",
     "project.id": "project_id",
     "project_id": "project_id",
-    "span.action": "attr_str[action]",
+    "span.action": "attr_str[sentry.action]",
     # For some reason the decision was made to store description as name? its called description everywhere else though
     "span.description": "name",
     "description": "name",
@@ -191,12 +192,12 @@ SPAN_EAP_COLUMN_MAP = {
     # These sample columns are for debugging only and shouldn't be used
     "sampling_weight": "sampling_weight",
     "sampling_factor": "sampling_factor",
-    "span.domain": "attr_str[domain]",
-    "span.group": "attr_str[group]",
-    "span.op": "attr_str[op]",
-    "span.category": "attr_str[category]",
+    "span.domain": "attr_str[sentry.domain]",
+    "span.group": "attr_str[sentry.group]",
+    "span.op": "attr_str[sentry.op]",
+    "span.category": "attr_str[sentry.category]",
     "span.self_time": "exclusive_time_ms",
-    "span.status": "attr_str[status]",
+    "span.status": "attr_str[sentry.status]",
     "timestamp": "timestamp",
     "trace": "trace_id",
     "transaction": "segment_name",
@@ -205,21 +206,30 @@ SPAN_EAP_COLUMN_MAP = {
     # txn event id(32 char uuid). EAP will no longer be storing this.
     "transaction.id": "segment_id",
     "transaction.span_id": "segment_id",
-    "transaction.method": "attr_str[transaction.method]",
+    "transaction.method": "attr_str[sentry.transaction.method]",
     "is_transaction": "is_segment",
     "segment.id": "segment_id",
     # We should be able to delete origin.transaction and just use transaction
     "origin.transaction": "segment_name",
     # Copy paste, unsure if this is truth in production
-    "messaging.destination.name": "attr_str[messaging.destination.name]",
-    "messaging.message.id": "attr_str[messaging.message.id]",
-    "span.status_code": "attr_str[status_code]",
-    "replay.id": "attr_str[replay_id]",
-    "span.ai.pipeline.group": "attr_str[ai_pipeline_group]",
-    "trace.status": "attr_str[trace.status]",
-    "browser.name": "attr_str[browser.name]",
+    "messaging.destination.name": "attr_str[sentry.messaging.destination.name]",
+    "messaging.message.id": "attr_str[sentry.messaging.message.id]",
+    "span.status_code": "attr_str[sentry.status_code]",
+    "replay.id": "attr_str[sentry.replay_id]",
+    "span.ai.pipeline.group": "attr_str[sentry.ai_pipeline_group]",
+    "trace.status": "attr_str[sentry.trace.status]",
+    "browser.name": "attr_str[sentry.browser.name]",
     "ai.total_tokens.used": "attr_num[ai_total_tokens_used]",
     "ai.total_cost": "attr_num[ai_total_cost]",
+    "sdk.name": "attr_str[sentry.sdk.name]",
+    "release": "attr_str[release]",
+    "user": "attr_str[sentry.user]",
+    "user.id": "attr_str[sentry.user.id]",
+    "user.email": "attr_str[sentry.user.email]",
+    "user.username": "attr_str[sentry.user.username]",
+    "user.ip": "attr_str[sentry.user.ip]",
+    "user.geo.subregion": "attr_str[sentry.user.geo.subregion]",
+    "user.geo.country_code": "attr_str[sentry.user.geo.country_code]",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
@@ -1437,7 +1447,8 @@ def resolve_column(dataset) -> Callable:
         elif dataset == Dataset.EventsAnalyticsPlatform:
             if isinstance(col, str) and col.startswith("sentry_tags["):
                 # Replace the first instance of sentry tags with attr str instead
-                return col.replace("sentry_tags", "attr_str", 1)
+                # And sentry tags are always prefixed with `sentry.`
+                return col.replace("sentry_tags[", "attr_str[sentry.", 1)
             if isinstance(col, str) and col.startswith("tags["):
                 # Replace the first instance of sentry tags with attr str instead
                 return col.replace("tags", "attr_str", 1)

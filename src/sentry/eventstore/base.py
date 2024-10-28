@@ -235,8 +235,7 @@ class EventStorage(Service):
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: Literal[True],
-    ) -> Event | None:
-        ...
+    ) -> Event | None: ...
 
     @overload
     def get_event_by_id(
@@ -248,8 +247,7 @@ class EventStorage(Service):
         occurrence_id: str | None = None,
         *,
         skip_transaction_groupevent: bool = False,
-    ) -> Event | GroupEvent | None:
-        ...
+    ) -> Event | GroupEvent | None: ...
 
     def get_event_by_id(
         self,
