@@ -7,8 +7,7 @@ import pytest
 from sentry.taskworker.retry import Retry, RetryError
 
 
-class RuntimeChildError(RuntimeError):
-    ...
+class RuntimeChildError(RuntimeError): ...
 
 
 def test_initial_state__discard() -> None:
