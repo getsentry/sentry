@@ -102,9 +102,9 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
 
-    objects: ClassVar[
-        SentryAppInstallationForProviderManager
-    ] = SentryAppInstallationForProviderManager()
+    objects: ClassVar[SentryAppInstallationForProviderManager] = (
+        SentryAppInstallationForProviderManager()
+    )
 
     class Meta:
         app_label = "sentry"
@@ -212,8 +212,7 @@ def prepare_ui_component(
     component: SentryAppComponent,
     project_slug: str | None = None,
     values: list[Mapping[str, Any]] | None = None,
-) -> SentryAppComponent | None:
-    ...
+) -> SentryAppComponent | None: ...
 
 
 @overload
@@ -222,8 +221,7 @@ def prepare_ui_component(
     component: RpcSentryAppComponent,
     project_slug: str | None = None,
     values: list[Mapping[str, Any]] | None = None,
-) -> RpcSentryAppComponent | None:
-    ...
+) -> RpcSentryAppComponent | None: ...
 
 
 def prepare_ui_component(

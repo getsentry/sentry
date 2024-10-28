@@ -58,9 +58,9 @@ describe('StreamlinedActivitySection', function () {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Remove'}));
 
     expect(
-      screen.getByText('Are you sure you wish to delete this comment?')
+      screen.getByText('Are you sure you want to remove this comment?')
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Remove comment'}));
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
 
@@ -111,7 +111,7 @@ describe('StreamlinedActivitySection', function () {
     expect(await screen.findByText('Test Note 1')).toBeInTheDocument();
     expect(await screen.findByText('Test Note 7')).toBeInTheDocument();
     expect(screen.queryByText('Test Note 6')).not.toBeInTheDocument();
-    expect(await screen.findByText('4 comments hidden')).toBeInTheDocument();
+    expect(await screen.findByText('4 activities hidden')).toBeInTheDocument();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Show all activity'}));
     expect(await screen.findByText('Test Note 6')).toBeInTheDocument();

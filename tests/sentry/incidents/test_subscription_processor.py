@@ -392,9 +392,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.rule.delete()
         subscription_id = self.sub.id
         snuba_query = self.sub.snuba_query
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.tasks():
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.tasks(),
+        ):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
@@ -416,9 +417,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule.delete()
         subscription_id = subscription.id
         snuba_query = subscription.snuba_query
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.tasks():
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.tasks(),
+        ):
             SubscriptionProcessor(subscription).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"

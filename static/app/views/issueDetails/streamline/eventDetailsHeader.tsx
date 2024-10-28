@@ -68,8 +68,8 @@ export function EventDetailsHeader({
 const FilterContainer = styled('div')`
   padding-left: 24px;
   display: grid;
-  grid-template-columns: auto auto 1fr;
-  grid-template-rows: 38px auto;
+  grid-template-columns: auto auto minmax(100px, 1fr);
+  grid-template-rows: minmax(38px, auto) auto;
   grid-template-areas:
     'env    date  searchFilter'
     'graph  graph graph';

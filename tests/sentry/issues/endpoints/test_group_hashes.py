@@ -107,7 +107,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         )
 
         with patch("sentry.issues.endpoints.group_hashes.metrics.incr") as mock_metrics_incr:
-            response = self.client.delete(url, format="json")
+            response = self.client.put(url, format="json")
 
             assert response.status_code == 202, response.content
             mock_metrics_incr.assert_any_call(
@@ -115,31 +115,6 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 sample_rate=1.0,
                 tags={"platform": "javascript", "sdk": "sentry.javascript.nextjs"},
             )
-
-    def test_unmerge_delete_member(self):
-        member = self.create_user(is_superuser=False)
-        self.login_as(user=member)
-
-        group = self.create_group(
-            platform="javascript",
-            metadata={"sdk": {"name_normalized": "sentry.javascript.nextjs"}},
-        )
-
-        hashes = [
-            GroupHash.objects.create(project=group.project, group=group, hash=hash)
-            for hash in ["a" * 32, "b" * 32]
-        ]
-
-        url = "?".join(
-            [
-                f"/api/0/issues/{group.id}/hashes/",
-                urlencode({"id": [h.hash for h in hashes]}, True),
-            ]
-        )
-
-        response = self.client.delete(url, format="json")
-
-        assert response.status_code == 403, response.content
 
     def test_unmerge_put_member(self):
         member_user = self.create_user(is_superuser=False)
@@ -192,7 +167,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         hashes[0].update(state=GroupHash.State.LOCKED_IN_MIGRATION)
         hashes[1].update(state=GroupHash.State.LOCKED_IN_MIGRATION)
 
-        response = self.client.delete(url, format="json")
+        response = self.client.put(url, format="json")
 
         assert response.status_code == 409
         assert response.data["detail"] == "Already being unmerged"

@@ -916,18 +916,11 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# TODO: The default error limit here was estimated based on EA traffic. (In an average 10 min
-# period, there are roughly 35K events without matching hashes. About 2% of orgs are EA, so for
-# simplicity, assume 2% of those events are from EA orgs. If we're willing to tolerate up to a 95%
-# failure rate, then we need 35K * 0.02 * 0.95 events to fail to trip the breaker.)
-#
-# When we GA, we should multiply both the limits by 50 (to remove the 2% part of the current
-# calculation), and remove this TODO.
 register(
     "seer.similarity.circuit-breaker-config",
     type=Dict,
     default={
-        "error_limit": 666,
+        "error_limit": 33250,
         "error_limit_window": 600,  # 10 min
         "broken_state_duration": 300,  # 5 min
     },
@@ -2831,9 +2824,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Demo mode
 register(
-    "sentryapps.process-resource-change.use-eventid",
+    "demo-mode.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-mode.orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-mode.users",
+    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

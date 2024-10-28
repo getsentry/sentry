@@ -1,7 +1,7 @@
+from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
-from rest_framework.request import Request
 
 from sentry.users.services.user.service import user_service
 from sentry.utils import auth
@@ -14,7 +14,7 @@ class ReactivateAccountView(BaseView):
     auth_required = False
 
     @method_decorator(never_cache)
-    def handle(self, request: Request) -> HttpResponseBase:
+    def handle(self, request: HttpRequest) -> HttpResponseBase:
         if not request.user.is_authenticated:
             return self.handle_auth_required(request)
 
@@ -23,5 +23,4 @@ class ReactivateAccountView(BaseView):
 
             return self.redirect(auth.get_login_redirect(request))
 
-        context = {}
-        return self.respond("sentry/reactivate-account.html", context)
+        return self.respond("sentry/reactivate-account.html", {})

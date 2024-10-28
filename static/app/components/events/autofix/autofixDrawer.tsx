@@ -19,7 +19,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventNavigation';
+import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 interface AutofixStartBoxProps {
   groupId: string;
