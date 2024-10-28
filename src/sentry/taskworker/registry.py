@@ -146,10 +146,8 @@ class TaskRegistry:
     def create_namespace(
         self, name: str, topic: str, deadletter_topic: str, retry: Retry | None = None
     ):
-        # TODO So much
-        # - validate topic names
-        # - validate deadletter topic
-        # - do topic : cluster resolution
+        # TODO(taskworker) Remove topic params and use namespace name
+        # to resolve topic and dlq topic.
         namespace = TaskNamespace(
             name=name, topic=topic, deadletter_topic=deadletter_topic, retry=retry
         )
