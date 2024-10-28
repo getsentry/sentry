@@ -31,8 +31,8 @@ const enum EventNavOptions {
 
 const EventNavOrder = [
   EventNavOptions.OLDEST,
-  EventNavOptions.RECOMMENDED,
   EventNavOptions.LATEST,
+  EventNavOptions.RECOMMENDED,
   EventNavOptions.CUSTOM,
 ];
 
