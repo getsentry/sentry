@@ -929,6 +929,33 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             ]
         }
 
+    def test_critical_trigger_action_no_target_id(self):
+        rule_one_trigger_no_target_id = {
+            "aggregate": "count()",
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "OneTriggerOnlyCritical",
+            "owner": self.user.id,
+            "resolveThreshold": 200,
+            "thresholdType": 1,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 100,
+                    "actions": [{"type": "email", "targetType": "team", "targetIdentifier": ""}],
+                }
+            ],
+        }
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug, status_code=400, **rule_one_trigger_no_target_id
+            )
+        assert resp.data[0] == ErrorDetail(
+            string="One or more of your actions is missing a target identifier.", code="invalid"
+        )
+
     def test_invalid_projects(self):
         with self.feature("organizations:incidents"):
             resp = self.get_error_response(
