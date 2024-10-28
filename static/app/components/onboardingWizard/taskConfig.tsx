@@ -294,19 +294,18 @@ export function getOnboardingTasks({
       location: `/organizations/${organization.slug}/projects/new/`,
       display: true,
       SupplementComponent: withApi(({task}: FirstEventWaiterProps) => {
-        if (hasQuickStartUpdatesFeature(organization)) {
-          if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
-            return null;
-          }
-          return (
-            <EventWaitingIndicator
-              text={t('Waiting for error')}
-              hasQuickStartUpdatesFeature
-            />
-          );
+        if (!hasQuickStartUpdatesFeature(organization)) {
+          return null;
         }
-
-        return null;
+        if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
+          return null;
+        }
+        return (
+          <EventWaitingIndicator
+            text={t('Waiting for error')}
+            hasQuickStartUpdatesFeature
+          />
+        );
       }),
     },
     {
