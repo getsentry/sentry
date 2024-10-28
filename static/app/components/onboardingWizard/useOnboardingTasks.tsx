@@ -1,4 +1,4 @@
-import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {
   type OnboardingTask,
   OnboardingTaskGroup,
@@ -42,6 +42,7 @@ export function useOnboardingTasks({
   allTasks: OnboardingTask[];
   beyondBasicsTasks: OnboardingTask[];
   completeTasks: OnboardingTask[];
+  doneTasks: OnboardingTask[];
   gettingStartedTasks: OnboardingTask[];
 } {
   const organization = useOrganization();
@@ -57,7 +58,7 @@ export function useOnboardingTasks({
         return false;
       }
 
-      const serverCompletedTasks = (data as OnboardingTask[]).filter(taskIsDone);
+      const serverCompletedTasks = (data as OnboardingTask[]).filter(findCompleteTasks);
 
       // Stop polling if all tasks are complete
       return serverCompletedTasks.length === supportedTasks.length
@@ -73,7 +74,8 @@ export function useOnboardingTasks({
 
   return {
     allTasks: mergedTasks,
-    completeTasks: mergedTasks.filter(taskIsDone),
+    completeTasks: mergedTasks.filter(findCompleteTasks),
+    doneTasks: mergedTasks.filter(taskIsDone),
     gettingStartedTasks: mergedTasks.filter(
       task => task.group === OnboardingTaskGroup.GETTING_STARTED
     ),
