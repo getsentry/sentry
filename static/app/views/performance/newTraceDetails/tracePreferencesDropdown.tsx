@@ -1,13 +1,15 @@
 import {useCallback, useMemo} from 'react';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-const CompactSelectTriggerProps = {
+const CompactSelectTriggerProps: DropdownButtonProps = {
   icon: <IconSettings />,
   showChevron: false,
   size: 'xs' as const,
+  'aria-label': t('Trace Preferences'),
 };
 
 interface TracePreferencesDropdownProps {
@@ -85,7 +87,6 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       value={values}
       // Force the trigger to be so that we only render the icon
       triggerLabel=""
-      aria-label={t('Trace Preferences')}
       triggerProps={CompactSelectTriggerProps}
       options={options}
       onChange={onChange}

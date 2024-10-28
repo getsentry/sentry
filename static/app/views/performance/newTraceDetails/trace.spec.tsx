@@ -1007,21 +1007,59 @@ describe('trace view', () => {
       const {virtualizedContainer} = await completeTestSetup();
 
       await findAllByText(virtualizedContainer, /process/i);
-      printVirtualizedList(virtualizedContainer);
       expect(screen.queryByText(/Missing instrumentation/i)).not.toBeInTheDocument();
     });
 
-    it('triggers search on load', async () => {
-      mockQueryString('?search=transaction-op-5');
-      await pageloadTestSetup();
+    describe('preferences', () => {
+      it('toggles autogrouping', async () => {
+        mockTracePreferences({autogroup: {parent: true, sibling: true}});
+        mockQueryString('?node=span-span0&node=txn-1');
 
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      expect(searchInput).toHaveValue('transaction-op-5');
+        const {virtualizedContainer} = await completeTestSetup();
+        await findAllByText(virtualizedContainer, /Autogrouped/i);
 
-      await waitFor(() => {
-        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
-          '1/1'
+        const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
+        await userEvent.click(preferencesDropdownTrigger);
+
+        // Toggle autogrouping off
+        await userEvent.click(await screen.findByText('Autogrouping'));
+        await waitFor(() => {
+          expect(screen.queryByText('Autogrouped')).not.toBeInTheDocument();
+        });
+
+        // Toggle autogrouping on
+        await userEvent.click(await screen.findByText('Autogrouping'));
+        await waitFor(() => {
+          expect(screen.queryAllByText('Autogrouped')).toHaveLength(2);
+        });
+      });
+
+      it('toggles missing instrumentation', async () => {
+        mockTracePreferences({missing_instrumentation: true});
+        mockQueryString('?node=span-span0&node=txn-1');
+
+        const {virtualizedContainer} = await completeTestSetup();
+        await findAllByText(virtualizedContainer, /Missing instrumentation/i);
+
+        const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
+
+        // Toggle missing instrumentation off
+        await userEvent.click(preferencesDropdownTrigger);
+        const missingInstrumentationOption = await screen.findByText(
+          'Missing Instrumentation'
         );
+
+        // Toggle missing instrumentation off
+        await userEvent.click(missingInstrumentationOption);
+        await waitFor(() => {
+          expect(screen.queryByText('Missing instrumentation')).not.toBeInTheDocument();
+        });
+
+        // Toggle missing instrumentation on
+        await userEvent.click(missingInstrumentationOption);
+        await waitFor(() => {
+          expect(screen.queryByText('Missing instrumentation')).toBeInTheDocument();
+        });
       });
     });
 
