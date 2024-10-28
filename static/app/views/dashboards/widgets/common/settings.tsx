@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export const MIN_WIDTH = 200;
+export const MIN_WIDTH = 110;
 export const MIN_HEIGHT = 96;
 
 export const Y_GUTTER = space(1.5);
