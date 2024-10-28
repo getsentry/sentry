@@ -19,7 +19,6 @@ from sentry.utils.snuba import raw_query
 class GroupHashesEndpoint(GroupEndpoint):
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
-        "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
     }
 
@@ -55,42 +54,6 @@ class GroupHashesEndpoint(GroupEndpoint):
             on_results=handle_results,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
-
-    # TODO: Shouldn't this be a PUT rather than a DELETE?
-    def delete(self, request: Request, group) -> Response:
-        """
-        Perform an unmerge by reassigning events with hash values corresponding to the given
-        grouphash ids from being part of the given group to being part of a new group.
-
-        Note that if multiple grouphash ids are given, all their corresponding events will end up in
-        a single new group together, rather than each hash's events ending in their own new group.
-        """
-        grouphash_ids = request.GET.getlist("id")
-        if not grouphash_ids:
-            return Response()
-
-        grouphashes = list(
-            GroupHash.objects.filter(
-                project_id=group.project_id, group=group.id, hash__in=grouphash_ids
-            )
-            .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
-            .values_list("hash", flat=True)
-        )
-        if not grouphashes:
-            return Response({"detail": "Already being unmerged"}, status=409)
-
-        metrics.incr(
-            "grouping.unmerge_issues",
-            sample_rate=1.0,
-            # We assume that if someone's merged groups, they were all from the same platform
-            tags={"platform": group.platform or "unknown", "sdk": group.sdk or "unknown"},
-        )
-
-        unmerge.delay(
-            group.project_id, group.id, None, grouphashes, request.user.id if request.user else None
-        )
-
-        return Response(status=202)
 
     def put(self, request: Request, group) -> Response:
         """
