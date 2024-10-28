@@ -23,3 +23,10 @@ class RollbackOrganizationUserData(DefaultFieldsModelExisting):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_rollbackorganizationuserdata"
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user_id", "organization"],
+                name="sentry_rollbackorganizationuserdata_unique_user_org",
+            )
+        ]
