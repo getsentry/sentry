@@ -59,7 +59,10 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.REPROCESS]: {Component: IconRefresh, defaultProps: {}},
   [GroupActivityType.MARK_REVIEWED]: {Component: IconCheckmark, defaultProps: {}},
   [GroupActivityType.AUTO_SET_ONGOING]: {Component: IconPlay, defaultProps: {}},
-  [GroupActivityType.SET_ESCALATING]: {Component: IconCellSignal, defaultProps: {}},
-  [GroupActivityType.SET_PRIORITY]: {Component: IconGraph, defaultProps: {}},
+  [GroupActivityType.SET_ESCALATING]: {
+    Component: IconGraph,
+    defaultProps: {type: 'area'},
+  },
+  [GroupActivityType.SET_PRIORITY]: {Component: IconCellSignal, defaultProps: {}},
   [GroupActivityType.DELETED_ATTACHMENT]: {Component: IconDelete, defaultProps: {}},
 };
