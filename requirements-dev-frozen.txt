@@ -131,7 +131,7 @@ prompt-toolkit==3.0.41
 proto-plus==1.24.0
 protobuf==5.27.3
 psutil==5.9.7
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.10
 pyasn1==0.4.5
 pyasn1-modules==0.2.4
 pycodestyle==2.11.0
