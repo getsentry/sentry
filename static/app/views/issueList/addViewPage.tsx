@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
+import Badge from 'sentry/components/badge/badge';
 import {Button, LinkButton} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -22,6 +23,8 @@ import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 type SearchSuggestion = {
   label: string;
   query: string;
+  isOrganizationSavedSearch?: boolean;
+  isPersonalSavedSearch?: boolean;
 };
 
 interface SearchSuggestionListProps {
@@ -43,7 +46,13 @@ const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
   {label: 'Function Regressions', query: 'issue.type:profile_function_regression'},
 ];
 
-function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
+function AddViewPage({
+  personalSavedSearches,
+  organizationSavedSearches,
+}: {
+  organizationSavedSearches: SavedSearch[];
+  personalSavedSearches: SavedSearch[];
+}) {
   const toolTipContents = (
     <Container>
       {t(
@@ -69,23 +78,33 @@ function AddViewPage({savedSearches}: {savedSearches: SavedSearch[]}) {
     </SavedSearchesTitle>
   );
 
+  const savedSearchSuggestions: SearchSuggestion[] = [
+    ...personalSavedSearches.map(search => ({
+      label: search.name,
+      query: search.query,
+      isPersonalSavedSearch: true,
+    })),
+    ...organizationSavedSearches.map(search => ({
+      label: search.name,
+      query: search.query,
+      isOrganizationSavedSearch: true,
+    })),
+  ];
+
   return (
     <AddViewWrapper>
-      <AddViewBanner hasSavedSearches={savedSearches && savedSearches.length !== 0} />
+      <AddViewBanner
+        hasSavedSearches={savedSearchSuggestions && savedSearchSuggestions.length !== 0}
+      />
       <SearchSuggestionList
         title={'Recommended Searches'}
         searchSuggestions={RECOMMENDED_SEARCHES}
         type="recommended"
       />
-      {savedSearches && savedSearches.length !== 0 && (
+      {savedSearchSuggestions.length !== 0 && (
         <SearchSuggestionList
           title={savedSearchTitle}
-          searchSuggestions={savedSearches.map(search => {
-            return {
-              label: search.name,
-              query: search.query,
-            };
-          })}
+          searchSuggestions={savedSearchSuggestions}
           type="saved_searches"
         />
       )}
@@ -234,9 +253,14 @@ function SearchSuggestionList({
             Saved search labels have an average length of approximately 16 characters
             This container fits 16 'a's comfortably, and 20 'a's before overflowing.
           */}
-            <StyledOverflowEllipsisTextContainer>
+            <OverflowEllipsisTextContainer>
               {suggestion.label}
-            </StyledOverflowEllipsisTextContainer>
+            </OverflowEllipsisTextContainer>
+            {suggestion.isPersonalSavedSearch ? (
+              <Badge type="internal">{t('Personal')}</Badge>
+            ) : (
+              <div />
+            )}
             <QueryWrapper>
               <FormattedQuery query={suggestion.query} />
               <ActionsWrapper className="data-actions-wrapper">
@@ -287,10 +311,6 @@ const SavedSearchesTitle = styled('div')`
 const StyledInteractionStateLayer = styled(InteractionStateLayer)`
   border-radius: 4px;
   width: 100.8%;
-`;
-
-const StyledOverflowEllipsisTextContainer = styled(OverflowEllipsisTextContainer)`
-  width: 170px;
 `;
 
 const TitleWrapper = styled('div')`
@@ -350,7 +370,7 @@ const SuggestionList = styled('ul')`
 const Suggestion = styled('li')`
   position: relative;
   display: inline-grid;
-  grid-template-columns: 170px auto;
+  grid-template-columns: 170px 60px auto;
   align-items: center;
   padding: ${space(1)} 0;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
