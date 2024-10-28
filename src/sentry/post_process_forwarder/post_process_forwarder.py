@@ -1,6 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
+from functools import partial
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import (
@@ -19,7 +20,9 @@ logger = logging.getLogger(__name__)
 class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload], ABC):
     @staticmethod
     @abstractmethod
-    def _dispatch_function(message: Message[KafkaPayload]) -> None:
+    def _dispatch_function(
+        message: Message[KafkaPayload], eventstream_type: str | None = None
+    ) -> None:
         raise NotImplementedError()
 
     def __init__(
@@ -31,6 +34,7 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
         max_batch_size: int,
         max_batch_time: int,
         concurrency: int,
+        eventstream_type: str | None = None,
     ) -> None:
         self.mode = mode
         self.input_block_size = input_block_size
@@ -40,16 +44,20 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
         self.concurrency = concurrency
         self.max_pending_futures = concurrency + 1000
         self.pool = MultiprocessingPool(num_processes)
+        self.eventstream_type = eventstream_type
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        processing_function = partial(
+            self._dispatch_function, eventstream_type=self.eventstream_type
+        )
         if self.mode == "multithreaded":
             logger.info("Starting multithreaded post process forwarder")
             return RunTaskInThreads(
-                processing_function=self._dispatch_function,
+                processing_function=processing_function,
                 concurrency=self.concurrency,
                 max_pending_futures=self.max_pending_futures,
                 next_step=CommitOffsets(commit),
@@ -57,7 +65,7 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
         elif self.mode == "multiprocess":
             logger.info("Starting multiprocess post process forwarder")
             return run_task_with_multiprocessing(
-                function=self._dispatch_function,
+                function=processing_function,
                 next_step=CommitOffsets(commit),
                 max_batch_size=self.max_batch_size,
                 max_batch_time=self.max_batch_time,
