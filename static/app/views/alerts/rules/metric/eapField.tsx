@@ -8,12 +8,13 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
+  DEFAULT_EAP_FIELD,
+  DEFAULT_EAP_METRICS_ALERT_FIELD,
+} from 'sentry/utils/metrics/mri';
+import {
   SpanTagsProvider,
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
-
-export const DEFAULT_EAP_FIELD = 'span.duration';
-export const DEFAULT_EAP_METRICS_ALERT_FIELD = `count(${DEFAULT_EAP_FIELD})`;
 
 interface Props {
   aggregate: string;
