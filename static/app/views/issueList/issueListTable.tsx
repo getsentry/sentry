@@ -27,13 +27,14 @@ interface IssueListTableProps {
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
   onSortChange: (sort: string) => void;
+  organizationSavedSearches: SavedSearch[];
   pageLinks: string;
   paginationAnalyticsEvent: (direction: string) => void;
   paginationCaption: React.ReactNode;
+  personalSavedSearches: SavedSearch[];
   query: string;
   queryCount: number;
   refetchGroups: (fetchAllCounts?: boolean) => void;
-  savedSearches: SavedSearch[];
   selectedProjectIds: number[];
   selection: PageFilters;
   sort: string;
@@ -61,12 +62,16 @@ function IssueListTable({
   pageLinks,
   onCursor,
   paginationAnalyticsEvent,
-  savedSearches,
+  personalSavedSearches,
+  organizationSavedSearches,
 }: IssueListTableProps) {
   const {newViewActive} = useContext(NewTabContext);
 
   return newViewActive ? (
-    <AddViewPage savedSearches={savedSearches} />
+    <AddViewPage
+      personalSavedSearches={personalSavedSearches}
+      organizationSavedSearches={organizationSavedSearches}
+    />
   ) : (
     <Fragment>
       <Panel>
