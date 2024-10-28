@@ -307,7 +307,7 @@ def is_readonly_user(request: Request) -> bool:
     if not request.user:
         return False
 
-    email = getattr(request.user, "email")
+    email = getattr(request.user, "email", None)
 
     return email in options.get("demo-mode.users")
 
