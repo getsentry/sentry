@@ -282,7 +282,9 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.SECOND_PLATFORM,
-      title: t('Create another project'),
+      title: hasQuickStartUpdatesFeature(organization)
+        ? t('Set up another project')
+        : t('Create another project'),
       description: t(
         'Easy, right? Don’t stop at one. Set up another project and send it events to keep things running smoothly in both the frontend and backend.'
       ),
@@ -291,6 +293,21 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: `/organizations/${organization.slug}/projects/new/`,
       display: true,
+      SupplementComponent: withApi(({task}: FirstEventWaiterProps) => {
+        if (hasQuickStartUpdatesFeature(organization)) {
+          if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
+            return null;
+          }
+          return (
+            <EventWaitingIndicator
+              text={t('Waiting for error')}
+              hasQuickStartUpdatesFeature
+            />
+          );
+        }
+
+        return null;
+      }),
     },
     {
       task: OnboardingTaskKey.FIRST_TRANSACTION,
