@@ -2,6 +2,7 @@ import {useLayoutEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import AnalyticsSurfaceProvider from 'sentry/components/analyticsSurfaceProvider';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -28,16 +29,23 @@ export function EventDetails({
   const {eventDetails, dispatch} = useEventDetailsReducer();
 
   return (
-    <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <PageErrorBoundary mini message={t('There was an error loading the event content')}>
-        <GroupContent>
-          <StickyEventNav event={event} group={group} />
-          <ContentPadding>
-            <EventDetailsContent group={group} event={event} project={project} />
-          </ContentPadding>
-        </GroupContent>
-      </PageErrorBoundary>
-    </EventDetailsContext.Provider>
+    <AnalyticsSurfaceProvider suffix="issue_details">
+      {' '}
+      {/* TODO: should this be nested like issues.details? Should we add issues_tab and related_trace_issue surfaces? Keeping it simple for now */}
+      <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
+        <PageErrorBoundary
+          mini
+          message={t('There was an error loading the event content')}
+        >
+          <GroupContent>
+            <StickyEventNav event={event} group={group} />
+            <ContentPadding>
+              <EventDetailsContent group={group} event={event} project={project} />
+            </ContentPadding>
+          </GroupContent>
+        </PageErrorBoundary>
+      </EventDetailsContext.Provider>
+    </AnalyticsSurfaceProvider>
   );
 }
 

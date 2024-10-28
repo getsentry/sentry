@@ -163,6 +163,15 @@ export type TeamInsightsEventParameters = {
   'releases_list.click_add_release_health': {
     project_id: number;
   };
+  trace_timeline_clicked: {
+    event_id: string;
+    group_id: string;
+    surface: string;
+  };
+  trace_timeline_more_events_clicked: {
+    num_hidden: number;
+    surface: string;
+  };
 };
 
 export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
@@ -227,4 +236,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
   'release_detail.pagination': 'Release Detail: Pagination',
   'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
+  trace_timeline_clicked: 'Trace Timeline Clicked',
+  trace_timeline_more_events_clicked: 'Trace Timeline More Events Clicked',
 };
