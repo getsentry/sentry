@@ -1,7 +1,14 @@
-import Checkbox from 'sentry/components/checkbox';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {useCallback, useMemo} from 'react';
+
+import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+
+const CompactSelectTriggerProps = {
+  icon: <IconSettings />,
+  showChevron: false,
+  size: 'xs' as const,
+};
 
 interface TracePreferencesDropdownProps {
   autogroup: boolean;
@@ -11,36 +18,77 @@ interface TracePreferencesDropdownProps {
 }
 
 export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
+  const options: SelectOption<string>[] = useMemo(
+    () => [
+      {
+        label: t('Autogrouping'),
+        value: 'autogroup',
+        details: t(
+          'Collapses 5 or more sibling spans with the same description or any spans with 2 or more descendants with the same operation.'
+        ),
+      },
+      {
+        label: t('Missing Instrumentation'),
+        value: 'missing-instrumentation',
+        details: t(
+          'Shows when there is more than 100ms of unaccounted elapsed time between two spans.'
+        ),
+      },
+    ],
+    []
+  );
+
+  const values = useMemo(() => {
+    const value: string[] = [];
+    if (props.autogroup) {
+      value.push('autogroup');
+    }
+    if (props.missingInstrumentation) {
+      value.push('missing-instrumentation');
+    }
+    return value;
+  }, [props.autogroup, props.missingInstrumentation]);
+
+  const onAutogroupChange = props.onAutogroupChange;
+  const onMissingInstrumentationChange = props.onMissingInstrumentationChange;
+
+  const onChange = useCallback(
+    (newValues: SelectOption<string>[]) => {
+      const newValuesArray = newValues.map(v => v.value);
+
+      if (values.length < newValuesArray.length) {
+        const newOption = newValuesArray.find(v => !values.includes(v));
+        if (newOption === 'autogroup') {
+          onAutogroupChange();
+        }
+        if (newOption === 'missing-instrumentation') {
+          onMissingInstrumentationChange();
+        }
+      }
+
+      if (values.length > newValuesArray.length) {
+        const removedOption = values.find(v => !newValuesArray.includes(v));
+        if (removedOption === 'autogroup') {
+          onAutogroupChange();
+        }
+        if (removedOption === 'missing-instrumentation') {
+          onMissingInstrumentationChange();
+        }
+      }
+    },
+    [values, onAutogroupChange, onMissingInstrumentationChange]
+  );
+
   return (
-    <DropdownMenu
-      closeOnSelect={false}
-      triggerProps={{
-        'aria-label': t('Trace Preferences'),
-        icon: <IconSettings />,
-        showChevron: false,
-        size: 'xs',
-      }}
-      items={[
-        {
-          key: 'autogroup',
-          label: t('Autogrouping'),
-          submenuTitle: t('Autogrouping'),
-          onAction: props.onAutogroupChange,
-          leadingItems: [<Checkbox key="autogroup" checked={props.autogroup} />],
-        },
-        {
-          key: 'missing-instrumentation',
-          label: t('Missing Instrumentation'),
-          submenuTitle: t('Missing Instrumentation'),
-          onAction: props.onMissingInstrumentationChange,
-          leadingItems: [
-            <Checkbox
-              key="missing-instrumentation"
-              checked={props.missingInstrumentation}
-            />,
-          ],
-        },
-      ]}
+    <CompactSelect
+      multiple
+      value={values}
+      // Force the trigger to be so that we only render the icon
+      triggerLabel=""
+      aria-label={t('Trace Preferences')}
+      triggerProps={CompactSelectTriggerProps}
+      options={options}
+      onChange={onChange}
     />
   );
 }

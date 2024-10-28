@@ -917,6 +917,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   const onAutogroupChange = useCallback(() => {
     const value = !traceState.preferences.autogroup.parent;
+
     if (!value) {
       let removeCount = 0;
       removeCount += TraceTree.RemoveSiblingAutogroupNodes(props.tree.root);
@@ -947,7 +948,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       type: 'set autogrouping',
       payload: value,
     });
-  }, [traceDispatch, traceState.preferences, props.tree]);
+  }, [traceDispatch, traceState.preferences.autogroup, props.tree]);
 
   const onMissingInstrumentationChange = useCallback(() => {
     const value = !traceState.preferences.missing_instrumentation;
@@ -984,7 +985,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       type: 'set missing instrumentation',
       payload: value,
     });
-  }, [traceDispatch, traceState.preferences, props.tree]);
+  }, [traceDispatch, traceState.preferences.missing_instrumentation, props.tree]);
 
   return (
     <Fragment>
