@@ -7,9 +7,6 @@ import {
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-// Refetch the data every second
-const DEFAULT_POLL_INTERVAL_MS = 1000;
-
 // Merge supported onboarding tasks with their completion status from the server.
 function mergeTasks({
   supportedTasks,
@@ -36,7 +33,11 @@ function mergeTasks({
 // returns the task groups: "allTasks", "gettingStartedTasks", "beyondBasicsTasks", and "completeTasks".
 export function useOnboardingTasks({
   supportedTasks,
+  enabled,
+  refetchInterval,
 }: {
+  enabled: boolean;
+  refetchInterval: '10s' | '1s';
   supportedTasks: OnboardingTask[];
 }): {
   allTasks: OnboardingTask[];
@@ -51,7 +52,7 @@ export function useOnboardingTasks({
     onboardingTasks: OnboardingTaskStatus[];
   }>([`/organizations/${organization.slug}/onboarding-tasks/`], {
     staleTime: 0,
-    enabled: supportedTasks.length > 0,
+    enabled,
     refetchInterval: query => {
       const data = query.state.data?.[0]?.onboardingTasks;
       if (!data) {
@@ -63,7 +64,11 @@ export function useOnboardingTasks({
       // Stop polling if all tasks are complete
       return serverCompletedTasks.length === supportedTasks.length
         ? false
-        : DEFAULT_POLL_INTERVAL_MS;
+        : refetchInterval === '10s'
+          ? // We want to avoid refetching too frequently when the sidebar is closed,
+            // as it could overload our server
+            10000 // 10s
+          : 1000; // 1s
     },
   });
 
