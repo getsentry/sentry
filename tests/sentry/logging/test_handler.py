@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.logging.handlers import JSONRenderer, StructLogHandler
+from sentry.logging.handlers import JSONRenderer, SamplingFilter, StructLogHandler
 
 
 @pytest.fixture
@@ -119,3 +119,18 @@ def test_logging_raiseExcpetions_enabled_generic_logging(caplog, snafu):
 def test_logging_raiseExcpetions_disabled_generic_logging(caplog, snafu):
     logger = logging.getLogger(__name__)
     logger.log(logging.INFO, snafu)
+
+
+@mock.patch("random.random", lambda: 0.5)
+def test_sampling_filter(caplog):
+    logger = logging.getLogger(__name__)
+    logger.addFilter(SamplingFilter({"msg1": 0.8, "message.2": 0.3}))
+
+    logger.info("msg1")
+    logger.info("message.2")
+    logger.info("hello")
+
+    captured_msgs = list(map(lambda r: r.msg, caplog.records))
+    assert "msg1" in captured_msgs
+    assert "message.2" not in captured_msgs
+    assert "hello" in captured_msgs
