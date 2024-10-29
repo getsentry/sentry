@@ -435,7 +435,8 @@ export function Actions(props: Props) {
           size: 'sm',
         }}
         items={[
-          ...(isIgnored
+          // We don't hide the archive button for streamlined UI
+          ...(isIgnored || hasStreamlinedUI
             ? []
             : [
                 {
