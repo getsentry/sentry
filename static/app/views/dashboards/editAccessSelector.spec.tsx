@@ -112,31 +112,68 @@ describe('When EditAccessSelector is rendered', () => {
     expect(screen.queryByText('All')).not.toBeInTheDocument();
   });
 
+  it('creates and updates new permissions for dashboard with no edit perms initialized', async function () {
+    const mockDashboard = DashboardFixture([], {
+      id: '1',
+      createdBy: UserFixture({id: '1'}),
+      title: 'Custom Errors',
+    });
+    const mockPUT = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'PUT',
+      body: [],
+    });
+
+    renderTestComponent(initialData, mockDashboard);
+    await userEvent.click(await screen.findByText('Edit Access:'));
+
+    // deselects 'Everyone' so only creator has edit access
+    expect(await screen.findByText('Everyone')).toBeEnabled();
+    await userEvent.click(await screen.findByText('Everyone'));
+
+    // clicks out of dropdown to trigger onChange()
+    await userEvent.click(await screen.findByText('Edit Access:'));
+
+    expect(mockPUT).toHaveBeenCalledTimes(1);
+    expect(mockPUT).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/',
+      expect.objectContaining({
+        data: expect.objectContaining({
+          permissions: {isCreatorOnlyEditable: true},
+        }),
+      })
+    );
+
+    // refresh to check if 'Everyone' is deselcted
+  });
+
+  it('disables dropdown options when current user is not dashboard creator', async function () {});
+
   it('disables edit dashboard and add widget buttons when user does not have edit perms', async function () {});
 
-  // it('makes a post request onchange with success message', async function () {
-  //   const mockPOST = MockApiClient.addMockResponse({
-  //     url: '/organizations/org-slug/dashboards/',
-  //     method: 'POST',
-  //     body: [],
-  //   });
-  //   renderTestComponent(initialData);
-  //   await userEvent.click(await screen.findByText('Edit Access:'));
-  //   await userEvent.click(await screen.findByText('Everyone'));
-  //   // Click out to trigger onChange
-  //   await userEvent.click(await screen.findByText('Edit Access:'));
-  //   await screen.findByText('Dashboard Edit Access updated.');
-  //   expect(mockPOST).toHaveBeenCalledWith(
-  //     '/organizations/org-slug/dashboards/'
-  //     // expect.objectContaining({
-  //     //   data: expect.objectContaining({
-  //     //     projects: [2],
-  //     //     environment: ['alpha', 'beta'],
-  //     //     period: '7d',
-  //     //   }),
-  //     // })
-  //   );
-  // });
+  it('makes a post request onchange with success message', async function () {
+    //   const mockPOST = MockApiClient.addMockResponse({
+    //     url: '/organizations/org-slug/dashboards/',
+    //     method: 'POST',
+    //     body: [],
+    //   });
+    //   renderTestComponent(initialData);
+    //   await userEvent.click(await screen.findByText('Edit Access:'));
+    //   await userEvent.click(await screen.findByText('Everyone'));
+    //   // Click out to trigger onChange
+    //   await userEvent.click(await screen.findByText('Edit Access:'));
+    //   await screen.findByText('Dashboard Edit Access updated.');
+    //   expect(mockPOST).toHaveBeenCalledWith(
+    //     '/organizations/org-slug/dashboards/'
+    //     // expect.objectContaining({
+    //     //   data: expect.objectContaining({
+    //     //     projects: [2],
+    //     //     environment: ['alpha', 'beta'],
+    //     //     period: '7d',
+    //     //   }),
+    //     // })
+    //   );
+  });
 
   // [WIP] (Teams based access)
   it('renders all teams', async function () {});
