@@ -3,8 +3,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import timedelta
 from functools import update_wrapper
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 
+from django.conf import settings
 from django.utils import timezone
 from sentry_protos.sentry.v1.taskworker_pb2 import RetryState
 
@@ -14,14 +15,18 @@ if TYPE_CHECKING:
     from sentry.taskworker.registry import TaskNamespace
 
 
-class Task:
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+class Task(Generic[P, R]):
     def __init__(
         self,
         name: str,
-        func: Callable[..., Any],
+        func: Callable[P, R],
         namespace: TaskNamespace,
         retry: Retry | None,
-        idempotent: bool | None = None,
+        idempotent: bool = False,
         deadline: timedelta | int | None = None,
     ):
         self.name = name
@@ -51,15 +56,13 @@ class Task:
             return int(timezone.now().timestamp() + self._deadline.total_seconds())
         raise ValueError(f"unknown type for Task.deadline {self._deadline}")
 
-    def __call__(self, *args, **kwargs) -> None:
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
         return self._func(*args, **kwargs)
 
-    def delay(self, *args, **kwargs):
-        return self.apply_async(*args, **kwargs)
+    def delay(self, *args: P.args, **kwargs: P.kwargs) -> None:
+        self.apply_async(*args, **kwargs)
 
-    def apply_async(self, *args, **kwargs):
-        from django.conf import settings
-
+    def apply_async(self, *args: P.args, **kwargs: P.kwargs) -> None:
         if settings.TASK_WORKER_ALWAYS_EAGER:
             self._func(*args, **kwargs)
         else:

@@ -10,8 +10,6 @@ from sentry.taskworker.retry import Retry, RetryError
 class RuntimeChildError(RuntimeError):
     """Dummy exception for instanceof tests"""
 
-    ...
-
 
 def test_initial_state__discard() -> None:
     retry = Retry(times=1, discard=True)

@@ -2,6 +2,7 @@ import logging
 from unittest.mock import patch
 
 import pytest
+from sentry_protos.sentry.v1.taskworker_pb2 import TaskActivation
 
 from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import Retry
@@ -70,7 +71,7 @@ def test_get_unknown() -> None:
     assert "No task registered" in str(err)
 
 
-def test_send_task() -> None:
+def test_send_task_no_retry() -> None:
     namespace = TaskNamespace(
         name="tests",
         topic="tests",
@@ -89,6 +90,45 @@ def test_send_task() -> None:
         mock_call = mock_producer.produce.call_args
         assert mock_call[0][0].name == "tests"
 
-        # protobuf messages will have strings in them
-        assert b"one" in mock_call[0][1].value
-        assert b"test.simpletask" in mock_call[0][1].value
+        proto_message = mock_call[0][1].value
+        activation = TaskActivation()
+        activation.ParseFromString(proto_message)
+
+        assert activation.taskname == "test.simpletask"
+        assert activation.namespace == "tests"
+
+        # No retries will be made as there is no retry policy on the task or namespace.
+        assert activation.retry_state
+        assert activation.retry_state.attempts == 0
+        assert activation.retry_state.discard_after_attempt == 1
+        assert "one" in activation.parameters
+
+
+def test_send_task_with_retry() -> None:
+    namespace = TaskNamespace(
+        name="tests",
+        topic="tests",
+        deadletter_topic="tests-dlq",
+        retry=None,
+    )
+
+    @namespace.register(name="test.simpletask", retry=Retry(times=3, deadletter=True))
+    def simple_task() -> None:
+        pass
+
+    with patch.object(namespace, "producer") as mock_producer:
+        namespace.send_task(simple_task, [1, 2], {"a": "one"})
+        assert mock_producer.produce.call_count == 1
+
+        mock_call = mock_producer.produce.call_args
+        activation = TaskActivation()
+        activation.ParseFromString(mock_call[0][1].value)
+
+        assert activation.taskname == "test.simpletask"
+        assert activation.namespace == "tests"
+
+        # Task retry policy should be included
+        assert activation.retry_state
+        assert activation.retry_state.attempts == 0
+        assert activation.retry_state.discard_after_attempt == 0
+        assert activation.retry_state.deadletter_after_attempt == 3
