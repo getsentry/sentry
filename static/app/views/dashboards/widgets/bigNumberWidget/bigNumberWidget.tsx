@@ -1,37 +1,76 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {
   BigNumberWidgetVisualization,
-  type Props as BigNumberWidgetVisualizationProps,
+  type BigNumberWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {
-  type Props as WidgetFrameProps,
   WidgetFrame,
+  type WidgetFrameProps,
 } from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
+import {
+  DEFAULT_FIELD,
+  MISSING_DATA_MESSAGE,
+  NON_FINITE_NUMBER_MESSAGE,
+  X_GUTTER,
+  Y_GUTTER,
+} from '../common/settings';
+import type {StateProps} from '../common/types';
+
+import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
+
 interface Props
-  extends Omit<WidgetFrameProps, 'children'>,
-    BigNumberWidgetVisualizationProps {}
+  extends StateProps,
+    Omit<WidgetFrameProps, 'children'>,
+    Partial<BigNumberWidgetVisualizationProps> {}
 
 export function BigNumberWidget(props: Props) {
+  const {value, previousPeriodValue, field} = props;
+
+  if (props.isLoading) {
+    return (
+      <WidgetFrame title={props.title} description={props.description}>
+        <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>
+      </WidgetFrame>
+    );
+  }
+
+  let parsingError: string | undefined = undefined;
+
+  if (!defined(value)) {
+    parsingError = MISSING_DATA_MESSAGE;
+  } else if (
+    (typeof value === 'number' && !Number.isFinite(value)) ||
+    Number.isNaN(value)
+  ) {
+    parsingError = NON_FINITE_NUMBER_MESSAGE;
+  }
+
+  const error = props.error ?? parsingError;
+
   return (
     <WidgetFrame
       title={props.title}
       description={props.description}
-      showDescriptionInTooltip={props.showDescriptionInTooltip}
       actions={props.actions}
+      error={error}
+      onRetry={props.onRetry}
     >
-      <BigNumberResizeWrapper>
-        <BigNumberWidgetVisualization
-          data={props.data}
-          previousPeriodData={props.previousPeriodData}
-          preferredPolarity={props.preferredPolarity}
-          meta={props.meta}
-          isLoading={props.isLoading}
-          error={props.error}
-        />
-      </BigNumberResizeWrapper>
+      {defined(value) && (
+        <BigNumberResizeWrapper>
+          <BigNumberWidgetVisualization
+            value={value}
+            previousPeriodValue={previousPeriodValue}
+            field={field ?? DEFAULT_FIELD}
+            maximumValue={props.maximumValue}
+            preferredPolarity={props.preferredPolarity}
+            meta={props.meta}
+            thresholds={props.thresholds}
+          />
+        </BigNumberResizeWrapper>
+      )}
     </WidgetFrame>
   );
 }
@@ -39,5 +78,10 @@ export function BigNumberWidget(props: Props) {
 const BigNumberResizeWrapper = styled('div')`
   position: relative;
   flex-grow: 1;
-  margin-top: ${space(1)};
+`;
+
+const LoadingPlaceholder = styled('span')`
+  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
+  padding: ${X_GUTTER} ${Y_GUTTER};
+  font-size: ${p => p.theme.fontSizeLarge};
 `;

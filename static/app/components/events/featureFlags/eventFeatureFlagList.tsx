@@ -31,6 +31,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 export function EventFeatureFlagList({
@@ -196,11 +197,11 @@ export function EventFeatureFlagList({
     <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
       <InterimSection
         help={t(
-          "The last 10 flags evaluated in the user's session leading up to this event."
+          "The last 100 flags evaluated in the user's session leading up to this event."
         )}
         isHelpHoverable
         title={t('Feature Flags')}
-        type="feature-flags"
+        type={SectionKey.FEATURE_FLAGS}
         actions={actions}
       >
         <CardContainer numCols={columnTwo.length ? 2 : 1}>

@@ -2,17 +2,16 @@ import type {Theme} from '@emotion/react';
 import {PlatformIcon} from 'platformicons';
 
 import {t} from 'sentry/locale';
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {InvisibleTraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+
+import {TraceIcons} from '../traceIcons';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {InvisibleTraceBar} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+} from '../traceRow/traceRow';
 
 const ERROR_LEVEL_LABELS: Record<keyof Theme['level'], string> = {
   sample: t('Sample'),
@@ -37,17 +36,17 @@ export function TraceErrorRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace
           : null
       }
       tabIndex={props.tabIndex}
-      className={`TraceRow ${props.rowSearchClassName} ${props.node.max_severity}`}
+      className={`TraceRow ${props.rowSearchClassName} ${props.node.maxIssueSeverity}`}
       onClick={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}
     >
-      <div className="TraceLeftColumn" ref={props.registerListColumnRef}>
-        <div
-          className="TraceLeftColumnInner"
-          style={props.listColumnStyle}
-          onDoubleClick={props.onRowDoubleClick}
-        >
+      <div
+        className="TraceLeftColumn"
+        ref={props.registerListColumnRef}
+        onDoubleClick={props.onRowDoubleClick}
+      >
+        <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
           <div className="TraceChildrenCountWrapper">
             <TraceRowConnectors node={props.node} manager={props.manager} />{' '}
           </div>

@@ -6,7 +6,7 @@ export default function getProjectsByTeams(
   projects: Project[],
   isSuperuser: boolean = false
 ): {projectsByTeam: {[teamSlug: string]: Project[]}; teamlessProjects: Project[]} {
-  const projectsByTeam = {};
+  const projectsByTeam: Record<string, Project[]> = {};
   const teamlessProjects: Project[] = [];
   let usersTeams = new Set(teams.filter(team => team.isMember).map(team => team.slug));
 

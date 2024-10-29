@@ -349,6 +349,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -386,7 +387,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "incident_name": incident.title,
             "aggregate": aggregate,
             "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
-            "threshold": f"({alert_rule.sensitivity} sensitivity)",
+            "threshold": f"({alert_rule.sensitivity} responsiveness)",
             "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
             "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
             "environment": "All",

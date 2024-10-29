@@ -1,19 +1,27 @@
-import datetime
-from typing import Any, TypedDict
+import logging
+from urllib.parse import unquote
 
-from rest_framework import serializers
+import sentry_sdk
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import OrgAuthTokenAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
+from sentry.flags.providers import (
+    DeserializationError,
+    InvalidProvider,
+    handle_provider_event,
+    write,
+)
+from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
 from sentry.models.organization import Organization
-from sentry.utils.sdk import bind_organization_context
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.silo.base import SiloMode
+from sentry.utils.security.orgauthtoken_token import hash_token
 
 """HTTP endpoint.
 
@@ -22,22 +30,16 @@ decision to exclude all other forms of authentication. We don't want users accid
 writing logs or leaked DSNs generating invalid log entries. An organization token is
 secret and reasonably restricted and so makes sense for this use case where we have
 inter-provider communication.
-
-This endpoint allows writes if any write-level "org" permission was provided.
 """
 
-
-class OrganizationFlagHookPermission(OrganizationPermission):
-    scope_map = {
-        "POST": ["org:ci"],
-    }
+logger = logging.getLogger()
 
 
 @region_silo_endpoint
 class OrganizationFlagsHooksEndpoint(Endpoint):
-    authentication_classes = (OrgAuthTokenAuthentication,)
+    authentication_classes = ()
     owner = ApiOwner.REPLAY
-    permission_classes = (OrganizationFlagHookPermission,)
+    permission_classes = ()
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -45,117 +47,61 @@ class OrganizationFlagsHooksEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        organization_id_or_slug: int | str,
+        organization_id_or_slug: str,
+        token: str,
         *args,
         **kwargs,
     ):
         try:
-            if isinstance(organization_id_or_slug, int):
+            if str(organization_id_or_slug).isdigit():
                 organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
             else:
                 organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        self.check_object_permissions(request, organization)
-        bind_organization_context(organization)
+        if not is_valid_token(organization.id, token):
+            raise AuthenticationFailed("Invalid token specified.")
 
         kwargs["organization"] = organization
         return args, kwargs
 
     def post(self, request: Request, organization: Organization, provider: str) -> Response:
+        if not features.has(
+            "organizations:feature-flag-audit-log", organization, actor=request.user
+        ):
+            return Response("Not enabled.", status=404)
+
         try:
-            rows_data = handle_provider_event(provider, request.data, organization.id)
-            FlagAuditLogModel.objects.bulk_create(FlagAuditLogModel(**row) for row in rows_data)
+            write(handle_provider_event(provider, request.data, organization.id))
             return Response(status=200)
         except InvalidProvider:
             raise ResourceDoesNotExist
         except DeserializationError as exc:
-            return Response(exc.errors, status=400)
+            sentry_sdk.capture_exception()
+            return Response(exc.errors, status=200)
 
 
-"""Provider definitions.
+def is_valid_token(organization_id: int, token: str) -> bool:
+    token_hashed = hash_token(unquote(token))
 
-Provider definitions are pure functions. They accept data and return data. Providers do not
-initiate any IO operations. Instead they return commands in the form of the return type or
-an exception. These commands inform the caller (the endpoint defintion) what IO must be
-emitted to satisfy the request. This is done primarily to improve testability and test
-performance but secondarily to allow easy extension of the endpoint without knowledge of
-the underlying systems.
-"""
-
-
-class FlagAuditLogRow(TypedDict):
-    """A complete flag audit log row instance."""
-
-    action: int
-    created_at: datetime.datetime
-    created_by: str
-    created_by_type: int
-    flag: str
-    organization_id: int
-    tags: dict[str, Any]
-
-
-class DeserializationError(Exception):
-    """The request body could not be deserialized."""
-
-    def __init__(self, errors):
-        self.errors = errors
-
-
-class InvalidProvider(Exception):
-    """An unsupported provider type was specified."""
-
-    ...
-
-
-def handle_provider_event(
-    provider: str,
-    request_data: dict[str, Any],
-    organization_id: int,
-) -> list[FlagAuditLogRow]:
-    if provider == "flag-pole":
-        return handle_flag_pole_event(request_data, organization_id)
+    if SiloMode.get_current_mode() == SiloMode.REGION:
+        try:
+            OrgAuthTokenReplica.objects.get(
+                token_hashed=token_hashed,
+                date_deactivated__isnull=True,
+                organization_id=organization_id,
+            )
+            return True
+        except OrgAuthTokenReplica.DoesNotExist:
+            return False
     else:
-        raise InvalidProvider(provider)
-
-
-"""Flag pole provider definition.
-
-If you are not Sentry you will not ever use this driver. Metadata provider by flag pole is
-limited to what we can extract from the git repository on merge.
-"""
-
-
-class FlagPoleItemSerializer(serializers.Serializer):
-    action = serializers.ChoiceField(choices=("created", "updated"), required=True)
-    created_at = serializers.DateTimeField(required=True)
-    created_by = serializers.CharField(required=True)
-    flag = serializers.CharField(max_length=100, required=True)
-    tags = serializers.DictField(required=True)
-
-
-class FlagPoleSerializer(serializers.Serializer):
-    data = FlagPoleItemSerializer(many=True, required=True)  # type: ignore[assignment]
-
-
-def handle_flag_pole_event(
-    request_data: dict[str, Any], organization_id: int
-) -> list[FlagAuditLogRow]:
-    serializer = FlagPoleSerializer(data=request_data)
-    if not serializer.is_valid():
-        raise DeserializationError(serializer.errors)
-
-    return [
-        dict(
-            action=ACTION_MAP[validated_item["action"]],
-            created_at=validated_item["created_at"],
-            created_by=validated_item["created_by"],
-            created_by_type=CREATED_BY_TYPE_MAP["email"],
-            flag=validated_item["flag"],
-            organization_id=organization_id,
-            tags=validated_item["tags"],
-        )
-        for validated_item in serializer.validated_data["data"]
-    ]
+        try:
+            OrgAuthToken.objects.get(
+                token_hashed=token_hashed,
+                date_deactivated__isnull=True,
+                organization_id=organization_id,
+            )
+            return True
+        except OrgAuthToken.DoesNotExist:
+            return False

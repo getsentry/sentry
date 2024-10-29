@@ -75,7 +75,7 @@ function Console() {
         cache={cache}
         columnIndex={0}
         // Set key based on filters, otherwise we can have odd expand/collapse state
-        // with <ObjectInspector> when filtering
+        // with <StructuredEventData> when filtering
         key={`${searchTerm}-${logLevel.join(',')}-${key}`}
         parent={parent}
         rowIndex={index}

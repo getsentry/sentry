@@ -30,7 +30,7 @@ from sentry.signals import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -85,7 +85,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             data={
                 "event_id": "a" * 32,
                 "platform": "javascript",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {
                     "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                     "sentry:user": "id:41656",
@@ -195,7 +195,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         project = self.create_project()
 
         event_data = load_data("transaction")
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event_data.update({"start_timestamp": min_ago, "timestamp": min_ago})
 
         event = self.store_event(data=event_data, project_id=project.id)
@@ -398,7 +398,8 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_onboarding_complete(self):
+    @patch("sentry.analytics.record")
+    def test_onboarding_complete(self, record_analytics):
         now = timezone.now()
         user = self.create_user(email="test@example.org")
         project = self.create_project(first_event=now)
@@ -411,7 +412,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             data={
                 "event_id": "a" * 32,
                 "platform": "javascript",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {
                     "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                     "sentry:user": "id:41656",
@@ -438,7 +439,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         event_data = load_data("transaction")
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event_data.update({"start_timestamp": min_ago, "timestamp": min_ago})
 
         transaction = self.store_event(data=event_data, project_id=project.id)
@@ -503,6 +504,13 @@ class OrganizationOnboardingTaskTest(TestCase):
                 organization=self.organization, key="onboarding:complete"
             ).count()
             == 1
+        )
+
+        record_analytics.assert_called_with(
+            "onboarding.complete",
+            user_id=self.organization.default_owner_id,
+            organization_id=self.organization.id,
+            referrer="onboarding_tasks",
         )
 
     @patch("sentry.analytics.record")

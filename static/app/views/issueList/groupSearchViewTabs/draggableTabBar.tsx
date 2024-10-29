@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
 import {motion} from 'framer-motion';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   DraggableTabList,
   TEMPORARY_TAB_KEY,
@@ -17,6 +18,7 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -135,13 +137,12 @@ export function DraggableTabBar({
       })
       .filter(defined);
     setTabs(newTabs);
-    onReorder?.(newTabs);
     trackAnalytics('issue_views.reordered_views', {
       organization,
     });
   };
 
-  const handleOnSaveChanges = () => {
+  const handleOnSaveChanges = useCallback(() => {
     const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
     if (originalTab) {
       const newTabs: Tab[] = tabs.map(tab => {
@@ -160,7 +161,23 @@ export function DraggableTabBar({
         organization,
       });
     }
-  };
+  }, [onSave, organization, setTabs, tabListState?.selectedKey, tabs]);
+
+  useHotkeys(
+    [
+      {
+        match: ['command+s', 'ctrl+s'],
+        includeInputs: true,
+        callback: () => {
+          if (tabs.find(tab => tab.key === tabListState?.selectedKey)?.unsavedChanges) {
+            handleOnSaveChanges();
+            addSuccessMessage(t('Changes saved to view'));
+          }
+        },
+      },
+    ],
+    [handleOnSaveChanges, tabListState?.selectedKey, tabs]
+  );
 
   const handleOnDiscardChanges = () => {
     const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
@@ -222,6 +239,8 @@ export function DraggableTabBar({
         ...location,
         query: {
           ...queryParams,
+          query: duplicatedTab.query,
+          sort: duplicatedTab.querySort,
           viewId: tempId,
         },
       });
@@ -415,6 +434,7 @@ export function DraggableTabBar({
   return (
     <DraggableTabList
       onReorder={handleOnReorder}
+      onReorderComplete={() => onReorder?.(tabs)}
       defaultSelectedKey={initialTabKey}
       onAddView={handleCreateNewView}
       orientation="horizontal"
@@ -442,7 +462,10 @@ export function DraggableTabBar({
               isEditing={editingTabKey === tab.key}
               setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
               onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
-              tabKey={tab.key}
+              isSelected={
+                (tabListState && tabListState?.selectedKey === tab.key) ||
+                (!tabListState && tab.key === initialTabKey)
+              }
             />
             {/* If tablistState isn't initialized, we want to load the elipsis menu
                 for the initial tab, that way it won't load in a second later
@@ -455,12 +478,12 @@ export function DraggableTabBar({
                 // but enables the animation later on when switching tabs
                 initial={tabListState ? {opacity: 0} : false}
                 animate={{opacity: 1}}
-                transition={{delay: 0.1}}
+                transition={{delay: 0.1, duration: 0.1}}
               >
                 <DraggableTabMenuButton
                   hasUnsavedChanges={!!tab.unsavedChanges}
                   menuOptions={makeMenuOptions(tab)}
-                  aria-label={`${tab.label} Ellipsis Menu`}
+                  aria-label={t(`%s Ellipsis Menu`, tab.label)}
                 />
               </motion.div>
             )}

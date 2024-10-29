@@ -206,9 +206,18 @@ export function CacheLandingPage() {
       )}
 
       {isInDomainView && (
-        <Layout.Header>
-          <BackendHeader module={ModuleName.CACHE} />
-        </Layout.Header>
+        <BackendHeader
+          headerTitle={
+            <Fragment>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Fragment>
+          }
+          module={ModuleName.CACHE}
+        />
       )}
 
       <Layout.Body>

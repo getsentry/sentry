@@ -229,6 +229,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert rule.description == resp.data.get("description")
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     def test_static_detection_type(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -263,6 +264,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             self.create_alert_rule(threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW)
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     def test_percent_detection_type(self):
         self.create_team(organization=self.organization, members=[self.user])
@@ -303,6 +305,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -369,7 +372,20 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 time_window=1,
             )
 
+        with pytest.raises(
+            ValidationError, match="Dynamic alerts do not support 'is:unresolved' queries"
+        ):
+            rule = self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+                time_window=30,
+                query="is:unresolved",
+            )
+
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     def test_missing_threshold(self):
         """Test that we throw a validation error when the trigger is missing alertThreshold"""
@@ -649,9 +665,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule = self.alert_rule
         serialized_alert_rule = self.get_serialized_alert_rule()
         serialized_alert_rule["monitorType"] = AlertRuleMonitorTypeInt.ACTIVATED
-        serialized_alert_rule[
-            "activationCondition"
-        ] = AlertRuleActivationConditionType.RELEASE_CREATION.value
+        serialized_alert_rule["activationCondition"] = (
+            AlertRuleActivationConditionType.RELEASE_CREATION.value
+        )
         with (
             outbox_runner(),
             self.feature(["organizations:incidents", "organizations:activated-alert-rules"]),
@@ -827,6 +843,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert description == resp.data.get("description")
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -849,6 +866,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -874,6 +892,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -901,6 +920,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -920,6 +940,19 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             **data,
         )
         assert resp.data[0] == INVALID_TIME_WINDOW
+        # We don't call send_historical_data_to_seer if we encounter a validation error.
+        assert mock_seer_request.call_count == 0
+
+        data2 = self.get_serialized_alert_rule()
+        data2["query"] = "is:unresolved"
+
+        resp = self.get_error_response(
+            self.organization.slug,
+            alert_rule.id,
+            status_code=400,
+            **data2,
+        )
+        assert resp.data[0] == "Dynamic alerts do not support 'is:unresolved' queries"
         # We don't call send_historical_data_to_seer if we encounter a validation error.
         assert mock_seer_request.call_count == 0
 
@@ -946,11 +979,14 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule["triggers"][1]["actions"].pop()
 
         with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            resp = self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
             )
-
-        assert len(resp.data["triggers"][1]["actions"]) == 0
+        assert resp.data == {
+            "nonFieldErrors": [
+                "Each trigger must have an associated action for this alert to fire."
+            ]
+        }
 
     def test_update_trigger_action_type(self):
         self.create_member(

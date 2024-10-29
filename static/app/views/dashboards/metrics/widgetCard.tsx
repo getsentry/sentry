@@ -220,6 +220,7 @@ export function MetricWidgetCard({
                   location={location}
                   onDelete={onDelete}
                   onDuplicate={onDuplicate}
+                  title={widget.title || widgetMQL}
                 />
               </WidgetCardContextMenuContainer>
             )}

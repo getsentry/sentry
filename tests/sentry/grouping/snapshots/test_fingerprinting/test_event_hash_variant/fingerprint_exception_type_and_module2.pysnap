@@ -1,5 +1,5 @@
 ---
-created: '2020-10-13T10:09:30.497241Z'
+created: '2024-10-16T22:32:28.545402+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -13,6 +13,7 @@ config:
       - DatabaseUnavailable
     - - module
       - invalid.databasestuff.*
+    text: type:"DatabaseUnavailable" module:"invalid.databasestuff.*" -> "database-unavailable"
   version: 1
 fingerprint:
 - my-route
@@ -20,6 +21,9 @@ fingerprint:
 title: 'DatabaseUnavailable: For some reason the database went away'
 variants:
   app:
+    client_values:
+    - my-route
+    - '{{ default }}'
     component:
       contributes: false
       hint: exception of system takes precedence
@@ -28,6 +32,9 @@ variants:
     - my-route
     - '{{ default }}'
   system:
+    client_values:
+    - my-route
+    - '{{ default }}'
     component:
       contributes: true
       hint: null

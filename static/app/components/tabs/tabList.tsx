@@ -14,7 +14,7 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {TabsContext} from './index';
 import type {TabListItemProps} from './item';
@@ -30,7 +30,12 @@ export function useOverflowTabs({
   tabListRef,
   tabItemsRef,
   tabItems,
+  disabled,
 }: {
+  /**
+   * Prevent tabs from being put in the overflow menu.
+   */
+  disabled: boolean | undefined;
   tabItems: TabListItemProps[];
   tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: React.RefObject<HTMLUListElement>;
@@ -38,6 +43,10 @@ export function useOverflowTabs({
   const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
 
   useEffect(() => {
+    if (disabled) {
+      return () => {};
+    }
+
     const options = {
       root: tabListRef.current,
       // Nagative right margin to account for overflow menu's trigger button
@@ -70,7 +79,7 @@ export function useOverflowTabs({
     );
 
     return () => observer.disconnect();
-  }, [tabListRef, tabItemsRef]);
+  }, [tabListRef, tabItemsRef, disabled]);
 
   const tabItemKeyToHiddenMap = tabItems.reduce(
     (acc, next) => ({
@@ -132,6 +141,7 @@ function BaseTabList({
   variant = 'flat',
   ...props
 }: BaseTabListProps) {
+  const navigate = useNavigate();
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
@@ -141,6 +151,7 @@ function BaseTabList({
     disabled,
     orientation = 'horizontal',
     keyboardActivation = 'manual',
+    disableOverflow,
     ...otherRootProps
   } = rootProps;
 
@@ -156,7 +167,7 @@ function BaseTabList({
       if (!linkTo) {
         return;
       }
-      browserHistory.push(linkTo);
+      navigate(linkTo);
     },
     isDisabled: disabled,
     keyboardActivation,
@@ -177,6 +188,7 @@ function BaseTabList({
     tabListRef,
     tabItemsRef,
     tabItems: props.items,
+    disabled: disableOverflow,
   });
 
   const overflowMenuItems = useMemo(() => {

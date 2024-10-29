@@ -34,7 +34,7 @@ import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sam
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {
   SPAN_SELF_TIME,
@@ -120,9 +120,15 @@ function ResourceSummary() {
       )}
 
       {isInDomainView && (
-        <Layout.Header>
-          <FrontendHeader module={ModuleName.RESOURCE} />
-        </Layout.Header>
+        <FrontendHeader
+          headerTitle={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
+          breadcrumbs={[
+            {
+              label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
+            },
+          ]}
+          module={ModuleName.RESOURCE}
+        />
       )}
 
       <Layout.Body>

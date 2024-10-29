@@ -39,6 +39,7 @@ def run_test(expected_groups):
     }
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
     migrate_from = "0738_rm_reprocessing_step3"
     migrate_to = "0739_backfill_group_info_to_group_attributes"

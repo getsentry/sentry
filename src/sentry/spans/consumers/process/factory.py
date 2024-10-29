@@ -209,7 +209,7 @@ def _expand_segments(should_process_segments: list[ProcessSegmentsContext]):
             client = RedisSpansBuffer()
             payload_context = {}
 
-            with txn.start_child(op="process", description="fetch_unprocessed_segments"):
+            with txn.start_child(op="process", name="fetch_unprocessed_segments"):
                 keys = client.get_unprocessed_segments_and_prune_bucket(timestamp, partition)
 
             sentry_sdk.set_measurement("segments.count", len(keys))
@@ -218,7 +218,7 @@ def _expand_segments(should_process_segments: list[ProcessSegmentsContext]):
 
             # With pipelining, redis server is forced to queue replies using
             # up memory, so batching the keys we fetch.
-            with txn.start_child(op="process", description="read_and_expire_many_segments"):
+            with txn.start_child(op="process", name="read_and_expire_many_segments"):
                 for i in range(0, len(keys), BATCH_SIZE):
                     segments = client.read_and_expire_many_segments(keys[i : i + BATCH_SIZE])
 

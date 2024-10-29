@@ -83,7 +83,14 @@ export function canUseMetricsData(organization: Organization) {
   const isRollingOut =
     samplingFeatureFlag && organization.features.includes('mep-rollout-flag');
 
-  return isDevFlagOn || isInternalViewOn || isRollingOut;
+  // For plans transitioning from AM2 to AM3, we still want to show metrics
+  // until 90d after 100% transaction ingestion to avoid spikes in charts
+  // coming from old sampling rates.
+  const isTransitioningPlan = organization.features.includes(
+    'dashboards-metrics-transition'
+  );
+
+  return isDevFlagOn || isInternalViewOn || isRollingOut || isTransitioningPlan;
 }
 
 export function MEPSettingProvider({

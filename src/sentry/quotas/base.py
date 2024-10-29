@@ -15,9 +15,11 @@ from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
+    from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
     from sentry.monitors.models import Monitor
+    from sentry.profiles.task import Profile
 
 
 @unique
@@ -653,3 +655,11 @@ class Quota(Service):
         """
         Updates a monitor seat assignment's slug.
         """
+
+    def should_emit_profile_duration_outcome(
+        self, organization: Organization, profile: Profile
+    ) -> bool:
+        """
+        Determines if the profile duration outcome should be emitted.
+        """
+        return True

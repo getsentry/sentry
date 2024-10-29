@@ -8,13 +8,13 @@ from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.api.permissions import SentryPermission
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import generate_token
 from sentry.organizations.services.organization import organization_service
+from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.users.services.user.service import user_service
 

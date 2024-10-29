@@ -101,6 +101,11 @@ export function OnboardingLayout({
       isSelfHosted,
       platformOptions: selectedOptions,
       newOrg,
+      profilingOptions: {
+        defaultProfilingMode: organization.features.includes('continuous-profiling')
+          ? 'continuous'
+          : 'transaction',
+      },
       replayOptions: {block: true, mask: true},
     };
 
@@ -170,7 +175,7 @@ export function OnboardingLayout({
         {nextSteps.length > 0 && (
           <Fragment>
             <Divider />
-            <h4>{t('Next Steps')}</h4>
+            <h4>{t('Additional Information')}</h4>
             <List symbol="bullet">
               {nextSteps
                 .filter((step): step is Exclude<typeof step, null> => step !== null)

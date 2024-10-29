@@ -1,52 +1,131 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import Badge, {type BadgeProps} from 'sentry/components/badge/badge';
+import {Button, LinkButton} from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis, IconExpand, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export interface Props {
+import {ErrorPanel} from './errorPanel';
+import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from './settings';
+import {TooltipIconTrigger} from './tooltipIconTrigger';
+import type {StateProps} from './types';
+import {WarningsList} from './warningsList';
+
+export interface WidgetFrameProps extends StateProps {
   actions?: MenuItemProps[];
+  actionsDisabled?: boolean;
+  actionsMessage?: string;
+  badgeProps?: BadgeProps | BadgeProps[];
   children?: React.ReactNode;
   description?: string;
-  showDescriptionInTooltip?: boolean;
+  onFullScreenViewClick?: () => void;
   title?: string;
+  warnings?: string[];
 }
 
-export function WidgetFrame(props: Props) {
-  const {title, description, showDescriptionInTooltip = true, actions, children} = props;
+export function WidgetFrame(props: WidgetFrameProps) {
+  const {error} = props;
+
+  // The error state has its own set of available actions
+  const actions =
+    (error
+      ? props.onRetry
+        ? [
+            {
+              key: 'retry',
+              label: t('Retry'),
+              onAction: props.onRetry,
+            },
+          ]
+        : []
+      : props.actions) ?? [];
 
   return (
-    <Frame>
-      <Header showDescriptionInTooltip={showDescriptionInTooltip}>
-        <Title>
-          <Tooltip title={title} containerDisplayMode="grid" showOnlyOnOverflow>
-            <TitleText>{title}</TitleText>
+    <Frame aria-label="Widget panel">
+      <Header>
+        {props.warnings && props.warnings.length > 0 && (
+          <Tooltip title={<WarningsList warnings={props.warnings} />} isHoverable>
+            <TooltipIconTrigger aria-label={t('Widget warnings')}>
+              <IconWarning color="warningText" />
+            </TooltipIconTrigger>
           </Tooltip>
+        )}
 
-          {description && showDescriptionInTooltip && (
-            <TooltipAligner>
-              <QuestionTooltip size="sm" title={description} />
-            </TooltipAligner>
+        <Tooltip title={props.title} containerDisplayMode="grid" showOnlyOnOverflow>
+          <TitleText>{props.title}</TitleText>
+        </Tooltip>
+
+        {props.badgeProps &&
+          (Array.isArray(props.badgeProps) ? props.badgeProps : [props.badgeProps]).map(
+            (currentBadgeProps, i) => <RigidBadge key={i} {...currentBadgeProps} />
           )}
 
-          {actions && actions.length > 0 && (
-            <TitleActions>
+        {(props.description ||
+          props.onFullScreenViewClick ||
+          (actions && actions.length > 0)) && (
+          <TitleHoverItems>
+            {props.description && (
+              // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
+              <Tooltip
+                title={
+                  <span>
+                    {props.title && (
+                      <WidgetTooltipTitle>{props.title}</WidgetTooltipTitle>
+                    )}
+                    {props.description && (
+                      <WidgetTooltipDescription>
+                        {props.description}
+                      </WidgetTooltipDescription>
+                    )}
+                  </span>
+                }
+                containerDisplayMode="grid"
+                isHoverable
+              >
+                <WidgetTooltipButton
+                  aria-label={t('Widget description')}
+                  borderless
+                  size="xs"
+                  icon={<IconInfo />}
+                />
+              </Tooltip>
+            )}
+
+            <TitleActionsWrapper
+              disabled={Boolean(props.actionsDisabled)}
+              disabledMessage={props.actionsMessage ?? ''}
+            >
               {actions.length === 1 ? (
-                <Button size="xs" onClick={actions[0].onAction}>
-                  {actions[0].label}
-                </Button>
+                actions[0].to ? (
+                  <LinkButton
+                    size="xs"
+                    disabled={props.actionsDisabled}
+                    onClick={actions[0].onAction}
+                    to={actions[0].to}
+                  >
+                    {actions[0].label}
+                  </LinkButton>
+                ) : (
+                  <Button
+                    size="xs"
+                    disabled={props.actionsDisabled}
+                    onClick={actions[0].onAction}
+                  >
+                    {actions[0].label}
+                  </Button>
+                )
               ) : null}
 
               {actions.length > 1 ? (
                 <DropdownMenu
                   items={actions}
+                  isDisabled={props.actionsDisabled}
                   triggerProps={{
-                    'aria-label': t('Actions'),
+                    'aria-label': t('Widget actions'),
                     size: 'xs',
                     borderless: true,
                     showChevron: false,
@@ -55,24 +134,55 @@ export function WidgetFrame(props: Props) {
                   position="bottom-end"
                 />
               ) : null}
-            </TitleActions>
-          )}
-        </Title>
+            </TitleActionsWrapper>
 
-        {description && !showDescriptionInTooltip && (
-          <Tooltip
-            title={description}
-            containerDisplayMode="grid"
-            showOnlyOnOverflow
-            isHoverable
-          >
-            <Description>{description}</Description>
-          </Tooltip>
+            {props.onFullScreenViewClick && (
+              <Button
+                aria-label={t('Open Full-Screen View')}
+                borderless
+                size="xs"
+                icon={<IconExpand />}
+                onClick={() => {
+                  props.onFullScreenViewClick?.();
+                }}
+              />
+            )}
+          </TitleHoverItems>
         )}
       </Header>
 
-      <VisualizationWrapper>{children}</VisualizationWrapper>
+      <VisualizationWrapper>
+        {props.error ? <ErrorPanel error={error} /> : props.children}
+      </VisualizationWrapper>
     </Frame>
+  );
+}
+
+const TitleHoverItems = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  margin-left: auto;
+
+  opacity: 1;
+  transition: opacity 0.1s;
+`;
+
+interface TitleActionsProps {
+  children: React.ReactNode;
+  disabled: boolean;
+  disabledMessage: string;
+}
+
+function TitleActionsWrapper({disabled, disabledMessage, children}: TitleActionsProps) {
+  if (!disabled || !disabledMessage) {
+    return children;
+  }
+
+  return (
+    <Tooltip title={disabledMessage} isHoverable>
+      {children}
+    </Tooltip>
   );
 }
 
@@ -82,36 +192,41 @@ const Frame = styled('div')`
   flex-direction: column;
 
   height: 100%;
-  min-height: 96px;
+  min-height: ${MIN_HEIGHT}px;
   width: 100%;
-  min-width: 120px;
-
-  padding: ${space(2)};
+  min-width: ${MIN_WIDTH}px;
 
   border-radius: ${p => p.theme.panelBorderRadius};
   border: ${p => p.theme.border};
   border: 1px ${p => 'solid ' + p.theme.border};
 
   background: ${p => p.theme.background};
+
+  :hover {
+    background-color: ${p => p.theme.surface200};
+    transition:
+      background-color 100ms linear,
+      box-shadow 100ms linear;
+    box-shadow: ${p => p.theme.dropShadowLight};
+  }
+
+  &:not(:hover):not(:focus-within) {
+    ${TitleHoverItems} {
+      opacity: 0;
+      ${p => p.theme.visuallyHidden}
+    }
+  }
 `;
 
-const Header = styled('div')<{showDescriptionInTooltip: boolean}>`
+const HEADER_HEIGHT = '26px';
+
+const Header = styled('div')`
   display: flex;
-  flex-direction: column;
-
-  min-height: ${p => (p.showDescriptionInTooltip ? '' : '36px')};
-`;
-
-const Title = styled('div')`
-  display: inline-flex;
   align-items: center;
+  height: calc(${HEADER_HEIGHT} + ${Y_GUTTER});
+  flex-shrink: 0;
   gap: ${space(0.75)};
-`;
-
-const Description = styled('small')`
-  ${p => p.theme.overflowEllipsis}
-
-  color: ${p => p.theme.gray300};
+  padding: ${X_GUTTER} ${Y_GUTTER} 0 ${X_GUTTER};
 `;
 
 const TitleText = styled(HeaderTitle)`
@@ -119,18 +234,31 @@ const TitleText = styled(HeaderTitle)`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const TitleActions = styled('div')`
-  margin-left: auto;
+const RigidBadge = styled(Badge)`
+  flex-shrink: 0;
 `;
 
-const TooltipAligner = styled('div')`
-  font-size: 0;
-  line-height: 1;
-  margin-bottom: 2px;
+const WidgetTooltipTitle = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-align: left;
+`;
+
+const WidgetTooltipDescription = styled('div')`
+  margin-top: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  text-align: left;
+`;
+
+// We're using a button here to preserve tab accessibility
+const WidgetTooltipButton = styled(Button)`
+  pointer-events: none;
 `;
 
 const VisualizationWrapper = styled('div')`
   display: flex;
+  flex-direction: column;
   flex-grow: 1;
+  min-height: 0;
   position: relative;
 `;

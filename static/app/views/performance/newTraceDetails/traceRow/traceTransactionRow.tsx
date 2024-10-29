@@ -1,19 +1,16 @@
 import {PlatformIcon} from 'platformicons';
 
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
-import {
-  makeTraceNodeBarColor,
-  type TraceTree,
-  type TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {TraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+import {TraceIcons} from '../traceIcons';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {makeTraceNodeBarColor, TraceBar} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+} from '../traceRow/traceRow';
 
 export function TraceTransactionRow(
   props: TraceRowProps<TraceTreeNode<TraceTree.Transaction>>
@@ -27,17 +24,17 @@ export function TraceTransactionRow(
           : null
       }
       tabIndex={props.tabIndex}
-      className={`TraceRow ${props.rowSearchClassName} ${props.node.has_errors ? props.node.max_severity : ''}`}
+      className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
       onKeyDown={props.onRowKeyDown}
       onClick={props.onRowClick}
       style={props.style}
     >
-      <div className="TraceLeftColumn" ref={props.registerListColumnRef}>
-        <div
-          className="TraceLeftColumnInner"
-          style={props.listColumnStyle}
-          onDoubleClick={props.onRowDoubleClick}
-        >
+      <div
+        className="TraceLeftColumn"
+        ref={props.registerListColumnRef}
+        onDoubleClick={props.onRowDoubleClick}
+      >
+        <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
           <div className={props.listColumnClassName}>
             <TraceRowConnectors node={props.node} manager={props.manager} />
             {props.node.children.length > 0 || props.node.canFetch ? (
@@ -73,7 +70,7 @@ export function TraceTransactionRow(
           />
           <span className="TraceOperation">{props.node.value['transaction.op']}</span>
           <strong className="TraceEmDash"> — </strong>
-          <span>{props.node.value.transaction}</span>
+          <span className="TraceDescription">{props.node.value.transaction}</span>
         </div>
       </div>
       <div
@@ -82,6 +79,7 @@ export function TraceTransactionRow(
         onDoubleClick={props.onRowDoubleClick}
       >
         <TraceBar
+          node={props.node}
           virtualized_index={props.virtualized_index}
           manager={props.manager}
           color={makeTraceNodeBarColor(props.theme, props.node)}

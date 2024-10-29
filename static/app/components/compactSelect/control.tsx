@@ -121,7 +121,7 @@ export interface ControlProps
   /**
    * Message to be displayed when all options have been filtered out (via search).
    */
-  emptyMessage?: string;
+  emptyMessage?: React.ReactNode;
   /**
    * Whether to render a grid list rather than a list box.
    *
@@ -215,6 +215,7 @@ export interface ControlProps
  */
 export function Control({
   // Control props
+  autoFocus,
   trigger,
   triggerLabel: triggerLabelProp,
   triggerProps,
@@ -295,6 +296,11 @@ export function Control({
         overlayRef.current
           ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
           ?.focus();
+      }
+
+      // Prevent form submissions on Enter key press in search box
+      if (e.key === 'Enter') {
+        e.preventDefault();
       }
 
       // Continue propagation, otherwise the overlay won't close on Esc key press
@@ -394,6 +400,20 @@ export function Control({
     updateOverlay?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuBody, hideOptions]);
+
+  const wasRefAvailable = useRef(false);
+  useEffect(() => {
+    // Trigger ref is set by a setState in useOverlay, so we need to wait for it to be available
+    // We also need to make sure we only focus once
+    if (!triggerRef.current || wasRefAvailable.current) {
+      return;
+    }
+    wasRefAvailable.current = true;
+
+    if (autoFocus && !disabled) {
+      triggerRef.current.focus();
+    }
+  }, [autoFocus, disabled, triggerRef]);
 
   /**
    * The menu's full width, before any option has been filtered out. Used to maintain a

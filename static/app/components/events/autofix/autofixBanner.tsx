@@ -41,7 +41,10 @@ function SuccessfulSetup({
         // we don't reopen it immediately, and instead let the button handle this itself.
         shouldCloseOnInteractOutside: element => {
           const viewAllButton = openButtonRef.current;
-          if (viewAllButton?.contains(element)) {
+          if (
+            viewAllButton?.contains(element) ||
+            document.getElementById('sentry-feedback')?.contains(element)
+          ) {
             return false;
           }
           return true;
@@ -53,8 +56,23 @@ function SuccessfulSetup({
     }
   };
 
+  if (isDrawerOpen) {
+    return (
+      <Button onClick={() => openAutofix()} size="sm" ref={openButtonRef}>
+        {t('Open Autofix')}
+      </Button>
+    );
+  }
+
   return (
-    <Button onClick={() => openAutofix()} size="sm" ref={openButtonRef}>
+    <Button
+      onClick={() => openAutofix()}
+      size="sm"
+      ref={openButtonRef}
+      analyticsEventKey="autofix.open_drawer_clicked"
+      analyticsEventName="Autofix: Open Drawer Clicked"
+      analyticsParams={{group_id: group.id}}
+    >
       {t('Open Autofix')}
     </Button>
   );

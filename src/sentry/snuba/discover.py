@@ -340,7 +340,7 @@ def timeseries_query(
         Dataset.Transactions,
     ], "A dataset is required to query discover"
 
-    with sentry_sdk.start_span(op="discover.discover", description="timeseries.filter_transform"):
+    with sentry_sdk.start_span(op="discover.discover", name="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = TimeseriesQueryBuilder(
             dataset,
@@ -379,7 +379,7 @@ def timeseries_query(
             [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
-    with sentry_sdk.start_span(op="discover.discover", description="timeseries.transform_results"):
+    with sentry_sdk.start_span(op="discover.discover", name="timeseries.transform_results"):
         results = []
         for snql_query, snuba_result in zip(query_list, query_results):
             results.append(
@@ -506,7 +506,7 @@ def top_events_timeseries(
     ], "A dataset is required to query discover"
 
     if top_events is None:
-        with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
+        with sentry_sdk.start_span(op="discover.discover", name="top_events.fetch_events"):
             top_events = query(
                 selected_columns,
                 query=user_query,
@@ -577,9 +577,7 @@ def top_events_timeseries(
             snuba_params.end_date,
             rollup,
         )
-    with sentry_sdk.start_span(
-        op="discover.discover", description="top_events.transform_results"
-    ) as span:
+    with sentry_sdk.start_span(op="discover.discover", name="top_events.transform_results") as span:
         span.set_data("result_count", len(result.get("data", [])))
         result = top_events_builder.process_results(result)
 
@@ -637,7 +635,7 @@ def top_events_timeseries(
 
 
 def get_facets(
-    query: str,
+    query: str | None,
     snuba_params: SnubaParams,
     referrer: str,
     per_page: int | None = TOP_KEYS_DEFAULT_LIMIT,
@@ -660,7 +658,7 @@ def get_facets(
     sample = len(snuba_params.project_ids) > 2
     fetch_projects = len(snuba_params.project_ids) > 1
 
-    with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
+    with sentry_sdk.start_span(op="discover.discover", name="facets.frequent_tags"):
         key_name_builder = DiscoverQueryBuilder(
             Dataset.Discover,
             params={},
@@ -706,7 +704,7 @@ def get_facets(
     project_results = []
     # Inject project data on the first page if multiple projects are selected
     if fetch_projects and cursor == 0:
-        with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
+        with sentry_sdk.start_span(op="discover.discover", name="facets.projects"):
             project_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params={},
@@ -740,9 +738,7 @@ def get_facets(
         else:
             individual_tags.append(tag)
 
-    with sentry_sdk.start_span(
-        op="discover.discover", description="facets.individual_tags"
-    ) as span:
+    with sentry_sdk.start_span(op="discover.discover", name="facets.individual_tags") as span:
         span.set_data("tag_count", len(individual_tags))
         for tag_name in individual_tags:
             tag = f"tags[{tag_name}]"
@@ -767,7 +763,7 @@ def get_facets(
             )
 
     if aggregate_tags:
-        with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
+        with sentry_sdk.start_span(op="discover.discover", name="facets.aggregate_tags"):
             aggregate_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params={},
@@ -1397,8 +1393,7 @@ def find_histogram_min_max(
 
         max_fence_value = max(fences) if fences else None
 
-        candidates = [max_fence_value, max_value]
-        candidates = list(filter(lambda v: v is not None, candidates))
+        candidates = [cand for cand in (max_fence_value, max_value) if cand is not None]
         max_value = min(candidates) if candidates else None
         if max_value is not None and min_value is not None:
             # min_value may be either queried or provided by the user. max_value was queried.

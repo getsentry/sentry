@@ -1,4 +1,5 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -17,6 +18,8 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {performanceScoreTooltip} from 'sentry/views/dashboards/utils';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
@@ -26,7 +29,7 @@ jest.mock('echarts-for-react/lib/core', () => {
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
-let eventsMetaMock;
+let eventsMetaMock: jest.Mock;
 
 const waitForMetaToHaveBeenCalled = async () => {
   await waitFor(() => {
@@ -51,6 +54,12 @@ async function renderModal({
   seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
 }) {
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: router.location,
+    dashboard: DashboardFixture([widget], {id: 'new', title: 'Dashboard'}),
+    organization,
+    router,
+  });
   const rendered = render(
     <div style={{padding: space(4)}}>
       <WidgetViewerModal
@@ -67,6 +76,7 @@ async function renderModal({
         pageLinks={pageLinks}
         seriesResultsType={seriesResultsType}
         dashboardFilters={dashboardFilters}
+        widgetLegendState={widgetLegendState}
       />
     </div>,
     {
@@ -86,6 +96,7 @@ async function renderModal({
 
 describe('Modals -> WidgetViewerModal', function () {
   let initialData, initialDataWithFlag;
+  let widgetLegendState: WidgetLegendSelectionState;
   beforeEach(() => {
     initialData = initializeOrg({
       organization: {
@@ -101,6 +112,13 @@ describe('Modals -> WidgetViewerModal', function () {
         features: [...initialData.organization.features],
       },
     };
+
+    widgetLegendState = new WidgetLegendSelectionState({
+      location: initialData.router.location,
+      dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
+      organization: initialData.organization,
+      router: initialData.router,
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -351,6 +369,7 @@ describe('Modals -> WidgetViewerModal', function () {
             organization={initialData.organization}
             widget={mockWidget}
             onEdit={() => undefined}
+            widgetLegendState={widgetLegendState}
           />
         );
         await waitForMetaToHaveBeenCalled();
@@ -370,13 +389,15 @@ describe('Modals -> WidgetViewerModal', function () {
       it('renders with first legend disabled by default', async function () {
         mockEvents();
         // Rerender with first legend disabled
-        initialData.router.location.query = {legend: ['Query Name']};
+        initialData.router.location.query = {
+          unselectedSeries: [`${mockWidget.id}:Query Name`],
+        };
         await renderModal({initialData, widget: mockWidget});
         expect(ReactEchartsCore).toHaveBeenLastCalledWith(
           expect.objectContaining({
             option: expect.objectContaining({
               legend: expect.objectContaining({
-                selected: {'Query Name': false},
+                selected: {[`Query Name;${mockWidget.id}`]: false},
               }),
             }),
           }),
@@ -768,6 +789,7 @@ describe('Modals -> WidgetViewerModal', function () {
             organization={initialData.organization}
             widget={mockWidget}
             onEdit={() => undefined}
+            widgetLegendState={widgetLegendState}
           />
         );
         await waitForMetaToHaveBeenCalled();
@@ -834,6 +856,7 @@ describe('Modals -> WidgetViewerModal', function () {
         );
         // Need to manually set the new router location and rerender to simulate the next page click
         initialData.router.location.query = {cursor: ['0:10:0']};
+
         rerender(
           <WidgetViewerModal
             Header={stubEl}
@@ -844,6 +867,7 @@ describe('Modals -> WidgetViewerModal', function () {
             organization={initialData.organization}
             widget={mockWidget}
             onEdit={() => undefined}
+            widgetLegendState={widgetLegendState}
           />
         );
         await waitForMetaToHaveBeenCalled();
@@ -1063,6 +1087,35 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(screen.getByText('1.58hr')).toBeInTheDocument();
         expect(screen.getByText('98.82%')).toBeInTheDocument();
       });
+
+      it('disables open in discover button when widget uses performance_score', async function () {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+        });
+
+        await renderModal({
+          initialData,
+
+          widget: {
+            title: 'Custom Widget',
+            displayType: 'table',
+            queries: [
+              {
+                fields: ['performance_score(measurements.score.total)'],
+                aggregates: ['performance_score(measurements.score.total)'],
+                conditions: '',
+                columns: [],
+                orderby: '',
+              },
+            ],
+            widgetType: 'discover',
+          },
+        });
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeDisabled();
+
+        await userEvent.hover(screen.getByRole('button', {name: 'Open in Discover'}));
+        expect(await screen.findByText(performanceScoreTooltip)).toBeInTheDocument();
+      });
     });
   });
 
@@ -1198,6 +1251,7 @@ describe('Modals -> WidgetViewerModal', function () {
           organization={initialData.organization}
           widget={mockWidget}
           onEdit={() => undefined}
+          widgetLegendState={widgetLegendState}
         />
       );
       await waitFor(() =>
@@ -1247,6 +1301,7 @@ describe('Modals -> WidgetViewerModal', function () {
           organization={initialData.organization}
           widget={mockWidget}
           onEdit={() => undefined}
+          widgetLegendState={widgetLegendState}
         />
       );
       expect(await screen.findByText('Another Error: Failed')).toBeInTheDocument();
@@ -1405,6 +1460,7 @@ describe('Modals -> WidgetViewerModal', function () {
           onEdit={() => undefined}
           seriesData={[]}
           tableData={[]}
+          widgetLegendState={widgetLegendState}
         />
       );
       await waitFor(() => {

@@ -1,3 +1,6 @@
+import dataclasses
+from typing import Generic, TypeVar
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -9,6 +12,14 @@ from sentry.db.models import (
 )
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 
+T = TypeVar("T")
+
+
+@dataclasses.dataclass
+class DataPacket(Generic[T]):
+    query_id: str
+    packet: T
+
 
 @region_silo_model
 class DataSource(DefaultFieldsModel):
@@ -16,6 +27,7 @@ class DataSource(DefaultFieldsModel):
 
     class Type(models.IntegerChoices):
         SNUBA_QUERY_SUBSCRIPTION = 1
+        SNUBA_QUERY = 2
 
     organization = FlexibleForeignKey("sentry.Organization")
     query_id = BoundedBigIntegerField()

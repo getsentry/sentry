@@ -22,7 +22,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -41,10 +40,9 @@ import {FrameContainer} from 'sentry/views/insights/database/components/stackTra
 import {ModuleName} from 'sentry/views/insights/types';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import {GeneralSpanDetailsValue} from 'sentry/views/performance/traceDetails/newTraceDetailsValueRenderer';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
@@ -110,8 +108,18 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     props.node.value.sentry_tags?.category
   );
 
+  const childTransactions = useMemo(() => {
+    const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
+    TraceTree.ForEachChild(props.node, c => {
+      if (isTransactionNode(c)) {
+        transactions.push(c);
+      }
+    });
+    return transactions;
+  }, [props.node]);
+
   function renderTraversalButton(): React.ReactNode {
-    if (!props.node.value.childTransactions) {
+    if (!childTransactions) {
       // TODO: Amend size to use theme when we eventually refactor LoadingIndicator
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
@@ -121,15 +129,13 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       );
     }
 
-    if (props.node.value.childTransactions.length <= 0) {
+    if (childTransactions.length <= 0) {
       return null;
     }
 
     const {trace, event, organization} = props;
 
-    assert(!isGapSpan(props.node.value));
-
-    if (props.node.value.childTransactions.length === 1) {
+    if (childTransactions.length === 1) {
       // Note: This is rendered by renderSpanChild() as a dedicated row
       return null;
     }
@@ -175,7 +181,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanChild(): React.ReactNode {
-    const childTransaction = props.node.value.childTransactions?.[0];
+    const childTransaction = childTransactions[0];
 
     if (!childTransaction) {
       return null;
@@ -371,7 +377,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     );
 
     const timingKeys = getSpanSubTimings(span) ?? [];
-    const parentTransaction = props.node.parent_transaction;
+    const parentTransaction = TraceTree.ParentTransaction(props.node);
     const averageSpanSelfTime: number | undefined =
       span['span.averageResults']?.['avg(span.self_time)'];
     const averageSpanDuration: number | undefined =

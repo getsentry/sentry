@@ -16,7 +16,7 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
 import type {AggregateSpanType, ParsedTraceType} from './types';

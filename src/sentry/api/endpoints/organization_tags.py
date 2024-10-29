@@ -37,7 +37,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
         else:
             dataset = Dataset.Discover
 
-        with sentry_sdk.start_span(op="tagstore", description="get_tag_keys_for_projects"):
+        with sentry_sdk.start_span(op="tagstore", name="get_tag_keys_for_projects"):
             with handle_query_errors():
                 results = tagstore.backend.get_tag_keys_for_projects(
                     filter_params["project_id"],

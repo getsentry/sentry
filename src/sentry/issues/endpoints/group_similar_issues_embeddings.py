@@ -16,7 +16,11 @@ from sentry.grouping.grouping_info import get_grouping_info
 from sentry.models.group import Group
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
-from sentry.seer.similarity.utils import get_stacktrace_string, killswitch_enabled
+from sentry.seer.similarity.utils import (
+    event_content_has_stacktrace,
+    get_stacktrace_string,
+    killswitch_enabled,
+)
 from sentry.users.models.user import User
 from sentry.utils.safe import get_path
 
@@ -26,7 +30,6 @@ MAX_FRAME_COUNT = 50
 
 class FormattedSimilarIssuesEmbeddingsData(TypedDict):
     exception: float
-    message: float
     shouldBeGrouped: str
 
 
@@ -49,8 +52,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         group_data = {}
         for similar_issue_data in similar_issues_data:
             formatted_response: FormattedSimilarIssuesEmbeddingsData = {
-                "message": 1 - similar_issue_data.message_distance,
-                "exception": 1 - similar_issue_data.stacktrace_distance,
+                "exception": round(1 - similar_issue_data.stacktrace_distance, 4),
                 "shouldBeGrouped": "Yes" if similar_issue_data.should_group else "No",
             }
             group_data[similar_issue_data.parent_group_id] = formatted_response
@@ -70,7 +72,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         latest_event = group.get_latest_event()
         stacktrace_string = ""
-        if latest_event and latest_event.data.get("exception"):
+        if latest_event and event_content_has_stacktrace(latest_event):
             grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
             stacktrace_string = get_stacktrace_string(grouping_info)
 
@@ -82,7 +84,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "hash": latest_event.get_primary_hash(),
             "project_id": group.project.id,
             "stacktrace": stacktrace_string,
-            "message": latest_event.title,
             "exception_type": get_path(latest_event.data, "exception", "values", -1, "type"),
             "read_only": True,
             "referrer": "similar_issues",
@@ -99,7 +100,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             similar_issues_params["use_reranking"] = request.GET["useReranking"] == "true"
 
         extra: dict[str, Any] = dict(similar_issues_params.copy())
-        extra["group_message"] = extra.pop("message")
         logger.info("Similar issues embeddings parameters", extra=extra)
 
         results = get_similarity_data_from_seer(similar_issues_params)

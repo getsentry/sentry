@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -151,7 +152,7 @@ export default function BreadcrumbsDataSection({
   const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
 
   return (
-    <GuideAnchor target="breadcrumbs" position="top">
+    <FullWidthGuideAnchor target="breadcrumbs" position="top">
       <InterimSection
         key="breadcrumbs"
         type={SectionKey.BREADCRUMBS}
@@ -192,7 +193,7 @@ export default function BreadcrumbsDataSection({
           )}
         </ErrorBoundary>
       </InterimSection>
-    </GuideAnchor>
+    </FullWidthGuideAnchor>
   );
 }
 
@@ -222,3 +223,18 @@ const VerticalEllipsis = styled(IconEllipsis)`
 const ViewAllButton = styled(Button)`
   padding: ${space(0.75)} ${space(1)};
 `;
+
+function FullWidthGuideAnchor(props: React.ComponentProps<typeof GuideAnchor>) {
+  return (
+    <ClassNames>
+      {({css: classNamesCss}) => (
+        <GuideAnchor
+          {...props}
+          containerClassName={classNamesCss`
+            width: 100%;
+          `}
+        />
+      )}
+    </ClassNames>
+  );
+}

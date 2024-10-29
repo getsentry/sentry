@@ -52,12 +52,13 @@ from sentry.incidents.subscription_processor import (
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.project import Project
+from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
 from sentry.seer.anomaly_detection.types import (
     AnomalyType,
     DetectAnomaliesResponse,
     TimeSeriesPoint,
 )
-from sentry.seer.anomaly_detection.utils import translate_direction
+from sentry.seer.anomaly_detection.utils import has_anomaly, translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key
@@ -66,7 +67,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 
@@ -391,9 +392,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.rule.delete()
         subscription_id = self.sub.id
         snuba_query = self.sub.snuba_query
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.tasks():
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.tasks(),
+        ):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
@@ -415,9 +417,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule.delete()
         subscription_id = subscription.id
         snuba_query = subscription.snuba_query
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.tasks():
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.tasks(),
+        ):
             SubscriptionProcessor(subscription).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
@@ -474,10 +477,11 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_action_handler_called_with_actions(None, [])
 
     @mock.patch(
-        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     def test_seer_call(self, mock_seer_request: MagicMock):
         # trigger a warning
         rule = self.dynamic_rule
@@ -607,10 +611,11 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
     @mock.patch(
-        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:performance-view")
     def test_seer_call_performance_rule(self, mock_seer_request: MagicMock):
         throughput_rule = self.dynamic_rule
@@ -724,26 +729,31 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         label = self.trigger.label
 
-        processor = SubscriptionProcessor(self.sub)
-        assert processor.has_anomaly(anomaly1, label)
-        assert processor.has_anomaly(anomaly1, warning_label)
-        assert not processor.has_anomaly(anomaly2, label)
-        assert processor.has_anomaly(anomaly2, warning_label)
-        assert not processor.has_anomaly(not_anomaly, label)
-        assert not processor.has_anomaly(not_anomaly, warning_label)
+        assert has_anomaly(anomaly1, label)
+        assert has_anomaly(anomaly1, warning_label)
+        assert not has_anomaly(anomaly2, label)
+        assert has_anomaly(anomaly2, warning_label)
+        assert not has_anomaly(not_anomaly, label)
+        assert not has_anomaly(not_anomaly, warning_label)
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
-        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    @mock.patch("sentry.incidents.subscription_processor.logger")
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
     def test_seer_call_timeout_error(self, mock_logger, mock_seer_request):
         rule = self.dynamic_rule
         processor = SubscriptionProcessor(self.sub)
         from urllib3.exceptions import TimeoutError
 
         mock_seer_request.side_effect = TimeoutError
-        result = processor.get_anomaly_data_from_seer(10)
+        result = get_anomaly_data_from_seer(
+            alert_rule=processor.alert_rule,
+            subscription=processor.subscription,
+            last_update=processor.last_update.timestamp(),
+            aggregation_value=10,
+        )
         timeout_extra = {
             "subscription_id": self.sub.id,
             "dataset": self.sub.snuba_query.dataset,
@@ -759,8 +769,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert result is None
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
-        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     def test_dynamic_alert_rule_not_enough_data(self, mock_seer_request):
         rule = self.dynamic_rule
@@ -792,8 +803,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
-        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     def test_enable_dynamic_alert_rule(self, mock_seer_request):
         rule = self.dynamic_rule
@@ -826,8 +838,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
-        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     def test_enable_dynamic_alert_rule_and_fire(self, mock_seer_request):
         rule = self.dynamic_rule
@@ -867,29 +880,41 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
-        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    @mock.patch("sentry.incidents.subscription_processor.logger")
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
     def test_seer_call_empty_list(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
         seer_return_value: DetectAnomaliesResponse = {"success": True, "timeseries": []}
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        result = processor.get_anomaly_data_from_seer(10)
+        result = get_anomaly_data_from_seer(
+            alert_rule=self.dynamic_rule,
+            subscription=processor.subscription,
+            last_update=processor.last_update.timestamp(),
+            aggregation_value=10,
+        )
         assert mock_logger.warning.call_args[0] == (
             "Seer anomaly detection response returned no potential anomalies",
         )
         assert result is None
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
-        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    @mock.patch("sentry.incidents.subscription_processor.logger")
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
     def test_seer_call_bad_status(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(status=403)
-        result = processor.get_anomaly_data_from_seer(10)
+        result = get_anomaly_data_from_seer(
+            alert_rule=self.dynamic_rule,
+            subscription=processor.subscription,
+            last_update=processor.last_update.timestamp(),
+            aggregation_value=10,
+        )
         mock_logger.error.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
@@ -904,14 +929,20 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert result is None
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
-        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
-    @mock.patch("sentry.incidents.subscription_processor.logger")
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
     def test_seer_call_failed_parse(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(None, status=200)  # type: ignore[arg-type]
-        result = processor.get_anomaly_data_from_seer(10)
+        result = get_anomaly_data_from_seer(
+            alert_rule=self.dynamic_rule,
+            subscription=processor.subscription,
+            last_update=processor.last_update.timestamp(),
+            aggregation_value=10,
+        )
         mock_logger.exception.assert_called_with(
             "Failed to parse Seer anomaly detection response", extra=mock.ANY
         )
@@ -2495,7 +2526,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         for i in range(4):
             self.store_event(
-                data={"timestamp": iso_format(comparison_date - timedelta(minutes=30 + i))},
+                data={"timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat()},
                 project_id=self.project.id,
             )
 
@@ -2564,7 +2595,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         for i in range(4):
             self.store_event(
                 data={
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -2634,26 +2665,25 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         comparison_date = timezone.now() - comparison_delta
 
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            for i in range(4):
-                data = {
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
-                    "fingerprint": ["group2"],
-                    "level": "error",
-                    "exception": {
-                        "values": [
-                            {
-                                "type": "IntegrationError",
-                                "value": "Identity not found.",
-                            }
-                        ]
-                    },
-                }
-                self.store_event(
-                    data=data,
-                    project_id=self.project.id,
-                )
+        for i in range(4):
+            data = {
+                "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group2"],
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+            }
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
 
         self.metrics.incr.reset_mock()
         processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
@@ -2721,7 +2751,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         for i in range(4):
             self.store_event(
                 data={
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
                     "tags": {"sentry:user": i},
                 },
                 project_id=self.project.id,
@@ -2991,8 +3021,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @mock.patch(
-        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     def test_dynamic_crash_rate_alert_for_sessions_with_auto_resolve_critical(
         self, mock_seer_request

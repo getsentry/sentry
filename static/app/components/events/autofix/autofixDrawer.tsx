@@ -19,13 +19,14 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventNavigation';
+import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 interface AutofixStartBoxProps {
+  groupId: string;
   onSend: (message: string) => void;
 }
 
-function AutofixStartBox({onSend}: AutofixStartBoxProps) {
+function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   const [message, setMessage] = useState('');
 
   const send = () => {
@@ -40,20 +41,38 @@ function AutofixStartBox({onSend}: AutofixStartBoxProps) {
       <Header>Ready to start</Header>
       <br />
       <p>
-        We'll begin by trying to figure out the root cause, analyzing the issue details
-        and the codebase. If you have any other helpful context on the issue before we
-        begin, you can share that below.
+        We'll begin by trying to figure out the root cause of the issue. If you have any
+        instructions or helpful context before we begin, you can optionally share that
+        below.
       </p>
       <Row>
         <Input
           type="text"
           value={message}
           onChange={e => setMessage(e.target.value)}
-          placeholder={'Provide any extra context here...'}
+          placeholder={'(Optional) Share any extra context or instructions here...'}
         />
-        <Button priority="primary" onClick={send}>
-          Start
-        </Button>
+        {message ? (
+          <Button
+            priority="primary"
+            onClick={send}
+            analyticsEventKey="autofix.give_instructions_clicked"
+            analyticsEventName="Autofix: Give Instructions Clicked"
+            analyticsParams={{group_id: groupId}}
+          >
+            Start
+          </Button>
+        ) : (
+          <Button
+            priority="primary"
+            onClick={send}
+            analyticsEventKey="autofix.start_fix_clicked"
+            analyticsEventName="Autofix: Start Fix Clicked"
+            analyticsParams={{group_id: groupId}}
+          >
+            Start
+          </Button>
+        )}
       </Row>
     </StartBox>
   );
@@ -70,8 +89,6 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
   useRouteAnalyticsParams({
     autofix_status: autofixData?.status ?? 'none',
   });
-
-  const [_, setContainer] = useState<HTMLElement | null>(null);
 
   return (
     <AutofixDrawerContainer>
@@ -110,9 +127,9 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
           </ButtonBar>
         )}
       </AutofixNavigator>
-      <AutofixDrawerBody ref={setContainer}>
+      <AutofixDrawerBody>
         {!autofixData ? (
-          <AutofixStartBox onSend={triggerAutofix} />
+          <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
         ) : (
           <AutofixSteps
             data={autofixData}
@@ -133,6 +150,8 @@ const Row = styled('div')`
 
 const IllustrationContainer = styled('div')`
   padding: ${space(4)} 0 ${space(4)} 0;
+  display: flex;
+  justify-content: center;
 `;
 
 const Illustration = styled('img')`

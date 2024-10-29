@@ -5,31 +5,46 @@ import {space} from 'sentry/styles/space';
 import {DEEMPHASIS_COLOR_NAME} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
 
-interface Props {
+import {X_GUTTER, Y_GUTTER} from './settings';
+
+interface ErrorPanelProps {
   error: StateProps['error'];
 }
 
-export function ErrorPanel({error}: Props) {
+export function ErrorPanel({error}: ErrorPanelProps) {
   return (
     <Panel>
-      <IconWarning color={DEEMPHASIS_COLOR_NAME} size="lg" />
-      <span>{error?.toString()}</span>
+      <NonShrinkingWarningIcon color={DEEMPHASIS_COLOR_NAME} size="md" />
+      <ErrorText>{error?.toString()}</ErrorText>
     </Panel>
   );
 }
 
 const Panel = styled('div')<{height?: string}>`
+  container-type: size;
+  container-name: error-panel;
+
   position: absolute;
   inset: 0;
 
+  padding: ${X_GUTTER} ${Y_GUTTER};
+
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: ${space(0.5)};
+  gap: ${space(1)};
 
   overflow: hidden;
 
   color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const NonShrinkingWarningIcon = styled(IconWarning)`
+  flex-shrink: 0;
+`;
+
+const ErrorText = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+
+  @container error-panel (min-width: 360px) {
+    font-size: ${p => p.theme.fontSizeMedium};
+  }
 `;

@@ -168,7 +168,7 @@ class PushEventWebhook(Webhook):
 
         authors = {}
 
-        # TODO gitlab only sends a max of 20 commits. If a push contains
+        # TODO: gitlab only sends a max of 20 commits. If a push contains
         # more commits they provide a total count and require additional API
         # requests to fetch the commit details
         for commit in event.get("commits", []):
@@ -314,9 +314,9 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             logger.info("gitlab.webhook.wrong-event-type", extra=extra)
             supported_events = ", ".join(sorted(self._handlers.keys()))
             logger.info("We only support these kinds of events: %s", supported_events)
-            extra[
-                "reason"
-            ] = "The customer has edited the webhook in Gitlab to include other types of events."
+            extra["reason"] = (
+                "The customer has edited the webhook in Gitlab to include other types of events."
+            )
             logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 

@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils.cases import SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.eventuser import EventUser
 
 
@@ -14,7 +14,7 @@ class ProjectUsersDocs(APIDocsTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project(date_added=(timezone.now() - timedelta(hours=2)))
-        timestamp = iso_format(timezone.now() - timedelta(hours=1))
+        timestamp = before_now(hours=1).isoformat()
         self.url = reverse(
             "sentry-api-0-project-users",
             kwargs={

@@ -13,6 +13,8 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Divider} from 'sentry/views/issueDetails/divider';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
 
 import useStreamLinedExternalIssueData from './hooks/useGroupExternalIssues';
 
@@ -37,9 +39,9 @@ export function StreamlinedExternalIssueList({
   if (isLoading) {
     return (
       <div data-test-id="linked-issues">
-        <StyledSectionTitle>{t('Issue Tracking')}</StyledSectionTitle>
+        <SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>
         <SidebarSection.Content>
-          <Placeholder height="25px" />
+          <Placeholder height="25px" testId="issue-tracking-loading" />
         </SidebarSection.Content>
       </div>
     );
@@ -47,7 +49,7 @@ export function StreamlinedExternalIssueList({
 
   return (
     <div data-test-id="linked-issues">
-      <StyledSectionTitle>{t('Issue Tracking')}</StyledSectionTitle>
+      <SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>
       <SidebarSection.Content>
         {integrations.length || linkedIssues.length ? (
           <IssueActionWrapper>
@@ -82,6 +84,7 @@ export function StreamlinedExternalIssueList({
                 </Tooltip>
               </ErrorBoundary>
             ))}
+            {integrations.length > 0 && linkedIssues.length > 0 ? <Divider /> : null}
             {integrations.map(integration => {
               const sharedButtonProps: ButtonProps = {
                 size: 'zero',
@@ -138,18 +141,14 @@ const IssueActionWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
-`;
-
-const StyledSectionTitle = styled(SidebarSection.Title)`
-  margin-top: ${space(0.25)};
+  line-height: 1.2;
 `;
 
 const LinkedIssue = styled(LinkButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  line-height: 1.05;
-  border: 1px dashed ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   font-weight: normal;
 `;
@@ -158,7 +157,6 @@ const IssueActionButton = styled(Button)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  line-height: 1.05;
   border: 1px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   font-weight: normal;

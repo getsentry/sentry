@@ -38,7 +38,7 @@ from sentry.tasks.embeddings_grouping.utils import (
     lookup_group_data_stacktrace_bulk,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
@@ -70,6 +70,26 @@ EXCEPTION = {
 EXCEPTION_STACKTRACE_STRING = (
     'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero'
 )
+ONLY_STACKTRACE = {
+    "stacktrace": {
+        "frames": [
+            {
+                "function": "Cake\\Http\\Server::run",
+                "filename": "/var/www/gib-potato/vendor/cakephp/cakephp/src/Http/Server.php",
+                "abs_path": "/var/www/gib-potato/vendor/cakephp/cakephp/src/Http/Server.php",
+                "lineno": 104,
+                "in_app": False,
+            },
+            {
+                "function": "App\\Middleware\\SentryMiddleware::process",
+                "filename": "/var/www/gib-potato/src/Middleware/SentryMiddleware.php",
+                "abs_path": "/var/www/gib-potato/src/Middleware/SentryMiddleware.php",
+                "lineno": 65,
+                "in_app": False,
+            },
+        ]
+    }
+}
 
 
 @django_db_all
@@ -110,7 +130,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "exception": self.create_exception_values(
                     function_names[i], type_names[i], value_names[i]
                 ),
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "title": "title",
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
@@ -143,7 +163,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -183,7 +203,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=self.group_hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -212,7 +231,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=self.group_hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -282,7 +300,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -317,7 +334,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -345,7 +361,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -383,7 +398,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -418,7 +432,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 group_id=event.group.id,
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
-                message=event.title,
                 exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
@@ -533,7 +546,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project2.id,
             assert_no_errors=False,
@@ -723,7 +736,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project2.id,
             assert_no_errors=False,
@@ -875,7 +888,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             groups_seen_once.append(event.group)
@@ -919,7 +932,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
@@ -984,7 +997,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "another_function!", "AnotherError!", "error with value"
             ),
             "title": "title",
-            "timestamp": iso_format(before_now(seconds=10)),
+            "timestamp": before_now(seconds=10).isoformat(),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
@@ -1046,7 +1059,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
@@ -1190,7 +1203,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
@@ -1226,7 +1239,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project2.id,
             assert_no_errors=False,
@@ -1304,7 +1317,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         data = {
             "exception": self.create_exception_values("function name!", "type!", "value!"),
             "title": "title",
-            "timestamp": iso_format(before_now(seconds=10)),
+            "timestamp": before_now(seconds=10).isoformat(),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
@@ -1316,7 +1329,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         data = {
             "exception": self.create_exception_values("function name?", "type?", "value?"),
             "title": "title",
-            "timestamp": iso_format(before_now(seconds=10)),
+            "timestamp": before_now(seconds=10).isoformat(),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
@@ -1431,7 +1444,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         data = {
             "exception": self.create_exception_values("function name!", "type!", "value!"),
             "title": "title",
-            "timestamp": iso_format(before_now(seconds=10)),
+            "timestamp": before_now(seconds=10).isoformat(),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
@@ -1770,7 +1783,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             }
             event = self.store_event(
                 data=data, project_id=project_invalid_batch.id, assert_no_errors=False
@@ -1792,7 +1805,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     function_names[i], type_names[i], value_names[i]
                 ),
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             }
             event = self.store_event(
                 data=data, project_id=project_invalid_batch.id, assert_no_errors=False
@@ -1874,7 +1887,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         data = {
             "exception": self.create_exception_values("function name!", "type!", "value!"),
             "title": "title",
-            "timestamp": iso_format(before_now(seconds=10)),
+            "timestamp": before_now(seconds=10).isoformat(),
         }
         event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
@@ -2019,7 +2032,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project_same_cohort.id,
             assert_no_errors=False,
@@ -2131,7 +2144,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project_same_cohort_not_eligible.id,
             assert_no_errors=False,
@@ -2232,7 +2245,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             data={
                 "exception": EXCEPTION,
                 "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project_same_worker.id,
             assert_no_errors=False,
@@ -2316,3 +2329,24 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
 
         assert mock_logger.info.call_args_list == expected_call_args_list
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    def test_backfill_for_project_with_only_stacktrace(self, mock_post_bulk_grouping_records):
+        project = self.create_project(organization=self.organization)
+        data = {
+            "stacktrace": {"frames": [{"function": "foo", "filename": "file.php", "in_app": True}]},
+            "timestamp": before_now(seconds=10).isoformat(),
+        }
+        event = self.store_event(data=data, project_id=project.id)
+        event.group.times_seen = 2
+        event.group.save()
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(project.id, None)
+
+        group = Group.objects.get(id=event.group.id)
+        assert group.data["metadata"].get("seer_similarity") == {
+            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+            "request_hash": ANY,
+        }

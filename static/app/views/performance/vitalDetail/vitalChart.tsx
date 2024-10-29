@@ -23,7 +23,6 @@ import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 import type {ViewProps} from '../types';
@@ -55,7 +54,6 @@ function VitalChart({
   interval,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 
@@ -98,7 +96,7 @@ function VitalChart({
             title={t('The durations shown should fall under the vital threshold.')}
           />
         </HeaderTitleLegend>
-        <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
+        <ChartZoom period={statsPeriod} start={start} end={end} utc={utc}>
           {zoomRenderProps => (
             <EventsRequest
               api={api}

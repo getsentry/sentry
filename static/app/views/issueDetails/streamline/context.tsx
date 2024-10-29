@@ -8,12 +8,16 @@ import {
 } from 'react';
 
 export const enum SectionKey {
+  /**
+   * Trace timeline or linked error
+   */
   TRACE = 'trace',
 
   USER_FEEDBACK = 'user-feedback',
   LLM_MONITORING = 'llm-monitoring',
 
   UPTIME = 'uptime', // Only Uptime issues
+  DOWNTIME = 'downtime',
   CRON_TIMELINE = 'cron-timeline', // Only Cron issues
 
   HIGHLIGHTS = 'highlights',
@@ -43,6 +47,7 @@ export const enum SectionKey {
 
   TAGS = 'tags',
   SCREENSHOT = 'screenshot',
+  FEATURE_FLAGS = 'feature-flags',
 
   CONTEXTS = 'contexts',
   EXTRA = 'extra',

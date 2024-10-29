@@ -183,7 +183,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         query_source = self.get_request_source(request)
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
+        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
             top_events = 0
@@ -470,10 +470,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         ):
                             if not result.data.get("meta"):
                                 result.data["meta"] = {}
-                            result.data["meta"][
-                                "discoverSplitDecision"
-                            ] = DashboardWidgetTypes.get_type_name(
-                                DashboardWidgetTypes.TRANSACTION_LIKE
+                            result.data["meta"]["discoverSplitDecision"] = (
+                                DashboardWidgetTypes.get_type_name(
+                                    DashboardWidgetTypes.TRANSACTION_LIKE
+                                )
                             )
                         return original_results
                     elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
@@ -484,10 +484,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         ):
                             if not result.data.get("meta"):
                                 result.data["meta"] = {}
-                            result.data["meta"][
-                                "discoverSplitDecision"
-                            ] = DashboardWidgetTypes.get_type_name(
-                                DashboardWidgetTypes.ERROR_EVENTS
+                            result.data["meta"]["discoverSplitDecision"] = (
+                                DashboardWidgetTypes.get_type_name(
+                                    DashboardWidgetTypes.ERROR_EVENTS
+                                )
                             )
                         return error_results
                     else:

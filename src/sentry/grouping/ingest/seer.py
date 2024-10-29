@@ -10,6 +10,7 @@ from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
@@ -27,7 +28,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger("sentry.events.grouping")
 
 
-def should_call_seer_for_grouping(event: Event) -> bool:
+def should_call_seer_for_grouping(event: Event, variants: dict[str, BaseVariant]) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
     whether a call to Seer should be made.
@@ -42,7 +43,7 @@ def should_call_seer_for_grouping(event: Event) -> bool:
         return False
 
     if (
-        _has_customized_fingerprint(event)
+        _has_customized_fingerprint(event, variants)
         or killswitch_enabled(project.id, event)
         or _circuit_breaker_broken(event, project)
         # **Do not add any new checks after this.** The rate limit check MUST remain the last of all
@@ -79,7 +80,7 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
 # combined with some other value). To the extent to which we're then using this function to decide
 # whether or not to call Seer, this means that the calculations giving rise to the default part of
 # the value never involve Seer input. In the long run, we probably want to change that.
-def _has_customized_fingerprint(event: Event) -> bool:
+def _has_customized_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> bool:
     fingerprint = event.data.get("fingerprint", [])
 
     if "{{ default }}" in fingerprint:
@@ -97,7 +98,6 @@ def _has_customized_fingerprint(event: Event) -> bool:
             return True
 
     # Fully customized fingerprint (from either us or the user)
-    variants = event.get_grouping_variants()
     fingerprint_variant = variants.get("custom-fingerprint") or variants.get("built-in-fingerprint")
 
     if fingerprint_variant:
@@ -178,6 +178,7 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
 
 def get_seer_similar_issues(
     event: Event,
+    variants: dict[str, BaseVariant],
     num_neighbors: int = 1,
 ) -> tuple[dict[str, Any], GroupHash | None]:
     """
@@ -186,9 +187,7 @@ def get_seer_similar_issues(
     should go in (if any), or None if no neighbor was near enough.
     """
     event_hash = event.get_primary_hash()
-    stacktrace_string = get_stacktrace_string(
-        get_grouping_info_from_variants(event.get_grouping_variants())
-    )
+    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
     exception_type = get_path(event.data, "exception", "values", -1, "type")
 
     request_data: SimilarIssuesEmbeddingsRequest = {
@@ -196,7 +195,6 @@ def get_seer_similar_issues(
         "hash": event_hash,
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
-        "message": filter_null_from_string(event.title),
         "exception_type": filter_null_from_string(exception_type) if exception_type else None,
         "k": num_neighbors,
         "referrer": "ingest",
@@ -233,23 +231,22 @@ def get_seer_similar_issues(
 
 
 def maybe_check_seer_for_matching_grouphash(
-    event: Event, all_grouphashes: list[GroupHash]
+    event: Event, variants: dict[str, BaseVariant], all_grouphashes: list[GroupHash]
 ) -> GroupHash | None:
     seer_matched_grouphash = None
 
-    if should_call_seer_for_grouping(event):
+    if should_call_seer_for_grouping(event, variants):
         metrics.incr(
             "grouping.similarity.did_call_seer",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"call_made": True, "blocker": "none"},
         )
+
         try:
             # If no matching group is found in Seer, we'll still get back result
             # metadata, but `seer_matched_grouphash` will be None
-            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(event)
-
-        # Insurance - in theory we shouldn't ever land here
-        except Exception as e:
+            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(event, variants)
+        except Exception as e:  # Insurance - in theory we shouldn't ever land here
             sentry_sdk.capture_exception(
                 e, tags={"event": event.event_id, "project": event.project.id}
             )

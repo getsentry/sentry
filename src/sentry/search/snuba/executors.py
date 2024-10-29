@@ -1027,7 +1027,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # * we started with Postgres candidates and so only do one Snuba query max
             # * the paginator is returning enough results to satisfy the query (>= the limit)
             # * there are no more groups in Snuba to post-filter
-            # TODO do we actually have to rebuild this SequencePaginator every time
+            # TODO: do we actually have to rebuild this SequencePaginator every time
             # or can we just make it after we've broken out of the loop?
             paginator_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups], reverse=True, **paginator_options
@@ -1720,13 +1720,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         : max_candidates + 1
                     ]
                 )
-                self.logger.info(
-                    "GroupAttributesExecutor: found snuba candidates",
-                    extra={
-                        "count": len(group_ids_to_pass_to_snuba),
-                        "max_candidates": max_candidates,
-                    },
-                )
                 span.set_data("Max Candidates", max_candidates)
                 span.set_data("Result Size", len(group_ids_to_pass_to_snuba))
 
@@ -1734,7 +1727,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                     metrics.incr(
                         "snuba.search.group_attributes.too_many_candidates", skip_internal=False
                     )
-                    self.logger.info("GroupAttributesExecutor: too many candidates")
                     group_ids_to_pass_to_snuba = None
 
         # remove the search filters that are only for postgres
@@ -1778,10 +1770,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
                 # limit groups and events to the group ids
                 for entity_with_group_id in [attr_entity, joined_entity]:
-                    self.logger.info(
-                        "GroupAttributesExecutor: adding group_id filter to entity",
-                        extra={"entity": entity_with_group_id.name},
-                    )
                     where_conditions.append(
                         Condition(
                             Column("group_id", entity_with_group_id),
@@ -1875,12 +1863,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 select.append(Column("group_first_seen", attr_entity))
 
             select.append(sort_func)
-
-            if group_ids_to_pass_to_snuba is not None:
-                self.logger.info(
-                    "GroupAttributesExecutor: conditions",
-                    extra={"where_conditions": where_conditions},
-                )
 
             query = Query(
                 match=Join([Relationship(joined_entity, "attributes_inner", attr_entity)]),

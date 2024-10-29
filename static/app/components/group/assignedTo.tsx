@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -26,21 +26,31 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Commit, Committer} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
+import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import useOrganization from 'sentry/utils/useOrganization';
 
-// TODO(ts): add the correct type
-type Rules = Array<any> | null;
+/**
+ * example: codeowners:/issues -> [['codeowners', '/issues']]
+ */
+type RuleDefinition = [string, string];
+/**
+ * example: #team1 -> ['team', 'team1']
+ */
+type RuleOwner = [string, string];
+type Rule = [RuleDefinition, RuleOwner[]];
 
 /**
  * Given a list of rule objects returned from the API, locate the matching
  * rules for a specific owner.
  */
-function findMatchedRules(rules: Rules, owner: Actor) {
+function findMatchedRules(
+  rules: EventOwners['rules'],
+  owner: Actor
+): Array<Rule[0]> | undefined {
   if (!rules) {
     return undefined;
   }
@@ -49,7 +59,7 @@ function findMatchedRules(rules: Rules, owner: Actor) {
     (actorType === 'user' && key === owner.email) ||
     (actorType === 'team' && key === owner.name);
 
-  const actorHasOwner = ([actorType, key]) =>
+  const actorHasOwner = ([actorType, key]: RuleOwner) =>
     actorType === owner.type && matchOwner(actorType, key);
 
   return rules
@@ -70,10 +80,11 @@ type IssueOwner = {
   commits?: Commit[];
   rules?: Array<[string, string]> | null;
 };
-export type EventOwners = {
+export interface EventOwners {
   owners: Actor[];
-  rules: Rules;
-};
+  rule: RuleDefinition;
+  rules: Array<Rule>;
+}
 
 function getSuggestedReason(owner: IssueOwner) {
   if (owner.commits) {
@@ -114,7 +125,7 @@ function getSuggestedReason(owner: IssueOwner) {
  */
 export function getOwnerList(
   committers: Committer[],
-  eventOwners: EventOwners | null,
+  eventOwners: EventOwners | undefined,
   assignedTo: Actor | null
 ): Omit<SuggestedAssignee, 'assignee'>[] {
   const owners: IssueOwner[] = committers.map(commiter => ({
@@ -128,7 +139,7 @@ export function getOwnerList(
     const normalizedOwner: IssueOwner = {
       actor: owner,
       rules: matchingRule,
-      source: matchingRule?.[0] === 'codeowners' ? 'codeowners' : 'projectOwnership',
+      source: matchingRule?.[0]?.[0] === 'codeowners' ? 'codeowners' : 'projectOwnership',
     };
 
     const existingIdx =
@@ -177,15 +188,17 @@ function AssignedTo({
 }: AssignedToProps) {
   const organization = useOrganization();
   const api = useApi();
-  const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
-  const {data} = useCommitters(
+  const {data: eventOwners} = useIssueEventOwners({
+    eventId: event?.id ?? '',
+    projectSlug: project.slug,
+  });
+  const {data: committersResponse} = useCommitters(
     {
       eventId: event?.id ?? '',
       projectSlug: project.slug,
     },
     {
       notifyOnChangeProps: ['data'],
-      enabled: defined(event?.id),
     }
   );
 
@@ -200,31 +213,11 @@ function AssignedTo({
     fetchOrgMembers(api, organization.slug, [project.id]);
   }, [api, organization, project]);
 
-  useEffect(() => {
-    if (!event) {
-      return () => {};
-    }
-
-    let unmounted = false;
-
-    api
-      .requestPromise(
-        `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`
-      )
-      .then(response => {
-        if (unmounted) {
-          return;
-        }
-
-        setEventOwners(response);
-      });
-
-    return () => {
-      unmounted = true;
-    };
-  }, [api, event, organization, project.slug]);
-
-  const owners = getOwnerList(data?.committers ?? [], eventOwners, group.assignedTo);
+  const owners = getOwnerList(
+    committersResponse?.committers ?? [],
+    eventOwners,
+    group.assignedTo
+  );
 
   const makeTrigger = (props: any, isOpen: boolean) => {
     return (

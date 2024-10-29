@@ -4,13 +4,13 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases import add_integration_platform_metric_tag
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.organizations.services.organization.model import RpcUserOrganizationContext
+from sentry.sentry_apps.api.bases.sentryapps import add_integration_platform_metric_tag
 from sentry.sentry_apps.api.serializers.sentry_app import (
     SentryAppSerializer as ResponseSentryAppSerializer,
 )

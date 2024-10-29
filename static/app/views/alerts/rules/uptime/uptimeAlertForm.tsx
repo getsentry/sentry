@@ -17,10 +17,12 @@ import FormModel from 'sentry/components/forms/model';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
+import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getDuration from 'sentry/utils/duration/getDuration';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,9 +41,21 @@ interface Props {
 
 const HTTP_METHOD_OPTIONS = ['GET', 'POST', 'HEAD', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'];
 
+const MINUTE = 60;
+
+const VALID_INTERVALS_SEC = [
+  MINUTE * 1,
+  MINUTE * 5,
+  MINUTE * 10,
+  MINUTE * 20,
+  MINUTE * 30,
+  MINUTE * 60,
+];
+
 function getFormDataFromRule(rule: UptimeRule) {
   return {
     name: rule.name,
+    environment: rule.environment,
     url: rule.url,
     projectSlug: rule.projectSlug,
     method: rule.method,
@@ -63,6 +77,10 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 
   const [formModel] = useState(() => new FormModel());
 
+  const [knownEnvironments, setEnvironments] = useState<string[]>([]);
+  const [newEnvironment, setNewEnvironment] = useState<string | undefined>(undefined);
+  const environments = [newEnvironment, ...knownEnvironments].filter(Boolean);
+
   // XXX(epurkhiser): The forms API endpoint is derived from the selcted
   // project. We don't have an easy way to interpolate this into the <Form />
   // components `apiEndpoint` prop, so instead we setup a mobx observer on
@@ -72,6 +90,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
     () =>
       autorun(() => {
         const projectSlug = formModel.getValue('projectSlug');
+        const selectedProject = projects.find(p => p.slug === projectSlug);
         const apiEndpoint = rule
           ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
           : `/projects/${organization.slug}/${projectSlug}/uptime/`;
@@ -84,8 +103,12 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           );
         }
         formModel.setFormOptions({apiEndpoint, onSubmitSuccess});
+
+        if (selectedProject) {
+          setEnvironments(selectedProject.environments);
+        }
       }),
-    [formModel, navigate, organization.slug, rule]
+    [formModel, navigate, organization.slug, projects, rule]
   );
 
   return (
@@ -113,7 +136,12 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
       }
     >
       <List symbol="colored-numeric">
-        <AlertListItem>{t('Select a project')}</AlertListItem>
+        <AlertListItem>{t('Select a project and environment')}</AlertListItem>
+        <ListItemSubText>
+          {t(
+            'The selected project and environment is where Uptime Issues will be created.'
+          )}
+        </ListItemSubText>
         <FormRow>
           <SentryProjectSelectorField
             disabled={rule !== undefined}
@@ -129,56 +157,94 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             stacked
             required
           />
+          <SelectField
+            name="environment"
+            label={t('Environment')}
+            placeholder={t('Select an environment')}
+            hideLabel
+            onCreateOption={env => {
+              setNewEnvironment(env);
+              formModel.setValue('environment', env);
+            }}
+            creatable
+            options={environments.map(e => ({value: e, label: e}))}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            required
+          />
         </FormRow>
         <AlertListItem>{t('Configure Request')}</AlertListItem>
-        <ConfigurationPanel>
-          <TextField
-            name="url"
-            label={t('URL')}
-            placeholder={t('The URL to monitor')}
-            flexibleControlStateSize
-            monospace
-            required
-          />
-          <SelectField
-            name="method"
-            label={t('Method')}
-            placeholder={'GET'}
-            options={HTTP_METHOD_OPTIONS.map(option => ({
-              value: option,
-              label: option,
-            }))}
-            flexibleControlStateSize
-            required
-          />
-          <UptimeHeadersField
-            name="headers"
-            label={t('Headers')}
-            flexibleControlStateSize
-          />
-          <TextareaField
-            name="body"
-            label={t('Body')}
-            visible={({model}) => !['GET', 'HEAD'].includes(model.getValue('method'))}
-            rows={4}
-            maxRows={15}
-            autosize
-            monospace
-            placeholder='{"key": "value"}'
-            flexibleControlStateSize
-          />
-        </ConfigurationPanel>
-        <Observer>
-          {() => (
-            <HTTPSnippet
-              url={formModel.getValue('url')}
-              method={formModel.getValue('method')}
-              headers={formModel.getValue('headers')}
-              body={formModel.getValue('body')}
+        <ListItemSubText>
+          {t('Configure the HTTP request made for uptime checks.')}
+        </ListItemSubText>
+        <Configuration>
+          <ConfigurationPanel>
+            <SelectField
+              options={VALID_INTERVALS_SEC.map(value => ({
+                value,
+                label: t('Every %s', getDuration(value)),
+              }))}
+              name="intervalSeconds"
+              label={t('Interval')}
+              defaultValue={60}
+              flexibleControlStateSize
+              required
             />
-          )}
-        </Observer>
+
+            <TextField
+              name="url"
+              label={t('URL')}
+              placeholder={t('The URL to monitor')}
+              flexibleControlStateSize
+              monospace
+              required
+            />
+            <SelectField
+              name="method"
+              label={t('Method')}
+              defaultValue="GET"
+              options={HTTP_METHOD_OPTIONS.map(option => ({
+                value: option,
+                label: option,
+              }))}
+              flexibleControlStateSize
+              required
+            />
+            <UptimeHeadersField
+              name="headers"
+              label={t('Headers')}
+              flexibleControlStateSize
+            />
+            <TextareaField
+              name="body"
+              label={t('Body')}
+              visible={({model}) => !['GET', 'HEAD'].includes(model.getValue('method'))}
+              rows={4}
+              maxRows={15}
+              autosize
+              monospace
+              placeholder='{"key": "value"}'
+              flexibleControlStateSize
+            />
+          </ConfigurationPanel>
+          <Observer>
+            {() => (
+              <HTTPSnippet
+                url={formModel.getValue('url')}
+                method={formModel.getValue('method')}
+                headers={formModel.getValue('headers')}
+                body={formModel.getValue('body')}
+              />
+            )}
+          </Observer>
+        </Configuration>
         <AlertListItem>{t('Establish ownership')}</AlertListItem>
+        <ListItemSubText>
+          {t(
+            'Choose a team or member as the rule owner. Issues created will be automatically assigned to the owner.'
+          )}
+        </ListItemSubText>
         <FormRow>
           <TextField
             name="name"
@@ -203,7 +269,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               border: 'none',
             }}
           />
-          <HiddenField name="intervalSeconds" defaultValue={60} />
+          <HiddenField name="timeoutMs" defaultValue={10000} />
         </FormRow>
       </List>
     </Form>
@@ -211,8 +277,14 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
 }
 
 const AlertListItem = styled(ListItem)`
-  margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  line-height: 1.3;
+`;
+
+const ListItemSubText = styled(Text)`
+  padding-left: ${space(4)};
+  color: ${p => p.theme.subText};
 `;
 
 const FormRow = styled('div')`
@@ -220,10 +292,19 @@ const FormRow = styled('div')`
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   align-items: center;
   gap: ${space(2)};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(4)};
+  margin-left: ${space(4)};
 
   ${FieldWrapper} {
     padding: 0;
   }
+`;
+
+const Configuration = styled('div')`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(4)};
+  margin-left: ${space(4)};
 `;
 
 const ConfigurationPanel = styled(Panel)`

@@ -150,7 +150,6 @@ export function EventDetailsContent({
       {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
-      {hasStreamlinedUI && <TraceDataSection event={event} />}
       <StyledDataSection>
         {!hasStreamlinedUI && (
           <Feature features={['organizations:ai-summary']}>
@@ -160,7 +159,7 @@ export function EventDetailsContent({
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
           <SuspectCommits
-            project={project}
+            projectSlug={project.slug}
             eventId={event.id}
             group={group}
             commitRow={CommitRow}
@@ -236,7 +235,9 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      {!hasStreamlinedUI && (
+        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      )}
       {showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
@@ -255,7 +256,8 @@ export function EventDetailsContent({
           <Exception
             event={event}
             data={eventEntries[EntryType.EXCEPTION].data}
-            projectSlug={projectSlug}
+            projectSlug={project.slug}
+            group={group}
             groupingCurrentLevel={groupingCurrentLevel}
           />
         </EntryErrorBoundary>
@@ -275,10 +277,14 @@ export function EventDetailsContent({
           <Threads
             event={event}
             data={eventEntries[EntryType.THREADS].data}
-            projectSlug={projectSlug}
+            projectSlug={project.slug}
             groupingCurrentLevel={groupingCurrentLevel}
+            group={group}
           />
         </EntryErrorBoundary>
+      )}
+      {hasStreamlinedUI && (
+        <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
       {isANR && (
         <QuickTraceQuery
@@ -354,12 +360,9 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       ) : null}
-      <EventTraceView
-        group={group}
-        event={event}
-        organization={organization}
-        projectSlug={project.slug}
-      />
+      {hasStreamlinedUI && (
+        <EventTraceView group={group} event={event} organization={organization} />
+      )}
       {!showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
@@ -383,7 +386,10 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       {hasStreamlinedUI ? (
-        <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
+        <Fragment>
+          <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+          <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
+        </Fragment>
       ) : (
         <div ref={tagsRef}>
           <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
@@ -397,9 +403,6 @@ export function EventDetailsContent({
       <EventPackageData event={event} />
       <EventDevice event={event} />
       <EventViewHierarchy event={event} project={project} />
-      {hasStreamlinedUI && (
-        <ScreenshotDataSection event={event} projectSlug={project.slug} />
-      )}
       <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {hasStreamlinedUI && (

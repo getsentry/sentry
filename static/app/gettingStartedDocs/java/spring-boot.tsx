@@ -288,14 +288,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: t('Check out our sample applications.'),
       link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
     },
-    {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
-      ),
-      link: 'https://docs.sentry.io/platforms/java/guides/spring-boot/tracing/',
-    },
   ],
 };
 

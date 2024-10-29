@@ -7,7 +7,7 @@ from typing import Any
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -91,7 +91,7 @@ class AuthLoginView(BaseView):
     }
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, *args, **kwargs) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         """
         Hooks in to the django view dispatch which delegates request to GET/POST/PUT/DELETE.
         Base view overwrites dispatch to include functionality for csrf, superuser, customer domains, etc.

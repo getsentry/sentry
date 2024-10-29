@@ -100,7 +100,7 @@ export default app;
 
 const getVerifySnippet = () => `
 // SomeComponent.svelte
-<button type="button" on:click="{unknownFunction}">
+<button type="button" on:click="{() => {throw new Error("This is your first error!");}}">
   Break the world
 </button>`;
 
@@ -204,22 +204,6 @@ const onboarding: OnboardingConfig = {
       ),
       link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/features/',
     },
-    {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/session-replay/',
-    },
   ],
 };
 
@@ -322,12 +306,18 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  ...onboarding,
+  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;

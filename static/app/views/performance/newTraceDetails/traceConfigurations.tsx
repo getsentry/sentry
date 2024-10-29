@@ -14,7 +14,8 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+
+import {traceAnalytics} from './traceAnalytics';
 
 function Resource({
   title,

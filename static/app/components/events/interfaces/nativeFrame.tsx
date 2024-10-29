@@ -1,7 +1,6 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
-import scrollToElement from 'scroll-to-element';
 
 import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
@@ -38,7 +37,11 @@ import type {
 } from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
+import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import type DebugImage from './debugMeta/debugImage';
 import {combineStatus} from './debugMeta/utils';
@@ -101,6 +104,14 @@ function NativeFrame({
 }: Props) {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
+  const {sectionData} = useEventDetails();
+  const debugSectionConfig = sectionData[SectionKey.DEBUGMETA];
+  const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
+    getFoldSectionKey(SectionKey.DEBUGMETA),
+    debugSectionConfig?.initialCollapse ?? false
+  );
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
   const absolute = traceEventDataSectionContext?.display.includes('absolute-addresses');
 
   const fullStackTrace = traceEventDataSectionContext?.fullStackTrace;
@@ -118,7 +129,9 @@ function NativeFrame({
   const packageClickable =
     !!frame.symbolicatorStatus &&
     frame.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
-    !isHoverPreviewed;
+    !isHoverPreviewed &&
+    // We know the debug section is rendered (only once streamline ui is enabled)
+    (hasStreamlinedUI ? !!debugSectionConfig : true);
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable =
@@ -229,6 +242,7 @@ function NativeFrame({
     }
   }
 
+  // This isn't possible when the page doesn't have the images loaded section
   function handleGoToImagesLoaded(e: MouseEvent) {
     e.stopPropagation(); // to prevent collapsing if collapsible
 
@@ -241,7 +255,15 @@ function NativeFrame({
       DebugMetaStore.updateFilter(searchTerm);
     }
 
-    scrollToElement('#images-loaded');
+    if (hasStreamlinedUI) {
+      // Expand the section
+      setIsCollapsed(false);
+    }
+
+    // Scroll to the section
+    document
+      .getElementById(SectionKey.DEBUGMETA)
+      ?.scrollIntoView({block: 'start', behavior: 'smooth'});
   }
 
   function handleToggleContext(e: MouseEvent) {

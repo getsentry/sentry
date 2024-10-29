@@ -10,13 +10,14 @@ import rest_framework
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, eventstream
+from sentry import audit_log, eventstream, features
 from sentry.api.base import audit_logger
 from sentry.deletions.tasks.groups import delete_groups as delete_groups_task
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
 from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
@@ -44,10 +45,24 @@ def delete_group_list(
     if not group_list:
         return
 
+    issue_platform_deletion_allowed = features.has(
+        "organizations:issue-platform-deletion", project.organization, actor=request.user
+    )
+
     # deterministic sort for sanity, and for very large deletions we'll
     # delete the "smaller" groups first
     group_list.sort(key=lambda g: (g.times_seen, g.id))
-    group_ids = [g.id for g in group_list]
+    group_ids = []
+    error_group_found = False
+    for g in group_list:
+        group_ids.append(g.id)
+        if g.issue_category == GroupCategory.ERROR:
+            error_group_found = True
+
+    countdown = 3600
+    # With ClickHouse light deletes we want to get rid of the long delay
+    if issue_platform_deletion_allowed and not error_group_found:
+        countdown = 0
 
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
@@ -73,7 +88,7 @@ def delete_group_list(
             "transaction_id": transaction_id,
             "eventstream_state": eventstream_state,
         },
-        countdown=3600,
+        countdown=countdown,
     )
 
     for group in group_list:
@@ -140,7 +155,12 @@ def delete_groups(
     if not group_list:
         return Response(status=204)
 
-    if any(group.issue_category != GroupCategory.ERROR for group in group_list):
+    org = Organization.objects.get_from_cache(id=organization_id)
+    issue_platform_deletion_allowed = features.has(
+        "organizations:issue-platform-deletion", org, actor=request.user
+    )
+    non_error_group_found = any(group.issue_category != GroupCategory.ERROR for group in group_list)
+    if not issue_platform_deletion_allowed and non_error_group_found:
         raise rest_framework.exceptions.ValidationError(detail="Only error issues can be deleted.")
 
     groups_by_project_id = defaultdict(list)

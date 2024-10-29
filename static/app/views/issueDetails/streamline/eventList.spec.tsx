@@ -7,28 +7,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, renderHook, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, renderHook, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
-import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {MOCK_EVENTS_TABLE_DATA} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/components/events/suspectCommits');
-jest.mock('sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent');
-jest.mock('sentry/views/issueDetails/streamline/issueContent');
-jest.mock('screenfull', () => ({
-  enabled: true,
-  isFullscreen: false,
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
-const mockUseLocation = jest.mocked(useLocation);
+import {EventList} from './eventList';
 
 describe('EventList', () => {
   const organization = OrganizationFixture();
@@ -44,7 +30,6 @@ describe('EventList', () => {
   let mockEventListMeta: jest.Mock;
 
   beforeEach(() => {
-    mockUseLocation.mockReturnValue(LocationFixture());
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
       {
@@ -105,18 +90,23 @@ describe('EventList', () => {
     });
   });
 
-  async function renderAndSwitchToAllEvents() {
-    render(<EventDetails event={event} group={group} project={project} />, {
+  function renderAllEvents() {
+    render(<EventList group={group} project={project} />, {
       organization,
-      router: RouterFixture({location: LocationFixture()}),
+      router: RouterFixture({
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+        }),
+        routes: [{name: '', path: 'events/'}],
+      }),
     });
-    await screen.findByText(event.id);
-    await userEvent.click(screen.getByRole('button', {name: 'View All Events'}));
   }
 
   it('renders the list using a discover event query', async function () {
-    await renderAndSwitchToAllEvents();
+    renderAllEvents();
     const {result} = renderHook(() => useEventColumns(group, organization));
+
+    expect(await screen.findByText('All Events')).toBeInTheDocument();
 
     expect(mockEventList).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
@@ -135,37 +125,19 @@ describe('EventList', () => {
     );
     expect(mockEventListMeta).toHaveBeenCalled();
 
-    expect(screen.getByText('All Events')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Previous Page'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next Page'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Close'})).toBeInTheDocument();
     expect(
-      screen.getByText(`Showing 0-${MOCK_EVENTS_TABLE_DATA.length} of ${totalCount}`)
+      await screen.findByText(
+        `Showing 0-${MOCK_EVENTS_TABLE_DATA.length} of ${totalCount}`
+      )
     ).toBeInTheDocument();
 
     // Returns minidump column, but we omit it as a custom column
-    const columns = result.current.columnTitles.filter(t => t !== 'minidump');
+    const columns = result.current.columnTitles.filter(t => t !== 'Minidump');
     for (const title of columns) {
       expect(screen.getByRole('columnheader', {name: title})).toBeInTheDocument();
     }
-  });
-
-  it('allows filtering by environment', async function () {
-    await renderAndSwitchToAllEvents();
-
-    await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
-    await userEvent.click(screen.getByRole('row', {name: 'production'}));
-
-    const expectedArgs = [
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['production'],
-        }),
-      }),
-    ];
-    expect(mockEventList).toHaveBeenCalledWith(...expectedArgs);
-    expect(mockEventListMeta).toHaveBeenCalledWith(...expectedArgs);
   });
 
   it('updates query from location param change', async function () {
@@ -175,10 +147,16 @@ describe('EventList', () => {
         query: `${tagKey}:${tagValue}`,
       },
     };
-    mockUseLocation.mockReset();
-    mockUseLocation.mockReturnValue(LocationFixture(locationQuery));
-
-    await renderAndSwitchToAllEvents();
+    render(<EventList group={group} project={project} />, {
+      organization,
+      router: RouterFixture({
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+          query: locationQuery.query,
+        }),
+        routes: [{name: '', path: 'events/'}],
+      }),
+    });
 
     const expectedArgs = [
       '/organizations/org-slug/events/',
@@ -188,25 +166,9 @@ describe('EventList', () => {
         }),
       }),
     ];
-    expect(mockEventList).toHaveBeenCalledWith(...expectedArgs);
-    expect(mockEventListMeta).toHaveBeenCalledWith(...expectedArgs);
-  });
-
-  it('allows filtering by date', async function () {
-    await renderAndSwitchToAllEvents();
-
-    await userEvent.click(screen.getByRole('button', {name: '14D'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Last 7 days'}));
-
-    const expectedArgs = [
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          statsPeriod: '7d',
-        }),
-      }),
-    ];
-    expect(mockEventList).toHaveBeenCalledWith(...expectedArgs);
+    await waitFor(() => {
+      expect(mockEventList).toHaveBeenCalledWith(...expectedArgs);
+    });
     expect(mockEventListMeta).toHaveBeenCalledWith(...expectedArgs);
   });
 });

@@ -38,7 +38,7 @@ import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
-import TransactionHeader from './header';
+import TransactionHeader, {type Props as TransactionHeaderProps} from './header';
 import Tab from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
@@ -49,7 +49,7 @@ type TabEvents =
   | 'performance_views.events.events_tab_clicked'
   | 'performance_views.spans.spans_tab_clicked';
 
-const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
+export const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
   [Tab.WEB_VITALS]: 'performance_views.vitals.vitals_tab_clicked',
   [Tab.TAGS]: 'performance_views.tags.tags_tab_clicked',
   [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
@@ -251,6 +251,12 @@ function PageLayout(props: Props) {
 
   const project = projects.find(p => p.id === projectId);
 
+  let hasWebVitals: TransactionHeaderProps['hasWebVitals'] =
+    tab === Tab.WEB_VITALS ? 'yes' : 'maybe';
+  if (organization.features.includes('insights-domain-view')) {
+    hasWebVitals = 'no';
+  }
+
   return (
     <SentryDocumentTitle
       title={getDocumentTitle(transactionName)}
@@ -278,7 +284,7 @@ function PageLayout(props: Props) {
                   projectId={projectId}
                   transactionName={transactionName}
                   currentTab={tab}
-                  hasWebVitals={tab === Tab.WEB_VITALS ? 'yes' : 'maybe'}
+                  hasWebVitals={hasWebVitals}
                   onChangeThreshold={(threshold, metric) => {
                     setTransactionThreshold(threshold);
                     setTransactionThresholdMetric(metric);

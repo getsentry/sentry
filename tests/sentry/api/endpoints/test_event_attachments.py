@@ -3,7 +3,7 @@ from io import BytesIO
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -13,7 +13,7 @@ class EventAttachmentsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event1 = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
@@ -77,7 +77,7 @@ class EventAttachmentsTest(APITestCase):
     def test_is_screenshot(self):
         self.login_as(user=self.user)
 
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event1 = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )

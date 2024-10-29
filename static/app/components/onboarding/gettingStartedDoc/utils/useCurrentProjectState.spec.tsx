@@ -1,5 +1,4 @@
-// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
-import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
+import {createMemoryRouter, RouterProvider} from 'react-router-dom';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
@@ -16,31 +15,25 @@ import {
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {RouteContext} from 'sentry/views/routeContext';
 
 function createWrapper(projectSlug?: string) {
-  const memoryHistory = createMemoryHistory();
-
-  if (projectSlug) {
-    memoryHistory.push(`/${projectSlug}/`);
-  }
-
   return function Wrapper({children}) {
-    return (
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route path="/:projectId/" component={() => children} />
-        <Route path="/" component={() => children} />
-      </Router>
-    );
+    const memoryRouter = createMemoryRouter([
+      {
+        path: '/',
+        element: children,
+      },
+      {
+        path: '/:projectId/',
+        element: children,
+      },
+    ]);
+
+    if (projectSlug) {
+      memoryRouter.navigate(`/${projectSlug}/`);
+    }
+
+    return <RouterProvider router={memoryRouter} />;
   };
 }
 

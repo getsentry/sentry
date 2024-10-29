@@ -17,9 +17,8 @@ describe('AutofixRootCause', function () {
     render(<AutofixRootCause {...defaultProps} />);
 
     // Displays all root cause and code context info
-    expect(
-      screen.getByText('Potential Root Cause: This is the title of a root cause.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Potential Root Cause')).toBeInTheDocument();
+    expect(screen.getByText('This is the title of a root cause.')).toBeInTheDocument();
     expect(
       screen.getByText('This is the description of a root cause.')
     ).toBeInTheDocument();
@@ -43,13 +42,14 @@ describe('AutofixRootCause', function () {
         {...{
           ...defaultProps,
           causes: [],
+          terminationReason: 'The error comes from outside the codebase.',
         }}
       />
     );
 
     // Displays all root cause and code context info
     expect(
-      screen.getByText('Autofix was not able to find a root cause. Maybe try again?')
+      screen.getByText('No root cause found. The error comes from outside the codebase.')
     ).toBeInTheDocument();
   });
 
@@ -131,5 +131,48 @@ describe('AutofixRootCause', function () {
     expect(
       screen.queryByText('This is the reproduction of a root cause.')
     ).not.toBeInTheDocument();
+  });
+
+  it('shows unit test inside reproduction card when available', async function () {
+    render(
+      <AutofixRootCause
+        {...{
+          ...defaultProps,
+          causes: [
+            AutofixRootCauseData({
+              unit_test: {
+                snippet: 'Test case for root cause',
+                description: 'This is the description of a unit test.',
+                file_path: 'src/file.py',
+              },
+            }),
+          ],
+        }}
+      />
+    );
+
+    expect(screen.getByText('How to reproduce')).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'How to reproduce',
+      })
+    );
+    expect(
+      screen.getByText('This is the description of a unit test.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Test case for root cause')).toBeInTheDocument();
+  });
+
+  it('does not show reproduction or unit test when not available', function () {
+    render(
+      <AutofixRootCause
+        {...{
+          ...defaultProps,
+          causes: [AutofixRootCauseData({unit_test: undefined, reproduction: undefined})],
+        }}
+      />
+    );
+
+    expect(screen.queryByText('How to reproduce')).not.toBeInTheDocument();
   });
 });

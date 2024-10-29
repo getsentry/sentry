@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
@@ -24,7 +23,6 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 
 interface EventTagTreeRowConfig {
   // Omits the dropdown of actions applicable to this tag
@@ -120,7 +118,6 @@ function EventTagsTreeRowDropdown({
   project,
 }: Pick<EventTagsTreeRowProps, 'content' | 'event' | 'project'>) {
   const organization = useOrganization();
-  const router = useRouter();
   const {onClick: handleCopy} = useCopyToClipboard({
     text: content.value,
   });
@@ -140,7 +137,6 @@ function EventTagsTreeRowDropdown({
     // Skip tags already highlighted
     highlightTagSet.has(originalTag.key);
   const query = generateQueryWithTag({referrer}, originalTag);
-  const searchQuery = `?${qs.stringify(query)}`;
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
     organization,
     project,
@@ -164,21 +160,17 @@ function EventTagsTreeRowDropdown({
           key: 'view-events',
           label: t('View other events with this tag value'),
           hidden: !event.groupID,
-          onAction: () => {
-            navigateTo(
-              `/organizations/${organization.slug}/issues/${event.groupID}/events/${searchQuery}`,
-              router
-            );
+          to: {
+            pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/`,
+            query,
           },
         },
         {
           key: 'view-issues',
           label: t('View issues with this tag value'),
-          onAction: () => {
-            navigateTo(
-              `/organizations/${organization.slug}/issues/${searchQuery}`,
-              router
-            );
+          to: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query,
           },
         },
         {
@@ -200,42 +192,38 @@ function EventTagsTreeRowDropdown({
           key: 'release',
           label: t('View this release'),
           hidden: originalTag.key !== 'release',
-          onAction: () => {
-            navigateTo(
-              `/organizations/${organization.slug}/releases/${encodeURIComponent(
-                content.value
-              )}/`,
-              router
-            );
-          },
+          to:
+            originalTag.key === 'release'
+              ? `/organizations/${organization.slug}/releases/${encodeURIComponent(content.value)}/`
+              : undefined,
         },
         {
           key: 'transaction',
           label: t('View this transaction'),
           hidden: originalTag.key !== 'transaction',
-          onAction: () => {
-            const transactionQuery = qs.stringify({
-              project: event.projectID,
-              transaction: content.value,
-              referrer,
-            });
-            navigateTo(
-              `/organizations/${organization.slug}/performance/summary/?${transactionQuery}`,
-              router
-            );
-          },
+          to:
+            originalTag.key === 'transaction'
+              ? {
+                  pathname: `/organizations/${organization.slug}/performance/summary/`,
+                  query: {
+                    project: event.projectID,
+                    transaction: content.value,
+                    referrer,
+                  },
+                }
+              : undefined,
         },
         {
           key: 'replay',
           label: t('View this replay'),
           hidden: originalTag.key !== 'replay_id' && originalTag.key !== 'replayId',
-          onAction: () => {
-            const replayQuery = qs.stringify({referrer});
-            navigateTo(
-              `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/?${replayQuery}`,
-              router
-            );
-          },
+          to:
+            originalTag.key === 'replay_id' || originalTag.key === 'replayId'
+              ? {
+                  pathname: `/organizations/${organization.slug}/replays/${encodeURIComponent(content.value)}/`,
+                  query: {referrer},
+                }
+              : undefined,
         },
         {
           key: 'external-link',

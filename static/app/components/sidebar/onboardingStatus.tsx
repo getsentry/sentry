@@ -1,4 +1,4 @@
-import {Fragment, useContext} from 'react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -41,17 +41,22 @@ export default function OnboardingStatus({
   hidePanel,
   onShowPanel,
 }: Props) {
-  const handleShowPanel = () => {
-    trackAnalytics('onboarding.wizard_opened', {organization: org});
-    onShowPanel();
-  };
   const onboardingContext = useContext(OnboardingContext);
   const {projects} = useProjects();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
 
-  if (!org.features?.includes('onboarding')) {
-    return null;
-  }
+  const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
+  const walkthrough = isDemoWalkthrough();
+
+  const handleToggle = useCallback(() => {
+    if (!walkthrough && !isActive === true) {
+      trackAnalytics('quick_start.opened', {
+        organization: org,
+        new_experience: false,
+      });
+    }
+    onShowPanel();
+  }, [walkthrough, isActive, onShowPanel, org]);
 
   const tasks = getMergedTasks({
     organization: org,
@@ -59,9 +64,8 @@ export default function OnboardingStatus({
     onboardingContext,
   });
 
-  const allDisplayedTasks = tasks
-    .filter(task => task.display)
-    .filter(task => !task.renderCard);
+  const allDisplayedTasks = tasks.filter(task => task.display);
+
   const doneTasks = allDisplayedTasks.filter(isDone);
   const numberRemaining = allDisplayedTasks.length - doneTasks.length;
 
@@ -72,13 +76,24 @@ export default function OnboardingStatus({
       !task.completionSeen
   );
 
-  const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
+  const allTasksCompleted = doneTasks.length >= allDisplayedTasks.length;
 
-  if (doneTasks.length >= allDisplayedTasks.length && !isActive) {
+  useEffect(() => {
+    if (!allTasksCompleted || isActive) {
+      return;
+    }
+
+    trackAnalytics('quick_start.completed', {
+      organization: org,
+      referrer: 'onboarding_sidebar',
+      new_experience: false,
+    });
+  }, [isActive, allTasksCompleted, org]);
+
+  if (!org.features?.includes('onboarding') || (allTasksCompleted && !isActive)) {
     return null;
   }
 
-  const walkthrough = isDemoWalkthrough();
   const label = walkthrough ? t('Guided Tours') : t('Quick Start');
   const task = walkthrough ? 'tours' : 'tasks';
 
@@ -87,7 +102,7 @@ export default function OnboardingStatus({
       <Container
         role="button"
         aria-label={label}
-        onClick={handleShowPanel}
+        onClick={handleToggle}
         isActive={isActive}
       >
         <ProgressRing

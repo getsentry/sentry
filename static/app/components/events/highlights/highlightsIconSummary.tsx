@@ -1,9 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
-import {getContextIcon, getContextSummary} from 'sentry/components/events/contexts/utils';
+import {
+  getContextIcon,
+  getContextSummary,
+  getContextTitle,
+} from 'sentry/components/events/contexts/utils';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
@@ -22,13 +28,14 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
   const items = getOrderedContextItems(event)
     .map(({alias, type, value}) => ({
       ...getContextSummary({type, value}),
+      contextTitle: getContextTitle({alias, type, value}),
       alias,
       icon: getContextIcon({
         alias,
         type,
         value,
         contextIconProps: {
-          size: 'xl',
+          size: 'md',
         },
       }),
     }))
@@ -46,47 +53,42 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
       <IconBar>
         <ScrollCarousel gap={4}>
           {items.map((item, index) => (
-            <IconSummary key={index}>
+            <Flex key={index} gap={space(1)} align="center">
               <IconWrapper>{item.icon}</IconWrapper>
-              <IconTitle>{item.title}</IconTitle>
-              <IconSubtitle>{item.subtitle}</IconSubtitle>
-            </IconSummary>
+              <IconDescription>
+                <div>{item.title}</div>
+                {item.subtitle && (
+                  <IconSubtitle title={`${item.contextTitle} ${item.subtitleType}`}>
+                    {item.subtitle}
+                  </IconSubtitle>
+                )}
+              </IconDescription>
+            </Flex>
           ))}
         </ScrollCarousel>
       </IconBar>
-      <SectionDivider />
+      <SectionDivider style={{marginTop: space(1)}} />
     </Fragment>
   ) : null;
 }
 
 const IconBar = styled('div')`
   position: relative;
-  padding: ${space(2)} ${space(0.5)};
+  padding: ${space(0.5)} ${space(0.5)};
 `;
 
-const IconSummary = styled('div')`
-  flex: none;
-  display: grid;
-  grid-template: 1fr 1fr / auto 1fr;
-  grid-column-gap: ${space(1)};
-  grid-row-gap: ${space(0.5)};
+const IconDescription = styled('div')`
+  display: flex;
+  gap: ${space(0.75)};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const IconWrapper = styled('div')`
-  grid-area: 1 / 1 / 3 / 2;
-  align-self: center;
-`;
-
-const IconTitle = styled('div')`
-  grid-area: 1 / 2 / 2 / 3;
-  align-self: self-end;
+  flex: none;
   line-height: 1;
 `;
 
-const IconSubtitle = styled('div')`
-  grid-area: 2 / 2 / 3 / 3;
+const IconSubtitle = styled(Tooltip)`
+  display: block;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1;
-  align-self: self-start;
 `;

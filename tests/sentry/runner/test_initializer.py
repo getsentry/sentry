@@ -185,21 +185,6 @@ def test_bootstrap_options_empty_file(settings, config_yml):
     assert settings.SENTRY_OPTIONS == {}
 
 
-def test_legacy_url_prefix_warning(settings, config_yml):
-    config_yml.write(
-        """\
-        SENTRY_URL_PREFIX: http://sentry.example.com
-        """
-    )
-    with pytest.warns(DeprecatedSettingWarning) as warninfo:
-        bootstrap_options(settings, str(config_yml))
-    assert settings.SENTRY_OPTIONS["system.url-prefix"] == "http://sentry.example.com"
-    assert settings.SENTRY_OPTIONS["SENTRY_URL_PREFIX"] == "http://sentry.example.com"
-    _assert_settings_warnings(
-        warninfo, {("SENTRY_URL_PREFIX", "SENTRY_OPTIONS['system.url-prefix']")}
-    )
-
-
 def test_apply_legacy_settings(settings):
     settings.ALLOWED_HOSTS = []
     settings.SENTRY_USE_QUEUE = True

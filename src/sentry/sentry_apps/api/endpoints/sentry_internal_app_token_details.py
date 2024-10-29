@@ -8,8 +8,11 @@ from sentry import analytics, deletions
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
 from sentry.models.apitoken import ApiToken
+from sentry.sentry_apps.api.bases.sentryapps import (
+    SentryAppBaseEndpoint,
+    SentryInternalAppTokenPermission,
+)
 from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 

@@ -81,7 +81,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
     def download(self, segment: RecordingSegmentStorageMeta) -> StreamingHttpResponse:
         with sentry_sdk.start_span(
             op="download_segment",
-            description="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
+            name="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
         ) as child_span:
             segment_bytes = download_segment(segment, span=child_span)
             segment_reader = BytesIO(segment_bytes)
@@ -91,7 +91,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
                 content_type="application/json",
             )
             response["Content-Length"] = len(segment_bytes)
-            response[
-                "Content-Disposition"
-            ] = f'attachment; filename="{make_recording_filename(segment)}"'
+            response["Content-Disposition"] = (
+                f'attachment; filename="{make_recording_filename(segment)}"'
+            )
             return response

@@ -64,9 +64,18 @@ function ResourcesLandingPage() {
         )}
 
         {isInDomainView && (
-          <Layout.Header>
-            <FrontendHeader module={ModuleName.RESOURCE} />
-          </Layout.Header>
+          <FrontendHeader
+            headerTitle={
+              <Fragment>
+                {MODULE_TITLE}
+                <PageHeadingQuestionTooltip
+                  docsUrl={MODULE_DOC_LINK}
+                  title={MODULE_DESCRIPTION}
+                />
+              </Fragment>
+            }
+            module={ModuleName.RESOURCE}
+          />
         )}
         <Layout.Body>
           <Layout.Main fullWidth>

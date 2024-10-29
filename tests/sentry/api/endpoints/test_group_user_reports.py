@@ -2,7 +2,7 @@ from functools import cached_property
 
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class GroupUserReport(APITestCase, SnubaTestCase):
@@ -34,7 +34,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
                 data={
                     "fingerprint": ["group-1"],
                     "tags": {"environment": environment.name},
-                    "timestamp": iso_format(before_now(seconds=1)),
+                    "timestamp": before_now(seconds=1).isoformat(),
                 },
                 project_id=self.project.id,
             )

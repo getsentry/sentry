@@ -59,13 +59,36 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_DASHBOARDS_BIGNUMBERWIDGET.value,
     Referrer.API_DISCOVER_TRANSACTIONS_LIST.value,
     Referrer.API_DISCOVER_QUERY_TABLE.value,
+    Referrer.API_PERFORMANCE_BROWSER_RESOURCE_MAIN_TABLE.value,
+    Referrer.API_PERFORMANCE_BROWSER_RESOURCES_PAGE_SELECTOR.value,
+    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT.value,
+    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES.value,
+    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTION.value,
+    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTIONS_SCORES.value,
+    Referrer.API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_LIST.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_HIGHEST_CACHE_MISS_RATE_TRANSACTIONS.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_FROZEN_FRAMES.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_SLOW_FRAMES.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_DOMAINS.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_RESOURCES.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_SPENT_DB_QUERIES.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_DB_OPS.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_HTTP_OPS.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_RESOURCE_OPS.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_TTID.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_TPM_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_USER_MISERY_AREA.value,
     Referrer.API_PERFORMANCE_VITALS_CARDS.value,
     Referrer.API_PERFORMANCE_LANDING_TABLE.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY.value,
+    Referrer.API_PERFORMANCE_TRANSACTION_EVENTS.value,
+    Referrer.API_PERFORMANCE_TRANSACTION_NAME_SEARCH_BAR.value,
     Referrer.API_PERFORMANCE_TRANSACTION_SPANS.value,
+    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY.value,
     Referrer.API_PERFORMANCE_STATUS_BREAKDOWN.value,
     Referrer.API_PERFORMANCE_VITAL_DETAIL.value,
     Referrer.API_PERFORMANCE_DURATIONPERCENTILECHART.value,
+    Referrer.API_PERFORMANCE_TRACE_TRACE_DRAWER_TRANSACTION_CACHE_METRICS.value,
     Referrer.API_PERFORMANCE_TRANSACTIONS_STATISTICAL_DETECTOR_ROOT_CAUSE_ANALYSIS.value,
     Referrer.API_PROFILING_LANDING_TABLE.value,
     Referrer.API_PROFILING_LANDING_FUNCTIONS_CARD.value,
@@ -83,12 +106,15 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_TRACE_VIEW_ERRORS_VIEW.value,
     Referrer.API_TRACE_VIEW_HOVER_CARD.value,
     Referrer.API_ISSUES_ISSUE_EVENTS.value,
+    Referrer.API_STARFISH_DATABASE_SYSTEM_SELECTOR.value,
     Referrer.API_STARFISH_ENDPOINT_LIST.value,
+    Referrer.API_STARFISH_FULL_SPAN_FROM_TRACE.value,
     Referrer.API_STARFISH_GET_SPAN_ACTIONS.value,
     Referrer.API_STARFISH_GET_SPAN_DOMAINS.value,
     Referrer.API_STARFISH_GET_SPAN_OPERATIONS.value,
     Referrer.API_STARFISH_SIDEBAR_SPAN_METRICS.value,
     Referrer.API_STARFISH_SPAN_CATEGORY_BREAKDOWN.value,
+    Referrer.API_STARFISH_SPAN_DESCRIPTION.value,
     Referrer.API_STARFISH_SPAN_LIST.value,
     Referrer.API_STARFISH_SPAN_SUMMARY_P95.value,
     Referrer.API_STARFISH_SPAN_SUMMARY_PAGE.value,
@@ -379,11 +405,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         if request.auth:
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
-            with sentry_sdk.isolation_scope() as scope:
-                scope.set_tag("forbidden_referrer", referrer)
-                sentry_sdk.capture_message(
-                    "Forbidden Referrer. If this is intentional, add it to `ALLOWED_EVENTS_REFERRERS`"
-                )
+            if referrer:
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("forbidden_referrer", referrer)
+                    sentry_sdk.capture_message(
+                        "Forbidden Referrer. If this is intentional, add it to `ALLOWED_EVENTS_REFERRERS`"
+                    )
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
@@ -469,16 +496,16 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     if decision == DashboardWidgetTypes.DISCOVER:
                         return _data_fn(discover, offset, limit, scoped_query)
                     elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
-                        original_results["meta"][
-                            "discoverSplitDecision"
-                        ] = DashboardWidgetTypes.get_type_name(
-                            DashboardWidgetTypes.TRANSACTION_LIKE
+                        original_results["meta"]["discoverSplitDecision"] = (
+                            DashboardWidgetTypes.get_type_name(
+                                DashboardWidgetTypes.TRANSACTION_LIKE
+                            )
                         )
                         return original_results
                     elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
-                        error_results["meta"][
-                            "discoverSplitDecision"
-                        ] = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+                        error_results["meta"]["discoverSplitDecision"] = (
+                            DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+                        )
                         return error_results
                     else:
                         return original_results
@@ -518,9 +545,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                             limit,
                             scoped_query,
                         )
-                        result["meta"][
-                            "discoverSplitDecision"
-                        ] = DiscoverSavedQueryTypes.get_type_name(dataset_inferred_from_query)
+                        result["meta"]["discoverSplitDecision"] = (
+                            DiscoverSavedQueryTypes.get_type_name(dataset_inferred_from_query)
+                        )
 
                         self.save_discover_saved_query_split_decision(
                             discover_query,
@@ -555,10 +582,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                         try:
                             error_results = map["errors"]
-                            error_results["meta"][
-                                "discoverSplitDecision"
-                            ] = DiscoverSavedQueryTypes.get_type_name(
-                                DiscoverSavedQueryTypes.ERROR_EVENTS
+                            error_results["meta"]["discoverSplitDecision"] = (
+                                DiscoverSavedQueryTypes.get_type_name(
+                                    DiscoverSavedQueryTypes.ERROR_EVENTS
+                                )
                             )
                             has_errors = len(error_results["data"]) > 0
                         except KeyError:
@@ -566,10 +593,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                         try:
                             transaction_results = map["transactions"]
-                            transaction_results["meta"][
-                                "discoverSplitDecision"
-                            ] = DiscoverSavedQueryTypes.get_type_name(
-                                DiscoverSavedQueryTypes.TRANSACTION_LIKE
+                            transaction_results["meta"]["discoverSplitDecision"] = (
+                                DiscoverSavedQueryTypes.get_type_name(
+                                    DiscoverSavedQueryTypes.TRANSACTION_LIKE
+                                )
                             )
                             has_transactions = len(transaction_results["data"]) > 0
                         except KeyError:

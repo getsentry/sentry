@@ -10,12 +10,14 @@ import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboar
 import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
+import {hasQuickStartUpdatesFeature} from 'sentry/components/onboardingWizard/utils';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
   ExpandedContext,
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
+import {NewOnboardingStatus} from 'sentry/components/sidebar/newOnboardingStatus';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconDashboard,
@@ -55,19 +57,19 @@ import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleU
 import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
 import {
   AI_LANDING_SUB_PATH,
-  AI_LANDING_TITLE,
+  AI_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/ai/settings';
 import {
   BACKEND_LANDING_SUB_PATH,
-  BACKEND_LANDING_TITLE,
+  BACKEND_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/backend/settings';
 import {
   FRONTEND_LANDING_SUB_PATH,
-  FRONTEND_LANDING_TITLE,
+  FRONTEND_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {
   MOBILE_LANDING_SUB_PATH,
-  MOBILE_LANDING_TITLE,
+  MOBILE_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
@@ -110,9 +112,7 @@ function useOpenOnboardingSidebar(organization?: Organization) {
           onboardingContext,
         });
 
-        const allDisplayedTasks = tasks
-          .filter(task => task.display)
-          .filter(task => !task.renderCard);
+        const allDisplayedTasks = tasks.filter(task => task.display);
         const doneTasks = allDisplayedTasks.filter(isDone);
 
         return !(doneTasks.length >= allDisplayedTasks.length);
@@ -138,6 +138,7 @@ function Sidebar() {
   const hasNewNav = organization?.features.includes('navigation-sidebar-v2');
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
+  const hasPerfDomainViews = organization?.features.includes('insights-domain-view');
 
   const collapsed = hasNewNav ? true : !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -264,7 +265,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const moduleURLBuilder = useModuleURLBuilder(true, false);
+  const moduleURLBuilder = useModuleURLBuilder(true);
 
   const queries = hasOrganization && (
     <Feature key="db" features="insights-entry-points" organization={organization}>
@@ -439,7 +440,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const performance = hasOrganization && (
+  const performance = hasOrganization && !hasPerfDomainViews && (
     <Feature
       hookName="feature-disabled:performance-sidebar-item"
       features="performance-view"
@@ -605,7 +606,10 @@ function Sidebar() {
   );
 
   const performanceDomains = hasOrganization && (
-    <Feature features="insights-domain-view" organization={organization}>
+    <Feature
+      features={['insights-domain-view', 'performance-view']}
+      organization={organization}
+    >
       <SidebarAccordion
         {...sidebarItemProps}
         icon={<IconGraph />}
@@ -616,28 +620,28 @@ function Sidebar() {
       >
         <SidebarItem
           {...sidebarItemProps}
-          label={FRONTEND_LANDING_TITLE}
+          label={FRONTEND_SIDEBAR_LABEL}
           to={`/organizations/${organization.slug}/performance/${FRONTEND_LANDING_SUB_PATH}/`}
           id="performance-domains-web"
           icon={<SubitemDot collapsed />}
         />
         <SidebarItem
           {...sidebarItemProps}
-          label={BACKEND_LANDING_TITLE}
+          label={BACKEND_SIDEBAR_LABEL}
           to={`/organizations/${organization.slug}/performance/${BACKEND_LANDING_SUB_PATH}/`}
           id="performance-domains-platform"
           icon={<SubitemDot collapsed />}
         />
         <SidebarItem
           {...sidebarItemProps}
-          label={MOBILE_LANDING_TITLE}
+          label={MOBILE_SIDEBAR_LABEL}
           to={`/organizations/${organization.slug}/performance/${MOBILE_LANDING_SUB_PATH}/`}
           id="performance-domains-mobile"
           icon={<SubitemDot collapsed />}
         />
         <SidebarItem
           {...sidebarItemProps}
-          label={AI_LANDING_TITLE}
+          label={AI_SIDEBAR_LABEL}
           to={`/organizations/${organization.slug}/performance/${AI_LANDING_SUB_PATH}/`}
           id="performance-domains-ai"
           icon={<SubitemDot collapsed />}
@@ -646,7 +650,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const insights = hasOrganization && (
+  const insights = hasOrganization && !hasPerfDomainViews && (
     <Feature key="insights" features="insights-entry-points" organization={organization}>
       <SidebarAccordion
         {...sidebarItemProps}
@@ -793,13 +797,22 @@ function Sidebar() {
               {...sidebarItemProps}
             />
             <SidebarSection hasNewNav={hasNewNav} noMargin noPadding>
-              <OnboardingStatus
-                org={organization}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
-                hidePanel={hidePanel}
-                {...sidebarItemProps}
-              />
+              {hasQuickStartUpdatesFeature(organization) ? (
+                <NewOnboardingStatus
+                  currentPanel={activePanel}
+                  onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+                  hidePanel={hidePanel}
+                  {...sidebarItemProps}
+                />
+              ) : (
+                <OnboardingStatus
+                  org={organization}
+                  currentPanel={activePanel}
+                  onShowPanel={() => togglePanel(SidebarPanelKey.ONBOARDING_WIZARD)}
+                  hidePanel={hidePanel}
+                  {...sidebarItemProps}
+                />
+              )}
             </SidebarSection>
 
             <SidebarSection hasNewNav={hasNewNav}>

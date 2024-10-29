@@ -28,8 +28,5 @@ describe('bun onboarding docs', function () {
     expect(
       screen.queryByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0,/))
     ).not.toBeInTheDocument();
-
-    // Renders next steps
-    expect(screen.getByRole('link', {name: 'Tracing'})).toBeInTheDocument();
   });
 });

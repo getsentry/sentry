@@ -19,9 +19,12 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
+import {IndexedEventsSelectionAlert} from '../../indexedEventsSelectionAlert';
 import {getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
+import type WidgetLegendSelectionState from '../../widgetLegendSelectionState';
 import {displayTypes} from '../utils';
 
 import {BuildStep} from './buildStep';
@@ -34,9 +37,9 @@ interface Props {
   organization: Organization;
   pageFilters: PageFilters;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   dashboardFilters?: DashboardFilters;
   error?: string;
-  noDashboardsMEPProvider?: boolean;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 }
@@ -49,11 +52,11 @@ export function VisualizationStep({
   onChange,
   widget,
   onDataFetched,
-  noDashboardsMEPProvider,
   dashboardFilters,
   location,
   isWidgetInvalid,
   onWidgetSplitDecision,
+  widgetLegendState,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
@@ -89,6 +92,13 @@ export function VisualizationStep({
     label: displayTypes[value],
     value,
   }));
+
+  const unselectedReleasesForCharts = {
+    [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
+      'Releases',
+      debouncedWidget.id
+    )]: false,
+  };
 
   return (
     <StyledBuildStep
@@ -127,13 +137,21 @@ export function VisualizationStep({
             )
           }
           noLazyLoad
-          showStoredAlert
-          noDashboardsMEPProvider={noDashboardsMEPProvider}
           isWidgetInvalid={isWidgetInvalid}
           onDataFetched={onDataFetched}
           onWidgetSplitDecision={onWidgetSplitDecision}
           shouldResize={false}
+          onLegendSelectChanged={() => {}}
+          legendOptions={
+            organization.features.includes('dashboards-releases-on-charts') &&
+            widgetLegendState.widgetRequiresLegendUnselection(widget)
+              ? {selected: unselectedReleasesForCharts}
+              : undefined
+          }
+          widgetLegendState={widgetLegendState}
         />
+
+        <IndexedEventsSelectionAlert widget={widget} />
       </VisualizationWrapper>
     </StyledBuildStep>
   );

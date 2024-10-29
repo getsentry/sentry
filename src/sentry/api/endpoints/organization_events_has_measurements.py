@@ -58,7 +58,7 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="parse params"):
+        with sentry_sdk.start_span(op="discover.endpoint", name="parse params"):
             try:
                 # This endpoint only allows for a single project + transaction, so no need
                 # to check `global-views`.

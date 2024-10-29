@@ -335,7 +335,7 @@ class SlackService:
 
         """Send an "activity" or "alert rule" notification to a Slack user or team, but NOT to a channel directly.
         This is used in the send_notification_as_slack function."""
-        with sentry_sdk.start_span(op="notification.send_slack", description="notify_recipient"):
+        with sentry_sdk.start_span(op="notification.send_slack", name="notify_recipient"):
             # Make a local copy to which we can append.
             local_attachments = copy(attachments)
 

@@ -29,6 +29,7 @@ function useCommitters(
     {
       staleTime: Infinity,
       retry: false,
+      enabled: !!eventId,
       ...options,
     }
   );

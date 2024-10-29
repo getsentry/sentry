@@ -33,7 +33,7 @@ class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):
                 use_case_id=UseCaseID.TRANSACTIONS,
             )
 
-        with start_span(op="transform", description="metric meta"):
+        with start_span(op="transform", name="metric meta"):
             result = {
                 item["name"]: {
                     "functions": METRIC_FUNCTION_LIST_BY_TYPE[item["type"]],

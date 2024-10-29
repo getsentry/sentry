@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -19,7 +21,17 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response, get_query_builder_for_group
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
+from sentry.api.serializers.models.event import SimpleEventSerializerResponse
 from sentry.api.utils import get_date_range_from_params
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.event_examples import EventExamples
+from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.eventstore.models import Event
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.search.events.types import ParamsType
@@ -38,29 +50,60 @@ class GroupEventsError(Exception):
     pass
 
 
+@extend_schema(tags=["Events"])
 @region_silo_endpoint
 class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
 
+    @extend_schema(
+        operation_id="List an Issue's Events",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.ENVIRONMENT,
+            OpenApiParameter(
+                name="full",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description="Specify true to include the full event body, including the stacktrace, in the event payload.",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="sample",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description="Return events in pseudo-random order. This is deterministic so an identical query will always return the same events in the same order.",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="query",
+                location=OpenApiParameter.QUERY,
+                type=OpenApiTypes.STR,
+                description="An optional search query for filtering events.",
+                required=False,
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "GroupEventsResponseDict", list[SimpleEventSerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=EventExamples.GROUP_EVENTS_SIMPLE,
+    )
     def get(self, request: Request, group: Group) -> Response:
         """
-        List an Issue's Events
-        ``````````````````````
-
-        This endpoint lists an issue's events.
-        :qparam bool full: if this is set to true then the event payload will
-                           include the full event body, including the stacktrace.
-                           Set to 1 to enable.
-
-        :qparam bool sample: return events in pseudo-random order. This is deterministic,
-                             same query will return the same events in the same order.
-
-        :pparam string issue_id: the ID of the issue to retrieve.
-
-        :auth: required
+        Return a list of error events bound to an issue
         """
 
         try:

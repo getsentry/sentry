@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import ObjectInspector from 'sentry/components/objectInspector';
 import ReplayPreferenceDropdown from 'sentry/components/replays/preferences/replayPreferenceDropdown';
 import {
   LocalStorageReplayPreferences,
@@ -9,6 +8,7 @@ import {
 } from 'sentry/components/replays/preferences/replayPreferences';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
+import StructuredEventData from 'sentry/components/structuredEventData';
 import storyBook from 'sentry/stories/storyBook';
 import {
   ReplayPreferencesContextProvider,
@@ -98,5 +98,5 @@ export default storyBook(ReplayPreferenceDropdown, story => {
 
 function DebugReplayPrefsState() {
   const [prefs] = useReplayPrefs();
-  return <ObjectInspector data={prefs} expandLevel={1} />;
+  return <StructuredEventData data={prefs} maxDefaultDepth={1} forceDefaultExpand />;
 }

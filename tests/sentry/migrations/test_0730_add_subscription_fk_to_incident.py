@@ -9,6 +9,7 @@ from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class AlertRuleProjectBackfillTest(TestMigrations):
     migrate_from = "0729_backfill_groupsearchviews_with_pinned_searches"
     migrate_to = "0730_add_subscription_fk_to_incident"

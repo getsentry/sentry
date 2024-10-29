@@ -1144,6 +1144,10 @@ def validating_start(uuid: UUID) -> None:
             artifacts=convert_dict_key_case(cb_conf["artifacts"], camel_to_snake_keep_underscores),
             timeout=convert_dict_key_case(cb_conf["timeout"], camel_to_snake_keep_underscores),
             options=convert_dict_key_case(cb_conf["options"], camel_to_snake_keep_underscores),
+            tags=[
+                f"relocation-into-{get_local_region().name}",
+                f"relocation-id-{uuid}",
+            ],
         )
         response = cb_client.create_build(project_id=gcp_project_id(), build=build)
 

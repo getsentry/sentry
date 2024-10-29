@@ -10,9 +10,9 @@ import pytest
 from sentry.event_manager import _create_group
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.hashing import (
-    _calculate_primary_hashes,
+    _calculate_primary_hashes_and_variants,
     _calculate_secondary_hashes,
-    find_existing_grouphash,
+    find_grouphash_with_group,
 )
 from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
 from sentry.models.grouphash import GroupHash
@@ -28,17 +28,19 @@ pytestmark = [requires_snuba]
 
 @contextmanager
 def patch_grouping_helpers(return_values: dict[str, Any]):
-    wrapped_find_existing_grouphash = capture_results(find_existing_grouphash, return_values)
-    wrapped_calculate_primary_hashes = capture_results(_calculate_primary_hashes, return_values)
+    wrapped_find_grouphash_with_group = capture_results(find_grouphash_with_group, return_values)
+    wrapped_calculate_primary_hashes = capture_results(
+        _calculate_primary_hashes_and_variants, return_values
+    )
     wrapped_calculate_secondary_hashes = capture_results(_calculate_secondary_hashes, return_values)
 
     with (
         mock.patch(
-            "sentry.event_manager.find_existing_grouphash",
-            wraps=wrapped_find_existing_grouphash,
-        ) as find_existing_grouphash_spy,
+            "sentry.event_manager.find_grouphash_with_group",
+            wraps=wrapped_find_grouphash_with_group,
+        ) as find_grouphash_with_group_spy,
         mock.patch(
-            "sentry.grouping.ingest.hashing._calculate_primary_hashes",
+            "sentry.grouping.ingest.hashing._calculate_primary_hashes_and_variants",
             wraps=wrapped_calculate_primary_hashes,
         ) as calculate_primary_hashes_spy,
         mock.patch(
@@ -58,8 +60,8 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
         ) as record_calculation_metrics_spy,
     ):
         yield {
-            "find_existing_grouphash": find_existing_grouphash_spy,
-            "_calculate_primary_hashes": calculate_primary_hashes_spy,
+            "find_grouphash_with_group": find_grouphash_with_group_spy,
+            "_calculate_primary_hashes_and_variants": calculate_primary_hashes_spy,
             "_calculate_secondary_hashes": calculate_secondary_hashes_spy,
             "_create_group": create_group_spy,
             "record_calculation_metrics": record_calculation_metrics_spy,
@@ -145,7 +147,7 @@ def get_results_from_saving_event(
     with patch_grouping_helpers(return_values) as spies:
         calculate_secondary_hash_spy = spies["_calculate_secondary_hashes"]
         create_group_spy = spies["_create_group"]
-        calculate_primary_hash_spy = spies["_calculate_primary_hashes"]
+        calculate_primary_hash_spy = spies["_calculate_primary_hashes_and_variants"]
         record_calculation_metrics_spy = spies["record_calculation_metrics"]
 
         set_grouping_configs(
@@ -160,7 +162,7 @@ def get_results_from_saving_event(
             gh.hash: gh.group_id for gh in GroupHash.objects.filter(project_id=project.id)
         }
 
-        hash_search_results = return_values["find_existing_grouphash"]
+        hash_search_results = return_values["find_grouphash_with_group"]
         # Filter out all the Nones to see if we actually found anything
         filtered_results = list(filter(lambda result: bool(result), hash_search_results))
         hash_search_result = filtered_results[0] if filtered_results else None
@@ -173,8 +175,10 @@ def get_results_from_saving_event(
         primary_hash_calculated = calculate_primary_hash_spy.call_count == 1
         secondary_hash_calculated = calculate_secondary_hash_spy.call_count == 1
 
-        primary_hash = return_values["_calculate_primary_hashes"][0][0]
-        primary_hash_found = bool(hash_search_result) and hash_search_result.hash == primary_hash
+        primary_hash = return_values["_calculate_primary_hashes_and_variants"][0][0][0]
+        primary_hash_found = (
+            hash_search_result is not None and hash_search_result.hash == primary_hash
+        )
 
         new_group_created = create_group_spy.call_count == 1
 
@@ -201,7 +205,7 @@ def get_results_from_saving_event(
             secondary_hash = return_values["_calculate_secondary_hashes"][0][0]
             hashes_different = secondary_hash != primary_hash
             secondary_hash_found = (
-                bool(hash_search_result) and hash_search_result.hash == secondary_hash
+                hash_search_result is not None and hash_search_result.hash == secondary_hash
             )
             secondary_grouphash_existed_already = secondary_hash in existing_grouphashes
             secondary_grouphash_exists_now = secondary_hash in post_save_grouphashes
@@ -235,6 +239,17 @@ def get_results_from_saving_event(
         }
 
 
+# The overall idea of these tests is to prove that
+#
+#   a) We only run the secondary calculation when the project is in transtiion
+#   b) In transition, we only run the secondary calculation if the primary calculation
+#      doesn't find an existing group
+#   c) If the primary (or secondary, if it's calculated) hash finds a group, the event is
+#      assigned there
+#   d) If neither finds a group, a new group is created and the primary hash is stored (but
+#      the secondary hash is not, even if it's calculated)
+
+
 @django_db_all
 @pytest.mark.parametrize(
     "in_transition", (True, False), ids=(" in_transition: True ", " in_transition: False ")
@@ -265,7 +280,7 @@ def test_new_group(
             "primary_grouphash_existed_already": False,
             "secondary_grouphash_existed_already": False,
             "primary_grouphash_exists_now": True,
-            "secondary_grouphash_exists_now": True,
+            "secondary_grouphash_exists_now": False,
             "result_tag_value_for_metrics": "no_match",
             # Moot since no existing group was passed
             "event_assigned_to_given_existing_group": None,
@@ -365,27 +380,27 @@ def test_existing_group_new_hash_exists(
 
     # Set the stage by creating a group tied to the new hash (and possibly the legacy hash as well)
     if secondary_hash_exists:
-        existing_event = save_event_with_grouping_config(
+        existing_event_with_secondary_hash = save_event_with_grouping_config(
+            event_data, project, LEGACY_GROUPING_CONFIG
+        )
+        existing_event_with_primary_hash = save_event_with_grouping_config(
             event_data, project, DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG, True
         )
-        assert existing_event.group_id is not None
+        group_id = existing_event_with_primary_hash.group_id
+
         assert (
-            GroupHash.objects.filter(
-                project_id=project.id, group_id=existing_event.group_id
-            ).count()
-            == 2
+            existing_event_with_secondary_hash.group_id == existing_event_with_primary_hash.group_id
         )
+        assert group_id is not None
+        assert GroupHash.objects.filter(project_id=project.id, group_id=group_id).count() == 2
     else:
-        existing_event = save_event_with_grouping_config(
+        existing_event_with_primary_hash = save_event_with_grouping_config(
             event_data, project, DEFAULT_GROUPING_CONFIG
         )
-        assert existing_event.group_id is not None
-        assert (
-            GroupHash.objects.filter(
-                project_id=project.id, group_id=existing_event.group_id
-            ).count()
-            == 1
-        )
+        group_id = existing_event_with_primary_hash.group_id
+
+        assert group_id is not None
+        assert GroupHash.objects.filter(project_id=project.id, group_id=group_id).count() == 1
 
     # Now save a new, identical, event
     results = get_results_from_saving_event(
@@ -394,7 +409,7 @@ def test_existing_group_new_hash_exists(
         primary_config=DEFAULT_GROUPING_CONFIG,
         secondary_config=LEGACY_GROUPING_CONFIG,
         in_transition=in_transition,
-        existing_group_id=existing_event.group_id,
+        existing_group_id=group_id,
     )
 
     assert results == {

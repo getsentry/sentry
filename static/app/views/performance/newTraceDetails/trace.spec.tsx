@@ -4,7 +4,7 @@ import {TransactionEventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  act,
+  findAllByText,
   findByText,
   fireEvent,
   render,
@@ -14,22 +14,17 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
+import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/index';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-
-jest.mock('screenfull', () => ({
-  enabled: true,
-  get isFullscreen() {
-    return false;
-  },
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
+import {
+  makeEventTransaction,
+  makeSpan,
+  makeTraceError,
+  makeTransaction,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 class MockResizeObserver {
   callback: ResizeObserverCallback;
@@ -48,7 +43,7 @@ class MockResizeObserver {
         {
           target: element,
           // @ts-expect-error partial mock
-          contentRect: {width: 1000, height: 24 * 10 - 1},
+          contentRect: {width: 1000, height: 24 * 20 - 1},
         },
       ],
       this
@@ -59,6 +54,34 @@ class MockResizeObserver {
 
 type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
 type ResponseType = Arguments<typeof MockApiClient.addMockResponse>[0];
+
+function mockQueryString(queryString: string) {
+  Object.defineProperty(window, 'location', {
+    value: {
+      search: queryString,
+    },
+  });
+}
+
+function mockTracePreferences(preferences: Partial<TracePreferencesState>) {
+  const merged: TracePreferencesState = {
+    ...DEFAULT_TRACE_VIEW_PREFERENCES,
+    ...preferences,
+    autogroup: {
+      ...DEFAULT_TRACE_VIEW_PREFERENCES.autogroup,
+      ...preferences.autogroup,
+    },
+    drawer: {
+      ...DEFAULT_TRACE_VIEW_PREFERENCES.drawer,
+      ...preferences.drawer,
+    },
+    list: {
+      ...DEFAULT_TRACE_VIEW_PREFERENCES.list,
+      ...preferences.list,
+    },
+  };
+  localStorage.setItem('trace-view-preferences', JSON.stringify(merged));
+}
 
 function mockTraceResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
@@ -156,41 +179,25 @@ function mockSpansResponse(
   });
 }
 
-let sid = -1;
-let tid = -1;
-const span_id = () => `${++sid}`;
-const txn_id = () => `${++tid}`;
+function mockTransactionSpansResponse(
+  id: string,
+  resp?: Partial<ResponseType>,
+  body: Partial<EventTransaction> = {}
+) {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/events/project_slug:${id}/`,
+    method: 'GET',
+    asyncDelay: 1,
+    body,
+    ...(resp ?? {}),
+  });
+}
 
 const {router} = initializeOrg({
   router: {
     params: {orgId: 'org-slug', traceSlug: 'trace-id'},
   },
 });
-
-function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullDetailed {
-  const t = txn_id();
-  const s = span_id();
-  return {
-    children: [],
-    event_id: t,
-    parent_event_id: 'parent_event_id',
-    parent_span_id: 'parent_span_id',
-    start_timestamp: 0,
-    timestamp: 1,
-    generation: 0,
-    span_id: s,
-    sdk_name: 'sdk_name',
-    'transaction.duration': 1,
-    transaction: 'transaction-name' + t,
-    'transaction.op': 'transaction-op-' + t,
-    'transaction.status': '',
-    project_id: 0,
-    project_slug: 'project_slug',
-    errors: [],
-    performance_issues: [],
-    ...overrides,
-  };
-}
 
 function mockMetricsResponse() {
   MockApiClient.addMockResponse({
@@ -201,28 +208,6 @@ function mockMetricsResponse() {
       queries: [],
     },
   });
-}
-
-function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): Event {
-  return {
-    entries: [{type: EntryType.SPANS, data: spans}],
-    ...overrides,
-  } as Event;
-}
-
-function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
-  return {
-    span_id: '',
-    op: '',
-    description: '',
-    start_timestamp: 0,
-    timestamp: 10,
-    data: {},
-    trace_id: '',
-    childTransactions: [],
-    event: makeEvent() as EventTransaction,
-    ...overrides,
-  };
 }
 
 function getVirtualizedContainer(): HTMLElement {
@@ -251,8 +236,9 @@ async function keyboardNavigationTestSetup() {
       makeTransaction({
         span_id: i + '',
         event_id: i + '',
-        transaction: 'transaction-name' + i,
+        transaction: 'transaction-name-' + i,
         'transaction.op': 'transaction-op-' + i,
+        project_slug: 'project_slug',
       })
     );
     mockTransactionDetailsResponse(i.toString());
@@ -290,21 +276,83 @@ async function keyboardNavigationTestSetup() {
 }
 
 async function pageloadTestSetup() {
-  const keyboard_navigation_transactions: TraceFullDetailed[] = [];
-  for (let i = 0; i < 1e4; i++) {
-    keyboard_navigation_transactions.push(
+  const pageloadTransactions: TraceFullDetailed[] = [];
+  for (let i = 0; i < 1e3; i++) {
+    pageloadTransactions.push(
       makeTransaction({
         span_id: i + '',
         event_id: i + '',
-        transaction: 'transaction-name' + i,
+        transaction: 'transaction-name-' + i,
         'transaction.op': 'transaction-op-' + i,
+        project_slug: 'project_slug',
       })
     );
     mockTransactionDetailsResponse(i.toString());
   }
   mockTraceResponse({
     body: {
-      transactions: keyboard_navigation_transactions,
+      transactions: pageloadTransactions,
+      orphan_errors: [],
+    },
+  });
+  mockTraceMetaResponse({
+    body: {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+      transaction_child_count_map: pageloadTransactions.map(t => ({
+        'transaction.id': t.event_id,
+        count: 5,
+      })),
+    },
+  });
+  mockTraceRootFacets();
+  mockTraceRootEvent('0');
+  mockTraceEventDetails();
+  mockMetricsResponse();
+
+  const value = render(<TraceView />, {router});
+  const virtualizedContainer = getVirtualizedContainer();
+  const virtualizedScrollContainer = getVirtualizedScrollContainer();
+
+  // Awaits for the placeholder rendering rows to be removed
+  expect((await screen.findAllByText(/transaction-op-/i)).length).toBeGreaterThan(0);
+  return {...value, virtualizedContainer, virtualizedScrollContainer};
+}
+
+async function nestedTransactionsTestSetup() {
+  const transactions: TraceFullDetailed[] = [];
+
+  let txn = makeTransaction({
+    span_id: '0',
+    event_id: '0',
+    transaction: 'transaction-name-0',
+    'transaction.op': 'transaction-op-0',
+    project_slug: 'project_slug',
+  });
+
+  transactions.push(txn);
+
+  for (let i = 0; i < 100; i++) {
+    const next = makeTransaction({
+      span_id: i + '',
+      event_id: i + '',
+      transaction: 'transaction-name-' + i,
+      'transaction.op': 'transaction-op-' + i,
+      project_slug: 'project_slug',
+    });
+
+    txn.children.push(next);
+    txn = next;
+    transactions.push(next);
+
+    mockTransactionDetailsResponse(i.toString());
+  }
+
+  mockTraceResponse({
+    body: {
+      transactions: transactions,
       orphan_errors: [],
     },
   });
@@ -332,6 +380,7 @@ async function searchTestSetup() {
         event_id: i + '',
         transaction: 'transaction-name' + i,
         'transaction.op': 'transaction-op-' + i,
+        project_slug: 'project_slug',
       })
     );
     mockTransactionDetailsResponse(i.toString());
@@ -342,7 +391,20 @@ async function searchTestSetup() {
       orphan_errors: [],
     },
   });
-  mockTraceMetaResponse();
+
+  mockTraceMetaResponse({
+    body: {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+      transaction_child_count_map: transactions.map(t => ({
+        'transaction.id': t.event_id,
+        count: 5,
+      })),
+    },
+  });
+
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
@@ -366,6 +428,7 @@ async function simpleTestSetup() {
       event_id: i + '',
       transaction: 'transaction-name' + i,
       'transaction.op': 'transaction-op-' + i,
+      project_slug: 'project_slug',
     });
 
     if (parent) {
@@ -382,7 +445,18 @@ async function simpleTestSetup() {
       orphan_errors: [],
     },
   });
-  mockTraceMetaResponse();
+  mockTraceMetaResponse({
+    body: {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+      transaction_child_count_map: transactions.map(t => ({
+        'transaction.id': t.event_id,
+        count: 5,
+      })),
+    },
+  });
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
@@ -397,21 +471,221 @@ async function simpleTestSetup() {
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
+async function completeTestSetup() {
+  const start = Date.now() / 1e3;
+
+  mockTraceResponse({
+    body: {
+      transactions: [
+        makeTransaction({
+          event_id: '0',
+          transaction: 'transaction-name-0',
+          'transaction.op': 'transaction-op-0',
+          project_slug: 'project_slug',
+          start_timestamp: start,
+          timestamp: start + 2,
+          children: [
+            makeTransaction({
+              event_id: '1',
+              transaction: 'transaction-name-1',
+              'transaction.op': 'transaction-op-1',
+              project_slug: 'project_slug',
+              start_timestamp: start,
+              timestamp: start + 2,
+            }),
+          ],
+        }),
+        makeTransaction({
+          event_id: '2',
+          transaction: 'transaction-name-2',
+          'transaction.op': 'transaction-op-2',
+          project_slug: 'project_slug',
+          start_timestamp: start,
+          timestamp: start + 2,
+        }),
+        makeTransaction({
+          event_id: '3',
+          transaction: 'transaction-name-3',
+          'transaction.op': 'transaction-op-3',
+          project_slug: 'project_slug',
+          start_timestamp: start,
+          timestamp: start + 2,
+        }),
+      ],
+      orphan_errors: [
+        makeTraceError({
+          event_id: 'error0',
+          issue: 'error-issue',
+          project_id: 0,
+          project_slug: 'project_slug',
+          issue_id: 0,
+          title: 'error-title',
+          level: 'fatal',
+          timestamp: start + 2,
+        }),
+      ],
+    },
+  });
+  mockTraceMetaResponse({
+    body: {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+      transaction_child_count_map: [
+        {
+          'transaction.id': '0',
+          count: 2,
+        },
+        {
+          'transaction.id': '1',
+          count: 2,
+        },
+        {
+          'transaction.id': '2',
+          count: 2,
+        },
+        {
+          'transaction.id': '3',
+          count: 2,
+        },
+      ],
+    },
+  });
+  mockTraceRootFacets();
+  mockTraceRootEvent('0');
+  mockTraceEventDetails();
+  mockMetricsResponse();
+
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/events/project_slug:error0/',
+    body: {
+      tags: [],
+      contexts: {},
+      entries: [],
+    },
+  });
+
+  const transactionWithSpans = makeEventTransaction({
+    entries: [
+      {
+        type: EntryType.SPANS,
+        data: [
+          makeSpan({
+            span_id: 'span0',
+            op: 'http',
+            description: 'request',
+            start_timestamp: start,
+            timestamp: start + 0.1,
+          }),
+          // Parent autogroup chain
+          makeSpan({
+            op: 'db',
+            description: 'redis',
+            parent_span_id: 'span0',
+            span_id: 'redis0',
+            start_timestamp: start + 0.1,
+            timestamp: start + 0.2,
+          }),
+          makeSpan({
+            op: 'db',
+            description: 'redis',
+            parent_span_id: 'redis0',
+            span_id: 'redis1',
+            start_timestamp: start + 0.2,
+            timestamp: start + 0.3,
+          }),
+          // Sibling autogroup chain
+          makeSpan({
+            op: 'http',
+            description: 'request',
+            parent_span_id: 'span0',
+            span_id: 'http0',
+            start_timestamp: start + 0.3,
+            timestamp: start + 0.4,
+          }),
+          makeSpan({
+            op: 'http',
+            description: 'request',
+            parent_span_id: 'span0',
+            span_id: 'http1',
+            start_timestamp: start + 0.4,
+            timestamp: start + 0.5,
+          }),
+          makeSpan({
+            op: 'http',
+            description: 'request',
+            parent_span_id: 'span0',
+            span_id: 'http2',
+            start_timestamp: start + 0.5,
+            timestamp: start + 0.6,
+          }),
+          makeSpan({
+            op: 'http',
+            description: 'request',
+            parent_span_id: 'span0',
+            span_id: 'http3',
+            start_timestamp: start + 0.6,
+            timestamp: start + 0.7,
+          }),
+          makeSpan({
+            op: 'http',
+            description: 'request',
+            parent_span_id: 'span0',
+            span_id: 'http4',
+            start_timestamp: start + 0.7,
+            timestamp: start + 0.8,
+          }),
+          // Missing instrumentation gap
+          makeSpan({
+            op: 'queue',
+            description: 'process',
+            parent_span_id: 'span0',
+            span_id: 'queueprocess0',
+            start_timestamp: start + 0.8,
+            timestamp: start + 0.9,
+          }),
+          makeSpan({
+            op: 'queue',
+            description: 'process',
+            parent_span_id: 'span0',
+            span_id: 'queueprocess1',
+            start_timestamp: start + 1.1,
+            timestamp: start + 1.2,
+          }),
+        ],
+      },
+    ],
+  });
+
+  const transactionWithoutSpans = makeEventTransaction({});
+
+  mockTransactionSpansResponse('1', {}, transactionWithSpans);
+  mockSpansResponse('1', {}, transactionWithSpans);
+  // Mock empty response for txn without spans
+  mockTransactionSpansResponse('0', {}, transactionWithoutSpans);
+  mockSpansResponse('0', {}, transactionWithoutSpans);
+
+  const value = render(<TraceView />, {router});
+  const virtualizedContainer = getVirtualizedContainer();
+  const virtualizedScrollContainer = getVirtualizedScrollContainer();
+
+  // Awaits for the placeholder rendering rows to be removed
+  expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();
+  return {...value, virtualizedContainer, virtualizedScrollContainer};
+}
+
 const DRAWER_TABS_TEST_ID = 'trace-drawer-tab';
 const DRAWER_TABS_PIN_BUTTON_TEST_ID = 'trace-drawer-tab-pin-button';
-
-// @ts-expect-error ignore this line
-// eslint-disable-next-line
-const DRAWER_TABS_CONTAINER_TEST_ID = 'trace-drawer-tabs';
 const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
 const ACTIVE_SEARCH_HIGHLIGHT_ROW = '.TraceRow.SearchResult.Highlight:not(.Hidden)';
+
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const searchToUpdate = async (): Promise<void> => {
   await wait(500);
 };
-
 const scrollToEnd = async (): Promise<void> => {
-  await wait(1000);
+  await wait(500);
 };
 
 // @ts-expect-error ignore this line
@@ -422,23 +696,43 @@ function printVirtualizedList(container: HTMLElement) {
     'trace-virtualized-list-scroll-container'
   )!;
 
-  stdout.push(
-    'top:' + scrollContainer.scrollTop + ' ' + 'left:' + scrollContainer.scrollLeft
-  );
-  stdout.push('///////////////////');
   const rows = Array.from(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
+  const searchResultIterator = screen.queryByTestId('trace-search-result-iterator');
+  stdout.push(
+    'Scroll Container: ' +
+      'top=' +
+      scrollContainer.scrollTop +
+      ' ' +
+      'left=' +
+      scrollContainer.scrollLeft +
+      ' ' +
+      rows.length +
+      ' ' +
+      'Search:' +
+      (searchResultIterator?.textContent ?? '')
+  );
 
   for (const r of [...rows]) {
-    let t = r.textContent ?? '';
+    const count = (r.querySelector('.TraceChildrenCount') as HTMLElement)?.textContent;
+    const op = (r.querySelector('.TraceOperation') as HTMLElement)?.textContent;
+    const desc = (r.querySelector('.TraceDescription') as HTMLElement)?.textContent;
+    let t = (count ?? '') + ' ' + (op ?? '') + ' — ' + (desc ?? '');
 
     if (r.classList.contains('SearchResult')) {
-      t = 'search ' + t;
+      t = t + ' search';
     }
     if (r.classList.contains('Highlight')) {
-      t = 'highlight ' + t;
+      t = t + ' highlight';
     }
 
-    stdout.push(t);
+    if (document.activeElement === r) {
+      t = t + ' ⬅ focused ';
+    }
+
+    const leftColumn = r.querySelector('.TraceLeftColumnInner') as HTMLElement;
+    const left = Math.round(parseInt(leftColumn.style.paddingLeft, 10) / 10);
+
+    stdout.push(' '.repeat(left) + t);
   }
 
   // This is a debug fn, we need it to log
@@ -474,24 +768,15 @@ function assertHighlightedRowAtIndex(virtualizedContainer: HTMLElement, index: n
 
 describe('trace view', () => {
   beforeEach(() => {
-    globalThis.ResizeObserver = MockResizeObserver as any;
-
-    // We are having replay errors about invalid stylesheets, though the CSS seems valid
     jest.spyOn(console, 'error').mockImplementation(() => {});
-
-    Object.defineProperty(window, 'location', {
-      value: {
-        search: '',
-      },
-    });
-
+    globalThis.ResizeObserver = MockResizeObserver as any;
+    mockQueryString('');
     MockDate.reset();
   });
   afterEach(() => {
+    mockQueryString('');
     // @ts-expect-error clear mock
     globalThis.ResizeObserver = undefined;
-    // @ts-expect-error override it
-    window.location = new URL('http://localhost/');
   });
 
   it('renders loading state', async () => {
@@ -503,8 +788,23 @@ describe('trace view', () => {
     expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
   });
 
-  it('renders error state', async () => {
+  it('renders error state if trace fails to load', async () => {
     mockTraceResponse({statusCode: 404});
+    mockTraceMetaResponse({statusCode: 404});
+    mockTraceTagsResponse({statusCode: 404});
+
+    render(<TraceView />, {router});
+    expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
+  });
+
+  it('renders error state if meta fails to load', async () => {
+    mockTraceResponse({
+      statusCode: 200,
+      body: {
+        transactions: [makeTransaction()],
+        orphan_errors: [],
+      },
+    });
     mockTraceMetaResponse({statusCode: 404});
     mockTraceTagsResponse({statusCode: 404});
 
@@ -528,166 +828,260 @@ describe('trace view', () => {
     ).toBeInTheDocument();
   });
 
-  // biome-ignore lint/suspicious/noSkippedTests: Flaky suite times out waiting for `pageloadTestSetup()`
-  describe.skip('pageload', () => {
-    it('highlights row at load and sets it as focused', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?node=txn-5',
-        },
+  describe('pageload', () => {
+    it('scrolls to trace root', async () => {
+      mockQueryString('?node=trace-root');
+      const {virtualizedContainer} = await completeTestSetup();
+      await waitFor(() => {
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[0]).toHaveFocus();
       });
-      const {virtualizedContainer} = await pageloadTestSetup();
+    });
 
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'transaction-op-5'
-      );
+    it('scrolls to transaction', async () => {
+      mockQueryString('?node=txn-1');
+      const {virtualizedContainer} = await completeTestSetup();
+      await waitFor(() => {
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[2]).toHaveFocus();
+      });
+    });
+
+    it('scrolls to span that is a child of transaction', async () => {
+      mockQueryString('?node=span-span0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      await waitFor(() => {
+        // We need to await a tick because the row is not focused until the next tick
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[3]).toHaveFocus();
+        expect(rows[3].textContent?.includes('http — request')).toBe(true);
+      });
+    });
+
+    it('scrolls to parent autogroup node', async () => {
+      mockQueryString('?node=ag-redis0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      await waitFor(() => {
+        // We need to await a tick because the row is not focused until the next tick
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[4]).toHaveFocus();
+        expect(rows[4].textContent?.includes('Autogrouped')).toBe(true);
+      });
+    });
+    it('scrolls to child of parent autogroup node', async () => {
+      mockQueryString('?node=span-redis0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      await waitFor(() => {
+        // We need to await a tick because the row is not focused until the next tick
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[5]).toHaveFocus();
+        expect(rows[5].textContent?.includes('db — redis')).toBe(true);
+      });
+    });
+
+    it('scrolls to sibling autogroup node', async () => {
+      mockQueryString('?node=ag-http0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+      await waitFor(() => {
+        // We need to await a tick because the row is not focused until the next tick
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[5]).toHaveFocus();
+        expect(rows[5].textContent?.includes('5Autogrouped')).toBe(true);
+      });
+    });
+
+    it('scrolls to child of sibling autogroup node', async () => {
+      mockQueryString('?node=span-http0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      await waitFor(() => {
+        // We need to await a tick because the row is not focused until the next tick
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[6]).toHaveFocus();
+        expect(rows[6].textContent?.includes('http — request')).toBe(true);
+      });
+    });
+
+    it('scrolls to missing instrumentation node', async () => {
+      mockQueryString('?node=ms-queueprocess0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      // We need to await a tick because the row is not focused until the next ticks
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      expect(rows[6]).toHaveFocus();
-    });
-    it('scrolls at transaction span', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?node=span-5&node=txn-5',
-        },
-      });
-
-      mockSpansResponse(
-        '5',
-        {},
-        {
-          entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '5', op: 'special-span'})],
-            },
-          ],
-        }
-      );
-
-      const {virtualizedContainer} = await pageloadTestSetup();
-
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'special-span'
-      );
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      expect(rows[7]).toHaveFocus();
-    });
-    it('scrolls far down the list of transactions', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?node=txn-500',
-        },
-      });
-
-      await pageloadTestSetup();
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'transaction-op-500'
-      );
-
-      await act(async () => {
-        await wait(1000);
-      });
 
       await waitFor(() => {
-        expect(document.activeElement).toHaveClass('TraceRow');
-        expect(
-          document.activeElement?.textContent?.includes('transaction-op-500')
-        ).toBeTruthy();
+        expect(rows[7]).toHaveFocus();
+        expect(rows[7].textContent?.includes('Missing instrumentation')).toBe(true);
       });
     });
-    it('scrolls to event id query param and fetches its spans', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?eventId=500',
-        },
-      });
 
-      const spanRequest = mockSpansResponse(
-        '500',
-        {},
-        {
-          entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '1', op: 'special-span'})],
-            },
-          ],
-        }
-      );
+    it('scrolls to trace error node', async () => {
+      mockQueryString('?node=error-error0&node=txn-1');
 
-      await pageloadTestSetup();
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'transaction-op-500'
-      );
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
 
       await waitFor(() => {
-        expect(document.activeElement).toHaveClass('TraceRow');
-        expect(
-          document.activeElement?.textContent?.includes('transaction-op-500')
-        ).toBeTruthy();
+        // We need to await a tick because the row is not focused until the next ticks
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[11]).toHaveFocus();
+        expect(rows[11].textContent?.includes('error-title')).toBe(true);
       });
-
-      expect(spanRequest).toHaveBeenCalledTimes(1);
-      expect(await screen.findByText('special-span')).toBeInTheDocument();
     });
-    it('logs if path is not found', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?eventId=bad_value',
-        },
-      });
-      const sentrySpy = jest.spyOn(Sentry, 'captureMessage');
-      await pageloadTestSetup();
+
+    it('scrolls to event id query param', async () => {
+      mockQueryString('?eventId=1');
+      const {virtualizedContainer} = await completeTestSetup();
+
       await waitFor(() => {
-        expect(sentrySpy).toHaveBeenCalledWith(
-          'Failed to find and scroll to node in tree'
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[2]).toHaveFocus();
+      });
+    });
+
+    it('supports expanded node path', async () => {
+      mockQueryString('?node=span-span0&node=txn-1&span-0&node=txn-0');
+      const {virtualizedContainer} = await completeTestSetup();
+      await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      await waitFor(() => {
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[3]).toHaveFocus();
+        expect(rows[3].textContent?.includes('http — request')).toBe(true);
+      });
+    });
+
+    it.each([
+      '?eventId=doesnotexist',
+      '?node=txn-doesnotexist',
+      // Invalid path
+      '?node=span-does-notexist',
+    ])('logs if path is not found: %s', async path => {
+      mockQueryString(path);
+
+      const sentryScopeMock = {
+        setFingerprint: jest.fn(),
+        captureMessage: jest.fn(),
+      } as any;
+
+      jest.spyOn(Sentry, 'withScope').mockImplementation((f: any) => f(sentryScopeMock));
+      await pageloadTestSetup();
+
+      await waitFor(() => {
+        expect(sentryScopeMock.captureMessage).toHaveBeenCalledWith(
+          'Failed to scroll to node in trace tree'
         );
       });
     });
 
-    it('triggers search on load', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?search=transaction-op-5',
-        },
+    it('does not autogroup if user preference is disabled', async () => {
+      mockTracePreferences({autogroup: {parent: false, sibling: false}});
+      mockQueryString('?node=span-span0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+
+      await findAllByText(virtualizedContainer, /process/i);
+      expect(screen.queryByText(/Autogrouped/i)).not.toBeInTheDocument();
+    });
+
+    it('does not inject missing instrumentation if user preference is disabled', async () => {
+      mockTracePreferences({missing_instrumentation: false});
+      mockQueryString('?node=span-span0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+
+      await findAllByText(virtualizedContainer, /process/i);
+      expect(screen.queryByText(/Missing instrumentation/i)).not.toBeInTheDocument();
+    });
+
+    describe('preferences', () => {
+      it('toggles autogrouping', async () => {
+        mockTracePreferences({autogroup: {parent: true, sibling: true}});
+        mockQueryString('?node=span-span0&node=txn-1');
+
+        const {virtualizedContainer} = await completeTestSetup();
+        await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+        const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
+        await userEvent.click(preferencesDropdownTrigger);
+
+        // Toggle autogrouping off
+        await userEvent.click(await screen.findByText('Autogrouping'));
+        await waitFor(() => {
+          expect(screen.queryByText('Autogrouped')).not.toBeInTheDocument();
+        });
+
+        // Toggle autogrouping on
+        await userEvent.click(await screen.findByText('Autogrouping'));
+        await waitFor(() => {
+          expect(screen.queryAllByText('Autogrouped')).toHaveLength(2);
+        });
       });
-      await pageloadTestSetup();
 
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      expect(searchInput).toHaveValue('transaction-op-5');
+      it('toggles missing instrumentation', async () => {
+        mockTracePreferences({missing_instrumentation: true});
+        mockQueryString('?node=span-span0&node=txn-1');
 
-      await waitFor(() => {
-        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
-          '1/1'
+        const {virtualizedContainer} = await completeTestSetup();
+        await findAllByText(virtualizedContainer, /Missing instrumentation/i);
+
+        const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
+
+        // Toggle missing instrumentation off
+        await userEvent.click(preferencesDropdownTrigger);
+        const missingInstrumentationOption = await screen.findByText(
+          'Missing Instrumentation'
         );
+
+        // Toggle missing instrumentation off
+        await userEvent.click(missingInstrumentationOption);
+        await waitFor(() => {
+          expect(screen.queryByText('Missing instrumentation')).not.toBeInTheDocument();
+        });
+
+        // Toggle missing instrumentation on
+        await userEvent.click(missingInstrumentationOption);
+        await waitFor(() => {
+          expect(screen.queryByText('Missing instrumentation')).toBeInTheDocument();
+        });
       });
     });
-    it('triggers search on load but does not steal focus from node param', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?search=transaction-op-9999&node=txn-0',
-        },
-      });
-      const {container} = await pageloadTestSetup();
+
+    // biome-ignore lint/suspicious/noSkippedTests: <Flaky test>
+    it.skip('triggers search on load but does not steal focus from node param', async () => {
+      mockQueryString('?search=transaction-op-999&node=txn-0');
+
+      const {virtualizedContainer} = await pageloadTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      expect(searchInput).toHaveValue('transaction-op-9999');
+      expect(searchInput).toHaveValue('transaction-op-999');
 
       await waitFor(() => {
-        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
           '-/1'
         );
       });
 
-      const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       expect(rows[1]).toHaveFocus();
     });
 
     it('if search on load does not match anything, it does not steal focus or highlight first result', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: '?search=dead&node=txn-5',
-        },
-      });
+      mockQueryString('?search=dead&node=txn-5');
       const {container} = await pageloadTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       expect(searchInput).toHaveValue('dead');
@@ -724,8 +1118,7 @@ describe('trace view', () => {
       await userEvent.keyboard('{arrowup}');
       await waitFor(() => expect(rows[0]).toHaveFocus());
     });
-    // biome-ignore lint/suspicious/noSkippedTests: Flaky test
-    it.skip('arrow right expands row and fetches data', async () => {
+    it('arrow right expands row and fetches data', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
 
@@ -742,13 +1135,16 @@ describe('trace view', () => {
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
       await userEvent.keyboard('{arrowright}');
-      expect(await screen.findByText('special-span')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByText('special-span')).toBeInTheDocument();
+      });
     });
+
     it('arrow left collapses row', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
 
-      mockSpansResponse(
+      const request = mockSpansResponse(
         '0',
         {},
         {
@@ -761,9 +1157,33 @@ describe('trace view', () => {
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
       await userEvent.keyboard('{arrowright}');
+      expect(request).toHaveBeenCalledTimes(1);
+
       expect(await screen.findByText('special-span')).toBeInTheDocument();
       await userEvent.keyboard('{arrowleft}');
       expect(screen.queryByText('special-span')).not.toBeInTheDocument();
+    });
+
+    it('arrow left does not collapse trace root row', async () => {
+      const {virtualizedContainer} = await keyboardNavigationTestSetup();
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+
+      await userEvent.click(rows[0]);
+      await waitFor(() => expect(rows[0]).toHaveFocus());
+
+      await userEvent.keyboard('{arrowleft}');
+      expect(await screen.findByText('transaction-name-1')).toBeInTheDocument();
+    });
+
+    it('arrow left on transaction row still renders transaction children', async () => {
+      const {virtualizedContainer} = await nestedTransactionsTestSetup();
+      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+
+      await userEvent.click(rows[1]);
+      await waitFor(() => expect(rows[1]).toHaveFocus());
+
+      await userEvent.keyboard('{arrowleft}');
+      expect(await screen.findByText('transaction-name-2')).toBeInTheDocument();
     });
 
     it('roving updates the element in the drawer', async () => {
@@ -802,7 +1222,7 @@ describe('trace view', () => {
       );
     });
 
-    it('arrowup on first node jumps to start', async () => {
+    it('arrowup on first node jumps to end', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
@@ -955,9 +1375,9 @@ describe('trace view', () => {
 
       for (const action of [
         // starting at the top, jumpt bottom with shift+arrowdown
-        ['{Shift>}{arrowdown}{/Shift}', 9],
+        ['{Shift>}{arrowdown}{/Shift}', 11],
         // // move to row above with arrowup
-        ['{arrowup}', 8],
+        ['{arrowup}', 10],
         // // and jump back to top with shift+arrowup
         ['{Shift>}{arrowup}{/Shift}', 1],
         // // // and jump to next row with arrowdown
@@ -973,10 +1393,7 @@ describe('trace view', () => {
         });
       }
     });
-    // @TODO I am torn on this because left-right
-    // should probably also move the input cursor...
-    // it.todo("supports expanding with arrowright")
-    // it.todo("supports collapsing with arrowleft")
+
     it('search roving updates the element in the drawer', async () => {
       await searchTestSetup();
 
@@ -1018,7 +1435,7 @@ describe('trace view', () => {
       await searchToUpdate();
 
       await waitFor(() => {
-        assertHighlightedRowAtIndex(container, 9);
+        assertHighlightedRowAtIndex(container, 11);
       });
     });
     it('highlighted is persisted on node while it is part of the search results', async () => {
@@ -1111,24 +1528,28 @@ describe('trace view', () => {
               event_id: '0',
               transaction: 'transaction-name-0',
               'transaction.op': 'transaction-op-0',
+              project_slug: 'project_slug',
             }),
             makeTransaction({
               span_id: '1',
               event_id: '1',
               transaction: 'transaction-name-1',
               'transaction.op': 'transaction-op-1',
+              project_slug: 'project_slug',
             }),
             makeTransaction({
               span_id: '2',
               event_id: '2',
               transaction: 'transaction-name-2',
               'transaction.op': 'transaction-op-2',
+              project_slug: 'project_slug',
             }),
             makeTransaction({
               span_id: '3',
               event_id: '3',
               transaction: 'transaction-name-3',
               'transaction.op': 'transaction-op-3',
+              project_slug: 'project_slug',
             }),
           ],
           orphan_errors: [],
@@ -1177,10 +1598,10 @@ describe('trace view', () => {
         }
       );
 
-      const value = render(<TraceView />, {router});
+      const {container} = render(<TraceView />, {router});
 
       // Awaits for the placeholder rendering rows to be removed
-      expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();
+      expect(await findByText(container, /transaction-op-0/i)).toBeInTheDocument();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.click(searchInput);
@@ -1188,25 +1609,29 @@ describe('trace view', () => {
       fireEvent.change(searchInput, {target: {value: 'op-0'}});
       await searchToUpdate();
 
-      expect(await screen.findByTestId('trace-search-result-iterator')).toHaveTextContent(
-        '1/1'
-      );
+      await waitFor(() => {
+        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '1/1'
+        );
+      });
 
-      const highlighted_row = value.container.querySelector(ACTIVE_SEARCH_HIGHLIGHT_ROW);
       const open = await screen.findAllByRole('button', {name: '+'});
       await userEvent.click(open[0]);
-      expect(await screen.findByText('span-description')).toBeInTheDocument();
-      await searchToUpdate();
 
+      await waitFor(() => {
+        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '1/1'
+        );
+      });
+
+      expect(await screen.findByText('span-description')).toBeInTheDocument();
       expect(spansRequest).toHaveBeenCalled();
 
-      // The search is retriggered, but highlighting of current row is preserved
-      expect(value.container.querySelector(ACTIVE_SEARCH_HIGHLIGHT_ROW)).toBe(
-        highlighted_row
-      );
-      expect(await screen.findByTestId('trace-search-result-iterator')).toHaveTextContent(
-        '1/2'
-      );
+      await waitFor(() => {
+        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '1/2'
+        );
+      });
     });
 
     it('during search, highlighting is persisted on the row', async () => {
@@ -1251,9 +1676,7 @@ describe('trace view', () => {
   });
 
   describe('tabbing', () => {
-    beforeEach(() => {
-      jest.spyOn(console, 'error').mockImplementation();
-    });
+    beforeEach(() => {});
     afterEach(() => {
       jest.restoreAllMocks();
     });
@@ -1267,6 +1690,7 @@ describe('trace view', () => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });
     });
+
     it('clicking on a node replaces the previously selected tab', async () => {
       const {virtualizedContainer} = await simpleTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);

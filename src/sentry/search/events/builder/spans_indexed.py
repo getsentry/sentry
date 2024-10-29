@@ -11,7 +11,6 @@ from sentry.search.events.datasets.spans_indexed import (
 )
 from sentry.search.events.fields import custom_time_processor
 from sentry.search.events.types import SelectType
-from sentry.snuba.dataset import Dataset
 
 SPAN_UUID_FIELDS = {
     "trace",
@@ -55,9 +54,9 @@ class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.value_resolver_map[
-            constants.SPAN_STATUS
-        ] = lambda status: SPAN_STATUS_CODE_TO_NAME.get(status)
+        self.value_resolver_map[constants.SPAN_STATUS] = (
+            lambda status: SPAN_STATUS_CODE_TO_NAME.get(status)
+        )
 
 
 class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
@@ -68,11 +67,6 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-    def _get_dataset_name(self) -> str:
-        if self.dataset == Dataset.SpansEAP:
-            return "events_analytics_platform"
-        return self.dataset.value
 
     def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         # try the typed regex first
@@ -89,33 +83,7 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
             # attr field is less permissive than tags, we can't have - in them
             or "-" in field
         ):
-            # Temporary until at least after 22 Dec 2024 when old data rotates out, otherwise we should just call super
-            # here and return default_field without any extra work
-            default_field = super().resolve_field(raw_field, alias)
-            if (
-                isinstance(default_field, Column)
-                and default_field.subscriptable == "attr_str"
-                or isinstance(default_field, AliasedExpression)
-                and default_field.exp.subscriptable == "attr_str"
-            ):
-                key = (
-                    default_field.key
-                    if isinstance(default_field, Column)
-                    else default_field.exp.key
-                )
-                unprefixed_field = Column(f"attr_str[{key}]")
-                prefixed_field = Column(f"attr_str[sentry.{key}]")
-                return Function(
-                    "if",
-                    [
-                        Function("mapContains", [Column("attr_str"), key]),
-                        unprefixed_field,
-                        prefixed_field,
-                    ],
-                    raw_field if alias else None,
-                )
-            else:
-                return default_field
+            return super().resolve_field(raw_field, alias)
 
         if field_type not in ["number", "string"]:
             raise InvalidSearchQuery(
@@ -123,33 +91,19 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
             )
 
         if field_type == "string":
-            attr_type = "attr_str"
             field_col = Column(f"attr_str[{field}]")
         else:
-            attr_type = "attr_num"
             field_col = Column(f"attr_num[{field}]")
 
         if alias:
             field_alias = f"tags_{field}@{field_type}"
+
             self.typed_tag_to_alias_map[raw_field] = field_alias
             self.alias_to_typed_tag_map[field_alias] = raw_field
-        else:
-            field_alias = None
 
-        # Temporary until at least after 22 Dec 2024 when old data rotates out
-        unprefixed_field = field_col
-        prefixed_field = Column(f"{attr_type}[sentry.{field}]")
-        col = Function(
-            "if",
-            [
-                Function("mapContains", [Column(attr_type), field]),
-                unprefixed_field,
-                prefixed_field,
-            ],
-            field_alias,
-        )
+            field_col = AliasedExpression(field_col, field_alias)
 
-        return col
+        return field_col
 
 
 class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TimeseriesQueryBuilder):

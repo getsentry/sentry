@@ -55,7 +55,7 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.ingest.config import is_in_transition, update_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
-    find_existing_grouphash,
+    find_grouphash_with_group,
     get_or_create_grouphashes,
     maybe_run_background_grouping,
     maybe_run_secondary_grouping,
@@ -65,9 +65,10 @@ from sentry.grouping.ingest.metrics import record_hash_calculation_metrics, reco
 from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
 from sentry.grouping.ingest.utils import (
     add_group_id_to_grouphashes,
-    check_for_category_mismatch,
     check_for_group_creation_load_shed,
+    is_non_error_type_group,
 )
+from sentry.grouping.variants import BaseVariant
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import ErrorGroupType
@@ -267,13 +268,13 @@ def has_pending_commit_resolution(group: Group) -> bool:
 
 
 @overload
-def get_max_crashreports(model: Project | Organization) -> int:
-    ...
+def get_max_crashreports(model: Project | Organization) -> int: ...
 
 
 @overload
-def get_max_crashreports(model: Project | Organization, *, allow_none: Literal[True]) -> int | None:
-    ...
+def get_max_crashreports(
+    model: Project | Organization, *, allow_none: Literal[True]
+) -> int | None: ...
 
 
 def get_max_crashreports(model: Project | Organization, *, allow_none: bool = False) -> int | None:
@@ -318,7 +319,9 @@ class ScoreClause(Func):
     def __int__(self):
         # Calculate the score manually when coercing to an int.
         # This is used within create_or_update and friends
-        return self.group.get_score() if self.group else 0
+
+        # XXX: Since removing the 'score' column from 'Group', this now always returns 0.
+        return 0
 
     def as_sql(
         self,
@@ -1290,21 +1293,7 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 
 
 @sentry_sdk.tracing.trace
-def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> GroupInfo | None:
-    group_info = _save_aggregate_new(
-        event=event,
-        job=job,
-        metric_tags=metric_tags,
-    )
-
-    if group_info:
-        event.group = group_info.group
-    job["groups"] = [group_info]
-
-    return group_info
-
-
-def _save_aggregate_new(
+def assign_event_to_group(
     event: Event,
     job: Job,
     metric_tags: MutableTags,
@@ -1319,7 +1308,8 @@ def _save_aggregate_new(
     if primary.existing_grouphash:
         group_info = handle_existing_grouphash(job, primary.existing_grouphash, primary.grouphashes)
         result = "found_primary"
-    # If we haven't, try again using the secondary config
+    # If we haven't, try again using the secondary config. (If there is no secondary config, or
+    # we're out of the transition period, we'll get back the empty `NULL_GROUPHASH_INFO`.)
     else:
         secondary = get_hashes_and_grouphashes(job, maybe_run_secondary_grouping, metric_tags)
         all_grouphashes = primary.grouphashes + secondary.grouphashes
@@ -1331,7 +1321,9 @@ def _save_aggregate_new(
             result = "found_secondary"
         # If we still haven't found a group, ask Seer for a match (if enabled for the project)
         else:
-            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(event, all_grouphashes)
+            seer_matched_grouphash = maybe_check_seer_for_matching_grouphash(
+                event, primary.variants, all_grouphashes
+            )
 
             if seer_matched_grouphash:
                 group_info = handle_existing_grouphash(job, seer_matched_grouphash, all_grouphashes)
@@ -1357,6 +1349,13 @@ def _save_aggregate_new(
     # erroneously create new groups.
     update_grouping_config_if_needed(project, "ingest")
 
+    # The only way there won't be group info is we matched to a performance, cron, replay, or
+    # other-non-error-type group because of a hash collision - exceedingly unlikely, and not
+    # something we've ever observed, but theoretically possible.
+    if group_info:
+        event.group = group_info.group
+    job["groups"] = [group_info]
+
     return group_info
 
 
@@ -1364,7 +1363,7 @@ def get_hashes_and_grouphashes(
     job: Job,
     hash_calculation_function: Callable[
         [Project, Job, MutableTags],
-        tuple[GroupingConfig, list[str]],
+        tuple[GroupingConfig, list[str], dict[str, BaseVariant]],
     ],
     metric_tags: MutableTags,
 ) -> GroupHashInfo:
@@ -1379,14 +1378,14 @@ def get_hashes_and_grouphashes(
     project = job["event"].project
 
     # These will come back as Nones if the calculation decides it doesn't need to run
-    grouping_config, hashes = hash_calculation_function(project, job, metric_tags)
+    grouping_config, hashes, variants = hash_calculation_function(project, job, metric_tags)
 
     if hashes:
-        grouphashes = get_or_create_grouphashes(project, hashes)
+        grouphashes = get_or_create_grouphashes(project, hashes, grouping_config["id"])
 
-        existing_grouphash = find_existing_grouphash(grouphashes)
+        existing_grouphash = find_grouphash_with_group(grouphashes)
 
-        return GroupHashInfo(grouping_config, hashes, grouphashes, existing_grouphash)
+        return GroupHashInfo(grouping_config, variants, hashes, grouphashes, existing_grouphash)
     else:
         return NULL_GROUPHASH_INFO
 
@@ -1416,12 +1415,16 @@ def handle_existing_grouphash(
     #    (otherwise the update would not change anything)
     #
     # We think this is a very unlikely situation. A previous version of
-    # _save_aggregate had races around group creation which made this race
+    # this function had races around group creation which made this race
     # more user visible. For more context, see 84c6f75a and d0e22787, as
     # well as GH-5085.
     group = Group.objects.get(id=existing_grouphash.group_id)
 
-    if check_for_category_mismatch(group):
+    # As far as we know this has never happened, but in theory at least, the error event hashing
+    # algorithm and other event hashing algorithms could come up with the same hash value in the
+    # same project and our hash could have matched to a non-error group. Just to be safe, we make
+    # sure that's not the case before proceeding.
+    if is_non_error_type_group(group):
         return None
 
     # There may still be hashes that we did not use to find an existing
@@ -1487,7 +1490,7 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
         # condition scenario above, we'll have been blocked long enough for the other event to
         # have created the group and updated our grouphashes with a group id, which means this
         # time, we'll find something.
-        existing_grouphash = find_existing_grouphash(grouphashes)
+        existing_grouphash = find_grouphash_with_group(grouphashes)
 
         # If we still haven't found a matching grouphash, we're now safe to go ahead and create
         # the group.
@@ -2612,30 +2615,63 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     organization_ids = {project.organization_id for project in projects.values()}
     organizations = {o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)}
 
-    for project in projects.values():
-        try:
-            project.set_cached_field_value("organization", organizations[project.organization_id])
-        except KeyError:
-            continue
+    with metrics.timer("save_transaction_events.set_organization_cached_field_values"):
+        for project in projects.values():
+            try:
+                project.set_cached_field_value(
+                    "organization", organizations[project.organization_id]
+                )
+            except KeyError:
+                continue
 
     set_measurement(measurement_name="jobs", value=len(jobs))
     set_measurement(measurement_name="projects", value=len(projects))
 
-    _get_or_create_release_many(jobs, projects)
-    _get_event_user_many(jobs, projects)
-    _derive_plugin_tags_many(jobs, projects)
-    _derive_interface_tags_many(jobs)
-    _calculate_span_grouping(jobs, projects)
-    _materialize_metadata_many(jobs)
-    _get_or_create_environment_many(jobs, projects)
-    _get_or_create_release_associated_models(jobs, projects)
-    _tsdb_record_all_metrics(jobs)
-    _materialize_event_metrics(jobs)
-    _nodestore_save_many(jobs=jobs, app_feature="transactions")
-    _eventstream_insert_many(jobs)
-    _track_outcome_accepted_many(jobs)
-    _detect_performance_problems(jobs, projects)
-    _send_occurrence_to_platform(jobs, projects)
+    with metrics.timer("save_transaction_events.get_or_create_release_many"):
+        _get_or_create_release_many(jobs, projects)
+
+    with metrics.timer("save_transaction_events.get_event_user_many"):
+        _get_event_user_many(jobs, projects)
+
+    with metrics.timer("save_transaction_events.derive_plugin_tags_many"):
+        _derive_plugin_tags_many(jobs, projects)
+
+    with metrics.timer("save_transaction_events.derive_interface_tags_many"):
+        _derive_interface_tags_many(jobs)
+
+    with metrics.timer("save_transaction_events.calculate_span_grouping"):
+        _calculate_span_grouping(jobs, projects)
+
+    with metrics.timer("save_transaction_events.materialize_metadata_many"):
+        _materialize_metadata_many(jobs)
+
+    with metrics.timer("save_transaction_events.get_or_create_environment_many"):
+        _get_or_create_environment_many(jobs, projects)
+
+    with metrics.timer("save_transaction_events.get_or_create_release_associated_models"):
+        _get_or_create_release_associated_models(jobs, projects)
+
+    with metrics.timer("save_transaction_events.tsdb_record_all_metrics"):
+        _tsdb_record_all_metrics(jobs)
+
+    with metrics.timer("save_transaction_events.materialize_event_metrics"):
+        _materialize_event_metrics(jobs)
+
+    with metrics.timer("save_transaction_events.nodestore_save_many"):
+        _nodestore_save_many(jobs=jobs, app_feature="transactions")
+
+    with metrics.timer("save_transaction_events.eventstream_insert_many"):
+        _eventstream_insert_many(jobs)
+
+    with metrics.timer("save_transaction_events.track_outcome_accepted_many"):
+        _track_outcome_accepted_many(jobs)
+
+    with metrics.timer("save_transaction_events.detect_performance_problems"):
+        _detect_performance_problems(jobs, projects)
+
+    with metrics.timer("save_transaction_events.send_occurrence_to_platform"):
+        _send_occurrence_to_platform(jobs, projects)
+
     return jobs
 
 

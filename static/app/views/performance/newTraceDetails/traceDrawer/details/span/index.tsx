@@ -14,14 +14,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
+import type {TraceTreeNodeDetailsProps} from '../../../traceDrawer/tabs/traceTreeNodeDetails';
+import type {TraceTree} from '../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 import {TraceDrawerComponents} from '.././styles';
 import {IssueList} from '../issues/issues';
 
@@ -48,9 +46,9 @@ function SpanNodeDetailHeader({
   return (
     <TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.Title>
-        <Tooltip title={span.event.projectSlug}>
+        <Tooltip title={node.event?.projectSlug}>
           <ProjectBadge
-            project={project ? project : {slug: span.event.projectSlug || ''}}
+            project={project ? project : {slug: node.event?.projectSlug ?? ''}}
             avatarSize={30}
             hideName
           />
@@ -83,8 +81,8 @@ export function SpanNodeDetails({
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
 
-  const project = projects.find(proj => proj.slug === node.value.event?.projectSlug);
-  const profileId = node.value.event?.contexts?.profile?.profile_id ?? null;
+  const project = projects.find(proj => proj.slug === node.event?.projectSlug);
+  const profileId = node.event?.contexts?.profile?.profile_id ?? null;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -94,10 +92,10 @@ export function SpanNodeDetails({
         project={project}
         onTabScrollToNode={onTabScrollToNode}
       />
-      {node.value.event.projectSlug ? (
+      {node.event?.projectSlug ? (
         <ProfilesProvider
           orgSlug={organization.slug}
-          projectSlug={node.value.event.projectSlug}
+          projectSlug={node.event?.projectSlug}
           profileId={profileId || ''}
         >
           <ProfileContext.Consumer>
@@ -138,9 +136,9 @@ export function SpanNodeDetails({
                     />
                   ) : null}
                 </TraceDrawerComponents.SectionCardGroup>
-                <EventContexts event={node.value.event} />
+                <EventContexts event={node.event!} />
                 {organization.features.includes('profiling') ? (
-                  <SpanProfileDetails span={node.value} event={node.value.event} />
+                  <SpanProfileDetails span={node.value} event={node.event!} />
                 ) : null}
               </ProfileGroupProvider>
             )}

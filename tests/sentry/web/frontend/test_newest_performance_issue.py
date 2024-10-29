@@ -99,11 +99,11 @@ class NewestIssueViewTest(TestCase, PerformanceIssueTestCase):
             manager.save(self.project1.id)
 
         domain = f"{self.org.slug}.testserver"
-        resp = self.client.get("/newest-performance-issue/", follow=True, SERVER_NAME=domain)
+        resp = self.client.get("/newest-performance-issue/", follow=True, HTTP_HOST=domain)
         assert resp.redirect_chain == [(f"http://{domain}/issues/{event1.group.id}/", 302)]
 
         self.login_as(self.owner)
-        resp = self.client.get("/newest-performance-issue/", follow=True, SERVER_NAME=domain)
+        resp = self.client.get("/newest-performance-issue/", follow=True, HTTP_HOST=domain)
         assert resp.redirect_chain == [(f"http://{domain}/issues/{event2.group.id}/", 302)]
 
     def test_no_performance_issue(self):

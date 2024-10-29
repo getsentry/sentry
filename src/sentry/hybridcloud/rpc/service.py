@@ -586,7 +586,7 @@ class _RemoteSiloCall:
         timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
         span = sentry_sdk.start_span(
             op="hybrid_cloud.dispatch_rpc",
-            description=f"rpc to {self.service_name}.{self.method_name}",
+            name=f"rpc to {self.service_name}.{self.method_name}",
         )
         with span, timer:
             yield

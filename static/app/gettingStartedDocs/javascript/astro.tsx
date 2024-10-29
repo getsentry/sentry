@@ -205,22 +205,6 @@ const onboarding: OnboardingConfig = {
       ),
       link: 'https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/',
     },
-    {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/astro/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/',
-    },
   ],
 };
 
@@ -234,7 +218,7 @@ const replayOnboarding: OnboardingConfig = {
   ],
   configure: (params: Params) => [
     {
-      type: StepType.CONFIGURE,
+      title: 'Configure Session Replay (Optional)',
       description: tct(
         'There are several privacy and sampling options available. Learn more about configuring Session Replay by reading the [link:configuration docs].',
         {
@@ -313,7 +297,7 @@ import * as Sentry from "@sentry/astro";`,
         },
       ],
       additionalInfo: <TracePropagationMessage />,
-      isOptional: true,
+      collapsible: true,
     },
   ],
   verify: getReplayVerifyStep(),

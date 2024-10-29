@@ -23,11 +23,6 @@ Job = MutableMapping[str, Any]
 CONFIGS_TO_DEPRECATE = ()
 
 
-# Used by getsentry script. Remove it once the script has been updated to call update_grouping_config_if_needed
-def update_grouping_config_if_permitted(project: Project) -> None:
-    update_grouping_config_if_needed(project, "script")
-
-
 def update_grouping_config_if_needed(project: Project, source: str) -> None:
     current_config = project.get_option("sentry:grouping_config")
     new_config = DEFAULT_GROUPING_CONFIG
@@ -53,8 +48,8 @@ def update_grouping_config_if_needed(project: Project, source: str) -> None:
         from sentry import audit_log
         from sentry.utils.audit import create_system_audit_entry
 
-        # This is when we will stop calculating both old hashes (which we do in an effort to
-        # preserve group continuity).
+        # This is when we will stop calculating the old hash in cases where we don't find the new
+        # hash (which we do in an effort to preserve group continuity).
         expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 
         changes: dict[str, str | int] = {"sentry:grouping_config": new_config}

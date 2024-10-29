@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,7 +11,6 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -28,11 +28,12 @@ describe('groupEvents', () => {
     routes: [],
     location: {},
     environments: [],
-    group: GroupFixture() as Group,
+    group: GroupFixture(),
+    project: ProjectFixture(),
   });
 
   let organization: Organization;
-  let router;
+  let router: ReturnType<typeof initializeOrg>['router'];
 
   beforeEach(() => {
     browserHistory.push = jest.fn();
@@ -150,38 +151,9 @@ describe('groupEvents', () => {
     expect(screen.getByText('sentry@sentry.sentry')).toBeInTheDocument();
   });
 
-  it('handles search', async () => {
+  it('pushes new query parameter when searching', async () => {
     render(<GroupEvents {...baseProps} location={{...location, query: {}}} />, {
       router,
-      organization,
-    });
-
-    const list = [
-      {searchTerm: '', expectedQuery: ''},
-      {searchTerm: 'test', expectedQuery: 'test'},
-      {searchTerm: 'environment:production test', expectedQuery: 'test'},
-    ];
-
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    const input = screen.getByPlaceholderText('Search for events, users, tags, and more');
-
-    for (const item of list) {
-      await userEvent.clear(input);
-      await userEvent.paste(`${item.searchTerm}`);
-      await userEvent.keyboard('[Enter>]');
-
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {query: item.expectedQuery},
-        })
-      );
-    }
-  });
-
-  it('pushes new query parameter when searching (issue-stream-search-query-builder)', async () => {
-    render(<GroupEvents {...baseProps} location={{...location, query: {}}} />, {
-      router,
-      organization: {...organization, features: ['issue-stream-search-query-builder']},
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -200,7 +172,7 @@ describe('groupEvents', () => {
     });
   });
 
-  it('displays event filters and tags (issue-stream-search-query-builder)', async () => {
+  it('displays event filters and tags', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/',
       body: [{key: 'custom_tag', name: 'custom_tag', totalValues: 1}],
@@ -208,7 +180,6 @@ describe('groupEvents', () => {
 
     render(<GroupEvents {...baseProps} location={{...location, query: {}}} />, {
       router,
-      organization: {...organization, features: ['issue-stream-search-query-builder']},
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -237,7 +208,7 @@ describe('groupEvents', () => {
       {router, organization}
     );
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
     expect(requests.discover).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
@@ -268,7 +239,7 @@ describe('groupEvents', () => {
       })
     );
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
   });
 
@@ -303,7 +274,7 @@ describe('groupEvents', () => {
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    const attachmentsColumn = screen.queryByText('attachments');
+    const attachmentsColumn = screen.queryByText('Attachments');
     expect(attachmentsColumn).not.toBeInTheDocument();
     expect(requests.attachments).not.toHaveBeenCalled();
   });
@@ -318,7 +289,7 @@ describe('groupEvents', () => {
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    const attachmentsColumn = screen.queryByText('attachments');
+    const attachmentsColumn = screen.queryByText('Attachments');
     expect(attachmentsColumn).not.toBeInTheDocument();
     expect(requests.attachments).toHaveBeenCalled();
   });
@@ -333,7 +304,7 @@ describe('groupEvents', () => {
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    const minidumpColumn = screen.queryByText('minidump');
+    const minidumpColumn = screen.queryByText('Minidump');
     expect(minidumpColumn).not.toBeInTheDocument();
   });
 
@@ -365,7 +336,7 @@ describe('groupEvents', () => {
       {router, organization}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    const minidumpColumn = screen.queryByText('minidump');
+    const minidumpColumn = screen.queryByText('Minidump');
     expect(minidumpColumn).toBeInTheDocument();
   });
 
@@ -397,8 +368,8 @@ describe('groupEvents', () => {
       {router, organization}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    const attachmentsColumn = screen.queryByText('attachments');
-    const minidumpColumn = screen.queryByText('minidump');
+    const attachmentsColumn = screen.queryByText('Attachments');
+    const minidumpColumn = screen.queryByText('Minidump');
     expect(attachmentsColumn).not.toBeInTheDocument();
     expect(minidumpColumn).toBeInTheDocument();
     expect(requests.attachments).toHaveBeenCalled();
@@ -423,7 +394,7 @@ describe('groupEvents', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
   });
 
@@ -440,7 +411,7 @@ describe('groupEvents', () => {
       expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
     );
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
   });
 
@@ -469,7 +440,7 @@ describe('groupEvents', () => {
       })
     );
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
   });
 

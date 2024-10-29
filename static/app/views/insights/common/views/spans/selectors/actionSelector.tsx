@@ -15,6 +15,7 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
+import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_ACTION} = SpanMetricsField;
@@ -70,6 +71,11 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
         },
       ];
 
+  // The empty option is not necessary for MongoDB, since all queries will have a command
+  if (filters?.['span.system'] === SupportedDatabaseSystem.MONGODB) {
+    options.pop();
+  }
+
   return (
     <CompactSelect
       style={{maxWidth: '200px'}}
@@ -115,6 +121,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   other: t('Action'),
   'mobile-ui': t('Action'),
   'mobile-screens': t('Action'),
+  'screen-rendering': t('Action'),
   ai: 'Action',
 };
 

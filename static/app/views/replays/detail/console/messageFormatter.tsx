@@ -1,13 +1,13 @@
-import type {OnExpandCallback} from 'sentry/components/objectInspector';
 import {defined} from 'sentry/utils';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import {isConsoleFrame} from 'sentry/utils/replays/types';
 import Format from 'sentry/views/replays/detail/console/format';
+import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 interface Props {
   frame: BreadcrumbFrame;
+  onExpand: OnExpandCallback;
   expandPaths?: string[];
-  onExpand?: OnExpandCallback;
 }
 
 // There is a special case where `console.error()` is called with an Error object.
@@ -71,7 +71,14 @@ export default function MessageFormatter({frame, expandPaths, onExpand}: Props) 
       // Some browsers won't allow you to write to error properties
     }
 
-    return <Format expandPaths={expandPaths} onExpand={onExpand} args={[fakeError]} />;
+    // An Error object has non enumerable attributes that we want <StructuredEventData> to print
+    const fakeErrorObject = JSON.parse(
+      JSON.stringify(fakeError, Object.getOwnPropertyNames(fakeError))
+    );
+
+    return (
+      <Format expandPaths={expandPaths} onExpand={onExpand} args={[fakeErrorObject]} />
+    );
   }
 
   return (

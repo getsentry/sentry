@@ -1,7 +1,7 @@
 import {ReplayConsoleFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -21,7 +21,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} />);
+    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
 
     expect(screen.getByText('This is a test')).toBeInTheDocument();
   });
@@ -41,7 +41,7 @@ describe('MessageFormatter', () => {
     // When the type is narrowed to `ConsoleFrame` the `data` field is forced to exist.
     delete frame.data;
 
-    render(<MessageFormatter frame={frame} />);
+    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
 
     expect(screen.getByText('This is only a test')).toBeInTheDocument();
   });
@@ -59,13 +59,13 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} />);
+    const {container} = render(<MessageFormatter frame={frame} onExpand={() => {}} />);
 
     expect(screen.getByText('test 1 false')).toBeInTheDocument();
-    expect(screen.getByText('{}')).toBeInTheDocument();
+    expect(container).toHaveTextContent('{}');
   });
 
-  it('Should print console message correctly when it is an Error object', () => {
+  it('Should print console message correctly when it is an Error object', async function () {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
         data: {
@@ -78,8 +78,10 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} />);
+    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
 
+    expect(screen.getByText('1 item')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: '1 item'}));
     expect(screen.getByText('this is my error message')).toBeInTheDocument();
   });
 
@@ -95,12 +97,12 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} />);
+    const {container} = render(<MessageFormatter frame={frame} onExpand={() => {}} />);
 
-    expect(screen.getByText('{}')).toBeInTheDocument();
+    expect(container).toHaveTextContent('{}');
   });
 
-  it('Should style "%c" placeholder and print the console message correctly', () => {
+  it('Should style "%c" placeholder and print the console message correctly', async function () {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
         data: {
@@ -120,18 +122,19 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} />);
+    const {container} = render(<MessageFormatter frame={frame} onExpand={() => {}} />);
 
     const styledEl = screen.getByText('prev state');
     expect(styledEl).toBeInTheDocument();
     expect(styledEl).toHaveStyle('color: #9E9E9E;');
     expect(styledEl).toHaveStyle('font-weight: bold;');
     expect(styledEl).not.toHaveStyle('background-image: url(foo);');
-    expect(screen.getByText('cart')).toBeInTheDocument();
-    expect(screen.getByText('Array(0)')).toBeInTheDocument();
+    expect(screen.getByText('1 item')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: '1 item'}));
+    expect(container).toHaveTextContent('cart: []');
   });
 
-  it('Should print arrays correctly', () => {
+  it('Should print arrays correctly', async function () {
     const [frame] = hydrateBreadcrumbs(ReplayRecordFixture(), [
       ReplayConsoleFrameFixture({
         data: {
@@ -144,14 +147,13 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} />);
+    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
 
     expect(screen.getByText('test')).toBeInTheDocument();
-    expect(screen.getByText('(2)')).toBeInTheDocument();
-    // expect(screen.getByText('[')).toBeInTheDocument();
-    expect(screen.getByText('"foo"')).toBeInTheDocument();
-    expect(screen.getByText('"bar"')).toBeInTheDocument();
-    // expect(screen.getByText(']')).toBeInTheDocument();
+    expect(screen.getByText('2 items')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: '2 items'}));
+    expect(screen.getByText('foo')).toBeInTheDocument();
+    expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
   it('Should print literal %', () => {
@@ -167,7 +169,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} />);
+    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
 
     expect(screen.getByText('This is a literal 100%')).toBeInTheDocument();
   });
@@ -185,7 +187,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} />);
+    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
 
     expect(screen.getByText('Unbound placeholder %s')).toBeInTheDocument();
   });
@@ -203,7 +205,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} />);
+    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
 
     expect(screen.getByText('Placeholder myPlaceholder with 100%')).toBeInTheDocument();
   });
@@ -218,7 +220,7 @@ describe('MessageFormatter', () => {
       },
     ]);
 
-    render(<MessageFormatter frame={frame} />);
+    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
 
     expect(screen.getByText('cypress custom breadcrumb')).toBeInTheDocument();
   });

@@ -22,6 +22,8 @@ def register_permanent_features(manager: FeatureManager):
     permanent_organization_features = {
         # Enable advanced search features, like negation and wildcard matching.
         "organizations:advanced-search": True,
+        # Enable anomaly detection alerts
+        "organizations:anomaly-detection-alerts": False,
         # Enable multiple Apple app-store-connect sources per project.
         "organizations:app-store-connect-multiple": False,
         # Enable change alerts for an org
@@ -76,6 +78,8 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:integrations-stacktrace-link": True,
         # Allow orgs to automatically create Tickets in Issue Alerts
         "organizations:integrations-ticket-rules": True,
+        # Enable metric alert charts in email/slack
+        "organizations:metric-alert-chartcuterie": False,
         # Enable Performance view
         "organizations:performance-view": True,
         # Enable profiling view

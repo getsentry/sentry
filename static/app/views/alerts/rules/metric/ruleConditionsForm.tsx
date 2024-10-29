@@ -12,7 +12,7 @@ import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
-import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
+import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS,
   STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
@@ -32,7 +32,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
@@ -640,6 +639,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       isErrorMigration,
       aggregate,
       project,
+      comparisonType,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -705,7 +705,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               />
               {allowChangeEventTypes && this.renderEventTypeFilter()}
             </FormRow>
-            <FormRow>
+            <FormRow noMargin>
               <FormField
                 name="query"
                 inline={false}
@@ -715,7 +715,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 }}
                 flexibleControlStateSize
               >
-                {({onChange, onBlur, onKeyDown, initialData, value}) => {
+                {({onChange, onBlur, initialData, value}) => {
                   return (hasCustomMetrics(organization) &&
                     alertType === 'custom_metrics') ||
                     alertType === 'insights_metrics' ? (
@@ -734,111 +734,38 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     />
                   ) : (
                     <SearchContainer>
-                      {organization.features.includes('search-query-builder-alerts') ? (
-                        <SearchQueryBuilder
-                          initialQuery={initialData?.query ?? ''}
-                          getTagValues={this.getEventFieldValues}
-                          placeholder={this.searchPlaceholder}
-                          searchSource="alert_builder"
-                          filterKeys={filterKeys}
-                          disabled={disabled || isErrorMigration}
-                          onChange={onChange}
-                          invalidMessages={{
-                            [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
-                              'The wildcard operator is not supported here.'
-                            ),
-                            [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
-                              'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
-                            ),
-                          }}
-                          onSearch={query => {
-                            onFilterSearch(query, true);
-                            onChange(query, {});
-                          }}
-                          onBlur={(query, {parsedQuery}) => {
-                            onFilterSearch(query, parsedQuery);
-                            onBlur(query);
-                          }}
-                          // We only need strict validation for Transaction queries, everything else is fine
-                          disallowUnsupportedFilters={
-                            organization.features.includes('alert-allow-indexed') ||
-                            (hasOnDemandMetricAlertFeature(organization) &&
-                              isOnDemandQueryString(value))
-                              ? false
-                              : dataset === Dataset.GENERIC_METRICS
-                          }
-                        />
-                      ) : (
-                        <StyledSearchBar
-                          disallowWildcard={dataset === Dataset.SESSIONS}
-                          disallowFreeText={[
-                            Dataset.GENERIC_METRICS,
-                            Dataset.TRANSACTIONS,
-                          ].includes(dataset)}
-                          invalidMessages={{
-                            [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
-                              'The wildcard operator is not supported here.'
-                            ),
-                            [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
-                              'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
-                            ),
-                          }}
-                          customInvalidTagMessage={item => {
-                            if (dataset !== Dataset.GENERIC_METRICS) {
-                              return null;
-                            }
-                            return (
-                              <SearchInvalidTag
-                                message={tct(
-                                  "The field [field] isn't supported for performance alerts.",
-                                  {
-                                    field: <code>{item.desc}</code>,
-                                  }
-                                )}
-                                docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
-                              />
-                            );
-                          }}
-                          searchSource="alert_builder"
-                          defaultQuery={initialData?.query ?? ''}
-                          {...getSupportedAndOmittedTags(dataset, organization)}
-                          includeSessionTagsValues={dataset === Dataset.SESSIONS}
-                          disabled={disabled || isErrorMigration}
-                          useFormWrapper={false}
-                          organization={organization}
-                          placeholder={this.searchPlaceholder}
-                          onChange={onChange}
-                          query={initialData.query}
-                          // We only need strict validation for Transaction queries, everything else is fine
-                          highlightUnsupportedTags={
-                            organization.features.includes('alert-allow-indexed') ||
-                            (hasOnDemandMetricAlertFeature(organization) &&
-                              isOnDemandQueryString(value))
-                              ? false
-                              : dataset === Dataset.GENERIC_METRICS
-                          }
-                          onKeyDown={e => {
-                            /**
-                             * Do not allow enter key to submit the alerts form since it is unlikely
-                             * users will be ready to create the rule as this sits above required fields.
-                             */
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }
-                            onKeyDown?.(e);
-                          }}
-                          onClose={(query, {validSearch}) => {
-                            onFilterSearch(query, validSearch);
-                            onBlur(query);
-                          }}
-                          onSearch={query => {
-                            onFilterSearch(query, true);
-                            onChange(query, {});
-                          }}
-                          hasRecentSearches={dataset !== Dataset.SESSIONS}
-                        />
-                      )}
+                      <SearchQueryBuilder
+                        initialQuery={initialData?.query ?? ''}
+                        getTagValues={this.getEventFieldValues}
+                        placeholder={this.searchPlaceholder}
+                        searchSource="alert_builder"
+                        filterKeys={filterKeys}
+                        disabled={disabled || isErrorMigration}
+                        invalidMessages={{
+                          [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                            'The wildcard operator is not supported here.'
+                          ),
+                          [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+                            'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
+                          ),
+                        }}
+                        onSearch={query => {
+                          onFilterSearch(query, true);
+                          onChange(query, {});
+                        }}
+                        onBlur={(query, {parsedQuery}) => {
+                          onFilterSearch(query, parsedQuery);
+                          onBlur(query);
+                        }}
+                        // We only need strict validation for Transaction queries, everything else is fine
+                        disallowUnsupportedFilters={
+                          organization.features.includes('alert-allow-indexed') ||
+                          (hasOnDemandMetricAlertFeature(organization) &&
+                            isOnDemandQueryString(value))
+                            ? false
+                            : dataset === Dataset.GENERIC_METRICS
+                        }
+                      />
                       {isExtrapolatedChartData && isOnDemandQueryString(value) && (
                         <OnDemandWarningIcon
                           color="gray500"
@@ -859,6 +786,33 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                       )}
                     </SearchContainer>
                   );
+                }}
+              </FormField>
+            </FormRow>
+            <FormRow noMargin>
+              <FormField
+                name="query"
+                inline={false}
+                style={{
+                  ...this.formElemBaseStyle,
+                  flex: '6 0 500px',
+                }}
+                flexibleControlStateSize
+              >
+                {args => {
+                  if (
+                    args.value?.includes('is:unresolved') &&
+                    comparisonType === AlertRuleComparisonType.DYNAMIC
+                  ) {
+                    return (
+                      <OnDemandMetricAlert
+                        message={t(
+                          "'is:unresolved' queries are not supported by Anomaly Detection alerts."
+                        )}
+                      />
+                    );
+                  }
+                  return null;
                 }}
               </FormField>
             </FormRow>
@@ -905,18 +859,6 @@ const SearchContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-
-  ${p =>
-    p.disabled &&
-    `
-    background: ${p.theme.backgroundSecondary};
-    color: ${p.theme.disabled};
-    cursor: not-allowed;
-  `}
 `;
 
 const StyledListItem = styled(ListItem)`

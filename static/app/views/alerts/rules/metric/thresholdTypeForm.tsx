@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
@@ -50,7 +51,9 @@ function ThresholdTypeForm({
     'insights_metrics',
   ]);
 
-  const hasAnomalyDetection = organization.features.includes('anomaly-detection-alerts');
+  const hasAnomalyDetection =
+    organization.features.includes('anomaly-detection-alerts') &&
+    organization.features.includes('anomaly-detection-rollout');
 
   const thresholdTypeChoices: RadioOption[] = [
     [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
@@ -96,7 +99,10 @@ function ThresholdTypeForm({
   if (hasAnomalyDetection && validAnomalyDetectionAlertTypes.has(alertType)) {
     thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,
-      'Anomaly: whenever values are outside of expected bounds',
+      <ComparisonContainer key="Dynamic">
+        {t('Anomaly: whenever values are outside of expected bounds')}
+        <FeatureBadge type="beta" tooltipProps={{isHoverable: true}} />
+      </ComparisonContainer>,
     ] as RadioOption);
   }
 

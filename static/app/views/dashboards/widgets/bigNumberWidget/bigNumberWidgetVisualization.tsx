@@ -8,96 +8,142 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
-import {DifferenceToPreviousPeriodData} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodData';
-import {
-  DEEMPHASIS_COLOR_NAME,
-  NO_DATA_PLACEHOLDER,
-} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
-import {ErrorPanel} from 'sentry/views/dashboards/widgets/common/errorPanel';
+import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
 import type {
   Meta,
-  StateProps,
   TableData,
+  Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-export interface Props extends StateProps {
-  data?: TableData;
+import {X_GUTTER, Y_GUTTER} from '../common/settings';
+
+import {ThresholdsIndicator} from './thresholdsIndicator';
+
+export interface BigNumberWidgetVisualizationProps {
+  field: string;
+  value: number | string;
+  maximumValue?: number;
   meta?: Meta;
   preferredPolarity?: Polarity;
-  previousPeriodData?: TableData;
+  previousPeriodValue?: number | string;
+  thresholds?: Thresholds;
 }
 
-export function BigNumberWidgetVisualization(props: Props) {
-  const {data, previousPeriodData, preferredPolarity, meta, isLoading, error} = props;
+export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualizationProps) {
+  const {
+    field,
+    value,
+    previousPeriodValue,
+    maximumValue = Number.MAX_VALUE,
+    preferredPolarity,
+    meta,
+  } = props;
 
   const location = useLocation();
   const organization = useOrganization();
 
-  if (error) {
-    return <ErrorPanel error={error} />;
-  }
-
-  // Big Number widgets only show one number, so we only ever look at the first item in the Discover response
-  const datum = data?.[0];
-  // TODO: Instrument getting more than one data key back as an error
-
-  if (isLoading || !defined(data) || !defined(datum) || Object.keys(datum).length === 0) {
-    return (
-      <AutoResizeParent>
-        <AutoSizedText>
-          <Deemphasize>{NO_DATA_PLACEHOLDER}</Deemphasize>
-        </AutoSizedText>
-      </AutoResizeParent>
-    );
-  }
-
-  const fields = Object.keys(datum);
-  const field = fields[0];
-
   // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
   const fieldRenderer = meta
     ? getFieldRenderer(field, meta as MetaType, false)
-    : value => value.toString();
+    : renderableValue => renderableValue.toString();
 
   const unit = meta?.units?.[field];
+  const type = meta?.fields?.[field];
+
   const baggage = {
     location,
     organization,
     unit: unit ?? undefined, // TODO: Field formatters think units can't be null but they can
   };
 
-  const rendered = fieldRenderer(datum, baggage);
+  // String values don't support differences, thresholds, max values, or anything else.
+  if (typeof value === 'string') {
+    return (
+      <Wrapper>
+        <NumberAndDifferenceContainer>
+          {fieldRenderer(
+            {
+              [field]: value,
+            },
+            baggage
+          )}
+        </NumberAndDifferenceContainer>
+      </Wrapper>
+    );
+  }
+
+  const doesValueHitMaximum = maximumValue ? value >= maximumValue : false;
+  const clampedValue = Math.min(value, maximumValue);
 
   return (
-    <AutoResizeParent>
-      <AutoSizedText>
-        <NumberAndDifferenceContainer>
-          <NumberContainerOverride>
-            <Tooltip title={datum[field]} isHoverable delay={0}>
-              {rendered}
-            </Tooltip>
-          </NumberContainerOverride>
+    <Wrapper>
+      <NumberAndDifferenceContainer>
+        {defined(props.thresholds?.max_values.max1) &&
+          defined(props.thresholds?.max_values.max2) && (
+            <ThresholdsIndicator
+              preferredPolarity={props.preferredPolarity}
+              thresholds={{
+                unit: props.thresholds.unit ?? undefined,
+                max_values: {
+                  max1: props.thresholds.max_values.max1,
+                  max2: props.thresholds.max_values.max2,
+                },
+              }}
+              unit={unit ?? ''}
+              value={clampedValue}
+              type={type ?? 'integer'}
+            />
+          )}
 
-          {previousPeriodData && (
-            <DifferenceToPreviousPeriodData
-              data={data}
-              previousPeriodData={previousPeriodData}
+        <NumberContainerOverride>
+          <Tooltip
+            title={value}
+            isHoverable
+            delay={0}
+            disabled={doesValueHitMaximum}
+            containerDisplayMode="inline-flex"
+          >
+            {doesValueHitMaximum ? '>' : ''}
+            {fieldRenderer(
+              {
+                [field]: clampedValue,
+              },
+              baggage
+            )}
+          </Tooltip>
+        </NumberContainerOverride>
+
+        {defined(previousPeriodValue) &&
+          typeof previousPeriodValue === 'number' &&
+          Number.isFinite(previousPeriodValue) &&
+          !Number.isNaN(previousPeriodValue) &&
+          !doesValueHitMaximum && (
+            <DifferenceToPreviousPeriodValue
+              value={value}
+              previousPeriodValue={previousPeriodValue}
+              field={field}
               preferredPolarity={preferredPolarity}
               renderer={(previousDatum: TableData[number]) =>
                 fieldRenderer(previousDatum, baggage)
               }
-              field={field}
             />
           )}
-        </NumberAndDifferenceContainer>
-      </AutoSizedText>
+      </NumberAndDifferenceContainer>
+    </Wrapper>
+  );
+}
+
+function Wrapper({children}) {
+  return (
+    <AutoResizeParent>
+      <AutoSizedText>{children}</AutoSizedText>
     </AutoResizeParent>
   );
 }
 
 const AutoResizeParent = styled('div')`
   position: absolute;
-  inset: 0;
+  inset: ${Y_GUTTER} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
 
   color: ${p => p.theme.headingColor};
 
@@ -124,8 +170,4 @@ const NumberContainerOverride = styled('div')`
     display: inline;
     white-space: nowrap;
   }
-`;
-
-const Deemphasize = styled('span')`
-  color: ${p => p.theme[DEEMPHASIS_COLOR_NAME]};
 `;

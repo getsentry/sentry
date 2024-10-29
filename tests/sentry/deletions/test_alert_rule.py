@@ -33,6 +33,7 @@ class DeleteAlertRuleTest(TestCase, HybridCloudTestMixin):
         assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.delete_rule.seer_anomaly_detection_connection_pool.urlopen"
     )

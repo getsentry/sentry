@@ -6,7 +6,7 @@ import type {MetricAlertType, WizardRuleTemplate} from './options';
 
 // A set of unique identifiers to be able to tie aggregate and dataset back to a wizard alert type
 const alertTypeIdentifiers: Record<
-  Exclude<Dataset, 'search_issues'>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
+  Exclude<Dataset, Dataset.ISSUE_PLATFORM | Dataset.REPLAYS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
   Partial<Record<MetricAlertType, string>>
 > = {
   [Dataset.ERRORS]: {
@@ -39,6 +39,9 @@ const alertTypeIdentifiers: Record<
     crash_free_sessions: SessionsAggregate.CRASH_FREE_SESSIONS,
     crash_free_users: SessionsAggregate.CRASH_FREE_USERS,
   },
+  [Dataset.EVENTS_ANALYTICS_PLATFORM]: {
+    throughput: 'count(span.duration)',
+  },
 };
 
 /**
@@ -51,6 +54,10 @@ export function getAlertTypeFromAggregateDataset({
   dataset,
 }: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'>): MetricAlertType {
   const {mri: mri} = parseField(aggregate) ?? {};
+
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return 'eap_metrics';
+  }
 
   if (isInsightsMetricAlert(aggregate)) {
     return 'insights_metrics';

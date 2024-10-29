@@ -25,8 +25,6 @@ class UserNotificationSettingsProvidersEndpoint(UserEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ALERTS_NOTIFICATIONS
-    # TODO(Steve): Make not private when we launch new system
-    private = True
 
     def get(self, request: Request, user: User) -> Response:
         """

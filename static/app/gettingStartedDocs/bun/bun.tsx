@@ -92,19 +92,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: params =>
-    params.isPerformanceSelected
-      ? []
-      : [
-          {
-            id: 'performance-monitoring',
-            name: t('Tracing'),
-            description: t(
-              'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-            ),
-            link: 'https://docs.sentry.io/platforms/javascript/guides/bun/tracing/',
-          },
-        ],
+  nextSteps: () => [],
 };
 
 const customMetricsOnboarding: OnboardingConfig = {

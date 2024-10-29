@@ -42,6 +42,8 @@ import {
   MobileCursors,
   MobileSortKeys,
 } from 'sentry/views/insights/mobile/screenload/constants';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Query = {
@@ -63,31 +65,48 @@ function ScreenLoadSpans() {
 
   const {transaction: transactionName} = location.query;
 
+  const {isInDomainView} = useDomainViewFilters();
+
   return (
     <Layout.Page>
       <PageAlertProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: t('Screen Summary'),
-                },
-              ]}
-            />
-            <HeaderWrapper>
-              <Layout.Title>{transactionName}</Layout.Title>
-              {organization.features.includes('insights-initial-modules') &&
-                isProjectCrossPlatform && <PlatformSelector />}
-            </HeaderWrapper>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
+        {!isInDomainView && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  ...crumbs,
+                  {
+                    label: t('Screen Summary'),
+                  },
+                ]}
+              />
+              <HeaderWrapper>
+                <Layout.Title>{transactionName}</Layout.Title>
+                {organization.features.includes('insights-initial-modules') &&
+                  isProjectCrossPlatform && <PlatformSelector />}
+              </HeaderWrapper>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <FeedbackWidgetButton />
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+        )}
+
+        {isInDomainView && (
+          <MobileHeader
+            module={ModuleName.SCREEN_LOAD}
+            headerTitle={transactionName}
+            headerActions={isProjectCrossPlatform && <PlatformSelector />}
+            breadcrumbs={[
+              {
+                label: t('Screen Summary'),
+              },
+            ]}
+          />
+        )}
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
