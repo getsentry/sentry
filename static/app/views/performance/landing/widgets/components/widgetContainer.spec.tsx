@@ -959,7 +959,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/browser/assets/'
+      '/insights/assets/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
