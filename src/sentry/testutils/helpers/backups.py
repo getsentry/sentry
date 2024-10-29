@@ -92,9 +92,8 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.rollbackidentifier import RollbackIdentifier
 from sentry.models.rollbackorganizationdata import RollbackOrganizationData
-from sentry.models.rollbackorganizationuserdata import RollbackOrganizationUserData
+from sentry.models.rollbackuserdata import RollbackUserData
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
@@ -610,17 +609,14 @@ class ExhaustiveFixtures(Fixtures):
             )
 
         # Rollback
-        RollbackIdentifier.objects.create(user_id=owner_id, organization=org)
-
-        RollbackOrganizationData.objects.create(
-            organization=org, year=2024, data={"fruit": "honeydew"}
-        )
-
-        RollbackOrganizationUserData.objects.create(
-            organization=org,
+        RollbackUserData.objects.create(
             user_id=owner_id,
+            organization=org,
             data={"fruit": "pineapple"},
+            share_data={"fruit": "canteloupe"},
         )
+
+        RollbackOrganizationData.objects.create(organization=org, data={"fruit": "honeydew"})
 
         # DataSecrecyWaiver
         DataSecrecyWaiver.objects.create(

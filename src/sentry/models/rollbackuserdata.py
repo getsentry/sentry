@@ -10,17 +10,19 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 
 
 @region_silo_model
-class RollbackIdentifier(DefaultFieldsModelExisting):
-    __relocation_scope__ = RelocationScope.Organization
+class RollbackUserData(DefaultFieldsModelExisting):
+    __relocation_scope__ = RelocationScope.Excluded
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization")
-    uuid = models.UUIDField(default=uuid4, unique=True)
-    share_uuid = models.UUIDField(default=uuid4, unique=True)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False, db_index=True)
+    share_uuid = models.UUIDField(default=uuid4, unique=True, editable=False, db_index=True)
+    data = models.JSONField(null=True, default=None)
+    share_data = models.JSONField(null=True, default=None)
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_rollbackidentifier"
+        db_table = "sentry_rollbackuserdata"
         constraints = [
             UniqueConstraint(fields=["user_id", "organization_id"], name="unique_user_org"),
         ]

@@ -11,19 +11,13 @@ class RollbackOrganizationData(DefaultFieldsModelExisting):
     A model for storing organization data by year for rollback purposes
     """
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization")
-    year = models.IntegerField()
     data = models.JSONField(null=True, default=None)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_rollbackorganizationdata"
 
-        constraints = [
-            models.UniqueConstraint(
-                fields=["organization", "year"],
-                name="sentry_rollbackorganizationdata_unique_org_year",
-            )
-        ]
+        constraints = []

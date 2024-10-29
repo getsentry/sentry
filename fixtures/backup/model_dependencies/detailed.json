@@ -5333,40 +5333,6 @@
       ]
     ]
   },
-  "sentry.rollbackidentifier": {
-    "dangling": false,
-    "foreign_keys": {
-      "organization": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.organization",
-        "nullable": false
-      },
-      "user_id": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": false
-      }
-    },
-    "model": "sentry.rollbackidentifier",
-    "relocation_dependencies": [],
-    "relocation_scope": "Organization",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_rollbackidentifier",
-    "uniques": [
-      [
-        "organization_id",
-        "user_id"
-      ],
-      [
-        "share_uuid"
-      ],
-      [
-        "uuid"
-      ]
-    ]
-  },
   "sentry.rollbackorganizationdata": {
     "dangling": false,
     "foreign_keys": {
@@ -5378,19 +5344,14 @@
     },
     "model": "sentry.rollbackorganizationdata",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
     "table_name": "sentry_rollbackorganizationdata",
-    "uniques": [
-      [
-        "organization",
-        "year"
-      ]
-    ]
+    "uniques": []
   },
-  "sentry.rollbackorganizationuserdata": {
+  "sentry.rollbackuserdata": {
     "dangling": false,
     "foreign_keys": {
       "organization": {
@@ -5404,17 +5365,23 @@
         "nullable": false
       }
     },
-    "model": "sentry.rollbackorganizationuserdata",
+    "model": "sentry.rollbackuserdata",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
-    "table_name": "sentry_rollbackorganizationuserdata",
+    "table_name": "sentry_rollbackuserdata",
     "uniques": [
       [
-        "organization",
+        "organization_id",
         "user_id"
+      ],
+      [
+        "share_uuid"
+      ],
+      [
+        "uuid"
       ]
     ]
   },
