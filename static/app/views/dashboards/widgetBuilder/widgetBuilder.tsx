@@ -62,6 +62,7 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
@@ -311,7 +312,7 @@ function WidgetBuilder({
       new_widget: !isEditing,
     });
 
-    if (isEmptyObject(tags)) {
+    if (isEmptyObject(tags) && dataSet !== DataSet.SPANS) {
       loadOrganizationTags(api, organization.slug, {
         ...selection,
         // Pin the request to 14d to avoid timeouts, see DD-967 for
@@ -379,6 +380,13 @@ function WidgetBuilder({
   useEffect(() => {
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
   }, [selection.projects, api, organization.slug]);
+
+  // HACK: Inject EAP dataset tags when selecting the Spans dataset
+  const numericSpanTags = useSpanTags('number');
+  const stringSpanTags = useSpanTags('string');
+  if (state.dataSet === DataSet.SPANS) {
+    tags = {...numericSpanTags, ...stringSpanTags};
+  }
 
   function onLegacyRouteLeave(): string | undefined {
     return !isSubmittingRef.current && state.userHasModified
