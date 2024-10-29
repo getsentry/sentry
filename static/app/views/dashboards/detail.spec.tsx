@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -17,6 +18,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
@@ -225,6 +227,15 @@ describe('Dashboards > Detail', function () {
           location: LocationFixture(),
         },
       });
+      PageFiltersStore.init();
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [],
+          environments: [],
+          datetime: {start: null, end: null, period: '14d', utc: null},
+        },
+        new Set()
+      );
       widgets = [
         WidgetFixture({
           queries: [
@@ -313,6 +324,7 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
           filters: {},
+          createdBy: UserFixture({id: '1'}),
         }),
       });
       mockPut = MockApiClient.addMockResponse({
@@ -1701,7 +1713,7 @@ describe('Dashboards > Detail', function () {
 
       expect(mockPUT).toHaveBeenCalledTimes(1);
       expect(mockPUT).toHaveBeenCalledWith(
-        '/organizations/org-slug/dashboards/',
+        '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({
           data: expect.objectContaining({
             permissions: {isCreatorOnlyEditable: true},
