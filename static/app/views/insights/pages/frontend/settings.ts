@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export const FRONTEND_LANDING_SUB_PATH = 'frontend';
 export const FRONTEND_LANDING_TITLE = t('Frontend Performance');
@@ -10,3 +11,5 @@ export const OVERVIEW_PAGE_ALLOWED_OPS = [
   'ui.render',
   'interaction',
 ];
+
+export const MODULES = [ModuleName.VITAL, ModuleName.HTTP, ModuleName.RESOURCE];
