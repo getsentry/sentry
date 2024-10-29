@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 
 export const MODULE_TITLE = t('Screen Loads');
-export const BASE_URL = 'mobile/screens';
+export const BASE_URL = 'screens';
 export const DATA_TYPE = t('Screen Load');
 export const DATA_TYPE_PLURAL = t('Screen Loads');
 

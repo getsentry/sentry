@@ -1592,6 +1592,14 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Redirect
+        from="mobile/app-startup/"
+        to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.APP_START]}/`}
+      />
+      <Redirect
+        from="mobile/screens/"
+        to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}
+      />
       <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
         <IndexRoute
           component={make(

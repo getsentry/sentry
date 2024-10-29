@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 
 export const MODULE_TITLE = t('Mobile UI');
-export const BASE_URL = 'mobile/ui';
+export const BASE_URL = 'ui';
 
 export const MODULE_DESCRIPTION = t("Improve your application's responsiveness.");
 
