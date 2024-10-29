@@ -15,9 +15,6 @@ import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/firstLast
 import PeopleSection from 'sentry/views/issueDetails/streamline/peopleSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
-import {Button} from 'sentry/components/button';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {IconChevron} from 'sentry/icons';
 
 type Props = {
   group: Group;
@@ -43,7 +40,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
 
   return (
-    <div>
+    <Side>
       <FirstLastSeenSection group={group} />
       <StyledBreak />
       {event && (
@@ -67,7 +64,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       <SimilarIssuesSidebarSection />
       <StyledBreak />
       <MergedIssuesSidebarSection />
-    </div>
+    </Side>
   );
 }
 
@@ -80,4 +77,9 @@ const StyledBreak = styled('hr')`
 export const SidebarSectionTitle = styled(SidebarSection.Title)`
   margin-bottom: ${space(1)};
   color: ${p => p.theme.headingColor};
+`;
+
+const Side = styled(Layout.Side)`
+  position: relative;
+  padding: ${space(1.5)} ${space(2)};
 `;

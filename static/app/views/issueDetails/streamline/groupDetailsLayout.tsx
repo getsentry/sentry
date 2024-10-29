@@ -10,6 +10,8 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import theme from 'sentry/utils/theme';
+import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
@@ -17,9 +19,6 @@ import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
-import {IconChevron} from 'sentry/icons';
-import {Button} from 'sentry/components/button';
-import {SidebarToggle} from 'sentry/views/issueDetails/streamline/sidebar/toggle';
 
 interface GroupDetailsLayoutProps {
   children: React.ReactNode;
@@ -37,11 +36,9 @@ export function GroupDetailsLayout({
   children,
 }: GroupDetailsLayoutProps) {
   const searchQuery = useEventQuery({group});
-  const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
-    'issue-details-sidebar-open',
-    true
-  );
-  const direction = sidebarOpen ? 'right' : 'left';
+  const [sidebarOpen] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
+  const shouldDisplaySidebar = sidebarOpen || isScreenSmall;
   return (
     <Fragment>
       <StreamlinedGroupHeader
@@ -68,12 +65,9 @@ export function GroupDetailsLayout({
             </div>
           </GroupContent>
         </div>
-        <Side>
-          <SidebarToggle />
-          {sidebarOpen ? (
-            <StreamlinedSidebar group={group} event={event} project={project} />
-          ) : null}
-        </Side>
+        {shouldDisplaySidebar ? (
+          <StreamlinedSidebar group={group} event={event} project={project} />
+        ) : null}
       </StyledLayoutBody>
     </Fragment>
   );
@@ -108,9 +102,4 @@ const GroupContent = styled(Layout.Main)`
 const PageErrorBoundary = styled(ErrorBoundary)`
   margin: 0;
   border: 1px solid ${p => p.theme.translucentBorder};
-`;
-
-const Side = styled(Layout.Side)`
-  position: relative;
-  padding: ${space(1.5)} ${space(2)};
 `;
