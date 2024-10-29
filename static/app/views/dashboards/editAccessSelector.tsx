@@ -154,7 +154,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   );
 
   return dashboardCreator?.id !== currentUser.id ? (
-    <Tooltip title={'Only Dashboard Creator may change Edit Access'}>
+    <Tooltip title={t('Only Dashboard Creator may change Edit Access')}>
       {dropdownMenu}
     </Tooltip>
   ) : (
