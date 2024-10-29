@@ -104,15 +104,6 @@ class ProjectOwnershipPermission(ProjectPermission):
     }
 
 
-class ProjectMetricsExtractionRulesPermission(ProjectPermission):
-    scope_map = {
-        "GET": ["project:read", "project:write", "project:admin"],
-        "POST": ["project:read", "project:write", "project:admin"],
-        "PUT": ["project:read", "project:write", "project:admin"],
-        "DELETE": ["project:read", "project:write", "project:admin"],
-    }
-
-
 class ProjectEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (ProjectPermission,)
 
