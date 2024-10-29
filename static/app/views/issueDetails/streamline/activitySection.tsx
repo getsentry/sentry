@@ -2,7 +2,6 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
@@ -27,6 +26,7 @@ import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
+import StreamlinedNoteBody from 'sentry/views/issueDetails/streamline/streamlinedNoteBody';
 
 function TimelineItem({
   item,
@@ -75,7 +75,7 @@ function TimelineItem({
         )
       }
     >
-      {typeof message === 'string' ? <NoteBody text={message} /> : message}
+      {typeof message === 'string' ? <StreamlinedNoteBody text={message} /> : message}
     </ActivityTimelineItem>
   );
 }
