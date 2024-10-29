@@ -135,11 +135,11 @@ export function makeLinkPropsFromTo(to: string): {
   );
 
   return {
-    to: {
+    to: normalizeUrl({
       pathname,
       search,
       hash,
-    },
+    }),
     state: {source: SIDEBAR_NAVIGATION_SOURCE},
   };
 }
