@@ -52,7 +52,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         group_data = {}
         for similar_issue_data in similar_issues_data:
             formatted_response: FormattedSimilarIssuesEmbeddingsData = {
-                "exception": 1 - similar_issue_data.stacktrace_distance,
+                "exception": round(1 - similar_issue_data.stacktrace_distance, 4),
                 "shouldBeGrouped": "Yes" if similar_issue_data.should_group else "No",
             }
             group_data[similar_issue_data.parent_group_id] = formatted_response
