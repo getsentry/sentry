@@ -612,11 +612,11 @@ class ExhaustiveFixtures(Fixtures):
         RollbackUserData.objects.create(
             user_id=owner_id,
             organization=org,
-            data={"fruit": "pineapple"},
-            share_data={"fruit": "canteloupe"},
+            data={},
+            share_data={},
         )
 
-        RollbackOrganizationData.objects.create(organization=org, data={"fruit": "honeydew"})
+        RollbackOrganizationData.objects.create(organization=org, data={})
 
         # DataSecrecyWaiver
         DataSecrecyWaiver.objects.create(
