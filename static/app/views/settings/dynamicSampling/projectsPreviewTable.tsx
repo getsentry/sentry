@@ -10,132 +10,52 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MRI} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {
-  type MetricsQueryApiQueryParams,
-  useMetricsQuery,
-} from 'sentry/utils/metrics/useMetricsQuery';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useProjects from 'sentry/utils/useProjects';
-import {dynamicSamplingForm} from 'sentry/views/settings/dynamicSampling/dynamicSamplingForm';
+import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
+import {useProjectSampleCounts} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
-const {useFormField} = dynamicSamplingForm;
-
-// TODO(aknaus): Switch to c:spans/count_per_root_project@none once available
-const SPANS_COUNT_METRIC: MRI = `c:transactions/count_per_root_project@none`;
-const metricsQuery: MetricsQueryApiQueryParams[] = [
-  {
-    mri: SPANS_COUNT_METRIC,
-    aggregation: 'count',
-    name: 'spans',
-    groupBy: ['project'],
-    orderBy: 'desc',
-  },
-];
-
-const fakeSubProjects = ['angular', 'sentry', 'snuba', 'relay', 'email-service'];
+const {useFormField} = organizationSamplingForm;
 
 interface Props {
   period: '24h' | '30d';
 }
 
 export function ProjectsPreviewTable({period}: Props) {
-  const {projects, fetching} = useProjects();
   const [tableSort, setTableSort] = useState<'asc' | 'desc'>('desc');
   const {value: targetSampleRate, initialValue: initialTargetSampleRate} =
     useFormField('targetSampleRate');
 
-  const {data, isPending, isError, refetch} = useMetricsQuery(
-    metricsQuery,
-    {
-      datetime: {
-        start: null,
-        end: null,
-        utc: true,
-        period,
-      },
-      environments: [],
-      projects: [],
-    },
-    {
-      includeSeries: false,
-      interval: period === '24h' ? '1h' : '1d',
-    }
-  );
-
-  const projectBySlug = useMemo(
-    () =>
-      projects.reduce((acc, project) => {
-        acc[project.slug] = project;
-        return acc;
-      }, {}),
-    [projects]
-  );
-
-  const items = useMemo(
-    () =>
-      (data?.data[0] ?? [])
-        .map(item => {
-          // TODO(aknaus): Remove mock data once real data is available
-          // Create random sub-projects for testing UI
-          const hasSubProjects = Math.random() > 0.3;
-          const countMagnitude = Math.floor(Math.log10(item.totals));
-          const subProjects = hasSubProjects
-            ? fakeSubProjects.map(slug => ({
-                slug: slug,
-                count: Math.floor(Math.random() * Math.pow(10, countMagnitude + 1)),
-              }))
-            : [];
-
-          const total =
-            item.totals +
-            subProjects.reduce((acc, subProject) => acc + subProject.count, 0);
-
-          return {
-            id: item.by.project,
-            project: projectBySlug[item.by.project],
-            count: total,
-            ownCount: item.totals,
-            // This is a placeholder value to satisfy typing
-            // the actual value is calculated in the balanceSampleRate function
-            sampleRate: 1,
-            subProjects: subProjects.toSorted((a, b) => b.count - a.count),
-          };
-        })
-        // Remove items where we cannot match the project
-        .filter(item => item.project),
-    [data?.data, projectBySlug]
-  );
+  const {data, isPending, isError, refetch} = useProjectSampleCounts({period});
 
   const debouncedTargetSampleRate = useDebouncedValue(
     targetSampleRate,
     // For longer lists we debounce the input to avoid too many re-renders
-    items.length > 100 ? 200 : 0
+    data.length > 100 ? 200 : 0
   );
 
   const {balancedItems} = useMemo(() => {
     const targetRate = Math.min(100, Math.max(0, Number(debouncedTargetSampleRate) || 0));
     return balanceSampleRate({
       targetSampleRate: targetRate / 100,
-      items,
+      items: data,
     });
-  }, [debouncedTargetSampleRate, items]);
+  }, [debouncedTargetSampleRate, data]);
 
   const initialSampleRatesBySlug = useMemo(() => {
     const targetRate = Math.min(100, Math.max(0, Number(initialTargetSampleRate) || 0));
     const {balancedItems: initialBalancedItems} = balanceSampleRate({
       targetSampleRate: targetRate / 100,
-      items,
+      items: data,
     });
     return initialBalancedItems.reduce((acc, item) => {
       acc[item.id] = item.sampleRate;
       return acc;
     }, {});
-  }, [initialTargetSampleRate, items]);
+  }, [initialTargetSampleRate, data]);
 
   const handleTableSort = useCallback(() => {
     setTableSort(value => (value === 'asc' ? 'desc' : 'asc'));
@@ -146,43 +66,81 @@ export function ProjectsPreviewTable({period}: Props) {
   }
 
   return (
-    <Fragment>
-      <ProjectsTable
-        stickyHeaders
-        emptyMessage={t('No active projects found in the selected period.')}
-        isEmpty={!items.length}
-        isLoading={isPending || fetching}
-        headers={[
-          t('Project'),
-          t('Spans'),
-          <SortableHeader key="spans" onClick={handleTableSort}>
-            {t('Total Spans')}
-            <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
-          </SortableHeader>,
-          t('Projected Rate'),
-        ]}
-      >
-        {balancedItems
-          .toSorted((a, b) => {
-            if (tableSort === 'asc') {
-              return a.count - b.count;
-            }
-            return b.count - a.count;
-          })
-          .map(({id, project, count, ownCount, sampleRate, subProjects}) => (
-            <TableRow
-              key={id}
-              project={project}
-              count={count}
-              ownCount={ownCount}
-              sampleRate={sampleRate}
-              initialSampleRate={initialSampleRatesBySlug[project.slug]}
-              subProjects={subProjects}
-            />
-          ))}
-      </ProjectsTable>
-    </Fragment>
+    <ProjectsTable
+      stickyHeaders
+      emptyMessage={t('No active projects found in the selected period.')}
+      isEmpty={!data.length}
+      isLoading={isPending}
+      headers={[
+        t('Project'),
+        t('Spans'),
+        <SortableHeader key="spans" onClick={handleTableSort}>
+          {t('Total Spans')}
+          <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
+        </SortableHeader>,
+        t('Projected Rate'),
+      ]}
+    >
+      {balancedItems
+        .toSorted((a, b) => {
+          if (tableSort === 'asc') {
+            return a.count - b.count;
+          }
+          return b.count - a.count;
+        })
+        .map(({id, project, count, ownCount, sampleRate, subProjects}) => (
+          <TableRow
+            key={id}
+            project={project}
+            count={count}
+            ownCount={ownCount}
+            sampleRate={sampleRate}
+            initialSampleRate={initialSampleRatesBySlug[project.slug]}
+            subProjects={subProjects}
+          />
+        ))}
+    </ProjectsTable>
   );
+}
+
+interface SubProject {
+  count: number;
+  slug: string;
+}
+
+function getSubProjectContent(subProjects: SubProject[], isExpanded: boolean) {
+  let subProjectContent: React.ReactNode = t('No distributed traces');
+  if (subProjects.length > 0) {
+    const truncatedSubProjects = subProjects.slice(0, MAX_PROJECTS_COLLAPSED);
+    const overflowingProjects = subProjects.length - MAX_PROJECTS_COLLAPSED;
+    const stringifiedSubProjects =
+      truncatedSubProjects.map(p => p.slug).join(', ') +
+      (overflowingProjects > 0 ? `, +${overflowingProjects} more` : '');
+
+    subProjectContent = isExpanded
+      ? subProjects.map(subProject => <div key={subProject.slug}>{subProject.slug}</div>)
+      : stringifiedSubProjects;
+  }
+
+  return subProjectContent;
+}
+
+function getSubSpansContent(subProjects: SubProject[], isExpanded: boolean) {
+  let subSpansContent: React.ReactNode = '+0';
+  if (subProjects.length > 0) {
+    const subProjectSum = subProjects.reduce(
+      (acc, subProject) => acc + subProject.count,
+      0
+    );
+
+    subSpansContent = isExpanded
+      ? subProjects.map(subProject => (
+          <div key={subProject.slug}>+{formatAbbreviatedNumber(subProject.count, 2)}</div>
+        ))
+      : `+${formatAbbreviatedNumber(subProjectSum, 2)}`;
+  }
+
+  return subSpansContent;
 }
 
 const MAX_PROJECTS_COLLAPSED = 3;
@@ -199,38 +157,14 @@ const TableRow = memo(function TableRow({
   ownCount: number;
   project: Project;
   sampleRate: number;
-  subProjects: {count: number; slug: string}[];
+  subProjects: SubProject[];
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const hasSubProjects = subProjects.length > 0;
 
-  let subProjectContent: React.ReactNode = t('No distributed traces');
-  if (hasSubProjects) {
-    const truncatedSubProjects = subProjects.slice(0, MAX_PROJECTS_COLLAPSED);
-    const overflowingProjects = subProjects.length - MAX_PROJECTS_COLLAPSED;
-    const stringifiedSubProjects =
-      truncatedSubProjects.map(p => p.slug).join(', ') +
-      (overflowingProjects > 0 ? `, +${overflowingProjects} more` : '');
-
-    subProjectContent = isExpanded
-      ? subProjects.map(subProject => <div key={subProject.slug}>{subProject.slug}</div>)
-      : stringifiedSubProjects;
-  }
-
-  let subSpansContent: React.ReactNode = '+0';
-  if (hasSubProjects) {
-    const subProjectSum = subProjects.reduce(
-      (acc, subProject) => acc + subProject.count,
-      0
-    );
-
-    subSpansContent = isExpanded
-      ? subProjects.map(subProject => (
-          <div key={subProject.slug}>+{formatAbbreviatedNumber(subProject.count, 2)}</div>
-        ))
-      : `+${formatAbbreviatedNumber(subProjectSum, 2)}`;
-  }
+  const subProjectContent = getSubProjectContent(subProjects, isExpanded);
+  const subSpansContent = getSubSpansContent(subProjects, isExpanded);
 
   return (
     <Fragment key={project.slug}>

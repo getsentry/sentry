@@ -5,12 +5,12 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {InputGroup} from 'sentry/components/inputGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {dynamicSamplingForm} from 'sentry/views/settings/dynamicSampling/dynamicSamplingForm';
+import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
-const {useFormField} = dynamicSamplingForm;
+const {useFormField} = organizationSamplingForm;
 
-export function TargetSampleRateField({}) {
+export function OrganizationSampleRateField({}) {
   const field = useFormField('targetSampleRate');
   const {hasAccess} = useAccess({access: ['org:write']});
 
