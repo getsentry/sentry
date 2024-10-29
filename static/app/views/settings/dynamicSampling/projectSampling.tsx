@@ -29,12 +29,12 @@ export function ProjectSampling() {
                 gap: ${space(1)};
               `}
             >
-              {t('Manual Balancing')}{' '}
+              {t('Manual Sampling per Project')}{' '}
               <QuestionTooltip
                 size="sm"
                 isHoverable
                 title={tct(
-                  'Manual balancing allows you to set individual sample rates for each project. [link:Learn more about sampling]',
+                  'Manual sampling allows you to set individual sample rates for each project. [link:Learn more about sampling]',
                   {
                     // TODO(aknaus): Add link to documentation
                     link: <ExternalLink href="https://docs.sentry.io/" />,

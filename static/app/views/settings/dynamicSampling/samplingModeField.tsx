@@ -59,7 +59,7 @@ export function SamplingModeField() {
               'Take control over the individual sample rates in your projects. This disables automatic adjustments.'
             )
           : t(
-              'Enable automatic adjustments for your projects based on a global rate. This disables manual adjustments.'
+              'Let Sentry monitor span volume and adjust sample rates automatically. This resets the custom rates below.'
             )
       }
     >
