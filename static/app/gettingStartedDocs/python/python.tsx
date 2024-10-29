@@ -44,11 +44,11 @@ sentry_sdk.init(
   params.profilingOptions?.defaultProfilingMode === 'continuous'
     ? `
 
-# Manually call start_profiling and stop_profiling
+# Manually call start_profiler and stop_profiler
 # to profile the code in between
-sentry_sdk.profiler.start_profiling()
+sentry_sdk.profiler.start_profiler()
 # do some work here
-sentry_sdk.profiler.stop_profiling()`
+sentry_sdk.profiler.stop_profiler()`
     : ''
 }`;
 
