@@ -63,7 +63,11 @@ from sentry.replays.lib.storage import (
     make_recording_filename,
     storage_kv,
 )
-from sentry.replays.usecases.ingest import process_headers, track_initial_segment_event
+from sentry.replays.usecases.ingest import (
+    MOBILE_EVENT_SAMPLE_RATE,
+    process_headers,
+    track_initial_segment_event,
+)
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
     emit_replay_actions,
@@ -76,7 +80,7 @@ logger = logging.getLogger(__name__)
 logger.addFilter(
     SamplingFilter(
         {
-            "mobile_event": 0.5,
+            "mobile_event": MOBILE_EVENT_SAMPLE_RATE,
         }
     )
 )

@@ -25,12 +25,15 @@ from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
+MOBILE_EVENT_SAMPLE_RATE = 0.5
+RRWEB_EVENT_COUNT_SAMPLE_RATE = 0.5
+
 logger = logging.getLogger("sentry.replays")
 logger.addFilter(
     SamplingFilter(
         {
-            "mobile_event": 0.5,
-            "rrweb_event_count": 0.5,
+            "mobile_event": MOBILE_EVENT_SAMPLE_RATE,
+            "rrweb_event_count": RRWEB_EVENT_COUNT_SAMPLE_RATE,
         }
     )
 )
