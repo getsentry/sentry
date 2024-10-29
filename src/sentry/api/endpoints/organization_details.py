@@ -45,7 +45,6 @@ from sentry.constants import (
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
-    DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -193,8 +192,6 @@ ORG_OPTIONS = (
         bool,
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
-    ("aggregatedDataConsent", "sentry:aggregated_data_consent", bool, DATA_CONSENT_DEFAULT),
-    ("genAIConsent", "sentry:gen_ai_consent", bool, DATA_CONSENT_DEFAULT),
     (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
