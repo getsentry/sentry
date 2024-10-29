@@ -86,6 +86,7 @@ export function NewOnboardingStatus({
     if (!walkthrough && !isActive === true) {
       trackAnalytics('quick_start.opened', {
         organization,
+        new_experience: true,
       });
     }
 
@@ -102,6 +103,7 @@ export function NewOnboardingStatus({
     trackAnalytics('quick_start.completed', {
       organization: organization,
       referrer: 'onboarding_sidebar',
+      new_experience: true,
     });
   }, [isActive, totalRemainingTasks, organization]);
 
