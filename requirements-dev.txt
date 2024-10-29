@@ -4,7 +4,7 @@ sentry-devenv>=1.13.0
 
 covdefaults>=2.3.0
 docker>=6
-time-machine>=2.13.0
+time-machine>=2.16.0
 honcho>=2
 openapi-core>=0.18.2
 openapi-pydantic>=0.4.0
