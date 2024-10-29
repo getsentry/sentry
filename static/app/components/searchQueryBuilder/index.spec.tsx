@@ -231,8 +231,7 @@ describe('SearchQueryBuilder', function () {
           hideClearWhenEmpty
         />
       );
-      // Must await something to prevent act warnings
-      await act(tick);
+      await screen.findByRole('combobox', {name: 'Add a search term'});
 
       expect(
         screen.queryByRole('button', {name: 'Clear search query'})
