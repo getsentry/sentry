@@ -49,7 +49,7 @@ export function TargetSampleRateField({}) {
           </InputGroup>
         </Tooltip>
         {field.hasChanged ? (
-          <PreviousValue>{t('previous rate: %f%%', field.initialValue)}</PreviousValue>
+          <PreviousValue>{t('previous: %f%%', field.initialValue)}</PreviousValue>
         ) : null}
       </InputWrapper>
     </FieldGroup>
