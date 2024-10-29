@@ -36,6 +36,11 @@ export interface KeyValueDataContentProps {
    */
   errors?: MetaError[];
   /**
+   * Used for the feature flag section.
+   * If true, then the row will be highlighted in red.
+   */
+  isSuspectFlag?: boolean;
+  /**
    * Metadata pertaining to content item
    */
   meta?: Record<string, any>;
@@ -47,6 +52,7 @@ export function Content({
   errors = [],
   disableLink = false,
   disableFormattedData = false,
+  isSuspectFlag,
   ...props
 }: KeyValueDataContentProps) {
   const {
@@ -78,7 +84,7 @@ export function Content({
   );
 
   return (
-    <ContentWrapper hasErrors={hasErrors} {...props}>
+    <ContentWrapper hasErrors={Boolean(hasErrors || isSuspectFlag)} {...props}>
       {subjectNode !== undefined ? subjectNode : <Subject>{subject}</Subject>}
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
         <ValueWrapper hasSuffix={hasSuffix}>
@@ -220,8 +226,7 @@ const ContentWrapper = styled('div')<{hasErrors: boolean}>`
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: 4px;
   color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
-  box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
+  box-shadow: inset 0 0 0 1px ${p => (p.hasErrors ? p.theme.red100 : 'transparent')};
   background-color: ${p =>
     p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
   &:nth-child(odd) {

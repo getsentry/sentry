@@ -33,6 +33,9 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/useOrganizationFlagLog';
+import useSuspectFlags from 'sentry/views/issueDetails/streamline/useSuspectFlags';
 
 export function EventFeatureFlagList({
   event,
@@ -68,24 +71,54 @@ export function EventFeatureFlagList({
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const organization = useOrganization();
+  const eventView = useIssueDetailsEventView({group});
+  const {data: rawFlagData} = useOrganizationFlagLog({
+    organization,
+    query: {
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+    },
+  });
 
-  // Transform the flags array into something readable by the key-value component
-  const hydrateFlags = (flags: FeatureFlag[] | undefined): KeyValueDataContentProps[] => {
-    if (!flags) {
-      return [];
-    }
-    return flags.map(f => {
-      return {
-        item: {key: f.flag, subject: f.flag, value: f.result.toString()},
-      };
-    });
-  };
+  const {
+    suspectFlags,
+    isError: isSuspectError,
+    isPending: isSuspectPending,
+  } = useSuspectFlags({
+    organization,
+    firstSeen: group.firstSeen,
+    rawFlagData,
+    event,
+  });
 
-  // Reverse the flags to show newest at the top by default
-  const hydratedFlags = useMemo(
-    () => hydrateFlags(event.contexts?.flags?.values.reverse()),
-    [event]
-  );
+  const suspectFlagNames = useMemo(() => {
+    return isSuspectError || isSuspectPending ? [] : suspectFlags.map(f => f.flag);
+  }, [isSuspectError, isSuspectPending, suspectFlags]);
+
+  const hydratedFlags = useMemo(() => {
+    // Transform the flags array into something readable by the key-value component
+    const hydrateFlags = (
+      flags: FeatureFlag[] | undefined
+    ): KeyValueDataContentProps[] => {
+      if (!flags) {
+        return [];
+      }
+      return flags.map(f => {
+        return {
+          item: {
+            key: f.flag,
+            subject: f.flag,
+            value: f.result.toString(),
+          },
+          isSuspectFlag: suspectFlagNames.includes(f.flag),
+        };
+      });
+    };
+
+    // Reverse the flags to show newest at the top by default
+    return hydrateFlags(event.contexts?.flags?.values.reverse());
+  }, [event, suspectFlagNames]);
 
   const onViewAllFlags = useCallback(
     (focusControl?: FlagControlOptions) => {
