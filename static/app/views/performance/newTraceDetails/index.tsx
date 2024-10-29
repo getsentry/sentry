@@ -14,6 +14,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -21,7 +22,7 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -89,6 +90,7 @@ import {
   isTraceNode,
 } from './traceGuards';
 import {TraceMetadataHeader} from './traceMetadataHeader';
+import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceShortcuts} from './traceShortcutsModal';
 import type {TraceReducer, TraceReducerState} from './traceState';
 import {
@@ -690,7 +692,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
-
     const query = qs.parse(location.search);
     if (query.fov && typeof query.fov === 'string') {
       viewManager.maybeInitializeTraceViewFromQS(query.fov);
@@ -914,6 +915,78 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   }, [traceState.search.query]);
   useTraceQueryParamStateSync(traceQueryStateSync);
 
+  const onAutogroupChange = useCallback(() => {
+    const value = !traceState.preferences.autogroup.parent;
+
+    if (!value) {
+      let removeCount = 0;
+      removeCount += TraceTree.RemoveSiblingAutogroupNodes(props.tree.root);
+      removeCount += TraceTree.RemoveDirectChildrenAutogroupNodes(props.tree.root);
+
+      addSuccessMessage(
+        removeCount > 0
+          ? tct('Autogrouping disabled, removed [count] autogroup spans', {
+              count: removeCount,
+            })
+          : t('Autogrouping disabled')
+      );
+    } else {
+      let autogroupCount = 0;
+      autogroupCount += TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
+      autogroupCount += TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
+      addSuccessMessage(
+        autogroupCount > 0
+          ? tct('Autogrouping enabled, detected [count] autogrouping spans', {
+              count: autogroupCount,
+            })
+          : t('Autogrouping enabled')
+      );
+    }
+
+    props.tree.rebuild();
+    traceDispatch({
+      type: 'set autogrouping',
+      payload: value,
+    });
+  }, [traceDispatch, traceState.preferences.autogroup, props.tree]);
+
+  const onMissingInstrumentationChange = useCallback(() => {
+    const value = !traceState.preferences.missing_instrumentation;
+    if (!value) {
+      const removeCount = TraceTree.RemoveMissingInstrumentationNodes(props.tree.root);
+      addSuccessMessage(
+        removeCount > 0
+          ? tct(
+              'Missing instrumentation disabled, removed [count] missing instrumentation spans',
+              {
+                count: removeCount,
+              }
+            )
+          : t('Missing instrumentation disabled')
+      );
+    } else {
+      const missingInstrumentationCount = TraceTree.DetectMissingInstrumentation(
+        props.tree.root
+      );
+      addSuccessMessage(
+        missingInstrumentationCount > 0
+          ? tct(
+              'Missing instrumentation enabled, found [count] missing instrumentation spans',
+              {
+                count: missingInstrumentationCount,
+              }
+            )
+          : t('Missing instrumentation enabled')
+      );
+    }
+
+    props.tree.rebuild();
+    traceDispatch({
+      type: 'set missing instrumentation',
+      payload: value,
+    });
+  }, [traceDispatch, traceState.preferences.missing_instrumentation, props.tree]);
+
   return (
     <Fragment>
       <TraceTypeWarnings
@@ -928,6 +1001,15 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           organization={props.organization}
         />
         <TraceShortcuts />
+        <TracePreferencesDropdown
+          autogroup={
+            traceState.preferences.autogroup.parent &&
+            traceState.preferences.autogroup.sibling
+          }
+          missingInstrumentation={traceState.preferences.missing_instrumentation}
+          onAutogroupChange={onAutogroupChange}
+          onMissingInstrumentationChange={onMissingInstrumentationChange}
+        />
       </TraceToolbar>
       <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
         <Trace
@@ -1021,7 +1103,7 @@ const TraceInnerLayout = styled('div')`
 const TraceToolbar = styled('div')`
   flex-grow: 0;
   display: grid;
-  grid-template-columns: 1fr min-content min-content;
+  grid-template-columns: 1fr min-content min-content min-content;
   gap: ${space(1)};
 `;
 

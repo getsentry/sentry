@@ -633,8 +633,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
   }
 
-  static DetectMissingInstrumentation(root: TraceTreeNode<TraceTree.NodeValue>) {
+  static DetectMissingInstrumentation(root: TraceTreeNode<TraceTree.NodeValue>): number {
     let previous: TraceTreeNode<TraceTree.NodeValue> | null = null;
+    let missingInstrumentationCount = 0;
 
     TraceTree.ForEachChild(root, child => {
       if (
@@ -661,6 +662,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           previous,
           child
         );
+        missingInstrumentationCount++;
 
         if (child.parent === previous) {
           // The tree is dfs iterated, so it can only ever be the first child
@@ -682,20 +684,33 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       previous = child;
     });
+
+    return missingInstrumentationCount;
   }
 
   // We can just filter out the missing instrumentation
   // nodes as they never have any children that require remapping
   static RemoveMissingInstrumentationNodes(
     root: TraceTreeNode<TraceTree.NodeValue>
-  ): void {
-    TraceTree.Filter(root, node => !isMissingInstrumentationNode(node));
+  ): number {
+    let removeCount = 0;
+
+    TraceTree.Filter(root, node => {
+      if (isMissingInstrumentationNode(node)) {
+        removeCount++;
+        return false;
+      }
+      return true;
+    });
+
+    return removeCount;
   }
 
   static AutogroupDirectChildrenSpanNodes(
     root: TraceTreeNode<TraceTree.NodeValue>
-  ): void {
+  ): number {
     const queue = [root];
+    let autogroupCount = 0;
 
     while (queue.length > 0) {
       const node = queue.pop()!;
@@ -757,6 +772,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         head,
         tail
       );
+      autogroupCount++;
 
       if (!node.parent) {
         throw new Error('Parent node is missing, this should be unreachable code');
@@ -792,11 +808,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
         queue.push(c);
       }
     }
+
+    return autogroupCount;
   }
 
   static RemoveDirectChildrenAutogroupNodes(
     root: TraceTreeNode<TraceTree.NodeValue>
-  ): void {
+  ): number {
+    let removeCount = 0;
+
     TraceTree.ForEachChild(root, node => {
       if (isParentAutogroupedNode(node)) {
         const index = node.parent?.children.indexOf(node) ?? -1;
@@ -805,6 +825,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
           return;
         }
 
+        removeCount++;
         node.parent.children[index] = node.head;
         // Head of parent now points to the parent of autogrouped node
         node.head.parent = node.parent;
@@ -814,10 +835,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
       }
     });
+
+    return removeCount;
   }
 
-  static AutogroupSiblingSpanNodes(root: TraceTreeNode<TraceTree.NodeValue>): void {
+  static AutogroupSiblingSpanNodes(root: TraceTreeNode<TraceTree.NodeValue>): number {
     const queue = [root];
+    let autogroupCount = 0;
 
     while (queue.length > 0) {
       const node = queue.pop()!;
@@ -884,6 +908,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
             }
           );
 
+          autogroupCount++;
           autoGroupedNode.groupCount = matchCount + 1;
 
           const start = index - matchCount;
@@ -925,11 +950,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
       }
     }
+
+    return autogroupCount;
   }
 
-  static RemoveSiblingAutogroupNodes(root: TraceTreeNode<TraceTree.NodeValue>): void {
+  static RemoveSiblingAutogroupNodes(root: TraceTreeNode<TraceTree.NodeValue>): number {
+    let removeCount = 0;
     TraceTree.ForEachChild(root, node => {
       if (isSiblingAutogroupedNode(node)) {
+        removeCount++;
         const index = node.parent?.children.indexOf(node) ?? -1;
         if (!node.parent || index === -1) {
           Sentry.captureException('Removing sibling autogroup nodes failed');
@@ -943,6 +972,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
       }
     });
+
+    return removeCount;
   }
 
   static DirectVisibleChildren(
@@ -1668,6 +1699,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
   toList(): TraceTreeNode<TraceTree.NodeValue>[] {
     this.list = TraceTree.VisibleChildren(this.root);
     return this.list;
+  }
+
+  rebuild() {
+    TraceTree.invalidate(this.root, true);
+    this.list = this.toList();
+    return this;
   }
 
   build() {
