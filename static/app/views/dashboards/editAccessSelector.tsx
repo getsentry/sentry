@@ -55,11 +55,11 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         displayName={
           <StyledDisplayName>
             {dashboardCreator?.id === currentUser.id
-              ? tct("You ([email])", {email: currentUser.email})
+              ? tct('You ([email])', {email: currentUser.email})
               : dashboardCreator?.email || currentUser.email}
           </StyledDisplayName>
         }
-        displayEmail={t("Creator")}
+        displayEmail={t('Creator')}
       />
     ),
     textValue: '_creatorbadge',
