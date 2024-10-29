@@ -12,16 +12,18 @@ import type {TraceTree} from '../traceModels/traceTree';
 
 const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation'];
 
+type TraceTitle = {
+  op: string;
+  transaction?: string;
+} | null;
+
 interface TitleProps {
   traceSlug: string;
   tree: TraceTree;
 }
 
 export function Title({traceSlug, tree}: TitleProps) {
-  const traceTitle: {
-    op: string;
-    transaction?: string;
-  } | null = useMemo(() => {
+  const traceTitle: TraceTitle = useMemo(() => {
     const trace = tree.root.children[0];
 
     if (!trace) {
@@ -32,9 +34,9 @@ export function Title({traceSlug, tree}: TitleProps) {
       throw new TypeError('Not trace node');
     }
 
-    let firstRootTransaction: TraceTree.Title = null;
-    let candidateTransaction: TraceTree.Title = null;
-    let firstTransaction: TraceTree.Title = null;
+    let firstRootTransaction: TraceTitle = null;
+    let candidateTransaction: TraceTitle = null;
+    let firstTransaction: TraceTitle = null;
 
     for (const transaction of trace.value.transactions || []) {
       const title = {
@@ -42,16 +44,22 @@ export function Title({traceSlug, tree}: TitleProps) {
         transaction: transaction.transaction,
       };
 
+      // If we find a root transaction, we can stop looking and use it for the title.
       if (!firstRootTransaction && isRootTransaction(transaction)) {
         firstRootTransaction = title;
         break;
       } else if (
+        // If we haven't found a root transaction, but we found a candidate transaction
+        // with an op that we care about, we can use it for the title. We keep looking for
+        // a root.
         !candidateTransaction &&
         CANDIDATE_TRACE_TITLE_OPS.includes(transaction['transaction.op'])
       ) {
         candidateTransaction = title;
         continue;
       } else if (!firstTransaction) {
+        // If we haven't found a root or candidate transaction, we can use the first transaction
+        // in the trace for the title.
         firstTransaction = title;
       }
     }
