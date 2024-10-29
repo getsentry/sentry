@@ -427,7 +427,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "taskworker": {
         "topic": Topic.TASK_WORKER,
-        "strategy_factory": "sentry.taskworker.processors.strategy_factory.StrategyFactory",
+        "strategy_factory": "sentry.taskworker.consumers.factory.TaskWorkerStrategyFactory",
         "click_options": taskworker_options(default_max_batch_size=100),
         "dlq_topic": Topic.TASK_WORKER_DLQ,
     },

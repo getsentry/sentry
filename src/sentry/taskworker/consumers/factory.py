@@ -48,7 +48,7 @@ def process_message(message: Message[KafkaPayload]) -> InflightActivation:
     )
 
 
-class StrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+class TaskWorkerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
         max_batch_size: int,
