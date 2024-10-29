@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {DynamicSampling} from 'sentry/views/settings/dynamicSampling/dynamicSampling';
+import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 
 export default function DynamicSamplingSettings() {
   const organization = useOrganization();
@@ -20,7 +20,7 @@ export default function DynamicSamplingSettings() {
       <SentryDocumentTitle title={t('Dynamic Sampling')} orgSlug={organization.slug} />
       <div>
         <SettingsPageHeader title={t('Dynamic Sampling')} />
-        <DynamicSampling />
+        <OrganizationSampling />
       </div>
     </Fragment>
   );

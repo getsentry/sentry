@@ -108,6 +108,7 @@ const Message = styled('span')`
 `;
 
 const Title = styled('span')`
+  position: relative;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
