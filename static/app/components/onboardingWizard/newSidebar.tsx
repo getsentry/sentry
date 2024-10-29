@@ -18,7 +18,7 @@ import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCheckmark, IconClose, IconSync} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconNot, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
@@ -150,19 +150,24 @@ function Task({task, status, hidePanel}: TaskProps) {
     [task, organization, api]
   );
 
-  if (status === 'complete' || status === 'skipped') {
+  if (status === 'complete') {
     return (
       <TaskWrapper css={taskCompletedCss}>
         <strong>{task.title}</strong>
-        {status === 'complete' ? (
-          <Tooltip title={t('Task completed ')} containerDisplayMode="flex">
-            <IconCheckmark color="green300" isCircled />
-          </Tooltip>
-        ) : (
-          <Tooltip title={t('Task skipped')} containerDisplayMode="flex">
-            <IconCheckmark color="gray300" isCircled />
-          </Tooltip>
-        )}
+        <Tooltip title={t('Task completed')} containerDisplayMode="flex">
+          <IconCheckmark color="green300" isCircled />
+        </Tooltip>
+      </TaskWrapper>
+    );
+  }
+
+  if (status === 'skipped') {
+    return (
+      <TaskWrapper css={taskCompletedCss}>
+        <strong>{task.title}</strong>
+        <Tooltip title={t('Task skipped')} containerDisplayMode="flex">
+          <IconNot color="gray300" />
+        </Tooltip>
       </TaskWrapper>
     );
   }
