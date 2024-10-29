@@ -11,6 +11,8 @@ from rest_framework import serializers
 
 from sentry import features, options
 from sentry.api.issue_search import parse_search_query
+
+# from sentry.api.serializers.models.team import TeamSerializer
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -470,9 +472,14 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
 
 class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
-    is_creator_only_editable = serializers.BooleanField(
+    is_editable_by_everyone = serializers.BooleanField(
         help_text="Whether the dashboard is editable only by the creator.",
     )
+    # teams_with_edit_access = TeamSerializer(
+    #     # help_text="List of team IDs that have edit access to a dashboard.",
+    #     required=False,
+    #     many=True,
+    # )
 
 
 class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):

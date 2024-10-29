@@ -538,7 +538,7 @@ class ExhaustiveFixtures(Fixtures):
             created_by_id=owner_id,
             organization=org,
         )
-        DashboardPermissions.objects.create(is_creator_only_editable=False, dashboard=dashboard)
+        DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=dashboard)
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             order=1,
