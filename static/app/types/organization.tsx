@@ -86,6 +86,7 @@ export interface Organization extends OrganizationSummary {
   relayPiiConfig: string | null;
   requiresSso: boolean;
   safeFields: string[];
+  samplingMode: 'organization' | 'project';
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];

@@ -1,12 +1,11 @@
 import {t} from 'sentry/locale';
-import {createForm} from 'sentry/views/settings/dynamicSampling/formContext';
+import {createForm} from 'sentry/views/settings/dynamicSampling/utils/formContext';
 
 type FormFields = {
-  samplingMode: 'auto' | 'manual';
   targetSampleRate: string;
 };
 
-export const dynamicSamplingForm = createForm<FormFields>({
+export const organizationSamplingForm = createForm<FormFields>({
   validators: {
     targetSampleRate: (value: string) => {
       if (value === '') {
