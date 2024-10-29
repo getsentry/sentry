@@ -149,7 +149,7 @@ Required context variables:
               return; // MessageEvent is malformed, missing $id
             }
 
-            if (!message.$function || !(message.$function in messageDispatch)) {
+            if (!message.$function || !(Object.hasOwn(messageDispatch, message.$function))) {
               return; // No-op without a $function to call
             }
 
