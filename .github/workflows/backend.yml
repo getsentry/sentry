@@ -210,7 +210,7 @@ jobs:
         with:
           python-version: 3.12.6
           cache-dependency-path: requirements-dev-frozen.txt
-          install-cmd: python3 -m tools.hack_pip && pip install -q --constraint requirements-dev-frozen.txt pip-tools
+          install-cmd: pip install -q --constraint requirements-dev-frozen.txt pip-tools
       - name: check requirements
         run: |
           python -S -m tools.freeze_requirements
@@ -303,7 +303,7 @@ jobs:
         with:
           python-version: 3.12.6
           cache-dependency-path: requirements-dev-frozen.txt
-          install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev-frozen.txt
+          install-cmd: pip install -r requirements-dev-frozen.txt
 
       - name: setup sentry (lite)
         run: |

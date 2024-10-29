@@ -12,6 +12,7 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -147,7 +148,7 @@ function makeTraceFromTransaction(
 function useDemoTrace(
   demo: string | undefined,
   organization: {slug: string}
-): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any> {
+): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError> {
   const demoEventSlug = parseDemoEventSlug(demo);
 
   // When projects don't have performance set up, we allow them to view a demo transaction.
@@ -179,7 +180,7 @@ function useDemoTrace(
   // Casting here since the 'select' option is not available in the useApiQuery hook to transform the data
   // from EventTransaction to TraceSplitResults<TraceFullDetailed>
   return {...demoEventQuery, data} as UseApiQueryResult<
-    TraceSplitResults<TraceTree.Transaction> | undefined,
+    TraceSplitResults<TraceTree.Transaction>,
     any
   >;
 }
@@ -192,7 +193,7 @@ type UseTraceParams = {
 
 export function useTrace(
   options: UseTraceParams
-): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any> {
+): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError> {
   const filters = usePageFilters();
   const organization = useOrganization();
   const queryParams = useMemo(() => {

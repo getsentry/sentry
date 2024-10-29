@@ -82,7 +82,7 @@ export function useCreateNotificationAction() {
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
     [`/organizations/${organization.slug}/integrations/?integrationType=messaging`],
-    {staleTime: Infinity}
+    {staleTime: 0, refetchOnWindowFocus: true}
   );
 
   const providersToIntegrations = useMemo(() => {

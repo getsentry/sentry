@@ -929,6 +929,33 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             ]
         }
 
+    def test_critical_trigger_action_no_target_id(self):
+        rule_one_trigger_no_target_id = {
+            "aggregate": "count()",
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "OneTriggerOnlyCritical",
+            "owner": self.user.id,
+            "resolveThreshold": 200,
+            "thresholdType": 1,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 100,
+                    "actions": [{"type": "email", "targetType": "team", "targetIdentifier": ""}],
+                }
+            ],
+        }
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug, status_code=400, **rule_one_trigger_no_target_id
+            )
+        assert resp.data[0] == ErrorDetail(
+            string="One or more of your actions is missing a target identifier.", code="invalid"
+        )
+
     def test_invalid_projects(self):
         with self.feature("organizations:incidents"):
             resp = self.get_error_response(
@@ -986,6 +1013,63 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert resp.status_code == 403
 
         self.login_as(self.user)
+        resp = self.get_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.status_code == 403
+
+    def test_team_admin_create(self):
+        team_admin_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
+
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[self.team]
+        )
+
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin_user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.status_code == 201
+
+        # verify that a team admin cannot create an alert for a project their team doesn't own
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                projects=[
+                    self.create_project(organization=self.create_organization()).slug,
+                ],
+                name="an alert",
+                owner=team_admin_user.id,
+                thresholdType=1,
+                query="hi",
+                aggregate="count()",
+                timeWindow=10,
+                alertThreshold=1000,
+                resolveThreshold=100,
+                triggers=[
+                    {
+                        "label": "critical",
+                        "alertThreshold": 200,
+                        "actions": [
+                            {
+                                "type": "email",
+                                "targetType": "team",
+                                "targetIdentifier": self.team.id,
+                            }
+                        ],
+                    }
+                ],
+            )
+            assert resp.json() == {"projects": ["Invalid project"]}
+
+        # verify that a regular team member cannot create an alert
+        self.login_as(member_user)
         resp = self.get_response(self.organization.slug, **self.alert_rule_dict)
         assert resp.status_code == 403
 

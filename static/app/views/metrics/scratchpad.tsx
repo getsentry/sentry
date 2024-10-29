@@ -25,7 +25,7 @@ import {useGetCachedChartPalette} from 'sentry/views/metrics/utils/metricsChartP
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 import {widgetToQuery} from 'sentry/views/metrics/utils/widgetToQuery';
 
-import {TraceViewSources} from '../performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../performance/newTraceDetails/traceHeader/breadcrumbs';
 
 import {MetricWidget} from './widget';
 
