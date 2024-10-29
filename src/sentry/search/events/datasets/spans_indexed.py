@@ -411,7 +411,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 
     def _resolve_bounded_sample(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         base_condition = Function(
@@ -447,7 +447,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 
     def _resolve_rounded_time(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         start, end = self.builder.start, self.builder.end
@@ -473,7 +473,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 
     def _resolve_percentile(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | SelectType | int | float],
         alias: str,
         fixed_percentile: float | None = None,
     ) -> SelectType:
@@ -493,7 +493,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 
     def _resolve_random_samples(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         offset = 0 if self.builder.offset is None else self.builder.offset.offset
@@ -567,9 +567,9 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     def _resolve_aggregate_if(
         self, aggregate: str
-    ) -> Callable[[Mapping[str, str | Column | SelectType | int | float], str | None], SelectType]:
+    ) -> Callable[[Mapping[str, str | SelectType | int | float], str | None], SelectType]:
         def resolve_aggregate_if(
-            args: Mapping[str, str | Column | SelectType | int | float],
+            args: Mapping[str, str | SelectType | int | float],
             alias: str | None = None,
         ) -> SelectType:
             attr = extract_attr(args["column"])
@@ -945,7 +945,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     def _resolve_sum_weighted(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
         attr = extract_attr(args["column"])
@@ -988,7 +988,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     def _resolve_count_weighted(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
         attr = extract_attr(args["column"])
@@ -1027,7 +1027,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     def _resolve_percentile_weighted(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | SelectType | int | float],
         alias: str,
         fixed_percentile: float | None = None,
     ) -> SelectType:
@@ -1081,7 +1081,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     def _resolve_margin_of_error(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
         """Calculates the Margin of error for a given value, but unfortunately basis the total count based on
@@ -1127,7 +1127,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     def _resolve_finite_population_correction(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | SelectType | int | float],
         total_samples: SelectType,
         population_size: int | float,
     ) -> SelectType:
@@ -1152,7 +1152,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     def _resolve_lower_limit(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         """round(max(0, proportion_by_sample - margin_of_error) * total_population)"""
@@ -1198,7 +1198,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
     def _resolve_upper_limit(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: Mapping[str, str | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         """round(max(0, proportion_by_sample + margin_of_error) * total_population)"""
@@ -1236,31 +1236,8 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
 
 
 def extract_attr(
-    column: str | Column | SelectType | int | float,
+    column: str | SelectType | int | float,
 ) -> tuple[Column, str] | None:
-    # This check exists to handle the temporay prefixing.
-    # Once that's removed, this condition should become much simpler
-
-    if not isinstance(column, Function):
-        return None
-
-    if column.function != "if":
-        return None
-
-    if len(column.parameters) != 3:
-        return None
-
-    if (
-        not isinstance(column.parameters[0], Function)
-        or column.parameters[0].function != "mapContains"
-        or len(column.parameters[0].parameters) != 2
-    ):
-        return None
-
-    attr_col = column.parameters[0].parameters[0]
-    attr_name = column.parameters[0].parameters[1]
-
-    if not isinstance(attr_col, Column) or not isinstance(attr_name, str):
-        return None
-
-    return attr_col, attr_name
+    if isinstance(column, Column) and column.subscriptable in {"attr_str", "attr_num"}:
+        return Column(column.subscriptable), column.key
+    return None

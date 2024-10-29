@@ -1,7 +1,7 @@
 [tool.black]
 # File filtering is taken care of in pre-commit.
 line-length = 100
-target-version = ['py311']
+target-version = ['py312']
 
 [tool.isort]
 profile = "black"
@@ -146,7 +146,6 @@ module = [
     "sentry.api.endpoints.organization_member.details",
     "sentry.api.endpoints.organization_member.index",
     "sentry.api.endpoints.organization_member.requests.invite.details",
-    "sentry.api.endpoints.organization_member_unreleased_commits",
     "sentry.api.endpoints.organization_metrics_meta",
     "sentry.api.endpoints.organization_onboarding_continuation_email",
     "sentry.api.endpoints.organization_projects",
@@ -337,13 +336,10 @@ module = [
     "sentry.utils.services",
     "sentry.web.forms.accounts",
     "sentry.web.frontend.auth_login",
-    "sentry.web.frontend.auth_logout",
     "sentry.web.frontend.auth_organization_login",
     "sentry.web.frontend.base",
-    "sentry.web.frontend.group_plugin_action",
     "sentry.web.frontend.oauth_authorize",
     "sentry.web.frontend.oauth_token",
-    "sentry.web.frontend.project_event",
     "sentry.web.frontend.react_page",
     "sentry.web.frontend.setup_wizard",
     "sentry.web.frontend.shared_group_details",
