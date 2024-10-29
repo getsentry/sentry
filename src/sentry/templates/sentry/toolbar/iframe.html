@@ -82,7 +82,7 @@ Required context variables:
           log('saveAccessToken', data)
           if (data.cookie) {
             document.cookie = getCookieValue(data.cookie);
-            log('Saved a cookie', document.cookie.indexOf(value) >= 0);
+            log('Saved a cookie', document.cookie.indexOf(data.cookie) >= 0);
           }
           if (data.token) {
             localStorage.setItem('accessToken', data.token);
