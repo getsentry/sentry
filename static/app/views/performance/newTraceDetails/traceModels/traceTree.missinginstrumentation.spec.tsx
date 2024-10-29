@@ -9,7 +9,7 @@ import {isMissingInstrumentationNode} from './../traceGuards';
 import {TraceTree} from './traceTree';
 
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
-const traceMetadata = {replayRecord: null, meta: null};
+const traceMetadata = {replay: null, meta: null};
 
 const singleTransactionTrace = makeTrace({
   transactions: [
@@ -64,10 +64,7 @@ describe('missing instrumentation', () => {
       makeEventTransaction()
     );
 
-    TraceTree.DetectMissingInstrumentation(
-      tree.root,
-      TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
-    );
+    TraceTree.DetectMissingInstrumentation(tree.root);
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
@@ -79,10 +76,7 @@ describe('missing instrumentation', () => {
       makeEventTransaction()
     );
 
-    TraceTree.DetectMissingInstrumentation(
-      tree.root,
-      TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
-    );
+    TraceTree.DetectMissingInstrumentation(tree.root);
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
@@ -129,10 +123,7 @@ describe('missing instrumentation', () => {
       makeEventTransaction()
     );
 
-    TraceTree.DetectMissingInstrumentation(
-      tree.root,
-      TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
-    );
+    TraceTree.DetectMissingInstrumentation(tree.root);
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
@@ -146,10 +137,7 @@ describe('missing instrumentation', () => {
 
     const snapshot = tree.build().serialize();
 
-    TraceTree.DetectMissingInstrumentation(
-      tree.root,
-      TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
-    );
+    TraceTree.DetectMissingInstrumentation(tree.root);
 
     // Assert that missing instrumentation nodes exist
     expect(
@@ -171,10 +159,7 @@ describe('missing instrumentation', () => {
       makeEventTransaction({sdk: {name: 'sentry.javascript.browser', version: '1.0.0'}})
     );
 
-    TraceTree.DetectMissingInstrumentation(
-      tree.root,
-      TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
-    );
+    TraceTree.DetectMissingInstrumentation(tree.root);
 
     expect(TraceTree.Find(tree.root, c => isMissingInstrumentationNode(c))).toBeNull();
     expect(tree.build().serialize()).toMatchSnapshot();
@@ -187,10 +172,7 @@ describe('missing instrumentation', () => {
     const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
     TraceTree.FromSpans(tree.root.children[0].children[0], setup, makeEventTransaction());
 
-    TraceTree.DetectMissingInstrumentation(
-      tree.root,
-      TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
-    );
+    TraceTree.DetectMissingInstrumentation(tree.root);
     const initial = tree.build().serialize();
     expect(tree.build().serialize()).toMatchSnapshot();
     expect(tree.build().serialize()).toEqual(initial);

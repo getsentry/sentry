@@ -32,7 +32,7 @@ describe('incremental trace fetch', () => {
           }),
         ],
       }),
-      {replayRecord: null, meta: null}
+      {replay: null, meta: null}
     );
 
     // Mock the API calls
@@ -115,7 +115,7 @@ describe('incremental trace fetch', () => {
           }),
         ],
       }),
-      {replayRecord: null, meta: null}
+      {replay: null, meta: null}
     );
 
     // Mock the API calls
