@@ -61,6 +61,7 @@ export function TraceAutogroupedRow(
         onDoubleClick={props.onRowDoubleClick}
       >
         <AutogroupedTraceBar
+          node={props.node}
           manager={props.manager}
           entire_space={props.node.space}
           errors={props.node.errors}
