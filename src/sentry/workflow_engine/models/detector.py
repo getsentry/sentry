@@ -216,7 +216,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         return results
 
     def evaluate_group_key_value(
-        self, group_key: str, value: int, state_data: DetectorStateData, dedupe_value: int
+        self, group_key: str | None, value: int, state_data: DetectorStateData, dedupe_value: int
     ) -> DetectorEvaluationResult | None:
         """
         Evaluates a value associated with a given `group_key` and returns a `DetectorEvaluationResult` with the results

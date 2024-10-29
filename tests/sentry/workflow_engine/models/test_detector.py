@@ -18,10 +18,10 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict]):
     counter_names = ["test1", "test2"]
 
     def get_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
-        return data_packet.get("dedupe", 0)
+        return data_packet.packet.get("dedupe", 0)
 
     def get_group_key_values(self, data_packet: DataPacket[dict]) -> dict[str, int]:
-        return data_packet.get("group_vals", {})
+        return data_packet.packet.get("group_vals", {})
 
 
 class TestKeyBuilders(unittest.TestCase):
@@ -177,8 +177,8 @@ class TestCommitStateUpdateData(StatefulDetectorHandlerTestMixin):
 class TestEvaluate(StatefulDetectorHandlerTestMixin):
     def test(self):
         handler = self.build_handler()
-        assert handler.evaluate({"dedupe": 1}) == []
-        assert handler.evaluate({"dedupe": 2, "group_vals": {"val1": 0}}) == [
+        assert handler.evaluate(DataPacket("1", {"dedupe": 1})) == []
+        assert handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 0}})) == [
             DetectorEvaluationResult(
                 is_active=False,
                 priority=DetectorPriorityLevel.OK,
@@ -195,7 +195,7 @@ class TestEvaluate(StatefulDetectorHandlerTestMixin):
 
     def test_dedupe(self):
         handler = self.build_handler()
-        result = handler.evaluate({"dedupe": 2, "group_vals": {"val1": 0}})
+        result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 0}}))
         assert result == [
             DetectorEvaluationResult(
                 is_active=False,
@@ -210,16 +210,17 @@ class TestEvaluate(StatefulDetectorHandlerTestMixin):
                 ),
             )
         ]
-        handler.commit_state_update_data([r.state_update_data for r in result])
+        handler.commit_state_update_data(
+            [r.state_update_data for r in result if r.state_update_data]
+        )
         with mock.patch("sentry.workflow_engine.models.detector.metrics") as mock_metrics:
-            assert handler.evaluate({"dedupe": 2, "group_vals": {"val1": 0}}) == []
-            assert not mock_metrics.incr.assert_called_once_with(
+            assert handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 0}})) == []
+            mock_metrics.incr.assert_called_once_with(
                 "workflow_engine.detector.skipping_already_processed_update"
             )
 
 
 class TestEvaluateGroupKeyValue(StatefulDetectorHandlerTestMixin):
-
     def test_dedupe(self):
         handler = self.build_handler()
         with mock.patch("sentry.workflow_engine.models.detector.metrics") as mock_metrics:
@@ -235,6 +236,7 @@ class TestEvaluateGroupKeyValue(StatefulDetectorHandlerTestMixin):
                     {},
                 ),
             )
+            assert expected_result.state_update_data
             assert (
                 handler.evaluate_group_key_value(
                     expected_result.state_update_data.group_key,
@@ -251,6 +253,7 @@ class TestEvaluateGroupKeyValue(StatefulDetectorHandlerTestMixin):
                 == expected_result
             )
             assert not mock_metrics.incr.called
+            assert expected_result.state_update_data
             assert (
                 handler.evaluate_group_key_value(
                     expected_result.state_update_data.group_key,
@@ -266,6 +269,6 @@ class TestEvaluateGroupKeyValue(StatefulDetectorHandlerTestMixin):
                 )
                 is None
             )
-            assert not mock_metrics.incr.assert_called_once_with(
+            mock_metrics.incr.assert_called_once_with(
                 "workflow_engine.detector.skipping_already_processed_update"
             )
