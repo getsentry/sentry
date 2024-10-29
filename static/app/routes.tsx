@@ -1681,7 +1681,7 @@ function buildRoutes() {
   );
 
   const domainViewRoutes = (
-    <Route path={`/${DOMAIN_VIEW_BASE_URL}/`}>
+    <Route path={`/${DOMAIN_VIEW_BASE_URL}/`} withOrgPath>
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
           component={make(

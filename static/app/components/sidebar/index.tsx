@@ -71,7 +71,10 @@ import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_LANDING_TITLE,
 } from 'sentry/views/insights/pages/mobile/settings';
-import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+import {
+  DOMAIN_VIEW_BASE_TITLE,
+  DOMAIN_VIEW_BASE_URL,
+} from 'sentry/views/insights/pages/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
@@ -614,7 +617,7 @@ function Sidebar() {
       <SidebarAccordion
         {...sidebarItemProps}
         icon={<IconGraph />}
-        label={t('Insights')}
+        label={DOMAIN_VIEW_BASE_TITLE}
         id="insights-domains"
         initiallyExpanded={false}
         exact={!shouldAccordionFloat}
