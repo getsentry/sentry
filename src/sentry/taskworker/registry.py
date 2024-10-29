@@ -4,6 +4,7 @@ import logging
 import time
 from collections.abc import Mapping
 from datetime import timedelta
+from functools import cached_property
 from typing import Any
 from uuid import uuid4
 
@@ -28,42 +29,32 @@ class TaskNamespace:
     worker pool.
     """
 
-    __registered_tasks: dict[str, Task]
-    __producer: KafkaProducer | None = None
-
     def __init__(self, name: str, topic: str, deadletter_topic: str, retry: Retry | None):
         # TODO(taskworker) implement default deadlines for tasks
         self.name = name
         self.topic = topic
         self.deadletter_topic = deadletter_topic
         self.default_retry = retry
-        self.__registered_tasks = {}
+        self._registered_tasks: dict[str, Task] = {}
+        self._producer: KafkaProducer | None = None
 
-    @property
+    @cached_property
     def producer(self) -> KafkaProducer:
-        if self.__producer:
-            return self.__producer
+        if self._producer:
+            return self._producer
         cluster_name = get_topic_definition(Topic.TASK_WORKER)["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
-        self.__producer = KafkaProducer(producer_config)
+        self._producer = KafkaProducer(producer_config)
 
-        return self.__producer
-
-    @producer.setter
-    def producer(self, producer: KafkaProducer) -> None:
-        self.__producer = producer
-
-    @producer.deleter
-    def producer(self) -> None:
-        self.__producer = None
+        return self._producer
 
     def get(self, name: str) -> Task:
-        if name not in self.__registered_tasks:
+        if name not in self._registered_tasks:
             raise KeyError(f"No task registered with the name {name}. Check your imports")
-        return self.__registered_tasks[name]
+        return self._registered_tasks[name]
 
     def contains(self, name: str) -> bool:
-        return name in self.__registered_tasks
+        return name in self._registered_tasks
 
     def register(
         self,
@@ -85,7 +76,7 @@ class TaskNamespace:
             )
             # TODO(taskworker) tasks should be registered into the registry
             # so that we can ensure task names are globally unique
-            self.__registered_tasks[name] = task
+            self._registered_tasks[name] = task
             return task
 
         return wrapped
@@ -127,33 +118,4 @@ class TaskNamespace:
         return pending_task_payload
 
 
-class TaskRegistry:
-    """Registry of all namespaces"""
-
-    __namespaces: dict[str, TaskNamespace]
-
-    def __init__(self):
-        self.__namespaces = {}
-
-    def get(self, name: str) -> TaskNamespace:
-        if name not in self.__namespaces:
-            raise KeyError(f"No task namespace with the name {name}")
-        return self.__namespaces[name]
-
-    def get_task(self, namespace: str, task: str) -> Task:
-        return self.get(namespace).get(task)
-
-    def create_namespace(
-        self, name: str, topic: str, deadletter_topic: str, retry: Retry | None = None
-    ):
-        # TODO(taskworker) Remove topic params and use namespace name
-        # to resolve topic and dlq topic.
-        namespace = TaskNamespace(
-            name=name, topic=topic, deadletter_topic=deadletter_topic, retry=retry
-        )
-        self.__namespaces[name] = namespace
-
-        return namespace
-
-
-taskregistry = TaskRegistry()
+# TODO(taskworker) Import TaskRegistrys

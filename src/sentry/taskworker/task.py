@@ -6,21 +6,15 @@ from functools import update_wrapper
 from typing import TYPE_CHECKING, Any
 
 from django.utils import timezone
+from sentry_protos.sentry.v1.taskworker_pb2 import RetryState
+
+from sentry.taskworker.retry import Retry
 
 if TYPE_CHECKING:
-    from sentry_protos.sentry.v1.taskworker_pb2 import RetryState
-
     from sentry.taskworker.registry import TaskNamespace
-    from sentry.taskworker.retry import Retry
 
 
 class Task:
-    name: str
-    __func: Callable[..., Any]
-    __namespace: TaskNamespace
-    __idempotent: bool | None
-    __deadline: timedelta | int | None
-
     def __init__(
         self,
         name: str,
@@ -31,34 +25,34 @@ class Task:
         deadline: timedelta | int | None = None,
     ):
         self.name = name
-        self.__func = func
-        self.__namespace = namespace
-        self.__retry = retry
-        self.__idempotent = idempotent
-        self.__deadline = deadline
+        self._func = func
+        self._namespace = namespace
+        self._retry = retry
+        self._idempotent = idempotent
+        self._deadline = deadline
         update_wrapper(self, func)
 
     @property
     def retry(self) -> Retry | None:
-        return self.__retry
+        return self._retry
 
     @property
     def idempotent(self) -> bool:
-        return self.__idempotent or False
+        return self._idempotent or False
 
     @property
     def deadline_timestamp(self) -> int | None:
         # TODO add namespace/default deadlines
-        if not self.__deadline:
+        if not self._deadline:
             return None
-        if isinstance(self.__deadline, int):
-            return int(timezone.now().timestamp() + self.__deadline)
-        if isinstance(self.__deadline, timedelta):
-            return int(timezone.now().timestamp() + self.__deadline.total_seconds())
-        raise ValueError(f"unknown type for Task.deadline {self.__deadline}")
+        if isinstance(self._deadline, int):
+            return int(timezone.now().timestamp() + self._deadline)
+        if isinstance(self._deadline, timedelta):
+            return int(timezone.now().timestamp() + self._deadline.total_seconds())
+        raise ValueError(f"unknown type for Task.deadline {self._deadline}")
 
     def __call__(self, *args, **kwargs) -> None:
-        return self.__func(*args, **kwargs)
+        return self._func(*args, **kwargs)
 
     def delay(self, *args, **kwargs):
         return self.apply_async(*args, **kwargs)
@@ -67,9 +61,9 @@ class Task:
         from django.conf import settings
 
         if settings.TASK_WORKER_ALWAYS_EAGER:
-            self.__func(*args, **kwargs)
+            self._func(*args, **kwargs)
         else:
-            self.__namespace.send_task(self, args, kwargs)
+            self._namespace.send_task(self, args, kwargs)
 
     def should_retry(self, state: RetryState, exc: Exception) -> bool:
         # No retry policy means no retries.

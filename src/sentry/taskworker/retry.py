@@ -16,11 +16,11 @@ class RetryError(Exception):
 class Retry:
     """Used with tasks to define the retry policy for a task"""
 
-    __times: int
-    __allowed_exception_types: Sequence[type] | None
-    __denied_exception_types: Sequence[type] | None
-    __deadletter: bool | None
-    __discard: bool | None
+    _times: int
+    _allowed_exception_types: Sequence[type] | None
+    _denied_exception_types: Sequence[type] | None
+    _deadletter: bool | None
+    _discard: bool | None
 
     def __init__(
         self,
@@ -32,15 +32,15 @@ class Retry:
     ):
         if discard and deadletter:
             raise AssertionError("You cannot enable both discard and deadletter modes")
-        self.__times = times
-        self.__allowed_exception_types = on
-        self.__denied_exception_types = ignore
-        self.__deadletter = deadletter
-        self.__discard = discard
+        self._times = times
+        self._allowed_exception_types = on
+        self._denied_exception_types = ignore
+        self._deadletter = deadletter
+        self._discard = discard
 
     def should_retry(self, state: RetryState, exc: Exception) -> bool:
         # No more attempts left
-        if state.attempts >= self.__times:
+        if state.attempts >= self._times:
             return False
 
         # Explicit RetryError with attempts left.
@@ -50,7 +50,7 @@ class Retry:
         # No retries for types on the ignore list
         if any(
             isinstance(exc, ignored_exception_type)
-            for ignored_exception_type in self.__denied_exception_types or []
+            for ignored_exception_type in self._denied_exception_types or []
         ):
             return False
 
@@ -59,7 +59,7 @@ class Retry:
         if isinstance(exc, TimeoutError) or (
             any(
                 isinstance(exc, allowed_exception_type)
-                for allowed_exception_type in self.__allowed_exception_types or []
+                for allowed_exception_type in self._allowed_exception_types or []
             )
         ):
             return True
@@ -70,8 +70,8 @@ class Retry:
     def initial_state(self) -> RetryState:
         return RetryState(
             attempts=0,
-            discard_after_attempt=self.__times if self.__discard else None,
-            deadletter_after_attempt=self.__times if self.__deadletter else None,
+            discard_after_attempt=self._times if self._discard else None,
+            deadletter_after_attempt=self._times if self._deadletter else None,
             kind="sentry.taskworker.retry.Retry",
         )
 
