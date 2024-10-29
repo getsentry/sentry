@@ -3,6 +3,7 @@ import time
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
+from enum import Enum
 
 import sentry_sdk
 from snuba_sdk import (
@@ -19,7 +20,7 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import quotas
+from sentry import features, options, quotas
 from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
@@ -48,7 +49,7 @@ from sentry.dynamic_sampling.tasks.constants import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
+from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
@@ -63,7 +64,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -74,6 +75,13 @@ from sentry.utils.snuba import raw_snql_query
 # as a temporary solution to dogfood our own product without exploding the cardinality of the project_id tag.
 PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
 logger = logging.getLogger(__name__)
+
+
+class SamplingMeasure(Enum):
+    """The type of data being measured for dynamic sampling rebalancing."""
+
+    SPANS = "spans"
+    TRANSACTIONS = "transactions"
 
 
 @instrumented_task(
@@ -87,18 +95,85 @@ logger = logging.getLogger(__name__)
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_projects(context: TaskContext) -> None:
+    """
+    Task to adjusts the sample rates of all projects in all active organizations.
+    """
     logger.info(
         "boost_low_volume_projects",
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
     )
+
+    # NB: This always uses the *transactions* root count just to get the list of orgs.
     for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
-        for (
-            org_id,
-            projects_with_tx_count_and_rates,
-        ) in fetch_projects_with_total_root_transaction_count_and_rates(
-            context, org_ids=orgs
-        ).items():
-            boost_low_volume_projects_of_org.delay(org_id, projects_with_tx_count_and_rates)
+        for measure, orgs in partition_by_measure(orgs).items():
+            for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
+                context, org_ids=orgs, measure=measure
+            ).items():
+                boost_low_volume_projects_of_org.delay(org_id, projects)
+
+
+def partition_by_measure(org_ids: list[OrganizationId]) -> Mapping[SamplingMeasure, list[int]]:
+    """
+    Partitions the orgs by the measure that will be used to adjust the sample
+    rates. This is controlled through a feature flag on the organization,
+    determined by its plan.
+    """
+
+    spans = []
+    transactions = []
+
+    if not options.get("dynamic-sampling.check_span_feature_flag"):
+        return {SamplingMeasure.TRANSACTIONS: org_ids}
+
+    with metrics.timer("dynamic_sampling.partition_by_measure"):
+        orgs = Organization.objects.get_many_from_cache(org_ids)
+
+        for org in orgs:
+            # This is an N+1 query that fetches getsentry database models
+            # internally, but we cannot abstract over batches of feature flag
+            # handlers yet. Hence, we must fetch organizations and do individual
+            # feature checks per org.
+            if features.has("organizations:dynamic-sampling-spans", org):
+                spans.append(org.id)
+            else:
+                transactions.append(org.id)
+
+    return {SamplingMeasure.SPANS: spans, SamplingMeasure.TRANSACTIONS: transactions}
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.boost_low_volume_projects_of_org_with_query",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=3 * 60,
+    time_limit=3 * 60 + 5,
+    silo_mode=SiloMode.REGION,
+)
+@dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
+def boost_low_volume_projects_of_org_with_query(
+    context: TaskContext,
+    org_id: OrganizationId,
+) -> None:
+    """
+    Task to adjust the sample rates of the projects of a single organization specified by an
+    organization ID. Transaction counts and rates are fetched within this task.
+    """
+    logger.info(
+        "boost_low_volume_projects_of_org_with_query",
+        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
+    )
+
+    measure = SamplingMeasure.TRANSACTIONS
+    if options.get("dynamic-sampling.check_span_feature_flag"):
+        org = Organization.objects.get_from_cache(id=org_id)
+        if features.has("organizations:dynamic-sampling-spans", org):
+            measure = SamplingMeasure.SPANS
+
+    projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
+        context, org_ids=[org_id], measure=measure
+    )[org_id]
+    adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
 
 
 @instrumented_task(
@@ -106,8 +181,8 @@ def boost_low_volume_projects(context: TaskContext) -> None:
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=25 * 60,
-    time_limit=2 * 60 + 5,
+    soft_time_limit=3 * 60,
+    time_limit=3 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task
@@ -117,7 +192,10 @@ def boost_low_volume_projects_of_org(
         tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
     ],
 ) -> None:
-
+    """
+    Task to adjust the sample rates of the projects of a single organization specified by an
+    organization ID. Transaction counts and rates have to be provided.
+    """
     logger.info(
         "boost_low_volume_projects_of_org",
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
@@ -128,6 +206,7 @@ def boost_low_volume_projects_of_org(
 def fetch_projects_with_total_root_transaction_count_and_rates(
     context: TaskContext,
     org_ids: list[int],
+    measure: SamplingMeasure,
     granularity: Granularity | None = None,
     query_interval: timedelta | None = None,
 ) -> Mapping[OrganizationId, Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
@@ -149,7 +228,12 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
         org_ids = list(org_ids)
         transaction_string_id = indexer.resolve_shared_org("decision")
         transaction_tag = f"tags_raw[{transaction_string_id}]"
-        metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
+        if measure == SamplingMeasure.SPANS:
+            metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+        elif measure == SamplingMeasure.TRANSACTIONS:
+            metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
+        else:
+            raise ValueError(f"Unsupported measure: {measure}")
 
         where = [
             Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
@@ -267,7 +351,7 @@ def adjust_sample_rates_of_projects(
 
     # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
     # issues.
-    sample_rate, success = get_sliding_window_org_sample_rate(
+    sample_rate, success = get_org_sample_rate(
         org_id=org_id,
         default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
     )

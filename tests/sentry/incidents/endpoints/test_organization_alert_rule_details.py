@@ -665,9 +665,9 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule = self.alert_rule
         serialized_alert_rule = self.get_serialized_alert_rule()
         serialized_alert_rule["monitorType"] = AlertRuleMonitorTypeInt.ACTIVATED
-        serialized_alert_rule[
-            "activationCondition"
-        ] = AlertRuleActivationConditionType.RELEASE_CREATION.value
+        serialized_alert_rule["activationCondition"] = (
+            AlertRuleActivationConditionType.RELEASE_CREATION.value
+        )
         with (
             outbox_runner(),
             self.feature(["organizations:incidents", "organizations:activated-alert-rules"]),
@@ -979,11 +979,14 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule["triggers"][1]["actions"].pop()
 
         with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            resp = self.get_error_response(
+                self.organization.slug, alert_rule.id, status_code=400, **serialized_alert_rule
             )
-
-        assert len(resp.data["triggers"][1]["actions"]) == 0
+        assert resp.data == {
+            "nonFieldErrors": [
+                "Each trigger must have an associated action for this alert to fire."
+            ]
+        }
 
     def test_update_trigger_action_type(self):
         self.create_member(

@@ -8,6 +8,7 @@ from collections.abc import Generator
 from hashlib import md5
 from typing import Any, Literal, TypedDict
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.issue_creation import (
@@ -66,10 +67,11 @@ def parse_and_emit_replay_actions(
     retention_days: int,
     segment_data: list[dict[str, Any]],
     replay_event: dict[str, Any] | None,
+    org_id: int | None = None,
 ) -> None:
     with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
         message = parse_replay_actions(
-            project, replay_id, retention_days, segment_data, replay_event
+            project, replay_id, retention_days, segment_data, replay_event, org_id=org_id
         )
         if message is not None:
             emit_replay_actions(message)
@@ -86,9 +88,10 @@ def parse_replay_actions(
     retention_days: int,
     segment_data: list[dict[str, Any]],
     replay_event: dict[str, Any] | None,
+    org_id: int | None = None,
 ) -> ReplayActionsEvent | None:
     """Parse RRWeb payload to ReplayActionsEvent."""
-    actions = get_user_actions(project, replay_id, segment_data, replay_event)
+    actions = get_user_actions(project, replay_id, segment_data, replay_event, org_id=org_id)
     if len(actions) == 0:
         return None
 
@@ -156,6 +159,7 @@ def get_user_actions(
     replay_id: str,
     events: list[dict[str, Any]],
     replay_event: dict[str, Any] | None,
+    org_id: int | None = None,
 ) -> list[ReplayActionsEventPayloadClick]:
     """Return a list of ReplayActionsEventPayloadClick types.
 
@@ -176,9 +180,10 @@ def get_user_actions(
             "textContent": "Helloworld!"
         }
     """
-    # Feature flag and project option queries
+    # Project option and Sentry option queries
     should_report_rage = _should_report_rage_click_issue(project)
     should_report_hydration = _should_report_hydration_error_issue(project)
+    rage_click_timeout_ms = _get_rage_click_timeout(org_id)
 
     result: list[ReplayActionsEventPayloadClick] = []
     for event in _iter_custom_events(events):
@@ -190,9 +195,10 @@ def get_user_actions(
         if tag == "breadcrumb":
             click = _handle_breadcrumb(
                 event,
-                project,
+                project.id,
                 replay_id,
                 replay_event,
+                rage_click_timeout_ms,
                 should_report_rage_click_issue=should_report_rage,
                 should_report_hydration_error_issue=should_report_hydration,
             )
@@ -311,6 +317,14 @@ def _should_report_rage_click_issue(project: Project) -> bool:
     return project.get_option("sentry:replay_rage_click_issues")
 
 
+def _get_rage_click_timeout(org_id: int | None) -> int | float:
+    """Returns the rage click timeout in milliseconds. Queries Sentry options if org_id is not None."""
+    default_timeout = 7000
+    if org_id and org_id in options.get("replay.rage-click.experimental-timeout.org-id-list"):
+        return options.get("replay.rage-click.experimental-timeout.milliseconds")
+    return default_timeout
+
+
 def _iter_custom_events(events: list[dict[str, Any]]) -> Generator[dict[str, Any]]:
     for event in events:
         if event.get("type") == 5:
@@ -381,9 +395,10 @@ def _handle_mutations_event(project_id: int, replay_id: str, event: dict[str, An
 
 def _handle_breadcrumb(
     event: dict[str, Any],
-    project: Project,
+    project_id: int,
     replay_id: str,
     replay_event: dict[str, Any] | None,
+    rage_click_timeout_ms: int | float,
     should_report_rage_click_issue=False,
     should_report_hydration_error_issue=False,
 ) -> ReplayActionsEventPayloadClick | None:
@@ -405,12 +420,12 @@ def _handle_breadcrumb(
         timeout = payload["data"].get("timeAfterClickMs", 0) or payload["data"].get(
             "timeafterclickms", 0
         )
-        if is_timeout_reason and is_target_tagname and timeout >= 7000:
+        if is_timeout_reason and is_target_tagname and timeout >= rage_click_timeout_ms:
             is_rage = (
                 payload["data"].get("clickCount", 0) or payload["data"].get("clickcount", 0)
             ) >= 5
             click = create_click_event(
-                payload, replay_id, is_dead=True, is_rage=is_rage, project_id=project.id
+                payload, replay_id, is_dead=True, is_rage=is_rage, project_id=project_id
             )
             if click is not None:
                 if is_rage:
@@ -418,7 +433,7 @@ def _handle_breadcrumb(
                     if should_report_rage_click_issue:
                         if replay_event is not None:
                             report_rage_click_issue_with_replay_event(
-                                project.id,
+                                project_id,
                                 replay_id,
                                 payload["timestamp"],
                                 payload["message"],
@@ -429,7 +444,7 @@ def _handle_breadcrumb(
                             )
         # Log the event for tracking.
         log = event["data"].get("payload", {}).copy()
-        log["project_id"] = project.id
+        log["project_id"] = project_id
         log["replay_id"] = replay_id
         log["dom_tree"] = log.pop("message")
 
@@ -437,7 +452,7 @@ def _handle_breadcrumb(
 
     elif category == "ui.click":
         click = create_click_event(
-            payload, replay_id, is_dead=False, is_rage=False, project_id=project.id
+            payload, replay_id, is_dead=False, is_rage=False, project_id=project_id
         )
         if click is not None:
             return click
@@ -446,7 +461,7 @@ def _handle_breadcrumb(
         metrics.incr("replay.hydration_error_breadcrumb")
         if replay_event is not None and should_report_hydration_error_issue:
             report_hydration_error_issue_with_replay_event(
-                project.id,
+                project_id,
                 replay_id,
                 payload["timestamp"],
                 payload.get("data", {}).get("url"),

@@ -532,6 +532,23 @@ export const AGGREGATIONS = {
     parameters: [],
     isSortable: true,
   },
+  [AggregationKey.PERFORMANCE_SCORE]: {
+    ...getDocsAndOutputType(AggregationKey.PERFORMANCE_SCORE),
+    parameters: [
+      {
+        kind: 'dropdown',
+        options: ['cls', 'fcp', 'inp', 'lcp', 'total', 'ttfb'].map(vital => ({
+          label: `measurements.score.${vital}`,
+          value: `measurements.score.${vital}`,
+        })),
+        dataType: 'number',
+        defaultValue: 'measurements.score.total',
+        required: true,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance

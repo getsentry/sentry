@@ -67,7 +67,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 
@@ -392,9 +392,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.rule.delete()
         subscription_id = self.sub.id
         snuba_query = self.sub.snuba_query
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.tasks():
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.tasks(),
+        ):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
@@ -416,9 +417,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule.delete()
         subscription_id = subscription.id
         snuba_query = subscription.snuba_query
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.tasks():
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.tasks(),
+        ):
             SubscriptionProcessor(subscription).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
@@ -2524,7 +2526,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         for i in range(4):
             self.store_event(
-                data={"timestamp": iso_format(comparison_date - timedelta(minutes=30 + i))},
+                data={"timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat()},
                 project_id=self.project.id,
             )
 
@@ -2593,7 +2595,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         for i in range(4):
             self.store_event(
                 data={
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -2663,26 +2665,25 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         comparison_date = timezone.now() - comparison_delta
 
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            for i in range(4):
-                data = {
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
-                    "fingerprint": ["group2"],
-                    "level": "error",
-                    "exception": {
-                        "values": [
-                            {
-                                "type": "IntegrationError",
-                                "value": "Identity not found.",
-                            }
-                        ]
-                    },
-                }
-                self.store_event(
-                    data=data,
-                    project_id=self.project.id,
-                )
+        for i in range(4):
+            data = {
+                "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group2"],
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+            }
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
 
         self.metrics.incr.reset_mock()
         processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
@@ -2750,7 +2751,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         for i in range(4):
             self.store_event(
                 data={
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
                     "tags": {"sentry:user": i},
                 },
                 project_id=self.project.id,

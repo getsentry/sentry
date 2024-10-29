@@ -81,7 +81,6 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
@@ -136,6 +135,7 @@ from sentry.sentry_apps.installations import (
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
@@ -439,9 +439,7 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_api_key(organization, scope_list=None, **kwargs):
-        return ApiKey.objects.create(
-            organization_id=organization.id if organization else None, scope_list=scope_list
-        )
+        return ApiKey.objects.create(organization_id=organization.id, scope_list=scope_list)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -2139,7 +2137,11 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return Detector.objects.create(
-            organization=organization, name=name, owner_user_id=owner_user_id, owner_team=owner_team
+            organization=organization,
+            name=name,
+            owner_user_id=owner_user_id,
+            owner_team=owner_team,
+            **kwargs,
         )
 
     @staticmethod

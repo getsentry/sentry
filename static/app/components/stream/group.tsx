@@ -118,28 +118,30 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
-      <Checkbox
-        id={group.id}
-        aria-label={t('Select Issue')}
-        checked={isSelected}
-        disabled={!!displayReprocessingLayout}
-        onChange={onChange}
-      />
+      <CheckboxLabel hasNewLayout={hasNewLayout}>
+        <Checkbox
+          id={group.id}
+          aria-label={t('Select Issue')}
+          checked={isSelected}
+          disabled={!!displayReprocessingLayout}
+          onChange={onChange}
+        />
+      </CheckboxLabel>
     </GroupCheckBoxWrapper>
   );
 }
 
-function GroupTimestamp({date, label}: {date: string | null; label: string}) {
+function GroupTimestamp({date, label}: {date: string | null | undefined; label: string}) {
   if (!date) {
-    return <Placeholder height="18px" width="40px" />;
+    return <Placeholder height="18px" width="60px" />;
   }
 
   return (
-    <TimeSince
+    <PositionedTimeSince
       aria-label={label}
       tooltipPrefix={label}
       date={date}
-      suffix=""
+      suffix="ago"
       unitStyle="extraShort"
     />
   );
@@ -241,19 +243,17 @@ function BaseGroupRow({
         return true;
       }
 
-      // Ignore clicks on links
-      if (targetElement?.tagName?.toLowerCase() === 'a') {
-        return true;
-      }
+      const tagName = targetElement?.tagName?.toLowerCase();
 
-      // Ignore clicks on the selection checkbox
-      if (targetElement?.tagName?.toLowerCase() === 'input') {
+      const ignoredTags = new Set(['a', 'input', 'label']);
+
+      if (tagName && ignoredTags.has(tagName)) {
         return true;
       }
 
       let e = targetElement;
       while (e.parentElement) {
-        if (e?.tagName?.toLowerCase() === 'a') {
+        if (ignoredTags.has(e?.tagName?.toLowerCase() ?? '')) {
           return true;
         }
         e = e.parentElement!;
@@ -585,7 +585,7 @@ function BaseGroupRow({
       useTintRow={useTintRow ?? true}
       hasNewLayout={hasNewLayout}
     >
-      {hasNewLayout && <InteractionStateLayer data-layer />}
+      {hasNewLayout && <InteractionStateLayer />}
       {canSelect && (
         <GroupCheckbox
           group={group}
@@ -604,73 +604,82 @@ function BaseGroupRow({
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
-      {withChart &&
-      !displayReprocessingLayout &&
-      issueTypeConfig.stats.enabled &&
-      hasNewLayout ? (
-        <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
-          <GroupStatusChart
-            hideZeros
-            loading={!defined(groupStats)}
-            stats={groupStats}
-            secondaryStats={groupSecondaryStats}
-            showSecondaryPoints={showSecondaryPoints}
-            groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
-            showMarkLine
-          />
-        </NarrowChartWrapper>
-      ) : (
-        <ChartWrapper
-          narrowGroups={narrowGroups}
-          margin={withColumns.includes('firstSeen')}
-        >
-          <GroupStatusChart
-            hideZeros
-            loading={!defined(groupStats)}
-            stats={groupStats}
-            secondaryStats={groupSecondaryStats}
-            showSecondaryPoints={showSecondaryPoints}
-            groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
-            showMarkLine
-          />
-        </ChartWrapper>
-      )}
+      {withChart && !displayReprocessingLayout ? (
+        hasNewLayout ? (
+          <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
+            {issueTypeConfig.stats.enabled ? (
+              <GroupStatusChart
+                hideZeros
+                loading={!defined(groupStats)}
+                stats={groupStats}
+                secondaryStats={groupSecondaryStats}
+                showSecondaryPoints={showSecondaryPoints}
+                groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
+                showMarkLine
+              />
+            ) : null}
+          </NarrowChartWrapper>
+        ) : (
+          <ChartWrapper
+            narrowGroups={narrowGroups}
+            margin={withColumns.includes('firstSeen')}
+          >
+            {issueTypeConfig.stats.enabled ? (
+              <GroupStatusChart
+                hideZeros
+                loading={!defined(groupStats)}
+                stats={groupStats}
+                secondaryStats={groupSecondaryStats}
+                showSecondaryPoints={showSecondaryPoints}
+                groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
+                showMarkLine
+              />
+            ) : null}
+          </ChartWrapper>
+        )
+      ) : null}
       {displayReprocessingLayout ? (
         renderReprocessingColumns()
       ) : (
         <Fragment>
           {withColumns.includes('firstSeen') && (
             <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
-              <GroupTimestamp date={group.firstSeen} label={t('First Seen')} />
+              <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
             </TimestampWrapper>
           )}
           {withColumns.includes('lastSeen') && (
             <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-              <GroupTimestamp date={group.lastSeen} label={t('Last Seen')} />
+              <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
             </TimestampWrapper>
           )}
-          {withColumns.includes('event') &&
-          issueTypeConfig.stats.enabled &&
-          hasNewLayout ? (
-            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-              <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
-            </NarrowEventsOrUsersCountsWrapper>
-          ) : (
-            <EventCountsWrapper
-              leftMargin={withColumns.includes('lastSeen') ? undefined : '0px'}
-            >
-              {groupCount}
-            </EventCountsWrapper>
-          )}
-          {withColumns.includes('users') &&
-          issueTypeConfig.stats.enabled &&
-          hasNewLayout ? (
-            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-              <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
-            </NarrowEventsOrUsersCountsWrapper>
-          ) : (
-            <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
-          )}
+          {withColumns.includes('event') ? (
+            hasNewLayout ? (
+              <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+                {issueTypeConfig.stats.enabled ? (
+                  <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
+                ) : null}
+              </NarrowEventsOrUsersCountsWrapper>
+            ) : (
+              <EventCountsWrapper
+                leftMargin={withColumns.includes('lastSeen') ? undefined : '0px'}
+              >
+                {issueTypeConfig.stats.enabled ? groupCount : null}
+              </EventCountsWrapper>
+            )
+          ) : null}
+          {withColumns.includes('users') ? (
+            hasNewLayout ? (
+              <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
+                {issueTypeConfig.stats.enabled ? (
+                  <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
+                ) : null}
+              </NarrowEventsOrUsersCountsWrapper>
+            ) : (
+              <EventCountsWrapper>
+                {issueTypeConfig.stats.enabled ? groupUsersCount : null}
+              </EventCountsWrapper>
+            )
+          ) : null}
           {withColumns.includes('priority') ? (
             hasNewLayout ? (
               <NarrowPriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
@@ -730,25 +739,23 @@ const Wrapper = styled(PanelItem)<{
   ${p =>
     p.hasNewLayout &&
     css`
-      cursor: pointer;
       padding: ${space(1)} 0;
       min-height: 66px;
 
-      /* Adds underline to issue title when active  */
-      &:hover {
-        [data-issue-title-primary] {
-          text-decoration: underline;
-        }
-      }
-
-      /* Disables the hover effect when hovering over dropdown buttons and checkboxes */
-      &:has(button:hover, input:hover, [data-overlay]:hover) {
-        [data-layer] {
-          display: none;
+      [data-issue-title-link] {
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
         }
 
-        [data-issue-title-primary] {
-          text-decoration: none;
+        &:hover {
+          [data-issue-title-primary] {
+            text-decoration: underline;
+          }
         }
       }
     `}
@@ -811,11 +818,23 @@ const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
 `;
 
 const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
-  margin-left: ${space(2)};
   align-self: flex-start;
-  height: 15px;
+  width: 32px;
   display: flex;
   align-items: center;
+  z-index: 1;
+`;
+
+const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  height: 100%;
+  width: 32px;
+  padding-left: ${space(2)};
+  padding-top: ${space(1.5)};
+  margin: 0;
 
   ${p =>
     p.hasNewLayout &&
@@ -829,7 +848,7 @@ const CountsWrapper = styled('div')`
   flex-direction: column;
 `;
 
-const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
+export const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
   font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
   ${p =>
     p.hasNewLayout &&
@@ -892,7 +911,7 @@ const ChartWrapper = styled('div')<{margin: boolean; narrowGroups: boolean}>`
 `;
 
 const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
-  width: 200px;
+  width: 175px;
   align-self: center;
   margin-right: ${space(2)};
 
@@ -904,7 +923,7 @@ const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
 const TimestampWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   align-self: center;
-  width: 60px;
+  width: 75px;
   margin-right: ${space(2)};
 
   @media (max-width: ${p => p.breakpoint}) {
@@ -924,7 +943,7 @@ const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   }
 `;
 
-const InnerCountsWrapper = styled('div')`
+export const InnerCountsWrapper = styled('div')`
   margin-right: ${space(2)};
 `;
 
@@ -1025,4 +1044,9 @@ const ProgressColumn = styled('div')`
     display: block;
     width: 160px;
   }
+`;
+
+// Needs to be positioned so that hovering events don't get swallowed by the anchor pseudo-element
+const PositionedTimeSince = styled(TimeSince)`
+  position: relative;
 `;

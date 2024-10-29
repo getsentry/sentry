@@ -142,6 +142,11 @@ export function Trace({
   const traceStateRef = useRef<TraceReducerState>(traceState);
   traceStateRef.current = traceState;
 
+  const traceStatePreferencesRef = useRef<
+    Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
+  >(traceState.preferences);
+  traceStatePreferencesRef.current = traceState.preferences;
+
   useLayoutEffect(() => {
     const onTraceViewChange: TraceEvents['set trace view'] = () => {
       manager.recomputeTimelineIntervals();
@@ -197,6 +202,7 @@ export function Trace({
         .zoom(node, value, {
           api,
           organization,
+          preferences: traceStatePreferencesRef.current,
         })
         .then(() => {
           rerenderRef.current();
@@ -261,6 +267,7 @@ export function Trace({
           action_source: 'keyboard',
         });
       }
+
       if (event.key === 'ArrowLeft') {
         if (node.zoomedIn) {
           onNodeZoomIn(event, node, false);
@@ -270,6 +277,8 @@ export function Trace({
       } else if (event.key === 'ArrowRight') {
         if (node.canFetch) {
           onNodeZoomIn(event, node, true);
+        } else {
+          onNodeExpand(event, node, true);
         }
       }
     },
@@ -373,7 +382,7 @@ export function Trace({
       className={`
         ${trace.root.space[1] === 0 ? 'Empty' : ''}
         ${trace.indicators.length > 0 ? 'WithIndicators' : ''}
-        ${trace.type !== 'trace' ? 'Loading' : ''}
+        ${trace.type !== 'trace' || isLoading ? 'Loading' : ''}
         ${ConfigStore.get('theme')}`}
     >
       <div
@@ -405,7 +414,7 @@ export function Trace({
         {manager.interval_bars.map((_, i) => {
           const indicatorTimestamp = manager.intervals[i] ?? 0;
 
-          if (trace.type !== 'trace') {
+          if (trace.type !== 'trace' || isLoading) {
             return null;
           }
 

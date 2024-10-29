@@ -288,7 +288,7 @@ describe('Sidebar', function () {
     it('can show Incidents in Sidebar Panel', async function () {
       renderSidebar({organization});
 
-      await userEvent.click(await screen.findByText('Service status'));
+      await userEvent.click(await screen.findByText(/Service status/));
       await screen.findByText('Recent service updates');
     });
   });
@@ -353,7 +353,7 @@ describe('Sidebar', function () {
         'Settings',
         'Help',
         /What's new/,
-        'Service status',
+        /Service status/,
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });
@@ -400,7 +400,7 @@ describe('Sidebar', function () {
         'Settings',
         'Help',
         /What's new/,
-        'Service status',
+        /Service status/,
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });

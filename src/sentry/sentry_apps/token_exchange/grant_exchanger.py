@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -17,6 +18,8 @@ from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
 
+logger = logging.getLogger("sentry.token-exchange")
+
 
 @dataclass
 class GrantExchanger:
@@ -31,13 +34,24 @@ class GrantExchanger:
 
     def run(self):
         with transaction.atomic(using=router.db_for_write(ApiToken)):
-            if self._validate():
+            try:
+                self._validate()
                 token = self._create_token()
 
                 # Once it's exchanged it's no longer valid and should not be
                 # exchangeable, so we delete it.
                 self._delete_grant()
+            except APIUnauthorized:
+                logger.info(
+                    "grant-exchanger.context",
+                    extra={
+                        "application_id": self.application.id,
+                        "grant_id": self.grant.id,
+                    },
+                )
+                raise
         self.record_analytics()
+
         return token
 
     def record_analytics(self) -> None:
@@ -47,15 +61,14 @@ class GrantExchanger:
             exchange_type="authorization",
         )
 
-    def _validate(self) -> bool:
-        is_valid = Validator(install=self.install, client_id=self.client_id, user=self.user).run()
+    def _validate(self) -> None:
+        Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         if not self._grant_belongs_to_install() or not self._sentry_app_user_owns_grant():
             raise APIUnauthorized("Forbidden grant")
 
         if not self._grant_is_active():
-            raise APIUnauthorized("Grant has already expired.")
-        return is_valid
+            raise APIUnauthorized("Grant has already expired")
 
     def _grant_belongs_to_install(self) -> bool:
         return self.grant.sentry_app_installation.id == self.install.id

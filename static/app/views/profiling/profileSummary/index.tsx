@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -59,6 +59,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
@@ -316,7 +317,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return search.formatString();
   }, [rawQuery, transaction]);
 
-  const {data, isPending, isError} = useAggregateFlamegraphQuery({
+  const {data, status} = useAggregateFlamegraphQuery({
     query,
   });
 
@@ -356,25 +357,23 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return frame => !frame.is_application;
   }, [frameFilter]);
 
+  const onResetFrameFilter = useCallback(() => {
+    setFrameFilter('all');
+  }, [setFrameFilter]);
+
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const location = useLocation();
-  const [view, setView] = useState<'flamegraph' | 'profiles'>(
-    decodeViewOrDefault(location.query.view, 'flamegraph')
-  );
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const newView = decodeViewOrDefault(location.query.view, 'flamegraph');
-    if (newView !== view) {
-      setView(decodeViewOrDefault(location.query.view, 'flamegraph'));
-    }
-  }, [location.query.view, view]);
+  const view = useMemo(() => {
+    return decodeViewOrDefault(location.query.view, 'flamegraph');
+  }, [location.query.view]);
 
-  const onSetView = useCallback(
+  const setView = useCallback(
     (newView: 'flamegraph' | 'profiles') => {
-      setView(newView);
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -382,7 +381,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
         },
       });
     },
-    [location]
+    [location, navigate]
   );
 
   const onHideRegressionsClick = useCallback(() => {
@@ -403,7 +402,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
         >
           <ProfileSummaryHeader
             view={view}
-            onViewChange={onSetView}
+            onViewChange={setView}
             organization={organization}
             location={props.location}
             project={project}
@@ -449,19 +448,22 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                             setHideSystemFrames={noop}
                             onHideRegressionsClick={onHideRegressionsClick}
                           />
-                          {isPending ? (
+                          {status === 'pending' ? (
                             <RequestStateMessageContainer>
                               <LoadingIndicator />
                             </RequestStateMessageContainer>
-                          ) : isError ? (
+                          ) : status === 'error' ? (
                             <RequestStateMessageContainer>
                               {t('There was an error loading the flamegraph.')}
                             </RequestStateMessageContainer>
                           ) : null}
                           {visualization === 'flamegraph' ? (
                             <AggregateFlamegraph
+                              filter={frameFilter}
                               canvasPoolManager={canvasPoolManager}
                               scheduler={scheduler}
+                              status={status}
+                              onResetFilter={onResetFrameFilter}
                             />
                           ) : (
                             <AggregateFlamegraphTreeTable
@@ -480,7 +482,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
               {hideRegressions ? null : (
                 <ProfileDigestContainer>
                   <ProfileDigestScrollContainer>
-                    <ProfileDigest onViewChange={onSetView} transaction={transaction} />
+                    <ProfileDigest onViewChange={setView} transaction={transaction} />
                     <MostRegressedProfileFunctions transaction={transaction} />
                     <SlowestProfileFunctions transaction={transaction} />
                   </ProfileDigestScrollContainer>
@@ -770,9 +772,7 @@ function ProfileDigest(props: ProfileDigestProps) {
           ) : profiles.isError ? (
             ''
           ) : (
-            <Link onClick={() => props.onViewChange('profiles')} to="">
-              <Count value={data?.['count()'] as number} />
-            </Link>
+            <Count value={data?.['count()'] as number} />
           )}
         </div>
       </ProfileDigestColumn>

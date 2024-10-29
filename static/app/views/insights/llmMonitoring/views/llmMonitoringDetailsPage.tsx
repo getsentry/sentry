@@ -147,22 +147,20 @@ export function LLMMonitoringPage({params}: Props) {
         )}
 
         {isInDomainView && (
-          <Layout.Header>
-            <AiHeader
-              headerTitle={
-                <Fragment>
-                  {spanDescription}
-                  <FeatureBadge type={RELEASE_LEVEL} />
-                </Fragment>
-              }
-              breadcrumbs={[
-                {
-                  label: t('Pipeline Summary'),
-                },
-              ]}
-              module={ModuleName.AI}
-            />
-          </Layout.Header>
+          <AiHeader
+            headerTitle={
+              <Fragment>
+                {spanDescription}
+                <FeatureBadge type={RELEASE_LEVEL} />
+              </Fragment>
+            }
+            breadcrumbs={[
+              {
+                label: t('Pipeline Summary'),
+              },
+            ]}
+            module={ModuleName.AI}
+          />
         )}
         <Layout.Body>
           <Layout.Main fullWidth>

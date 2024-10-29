@@ -506,6 +506,48 @@ describe('Incident Rules Form', () => {
       );
       expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
+
+    it('creates an EAP metric rule', async () => {
+      const rule = MetricRuleFixture();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          eventTypes: [],
+          aggregate: 'count(span.duration)',
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+        },
+      });
+
+      // Clear field
+      await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
+
+      // Enter in name so we can submit
+      await userEvent.type(
+        screen.getByPlaceholderText('Enter Alert Name'),
+        'EAP Incident Rule'
+      );
+
+      // Set thresholdPeriod
+      await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'EAP Incident Rule',
+            projects: ['project-slug'],
+            eventTypes: [],
+            thresholdPeriod: 10,
+            alertType: 'eap_metrics',
+            dataset: 'events_analytics_platform',
+          }),
+        })
+      );
+      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
+    });
   });
 
   describe('Editing a rule', () => {

@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 
 from django.db import router, transaction
@@ -14,6 +15,8 @@ from sentry.sentry_apps.token_exchange.util import token_expiration
 from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.users.models.user import User
 
+logger = logging.getLogger("sentry.token-exchange")
+
 
 @dataclass
 class Refresher:
@@ -28,25 +31,34 @@ class Refresher:
 
     def run(self) -> ApiToken:
         with transaction.atomic(router.db_for_write(ApiToken)):
-            if self._validate():
+            try:
+                self._validate()
                 self.token.delete()
 
-        self.record_analytics()
-        return self._create_new_token()
+                self._record_analytics()
+                return self._create_new_token()
+            except APIUnauthorized:
+                logger.info(
+                    "refresher.context",
+                    extra={
+                        "application_id": self.application.id,
+                        "refresh_token": self.refresh_token[-4:],
+                    },
+                )
+                raise
 
-    def record_analytics(self) -> None:
+    def _record_analytics(self) -> None:
         analytics.record(
             "sentry_app.token_exchanged",
             sentry_app_installation_id=self.install.id,
             exchange_type="refresh",
         )
 
-    def _validate(self) -> bool:
-        is_valid = Validator(install=self.install, client_id=self.client_id, user=self.user).run()
+    def _validate(self) -> None:
+        Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         if self.token.application != self.application:
             raise APIUnauthorized("Token does not belong to the application")
-        return is_valid
 
     def _create_new_token(self) -> ApiToken:
         token = ApiToken.objects.create(

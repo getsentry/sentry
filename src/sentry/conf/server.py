@@ -41,13 +41,11 @@ _EnvTypes = Union[str, float, int, list, dict]
 
 
 @overload
-def env(key: str) -> str:
-    ...
+def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes:
-    ...
+def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
 
 
 def env(
@@ -138,6 +136,7 @@ SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
 SENTRY_ASSEMBLE_CLUSTER = "default"
 SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
+SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -385,7 +384,9 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
 INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.humanize",
     "django.contrib.messages",
+    "django.contrib.postgres",
     "django.contrib.sessions",
     "django.contrib.sites",
     "drf_spectacular",
@@ -522,6 +523,9 @@ STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
 # as we configure webpack to include file content based hash in the filename
 STATIC_FRONTEND_APP_URL = "/_static/dist/"
+
+# URL origin from where the static files are served.
+STATIC_ORIGIN = None
 
 # The webpack output directory
 STATICFILES_DIRS = [
@@ -789,7 +793,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
@@ -1666,6 +1669,14 @@ SENTRY_EVENT_PROCESSING_STORE = (
 )
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
+# Transactions processing backend
+# If these are set, transactions will be written to a different processing store
+# than errors. If these are set to none, Events(errors) and transactions will
+# both write to the EVENT_PROCESSING_STORE.
+SENTRY_TRANSACTION_PROCESSING_STORE: str | None = None
+SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
+
+
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
@@ -2219,9 +2230,6 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 # This flag activates consuming GroupAttribute messages in the development environment
 SENTRY_USE_GROUP_ATTRIBUTES = True
 
-# This flag activates replay analyzer service in the development environment
-SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
-
 # This flag activates Spotlight Sidecar in the development environment
 SENTRY_USE_SPOTLIGHT = False
 
@@ -2471,14 +2479,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "only_if": settings.SENTRY_USE_PROFILING,
         }
     ),
-    "session-replay-analyzer": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/session-replay-analyzer:latest",
-            "environment": {},
-            "ports": {"3000/tcp": 3000},
-            "only_if": settings.SENTRY_USE_REPLAY_ANALYZER_SERVICE,
-        }
-    ),
     "spotlight-sidecar": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/spotlight:latest",
@@ -2503,7 +2503,7 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.9.0"
+SELF_HOSTED_STABLE_VERSION = "24.10.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3133,10 +3133,6 @@ ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
 
 # A set of extra tasks to sample
 ADDITIONAL_SAMPLED_TASKS: dict[str, float] = {}
-
-# This controls whether Sentry is run in a demo mode.
-# Enabling this will allow users to create accounts without an email or password.
-DEMO_MODE = False
 
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL: str | None = None

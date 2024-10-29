@@ -1,6 +1,5 @@
 """ Helper functions for sentry.options """
 
-
 import logging
 
 from sentry import options

@@ -194,4 +194,12 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramUptime,
   },
+  eap_metrics: {
+    description: t('Alert on eap metrics.'),
+    examples: [
+      t('When your average time in queue exceeds 100ms.'),
+      t('When your app runs more than 1000 queries in a minute.'),
+    ],
+    illustration: diagramCustomMetrics,
+  },
 };

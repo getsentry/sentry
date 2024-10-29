@@ -1,33 +1,44 @@
-import {useMemo, useState} from 'react';
+import {type CSSProperties, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import Alert from 'sentry/components/alert';
+import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
+import {Flex} from 'sentry/components/container/flex';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import Placeholder from 'sentry/components/placeholder';
 import {IconTelescope} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/flagSeries';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {
+  useIssueDetailsDiscoverQuery,
+  useIssueDetailsEventView,
+} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/useReleaseMarkLineSeries';
 
 export const enum EventGraphSeries {
   EVENT = 'event',
   USER = 'user',
 }
+
 interface EventGraphProps {
+  event: Event | undefined;
   group: Group;
-  groupStats: MultiSeriesEventsStats;
-  searchQuery: string;
+  className?: string;
+  style?: CSSProperties;
 }
 
 function createSeriesAndCount(stats: EventsStats) {
@@ -49,26 +60,39 @@ function createSeriesAndCount(stats: EventsStats) {
   );
 }
 
-export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
+export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
     EventGraphSeries.EVENT
   );
+  const eventView = useIssueDetailsEventView({group});
 
-  const [isGraphHovered, setIsGraphHovered] = useState(false);
-  const eventStats = groupStats['count()'];
-  const {series: eventSeries, count: eventCount} = useMemo(
-    () => createSeriesAndCount(eventStats),
-    [eventStats]
-  );
-  const userStats = groupStats['count_unique(user)'];
-  const {series: userSeries, count: userCount} = useMemo(
-    () => createSeriesAndCount(userStats),
-    [userStats]
-  );
+  const {
+    data: groupStats = {},
+    isPending: isLoadingStats,
+    error,
+  } = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
+    params: {
+      route: 'events-stats',
+      eventView,
+      referrer: 'issue_details.streamline_graph',
+    },
+  });
 
-  const eventView = useIssueDetailsEventView({group, queryProps: {query: searchQuery}});
+  const {series: eventSeries, count: eventCount} = useMemo(() => {
+    if (!groupStats['count()']) {
+      return {series: [], count: 0};
+    }
+    return createSeriesAndCount(groupStats['count()']);
+  }, [groupStats]);
+  const {series: userSeries, count: userCount} = useMemo(() => {
+    if (!groupStats['count_unique(user)']) {
+      return {series: [], count: 0};
+    }
+    return createSeriesAndCount(groupStats['count_unique(user)']);
+  }, [groupStats]);
+
   const discoverUrl = eventView.getResultsViewUrlTarget(
     organization.slug,
     false,
@@ -78,18 +102,21 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
     saveOnZoom: true,
   });
 
+  const releaseSeries = useReleaseMarkLineSeries({group});
   const flagSeries = useFlagSeries({
     query: {
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
     },
+    event,
+    group,
   });
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
 
-    if (eventStats && visibleSeries === EventGraphSeries.USER) {
+    if (visibleSeries === EventGraphSeries.USER) {
       seriesData.push({
         seriesName: t('Users'),
         itemStyle: {
@@ -99,9 +126,10 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
         },
         stack: 'stats',
         data: userSeries,
+        animation: false,
       });
     }
-    if (eventStats && visibleSeries === EventGraphSeries.EVENT) {
+    if (visibleSeries === EventGraphSeries.EVENT) {
       seriesData.push({
         seriesName: t('Events'),
         itemStyle: {
@@ -111,7 +139,12 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
         },
         stack: 'stats',
         data: eventSeries,
+        animation: false,
       });
+    }
+
+    if (releaseSeries.markLine) {
+      seriesData.push(releaseSeries as BarChartSeries);
     }
 
     if (flagSeries.markLine) {
@@ -119,22 +152,26 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
     }
 
     return seriesData;
-  }, [eventStats, visibleSeries, userSeries, eventSeries, flagSeries, theme]);
+  }, [visibleSeries, userSeries, eventSeries, releaseSeries, flagSeries, theme]);
 
-  const [legendSelected, setLegendSelected] = useState({
-    ['Feature Flags']: true,
-  });
+  const [legendSelected, setLegendSelected] = useLocalStorageState(
+    'issue-details-graph-legend',
+    {
+      ['Releases']: true,
+      ['Feature Flags']: true,
+    }
+  );
 
   const legend = Legend({
     theme: theme,
-    icon: 'path://M 10 10 H 500 V 9000 H 10 L 10 10',
     orient: 'horizontal',
     align: 'left',
     show: true,
-    right: 35,
-    top: 5,
-    data: ['Feature Flags'],
+    top: 4,
+    right: 95,
+    data: ['Releases', 'Feature Flags'],
     selected: legendSelected,
+    zlevel: 10,
   });
 
   const onLegendSelectChanged = useMemo(
@@ -146,42 +183,64 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
           [name]: newValue,
         }));
       },
-    []
+    [setLegendSelected]
   );
 
+  if (error) {
+    return (
+      <GraphAlert type="error" showIcon {...styleProps}>
+        {tct('Graph Query Error: [message]', {message: error.message})}
+      </GraphAlert>
+    );
+  }
+
+  if (isLoadingStats) {
+    return (
+      <GraphWrapper {...styleProps}>
+        <SummaryContainer>
+          <GraphButton
+            isActive={visibleSeries === EventGraphSeries.EVENT}
+            disabled
+            label={t('Events')}
+          />
+          <GraphButton
+            isActive={visibleSeries === EventGraphSeries.USER}
+            disabled
+            label={t('Users')}
+          />
+        </SummaryContainer>
+        <LoadingChartContainer>
+          <Placeholder height="96px" testId="event-graph-loading" />
+        </LoadingChartContainer>
+      </GraphWrapper>
+    );
+  }
+
   return (
-    <GraphWrapper>
+    <GraphWrapper {...styleProps}>
       <SummaryContainer>
-        <Callout
+        <GraphButton
           onClick={() =>
             visibleSeries === EventGraphSeries.USER &&
             setVisibleSeries(EventGraphSeries.EVENT)
           }
           isActive={visibleSeries === EventGraphSeries.EVENT}
           disabled={visibleSeries === EventGraphSeries.EVENT}
-        >
-          <InteractionStateLayer hidden={visibleSeries === EventGraphSeries.EVENT} />
-          <Label>{tn('Event', 'Events', eventCount)}</Label>
-          <Count>{formatAbbreviatedNumber(eventCount)}</Count>
-        </Callout>
-        <Callout
+          label={tn('Event', 'Events', eventCount)}
+          count={String(eventCount)}
+        />
+        <GraphButton
           onClick={() =>
             visibleSeries === EventGraphSeries.EVENT &&
             setVisibleSeries(EventGraphSeries.USER)
           }
           isActive={visibleSeries === EventGraphSeries.USER}
           disabled={visibleSeries === EventGraphSeries.USER}
-        >
-          <InteractionStateLayer hidden={visibleSeries === EventGraphSeries.USER} />
-          <Label>{tn('User', 'Users', userCount)}</Label>
-          <Count>{formatAbbreviatedNumber(userCount)}</Count>
-        </Callout>
+          label={tn('User', 'Users', userCount)}
+          count={String(userCount)}
+        />
       </SummaryContainer>
-      <ChartContainer
-        role="figure"
-        onMouseEnter={() => setIsGraphHovered(true)}
-        onMouseLeave={() => setIsGraphHovered(false)}
-      >
+      <ChartContainer role="figure">
         <BarChart
           height={100}
           series={series}
@@ -189,9 +248,9 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
           onLegendSelectChanged={onLegendSelectChanged}
           showTimeInTooltip
           grid={{
-            top: 28, // leave room for legend
             left: 8,
             right: 8,
+            top: 20,
             bottom: 0,
           }}
           yAxis={{
@@ -204,19 +263,37 @@ export function EventGraph({group, groupStats, searchQuery}: EventGraphProps) {
           }}
           {...chartZoomProps}
         />
-        {discoverUrl && isGraphHovered && (
-          <OpenInDiscoverButton>
-            <LinkButton
-              size="xs"
-              icon={<IconTelescope />}
-              to={discoverUrl}
-              aria-label={t('Open in Discover')}
-              title={t('Open in Discover')}
-            />
-          </OpenInDiscoverButton>
-        )}
+        <OpenInDiscoverButton
+          size="xs"
+          icon={<IconTelescope />}
+          to={discoverUrl}
+          aria-label={t('Open in Discover')}
+        >
+          {t('Discover')}
+        </OpenInDiscoverButton>
       </ChartContainer>
     </GraphWrapper>
+  );
+}
+
+function GraphButton({
+  isActive,
+  label,
+  count,
+  ...props
+}: {isActive: boolean; label: string; count?: string} & Partial<ButtonProps>) {
+  return (
+    <Callout
+      isActive={isActive}
+      aria-label={`${t('Toggle graph series')} - ${label}`}
+      {...props}
+    >
+      <InteractionStateLayer hidden={isActive} />
+      <Flex column>
+        <Label isActive={isActive}>{label}</Label>
+        <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
+      </Flex>
+    </Callout>
   );
 }
 
@@ -227,50 +304,61 @@ const GraphWrapper = styled('div')`
 
 const SummaryContainer = styled('div')`
   display: flex;
+  gap: ${space(0.5)};
   flex-direction: column;
-  margin-right: space(1);
+  margin: ${space(1)} ${space(1)} ${space(1)} 0;
   border-radius: ${p => p.theme.borderRadiusLeft};
 `;
 
-const Callout = styled('button')<{isActive: boolean}>`
-  flex: 1;
+const Callout = styled(Button)<{isActive: boolean}>`
   cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-  outline: 0;
-  position: relative;
-  border: 1px solid ${p => p.theme.translucentInnerBorder};
-  background: ${p => (p.isActive ? p.theme.background : p.theme.backgroundSecondary)};
-  text-align: left;
-  padding: ${space(1)} ${space(2)};
-  &:first-child {
-    border-radius: ${p => p.theme.borderRadius} 0 ${p => p.theme.borderRadius} 0;
-    border-width: ${p => (p.isActive ? '0' : '0 1px 1px 0')};
+  border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+  background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+  padding: ${space(0.5)} ${space(2)};
+  box-shadow: none;
+  height: unset;
+  overflow: hidden;
+  &:disabled {
+    opacity: 1;
   }
-  &:last-child {
-    border-radius: 0 ${p => p.theme.borderRadius} 0 ${p => p.theme.borderRadius};
-    border-width: ${p => (p.isActive ? '0' : '1px 1px 0 0')};
+  &:hover {
+    border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
   }
 `;
 
-const Label = styled('div')`
+const Label = styled('div')<{isActive: boolean}>`
+  line-height: 1;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
-  line-height: 1;
+  color: ${p => (p.isActive ? p.theme.purple400 : p.theme.subText)};
 `;
 
-const Count = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin-top: ${space(0.5)};
+const Count = styled('div')<{isActive: boolean}>`
   line-height: 1;
+  margin-top: ${space(0.5)};
+  font-size: 20px;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => (p.isActive ? p.theme.purple400 : p.theme.textColor)};
 `;
 
 const ChartContainer = styled('div')`
-  padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
   position: relative;
+  padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
 `;
 
-const OpenInDiscoverButton = styled('div')`
+const LoadingChartContainer = styled('div')`
+  position: relative;
+  padding: ${space(1)} ${space(1)};
+`;
+
+const OpenInDiscoverButton = styled(LinkButton)`
   position: absolute;
   top: ${space(1)};
   right: ${space(1)};
+`;
+
+const GraphAlert = styled(Alert)`
+  padding-left: 24px;
+  margin: 0 0 0 -24px;
+  border: 0;
+  border-radius: 0;
 `;
