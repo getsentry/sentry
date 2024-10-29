@@ -4,7 +4,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as useMedia from 'sentry/utils/useMedia';
 import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
@@ -52,7 +52,7 @@ describe('EventNavigation', () => {
 
       render(<IssueEventNavigation {...defaultProps} />, {router});
 
-      await userEvent.click(screen.getByRole('tab', {name: 'First'}));
+      await userEvent.click(await screen.findByRole('tab', {name: 'First'}));
 
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/oldest/',
@@ -65,7 +65,7 @@ describe('EventNavigation', () => {
 
       render(<IssueEventNavigation {...defaultProps} />, {router});
 
-      await userEvent.click(screen.getByRole('tab', {name: 'Last'}));
+      await userEvent.click(await screen.findByRole('tab', {name: 'Last'}));
 
       expect(router.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/latest/',
@@ -87,7 +87,7 @@ describe('EventNavigation', () => {
         router: recommendedEventRouter,
       });
 
-      await userEvent.click(screen.getByRole('tab', {name: 'Rec.'}));
+      await userEvent.click(await screen.findByRole('tab', {name: 'Rec.'}));
 
       expect(recommendedEventRouter.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
@@ -96,16 +96,43 @@ describe('EventNavigation', () => {
     });
   });
 
-  it('can navigate next/previous events', () => {
+  it('can navigate next/previous events', async () => {
     render(<IssueEventNavigation {...defaultProps} />);
 
-    expect(screen.getByLabelText(/Previous Event/)).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Previous Event'})).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/group-id/events/prev-event-id/?referrer=previous-event`
     );
-    expect(screen.getByLabelText(/Next Event/)).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Next Event'})).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/group-id/events/next-event-id/?referrer=next-event`
     );
+  });
+
+  it('can preload next/previous events', async () => {
+    const event = EventFixture({
+      nextEventID: 'next-event-id',
+      previousEventID: 'prev-event-id',
+    });
+    const mockNextEvent = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/group-id/events/next-event-id/`,
+      body: EventFixture(),
+    });
+    const mockPreviousEvent = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/group-id/events/prev-event-id/`,
+      body: EventFixture(),
+    });
+    render(<IssueEventNavigation {...defaultProps} event={event} />);
+
+    expect(mockNextEvent).not.toHaveBeenCalled();
+    expect(mockPreviousEvent).not.toHaveBeenCalled();
+
+    await userEvent.hover(await screen.findByRole('button', {name: 'Next Event'}));
+
+    await waitFor(() => expect(mockNextEvent).toHaveBeenCalled());
+    expect(mockPreviousEvent).not.toHaveBeenCalled();
+
+    await userEvent.hover(screen.getByRole('button', {name: 'Previous Event'}));
+    await waitFor(() => expect(mockPreviousEvent).toHaveBeenCalled());
   });
 });
