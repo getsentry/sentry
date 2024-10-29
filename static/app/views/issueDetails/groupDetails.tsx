@@ -207,17 +207,17 @@ function useEventApiQuery({
     typeof location.query.query === 'string' ? location.query.query : undefined;
   const navigate = useNavigate();
 
+  const isLatestOrRecommendedEvent =
+    eventIdUrl === 'latest' || eventIdUrl === 'recommended';
+
   const queryKey = getGroupEventQueryKey({
     orgSlug: organization.slug,
     groupId,
     eventId: eventIdUrl,
     environments,
-    recommendedEventQuery:
-      eventIdUrl === 'recommended' ? recommendedEventQuery : undefined,
+    recommendedEventQuery: isLatestOrRecommendedEvent ? recommendedEventQuery : undefined,
   });
 
-  const isLatestOrRecommendedEvent =
-    eventIdUrl === 'latest' || eventIdUrl === 'recommended';
   const eventQuery = useApiQuery<Event>(queryKey, {
     // Latest/recommended event will change over time, so only cache for 30 seconds
     // Oldest/specific events will never change
