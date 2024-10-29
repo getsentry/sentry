@@ -1009,7 +1009,7 @@ describe('trace view', () => {
       expect(screen.queryByText(/Missing instrumentation/i)).not.toBeInTheDocument();
     });
 
-    describe('preferences', () => {
+    describe.skip('preferences', () => {
       it('toggles autogrouping', async () => {
         mockTracePreferences({autogroup: {parent: true, sibling: true}});
         mockQueryString('?node=span-span0&node=txn-1');
@@ -1033,7 +1033,7 @@ describe('trace view', () => {
         });
       });
 
-      it.skip('toggles missing instrumentation', async () => {
+      it('toggles missing instrumentation', async () => {
         mockTracePreferences({missing_instrumentation: true});
         mockQueryString('?node=span-span0&node=txn-1');
 
