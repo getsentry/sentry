@@ -3,6 +3,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
+import Count from 'sentry/components/count';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TabList, Tabs} from 'sentry/components/tabs';
@@ -13,12 +14,15 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
+import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
@@ -46,7 +50,7 @@ const TabName = {
   [Tab.EVENTS]: t('Events'),
   [Tab.REPLAYS]: t('Replays'),
   [Tab.ATTACHMENTS]: t('Attachments'),
-  [Tab.USER_FEEDBACK]: t('User Feedback'),
+  [Tab.USER_FEEDBACK]: t('Feedback'),
 };
 
 interface IssueEventNavigationProps {
@@ -112,6 +116,23 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
       notifyOnChangeProps: [],
     }
   );
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: '90d',
+  });
+  const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
+
+  const attachments = useGroupEventAttachments({
+    groupId: group.id,
+    activeAttachmentsTab: 'all',
+    options: {placeholderData: keepPreviousData},
+  });
+
+  const attachmentPagination = parseLinkHeader(
+    attachments.getResponseHeader?.('Link') ?? null
+  );
+  // Since we reuse whatever page the user was on, we can look at pagination to determine if there are more attachments
+  const hasManyAttachments =
+    attachmentPagination.next?.results || attachmentPagination.previous?.results;
 
   const selectedOption = useMemo(() => {
     if (query?.trim()) {
@@ -150,7 +171,12 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
           items={[
             {
               key: Tab.DETAILS,
-              label: 'Events',
+              label: (
+                <DropdownCountWrapper>
+                  {TabName[Tab.DETAILS]} <ItemCount value={group.count} />
+                </DropdownCountWrapper>
+              ),
+              textValue: TabName[Tab.DETAILS],
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
@@ -158,7 +184,12 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             },
             {
               key: Tab.REPLAYS,
-              label: 'Replays',
+              label: (
+                <DropdownCountWrapper>
+                  {TabName[Tab.REPLAYS]} <ItemCount value={replaysCount} />
+                </DropdownCountWrapper>
+              ),
+              textValue: TabName[Tab.REPLAYS],
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
@@ -166,7 +197,15 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             },
             {
               key: Tab.ATTACHMENTS,
-              label: 'Attachments',
+              label: (
+                <DropdownCountWrapper>
+                  {TabName[Tab.ATTACHMENTS]}
+                  <CustomItemCount>
+                    {hasManyAttachments ? '50+' : attachments.attachments.length}
+                  </CustomItemCount>
+                </DropdownCountWrapper>
+              ),
+              textValue: TabName[Tab.ATTACHMENTS],
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
@@ -174,7 +213,12 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             },
             {
               key: Tab.USER_FEEDBACK,
-              label: 'Feedback',
+              label: (
+                <DropdownCountWrapper>
+                  {TabName[Tab.USER_FEEDBACK]} <ItemCount value={group.userReportCount} />
+                </DropdownCountWrapper>
+              ),
+              textValue: TabName[Tab.USER_FEEDBACK],
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
@@ -333,4 +377,19 @@ const Navigation = styled('div')`
   display: flex;
   padding-right: ${space(0.25)};
   border-right: 1px solid ${p => p.theme.gray100};
+`;
+
+const DropdownCountWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${space(3)};
+`;
+
+const ItemCount = styled(Count)`
+  color: ${p => p.theme.subText};
+`;
+
+const CustomItemCount = styled('div')`
+  color: ${p => p.theme.subText};
 `;

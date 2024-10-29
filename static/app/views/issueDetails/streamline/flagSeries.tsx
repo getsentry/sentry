@@ -65,6 +65,10 @@ export default function useFlagSeries({query = {}, event, group}: FlagSeriesProp
   }
 
   const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
+  const evaluatedFlagNames = event?.contexts.flags?.values.map(f => f.flag);
+  const intersectionFlags = hydratedFlagData.filter(f =>
+    evaluatedFlagNames?.includes(f.name)
+  );
 
   // create a markline series using hydrated flag data
   const markLine = MarkLine({
@@ -77,7 +81,7 @@ export default function useFlagSeries({query = {}, event, group}: FlagSeriesProp
     label: {
       show: false,
     },
-    data: hydratedFlagData,
+    data: intersectionFlags,
     tooltip: {
       trigger: 'item',
       formatter: ({data}: any) => {
