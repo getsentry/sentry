@@ -438,3 +438,17 @@ class ReactPageViewTest(TestCase):
             assert '<link rel="dns-prefetch" href="http://us.testserver"' in response_body.decode(
                 "utf-8"
             )
+
+    def test_preconnect(self):
+        user = self.create_user("bar@example.com")
+        org = self.create_organization(owner=user)
+        self.login_as(user)
+
+        with self.settings(STATIC_ORIGIN="https://s1.sentry-cdn.com"):
+            response = self.client.get("/issues/", HTTP_HOST=f"{org.slug}.testserver")
+            assert response.status_code == 200
+            response_body = response.content
+            assert (
+                '<link rel="preconnect" href="https://s1.sentry-cdn.com"'
+                in response_body.decode("utf-8")
+            )
