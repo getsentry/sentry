@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
+import * as Layout from 'sentry/components/layouts/thirds';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -39,7 +40,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
 
   return (
-    <div>
+    <Side>
       <FirstLastSeenSection group={group} />
       <StyledBreak />
       {event && (
@@ -63,7 +64,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       <SimilarIssuesSidebarSection />
       <StyledBreak />
       <MergedIssuesSidebarSection />
-    </div>
+    </Side>
   );
 }
 
@@ -76,4 +77,9 @@ const StyledBreak = styled('hr')`
 export const SidebarSectionTitle = styled(SidebarSection.Title)`
   margin-bottom: ${space(1)};
   color: ${p => p.theme.headingColor};
+`;
+
+const Side = styled(Layout.Side)`
+  position: relative;
+  padding: ${space(1.5)} ${space(2)};
 `;
