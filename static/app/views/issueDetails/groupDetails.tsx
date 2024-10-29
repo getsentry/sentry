@@ -201,11 +201,11 @@ function useEventApiQuery({
 }) {
   const organization = useOrganization();
   const location = useLocation<{query?: string}>();
+  const navigate = useNavigate();
   const defaultIssueEvent = useDefaultIssueEvent();
   const eventIdUrl = eventId ?? defaultIssueEvent;
   const recommendedEventQuery =
     typeof location.query.query === 'string' ? location.query.query : undefined;
-  const navigate = useNavigate();
 
   const isLatestOrRecommendedEvent =
     eventIdUrl === 'latest' || eventIdUrl === 'recommended';
