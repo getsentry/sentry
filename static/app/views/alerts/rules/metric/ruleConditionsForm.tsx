@@ -639,6 +639,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       isErrorMigration,
       aggregate,
       project,
+      comparisonType,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -704,7 +705,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               />
               {allowChangeEventTypes && this.renderEventTypeFilter()}
             </FormRow>
-            <FormRow>
+            <FormRow noMargin>
               <FormField
                 name="query"
                 inline={false}
@@ -740,7 +741,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         searchSource="alert_builder"
                         filterKeys={filterKeys}
                         disabled={disabled || isErrorMigration}
-                        onChange={onChange}
                         invalidMessages={{
                           [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
                             'The wildcard operator is not supported here.'
@@ -786,6 +786,33 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                       )}
                     </SearchContainer>
                   );
+                }}
+              </FormField>
+            </FormRow>
+            <FormRow noMargin>
+              <FormField
+                name="query"
+                inline={false}
+                style={{
+                  ...this.formElemBaseStyle,
+                  flex: '6 0 500px',
+                }}
+                flexibleControlStateSize
+              >
+                {args => {
+                  if (
+                    args.value?.includes('is:unresolved') &&
+                    comparisonType === AlertRuleComparisonType.DYNAMIC
+                  ) {
+                    return (
+                      <OnDemandMetricAlert
+                        message={t(
+                          "'is:unresolved' queries are not supported by Anomaly Detection alerts."
+                        )}
+                      />
+                    );
+                  }
+                  return null;
                 }}
               </FormField>
             </FormRow>

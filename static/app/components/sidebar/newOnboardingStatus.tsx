@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -8,7 +8,7 @@ import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext'
 import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -41,6 +41,7 @@ export function NewOnboardingStatus({
   const onboardingContext = useContext(OnboardingContext);
   const {projects} = useProjects();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
+  const hasMarkedUnseenTasksAsComplete = useRef(false);
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
   const walkthrough = isDemoWalkthrough();
@@ -52,7 +53,13 @@ export function NewOnboardingStatus({
   }).filter(task => task.display);
 
   const {allTasks, gettingStartedTasks, beyondBasicsTasks, doneTasks, completeTasks} =
-    useOnboardingTasks({supportedTasks});
+    useOnboardingTasks({
+      supportedTasks,
+      enabled:
+        !!organization.features?.includes('onboarding') &&
+        !supportedTasks.every(findCompleteTasks),
+      refetchInterval: isActive ? '1s' : '10s',
+    });
 
   const label = walkthrough ? t('Guided Tours') : t('Onboarding');
   const totalRemainingTasks = allTasks.length - doneTasks.length;
@@ -97,6 +104,17 @@ export function NewOnboardingStatus({
       referrer: 'onboarding_sidebar',
     });
   }, [isActive, totalRemainingTasks, organization]);
+
+  useEffect(() => {
+    if (pendingCompletionSeen && isActive && !hasMarkedUnseenTasksAsComplete.current) {
+      markDoneTaskAsComplete();
+      hasMarkedUnseenTasksAsComplete.current = true;
+    }
+
+    if (!pendingCompletionSeen || !isActive) {
+      hasMarkedUnseenTasksAsComplete.current = false;
+    }
+  }, [isActive, pendingCompletionSeen, markDoneTaskAsComplete]);
 
   if (
     !organization.features?.includes('onboarding') ||
