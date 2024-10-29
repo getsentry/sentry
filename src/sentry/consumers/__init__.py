@@ -63,15 +63,30 @@ def multiprocessing_options(
 
 
 def taskworker_options(
-    default_max_batch_size: int | None = None,
-    default_max_batch_time_ms: int | None = 1000,
+    default_max_batch_size: int | None = 2,
+    default_max_batch_time_ms: int | None = 2,
     include_worker_addrs: bool = False,
 ) -> list[click.Option]:
     options = multiprocessing_options(
         default_max_batch_size=default_max_batch_size,
         default_max_batch_time_ms=default_max_batch_time_ms,
     )
-    options.append(click.Option(["--storage"], type=str, default="postgres"))
+    options.append(
+        click.Option(
+            ["--max-pending-timeout", "max_pending_timeout"],
+            type=int,
+            default=8 * 60,
+            help="Maximum amount of seconds that tasks are allowed to live in the inflight activation store. After this time elapses, tasks are be deadlettered if they are followed by completed records.",
+        ),
+    )
+    options.append(
+        click.Option(
+            ["--max-inflight-activation-in-store", "max_inflight_activation_in_store"],
+            type=int,
+            default=1000,
+            help="Maximum number of pending inflight activations in the store before backpressure is emitted",
+        ),
+    )
     if include_worker_addrs:
         options.append(click.Option(["--worker-addrs"], type=str, default="127.0.0.1:50051"))
 
