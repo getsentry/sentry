@@ -355,13 +355,13 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             created_by_id=self.user.id,
             organization=self.organization,
         )
-        DashboardPermissions.objects.create(dashboard=dashboard, is_creator_only_editable=False)
+        DashboardPermissions.objects.create(dashboard=dashboard, is_editable_by_everyone=False)
         response = self.do_request("get", self.url(dashboard.id))
 
         assert response.status_code == 200, response.content
 
         assert "permissions" in response.data
-        assert not response.data["permissions"]["isCreatorOnlyEditable"]
+        assert not response.data["permissions"]["isEditableByEveryone"]
 
     def test_dashboard_details_data_returns_Null_permissions(self):
         dashboard = Dashboard.objects.create(
@@ -382,7 +382,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             created_by_id=1142,
             organization=self.organization,
         )
-        DashboardPermissions.objects.create(is_creator_only_editable=True, dashboard=dashboard)
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
         user = self.create_user(id=1289)
         self.create_member(user=user, organization=self.organization)
@@ -391,6 +391,28 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         with self.feature({"organizations:dashboards-edit-access": True}):
             response = self.do_request("get", self.url(dashboard.id))
         assert response.status_code == 200, response.content
+
+    def test_dashboard_details_data_returns_permissions_with_teams(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        team1 = self.create_team(organization=self.organization)
+        team2 = self.create_team(organization=self.organization)
+        permissions = DashboardPermissions.objects.create(
+            dashboard=dashboard, is_editable_by_everyone=False
+        )
+        permissions.teams_with_edit_access.set([team1, team2])
+
+        response = self.do_request("get", self.url(dashboard.id))
+
+        assert response.status_code == 200, response.content
+
+        assert "permissions" in response.data
+        assert not response.data["permissions"]["isEditableByEveryone"]
+        assert "teams_with_edit_access" in response.data
+        assert response.data["permissions"]["teamsWithEditAccess"] is [str(team1.id), str(team2.id)]
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -528,7 +550,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
             created_by_id=11452,
             organization=self.organization,
         )
-        DashboardPermissions.objects.create(is_creator_only_editable=True, dashboard=dashboard)
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
         user = self.create_user(id=1235)
         self.create_member(user=user, organization=self.organization)
@@ -544,7 +566,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
             created_by_id=11452,
             organization=self.organization,
         )
-        DashboardPermissions.objects.create(is_creator_only_editable=False, dashboard=dashboard)
+        DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=dashboard)
 
         user = self.create_user(id=1235)
         self.create_member(user=user, organization=self.organization)
@@ -554,16 +576,39 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
             response = self.do_request("delete", self.url(dashboard.id))
         assert response.status_code == 204
 
-    def test_delete_dashboard_with_edit_permissions_granted(self):
+    def test_creator_can_delete_dashboard(self):
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
             created_by_id=12333,
             organization=self.organization,
         )
-        DashboardPermissions.objects.create(is_creator_only_editable=True, dashboard=dashboard)
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
         user = self.create_user(id=12333)
         self.create_member(user=user, organization=self.organization)
+        self.login_as(user)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("delete", self.url(dashboard.id))
+        assert response.status_code == 204, response.content
+
+    def test_user_in_team_with_access_can_delete_dashboard(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=11452,
+            organization=self.organization,
+        )
+        permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=False, dashboard=dashboard
+        )
+
+        # Create team and add to dashboard permissions
+        team = self.create_team(organization=self.organization)
+        permissions.teams_with_edit_access.set([team])
+
+        # Create user and add to team
+        user = self.create_user(id=12345)
+        self.create_member(user=user, organization=self.organization, teams=[team])
         self.login_as(user)
 
         with self.feature({"organizations:dashboards-edit-access": True}):
@@ -1869,60 +1914,60 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.create_environment(project=mock_project, name="mock_env")
         data = {
             "title": "Dashboard",
-            "permissions": {"isCreatorOnlyEditable": "False"},
+            "permissions": {"isEditableByEveryone": "False"},
         }
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
         )
         assert response.status_code == 200, response.data
-        assert response.data["permissions"]["isCreatorOnlyEditable"] is False
+        assert response.data["permissions"]["isEditableByEveryone"] is False
 
-    def test_update_dashboard_permissions_to_true(self):
+    def test_update_dashboard_permissions_to_false(self):
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {
             "title": "Dashboard",
-            "permissions": {"isCreatorOnlyEditable": "true"},
+            "permissions": {"isEditableByEveryone": "false"},
         }
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
         )
         assert response.status_code == 200, response.data
-        assert response.data["permissions"]["isCreatorOnlyEditable"] is True
+        assert response.data["permissions"]["isEditableByEveryone"] is False
 
     def test_update_dashboard_permissions_when_already_created(self):
         mock_project = self.create_project()
         permission = DashboardPermissions.objects.create(
-            is_creator_only_editable=False, dashboard=self.dashboard
+            is_editable_by_everyone=True, dashboard=self.dashboard
         )
         self.create_environment(project=mock_project, name="mock_env")
         data = {
             "title": "Dashboard",
-            "permissions": {"isCreatorOnlyEditable": "true"},
+            "permissions": {"isEditableByEveryone": "false"},
         }
 
-        assert permission.is_creator_only_editable is False
+        assert permission.is_editable_by_everyone is True
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
         )
         assert response.status_code == 200, response.data
-        assert response.data["permissions"]["isCreatorOnlyEditable"] is True
+        assert response.data["permissions"]["isEditableByEveryone"] is False
 
         permission.refresh_from_db()
-        assert permission.is_creator_only_editable is True
+        assert permission.is_editable_by_everyone is False
 
     def test_update_dashboard_permissions_with_invalid_value(self):
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {
             "title": "Dashboard",
-            "permissions": {"isCreatorOnlyEditable": "something-invalid"},
+            "permissions": {"isEditableByEveryone": "something-invalid"},
         }
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
         )
         assert response.status_code == 400, response.data
-        assert "isCreatorOnlyEditable" in response.data["permissions"]
+        assert "isEditableByEveryone" in response.data["permissions"]
 
     def test_edit_dashboard_with_edit_permissions_not_granted(self):
         dashboard = Dashboard.objects.create(
@@ -1930,7 +1975,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             created_by_id=12333,
             organization=self.organization,
         )
-        DashboardPermissions.objects.create(is_creator_only_editable=True, dashboard=dashboard)
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
         user = self.create_user(id=3456)
         self.create_member(user=user, organization=self.organization)
@@ -1946,7 +1991,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             created_by_id=12333,
             organization=self.organization,
         )
-        DashboardPermissions.objects.create(is_creator_only_editable=False, dashboard=dashboard)
+        DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=dashboard)
 
         user = self.create_user(id=3456)
         self.create_member(user=user, organization=self.organization)
@@ -1956,13 +2001,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("put", self.url(dashboard.id))
         assert response.status_code == 200
 
-    def test_edit_dashboard_with_edit_permissions_granted(self):
+    def test_creator_can_edit_dashboard(self):
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
             created_by_id=12333,
             organization=self.organization,
         )
-        DashboardPermissions.objects.create(is_creator_only_editable=True, dashboard=dashboard)
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
 
         user = self.create_user(id=12333)
         self.create_member(user=user, organization=self.organization)
@@ -1970,6 +2015,29 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         with self.feature({"organizations:dashboards-edit-access": True}):
             response = self.do_request("put", self.url(self.dashboard.id))
+        assert response.status_code == 200, response.content
+
+    def test_user_in_team_with_access_can_edit_dashboard(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=11452,
+            organization=self.organization,
+        )
+        permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=False, dashboard=dashboard
+        )
+
+        # Create team and add to dashboard permissions
+        team = self.create_team(organization=self.organization)
+        permissions.teams_with_edit_access.set([team])
+
+        # Create user and add to team
+        user = self.create_user(id=12345)
+        self.create_member(user=user, organization=self.organization, teams=[team])
+        self.login_as(user)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("put", self.url(dashboard.id))
         assert response.status_code == 200, response.content
 
 

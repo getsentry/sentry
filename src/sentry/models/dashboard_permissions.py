@@ -15,18 +15,25 @@ class DashboardPermissions(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    is_creator_only_editable = models.BooleanField(default=False)
+    is_editable_by_everyone = models.BooleanField(default=True)
+    teams_with_edit_access = models.ManyToManyField("sentry.Team", null=True)
+
     dashboard = models.OneToOneField(
         "sentry.Dashboard", on_delete=models.CASCADE, related_name="permissions"
     )
 
     def has_edit_permissions(self, userId):
-        if not self.is_creator_only_editable:
+        if self.is_editable_by_everyone:
             return True
-        return userId == self.dashboard.created_by_id
+        if userId == self.dashboard.created_by_id:
+            return True  # Dashboard creator will always have edit perms
+        for team in self.teams_with_edit_access.all():
+            if userId in team.get_member_user_ids():
+                return True
+        return False
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardpermissions"
 
-    __repr__ = sane_repr("is_creator_only_editable")
+    __repr__ = sane_repr("is_editable_by_everyone")
