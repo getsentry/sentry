@@ -10,7 +10,7 @@ import {CheckWrap} from 'sentry/components/compactSelect/styles';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {InnerWrap, LeadingItems} from 'sentry/components/menuListItem';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
