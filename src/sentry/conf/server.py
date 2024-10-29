@@ -524,6 +524,9 @@ STATIC_URL = "/_static/{version}/"
 # as we configure webpack to include file content based hash in the filename
 STATIC_FRONTEND_APP_URL = "/_static/dist/"
 
+# URL origin from where the static files are served.
+STATIC_ORIGIN = None
+
 # The webpack output directory
 STATICFILES_DIRS = [
     os.path.join(STATIC_ROOT, "sentry", "dist"),

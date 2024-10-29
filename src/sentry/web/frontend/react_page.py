@@ -69,6 +69,12 @@ class ReactMixin:
     def meta_tags(self, request: Request, **kwargs):
         return {}
 
+    def preconnect(self) -> list[str]:
+        preconnects = []
+        if settings.STATIC_ORIGIN is not None:
+            preconnects.append(settings.STATIC_ORIGIN)
+        return preconnects
+
     def dns_prefetch(self) -> list[str]:
         regions = find_all_multitenant_region_names()
         domains = []
@@ -87,6 +93,7 @@ class ReactMixin:
                 for key, value in self.meta_tags(request, **kwargs).items()
             ],
             "dns_prefetch": self.dns_prefetch(),
+            "preconnect": self.preconnect(),
             # Rendering the layout requires serializing the active organization.
             # Since we already have it here from the OrganizationMixin, we can
             # save some work and render it faster.
