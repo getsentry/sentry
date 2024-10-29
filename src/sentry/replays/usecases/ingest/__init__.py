@@ -12,6 +12,7 @@ from sentry_sdk import Scope, set_tag
 from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
+from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
 from sentry.replays.lib.storage import (
     RecordingSegmentStorageMeta,
@@ -25,6 +26,14 @@ from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger("sentry.replays")
+logger.addFilter(
+    SamplingFilter(
+        {
+            "mobile_event": 0.5,
+            "rrweb_event_count": 0.5,
+        }
+    )
+)
 
 CACHE_TIMEOUT = 3600
 COMMIT_FREQUENCY_SEC = 1

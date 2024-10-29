@@ -1,4 +1,5 @@
 import logging
+import random
 import re
 
 from django.utils.timezone import now
@@ -149,3 +150,21 @@ class MetricsLogHandler(logging.Handler):
         key = metrics_badchars_re.sub("", key)
         key = ".".join(key.split(".")[:3])
         metrics.incr(key, skip_internal=False)
+
+
+class SamplingFilter(logging.Filter):
+    """
+    A logging filter allowing one to sample messages at different rates.
+
+    prob_mapping -- a mapping of messages to probabilities. The msg must be an exact match.
+    """
+
+    def __init__(self, prob_mapping: dict[str, float]):
+        super().__init__()
+        self.prob_mapping = prob_mapping
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.msg
+        if msg in self.prob_mapping:
+            return random.random() < self.prob_mapping[msg]
+        return True
