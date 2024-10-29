@@ -175,15 +175,15 @@ export function checkUserHasEditAccess(
   currentUser: User,
   organization: Organization
 ): boolean {
-  if (organization.features.includes('dashboards-edit-access')) {
-    if (!dashboard.permissions) {
-      return true;
-    }
-    return dashboard.permissions.isCreatorOnlyEditable
-      ? dashboard.createdBy?.id === currentUser.id
-      : !dashboard.permissions.isCreatorOnlyEditable;
+  if (
+    !organization.features.includes('dashboards-edit-access') ||
+    !dashboard.permissions
+  ) {
+    return true;
   }
-  return true;
+  return dashboard.permissions.isCreatorOnlyEditable
+    ? dashboard.createdBy?.id === currentUser.id
+    : !dashboard.permissions.isCreatorOnlyEditable;
 }
 
 class DashboardDetail extends Component<Props, State> {
