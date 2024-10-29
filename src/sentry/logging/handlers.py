@@ -154,7 +154,7 @@ class MetricsLogHandler(logging.Handler):
 
 class SamplingFilter(logging.Filter):
     """
-    A logging filter allowing one to sample messages at different rates.
+    A logging filter allowing sampling messages at different rates.
 
     prob_mapping -- a mapping of messages to probabilities. The msg must be an exact match.
     """
