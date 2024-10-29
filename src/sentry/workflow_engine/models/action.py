@@ -2,6 +2,8 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.notificationaction import ActionTarget
 
 
 @region_silo_model
@@ -35,7 +37,9 @@ class Action(DefaultFieldsModel):
 
     # LEGACY: The integration_id is used to map the integration_id found in the AlertRuleTriggerAction
     # This allows us to map the way we're saving the notification channels to the action.
-    integration_id = models.BigIntegerField(null=True)
+    integration_id = HybridCloudForeignKey(
+        "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
+    )
 
     # LEGACY: The target_display is used to display the target's name in notifications
     target_display = models.TextField(null=True)
@@ -43,5 +47,5 @@ class Action(DefaultFieldsModel):
     # LEGACY: The target_identifier is used to target the user / team / org that notifications are being sent to
     target_identifier = models.TextField(null=True)
 
-    # LEGACY: This is used to denote if the Notification being sent is a Slack notification etc
-    target_type = models.TextField(null=True)
+    # LEGACY: This is used to denote if the Notification is going to a user, team, sentry app, etc
+    target_type = models.SmallIntegerField(choices=ActionTarget.as_choices(), null=True)
