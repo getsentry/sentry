@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -15,7 +15,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {keepPreviousData} from 'sentry/utils/queryClient';
+import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -25,7 +25,11 @@ import {useParams} from 'sentry/utils/useParams';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
+import {
+  getGroupEventQueryKey,
+  useDefaultIssueEvent,
+  useEnvironmentsFromUrl,
+} from 'sentry/views/issueDetails/utils';
 
 const enum EventNavOptions {
   RECOMMENDED = 'recommended',
@@ -63,6 +67,56 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
   const params = useParams<{eventId?: string}>();
   const defaultIssueEvent = useDefaultIssueEvent();
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
+  const environments = useEnvironmentsFromUrl();
+
+  // Reset shouldPreload when the groupId changes
+  useEffect(() => {
+    setShouldPreload({next: false, previous: false});
+  }, [group.id]);
+
+  const handleHoverPagination = useCallback(
+    (direction: 'next' | 'previous', isEnabled: boolean) => () => {
+      if (isEnabled) {
+        setShouldPreload(prev => ({...prev, [direction]: true}));
+      }
+    },
+    []
+  );
+
+  // Prefetch next
+  useApiQuery(
+    getGroupEventQueryKey({
+      orgSlug: organization.slug,
+      groupId: group.id,
+      // Will be defined when enabled
+      eventId: event?.nextEventID!,
+      environments,
+    }),
+    {
+      enabled: shouldPreload.next && defined(event?.nextEventID),
+      staleTime: Infinity,
+      // Ignore state changes from the query
+      notifyOnChangeProps: [],
+    }
+  );
+  // Prefetch previous
+  useApiQuery(
+    getGroupEventQueryKey({
+      orgSlug: organization.slug,
+      groupId: group.id,
+      // Will be defined when enabled
+      eventId: event?.previousEventID!,
+      environments,
+    }),
+    {
+      enabled: shouldPreload.previous && defined(event?.previousEventID),
+      staleTime: Infinity,
+      // Ignore state changes from the query
+      notifyOnChangeProps: [],
+    }
+  );
+
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
   });
@@ -198,6 +252,14 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                       query: {...location.query, referrer: 'previous-event'},
                     }}
                     css={grayText}
+                    onMouseEnter={handleHoverPagination(
+                      'previous',
+                      defined(event.previousEventID)
+                    )}
+                    onClick={() => {
+                      // Assume they will continue to paginate
+                      setShouldPreload({next: true, previous: true});
+                    }}
                   />
                 </Tooltip>
                 <Tooltip title={t('Next Event')} skipWrapper>
@@ -212,6 +274,14 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                       query: {...location.query, referrer: 'next-event'},
                     }}
                     css={grayText}
+                    onMouseEnter={handleHoverPagination(
+                      'next',
+                      defined(event.nextEventID)
+                    )}
+                    onClick={() => {
+                      // Assume they will continue to paginate
+                      setShouldPreload({next: true, previous: true});
+                    }}
                   />
                 </Tooltip>
               </Navigation>
