@@ -203,7 +203,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
 
   // Debounce so that `processEvent` is not called immediately. We want to only
   // process the most recent event, otherwise it will look like the canvas is
-  // animatinng when we seek throughout replay.
+  // animating when we seek throughout replay.
   //
   // `handleQueue` is really a map of canvas id -> most recent canvas mutation
   // event for all canvas mutation events before the current replay time
@@ -216,7 +216,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
 
       // Compare the canvas ids from canvas mutation events against existing
       // canvases and remove the canvas snapshot for previously drawn to
-      // canvases that do not currently exist int his new point of time
+      // canvases that do not currently exist in this new point of time
       unusedCanvases.forEach(id => {
         const el = containers.get(id);
         if (el) {
