@@ -469,7 +469,7 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
-      location: `/settings/${organization.slug}/projects/:projectId/release-tracking/`,
+      location: `/organizations/${organization.slug}/releases/`,
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
     },
