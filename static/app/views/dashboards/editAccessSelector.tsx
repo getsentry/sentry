@@ -148,7 +148,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         <React.Fragment key="edit-access-label">{t('Edit Access:')}</React.Fragment>,
         <React.Fragment key="trigger-avatars">{triggerAvatars}</React.Fragment>,
       ]}
-      searchPlaceholder="Search Teams"
+      searchPlaceholder={t("Search Teams")}
       disableSearchFilter
     />
   );
