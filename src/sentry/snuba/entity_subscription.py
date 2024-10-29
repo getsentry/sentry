@@ -268,17 +268,15 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         self.org_id = extra_fields["org_id"]
         self.time_window = time_window
         self.use_metrics_layer = (
-            (
-                features.has(
-                    "organizations:custom-metrics",
-                    Organization.objects.get_from_cache(id=self.org_id),
-                )
-                # required in order to correctly clean up the custom metric alert subscriptions
-                or features.has(
-                    "custom-metrics-alerts-widgets-removal-info",
-                    Organization.objects.get_from_cache(id=self.org_id),
-                )
-            ),
+            features.has(
+                "organizations:custom-metrics",
+                Organization.objects.get_from_cache(id=self.org_id),
+            )
+            # required in order to correctly clean up the custom metric alert subscriptions
+            or features.has(
+                "custom-metrics-alerts-widgets-removal-info",
+                Organization.objects.get_from_cache(id=self.org_id),
+            )
         )
 
         self.on_demand_metrics_enabled = features.has(
