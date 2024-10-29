@@ -94,13 +94,7 @@ class Task(Generic[P, R]):
                 kind="sentry.taskworker.retry.Retry",
                 discard_after_attempt=1,
             )
-        initial_state = retry.initial_state()
-        return RetryState(
-            attempts=initial_state.attempts,
-            kind=initial_state.kind,
-            discard_after_attempt=initial_state.discard_after_attempt,
-            deadletter_after_attempt=initial_state.deadletter_after_attempt,
-        )
+        return retry.initial_state()
 
     def should_retry(self, state: RetryState, exc: Exception) -> bool:
         # No retry policy means no retries.
