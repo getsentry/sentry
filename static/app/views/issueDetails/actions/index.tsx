@@ -28,7 +28,7 @@ import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
-import {GroupStatus, GroupSubstatus, IssueCategory} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -115,9 +115,6 @@ export function Actions(props: Props) {
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
 
-    const groupIsOccurrenceBacked =
-      group.issueCategory === IssueCategory.PERFORMANCE && !!event?.occurrence;
-
     const discoverQuery = {
       id: undefined,
       name: title || type,
@@ -127,10 +124,7 @@ export function Actions(props: Props) {
       projects: [Number(project.id)],
       version: 2 as SavedQueryVersions,
       range: '90d',
-      dataset:
-        config.usesIssuePlatform || groupIsOccurrenceBacked
-          ? DiscoverDatasets.ISSUE_PLATFORM
-          : undefined,
+      dataset: config.usesIssuePlatform ? DiscoverDatasets.ISSUE_PLATFORM : undefined,
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
