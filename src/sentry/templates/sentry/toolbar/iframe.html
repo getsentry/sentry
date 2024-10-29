@@ -35,8 +35,10 @@ Required context variables:
           }
         }
 
+        let loginFormSetup = false;
         function setupLoginForm() {
           log('setupLoginForm()');
+          if (loginFormSetup) return;
           const form = document.getElementById('login-form');
           form.addEventListener('submit', submitEvent => {
             submitEvent.preventDefault();
@@ -46,14 +48,7 @@ Required context variables:
               'popup=true,innerWidth=800,innerHeight=550,noopener=false'
             );
           });
-        }
-
-        function sendStateMessage(state) {
-          log('sendStateMessage(state)', { state });
-          window.parent.postMessage({
-            source: 'sentry-toolbar',
-            message: state
-          }, referrer);
+          loginFormSetup = true;
         }
 
         function listenForLoginSuccess() {
@@ -71,24 +66,49 @@ Required context variables:
         }
 
         function saveAccessToken(data) {
-          log('saveAccessToken', data)
+          log('saveAccessToken', data);
+          let tokenValue;
+          let tokenType;
+
           if (data.cookie) {
-            const value = `${data.cookie}; domain=${window.location.hostname}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
-            document.cookie = value
+            tokenValue = data.cookie;
+            tokenType = "cookie";
+            document.cookie = `${tokenValue}; domain=${window.location.hostname}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
             log('Saved a cookie', document.cookie.indexOf(cookie) >= 0, cookie);
-            localStorage.setItem('cookie', data.cookie);
+          } else if (data.token) {
+            tokenValue = data.token;
+            tokenType = "accessToken";
           }
-          if (data.token) {
-            localStorage.setItem('accessToken', data.token);
-            log('Saved an accessToken to localStorage', data.token);
+          else {
+            log('Unexpected: No access token or cookie found!');
+            return;
           }
-          if (!data.cookie && !data.token) {
-            log('Unexpected: No access token found!');
+
+          try {
+            localStorage.setItem(tokenType, tokenValue);
+            log(`Saved {tokenType} to localStorage`, tokenValue);
+          } catch (err) {
+            log("Failed to use local storage:", err);
           }
         }
 
         function setupMessageChannel() {
           log('setupMessageChannel()');
+          log('state:', { state });
+
+          if (state !== 'success') {
+            // enum of: logged-out, missing-project, invalid-domain
+            window.parent.postMessage({
+              source: 'sentry-toolbar',
+              message: state
+            }, referrer);
+            setupLoginForm();
+            listenForLoginSuccess();
+            return;
+          }
+
+          // Never, ever setup up the channel unless state is "success"
+
           const { port1, port2 } = new MessageChannel();
 
           const messageDispatch = {
@@ -118,23 +138,29 @@ Required context variables:
               };
             },
           };
+          // This is critical as when using the `in` operator, one can access
+          // built-in special functions such as `__defineGetter__` etc and then
+          // inject their own code/functions or break out.
+          const validFunctions = new Set(Object.keys(messageDispatch));
 
           port1.addEventListener('message', messageEvent => {
             log('port.onMessage', messageEvent.data);
 
             const { $id, message } = messageEvent.data;
-            if (!$id) {
+            if (!$id || !message) {
               return; // MessageEvent is malformed, missing $id
             }
 
-            if (!message.$function || !(message.$function in messageDispatch)) {
-              return; // No-op without a $function to call
+            const {$function, $args} = message;
+            if (!$function || !validFunctions.has($function)) {
+              return; // No-op without a $function to call or invalid function name
             }
 
-            messageDispatch[message.$function]
-              .apply(undefined, message.$args || [])
-              .then($result => port1.postMessage({ $id, $result }))
-              .catch(error => port1.postMessage({ $id, $error: error }));
+            messageDispatch[$function](...($args || []))
+              .then(
+                $result => port1.postMessage({ $id, $result }),
+                $error => port1.postMessage({ $id, $error })
+              );
           });
           port1.start();
 
@@ -148,14 +174,7 @@ Required context variables:
 
         log('Init', { referrer, state });
 
-        if (state === 'success') {
-          setupMessageChannel();
-        } else {
-          setupLoginForm();
-          // enum of: logged-out, missing-project, invalid-domain
-          sendStateMessage(state);
-          listenForLoginSuccess();
-        }
+        setupMessageChannel();
       })();
     </script>
     {% endscript %}
