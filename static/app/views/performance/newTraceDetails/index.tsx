@@ -89,7 +89,7 @@ import {
   isSiblingAutogroupedNode,
   isTraceNode,
 } from './traceGuards';
-import {TraceMetadataHeader} from './traceMetadataHeader';
+import {TraceMetaDataHeader} from './traceHeader';
 import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceShortcuts} from './traceShortcutsModal';
 import type {TraceReducer, TraceReducerState} from './traceState';
@@ -206,8 +206,10 @@ export function TraceView() {
       >
         <NoProjectMessage organization={organization}>
           <TraceExternalLayout>
-            <TraceMetadataHeader
+            <TraceMetaDataHeader
               rootEventResults={rootEvent}
+              tree={tree}
+              metaResults={meta}
               organization={organization}
               traceSlug={traceSlug}
               traceEventView={traceEventView}

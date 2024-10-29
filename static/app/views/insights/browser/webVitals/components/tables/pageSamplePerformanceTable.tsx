@@ -53,7 +53,7 @@ import {
   SpanMetricsField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
