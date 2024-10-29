@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models.base import DefaultFieldsModelExisting, region_silo_model
+from sentry.db.models.base import DefaultFieldsModel, region_silo_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
@@ -13,7 +13,7 @@ def default_uuid():
 
 
 @region_silo_model
-class RollbackOrganizationUserData(DefaultFieldsModelExisting):
+class RollbackOrganizationUserData(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
