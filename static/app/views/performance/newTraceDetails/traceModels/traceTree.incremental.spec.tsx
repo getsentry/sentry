@@ -32,7 +32,7 @@ describe('incremental trace fetch', () => {
           }),
         ],
       }),
-      {replayRecord: null, meta: null}
+      {replay: null, meta: null}
     );
 
     // Mock the API calls
@@ -80,6 +80,7 @@ describe('incremental trace fetch', () => {
       },
     });
 
+    tree.build();
     expect(tree.list.length).toBe(3);
 
     tree.fetchAdditionalTraces({
@@ -89,7 +90,7 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      metaResults: null,
+      meta: null,
     });
 
     await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
@@ -114,7 +115,7 @@ describe('incremental trace fetch', () => {
           }),
         ],
       }),
-      {replayRecord: null, meta: null}
+      {replay: null, meta: null}
     );
 
     // Mock the API calls
@@ -152,6 +153,7 @@ describe('incremental trace fetch', () => {
       },
     });
 
+    tree.build();
     expect(tree.list.length).toBe(3);
 
     tree.fetchAdditionalTraces({
@@ -161,10 +163,11 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      metaResults: null,
+      meta: null,
     });
 
     await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
+    tree.build();
 
     expect(tree.list.length).toBe(7);
     expect(mockedResponse1).toHaveBeenCalledTimes(1);

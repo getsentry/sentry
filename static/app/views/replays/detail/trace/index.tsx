@@ -30,9 +30,9 @@ function TraceFeature({replayRecord}: {replayRecord: ReplayRecord | undefined}) 
       renderDisabled={PerfDisabled}
     >
       {organization.features.includes('replay-trace-view-v1') ? (
-        <NewTraceView replayRecord={replayRecord} />
+        <NewTraceView replay={replayRecord} />
       ) : (
-        <Trace replayRecord={replayRecord} />
+        <Trace replay={replayRecord} />
       )}
     </Feature>
   );

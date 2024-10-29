@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import type {QueryStatus, UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -7,18 +7,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-import {isTransactionNode} from '../traceGuards';
 import {TraceTree} from '../traceModels/traceTree';
 
 import type {TraceMetaQueryResults} from './useTraceMeta';
 
 type UseTraceTreeParams = {
-  metaResults: TraceMetaQueryResults;
-  replayRecord: ReplayRecord | null;
-  traceResults: UseApiQueryResult<
-    TraceSplitResults<TraceTree.Transaction> | undefined,
-    any
-  >;
+  meta: TraceMetaQueryResults;
+  replay: ReplayRecord | null;
+  trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any>;
   traceSlug?: string;
 };
 
@@ -38,85 +34,71 @@ function getTraceViewQueryStatus(
 }
 
 export function useTraceTree({
-  traceResults,
-  metaResults,
+  trace,
+  meta,
+  replay,
   traceSlug,
-  replayRecord,
 }: UseTraceTreeParams): TraceTree {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
 
   const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
-  const loadingTraceRef = useRef<TraceTree | null>(null);
-  const [_, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
-
-  const status = useMemo(() => {
-    return getTraceViewQueryStatus(traceResults.status, metaResults.status);
-  }, [traceResults.status, metaResults.status]);
 
   useEffect(() => {
+    const status = getTraceViewQueryStatus(trace.status, meta.status);
+
     if (status === 'error') {
-      const errorTree = TraceTree.Error({
-        project_slug: projects?.[0]?.slug ?? '',
-        event_id: traceSlug,
-      });
-      setTree(errorTree);
+      setTree(t =>
+        t.type === 'error'
+          ? t
+          : TraceTree.Error({
+              project_slug: projects?.[0]?.slug ?? '',
+              event_id: traceSlug,
+            })
+      );
       return;
     }
 
     if (
-      traceResults?.data?.transactions.length === 0 &&
-      traceResults?.data?.orphan_errors.length === 0
+      trace?.data?.transactions.length === 0 &&
+      trace?.data?.orphan_errors.length === 0
     ) {
-      setTree(TraceTree.Empty());
+      setTree(t => (t.type === 'empty' ? t : TraceTree.Empty()));
       return;
     }
 
     if (status === 'pending') {
-      const loadingTrace =
-        loadingTraceRef.current ??
-        TraceTree.Loading({
-          project_slug: projects?.[0]?.slug ?? '',
-          event_id: traceSlug,
-        });
-
-      loadingTraceRef.current = loadingTrace;
-      setTree(loadingTrace);
+      setTree(t =>
+        t.type === 'loading'
+          ? t
+          : TraceTree.Loading({
+              project_slug: projects?.[0]?.slug ?? '',
+              event_id: traceSlug,
+            })
+      );
       return;
     }
 
-    if (traceResults.data && metaResults.data) {
-      const trace = TraceTree.FromTrace(traceResults.data, {
-        meta: metaResults,
-        replayRecord: replayRecord,
+    if (trace.data && meta.data) {
+      const newTree = TraceTree.FromTrace(trace.data, {
+        meta: meta.data,
+        replay: replay,
       });
 
-      // Root frame + 2 nodes
-      const promises: Promise<void>[] = [];
-      const transactions = TraceTree.FindAll(trace.root, c => isTransactionNode(c));
-
-      if (transactions.length <= 3) {
-        for (const c of trace.list) {
-          if (c.canFetch) {
-            promises.push(trace.zoom(c, true, {api, organization}).then(rerender));
-          }
-        }
-      }
-
-      Promise.allSettled(promises).finally(() => {
-        setTree(trace);
-      });
+      setTree(newTree);
+      newTree.build();
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     api,
     organization,
     projects,
-    replayRecord,
-    status,
-    metaResults.data,
-    traceResults.data,
+    replay,
+    meta.status,
+    trace.status,
+    trace.data,
+    meta.data,
     traceSlug,
   ]);
 
