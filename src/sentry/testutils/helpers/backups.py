@@ -609,10 +609,8 @@ class ExhaustiveFixtures(Fixtures):
                 user_id=owner_id,
             )
 
-        # Rollback*
-        RollbackIdentifier.objects.create(
-            user_id=owner_id, organization=org, uuid=str(uuid4()), share_uuid=str(uuid4())
-        )
+        # Rollback
+        RollbackIdentifier.objects.create(user_id=owner_id, organization=org)
 
         RollbackOrganizationData.objects.create(
             organization=org, year=2024, data={"fruit": "honeydew"}

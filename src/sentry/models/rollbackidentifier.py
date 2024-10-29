@@ -29,5 +29,4 @@ class RollbackIdentifier(DefaultFieldsModelExisting):
             UniqueConstraint(fields=["user_id", "organization_id"], name="unique_user_org"),
             UniqueConstraint(fields=["uuid"], name="unique_uuid"),
             UniqueConstraint(fields=["share_uuid"], name="unique_share_uuid"),
-            UniqueConstraint(fields=["uuid", "share_uuid"], name="unique_uuid_share_uuid"),
         ]

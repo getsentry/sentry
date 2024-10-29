@@ -1,5 +1,5 @@
 ---
-created: '2024-10-21T17:30:17.571525+00:00'
+created: '2024-10-29T17:01:31.103728+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -69,6 +69,11 @@ source: tests/sentry/backup/test_sanitize.py
   - name
   - provider
   - url
+- model_name: sentry.rollbackorganizationdata
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
 - model_name: sentry.team
   ordinal: 1
   sanitized_fields:
@@ -269,6 +274,18 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - name
+- model_name: sentry.rollbackorganizationuserdata
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: sentry.rollbackidentifier
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+  - share_uuid
+  - uuid
 - model_name: sentry.recentsearch
   ordinal: 1
   sanitized_fields:
