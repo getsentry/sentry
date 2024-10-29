@@ -8,6 +8,7 @@ from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import Retry, RetryError
 from sentry.taskworker.task import Task
 from sentry.testutils.helpers.task_runner import TaskRunner
+from sentry.utils import json
 
 
 def do_things() -> None:
@@ -114,17 +115,29 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
     )
 
     # No retries will be made as there is no retry policy on the task or namespace.
-    activation = no_retry_task.create_activation("arg", "arg2", org_id=1)
+    activation = no_retry_task.create_activation()
     assert activation.taskname == "test.no_retry"
     assert activation.namespace == task_namespace.name
     assert activation.retry_state
     assert activation.retry_state.attempts == 0
     assert activation.retry_state.discard_after_attempt == 1
 
-    activation = retry_task.create_activation("arg", "arg2", org_id=1)
+    activation = retry_task.create_activation()
     assert activation.taskname == "test.with_retry"
     assert activation.namespace == task_namespace.name
     assert activation.retry_state
     assert activation.retry_state.attempts == 0
     assert activation.retry_state.discard_after_attempt == 0
     assert activation.retry_state.deadletter_after_attempt == 3
+
+
+def test_create_activation_parameters(task_namespace: TaskNamespace) -> None:
+    @task_namespace.register(name="test.parameters")
+    def with_parameters(one: str, two: int, org_id: int) -> None:
+        pass
+
+    activation = with_parameters.create_activation("one", 22, org_id=99)
+    params = json.loads(activation.parameters)
+    assert params["args"]
+    assert params["args"] == ["one", 22]
+    assert params["kwargs"] == {"org_id": 99}
