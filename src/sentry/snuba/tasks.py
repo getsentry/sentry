@@ -6,6 +6,11 @@ from datetime import timedelta
 import orjson
 import sentry_sdk
 from django.utils import timezone
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    CreateSubscriptionsRequest,
+    CreateSubscriptionsResponse,
+)
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemName
 
 from sentry import features
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -20,7 +25,7 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.utils import build_query_strings
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import metrics, snuba_rpc
 from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
 
 logger = logging.getLogger(__name__)
@@ -279,29 +284,23 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
 def _create_rpc_in_snuba(
     subscription, snuba_query, rpc_table_request: TraceItemTableRequest, entity_subscription
 ):
-    body = {
-        "project_id": subscription.project_id,
-        "trace_item_table_request": str(rpc_table_request.SerializeToString()),
-        "time_window": snuba_query.time_window,
-        "resolution": snuba_query.resolution,
-        **entity_subscription.get_entity_extra_params(),
-    }
-    if SNUBA_INFO:
-        import pprint
-
-        print(  # NOQA: only prints when an env variable is set
-            f"subscription.body:\n {pprint.pformat(body)}"
-        )
-
-    # Only EAPSpans are supported for now
-    entity_key = EntityKey.EAPSpans
-
-    post_body: str | bytes = orjson.dumps(body)
-    response = _snuba_pool.urlopen(
-        "POST",
-        f"/{snuba_query.dataset}/{entity_key.value}/subscriptions",
-        body=post_body,
+    request_meta = RequestMeta(
+        organization_id=subscription.project.organization_id,
+        cogs_category="events_analytics_platform",
+        project_ids=[subscription.project_id],
+        trace_item_name=TraceItemName.TRACE_ITEM_NAME_EAP_SPANS,
     )
+
+    subscription_request = CreateSubscriptionsRequest(
+        table_request=rpc_table_request,
+        meta=request_meta,
+        project_id=subscription.project_id,
+        time_window=snuba_query.time_window,
+        resolution=snuba_query.resolution,
+    )
+
+    response = snuba_rpc.rpc(subscription_request, CreateSubscriptionsResponse)
+
     if response.status != 202:
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
