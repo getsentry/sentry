@@ -28,7 +28,9 @@ class DetectorState(DefaultFieldsModel):
     active = models.BooleanField(default=False)
 
     # The current status of the detector
-    status = models.IntegerField(default=0, choices=PriorityLevel)
+    status = models.IntegerField(
+        default=PriorityLevel.OK, choices=[(level.value, level.name) for level in PriorityLevel]
+    )
 
     # TODO - Figure out State vs Status - might be a quick fix for wanting to use the PriorityLevel enum
     # The current state of the detector

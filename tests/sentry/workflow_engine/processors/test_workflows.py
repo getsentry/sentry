@@ -7,8 +7,8 @@ from sentry.workflow_engine.models import (  # DetectorStatus,
     DetectorEvaluationResult,
     DetectorStateData,
 )
-from sentry.workflow_engine.models.data_condition import DataConditionType
 from sentry.workflow_engine.processors import process_workflows
+from sentry.workflow_engine.registries.condition_registry import DataConditionType
 
 
 class TestWorkflowCase(TestCase):
@@ -33,7 +33,7 @@ class TestWorkflowCase(TestCase):
 
         self.create_data_condition(
             condition=DataConditionType.EQ,
-            comparison=self.detector_result.state_update_data.status,
+            comparison=getattr(self.detector_result.state_update_data, "status", PriorityLevel.OK),
             type="WorkflowWhenCondition",  # TODO - Add this to the deafult enum
             condition_result=True,
             condition_group=self.when_condition_group,

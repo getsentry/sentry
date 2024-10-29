@@ -79,6 +79,11 @@ def process_workflows(
     detector_results: list[DetectorResult],
 ):
     workflow_to_detector_results = get_related_workflows_by_result(detector_results)
+
+    import pdb
+
+    pdb.set_trace()
+
     triggered_workflows = evaluate_workflow_trigger_conditions(workflow_to_detector_results)
 
     # TODO - Add logic to get the actions from the triggered workflows
