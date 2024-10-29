@@ -189,10 +189,5 @@ const StyledAvatarList = styled(AvatarList)`
 const StyledBadge = styled(Badge)`
   color: ${p => p.theme.white};
   background: ${p => p.theme.purple300};
-  height: 22px;
-  width: 22px;
-  line-height: 22px;
-  align-items: center;
-  font-size: 100%;
-  margin-right: 1px;
+  margin-right: 3px;
 `;
