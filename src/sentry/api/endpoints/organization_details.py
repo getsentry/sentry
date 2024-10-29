@@ -389,6 +389,11 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Organization does not have the custom dynamic sample rate feature enabled."
             )
 
+        if organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT) != "organization":
+            raise serializers.ValidationError(
+                "Must be in Automatic Mode to configure the organization sample rate."
+            )
+
         return value
 
     def validate_samplingMode(self, value):
