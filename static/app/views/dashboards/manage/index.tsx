@@ -265,8 +265,8 @@ function ManageDashboards() {
       features="dashboards-edit"
       renderDisabled={renderNoAccess}
     >
-      <ErrorBoundary>
-        <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
+      <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
+        <ErrorBoundary>
           <Layout.Page>
             <NoProjectMessage organization={organization}>
               <Layout.Header>
@@ -335,8 +335,8 @@ function ManageDashboards() {
               </Layout.Body>
             </NoProjectMessage>
           </Layout.Page>
-        </SentryDocumentTitle>
-      </ErrorBoundary>
+        </ErrorBoundary>
+      </SentryDocumentTitle>
     </Feature>
   );
 }
