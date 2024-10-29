@@ -130,7 +130,7 @@ const DateFilter = styled(DatePageFilter)`
 `;
 
 const ToggleContainer = styled('div')<{sidebarOpen: boolean}>`
-  width: ${p => (p.sidebarOpen ? '30px' : '45px')};
+  width: ${p => (p.sidebarOpen ? '30px' : '50px')};
   position: relative;
   padding: ${space(0.5)} 0;
   @media (max-width: ${p => p.theme.breakpoints.large}) {
