@@ -116,6 +116,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
       notifyOnChangeProps: [],
     }
   );
+
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
   });

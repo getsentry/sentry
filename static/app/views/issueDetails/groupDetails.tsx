@@ -212,7 +212,8 @@ function useEventApiQuery({
     groupId,
     eventId: eventIdUrl,
     environments,
-    recommendedEventQuery,
+    recommendedEventQuery:
+      eventIdUrl === 'recommended' ? recommendedEventQuery : undefined,
   });
 
   const isLatestOrRecommendedEvent =
