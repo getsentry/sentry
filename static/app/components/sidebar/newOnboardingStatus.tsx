@@ -8,7 +8,7 @@ import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext'
 import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -53,7 +53,13 @@ export function NewOnboardingStatus({
   }).filter(task => task.display);
 
   const {allTasks, gettingStartedTasks, beyondBasicsTasks, doneTasks, completeTasks} =
-    useOnboardingTasks({supportedTasks});
+    useOnboardingTasks({
+      supportedTasks,
+      enabled:
+        !!organization.features?.includes('onboarding') &&
+        !supportedTasks.every(findCompleteTasks),
+      refetchInterval: isActive ? '1s' : '10s',
+    });
 
   const label = walkthrough ? t('Guided Tours') : t('Onboarding');
   const totalRemainingTasks = allTasks.length - doneTasks.length;
