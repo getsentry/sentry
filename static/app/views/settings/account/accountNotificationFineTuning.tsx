@@ -152,6 +152,7 @@ function AccountNotificationFineTuning({
   const params = useParams<{fineTuneType: string}>();
   const {fineTuneType: pathnameType} = params;
   const fineTuneType = getNotificationTypeFromPathname(pathnameType);
+  const config = useLegacyStore(ConfigStore);
 
   // Get org id from:
   // - query param
@@ -159,8 +160,7 @@ function AccountNotificationFineTuning({
   // - default to first org
   const organizationId =
     (location?.query?.organizationId as string | undefined) ??
-    organizations.find(({slug}) => slug === ConfigStore.get('customerDomain')?.subdomain)
-      ?.id ??
+    organizations.find(({slug}) => slug === config?.customerDomain?.subdomain)?.id ??
     organizations[0]?.id;
 
   const {
