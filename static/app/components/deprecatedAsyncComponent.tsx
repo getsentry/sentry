@@ -4,7 +4,6 @@ import isEqual from 'lodash/isEqual';
 
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
-import AsyncComponentSearchInput from 'sentry/components/asyncComponentSearchInput';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -28,16 +27,6 @@ export interface AsyncComponentState {
   reloading: boolean;
   remainingRequests?: number;
 }
-
-type SearchInputProps = React.ComponentProps<typeof AsyncComponentSearchInput>;
-
-type RenderSearchInputArgs = Omit<
-  SearchInputProps,
-  'api' | 'onSuccess' | 'onError' | 'url' | keyof RouteComponentProps<{}, {}>
-> & {
-  stateKey?: string;
-  url?: SearchInputProps['url'];
-};
 
 /**
  * Wraps methods on the AsyncComponent to catch errors and set the `error`
@@ -382,25 +371,6 @@ class DeprecatedAsyncComponent<
    */
   getEndpoints(): Array<[string, string, any?, any?]> {
     return [];
-  }
-
-  renderSearchInput({stateKey, url, ...props}: RenderSearchInputArgs) {
-    const [firstEndpoint] = this.getEndpoints() || [null];
-    const stateKeyOrDefault = stateKey || firstEndpoint?.[0];
-    const urlOrDefault = url || firstEndpoint?.[1];
-    return (
-      <AsyncComponentSearchInput
-        url={urlOrDefault}
-        {...props}
-        api={this.api}
-        onSuccess={(data, resp) => {
-          this.handleRequestSuccess({stateKey: stateKeyOrDefault, data, resp});
-        }}
-        onError={() => {
-          this.renderError(new Error('Error with AsyncComponentSearchInput'));
-        }}
-      />
-    );
   }
 
   renderLoading(): React.ReactNode {
