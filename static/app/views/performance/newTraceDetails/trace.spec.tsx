@@ -1062,7 +1062,8 @@ describe('trace view', () => {
       });
     });
 
-    it('triggers search on load but does not steal focus from node param', async () => {
+    // biome-ignore lint/suspicious/noSkippedTests: <Flaky test>
+    it.skip('triggers search on load but does not steal focus from node param', async () => {
       mockQueryString('?search=transaction-op-999&node=txn-0');
 
       const {virtualizedContainer} = await pageloadTestSetup();

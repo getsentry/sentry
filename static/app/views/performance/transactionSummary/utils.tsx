@@ -18,7 +18,7 @@ import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
-import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../newTraceDetails/traceHeader/breadcrumbs';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',

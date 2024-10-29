@@ -21,7 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -57,72 +57,58 @@ export function SpanDescriptionRenderer({span}: {span: SpanResult<Field>}) {
 interface ProjectsRendererProps {
   projectSlugs: string[];
   maxVisibleProjects?: number;
+  visibleAvatarSize?: number;
 }
 
 export function ProjectsRenderer({
   projectSlugs,
+  visibleAvatarSize,
   maxVisibleProjects = 2,
 }: ProjectsRendererProps) {
   const organization = useOrganization();
+  const {projects} = useProjects({slugs: projectSlugs, orgId: organization.slug});
+  const projectAvatars =
+    projects.length > 0 ? projects : projectSlugs.map(slug => ({slug}));
+  const numProjects = projectAvatars.length;
+  const numVisibleProjects =
+    maxVisibleProjects - numProjects >= 0 ? numProjects : maxVisibleProjects - 1;
+  const visibleProjectAvatars = projectAvatars.slice(0, numVisibleProjects).reverse();
+  const collapsedProjectAvatars = projectAvatars.slice(numVisibleProjects);
+  const numCollapsedProjects = collapsedProjectAvatars.length;
 
   return (
-    <Projects orgId={organization.slug} slugs={projectSlugs}>
-      {({projects}) => {
-        const projectAvatars =
-          projects.length > 0 ? projects : projectSlugs.map(slug => ({slug}));
-        const numProjects = projectAvatars.length;
-        const numVisibleProjects =
-          maxVisibleProjects - numProjects >= 0 ? numProjects : maxVisibleProjects - 1;
-        const visibleProjectAvatars = projectAvatars
-          .slice(0, numVisibleProjects)
-          .reverse();
-        const collapsedProjectAvatars = projectAvatars.slice(numVisibleProjects);
-        const numCollapsedProjects = collapsedProjectAvatars.length;
-
-        return (
-          <ProjectList>
-            {numCollapsedProjects > 0 && (
-              <Tooltip
-                skipWrapper
-                title={
-                  <CollapsedProjects>
-                    {tn(
-                      'This trace contains %s more project.',
-                      'This trace contains %s more projects.',
-                      numCollapsedProjects
-                    )}
-                    {collapsedProjectAvatars.map(project => (
-                      <ProjectBadge
-                        key={project.slug}
-                        project={project}
-                        avatarSize={16}
-                      />
-                    ))}
-                  </CollapsedProjects>
-                }
-              >
-                <CollapsedBadge
-                  size={20}
-                  fontSize={10}
-                  data-test-id="collapsed-projects-badge"
-                >
-                  +{numCollapsedProjects}
-                </CollapsedBadge>
-              </Tooltip>
-            )}
-            {visibleProjectAvatars.map(project => (
-              <StyledProjectBadge
-                key={project.slug}
-                hideName
-                project={project}
-                avatarSize={16}
-                avatarProps={{hasTooltip: true, tooltip: project.slug}}
-              />
-            ))}
-          </ProjectList>
-        );
-      }}
-    </Projects>
+    <ProjectList>
+      {numCollapsedProjects > 0 && (
+        <Tooltip
+          skipWrapper
+          title={
+            <CollapsedProjects>
+              {tn(
+                'This trace contains %s more project.',
+                'This trace contains %s more projects.',
+                numCollapsedProjects
+              )}
+              {collapsedProjectAvatars.map(project => (
+                <ProjectBadge key={project.slug} project={project} avatarSize={16} />
+              ))}
+            </CollapsedProjects>
+          }
+        >
+          <CollapsedBadge size={20} fontSize={10} data-test-id="collapsed-projects-badge">
+            +{numCollapsedProjects}
+          </CollapsedBadge>
+        </Tooltip>
+      )}
+      {visibleProjectAvatars.map(project => (
+        <StyledProjectBadge
+          key={project.slug}
+          hideName
+          project={project}
+          avatarSize={visibleAvatarSize ?? 16}
+          avatarProps={{hasTooltip: true, tooltip: project.slug}}
+        />
+      ))}
+    </ProjectList>
   );
 }
 

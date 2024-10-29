@@ -40,7 +40,7 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 type Column = GridColumnHeader;

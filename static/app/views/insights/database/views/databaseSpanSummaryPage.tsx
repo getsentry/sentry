@@ -51,7 +51,7 @@ import {
   SpanIndexedField,
   SpanMetricsField,
 } from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Query = {
   transaction: string;
