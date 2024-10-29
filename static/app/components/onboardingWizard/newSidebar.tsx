@@ -461,7 +461,6 @@ const TaskActions = styled('div')`
   gap: ${space(1)};
 `;
 
-// We modify the position of this image to be rendered on the bottom left of the sidebar
 const BottomLeft = styled('img')`
   width: 60%;
   transform: rotate(180deg);
