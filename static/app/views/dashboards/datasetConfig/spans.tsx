@@ -23,7 +23,6 @@ import {
   handleOrderByReset,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
-  filterAggregateParams,
   getCustomEventsFieldRenderer,
   getTableSortOptions,
   transformEventsResponseToSeries,
@@ -112,7 +111,6 @@ export const SpansConfig: DatasetConfig<
   // getSeriesRequest: getErrorsSeriesRequest,
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
-  filterAggregateParams,
   filterTableOptions,
 };
 

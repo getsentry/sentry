@@ -35,6 +35,8 @@ import {
   generateFieldAsString,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
+  isAggregateField,
+  parseFunction,
 } from 'sentry/utils/discover/fields';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -304,17 +306,44 @@ function WidgetBuilder({
 
   const [splitDecision, setSplitDecision] = useState<WidgetType | undefined>(undefined);
 
-  let tags: TagCollection = {};
-  const eventsTags = useTags();
+  let tags: TagCollection = useTags();
 
   // HACK: Inject EAP dataset tags when selecting the Spans dataset
   const numericSpanTags = useSpanTags('number');
   const stringSpanTags = useSpanTags('string');
-
   if (state.dataSet === DataSet.SPANS) {
-    tags = {...numericSpanTags, ...stringSpanTags};
-  } else {
-    tags = eventsTags;
+    const numericTagRegex = /tags\[(?<tagName>.+),number\]/;
+
+    // Inject tags that were set on the widget, but may not have been returned
+    // by the API yet or at all to avoid a blank field while no tag options match
+    const injectedTags = state.queries[0].fields?.reduce((acc, field) => {
+      if (isAggregateField(field)) {
+        const parsedFunction = parseFunction(field);
+        if (parsedFunction?.arguments[0]) {
+          const numericTagKey = parsedFunction.arguments[0];
+          return {
+            ...acc,
+            [numericTagKey]: {
+              key: numericTagKey,
+              name: numericTagKey,
+              kind: 'measurement',
+            },
+          };
+        }
+      }
+
+      return {
+        ...acc,
+        [field]: {
+          key: field,
+          name: field,
+          kind: numericTagRegex.test(field) ? 'measurement' : 'tag',
+        },
+      };
+    }, {});
+
+    // Inject the tags first so the API tags override the injected ones
+    tags = {...injectedTags, ...numericSpanTags, ...stringSpanTags};
   }
 
   useEffect(() => {
@@ -323,7 +352,7 @@ function WidgetBuilder({
       new_widget: !isEditing,
     });
 
-    if (isEmptyObject(eventsTags) && dataSet !== DataSet.SPANS) {
+    if (isEmptyObject(tags) && dataSet !== DataSet.SPANS) {
       loadOrganizationTags(api, organization.slug, {
         ...selection,
         // Pin the request to 14d to avoid timeouts, see DD-967 for
