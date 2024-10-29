@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import partition from 'lodash/partition';
 
+import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {Button} from 'sentry/components/button';
@@ -341,6 +343,7 @@ export function NewOnboardingSidebar({
           />
         )}
       </Content>
+      <BottomLeft src={HighlightTopRight} />
     </Wrapper>
   );
 }
@@ -357,6 +360,7 @@ const Content = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+  flex: 1;
 
   p {
     margin-bottom: ${space(1)};
@@ -455,4 +459,10 @@ const TaskActions = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+`;
+
+const BottomLeft = styled('img')`
+  width: 60%;
+  transform: rotate(180deg);
+  margin-top: ${space(3)};
 `;
