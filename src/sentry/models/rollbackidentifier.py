@@ -4,7 +4,7 @@ from django.db import models
 from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models.base import DefaultFieldsModel, region_silo_model
+from sentry.db.models.base import DefaultFieldsModelExisting, region_silo_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
@@ -14,7 +14,7 @@ def default_uuid():
 
 
 @region_silo_model
-class RollbackIdentifier(DefaultFieldsModel):
+class RollbackIdentifier(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Organization
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
