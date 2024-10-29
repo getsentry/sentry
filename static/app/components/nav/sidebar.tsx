@@ -97,7 +97,7 @@ interface SidebarItemProps {
 
 function SidebarItem({item}: SidebarItemProps) {
   const to = resolveNavItemTo(item);
-  const Component = to ? SidebarLink : SidebarMenu;
+  const SidebarChild = to ? SidebarLink : SidebarMenu;
 
   const FeatureGuard = item.feature ? Feature : Fragment;
   const featureGuardProps: any = item.feature ?? {};
@@ -105,10 +105,10 @@ function SidebarItem({item}: SidebarItemProps) {
   return (
     <FeatureGuard {...featureGuardProps}>
       <SidebarItemWrapper>
-        <Component item={item} key={item.label}>
+        <SidebarChild item={item} key={item.label}>
           {item.icon}
           <span>{item.label}</span>
-        </Component>
+        </SidebarChild>
       </SidebarItemWrapper>
     </FeatureGuard>
   );
@@ -146,7 +146,7 @@ function SidebarLink({children, item}: SidebarItemProps & {children: React.React
   );
 }
 
-function SidebarMenu({item}: SidebarItemProps & {children: React.ReactNode}) {
+function SidebarMenu({item, children}: SidebarItemProps & {children: React.ReactNode}) {
   if (!item.dropdown) {
     throw new Error(
       `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
@@ -159,8 +159,7 @@ function SidebarMenu({item}: SidebarItemProps & {children: React.ReactNode}) {
         return (
           <NavButton {...props}>
             <InteractionStateLayer hasSelectedBackground={isOpen} />
-            {item.icon}
-            <span>{item.label}</span>
+            {children}
           </NavButton>
         );
       }}
