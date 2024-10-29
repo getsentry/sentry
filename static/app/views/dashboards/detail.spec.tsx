@@ -1653,6 +1653,62 @@ describe('Dashboards > Detail', function () {
       expect(screen.getByText('Everyone')).toBeInTheDocument();
     });
 
+    it('creates and updates new permissions for dashboard with no edit perms initialized', async function () {
+      // const mockDashboard = DashboardFixture([], {
+      //   id: '1',
+      //   createdBy: UserFixture({id: '1'}),
+      //   title: 'Custom Errors',
+      // });
+      const mockPUT = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: [],
+      });
+
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          }}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          },
+        }
+      );
+      await userEvent.click(await screen.findByText('Edit Access:'));
+
+      // deselects 'Everyone' so only creator has edit access
+      expect(await screen.findByText('Everyone')).toBeEnabled();
+      await userEvent.click(await screen.findByText('Everyone'));
+      expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // clicks out of dropdown to trigger onClose()
+      await userEvent.click(await screen.findByText('Edit Access:'));
+
+      expect(mockPUT).toHaveBeenCalledTimes(1);
+      expect(mockPUT).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            permissions: {isCreatorOnlyEditable: true},
+          }),
+        })
+      );
+    });
+
     describe('discover split', function () {
       it('calls the dashboard callbacks with the correct widgetType for discover split', function () {
         const widget = {
