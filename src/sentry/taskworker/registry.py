@@ -1,18 +1,14 @@
 from __future__ import annotations
 
 import logging
-import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from datetime import timedelta
 from functools import cached_property
 from typing import Any, ParamSpec, TypeVar
-from uuid import uuid4
 
-import orjson
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
-from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_protos.sentry.v1.taskworker_pb2 import RetryState, TaskActivation
+from sentry_protos.sentry.v1.taskworker_pb2 import TaskActivation
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.retry import Retry
@@ -85,50 +81,20 @@ class TaskNamespace:
 
         return wrapped
 
-    def retry_task(self, taskdata: TaskActivation) -> None:
+    def retry_task(self, activation: TaskActivation) -> None:
+        # TODO(taskworker) Should we be incrementing retry_state and rotating
+        # the taskid here instead of in the Worker?
         self.producer.produce(
             ArroyoTopic(name=self.topic),
-            KafkaPayload(key=None, value=taskdata.SerializeToString(), headers=[]),
+            KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
 
-    def send_task(self, task: Task[P, R], args: list[Any], kwargs: Mapping[Any, Any]) -> None:
-        task_message = self._serialize_task_call(task, args, kwargs)
-        # TODO(taskworker) this could use an RPC instead of appending to the topic directly
-        # TODO(taskworker) callback handling
+    def send_task(self, activation: TaskActivation) -> None:
+        # TODO(taskworker) producer callback handling
         self.producer.produce(
             ArroyoTopic(name=self.topic),
-            KafkaPayload(key=None, value=task_message, headers=[]),
+            KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
-
-    def _serialize_task_call(self, task: Task, args: list[Any], kwargs: Mapping[Any, Any]) -> bytes:
-        retry = task.retry or self.default_retry or None
-        if retry:
-            initial_state = retry.initial_state()
-            retry_state = RetryState(
-                attempts=initial_state.attempts,
-                kind=initial_state.kind,
-                discard_after_attempt=initial_state.discard_after_attempt,
-                deadletter_after_attempt=initial_state.deadletter_after_attempt,
-            )
-        else:
-            # If the task and namespace have no retry policy,
-            # make a single attempt and then discard the task.
-            retry_state = RetryState(
-                attempts=0,
-                kind="sentry.taskworker.retry.Retry",
-                discard_after_attempt=1,
-            )
-
-        pending_task_payload = TaskActivation(
-            id=uuid4().hex,
-            namespace=self.name,
-            taskname=task.name,
-            parameters=orjson.dumps({"args": args, "kwargs": kwargs}).decode("utf8"),
-            retry_state=retry_state,
-            received_at=Timestamp(seconds=int(time.time())),
-        ).SerializeToString()
-
-        return pending_task_payload
 
 
 # TODO(taskworker) Import TaskRegistrys

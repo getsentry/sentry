@@ -95,3 +95,36 @@ def test_should_retry(task_namespace: TaskNamespace) -> None:
         retry=None,
     )
     assert not no_retry.should_retry(state, err)
+
+
+def test_create_activation(task_namespace: TaskNamespace) -> None:
+    no_retry_task = Task(
+        name="test.no_retry",
+        func=do_things,
+        namespace=task_namespace,
+        retry=None,
+    )
+
+    retry = Retry(times=3, deadletter=True)
+    retry_task = Task(
+        name="test.with_retry",
+        func=do_things,
+        namespace=task_namespace,
+        retry=retry,
+    )
+
+    # No retries will be made as there is no retry policy on the task or namespace.
+    activation = no_retry_task.create_activation("arg", "arg2", org_id=1)
+    assert activation.taskname == "test.no_retry"
+    assert activation.namespace == task_namespace.name
+    assert activation.retry_state
+    assert activation.retry_state.attempts == 0
+    assert activation.retry_state.discard_after_attempt == 1
+
+    activation = retry_task.create_activation("arg", "arg2", org_id=1)
+    assert activation.taskname == "test.with_retry"
+    assert activation.namespace == task_namespace.name
+    assert activation.retry_state
+    assert activation.retry_state.attempts == 0
+    assert activation.retry_state.discard_after_attempt == 0
+    assert activation.retry_state.deadletter_after_attempt == 3

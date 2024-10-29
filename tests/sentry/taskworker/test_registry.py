@@ -2,7 +2,6 @@ import logging
 from unittest.mock import patch
 
 import pytest
-from sentry_protos.sentry.v1.taskworker_pb2 import TaskActivation
 
 from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import Retry
@@ -83,25 +82,17 @@ def test_send_task_no_retry() -> None:
     def simple_task() -> None:
         pass
 
+    activation = simple_task.create_activation()
+
     with patch.object(namespace, "producer") as mock_producer:
-        namespace.send_task(simple_task, [1, 2], {"a": "one"})
+        namespace.send_task(activation)
         assert mock_producer.produce.call_count == 1
 
         mock_call = mock_producer.produce.call_args
         assert mock_call[0][0].name == "tests"
 
         proto_message = mock_call[0][1].value
-        activation = TaskActivation()
-        activation.ParseFromString(proto_message)
-
-        assert activation.taskname == "test.simpletask"
-        assert activation.namespace == "tests"
-
-        # No retries will be made as there is no retry policy on the task or namespace.
-        assert activation.retry_state
-        assert activation.retry_state.attempts == 0
-        assert activation.retry_state.discard_after_attempt == 1
-        assert "one" in activation.parameters
+        assert proto_message == activation.SerializeToString()
 
 
 def test_send_task_with_retry() -> None:
@@ -116,19 +107,12 @@ def test_send_task_with_retry() -> None:
     def simple_task() -> None:
         pass
 
+    activation = simple_task.create_activation()
+
     with patch.object(namespace, "producer") as mock_producer:
-        namespace.send_task(simple_task, [1, 2], {"a": "one"})
+        namespace.send_task(activation)
         assert mock_producer.produce.call_count == 1
 
         mock_call = mock_producer.produce.call_args
-        activation = TaskActivation()
-        activation.ParseFromString(mock_call[0][1].value)
-
-        assert activation.taskname == "test.simpletask"
-        assert activation.namespace == "tests"
-
-        # Task retry policy should be included
-        assert activation.retry_state
-        assert activation.retry_state.attempts == 0
-        assert activation.retry_state.discard_after_attempt == 0
-        assert activation.retry_state.deadletter_after_attempt == 3
+        proto_message = mock_call[0][1].value
+        assert proto_message == activation.SerializeToString()
