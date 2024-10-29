@@ -70,7 +70,7 @@ export function TraceTransactionRow(
           />
           <span className="TraceOperation">{props.node.value['transaction.op']}</span>
           <strong className="TraceEmDash"> — </strong>
-          <span>{props.node.value.transaction}</span>
+          <span className="TraceDescription">{props.node.value.transaction}</span>
         </div>
       </div>
       <div
