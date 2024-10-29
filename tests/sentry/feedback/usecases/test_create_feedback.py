@@ -20,7 +20,6 @@ from sentry.feedback.usecases.create_feedback import (
 )
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.helpers import Feature
-from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
 
@@ -86,7 +85,7 @@ def mock_feedback_event(project_id: int, dt: datetime):
         },
         "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
         "timestamp": dt.timestamp(),
-        "received": iso_format(dt),
+        "received": dt.isoformat(),
         "environment": "prod",
         "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
         "user": {
@@ -723,7 +722,6 @@ def test_create_feedback_spam_detection_set_status_ignored(
         {
             "organizations:user-feedback-spam-filter-actions": True,
             "organizations:user-feedback-spam-filter-ingest": True,
-            "organizations:feedback-ingest": True,
         }
     ):
         event = {
@@ -794,13 +792,15 @@ def test_create_feedback_large_message_skips_spam_detection(
     default_project, set_sentry_option, monkeypatch
 ):
     """If spam is enabled, large messages are marked as spam without making an LLM request."""
-    with Feature(
-        {
-            "organizations:user-feedback-spam-filter-actions": True,
-            "organizations:user-feedback-spam-filter-ingest": True,
-            "organizations:feedback-ingest": True,
-        }
-    ), set_sentry_option("feedback.message.max-size", 4096):
+    with (
+        Feature(
+            {
+                "organizations:user-feedback-spam-filter-actions": True,
+                "organizations:user-feedback-spam-filter-ingest": True,
+            }
+        ),
+        set_sentry_option("feedback.message.max-size", 4096),
+    ):
 
         event = mock_feedback_event(default_project.id, datetime.now(UTC))
         event["contexts"]["feedback"]["message"] = "a" * 7007

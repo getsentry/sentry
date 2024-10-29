@@ -1,4 +1,5 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -8,12 +9,14 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as useMedia from 'sentry/utils/useMedia';
 import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
-import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
+
+import {IssueEventNavigation} from './eventNavigation';
 
 jest.mock('sentry/views/issueDetails/streamline/context');
 
 describe('EventNavigation', () => {
-  const {router} = initializeOrg();
+  const {organization, router} = initializeOrg();
+  const group = GroupFixture({id: 'group-id'});
   const testEvent = EventFixture({
     id: 'event-id',
     size: 7,
@@ -27,9 +30,10 @@ describe('EventNavigation', () => {
     previousEventID: 'prev-event-id',
     nextEventID: 'next-event-id',
   });
-  const defaultProps: React.ComponentProps<typeof EventNavigation> = {
+  const defaultProps: React.ComponentProps<typeof IssueEventNavigation> = {
     event: testEvent,
-    group: GroupFixture({id: 'group-id'}),
+    group,
+    query: undefined,
   };
 
   beforeEach(() => {
@@ -42,17 +46,13 @@ describe('EventNavigation', () => {
       },
       dispatch: jest.fn(),
     });
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
-    window.open = jest.fn();
-
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/events/event-id/actionable-items/`,
-      body: {
-        errors: [],
-      },
-      method: 'GET',
+      url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
     });
   });
 
@@ -60,7 +60,7 @@ describe('EventNavigation', () => {
     it('can navigate to the oldest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<EventNavigation {...defaultProps} />, {router});
+      render(<IssueEventNavigation {...defaultProps} />, {router});
 
       await userEvent.click(screen.getByRole('tab', {name: 'First'}));
 
@@ -73,7 +73,7 @@ describe('EventNavigation', () => {
     it('can navigate to the latest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<EventNavigation {...defaultProps} />, {router});
+      render(<IssueEventNavigation {...defaultProps} />, {router});
 
       await userEvent.click(screen.getByRole('tab', {name: 'Last'}));
 
@@ -93,11 +93,11 @@ describe('EventNavigation', () => {
         }),
       });
 
-      render(<EventNavigation {...defaultProps} />, {
+      render(<IssueEventNavigation {...defaultProps} />, {
         router: recommendedEventRouter,
       });
 
-      await userEvent.click(screen.getByRole('tab', {name: 'Recommended'}));
+      await userEvent.click(screen.getByRole('tab', {name: 'Rec.'}));
 
       expect(recommendedEventRouter.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/group-id/events/recommended/',
@@ -107,7 +107,7 @@ describe('EventNavigation', () => {
   });
 
   it('can navigate next/previous events', () => {
-    render(<EventNavigation {...defaultProps} />);
+    render(<IssueEventNavigation {...defaultProps} />);
 
     expect(screen.getByLabelText(/Previous Event/)).toHaveAttribute(
       'href',
@@ -119,78 +119,51 @@ describe('EventNavigation', () => {
     );
   });
 
-  it('does not show jump to sections by default', () => {
-    jest.mocked(useEventDetails).mockReturnValue({
-      sectionData: {},
-      dispatch: jest.fn(),
+  describe('counts', () => {
+    it('renders default counts', async () => {
+      render(<IssueEventNavigation {...defaultProps} />);
+      await userEvent.click(screen.getByRole('button', {name: 'Events'}));
+
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Attachments 0'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Events 327k'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Replays 0'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Feedback 0'})).toBeInTheDocument();
     });
-    render(<EventNavigation {...defaultProps} />);
-    expect(screen.queryByText('Jump To:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Replay')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
-    expect(screen.queryByText('Highlights')).not.toBeInTheDocument();
-  });
 
-  it('does show jump to sections when the sections render', () => {
-    render(<EventNavigation {...defaultProps} />);
-    expect(screen.getByText('Jump to:')).toBeInTheDocument();
-    expect(screen.getByText('Highlights')).toBeInTheDocument();
-    expect(screen.getByText('Replay')).toBeInTheDocument();
-    expect(screen.getByText('Tags')).toBeInTheDocument();
-  });
+    it('renders 1 attachment', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
+        body: [EventAttachmentFixture()],
+      });
 
-  it('can copy event ID', async () => {
-    render(<EventNavigation {...defaultProps} />);
+      render(<IssueEventNavigation {...defaultProps} />);
+      await userEvent.click(screen.getByRole('button', {name: 'Events'}));
 
-    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event ID'}));
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
-  });
-
-  it('shows event actions dropdown', async () => {
-    render(<EventNavigation {...defaultProps} />);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event ID'}));
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
-
-    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Event Link'}));
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      `http://localhost/organizations/org-slug/issues/group-id/events/event-id/`
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Event actions'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'View JSON'}));
-
-    expect(window.open).toHaveBeenCalledWith(
-      `https://us.sentry.io/api/0/projects/org-slug/project-slug/events/event-id/json/`
-    );
-  });
-
-  it('shows processing issue button if there is an event error', async () => {
-    MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/events/event-id/actionable-items/`,
-      body: {
-        errors: [
-          {
-            type: 'invalid_data',
-            data: {
-              name: 'logentry',
-            },
-            message: 'no message present',
-          },
-        ],
-      },
-      method: 'GET',
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Attachments 1'})
+      ).toBeInTheDocument();
     });
-    render(<EventNavigation {...defaultProps} />);
 
-    expect(
-      await screen.findByRole('button', {name: 'Processing Error'})
-    ).toBeInTheDocument();
+    it('renders 50+ attachments', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
+        body: [EventAttachmentFixture()],
+        headers: {
+          // Assumes there is more than 50 attachments if there is a next page
+          Link: '<https://sentry.io>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.io>; rel="next"; results="true"; cursor="0:20:0"',
+        },
+      });
+
+      render(<IssueEventNavigation {...defaultProps} />);
+      await userEvent.click(screen.getByRole('button', {name: 'Events'}));
+
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Attachments 50+'})
+      ).toBeInTheDocument();
+    });
   });
 });

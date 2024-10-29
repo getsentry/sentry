@@ -11,7 +11,8 @@ import urllib3
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.eventstore.models import GroupEvent
-from sentry.eventstream.base import EventStream, EventStreamEventType, GroupStates
+from sentry.eventstream.base import EventStream, GroupStates
+from sentry.eventstream.types import EventStreamEventType
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
@@ -108,6 +109,7 @@ class SnubaProtocolEventStream(EventStream):
         received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
+        eventstream_type: str | None = None,
         **kwargs: Any,
     ) -> None:
         if event.get_tag("sample_event") == "true":
@@ -455,6 +457,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
+        eventstream_type: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().insert(
@@ -480,4 +483,5 @@ class SnubaEventStream(SnubaProtocolEventStream):
             skip_consume,
             group_states,
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
+            eventstream_type=eventstream_type,
         )

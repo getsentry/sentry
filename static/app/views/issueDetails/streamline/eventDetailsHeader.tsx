@@ -1,17 +1,18 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
+import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   EventSearch,
   useEventQuery,
@@ -31,15 +32,32 @@ export function EventDetailsHeader({
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({group});
+  const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
+    'issue-details-sidebar-open',
+    true
+  );
+  const direction = sidebarOpen ? 'right' : 'left';
 
   return (
-    <Fragment>
-      <Feature features={['organizations:ai-summary']}>
-        <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-      </Feature>
-      <PageErrorBoundary mini message={t('There was an error loading the event filter')}>
-        <FilterContainer>
-          <EnvironmentPageFilter />
+    <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
+      <FilterContainer>
+        <EnvironmentFilter
+          triggerProps={{
+            borderless: true,
+            style: {
+              borderRadius: 0,
+            },
+          }}
+        />
+        <DateFilter
+          triggerProps={{
+            borderless: true,
+            style: {
+              borderRadius: 0,
+            },
+          }}
+        />
+        <Flex style={{gridArea: 'search'}}>
           <SearchFilter
             group={group}
             handleSearch={query => {
@@ -51,35 +69,110 @@ export function EventDetailsHeader({
               disallowFreeText: true,
             }}
           />
-          <DatePageFilter />
-        </FilterContainer>
-      </PageErrorBoundary>
-      <PageErrorBoundary mini message={t('There was an error loading the event graph')}>
-        <ExtraContent>
-          <EventGraph event={event} group={group} />
-        </ExtraContent>
-      </PageErrorBoundary>
-    </Fragment>
+          <ToggleContainer sidebarOpen={sidebarOpen}>
+            <ToggleButton
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+            >
+              <LeftChevron direction={direction} />
+              <RightChevron direction={direction} />
+            </ToggleButton>
+          </ToggleContainer>
+        </Flex>
+        <Graph event={event} group={group} />
+      </FilterContainer>
+    </PageErrorBoundary>
   );
 }
 
-const SearchFilter = styled(EventSearch)`
-  border-radius: ${p => p.theme.borderRadius};
+const FilterContainer = styled('div')`
+  padding-left: 24px;
+  display: grid;
+  grid-template-columns: auto auto minmax(100px, 1fr);
+  grid-template-rows: minmax(38px, auto) auto;
+  grid-template-areas:
+    'env    date  search  toggle'
+    'graph  graph graph   graph';
+  border: 0px solid ${p => p.theme.translucentBorder};
+  border-width: 0 1px 1px 0;
 `;
 
-const FilterContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: ${space(1.5)};
+const EnvironmentFilter = styled(EnvironmentPageFilter)`
+  grid-area: env;
+  &:before {
+    right: 0;
+    top: ${space(1)};
+    bottom: ${space(1)};
+    width: 1px;
+    content: '';
+    position: absolute;
+    background: ${p => p.theme.translucentInnerBorder};
+  }
+`;
+
+const SearchFilter = styled(EventSearch)`
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+`;
+
+const DateFilter = styled(DatePageFilter)`
+  grid-area: date;
+  &:before {
+    right: 0;
+    top: ${space(1)};
+    bottom: ${space(1)};
+    width: 1px;
+    content: '';
+    position: absolute;
+    background: ${p => p.theme.translucentInnerBorder};
+  }
+`;
+
+const ToggleContainer = styled('div')<{sidebarOpen: boolean}>`
+  width: ${p => (p.sidebarOpen ? '30px' : '50px')};
+  position: relative;
+  padding: ${space(0.5)} 0;
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    display: none;
+  }
+`;
+
+// The extra 1px on width is to display above the sidebar border
+const ToggleButton = styled(Button)`
+  border-radius: ${p => p.theme.borderRadiusLeft};
+  border-right-color: ${p => p.theme.background} !important;
+  box-shadow: none;
+  position: absolute;
+  padding: 0;
+  left: ${space(0.5)};
+  width: calc(100% - ${space(0.5)} + 1px);
+  outline: 0;
+  height: 30px;
+  min-height: unset;
+`;
+
+const LeftChevron = styled(IconChevron)`
+  position: absolute;
+  color: ${p => p.theme.subText};
+  height: 10px;
+  width: 10px;
+  left: ${space(0.75)};
+`;
+
+const RightChevron = styled(LeftChevron)`
+  left: ${space(1.5)};
+`;
+
+const Graph = styled(EventGraph)`
+  border-top: 1px solid ${p => p.theme.translucentBorder};
+  grid-area: graph;
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
   margin: 0;
-  border: 1px solid ${p => p.theme.translucentBorder};
-`;
-
-const ExtraContent = styled('div')`
-  border: 1px solid ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  border: 0px solid ${p => p.theme.translucentBorder};
+  border-width: 0 1px 1px 0;
+  border-radius: 0;
+  padding: ${space(1.5)} 24px;
 `;

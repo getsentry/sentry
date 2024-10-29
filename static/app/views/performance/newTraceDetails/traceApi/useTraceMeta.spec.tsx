@@ -34,8 +34,7 @@ describe('useTraceMeta', () => {
     jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
   });
 
-  it('Returns merged metaResults', async () => {
-    // Mock the API calls
+  it('Returns merged meta results', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-trace-meta/slug1/',
@@ -79,11 +78,10 @@ describe('useTraceMeta', () => {
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
-      isLoading: true,
       status: 'pending',
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.status === 'success').toBe(true));
 
     expect(result.current).toEqual({
       data: {
@@ -97,13 +95,11 @@ describe('useTraceMeta', () => {
         },
       },
       errors: [],
-      isLoading: false,
       status: 'success',
     });
   });
 
   it('Collects errors from rejected api calls', async () => {
-    // Mock the API calls
     const mockRequest1 = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-trace-meta/slug1/',
@@ -129,11 +125,10 @@ describe('useTraceMeta', () => {
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
-      isLoading: true,
       status: 'pending',
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.status === 'pending').toBe(false));
 
     expect(result.current).toEqual({
       data: {
@@ -144,17 +139,15 @@ describe('useTraceMeta', () => {
         transactiontoSpanChildrenCount: {},
       },
       errors: [expect.any(Error), expect.any(Error), expect.any(Error)],
-      isLoading: false,
-      status: 'success',
+      status: 'error',
     });
 
-    expect(mockRequest1).toHaveBeenCalledTimes(1);
-    expect(mockRequest2).toHaveBeenCalledTimes(1);
-    expect(mockRequest3).toHaveBeenCalledTimes(1);
+    expect(mockRequest1).toHaveBeenCalled();
+    expect(mockRequest2).toHaveBeenCalled();
+    expect(mockRequest3).toHaveBeenCalled();
   });
 
   it('Accumulates metaResults and collects errors from rejected api calls', async () => {
-    // Mock the API calls
     const mockRequest1 = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-trace-meta/slug1/',
@@ -192,11 +185,10 @@ describe('useTraceMeta', () => {
     expect(result.current).toEqual({
       data: undefined,
       errors: [],
-      isLoading: true,
       status: 'pending',
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.status === 'pending').toBe(false));
 
     expect(result.current).toEqual({
       data: {
@@ -207,7 +199,6 @@ describe('useTraceMeta', () => {
         transactiontoSpanChildrenCount: {},
       },
       errors: [expect.any(Error)],
-      isLoading: false,
       status: 'success',
     });
 

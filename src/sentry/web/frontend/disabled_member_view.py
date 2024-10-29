@@ -1,6 +1,5 @@
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
-from rest_framework.request import Request
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
@@ -11,10 +10,10 @@ from .react_page import ReactPageView
 
 @control_silo_view
 class DisabledMemberView(ReactPageView):
-    def is_member_disabled_from_limit(self, request: Request, organization):
+    def is_member_disabled_from_limit(self, request: object, organization):
         return False
 
-    def handle(self, request: Request, organization, **kwargs) -> HttpResponse:
+    def handle(self, request: HttpRequest, organization, **kwargs) -> HttpResponse:
         user = request.user
         # if org member is not restricted, redirect user out of the disabled view
         try:
