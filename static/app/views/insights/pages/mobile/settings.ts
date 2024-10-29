@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 
 export const MOBILE_LANDING_SUB_PATH = 'mobile';
-export const MOBILE_LANDING_TITLE = t('Mobile');
+export const MOBILE_LANDING_TITLE = t('Mobile Performance');
+export const MOBILE_SIDEBAR_LABEL = t('Mobile');
 
 export const OVERVIEW_PAGE_ALLOWED_OPS = [
   'ui.action.swipe',
