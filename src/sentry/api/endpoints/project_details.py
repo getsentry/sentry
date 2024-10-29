@@ -440,11 +440,6 @@ E.g. `['release', 'environment']`""",
                 "Must enable Manual Mode to configure project sample rates."
             )
 
-        if not 0.0 <= value <= 1.0:
-            raise serializers.ValidationError(
-                "The targetSampleRate option must be between 0 and 1."
-            )
-
         return value
 
 
