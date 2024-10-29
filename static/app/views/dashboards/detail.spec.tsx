@@ -1654,11 +1654,6 @@ describe('Dashboards > Detail', function () {
     });
 
     it('creates and updates new permissions for dashboard with no edit perms initialized', async function () {
-      // const mockDashboard = DashboardFixture([], {
-      //   id: '1',
-      //   createdBy: UserFixture({id: '1'}),
-      //   title: 'Custom Errors',
-      // });
       const mockPUT = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
@@ -1688,11 +1683,17 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(await screen.findByText('Edit Access:'));
 
       // deselects 'Everyone' so only creator has edit access
+
       expect(await screen.findByText('Everyone')).toBeEnabled();
-      await userEvent.click(await screen.findByText('Everyone'));
       expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
         'aria-selected',
         'true'
+      );
+      // await userEvent.click(await screen.findByText('Everyone'));
+      await userEvent.click(screen.getByRole('option', {name: 'Everyone'}));
+      expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+        'aria-selected',
+        'false'
       );
 
       // clicks out of dropdown to trigger onClose()
@@ -1708,6 +1709,33 @@ describe('Dashboards > Detail', function () {
         })
       );
     });
+
+    // it('disables edit dashboard and add widget button if user cannot edit dashboard', async function () {
+    //   render(
+    //     <ViewEditDashboard
+    //       {...RouteComponentPropsFixture()}
+    //       organization={{
+    //         ...initialData.organization,
+    //         features: ['dashboards-edit-access', ...initialData.organization.features],
+    //       }}
+    //       params={{orgId: 'org-slug', dashboardId: '1'}}
+    //       router={initialData.router}
+    //       location={initialData.router.location}
+    //     >
+    //       {null}
+    //     </ViewEditDashboard>,
+    //     {
+    //       router: initialData.router,
+    //       organization: {
+    //         features: ['dashboards-edit-access', ...initialData.organization.features],
+    //       },
+    //     }
+    //   );
+
+    //   await screen.findByText('Edit Access:');
+    //   expect(screen.findByText('Edit Dashboard')).toBeDisabled();
+    //   expect(screen.findByText('Add Widget')).toBeDisabled();
+    // });
 
     describe('discover split', function () {
       it('calls the dashboard callbacks with the correct widgetType for discover split', function () {
