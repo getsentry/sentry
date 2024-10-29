@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -79,7 +79,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   // Avatars/Badges in the Edit Selector Button
   const triggerAvatars =
     isEverythingSelected || !dashboardCreator ? (
-      <StyledBadge text={'All'} />
+      <StyledBadge key="_all" text={'All'} />
     ) : (
       <StyledAvatarList key="avatar-list" users={[dashboardCreator]} avatarSize={25} />
     );
@@ -144,10 +144,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       searchable
       options={dropdownOptions}
       value={selectedOptions}
-      triggerLabel={[
-        <React.Fragment key="edit-access-label">{t('Edit Access:')}</React.Fragment>,
-        <React.Fragment key="trigger-avatars">{triggerAvatars}</React.Fragment>,
-      ]}
+      triggerLabel={[t('Edit Access:'), triggerAvatars]}
       searchPlaceholder={t('Search Teams')}
       disableSearchFilter
     />
