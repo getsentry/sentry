@@ -740,7 +740,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       onTraceSearch(traceStateRef.current.search.query, node, 'persist');
     }
 
-    if (index === -1 || !node) {
+    const hasScrollComponent = !!(path || eventId);
+    if (hasScrollComponent && (index === -1 || !node)) {
       Sentry.withScope(scope => {
         scope.setFingerprint(['trace-view-scroll-to-node-error']);
         scope.captureMessage('Failed to scroll to node in trace tree');
