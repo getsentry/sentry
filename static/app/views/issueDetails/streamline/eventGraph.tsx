@@ -164,14 +164,14 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   const legend = Legend({
     theme: theme,
-    icon: 'path://M 10 10 H 500 V 9000 H 10 L 10 10',
     orient: 'horizontal',
     align: 'left',
     show: true,
-    top: 8,
+    top: 4,
     right: 95,
     data: ['Releases', 'Feature Flags'],
     selected: legendSelected,
+    zlevel: 10,
   });
 
   const onLegendSelectChanged = useMemo(
@@ -250,7 +250,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           grid={{
             left: 8,
             right: 8,
-            top: 12,
+            top: 20,
             bottom: 0,
           }}
           yAxis={{

@@ -102,6 +102,7 @@ export function useReleaseMarkLineSeries({group}: {group: Group}) {
     seriesName: t('Releases'),
     data: [],
     markLine,
+    color: theme.purple200,
     type: 'line',
   };
 }

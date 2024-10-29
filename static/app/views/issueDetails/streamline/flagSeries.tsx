@@ -105,6 +105,7 @@ export default function useFlagSeries({query = {}, event, group}: FlagSeriesProp
   return {
     seriesName: t('Feature Flags'),
     data: [],
+    color: theme.blue200,
     markLine,
     type: 'line', // use this type so the bar chart doesn't shrink/grow
   };
