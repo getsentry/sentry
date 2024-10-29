@@ -6,6 +6,7 @@ from typing import Any, ClassVar
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.urls import resolve
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
 from rest_framework.authentication import (
@@ -33,6 +34,7 @@ from sentry.models.orgauthtoken import (
 )
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
+from sentry.organizations.services.organization import organization_service
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloLimit, SiloMode
@@ -168,7 +170,6 @@ class QuietBasicAuthentication(BasicAuthentication):
             scope.set_tag(entity_id_tag, auth_token.entity_id)
             for k, v in tags.items():
                 scope.set_tag(k, v)
-
         return (user, auth_token)
 
 
@@ -178,7 +179,11 @@ class StandardAuthentication(QuietBasicAuthentication):
     def accepts_auth(self, auth: list[bytes]) -> bool:
         return bool(auth) and auth[0].lower() == self.token_name
 
-    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+    def authenticate_token(
+        self,
+        request: Request,
+        token_str: str,
+    ) -> tuple[Any, Any]:
         raise NotImplementedError
 
     def authenticate(self, request: Request):
@@ -383,6 +388,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        print("************authenticating token************")
         user: AnonymousUser | User | RpcUser | None = AnonymousUser()
 
         token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
@@ -416,6 +422,22 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
+
+        print("***token", token.organization_id)
+        if token.organization_id:
+            resolved_url = resolve(request.path_info)
+            if resolved_url and resolved_url.kwargs["organization_id_or_slug"]:
+                # We need to make sure the organization token has access to is the same as the one in the URL
+                organization_context = organization_service.get_organization_by_id(
+                    id=token.organization_id
+                )
+                if organization_context:
+                    organization = organization_context.organization
+                    if (
+                        organization.slug != resolved_url.kwargs["organization_id_or_slug"]
+                        and organization.id != resolved_url.kwargs["organization_id_or_slug"]
+                    ):
+                        raise AuthenticationFailed("Unauthorized organization access")
 
         return self.transform_auth(
             user,
