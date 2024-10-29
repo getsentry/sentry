@@ -2,6 +2,7 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
@@ -13,6 +14,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import textStyles from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -26,7 +28,6 @@ import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
-import StreamlinedNoteBody from 'sentry/views/issueDetails/streamline/streamlinedNoteBody';
 
 function TimelineItem({
   item,
@@ -75,7 +76,13 @@ function TimelineItem({
         )
       }
     >
-      {typeof message === 'string' ? <StreamlinedNoteBody text={message} /> : message}
+      {typeof message === 'string' ? (
+        <NoteWrapper>
+          <NoteBody text={message} />
+        </NoteWrapper>
+      ) : (
+        message
+      )}
     </ActivityTimelineItem>
   );
 }
@@ -244,4 +251,8 @@ const TextButton = styled(Button)`
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg) translateY(1px);
+`;
+
+const NoteWrapper = styled('div')`
+  ${textStyles}
 `;
