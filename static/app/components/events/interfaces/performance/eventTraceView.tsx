@@ -34,6 +34,7 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     },
     layoutOptions: [],
   },
+  missing_instrumentation: true,
   autogroup: {
     parent: true,
     sibling: true,
@@ -54,18 +55,17 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
   const traceId = event.contexts.trace!.trace_id!;
   const location = useLocation();
 
-  const traceResults = useTrace({
+  const trace = useTrace({
     traceSlug: traceId ? traceId : undefined,
     limit: 10000,
   });
-  const metaResults = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
-  const tree = useTraceTree({traceResults, metaResults, replayRecord: null});
+  const meta = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
+  const tree = useTraceTree({trace, meta, replay: null});
 
-  const hasNoTransactions = metaResults.data?.transactions === 0;
-  const shouldLoadTraceRoot =
-    !traceResults.isPending && traceResults.data && !hasNoTransactions;
+  const hasNoTransactions = meta.data?.transactions === 0;
+  const shouldLoadTraceRoot = !trace.isPending && trace.data && !hasNoTransactions;
 
-  const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? traceResults.data! : null);
+  const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data! : null);
 
   const preferences = useMemo(
     () =>
@@ -90,12 +90,12 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
     });
   }, [location.query.statsPeriod, traceId]);
 
-  if (
-    traceResults.isPending ||
-    rootEvent.isPending ||
-    !rootEvent.data ||
-    hasNoTransactions
-  ) {
+  const scrollToNode = useMemo(() => {
+    const firstTransactionEventId = trace.data?.transactions[0]?.event_id;
+    return {eventId: firstTransactionEventId};
+  }, [trace.data]);
+
+  if (trace.isPending || rootEvent.isPending || !rootEvent.data || hasNoTransactions) {
     return null;
   }
 
@@ -107,22 +107,16 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
       >
         <TraceViewWaterfallWrapper>
           <TraceViewWaterfall
-            traceSlug={undefined}
             tree={tree}
+            trace={trace}
+            replay={null}
             rootEvent={rootEvent}
+            traceSlug={undefined}
             organization={organization}
             traceEventView={traceEventView}
-            metaResults={metaResults}
+            meta={meta}
             source="issues"
-            replayRecord={null}
-            scrollToNode={
-              traceResults.data?.transactions[0]?.event_id
-                ? {
-                    // Scroll/highlight the current transaction
-                    path: [`txn-${traceResults.data.transactions[0].event_id}`],
-                  }
-                : undefined
-            }
+            scrollToNode={scrollToNode}
             isEmbedded
           />
         </TraceViewWaterfallWrapper>

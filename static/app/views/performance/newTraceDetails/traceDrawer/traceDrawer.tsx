@@ -47,10 +47,10 @@ import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
-  metaResults: TraceMetaQueryResults;
+  meta: TraceMetaQueryResults;
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  replayRecord: ReplayRecord | null;
+  replay: ReplayRecord | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   scheduler: TraceScheduler;
   trace: TraceTree;
@@ -426,7 +426,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
               {traceState.tabs.current_tab ? (
                 traceState.tabs.current_tab.node === 'trace' ? (
                   <TraceDetails
-                    metaResults={props.metaResults}
+                    meta={props.meta}
                     traceType={props.traceType}
                     tree={props.trace}
                     node={props.trace.root.children[0]}
@@ -443,7 +443,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                   />
                 ) : (
                   <TraceTreeNodeDetails
-                    replayRecord={props.replayRecord}
+                    replay={props.replay}
                     manager={props.manager}
                     organization={organization}
                     onParentClick={onParentClick}
