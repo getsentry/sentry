@@ -28,7 +28,7 @@ from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.constants import RESERVED_PROJECT_SLUGS, SAMPLING_MODE_DEFAULT, ObjectStatus
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
@@ -118,6 +118,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "scrapeJavaScript",
         "allowedDomains",
         "copy_from_project",
+        "targetSampleRate",
         "dynamicSamplingBiases",
         "performanceIssueCreationRate",
         "performanceIssueCreationThroughPlatform",
@@ -211,6 +212,7 @@ E.g. `['release', 'environment']`""",
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
 
     copy_from_project = serializers.IntegerField(required=False)
+    targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
@@ -422,6 +424,28 @@ E.g. `['release', 'environment']`""",
 
     def validate_safeFields(self, value):
         return validate_pii_selectors(value)
+
+    def validate_targetSampleRate(self, value):
+        from sentry import features
+
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has("organizations:dynamic-sampling-custom", organization, actor=actor):
+            raise serializers.ValidationError(
+                "Organization does not have the custom dynamic sample rate feature enabled."
+            )
+
+        if organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT) != "project":
+            raise serializers.ValidationError(
+                "Must enable Manual Mode to configure project sample rates."
+            )
+
+        if not 0.0 <= value <= 1.0:
+            raise serializers.ValidationError(
+                "The targetSampleRate option must be between 0 and 1."
+            )
+
+        return value
 
 
 class RelaxedProjectPermission(ProjectPermission):
@@ -726,7 +750,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("allowedDomains"):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
-
+        if result.get("targetSampleRate") is not None:
+            if project.update_option("sentry:target_sample_rate", result["targetSampleRate"]):
+                changed_proj_settings["sentry:target_sample_rate"] = result["targetSampleRate"]
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
@@ -871,6 +897,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "copy_from_project" in result:
                 if not project.copy_settings_from(result["copy_from_project"]):
                     return Response({"detail": "Copy project settings failed."}, status=409)
+            if "sentry:target_sample_rate" in options:
+                project.update_option(
+                    "sentry:target_sample_rate", options["sentry:target_sample_rate"]
+                )
 
             if "sentry:dynamic_sampling_biases" in changed_proj_settings:
                 self.dynamic_sampling_biases_audit_log(

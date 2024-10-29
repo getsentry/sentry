@@ -283,7 +283,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
-    targetSampleRate = serializers.FloatField(required=False)
+    targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     samplingMode = serializers.ChoiceField(
         choices=[("organization", "Organization"), ("project", "Project")], required=False
     )
@@ -389,10 +389,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Organization does not have the custom dynamic sample rate feature enabled."
             )
 
-        if not 0.0 <= value <= 1.0:
-            raise serializers.ValidationError(
-                "The targetSampleRate option must be in the range [0:1]"
-            )
         return value
 
     def validate_samplingMode(self, value):
