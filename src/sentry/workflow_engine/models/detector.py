@@ -205,7 +205,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         """
         dedupe_value = self.get_dedupe_value(data_packet)
         group_values = self.get_group_key_values(data_packet)
-        all_state_data = self.get_state_data(group_values.keys())
+        all_state_data = self.get_state_data(list(group_values.keys()))
         results = []
         for group_key, group_value in group_values.items():
             result = self.evaluate_group_key_value(
@@ -228,7 +228,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             # TODO: Does it actually make more sense to just do this at the data packet level rather than the group
             # key level?
             metrics.incr("workflow_engine.detector.skipping_already_processed_update")
-            return
+            return None
 
         return DetectorEvaluationResult(
             False,
