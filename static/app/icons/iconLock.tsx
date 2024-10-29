@@ -4,7 +4,6 @@ import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 interface Props extends SVGIconProps {
-  isSolid?: boolean;
   locked?: boolean;
 }
 
