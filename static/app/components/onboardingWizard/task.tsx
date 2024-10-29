@@ -35,6 +35,7 @@ const recordAnalytics = (
     todo_id: task.task,
     todo_title: task.title,
     action,
+    new_experience: false,
   });
 
 type Props = {

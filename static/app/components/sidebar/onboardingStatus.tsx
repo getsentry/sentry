@@ -52,6 +52,7 @@ export default function OnboardingStatus({
     if (!walkthrough && !isActive === true) {
       trackAnalytics('quick_start.opened', {
         organization: org,
+        new_experience: false,
       });
     }
     onShowPanel();
@@ -85,6 +86,7 @@ export default function OnboardingStatus({
     trackAnalytics('quick_start.completed', {
       organization: org,
       referrer: 'onboarding_sidebar',
+      new_experience: false,
     });
   }, [isActive, allTasksCompleted, org]);
 
