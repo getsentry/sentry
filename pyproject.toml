@@ -1,7 +1,7 @@
 [tool.black]
 # File filtering is taken care of in pre-commit.
 line-length = 100
-target-version = ['py311']
+target-version = ['py312']
 
 [tool.isort]
 profile = "black"
@@ -146,17 +146,14 @@ module = [
     "sentry.api.endpoints.organization_member.details",
     "sentry.api.endpoints.organization_member.index",
     "sentry.api.endpoints.organization_member.requests.invite.details",
-    "sentry.api.endpoints.organization_member_unreleased_commits",
     "sentry.api.endpoints.organization_metrics_meta",
     "sentry.api.endpoints.organization_onboarding_continuation_email",
     "sentry.api.endpoints.organization_projects",
-    "sentry.api.endpoints.organization_projects_experiment",
     "sentry.api.endpoints.organization_releases",
     "sentry.api.endpoints.organization_request_project_creation",
     "sentry.api.endpoints.organization_search_details",
     "sentry.api.endpoints.organization_sessions",
     "sentry.api.endpoints.organization_stats",
-    "sentry.api.endpoints.organization_teams",
     "sentry.api.endpoints.project_index",
     "sentry.api.endpoints.project_ownership",
     "sentry.api.endpoints.project_release_files",
@@ -182,7 +179,6 @@ module = [
     "sentry.api.serializers.models.event",
     "sentry.api.serializers.models.group",
     "sentry.api.serializers.models.group_stream",
-    "sentry.api.serializers.models.notification_action",
     "sentry.api.serializers.models.organization",
     "sentry.api.serializers.models.plugin",
     "sentry.api.serializers.models.project",
@@ -192,7 +188,6 @@ module = [
     "sentry.api.serializers.rest_framework.mentions",
     "sentry.api.serializers.rest_framework.notification_action",
     "sentry.api.serializers.rest_framework.rule",
-    "sentry.api.serializers.snuba",
     "sentry.auth.helper",
     "sentry.auth.provider",
     "sentry.auth.system",
@@ -273,7 +268,6 @@ module = [
     "sentry.integrations.vsts.repository",
     "sentry.integrations.vsts_extension.integration",
     "sentry.issues.search",
-    "sentry.middleware.access_log",
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.middleware.superuser",
@@ -342,17 +336,11 @@ module = [
     "sentry.utils.services",
     "sentry.web.forms.accounts",
     "sentry.web.frontend.auth_login",
-    "sentry.web.frontend.auth_logout",
     "sentry.web.frontend.auth_organization_login",
     "sentry.web.frontend.base",
-    "sentry.web.frontend.disabled_member_view",
-    "sentry.web.frontend.group_plugin_action",
     "sentry.web.frontend.oauth_authorize",
     "sentry.web.frontend.oauth_token",
-    "sentry.web.frontend.pipeline_advancer",
-    "sentry.web.frontend.project_event",
     "sentry.web.frontend.react_page",
-    "sentry.web.frontend.reactivate_account",
     "sentry.web.frontend.setup_wizard",
     "sentry.web.frontend.shared_group_details",
     "sentry.web.frontend.twofactor",

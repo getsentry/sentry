@@ -69,13 +69,11 @@ class RegressionDetector(ABC):
 
     @classmethod
     @abstractmethod
-    def detector_algorithm_factory(cls) -> DetectorAlgorithm:
-        ...
+    def detector_algorithm_factory(cls) -> DetectorAlgorithm: ...
 
     @classmethod
     @abstractmethod
-    def detector_store_factory(cls) -> DetectorStore:
-        ...
+    def detector_store_factory(cls) -> DetectorStore: ...
 
     @classmethod
     def all_payloads(
@@ -98,8 +96,7 @@ class RegressionDetector(ABC):
         cls,
         projects: list[Project],
         start: datetime,
-    ) -> Iterable[DetectorPayload]:
-        ...
+    ) -> Iterable[DetectorPayload]: ...
 
     @classmethod
     def detect_trends(
@@ -195,8 +192,7 @@ class RegressionDetector(ABC):
         objects: list[tuple[Project, int | str]],
         start: datetime,
         function: str,
-    ) -> Iterable[tuple[int, int | str, SnubaTSResult]]:
-        ...
+    ) -> Iterable[tuple[int, int | str, SnubaTSResult]]: ...
 
     @classmethod
     def detect_regressions(

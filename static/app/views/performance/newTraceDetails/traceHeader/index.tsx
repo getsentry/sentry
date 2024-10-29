@@ -137,7 +137,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   }
 
   const isLoading =
-    props.metaResults.isLoading ||
+    props.metaResults.status === 'pending' ||
     props.rootEventResults.isPending ||
     props.tree.type === 'loading';
 

@@ -78,6 +78,7 @@ export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>
         onDoubleClick={props.onRowDoubleClick}
       >
         <TraceBar
+          node={props.node}
           virtualized_index={props.virtualized_index}
           manager={props.manager}
           color={makeTraceNodeBarColor(props.theme, props.node)}

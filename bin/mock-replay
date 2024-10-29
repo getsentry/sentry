@@ -73,7 +73,7 @@ def create_recording(replay_id, project_id, timestamp):
             24,
         ),
     ]
-    for (segment_id, segment) in enumerate(segments):
+    for segment_id, segment in enumerate(segments):
         store_replay_segments(replay_id, project_id, segment_id, segment)
 
 
