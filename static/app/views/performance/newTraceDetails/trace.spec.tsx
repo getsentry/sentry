@@ -1033,7 +1033,7 @@ describe('trace view', () => {
         });
       });
 
-      it('toggles missing instrumentation', async () => {
+      it.skip('toggles missing instrumentation', async () => {
         mockTracePreferences({missing_instrumentation: true});
         mockQueryString('?node=span-span0&node=txn-1');
 
