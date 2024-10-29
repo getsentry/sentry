@@ -47,10 +47,10 @@ describe('rq onboarding docs', function () {
 
     // Does not render continuous profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiling\(\)/))
+      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiling\(\)/))
+      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
@@ -81,13 +81,13 @@ describe('rq onboarding docs', function () {
 
     // Does render continuous profiling config
     const startMatches = screen.queryAllByText(
-      textWithMarkupMatcher(/sentry_sdk.profiler.start_profiling\(\)/)
+      textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/)
     );
     expect(startMatches.length).toBeGreaterThan(0);
     startMatches.forEach(match => expect(match).toBeInTheDocument());
 
     const stopMatches = screen.queryAllByText(
-      textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiling\(\)/)
+      textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/)
     );
     expect(stopMatches.length).toBeGreaterThan(0);
     stopMatches.forEach(match => expect(match).toBeInTheDocument());
