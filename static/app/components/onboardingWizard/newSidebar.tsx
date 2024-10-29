@@ -18,11 +18,15 @@ import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCheckmark, IconClose} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconNot, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
-import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import {
+  type OnboardingTask,
+  OnboardingTaskKey,
+  type OnboardingTaskStatus,
+} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
@@ -69,13 +73,12 @@ function getPanelDescription(walkthrough: boolean) {
   };
 }
 
-interface TaskProps {
+interface TaskProps extends Pick<OnboardingTaskStatus, 'status'> {
   hidePanel: () => void;
   task: OnboardingTask;
-  completed?: boolean;
 }
 
-function Task({task, completed, hidePanel}: TaskProps) {
+function Task({task, status, hidePanel}: TaskProps) {
   const api = useApi();
   const organization = useOrganization();
   const router = useRouter();
@@ -147,11 +150,24 @@ function Task({task, completed, hidePanel}: TaskProps) {
     [task, organization, api]
   );
 
-  if (completed) {
+  if (status === 'complete') {
     return (
       <TaskWrapper css={taskCompletedCss}>
         <strong>{task.title}</strong>
-        <IconCheckmark color="green300" isCircled />
+        <Tooltip title={t('Task completed')} containerDisplayMode="flex">
+          <IconCheckmark color="green300" isCircled />
+        </Tooltip>
+      </TaskWrapper>
+    );
+  }
+
+  if (status === 'skipped') {
+    return (
+      <TaskWrapper css={taskCompletedCss}>
+        <strong>{task.title}</strong>
+        <Tooltip title={t('Task skipped')} containerDisplayMode="flex">
+          <IconNot color="gray300" />
+        </Tooltip>
       </TaskWrapper>
     );
   }
@@ -189,6 +205,20 @@ function Task({task, completed, hidePanel}: TaskProps) {
               task={task}
               onCompleteTask={() => handleMarkComplete(task.task)}
             />
+          )}
+          {status === 'pending' && (
+            <Tooltip
+              title={t(
+                'You’ve invited members, and their acceptance is pending. Keep an eye out for updates!'
+              )}
+              containerDisplayMode="flex"
+              css={css`
+                justify-content: center;
+                cursor: default;
+              `}
+            >
+              <IconSync color="pink400" />
+            </Tooltip>
           )}
         </TaskActions>
       )}
@@ -263,13 +293,23 @@ function TaskGroup({
               />
             </TaskGroupProgress>
             {incompletedTasks.map(task => (
-              <Task key={task.task} task={task} hidePanel={hidePanel} />
+              <Task
+                key={task.task}
+                task={task}
+                hidePanel={hidePanel}
+                status={task.status}
+              />
             ))}
             {completedTasks.length > 0 && (
               <Fragment>
                 <TaskGroupProgress completed>{t('Completed')}</TaskGroupProgress>
                 {completedTasks.map(task => (
-                  <Task key={task.task} task={task} hidePanel={hidePanel} completed />
+                  <Task
+                    key={task.task}
+                    task={task}
+                    hidePanel={hidePanel}
+                    status={task.status}
+                  />
                 ))}
               </Fragment>
             )}

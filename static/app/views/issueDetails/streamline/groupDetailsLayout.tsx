@@ -10,6 +10,8 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import theme from 'sentry/utils/theme';
+import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
@@ -34,8 +36,9 @@ export function GroupDetailsLayout({
   children,
 }: GroupDetailsLayoutProps) {
   const searchQuery = useEventQuery({group});
-  const [sidebarOpen, _] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
-
+  const [sidebarOpen] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
+  const shouldDisplaySidebar = sidebarOpen || isScreenSmall;
   return (
     <Fragment>
       <StreamlinedGroupHeader
@@ -62,10 +65,8 @@ export function GroupDetailsLayout({
             </div>
           </GroupContent>
         </div>
-        {sidebarOpen ? (
-          <StyledLayoutSide>
-            <StreamlinedSidebar group={group} event={event} project={project} />
-          </StyledLayoutSide>
+        {shouldDisplaySidebar ? (
+          <StreamlinedSidebar group={group} event={event} project={project} />
         ) : null}
       </StyledLayoutBody>
     </Fragment>
@@ -75,20 +76,11 @@ export function GroupDetailsLayout({
 const StyledLayoutBody = styled(Layout.Body)<{
   sidebarOpen: boolean;
 }>`
-  /* Makes the borders align correctly */
   padding: 0 !important;
+  gap: 0 !important;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     align-content: stretch;
-    gap: ${space(1.5)};
-    display: ${p => (p.sidebarOpen ? 'grid' : 'block')};
-  }
-`;
-
-const StyledLayoutSide = styled(Layout.Side)`
-  padding: ${space(1.5)} ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding-left: ${space(0.5)};
+    grid-template-columns: minmax(100px, auto) ${p => (p.sidebarOpen ? '325px' : '0px')};
   }
 `;
 
