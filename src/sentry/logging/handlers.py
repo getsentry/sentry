@@ -154,9 +154,10 @@ class MetricsLogHandler(logging.Handler):
 
 class SamplingFilter(logging.Filter):
     """
-    A logging filter allowing sampling messages at different rates.
+    A logging filter to sample messages at different rates.
 
     prob_mapping -- a mapping of messages to probabilities. The msg must be an exact match.
+      Messages not in the mapping aren't filtered.
     """
 
     def __init__(self, prob_mapping: dict[str, float]):
