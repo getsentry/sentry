@@ -13,7 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
-import GroupTagValues from 'sentry/views/issueDetails/groupTagValues';
+import {GroupTagValues} from 'sentry/views/issueDetails/groupTagValues';
 
 const group = GroupFixture();
 const tags = TagsFixture();

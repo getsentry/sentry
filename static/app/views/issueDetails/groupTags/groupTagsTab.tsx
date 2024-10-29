@@ -19,7 +19,11 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
+import GroupEventDetails, {
+  type GroupEventDetailsProps,
+} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type GroupTagsProps = {
   baseUrl: string;
@@ -38,7 +42,7 @@ type SimpleTag = {
   totalValues: number;
 };
 
-function GroupTagsTab({group, baseUrl, environments}: GroupTagsProps) {
+export function GroupTagsTab({group, baseUrl, environments}: GroupTagsProps) {
   const location = useLocation();
 
   const {
@@ -132,6 +136,21 @@ function GroupTagsTab({group, baseUrl, environments}: GroupTagsProps) {
   );
 }
 
+function GroupTagsRoute(
+  props: GroupEventDetailsProps & {baseUrl: string; environments: string[]}
+) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
+  // TODO(streamlined-ui): Point the router to group event details
+  if (hasStreamlinedUI) {
+    return <GroupEventDetails {...props} />;
+  }
+
+  return <GroupTagsTab {...props} />;
+}
+
+export default GroupTagsRoute;
+
 const Container = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -205,5 +224,3 @@ const TagBarCount = styled('div')`
   padding-right: ${space(1)};
   font-variant-numeric: tabular-nums;
 `;
-
-export default GroupTagsTab;
