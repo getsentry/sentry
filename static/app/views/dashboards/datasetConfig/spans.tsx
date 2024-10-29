@@ -9,14 +9,16 @@ import type {
 import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import {getAggregations} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryExtras,
   type DiscoverQueryRequestParams,
   doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {TRACE_FIELD_DEFINITIONS} from 'sentry/utils/fields';
+import {
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  TRACE_FIELD_DEFINITIONS,
+} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
@@ -37,20 +39,36 @@ import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['span.op', 'count()'],
+  fields: ['span.op', 'count(span.op)'],
   columns: ['span.op'],
   fieldAliases: [],
-  aggregates: ['count()'],
+  aggregates: ['count(span.op)'],
   conditions: '',
-  orderby: '-count()',
+  orderby: '-count(span.op)',
 };
+
+const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
+  acc[aggregate] = {
+    isSortable: true,
+    outputType: null,
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['string', 'integer', 'number', 'duration', 'date', 'boolean'],
+        defaultValue: 'user',
+        required: true,
+      },
+    ],
+  };
+  return acc;
+}, {});
 
 export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
-  enableEquations: false, // TODO: Should EAP support equations?
+  enableEquations: false,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   SearchBar: EventsSearchBar, // TODO: Replace with a custom EAP search bar
   filterSeriesSortOptions: () => () => true,
@@ -108,8 +126,7 @@ function getEventsTableFieldOptions(
     organization,
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
     fieldKeys: Object.keys(TRACE_FIELD_DEFINITIONS),
-    // TODO: Use EAP specific aggregations
-    aggregations: getAggregations(DiscoverDatasets.TRANSACTIONS),
+    aggregations: EAP_AGGREGATIONS,
   });
 }
 
