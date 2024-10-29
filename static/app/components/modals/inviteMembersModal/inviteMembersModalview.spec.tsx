@@ -26,6 +26,7 @@ describe('InviteMembersModalView', function () {
     setRole: () => {},
     setTeams: () => {},
     willInvite: false,
+    isOverMemberLimit: false,
   };
 
   it('renders', function () {

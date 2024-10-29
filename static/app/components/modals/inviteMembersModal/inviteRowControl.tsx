@@ -23,6 +23,7 @@ type Props = {
   disabled: boolean;
   emails: string[];
   inviteStatus: InviteStatus;
+  isOverMemberLimit: boolean;
   onChangeEmails: (emails: SelectOption[]) => void;
   onChangeRole: (role: SelectOption) => void;
   onChangeTeams: (teams: SelectOption[]) => void;
@@ -32,7 +33,6 @@ type Props = {
   roleOptions: OrgRole[];
   teams: string[];
   className?: string;
-  isOverMemberLimit?: boolean;
 };
 
 function ValueComponent(
