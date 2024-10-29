@@ -1,3 +1,7 @@
+import intersection from 'lodash/intersection';
+
+import type {Event} from 'sentry/types/event';
+
 type RawFlag = {
   action: string;
   createdAt: string;
@@ -36,4 +40,17 @@ export function hydrateToFlagSeries(
     };
   });
   return flagData;
+}
+
+export function getFlagIntersection({
+  hydratedFlagData,
+  event,
+}: {
+  event: Event | undefined;
+  hydratedFlagData: FlagSeriesDatapoint[];
+}) {
+  // map flag data to arrays of flag names
+  const auditLogFlagNames = hydratedFlagData.map(f => f.name);
+  const evaluatedFlagNames = event?.contexts.flags?.values.map(f => f.flag);
+  return intersection(auditLogFlagNames, evaluatedFlagNames);
 }

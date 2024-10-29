@@ -1,5 +1,4 @@
 import {useEffect, useMemo} from 'react';
-import intersection from 'lodash/intersection';
 import moment from 'moment-timezone';
 
 import type {Event} from 'sentry/types/event';
@@ -8,6 +7,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {
+  getFlagIntersection,
   hydrateToFlagSeries,
   type RawFlagData,
 } from 'sentry/views/issueDetails/streamline/featureFlagUtils';
@@ -26,14 +26,7 @@ export default function useSuspectFlags({
   rawFlagData: RawFlagData | undefined;
 }): UseApiQueryResult<RawFlagData, RequestError> {
   const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
-
-  // map flag data to arrays of flag names
-  const auditLogFlagNames = hydratedFlagData.map(f => f.name);
-  const evaluatedFlagNames = event?.contexts.flags?.values.map(f => f.flag);
-  const intersectionFlags = useMemo(
-    () => intersection(auditLogFlagNames, evaluatedFlagNames),
-    [auditLogFlagNames, evaluatedFlagNames]
-  );
+  const intersectionFlags = getFlagIntersection({hydratedFlagData, event});
 
   // no flags in common between event evaluations and audit log
   useEffect(() => {

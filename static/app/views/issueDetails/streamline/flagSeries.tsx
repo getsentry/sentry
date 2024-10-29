@@ -11,6 +11,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
+  getFlagIntersection,
   hydrateToFlagSeries,
   type RawFlagData,
 } from 'sentry/views/issueDetails/streamline/featureFlagUtils';
@@ -65,6 +66,10 @@ export default function useFlagSeries({query = {}, event, group}: FlagSeriesProp
   }
 
   const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
+  const intersectionFlagNames = getFlagIntersection({hydratedFlagData, event});
+  const intersectionFlags = hydratedFlagData.filter(f =>
+    intersectionFlagNames.includes(f.name)
+  );
 
   // create a markline series using hydrated flag data
   const markLine = MarkLine({
@@ -77,7 +82,7 @@ export default function useFlagSeries({query = {}, event, group}: FlagSeriesProp
     label: {
       show: false,
     },
-    data: hydratedFlagData,
+    data: intersectionFlags,
     tooltip: {
       trigger: 'item',
       formatter: ({data}: any) => {
