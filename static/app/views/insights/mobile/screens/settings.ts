@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 
 export const MODULE_TITLE = t('Mobile Screens');
 // TBD, existing screen load modules uses 'screens' already
-export const BASE_URL = 'mobile/mobile-screens';
+export const BASE_URL = 'mobile-screens';
 
 export const MODULE_DESCRIPTION = t("Improve your application's responsiveness.");
 

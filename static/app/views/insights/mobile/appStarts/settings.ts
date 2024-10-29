@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 
 export const MODULE_TITLE = t('App Starts');
-export const BASE_URL = 'mobile/app-startup';
+export const BASE_URL = 'app-startup';
 export const DATA_TYPE = t('App Start');
 export const DATA_TYPE_PLURAL = t('App Starts');
 
