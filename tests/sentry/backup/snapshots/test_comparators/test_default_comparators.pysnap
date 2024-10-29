@@ -1,5 +1,5 @@
 ---
-created: '2024-10-29T21:40:19.807737+00:00'
+created: '2024-10-29T21:44:40.461425+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1343,6 +1343,12 @@ source: tests/sentry/backup/test_comparators.py
     - repository
   model_name: sentry.repositoryprojectpathconfig
 - comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: IgnoredComparator
+    fields:
+    - data
   - class: ForeignKeyComparator
     fields:
     - organization
@@ -1355,6 +1361,10 @@ source: tests/sentry/backup/test_comparators.py
   - class: DateUpdatedComparator
     fields:
     - date_updated
+  - class: IgnoredComparator
+    fields:
+    - data
+    - share_data
   - class: ForeignKeyComparator
     fields:
     - organization
