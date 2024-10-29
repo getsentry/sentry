@@ -62,6 +62,22 @@ def multiprocessing_options(
     ]
 
 
+def taskworker_options(
+    default_max_batch_size: int | None = None,
+    default_max_batch_time_ms: int | None = 1000,
+    include_worker_addrs: bool = False,
+) -> list[click.Option]:
+    options = multiprocessing_options(
+        default_max_batch_size=default_max_batch_size,
+        default_max_batch_time_ms=default_max_batch_time_ms,
+    )
+    options.append(click.Option(["--storage"], type=str, default="postgres"))
+    if include_worker_addrs:
+        options.append(click.Option(["--worker-addrs"], type=str, default="127.0.0.1:50051"))
+
+    return options
+
+
 def issue_occurrence_options() -> list[click.Option]:
     """Return a list of issue-occurrence options."""
     return [
@@ -408,6 +424,12 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
+    },
+    "taskworker": {
+        "topic": Topic.TASK_WORKER,
+        "strategy_factory": "sentry.taskworker.processors.strategy_factory.StrategyFactory",
+        "click_options": taskworker_options(default_max_batch_size=100),
+        "dlq_topic": Topic.TASK_WORKER_DLQ,
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
