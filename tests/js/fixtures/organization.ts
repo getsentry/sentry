@@ -81,6 +81,7 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
     require2FA: false,
     requiresSso: false,
     safeFields: [],
+    samplingMode: 'organization',
     scrubIPAddresses: false,
     sensitiveFields: [],
     aggregatedDataConsent: false,

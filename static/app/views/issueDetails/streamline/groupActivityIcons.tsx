@@ -5,7 +5,6 @@ import {
   IconClose,
   IconCommit,
   IconDelete,
-  IconEdit,
   IconFire,
   IconFlag,
   IconGraph,
@@ -18,11 +17,13 @@ import {
   IconUnsubscribed,
   IconUser,
 } from 'sentry/icons';
+import {IconCellSignal} from 'sentry/icons/iconCellSignal';
 import {GroupActivityType} from 'sentry/types/group';
 
 interface IconWithDefaultProps {
   Component: React.ComponentType<any> | null;
   defaultProps: {locked?: boolean; type?: string};
+  propsFunction?: (props: any) => any;
 }
 
 export const groupActivityTypeIconMapping: Record<
@@ -63,6 +64,22 @@ export const groupActivityTypeIconMapping: Record<
     Component: IconGraph,
     defaultProps: {type: 'area'},
   },
-  [GroupActivityType.SET_PRIORITY]: {Component: IconEdit, defaultProps: {}},
+  [GroupActivityType.SET_PRIORITY]: {
+    Component: IconCellSignal,
+    defaultProps: {},
+    propsFunction: data => {
+      const {priority} = data;
+      switch (priority) {
+        case 'high':
+          return {bars: 3};
+        case 'medium':
+          return {bars: 2};
+        case 'low':
+          return {bars: 1};
+        default:
+          return {bars: 0};
+      }
+    },
+  },
   [GroupActivityType.DELETED_ATTACHMENT]: {Component: IconDelete, defaultProps: {}},
 };

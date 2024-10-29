@@ -481,7 +481,7 @@ const Container = styled('div')`
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
+  background: ${p => p.theme.backgroundElevated};
   z-index: 100;
   border-top: 1px solid ${p => p.theme.border};
   box-shadow: ${p => p.theme.dropShadowHeavy};

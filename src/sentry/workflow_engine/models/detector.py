@@ -16,6 +16,7 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.issues import grouptype
 from sentry.models.owner_base import OwnerModel
 from sentry.utils import redis
+from sentry.utils.iterators import chunked
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.detector_state import DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -126,6 +127,76 @@ class DetectorHandler(abc.ABC, Generic[T]):
 
 
 class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
+    @property
+    @abc.abstractmethod
+    def counter_names(self) -> list[str]:
+        """
+        The names of counters that this detector is going to keep track of.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_dedupe_value(self, data_packet: DataPacket[T]) -> int:
+        """
+        Extracts the deduplication value from a passed data packet.
+        TODO: This might belong on the `DataPacket` instead.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_group_key_values(self, data_packet: DataPacket[T]) -> dict[str, int]:
+        """
+        Extracts the values for all the group keys that exist in the given data packet,
+        and returns then as a dict keyed by group_key.
+        """
+        pass
+
+    def get_state_data(self, group_keys: list[str | None]) -> dict[str | None, DetectorStateData]:
+        """
+        Fetches state data associated with this detector for the associated `group_keys`.
+        Returns a dict keyed by each group_key with the fetched `DetectorStateData`.
+        If data isn't currently stored, falls back to default values.
+        """
+        group_key_detectors = self.bulk_get_detector_state(group_keys)
+        dedupe_keys = [self.build_dedupe_value_key(gk) for gk in group_keys]
+        pipeline = get_redis_client().pipeline()
+        for dk in dedupe_keys:
+            pipeline.get(dk)
+        group_key_dedupe_values = {
+            gk: int(dv) if dv else 0 for gk, dv in zip(group_keys, pipeline.execute())
+        }
+        pipeline.reset()
+        counter_updates = {}
+        if self.counter_names:
+            counter_keys = [
+                self.build_counter_value_key(gk, name)
+                for gk in group_keys
+                for name in self.counter_names
+            ]
+            for ck in counter_keys:
+                pipeline.get(ck)
+            vals = [int(val) if val is not None else val for val in pipeline.execute()]
+            counter_updates = {
+                gk: dict(zip(self.counter_names, values))
+                for gk, values in zip(group_keys, chunked(vals, len(self.counter_names)))
+            }
+
+        results = {}
+        for gk in group_keys:
+            detector_state = group_key_detectors.get(gk)
+            results[gk] = DetectorStateData(
+                group_key=gk,
+                active=detector_state.active if detector_state else False,
+                status=(
+                    DetectorPriorityLevel(int(detector_state.state))
+                    if detector_state
+                    else DetectorPriorityLevel.OK
+                ),
+                dedupe_value=group_key_dedupe_values[gk],
+                counter_updates=counter_updates[gk],
+            )
+        return results
+
     def build_dedupe_value_key(self, group_key: str | None) -> str:
         if group_key is None:
             group_key = ""
@@ -137,9 +208,16 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         return f"{self.detector.id}:{group_key}:{counter_name}"
 
     def bulk_get_detector_state(
-        self, state_updates: list[DetectorStateData]
+        self, group_keys: list[str | None]
     ) -> dict[str | None, DetectorState]:
-        group_keys = {update.group_key for update in state_updates}
+        """
+        Bulk fetches detector state for the passed `group_keys`. Returns a dict keyed by each
+        `group_key` with the fetched `DetectorStateData`.
+
+        If there's no `DetectorState` row for a `detector`/`group_key` pair then we'll exclude
+        the group_key from the returned dict.
+        """
+        # TODO: Cache this query (or individual fetches, then bulk fetch anything missing)
         query_filter = Q(
             detector_group_key__in=[group_key for group_key in group_keys if group_key is not None]
         )
@@ -179,7 +257,9 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         pipeline.execute()
 
     def _bulk_commit_detector_state(self, state_updates: list[DetectorStateData]):
-        detector_state_lookup = self.bulk_get_detector_state(state_updates)
+        detector_state_lookup = self.bulk_get_detector_state(
+            [update.group_key for update in state_updates]
+        )
         created_detector_states = []
         updated_detector_states = []
         for state_update in state_updates:
