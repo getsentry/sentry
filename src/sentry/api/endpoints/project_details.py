@@ -32,6 +32,7 @@ from sentry.constants import RESERVED_PROJECT_SLUGS, SAMPLING_MODE_DEFAULT, Obje
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
@@ -435,7 +436,10 @@ E.g. `['release', 'environment']`""",
                 "Organization does not have the custom dynamic sample rate feature enabled."
             )
 
-        if organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT) != "project":
+        if (
+            organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
+            != DynamicSamplingMode.PROJECT.value
+        ):
             raise serializers.ValidationError(
                 "Must enable Manual Mode to configure project sample rates."
             )

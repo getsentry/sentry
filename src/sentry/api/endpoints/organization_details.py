@@ -71,6 +71,7 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
 )
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -284,9 +285,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    samplingMode = serializers.ChoiceField(
-        choices=[("organization", "Organization"), ("project", "Project")], required=False
-    )
+    samplingMode = serializers.ChoiceField(choices=DynamicSamplingMode.choices, required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -389,7 +388,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Organization does not have the custom dynamic sample rate feature enabled."
             )
 
-        if organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT) != "organization":
+        if (
+            organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
+            != DynamicSamplingMode.ORGANIZATION.value
+        ):
             raise serializers.ValidationError(
                 "Must be in Automatic Mode to configure the organization sample rate."
             )
