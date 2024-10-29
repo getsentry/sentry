@@ -91,7 +91,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       options: [
         {
           value: '_everyone',
-          label: 'Everyone',
+          label: t('Everyone'),
           disabled: dashboardCreator?.id !== currentUser.id,
         },
       ],
