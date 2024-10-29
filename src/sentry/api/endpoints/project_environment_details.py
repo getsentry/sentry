@@ -93,7 +93,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         except EnvironmentProject.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = EnvironmentSerializer(data=request.data)
+        serializer = EnvironmentSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
