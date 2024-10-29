@@ -53,9 +53,15 @@ export function SamplingModeField() {
     <FieldGroup
       disabled={!hasAccess}
       label={t('Switch Mode')}
-      help={t(
-        'Take control over the individual sample rates in your projects. This disables automatic adjustments.'
-      )}
+      help={
+        samplingMode === 'organization'
+          ? t(
+              'Take control over the individual sample rates in your projects. This disables automatic adjustments.'
+            )
+          : t(
+              'Enable automatic adjustments for your projects based on a global rate. This disables manual adjustments.'
+            )
+      }
     >
       <Confirm
         disabled={!hasAccess || isPending}
