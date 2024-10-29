@@ -55,7 +55,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         displayName={
           <StyledDisplayName>
             {dashboardCreator?.id === currentUser.id
-              ? `You (${currentUser.email})`
+              ? tct("You ([email])", {email: currentUser.email})
               : dashboardCreator?.email || currentUser.email}
           </StyledDisplayName>
         }
