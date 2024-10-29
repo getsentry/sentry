@@ -738,6 +738,17 @@
     "sentry.project",
     "sentry.repository"
   ],
+  "sentry.rollbackidentifier": [
+    "sentry.organization",
+    "sentry.user"
+  ],
+  "sentry.rollbackorganizationdata": [
+    "sentry.organization"
+  ],
+  "sentry.rollbackorganizationuserdata": [
+    "sentry.organization",
+    "sentry.user"
+  ],
   "sentry.rule": [
     "sentry.environment",
     "sentry.project",

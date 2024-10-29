@@ -5333,6 +5333,91 @@
       ]
     ]
   },
+  "sentry.rollbackidentifier": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": false
+      }
+    },
+    "model": "sentry.rollbackidentifier",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_rollbackidentifier",
+    "uniques": [
+      [
+        "organization_id",
+        "user_id"
+      ],
+      [
+        "share_uuid"
+      ],
+      [
+        "uuid"
+      ]
+    ]
+  },
+  "sentry.rollbackorganizationdata": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      }
+    },
+    "model": "sentry.rollbackorganizationdata",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_rollbackorganizationdata",
+    "uniques": [
+      [
+        "organization",
+        "year"
+      ]
+    ]
+  },
+  "sentry.rollbackorganizationuserdata": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": false
+      }
+    },
+    "model": "sentry.rollbackorganizationuserdata",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_rollbackorganizationuserdata",
+    "uniques": [
+      [
+        "organization",
+        "user_id"
+      ]
+    ]
+  },
   "sentry.rule": {
     "dangling": false,
     "foreign_keys": {
