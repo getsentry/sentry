@@ -892,10 +892,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "copy_from_project" in result:
                 if not project.copy_settings_from(result["copy_from_project"]):
                     return Response({"detail": "Copy project settings failed."}, status=409)
-            if "sentry:target_sample_rate" in options:
-                project.update_option(
-                    "sentry:target_sample_rate", options["sentry:target_sample_rate"]
-                )
 
             if "sentry:dynamic_sampling_biases" in changed_proj_settings:
                 self.dynamic_sampling_biases_audit_log(
