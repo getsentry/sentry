@@ -72,6 +72,7 @@ describe('EventDetailsHeader', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('figure')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Close Sidebar'})).toBeInTheDocument();
   });
 
   it('updates the query params with search tokens', async function () {
