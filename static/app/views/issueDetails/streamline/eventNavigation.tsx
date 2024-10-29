@@ -31,8 +31,8 @@ const enum EventNavOptions {
 
 const EventNavOrder = [
   EventNavOptions.OLDEST,
-  EventNavOptions.RECOMMENDED,
   EventNavOptions.LATEST,
+  EventNavOptions.RECOMMENDED,
   EventNavOptions.CUSTOM,
 ];
 
@@ -130,7 +130,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
           offset={[-2, 1]}
           trigger={triggerProps => (
             <NavigationDropdownButton {...triggerProps} borderless size="sm">
-              {TabName[currentTab]}
+              {TabName[currentTab] ?? TabName[Tab.DETAILS]}
             </NavigationDropdownButton>
           )}
         />
@@ -184,10 +184,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                       <TabList.Item
                         to={eventPath}
                         key={label}
-                        hidden={
-                          label === EventNavOptions.CUSTOM &&
-                          selectedOption !== EventNavOptions.CUSTOM
-                        }
+                        hidden={label === EventNavOptions.CUSTOM}
                         textValue={EventNavLabels[label]}
                       >
                         {EventNavLabels[label]}
