@@ -12,7 +12,6 @@ import {IconChat, IconFatal, IconImage, IconMegaphone, IconPlay} from 'sentry/ic
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 
 import useConfiguration from '../../hooks/useConfiguration';
-import toSearchTerm from '../../hooks/useCurrentTransactionName';
 import {useSDKFeedbackButton} from '../../hooks/useSDKFeedbackButton';
 import useVisibility from '../../hooks/useVisibility';
 import {
@@ -35,6 +34,7 @@ import InfiniteListItems from '../infiniteListItems';
 import InfiniteListState from '../infiniteListState';
 import PanelLayout from '../panelLayout';
 import SentryAppLink from '../sentryAppLink';
+import transactionToSearchTerm from '../transactionToSearchTerm';
 
 import useInfiniteFeedbackList from './useInfiniteFeedbackList';
 
@@ -52,20 +52,21 @@ export default function FeedbackPanel() {
   );
 
   const {scope, client} = useScopeAndClient();
-  const [transactionName, setTransactionName] = useState(
-    scope?.getScopeData().transactionName
+  const [searchTerm, setSearchTerm] = useState(
+    transactionToSearchTerm(scope?.getScopeData().transactionName)
   );
 
   useEffect(() => {
     if (client) {
       client.on('startNavigationSpan', options => {
-        setTransactionName(toSearchTerm(options.name));
+        setSearchTerm(transactionToSearchTerm(options.name));
       });
     }
   }, [client]);
 
+  // Fetch issues based on the updated transaction name
   const queryResult = useInfiniteFeedbackList({
-    query: `url:*${transactionName}`,
+    query: `url:*${searchTerm}`,
   });
 
   const estimateSize = 108;
