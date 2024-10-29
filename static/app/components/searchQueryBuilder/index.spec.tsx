@@ -244,7 +244,7 @@ describe('SearchQueryBuilder', function () {
       await waitFor(() => expect(mockOnChange).toHaveBeenCalled());
 
       expect(
-        screen.queryByRole('button', {name: 'Clear search query'})
+        screen.getByRole('button', {name: 'Clear search query'})
       ).toBeInTheDocument();
     });
   });
