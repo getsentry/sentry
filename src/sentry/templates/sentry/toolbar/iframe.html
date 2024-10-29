@@ -74,11 +74,14 @@ Required context variables:
           });
         }
 
+        function getCookieValue(cookie) {
+          return `${cookie}; domain=${window.location.hostname}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
+        }
+
         function saveAccessToken(data) {
           log('saveAccessToken', data)
           if (data.cookie) {
-            const value = `${data.cookie}; domain=${window.location.hostname}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
-            document.cookie = value
+            document.cookie = getCookieValue(data.cookie);
             log('Saved a cookie', document.cookie.indexOf(value) >= 0);
           }
           if (data.token) {
@@ -98,7 +101,7 @@ Required context variables:
             'log': log,
             'request-authn': requestAuthn,
             'clear-authn': () => {
-              document.cookie = '';
+              document.cookie = getCookieValue(document.cookie.split('=').at(0) + '=');
               log('Cleared the current cookie');
               const accessToken = localStorage.removeItem('accessToken')
               log('Removed accessToken from localStorage');
@@ -146,8 +149,8 @@ Required context variables:
               return; // No-op without a $function to call
             }
 
-            Promise.resolve(messageDispatch[message.$function])
-              .apply(undefined, message.$args || [])
+            Promise.resolve(messageDispatch[message.$function]
+              .apply(undefined, message.$args || []))
               .then($result => port1.postMessage({ $id, $result }))
               .catch(error => port1.postMessage({ $id, $error: error }));
           });
