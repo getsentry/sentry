@@ -1062,6 +1062,7 @@ describe('trace view', () => {
       });
     });
 
+    // This test is flaky and needs to be fixed
     // eslint-disable-next-line jest/no-disabled-tests
     it.skip('triggers search on load but does not steal focus from node param', async () => {
       mockQueryString('?search=transaction-op-999&node=txn-0');
