@@ -66,6 +66,7 @@ export function EventDetailsHeader({
             environments={environments}
             query={searchQuery}
             queryBuilderProps={{
+              hideClearWhenEmpty: true,
               disallowFreeText: true,
             }}
           />
