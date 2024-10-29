@@ -19,5 +19,3 @@ class RollbackOrganizationData(DefaultFieldsModelExisting):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_rollbackorganizationdata"
-
-        constraints = []
