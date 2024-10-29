@@ -42,6 +42,7 @@ export function NewOnboardingStatus({
   const {projects} = useProjects();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const hasMarkedUnseenTasksAsComplete = useRef(false);
+  const hasQuickStartBeenCompleted = useRef(false);
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
   const walkthrough = isDemoWalkthrough();
@@ -95,7 +96,7 @@ export function NewOnboardingStatus({
   }, [onShowPanel, isActive, walkthrough, markDoneTaskAsComplete, organization]);
 
   useEffect(() => {
-    if (totalRemainingTasks !== 0 || isActive) {
+    if (totalRemainingTasks !== 0 || hasQuickStartBeenCompleted.current) {
       return;
     }
 
@@ -103,6 +104,8 @@ export function NewOnboardingStatus({
       organization: organization,
       referrer: 'onboarding_sidebar',
     });
+
+    hasQuickStartBeenCompleted.current = true;
   }, [isActive, totalRemainingTasks, organization]);
 
   useEffect(() => {

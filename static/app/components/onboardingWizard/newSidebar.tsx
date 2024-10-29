@@ -27,6 +27,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import useRouter from 'sentry/utils/useRouter';
 
 const orderedGettingStartedTasks = [
@@ -196,6 +197,10 @@ function Task({task, completed, hidePanel}: TaskProps) {
 
 interface TaskGroupProps {
   description: string;
+  /**
+   * Used for analytics
+   */
+  group: 'getting_started' | 'beyond_basics';
   hidePanel: () => void;
   tasks: OnboardingTask[];
   title: string;
@@ -210,13 +215,30 @@ function TaskGroup({
   expanded,
   hidePanel,
   toggleable = true,
+  group,
 }: TaskGroupProps) {
+  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(expanded);
   const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
+  const previousCompletedTasksCount = usePrevious(completedTasks.length);
 
   useEffect(() => {
     setIsExpanded(expanded);
   }, [expanded]);
+
+  useEffect(() => {
+    if (
+      completedTasks.length !== tasks.length ||
+      previousCompletedTasksCount !== tasks.length - 1
+    ) {
+      return;
+    }
+
+    trackAnalytics('quick_start.task_group_completed', {
+      organization,
+      group,
+    });
+  }, [previousCompletedTasksCount, completedTasks, tasks, group, organization]);
 
   return (
     <TaskGroupWrapper>
@@ -328,6 +350,7 @@ export function NewOnboardingSidebar({
             groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length > 0
           }
           toggleable={sortedBeyondBasicsTasks.length > 0}
+          group="getting_started"
         />
         {sortedBeyondBasicsTasks.length > 0 && (
           <TaskGroup
@@ -340,6 +363,7 @@ export function NewOnboardingSidebar({
             expanded={
               groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
             }
+            group="beyond_basics"
           />
         )}
       </Content>
