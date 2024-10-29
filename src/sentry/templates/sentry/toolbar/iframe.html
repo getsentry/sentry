@@ -93,6 +93,43 @@ Required context variables:
           }
         }
 
+        function clearAuthn() {
+          document.cookie = getCookieValue(document.cookie.split('=').at(0) + '=');
+          log('Cleared the current cookie');
+          const accessToken = localStorage.removeItem('accessToken')
+          log('Removed accessToken from localStorage');
+
+          sendStateMessage('logged-out');
+        }
+
+        async function fetchProxy(url, init) {
+          // If we have an accessToken lets use it. Otherwise we presume a cookie will be set.
+          const accessToken = localStorage.getItem('accessToken');
+          const bearer = accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {};
+
+          // If either of these is invalid, or both are missing, we will
+          // forward the resulting 401 to the application, which will request
+          // tokens be destroyed and reload the iframe in an unauth state.
+          log('Has access info', { cookie: Boolean(document.cookie), accessToken: Boolean(accessToken) });
+
+          const initWithCreds = {
+            ...init,
+            headers: { ...init.headers, ...bearer },
+            credentials: 'same-origin',
+          };
+          log({ initWithCreds });
+
+          const response = await fetch(url, initWithCreds);
+          return {
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            url: response.url,
+            headers: Object.fromEntries(response.headers.entries()),
+            text: await response.text(),
+          };
+        }
+
         function setupMessageChannel() {
           log('setupMessageChannel()');
           const { port1, port2 } = new MessageChannel();
@@ -100,41 +137,8 @@ Required context variables:
           const messageDispatch = {
             'log': log,
             'request-authn': requestAuthn,
-            'clear-authn': () => {
-              document.cookie = getCookieValue(document.cookie.split('=').at(0) + '=');
-              log('Cleared the current cookie');
-              const accessToken = localStorage.removeItem('accessToken')
-              log('Removed accessToken from localStorage');
-
-              sendStateMessage('logged-out');
-            },
-            'fetch': async (url, init) => {
-              // If we have an accessToken lets use it. Otherwise we presume a cookie will be set.
-              const accessToken = localStorage.getItem('accessToken');
-              const bearer = accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {};
-
-              // If either of these is invalid, or both are missing, we will
-              // forward the resulting 401 to the application, which will request
-              // tokens be destroyed and reload the iframe in an unauth state.
-              log('Has access info', {cookie: Boolean(document.cookie), accessToken: Boolean(accessToken)});
-
-              const initWithCreds = {
-                ...init,
-                headers: { ...init.headers, ...bearer },
-                credentials: 'same-origin',
-              };
-              log({initWithCreds});
-
-              const response = await fetch(url, initWithCreds);
-              return {
-                ok: response.ok,
-                status: response.status,
-                statusText: response.statusText,
-                url: response.url,
-                headers: Object.fromEntries(response.headers.entries()),
-                text: await response.text(),
-              };
-            },
+            'clear-authn': clearAuthn,
+            'fetch': fetchProxy,
           };
 
           port1.addEventListener('message', messageEvent => {
