@@ -1,15 +1,6 @@
 import {createContext, type ReactNode, useContext} from 'react';
 
-const SurfaceContext = createContext<string | undefined>(undefined);
-
-export function useSurface(): string {
-  const surface = useContext(SurfaceContext);
-  if (!surface) {
-    // eslint-disable-next-line no-console
-    console.error('Undefined surface! Please use SurfaceProvider as a context provider.');
-  }
-  return surface || '';
-}
+export const SurfaceContext = createContext<string>('');
 
 export default function SurfaceProvider({
   children,

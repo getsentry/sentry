@@ -1,11 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import {useSurface} from 'sentry/components/surfaceProvider';
+import {SurfaceContext} from 'sentry/components/surfaceProvider';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,7 +24,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   const {title, subtitle, message} = getTitleSubtitleMessage(event);
   const avatarSize = parseInt(space(4), 10);
 
-  const surface = useSurface();
+  const surface = useContext(SurfaceContext);
 
   return (
     <Fragment>

@@ -1,10 +1,11 @@
+import {useContext} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {useSurface} from 'sentry/components/surfaceProvider';
+import {SurfaceContext} from 'sentry/components/surfaceProvider';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -23,7 +24,7 @@ interface TraceTimelineTooltipProps {
 export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineTooltipProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const surface = useSurface();
+  const surface = useContext(SurfaceContext);
 
   // TODO: should handling of current event + other events look different
   if (timelineEvents.length === 1 && timelineEvents[0].id === event.id) {
@@ -97,7 +98,7 @@ function EventItem({timelineEvent, location}: EventItemProps) {
     orgId: organization.slug,
   });
   const project = projects.find(p => p.slug === timelineEvent.project);
-  const surface = useSurface();
+  const surface = useContext(SurfaceContext);
 
   return (
     <EventItemRoot
