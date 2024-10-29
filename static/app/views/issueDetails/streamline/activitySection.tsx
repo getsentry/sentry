@@ -14,6 +14,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import textStyles from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -75,7 +76,13 @@ function TimelineItem({
         )
       }
     >
-      {typeof message === 'string' ? <NoteBody text={message} /> : message}
+      {typeof message === 'string' ? (
+        <NoteWrapper>
+          <NoteBody text={message} />
+        </NoteWrapper>
+      ) : (
+        message
+      )}
     </ActivityTimelineItem>
   );
 }
@@ -244,4 +251,8 @@ const TextButton = styled(Button)`
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg) translateY(1px);
+`;
+
+const NoteWrapper = styled('div')`
+  ${textStyles}
 `;
