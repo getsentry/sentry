@@ -194,7 +194,10 @@ export function initializeSdk(config: Config) {
   });
 
   if (process.env.NODE_ENV !== 'production') {
-    if (sentryConfig.environment === 'development' && process.env.NO_SPOTLIGHT !== '1') {
+    if (
+      sentryConfig.environment === 'development' &&
+      process.env.SENTRY_USE_SPOTLIGHT !== '1'
+    ) {
       import('@spotlightjs/spotlight').then(Spotlight => {
         /* #__PURE__ */ Spotlight.init();
       });

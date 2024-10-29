@@ -471,7 +471,7 @@ def configure_sdk():
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
         ],
-        spotlight=settings.IS_DEV and not settings.NO_SPOTLIGHT,
+        spotlight=settings.IS_DEV and not settings.SENTRY_USE_SPOTLIGHT,
         **sdk_options,
     )
 
