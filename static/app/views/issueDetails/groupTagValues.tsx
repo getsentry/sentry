@@ -32,6 +32,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import GroupEventDetails, {
+  type GroupEventDetailsProps,
+} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type RouteParams = {
   groupId: string;
@@ -97,7 +101,7 @@ function useTagQueries({
   };
 }
 
-function GroupTagValues({baseUrl, project, group, environments}: Props) {
+export function GroupTagValues({baseUrl, project, group, environments}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const {orgId, tagKey = ''} = useParams<RouteParams>();
@@ -314,7 +318,16 @@ function GroupTagValues({baseUrl, project, group, environments}: Props) {
   );
 }
 
-export default GroupTagValues;
+function GroupTagValuesRoute(props: GroupEventDetailsProps & {baseUrl: string}) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
+  // TODO(streamlined-ui): Point the router directly to group event details
+  if (hasStreamlinedUI) {
+    return <GroupEventDetails {...props} />;
+  }
+
+  return <GroupTagValues {...props} />;
+}
 
 const TitleWrapper = styled('div')`
   display: flex;
@@ -390,3 +403,5 @@ const RightAlignColumn = styled(Column)`
 const StyledPagination = styled(Pagination)`
   margin: 0;
 `;
+
+export default GroupTagValuesRoute;
