@@ -138,7 +138,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
           />
           <TitleWithActions>
             <TitleWrapper>{title}</TitleWrapper>
-            {!preventCollapse && !isCollapsed && (
+            {!isCollapsed && (
               <div
                 onClick={e => e.stopPropagation()}
                 onMouseEnter={() => setIsLayerEnabled(false)}
