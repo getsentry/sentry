@@ -28,8 +28,8 @@
   <link rel="dns-prefetch" href="{{ domain }}" />
   {% endfor %}
 
-  {% for preconnect in preconnect %}
-  <link rel="preconnect" href="{{ preconnect }}" />
+  {% for origin in preconnect %}
+  <link rel="preconnect" href="{{ origin }}" />
   {% endfor %}
 
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
