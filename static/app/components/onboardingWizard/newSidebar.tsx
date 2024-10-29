@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -13,7 +13,7 @@ import {Chevron} from 'sentry/components/chevron';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import SkipConfirm from 'sentry/components/onboardingWizard/skipConfirm';
 import type {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {findCompleteTasks} from 'sentry/components/onboardingWizard/utils';
+import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -73,9 +73,10 @@ interface TaskProps {
   hidePanel: () => void;
   task: OnboardingTask;
   completed?: boolean;
+  showWaitingIndicator?: boolean;
 }
 
-function Task({task, completed, hidePanel}: TaskProps) {
+function Task({task, completed, hidePanel, showWaitingIndicator}: TaskProps) {
   const api = useApi();
   const organization = useOrganization();
   const router = useRouter();
@@ -116,17 +117,6 @@ function Task({task, completed, hidePanel}: TaskProps) {
       hidePanel();
     },
     [task, organization, router, hidePanel]
-  );
-
-  const handleMarkComplete = useCallback(
-    (taskKey: OnboardingTaskKey) => {
-      updateOnboardingTask(api, organization, {
-        task: taskKey,
-        status: 'complete',
-        completionSeen: true,
-      });
-    },
-    [api, organization]
   );
 
   const handleMarkSkipped = useCallback(
@@ -184,11 +174,8 @@ function Task({task, completed, hidePanel}: TaskProps) {
               )}
             </SkipConfirm>
           )}
-          {task.SupplementComponent && (
-            <task.SupplementComponent
-              task={task}
-              onCompleteTask={() => handleMarkComplete(task.task)}
-            />
+          {task.SupplementComponent && showWaitingIndicator && (
+            <task.SupplementComponent task={task} />
           )}
         </TaskActions>
       )}
@@ -199,6 +186,7 @@ function Task({task, completed, hidePanel}: TaskProps) {
 interface TaskGroupProps {
   description: string;
   hidePanel: () => void;
+  taskKeyForWaitingIndicator: OnboardingTaskKey | undefined;
   tasks: OnboardingTask[];
   title: string;
   expanded?: boolean;
@@ -211,6 +199,7 @@ function TaskGroup({
   tasks,
   expanded,
   hidePanel,
+  taskKeyForWaitingIndicator,
   toggleable = true,
 }: TaskGroupProps) {
   const [isExpanded, setIsExpanded] = useState(expanded);
@@ -263,7 +252,12 @@ function TaskGroup({
               />
             </TaskGroupProgress>
             {incompletedTasks.map(task => (
-              <Task key={task.task} task={task} hidePanel={hidePanel} />
+              <Task
+                key={task.task}
+                task={task}
+                hidePanel={hidePanel}
+                showWaitingIndicator={taskKeyForWaitingIndicator === task.task}
+              />
             ))}
             {completedTasks.length > 0 && (
               <Fragment>
@@ -310,6 +304,12 @@ export function NewOnboardingSidebar({
       orderedBeyondBasicsTasks.indexOf(a.task) - orderedBeyondBasicsTasks.indexOf(b.task)
   );
 
+  const taskKeyForWaitingIndicator = useMemo(() => {
+    return [...sortedGettingStartedTasks, ...sortedBeyondBasicsTasks].find(
+      task => !taskIsDone(task) && !!task.SupplementComponent
+    )?.task;
+  }, [sortedGettingStartedTasks, sortedBeyondBasicsTasks]);
+
   return (
     <Wrapper
       collapsed={collapsed}
@@ -330,6 +330,7 @@ export function NewOnboardingSidebar({
             groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length > 0
           }
           toggleable={sortedBeyondBasicsTasks.length > 0}
+          taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
         />
         {sortedBeyondBasicsTasks.length > 0 && (
           <TaskGroup
@@ -342,6 +343,7 @@ export function NewOnboardingSidebar({
             expanded={
               groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
             }
+            taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
           />
         )}
       </Content>
