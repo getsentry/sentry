@@ -59,7 +59,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
               : dashboardCreator?.email || currentUser.email}
           </StyledDisplayName>
         }
-        displayEmail="Creator"
+        displayEmail={t("Creator")}
       />
     ),
     textValue: '_creatorbadge',
