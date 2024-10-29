@@ -13,11 +13,11 @@ import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
   domainBaseUrl: string;
+  domainOverviewPageTitle: string;
   domainTitle: string;
   headerTitle: React.ReactNode;
   modules: ModuleName[];
@@ -37,6 +37,7 @@ export function DomainViewHeader({
   modules,
   headerTitle,
   domainTitle,
+  domainOverviewPageTitle,
   selectedModule,
   hideDefaultTabs,
   additonalHeaderActions,
@@ -61,7 +62,7 @@ export function DomainViewHeader({
       preservePageFilters: true,
     },
     {
-      label: selectedModule ? moduleTitles[selectedModule] : OVERVIEW_PAGE_TITLE,
+      label: selectedModule ? moduleTitles[selectedModule] : domainOverviewPageTitle,
       to: selectedModule
         ? `${moduleURLBuilder(selectedModule as RoutableModuleNames)}/`
         : domainBaseUrl,
@@ -72,14 +73,14 @@ export function DomainViewHeader({
 
   const showModuleTabs = organization.features.includes('insights-entry-points');
 
-  const defaultHandleTabChange = (key: ModuleName | typeof OVERVIEW_PAGE_TITLE) => {
-    if (key === selectedModule || (key === OVERVIEW_PAGE_TITLE && !module)) {
+  const defaultHandleTabChange = (key: ModuleName | typeof domainOverviewPageTitle) => {
+    if (key === selectedModule || (key === domainOverviewPageTitle && !module)) {
       return;
     }
     if (!key) {
       return;
     }
-    if (key === OVERVIEW_PAGE_TITLE) {
+    if (key === domainOverviewPageTitle) {
       navigate(domainBaseUrl);
       return;
     }
@@ -87,15 +88,17 @@ export function DomainViewHeader({
   };
 
   const tabValue =
-    hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
+    hideDefaultTabs && tabs?.value
+      ? tabs.value
+      : selectedModule ?? domainOverviewPageTitle;
 
   const handleTabChange =
     hideDefaultTabs && tabs ? tabs.onTabChange : defaultHandleTabChange;
 
   const tabList: Tab[] = [
     {
-      key: OVERVIEW_PAGE_TITLE,
-      label: OVERVIEW_PAGE_TITLE,
+      key: domainOverviewPageTitle,
+      label: domainOverviewPageTitle,
     },
   ];
 

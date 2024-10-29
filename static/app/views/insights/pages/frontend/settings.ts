@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 
 export const FRONTEND_LANDING_SUB_PATH = 'frontend';
 export const FRONTEND_LANDING_TITLE = t('Frontend');
+export const FRONTEND_OVERVIEW_PAGE_TITLE = t('Frontend Performance');
 
 export const OVERVIEW_PAGE_ALLOWED_OPS = [
   'pageload',

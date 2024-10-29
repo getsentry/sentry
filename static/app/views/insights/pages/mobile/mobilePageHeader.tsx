@@ -7,6 +7,7 @@ import {
 import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_LANDING_TITLE,
+  MOBILE_OVERVIEW_PAGE_TITLE,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
@@ -50,6 +51,7 @@ export function MobileHeader({
     <DomainViewHeader
       domainBaseUrl={mobileBaseUrl}
       domainTitle={MOBILE_LANDING_TITLE}
+      domainOverviewPageTitle={MOBILE_OVERVIEW_PAGE_TITLE}
       headerTitle={headerTitle}
       modules={modules}
       selectedModule={module}

@@ -7,6 +7,7 @@ import {
 import {
   FRONTEND_LANDING_SUB_PATH,
   FRONTEND_LANDING_TITLE,
+  FRONTEND_OVERVIEW_PAGE_TITLE,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -41,6 +42,7 @@ export function FrontendHeader({
     <DomainViewHeader
       domainBaseUrl={frontendBaseUrl}
       domainTitle={FRONTEND_LANDING_TITLE}
+      domainOverviewPageTitle={FRONTEND_OVERVIEW_PAGE_TITLE}
       modules={modules}
       selectedModule={module}
       additionalBreadCrumbs={breadcrumbs}

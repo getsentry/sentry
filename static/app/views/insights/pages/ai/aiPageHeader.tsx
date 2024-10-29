@@ -3,6 +3,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   AI_LANDING_SUB_PATH,
   AI_LANDING_TITLE,
+  AI_OVERVIEW_PAGE_TITLE,
 } from 'sentry/views/insights/pages/ai/settings';
 import {
   DomainViewHeader,
@@ -39,6 +40,7 @@ export function AiHeader({
   return (
     <DomainViewHeader
       domainBaseUrl={aiBaseUrl}
+      domainOverviewPageTitle={AI_OVERVIEW_PAGE_TITLE}
       headerTitle={headerTitle}
       domainTitle={AI_LANDING_TITLE}
       modules={modules}

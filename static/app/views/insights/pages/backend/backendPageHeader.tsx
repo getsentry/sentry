@@ -3,6 +3,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {
   BACKEND_LANDING_SUB_PATH,
   BACKEND_LANDING_TITLE,
+  BACKEND_OVERVIEW_PAGE_TITLE,
 } from 'sentry/views/insights/pages/backend/settings';
 import {
   DomainViewHeader,
@@ -39,6 +40,7 @@ export function BackendHeader({
   return (
     <DomainViewHeader
       domainBaseUrl={backendBaseUrl}
+      domainOverviewPageTitle={BACKEND_OVERVIEW_PAGE_TITLE}
       domainTitle={BACKEND_LANDING_TITLE}
       headerTitle={headerTitle}
       additonalHeaderActions={headerActions}
