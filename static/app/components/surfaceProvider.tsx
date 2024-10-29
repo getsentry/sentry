@@ -5,11 +5,10 @@ const SurfaceContext = createContext<string | undefined>(undefined);
 export function useSurface(): string {
   const surface = useContext(SurfaceContext);
   if (!surface) {
-    throw new Error(
-      'Undefined surface! Please use SurfaceProvider as a context provider.'
-    );
+    // eslint-disable-next-line no-console
+    console.error('Undefined surface! Please use SurfaceProvider as a context provider.');
   }
-  return surface;
+  return surface || '';
 }
 
 export default function SurfaceProvider({
