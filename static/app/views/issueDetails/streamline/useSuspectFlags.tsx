@@ -64,7 +64,7 @@ export default function useSuspectFlags({
       staleTime: 0,
       // if no intersection, then there are no suspect flags
       enabled: Boolean(
-        organization.features?.includes('feature-flag-ui') && intersectionFlags.length
+        organization.features.includes('feature-flag-ui') && intersectionFlags.length
       ),
     }
   );
@@ -76,7 +76,7 @@ export default function useSuspectFlags({
   const suspectFlags = useMemo(() => {
     return data
       ? data.data
-          .reverse()
+          .toReversed()
           .filter(
             (rawFlag, idx, rawFlagArray) =>
               idx === rawFlagArray.findIndex(f => f.flag === rawFlag.flag)

@@ -8,7 +8,6 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -66,7 +65,7 @@ export function Content({
   } = item;
 
   const hasErrors = errors.length > 0;
-  const hasSuffix = !!(hasErrors || actionButton || isSuspectFlag);
+  const hasSuffix = !!(hasErrors || actionButton);
 
   const dataComponent = disableFormattedData ? (
     React.isValidElement(contextValue) ? (
@@ -97,9 +96,6 @@ export function Content({
         </ValueWrapper>
         {hasSuffix && (
           <div>
-            {isSuspectFlag && (
-              <StyledQuestionTooltip size="xs" title={t('Suspect Flag')} />
-            )}
             {hasErrors && <AnnotatedTextErrors errors={errors} />}
             {actionButton && (
               <ActionButtonWrapper actionButtonAlwaysVisible={actionButtonAlwaysVisible}>
@@ -259,10 +255,6 @@ const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean
 const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
   word-break: break-word;
   grid-column: ${p => (p.hasSuffix ? 'span 1' : '1 / -1')};
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-top: ${space(0.25)};
 `;
 
 const TruncateWrapper = styled('a')`

@@ -13,7 +13,7 @@ export function useOrganizationFlagLog({
     [`/organizations/${organization.slug}/flags/logs/`, {query}],
     {
       staleTime: 0,
-      enabled: organization.features?.includes('feature-flag-ui'),
+      enabled: organization.features.includes('feature-flag-ui'),
     }
   );
 }

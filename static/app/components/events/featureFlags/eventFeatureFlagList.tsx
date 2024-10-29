@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -20,11 +21,11 @@ import {
   SortGroup,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
-import KeyValueData, {
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+import KeyValueData from 'sentry/components/keyValueData';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconMegaphone, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -92,32 +93,33 @@ export function EventFeatureFlagList({
     event,
   });
 
-  const suspectFlagNames = useMemo(() => {
-    return isSuspectError || isSuspectPending ? [] : suspectFlags.map(f => f.flag);
+  const suspectFlagNames: Set<string> = useMemo(() => {
+    return isSuspectError || isSuspectPending
+      ? new Set()
+      : new Set(suspectFlags.map(f => f.flag));
   }, [isSuspectError, isSuspectPending, suspectFlags]);
 
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component
-    const hydrateFlags = (
-      flags: FeatureFlag[] | undefined
-    ): KeyValueDataContentProps[] => {
-      if (!flags) {
-        return [];
-      }
-      return flags.map(f => {
-        return {
-          item: {
-            key: f.flag,
-            subject: f.flag,
-            value: f.result.toString(),
-          },
-          isSuspectFlag: suspectFlagNames.includes(f.flag),
-        };
-      });
-    };
-
     // Reverse the flags to show newest at the top by default
-    return hydrateFlags(event.contexts?.flags?.values.reverse());
+    const flags: FeatureFlag[] = event.contexts?.flags?.values.toReversed() ?? [];
+    return flags.map(f => {
+      return {
+        item: {
+          key: f.flag,
+          subject: f.flag,
+          value: suspectFlagNames.has(f.flag) ? (
+            <ValueWrapper>
+              {f.result.toString()}
+              <StyledQuestionTooltip size="xs" title={t('Suspect Flag')} />
+            </ValueWrapper>
+          ) : (
+            f.result.toString()
+          ),
+        },
+        isSuspectFlag: suspectFlagNames.has(f.flag),
+      };
+    });
   }, [event, suspectFlagNames]);
 
   const onViewAllFlags = useCallback(
@@ -245,3 +247,12 @@ export function EventFeatureFlagList({
     </ErrorBoundary>
   );
 }
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-top: ${space(0.25)};
+`;
+
+const ValueWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
