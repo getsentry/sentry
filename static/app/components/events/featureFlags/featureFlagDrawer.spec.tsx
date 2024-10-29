@@ -1,3 +1,5 @@
+import {TagsFixture} from 'sentry-fixture/tags';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
@@ -27,6 +29,12 @@ async function renderFlagDrawer() {
 }
 
 describe('FeatureFlagDrawer', function () {
+  beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/tags/`,
+      body: TagsFixture(),
+    });
+  });
   it('renders the drawer as expected', async function () {
     const drawerScreen = await renderFlagDrawer();
     expect(drawerScreen.getByRole('button', {name: 'Close Drawer'})).toBeInTheDocument();

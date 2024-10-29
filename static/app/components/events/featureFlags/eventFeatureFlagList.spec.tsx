@@ -1,3 +1,5 @@
+import {TagsFixture} from 'sentry-fixture/tags';
+
 import {
   render,
   screen,
@@ -25,6 +27,12 @@ jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation
 }));
 
 describe('EventFeatureFlagList', function () {
+  beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/tags/`,
+      body: TagsFixture(),
+    });
+  });
   it('renders a list of feature flags with a button to view all', async function () {
     render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS} />);
 
