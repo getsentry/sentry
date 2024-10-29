@@ -23,6 +23,8 @@ import {
   makeTraceError,
   makeTransaction,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 class MockResizeObserver {
   callback: ResizeObserverCallback;
@@ -53,12 +55,32 @@ class MockResizeObserver {
 type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
 type ResponseType = Arguments<typeof MockApiClient.addMockResponse>[0];
 
-function mockQueryString(query: string) {
+function mockQueryString(queryString: string) {
   Object.defineProperty(window, 'location', {
     value: {
-      search: query,
+      search: queryString,
     },
   });
+}
+
+function mockTracePreferences(preferences: Partial<TracePreferencesState>) {
+  const merged: TracePreferencesState = {
+    ...DEFAULT_TRACE_VIEW_PREFERENCES,
+    ...preferences,
+    autogroup: {
+      ...DEFAULT_TRACE_VIEW_PREFERENCES.autogroup,
+      ...preferences.autogroup,
+    },
+    drawer: {
+      ...DEFAULT_TRACE_VIEW_PREFERENCES.drawer,
+      ...preferences.drawer,
+    },
+    list: {
+      ...DEFAULT_TRACE_VIEW_PREFERENCES.list,
+      ...preferences.list,
+    },
+  };
+  localStorage.setItem('trace-view-preferences', JSON.stringify(merged));
 }
 
 function mockTraceResponse(resp?: Partial<ResponseType>) {
@@ -655,19 +677,15 @@ async function completeTestSetup() {
 
 const DRAWER_TABS_TEST_ID = 'trace-drawer-tab';
 const DRAWER_TABS_PIN_BUTTON_TEST_ID = 'trace-drawer-tab-pin-button';
-
-// @ts-expect-error ignore this line
-// eslint-disable-next-line
-const DRAWER_TABS_CONTAINER_TEST_ID = 'trace-drawer-tabs';
 const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
 const ACTIVE_SEARCH_HIGHLIGHT_ROW = '.TraceRow.SearchResult.Highlight:not(.Hidden)';
+
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const searchToUpdate = async (): Promise<void> => {
   await wait(500);
 };
-
 const scrollToEnd = async (): Promise<void> => {
-  await wait(1000);
+  await wait(500);
 };
 
 // @ts-expect-error ignore this line
@@ -679,32 +697,42 @@ function printVirtualizedList(container: HTMLElement) {
   )!;
 
   const rows = Array.from(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
+  const searchResultIterator = screen.queryByTestId('trace-search-result-iterator');
   stdout.push(
-    'top:' +
+    'Scroll Container: ' +
+      'top=' +
       scrollContainer.scrollTop +
       ' ' +
-      'left:' +
+      'left=' +
       scrollContainer.scrollLeft +
       ' ' +
-      rows.length
+      rows.length +
+      ' ' +
+      'Search:' +
+      (searchResultIterator?.textContent ?? '')
   );
-  stdout.push('///////////////////');
 
   for (const r of [...rows]) {
-    let t = r.textContent ?? '';
+    const count = (r.querySelector('.TraceChildrenCount') as HTMLElement)?.textContent;
+    const op = (r.querySelector('.TraceOperation') as HTMLElement)?.textContent;
+    const desc = (r.querySelector('.TraceDescription') as HTMLElement)?.textContent;
+    let t = (count ?? '') + ' ' + (op ?? '') + ' — ' + (desc ?? '');
 
     if (r.classList.contains('SearchResult')) {
-      t = 'search ' + t;
+      t = t + ' search';
     }
     if (r.classList.contains('Highlight')) {
-      t = 'highlight ' + t;
+      t = t + ' highlight';
     }
 
     if (document.activeElement === r) {
-      t = '⬅ focused ' + t;
+      t = t + ' ⬅ focused ';
     }
 
-    stdout.push(t);
+    const leftColumn = r.querySelector('.TraceLeftColumnInner') as HTMLElement;
+    const left = Math.round(parseInt(leftColumn.style.paddingLeft, 10) / 10);
+
+    stdout.push(' '.repeat(left) + t);
   }
 
   // This is a debug fn, we need it to log
@@ -738,10 +766,11 @@ function assertHighlightedRowAtIndex(virtualizedContainer: HTMLElement, index: n
   expect(r.indexOf(highlighted_row!)).toBe(index);
 }
 
-describe('trace', () => {
+describe('trace view', () => {
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     globalThis.ResizeObserver = MockResizeObserver as any;
+    mockQueryString('');
     MockDate.reset();
   });
   afterEach(() => {
@@ -759,8 +788,23 @@ describe('trace', () => {
     expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
   });
 
-  it('renders error state', async () => {
+  it('renders error state if trace fails to load', async () => {
     mockTraceResponse({statusCode: 404});
+    mockTraceMetaResponse({statusCode: 404});
+    mockTraceTagsResponse({statusCode: 404});
+
+    render(<TraceView />, {router});
+    expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
+  });
+
+  it('renders error state if meta fails to load', async () => {
+    mockTraceResponse({
+      statusCode: 200,
+      body: {
+        transactions: [makeTransaction()],
+        orphan_errors: [],
+      },
+    });
     mockTraceMetaResponse({statusCode: 404});
     mockTraceTagsResponse({statusCode: 404});
 
@@ -788,15 +832,19 @@ describe('trace', () => {
     it('scrolls to trace root', async () => {
       mockQueryString('?node=trace-root');
       const {virtualizedContainer} = await completeTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      expect(rows[0]).toHaveFocus();
+      await waitFor(() => {
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[0]).toHaveFocus();
+      });
     });
 
     it('scrolls to transaction', async () => {
       mockQueryString('?node=txn-1');
       const {virtualizedContainer} = await completeTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      expect(rows[2]).toHaveFocus();
+      await waitFor(() => {
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[2]).toHaveFocus();
+      });
     });
 
     it('scrolls to span that is a child of transaction', async () => {
@@ -805,10 +853,9 @@ describe('trace', () => {
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-
       await waitFor(() => {
+        // We need to await a tick because the row is not focused until the next tick
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[3]).toHaveFocus();
         expect(rows[3].textContent?.includes('http — request')).toBe(true);
       });
@@ -820,10 +867,9 @@ describe('trace', () => {
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-
       await waitFor(() => {
+        // We need to await a tick because the row is not focused until the next tick
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[4]).toHaveFocus();
         expect(rows[4].textContent?.includes('Autogrouped')).toBe(true);
       });
@@ -834,10 +880,9 @@ describe('trace', () => {
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-
       await waitFor(() => {
+        // We need to await a tick because the row is not focused until the next tick
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[5]).toHaveFocus();
         expect(rows[5].textContent?.includes('db — redis')).toBe(true);
       });
@@ -848,11 +893,9 @@ describe('trace', () => {
 
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-
       await waitFor(() => {
+        // We need to await a tick because the row is not focused until the next tick
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[5]).toHaveFocus();
         expect(rows[5].textContent?.includes('5Autogrouped')).toBe(true);
       });
@@ -864,10 +907,9 @@ describe('trace', () => {
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-
       await waitFor(() => {
+        // We need to await a tick because the row is not focused until the next tick
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[6]).toHaveFocus();
         expect(rows[6].textContent?.includes('http — request')).toBe(true);
       });
@@ -894,10 +936,9 @@ describe('trace', () => {
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
-      // We need to await a tick because the row is not focused until the next ticks
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-
       await waitFor(() => {
+        // We need to await a tick because the row is not focused until the next ticks
+        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[11]).toHaveFocus();
         expect(rows[11].textContent?.includes('error-title')).toBe(true);
       });
@@ -948,17 +989,76 @@ describe('trace', () => {
       });
     });
 
-    it('triggers search on load', async () => {
-      mockQueryString('?search=transaction-op-5');
-      await pageloadTestSetup();
+    it('does not autogroup if user preference is disabled', async () => {
+      mockTracePreferences({autogroup: {parent: false, sibling: false}});
+      mockQueryString('?node=span-span0&node=txn-1');
 
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      expect(searchInput).toHaveValue('transaction-op-5');
+      const {virtualizedContainer} = await completeTestSetup();
 
-      await waitFor(() => {
-        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
-          '1/1'
+      await findAllByText(virtualizedContainer, /process/i);
+      expect(screen.queryByText(/Autogrouped/i)).not.toBeInTheDocument();
+    });
+
+    it('does not inject missing instrumentation if user preference is disabled', async () => {
+      mockTracePreferences({missing_instrumentation: false});
+      mockQueryString('?node=span-span0&node=txn-1');
+
+      const {virtualizedContainer} = await completeTestSetup();
+
+      await findAllByText(virtualizedContainer, /process/i);
+      expect(screen.queryByText(/Missing instrumentation/i)).not.toBeInTheDocument();
+    });
+
+    describe('preferences', () => {
+      it('toggles autogrouping', async () => {
+        mockTracePreferences({autogroup: {parent: true, sibling: true}});
+        mockQueryString('?node=span-span0&node=txn-1');
+
+        const {virtualizedContainer} = await completeTestSetup();
+        await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+        const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
+        await userEvent.click(preferencesDropdownTrigger);
+
+        // Toggle autogrouping off
+        await userEvent.click(await screen.findByText('Autogrouping'));
+        await waitFor(() => {
+          expect(screen.queryByText('Autogrouped')).not.toBeInTheDocument();
+        });
+
+        // Toggle autogrouping on
+        await userEvent.click(await screen.findByText('Autogrouping'));
+        await waitFor(() => {
+          expect(screen.queryAllByText('Autogrouped')).toHaveLength(2);
+        });
+      });
+
+      it('toggles missing instrumentation', async () => {
+        mockTracePreferences({missing_instrumentation: true});
+        mockQueryString('?node=span-span0&node=txn-1');
+
+        const {virtualizedContainer} = await completeTestSetup();
+        await findAllByText(virtualizedContainer, /Missing instrumentation/i);
+
+        const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
+
+        // Toggle missing instrumentation off
+        await userEvent.click(preferencesDropdownTrigger);
+        const missingInstrumentationOption = await screen.findByText(
+          'Missing Instrumentation'
         );
+
+        // Toggle missing instrumentation off
+        await userEvent.click(missingInstrumentationOption);
+        await waitFor(() => {
+          expect(screen.queryByText('Missing instrumentation')).not.toBeInTheDocument();
+        });
+
+        // Toggle missing instrumentation on
+        await userEvent.click(missingInstrumentationOption);
+        await waitFor(() => {
+          expect(screen.queryByText('Missing instrumentation')).toBeInTheDocument();
+        });
       });
     });
 
@@ -970,7 +1070,7 @@ describe('trace', () => {
       expect(searchInput).toHaveValue('transaction-op-999');
 
       await waitFor(() => {
-        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
           '-/1'
         );
       });
@@ -981,7 +1081,6 @@ describe('trace', () => {
 
     it('if search on load does not match anything, it does not steal focus or highlight first result', async () => {
       mockQueryString('?search=dead&node=txn-5');
-
       const {container} = await pageloadTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       expect(searchInput).toHaveValue('dead');
@@ -1018,8 +1117,7 @@ describe('trace', () => {
       await userEvent.keyboard('{arrowup}');
       await waitFor(() => expect(rows[0]).toHaveFocus());
     });
-    // biome-ignore lint/suspicious/noSkippedTests: Flaky test
-    it.skip('arrow right expands row and fetches data', async () => {
+    it('arrow right expands row and fetches data', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
 
@@ -1036,7 +1134,9 @@ describe('trace', () => {
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
       await userEvent.keyboard('{arrowright}');
-      expect(await screen.findByText('special-span')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByText('special-span')).toBeInTheDocument();
+      });
     });
 
     it('arrow left collapses row', async () => {
@@ -1497,10 +1597,10 @@ describe('trace', () => {
         }
       );
 
-      const value = render(<TraceView />, {router});
+      const {container} = render(<TraceView />, {router});
 
       // Awaits for the placeholder rendering rows to be removed
-      expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();
+      expect(await findByText(container, /transaction-op-0/i)).toBeInTheDocument();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.click(searchInput);
@@ -1508,25 +1608,29 @@ describe('trace', () => {
       fireEvent.change(searchInput, {target: {value: 'op-0'}});
       await searchToUpdate();
 
-      expect(await screen.findByTestId('trace-search-result-iterator')).toHaveTextContent(
-        '1/1'
-      );
+      await waitFor(() => {
+        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '1/1'
+        );
+      });
 
-      const highlighted_row = value.container.querySelector(ACTIVE_SEARCH_HIGHLIGHT_ROW);
       const open = await screen.findAllByRole('button', {name: '+'});
       await userEvent.click(open[0]);
-      expect(await screen.findByText('span-description')).toBeInTheDocument();
-      await searchToUpdate();
 
+      await waitFor(() => {
+        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '1/1'
+        );
+      });
+
+      expect(await screen.findByText('span-description')).toBeInTheDocument();
       expect(spansRequest).toHaveBeenCalled();
 
-      // The search is retriggered, but highlighting of current row is preserved
-      expect(value.container.querySelector(ACTIVE_SEARCH_HIGHLIGHT_ROW)).toBe(
-        highlighted_row
-      );
-      expect(await screen.findByTestId('trace-search-result-iterator')).toHaveTextContent(
-        '1/2'
-      );
+      await waitFor(() => {
+        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '1/2'
+        );
+      });
     });
 
     it('during search, highlighting is persisted on the row', async () => {

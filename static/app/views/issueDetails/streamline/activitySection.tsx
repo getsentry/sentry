@@ -49,7 +49,8 @@ function TimelineItem({
     teams
   );
 
-  const Icon = groupActivityTypeIconMapping[item.type]?.Component ?? null;
+  const iconMapping = groupActivityTypeIconMapping[item.type];
+  const Icon = iconMapping?.Component ?? null;
 
   return (
     <ActivityTimelineItem
@@ -66,7 +67,11 @@ function TimelineItem({
       timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
       icon={
         Icon && (
-          <Icon {...groupActivityTypeIconMapping[item.type].defaultProps} size="xs" />
+          <Icon
+            {...iconMapping.defaultProps}
+            {...iconMapping.propsFunction?.(item.data)}
+            size="xs"
+          />
         )
       }
     >
