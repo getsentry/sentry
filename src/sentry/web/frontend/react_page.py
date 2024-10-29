@@ -71,12 +71,7 @@ class ReactMixin:
 
     def preconnect(self) -> list[str]:
         preconnects = []
-        if (
-            # In dev (and possibly other configs), STATIC_HOST is not set, not checking for it would result in
-            # preconnects to the server we are already receiving the response from.
-            getattr(settings, "STATIC_ORIGIN", None)
-            is not None
-        ):
+        if settings.STATIC_ORIGIN is not None:
             preconnects.append(settings.STATIC_ORIGIN)
         return preconnects
 
