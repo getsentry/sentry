@@ -74,7 +74,7 @@ export default function useSuspectFlags({
   const {data, isError, isPending} = apiQueryResponse;
 
   // remove duplicate flags - keeps the one closest to the firstSeen date
-  // TODO: cap the number of suspect flags to 3
+  // cap the number of suspect flags to the 3 closest to the firstSeen date
   const suspectFlags = useMemo(() => {
     return data
       ? data.data
@@ -83,6 +83,7 @@ export default function useSuspectFlags({
             (rawFlag, idx, rawFlagArray) =>
               idx === rawFlagArray.findIndex(f => f.flag === rawFlag.flag)
           )
+          .slice(0, 3)
       : [];
   }, [data]);
 
