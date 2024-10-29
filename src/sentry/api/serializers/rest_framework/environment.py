@@ -19,3 +19,7 @@ class EnvironmentField(serializers.Field):
         except Environment.DoesNotExist:
             raise ValidationError("Environment is not part of this organization")
         return environment
+
+
+class EnvironmentSerializer(serializers.Serializer):
+    isHidden = serializers.BooleanField()

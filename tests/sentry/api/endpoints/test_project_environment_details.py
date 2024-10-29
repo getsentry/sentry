@@ -68,6 +68,9 @@ class ProjectEnvironmentsTest(APITestCase):
                 "environment": "production",
             },
         )
+        response = self.client.put(url, {}, format="json")
+        assert response.status_code == 400, response.content
+
         response = self.client.put(url, {"isHidden": True}, format="json")
         assert response.status_code == 200, response.content
 

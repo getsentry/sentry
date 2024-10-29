@@ -9,6 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.environment import EnvironmentProjectSerializer
+from sentry.api.serializers.rest_framework.environment import EnvironmentSerializer
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -20,7 +21,7 @@ from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
 from sentry.models.environment import Environment, EnvironmentProject
 
 
-class ProjectEnvironmentSerializer(serializers.Serializer):
+class ProjectEnvironmentDetailsPutSerializer(serializers.Serializer):
     isHidden = serializers.BooleanField(
         help_text="Specify `true` to make the environment visible or `false` to make the environment hidden."
     )
@@ -70,7 +71,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
             EnvironmentParams.ENVIRONMENT,
         ],
-        request=ProjectEnvironmentSerializer,
+        request=ProjectEnvironmentDetailsPutSerializer,
         responses={
             200: EnvironmentProjectSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -92,7 +93,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         except EnvironmentProject.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = EnvironmentProjectSerializer(data=request.data, partial=True)
+        serializer = EnvironmentSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
