@@ -34,6 +34,10 @@ describe('EventGraph', () => {
       body: TagsFixture(),
       method: 'GET',
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [],
+    });
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
       {
