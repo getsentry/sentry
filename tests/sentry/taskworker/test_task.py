@@ -1,8 +1,6 @@
 import logging
-from datetime import timedelta
 
 import pytest
-from django.utils import timezone
 
 from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import Retry, RetryError
@@ -24,30 +22,15 @@ def task_namespace() -> TaskNamespace:
 
 def test_define_task_defaults(task_namespace: TaskNamespace) -> None:
     task = Task(name="test.do_things", func=do_things, namespace=task_namespace, retry=None)
-    assert task.deadline_timestamp is None
     assert task.retry is None
     assert not task.idempotent
     assert task.name == "test.do_things"
 
 
-def test_define_task_retry_and_deadline(task_namespace: TaskNamespace) -> None:
+def test_define_task_retry(task_namespace: TaskNamespace) -> None:
     retry = Retry(times=3, deadletter=True)
-    task = Task(
-        name="test.do_things", func=do_things, namespace=task_namespace, retry=retry, deadline=600
-    )
+    task = Task(name="test.do_things", func=do_things, namespace=task_namespace, retry=retry)
     assert task.retry == retry
-    assert task.deadline_timestamp is not None
-    assert task.deadline_timestamp <= int((timezone.now() + timedelta(seconds=600)).timestamp())
-
-    task = Task(
-        name="test.do_things_delta",
-        func=do_things,
-        namespace=task_namespace,
-        retry=retry,
-        deadline=timedelta(minutes=10),
-    )
-    assert task.deadline_timestamp is not None
-    assert task.deadline_timestamp <= int((timezone.now() + timedelta(minutes=10)).timestamp())
 
 
 def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:

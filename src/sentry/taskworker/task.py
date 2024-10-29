@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import timedelta
 from functools import update_wrapper
 from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 from uuid import uuid4
@@ -30,14 +29,13 @@ class Task(Generic[P, R]):
         namespace: TaskNamespace,
         retry: Retry | None,
         idempotent: bool = False,
-        deadline: timedelta | int | None = None,
     ):
+        # TODO(taskworker) Implement task execution deadlines
         self.name = name
         self._func = func
         self._namespace = namespace
         self._retry = retry
         self._idempotent = idempotent
-        self._deadline = deadline
         update_wrapper(self, func)
 
     @property
@@ -46,18 +44,7 @@ class Task(Generic[P, R]):
 
     @property
     def idempotent(self) -> bool:
-        return self._idempotent or False
-
-    @property
-    def deadline_timestamp(self) -> int | None:
-        # TODO add namespace/default deadlines
-        if not self._deadline:
-            return None
-        if isinstance(self._deadline, int):
-            return int(timezone.now().timestamp() + self._deadline)
-        if isinstance(self._deadline, timedelta):
-            return int(timezone.now().timestamp() + self._deadline.total_seconds())
-        raise ValueError(f"unknown type for Task.deadline {self._deadline}")
+        return self._idempotent
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
         return self._func(*args, **kwargs)

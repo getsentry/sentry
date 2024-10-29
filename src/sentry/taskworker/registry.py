@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from datetime import timedelta
 from functools import cached_property
-from typing import Any, ParamSpec, TypeVar
+from typing import Any
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
@@ -12,13 +11,10 @@ from sentry_protos.sentry.v1.taskworker_pb2 import TaskActivation
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.retry import Retry
-from sentry.taskworker.task import Task
+from sentry.taskworker.task import P, R, Task
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 
 class TaskNamespace:
@@ -60,18 +56,17 @@ class TaskNamespace:
         *,
         name: str,
         idempotent: bool = False,
-        deadline: timedelta | int | None = None,
         retry: Retry | None = None,
     ) -> Callable[[Callable[P, R]], Task[P, R]]:
         """register a task, used as a decorator"""
 
         def wrapped(func: Callable[P, R]) -> Task[P, R]:
+            # TODO(taskworker) Implement task deadlines
             task = Task(
                 name=name,
                 func=func,
                 namespace=self,
                 idempotent=idempotent,
-                deadline=deadline,
                 retry=retry or self.default_retry,
             )
             # TODO(taskworker) tasks should be registered into the registry
