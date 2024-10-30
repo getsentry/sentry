@@ -34,10 +34,8 @@ function mergeTasks({
 export function useOnboardingTasks({
   supportedTasks,
   enabled,
-  refetchInterval,
 }: {
   enabled: boolean;
-  refetchInterval: '10s' | '1s';
   supportedTasks: OnboardingTask[];
 }): {
   allTasks: OnboardingTask[];
@@ -62,13 +60,7 @@ export function useOnboardingTasks({
       const serverCompletedTasks = (data as OnboardingTask[]).filter(findCompleteTasks);
 
       // Stop polling if all tasks are complete
-      return serverCompletedTasks.length === supportedTasks.length
-        ? false
-        : refetchInterval === '10s'
-          ? // We want to avoid refetching too frequently when the sidebar is closed,
-            // as it could overload our server
-            10000 // 10s
-          : 1000; // 1s
+      return serverCompletedTasks.length === supportedTasks.length ? false : 1000; // 1s
     },
   });
 
