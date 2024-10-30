@@ -190,6 +190,13 @@ export default function MetricDetailsBody({
           </StyledAlert>
         </StyledLayoutBody>
       )}
+      {selectedIncident?.alertRule.detectionType === AlertRuleComparisonType.DYNAMIC && (
+        <StyledLayoutBody>
+          <StyledAlert type="info" showIcon>
+            {t('Friends, Romans, countrymen, lend me your ears.')}
+          </StyledAlert>
+        </StyledLayoutBody>
+      )}
       <Layout.Body>
         <Layout.Main>
           {isSnoozed && (
