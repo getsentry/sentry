@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import capture_exception
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -52,7 +53,8 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
                     project=data["project"],
                     identifier=data["identifier"],
                 ).run()
-            except Exception:
+            except Exception as e:
+                capture_exception(e)
                 return Response(
                     {"error": "An issue occured while trying to create external issue"}, status=500
                 )

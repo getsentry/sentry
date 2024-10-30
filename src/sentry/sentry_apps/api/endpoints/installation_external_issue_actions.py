@@ -2,6 +2,7 @@ from django.utils.functional import empty
 from jsonschema import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import capture_exception
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -75,7 +76,8 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
             ).run()
         except (APIError, ValidationError, APIUnauthorized) as e:
             return Response({"error": str(e)}, status=400)
-        except Exception:
+        except Exception as e:
+            capture_exception(e)
             return Response(
                 {"error": "Something went wrong while trying to link issue"}, status=500
             )
