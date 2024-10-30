@@ -17,6 +17,7 @@ export const TIME_OPTIONS: SelectValue<string>[] = [
   {label: t('Last 3 days'), value: TimePeriod.THREE_DAYS},
   {label: t('Last 7 days'), value: TimePeriod.SEVEN_DAYS},
   {label: t('Last 14 days'), value: TimePeriod.FOURTEEN_DAYS},
+  {label: t('Last 28 days'), value: TimePeriod.TWENTY_EIGHT_DAYS},
 ];
 
 export const TIME_WINDOWS = {
@@ -25,9 +26,9 @@ export const TIME_WINDOWS = {
   [TimePeriod.THREE_DAYS]: TimeWindow.ONE_DAY * 3 * 60 * 1000,
   [TimePeriod.SEVEN_DAYS]: TimeWindow.ONE_DAY * 7 * 60 * 1000,
   [TimePeriod.FOURTEEN_DAYS]: TimeWindow.ONE_DAY * 14 * 60 * 1000,
+  [TimePeriod.TWENTY_EIGHT_DAYS]: TimeWindow.ONE_DAY * 28 * 60 * 1000,
 };
 
-export const SELECTOR_DEFAULT_PERIOD = TimePeriod.FOURTEEN_DAYS;
 export const API_INTERVAL_POINTS_LIMIT = 10000;
 export const API_INTERVAL_POINTS_MIN = 150;
 
