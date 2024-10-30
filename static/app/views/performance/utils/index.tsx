@@ -188,7 +188,7 @@ export function isSummaryViewFrontend(eventView: EventView, projects: Project[])
 }
 
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
-  return getPerformanceBaseUrl(organization.slug);
+  return `${getPerformanceBaseUrl(organization.slug)}/`;
 }
 
 export function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
