@@ -1,14 +1,14 @@
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models.base import DefaultFieldsModelExisting, region_silo_model
+from sentry.db.models.base import DefaultFieldsModel, region_silo_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
 @region_silo_model
-class RollbackOrganizationData(DefaultFieldsModelExisting):
+class RollbackOrganization(DefaultFieldsModel):
     """
-    A model for storing organization data by year for rollback purposes
+    Stores a summary of every organization's year-in-review information to power the 2024 Sentry Rollback.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -18,4 +18,4 @@ class RollbackOrganizationData(DefaultFieldsModelExisting):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_rollbackorganizationdata"
+        db_table = "sentry_rollbackorganization"
