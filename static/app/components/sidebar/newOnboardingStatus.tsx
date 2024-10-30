@@ -42,7 +42,6 @@ export function NewOnboardingStatus({
   const {projects} = useProjects();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const hasMarkedUnseenTasksAsComplete = useRef(false);
-  const hasQuickStartBeenCompleted = useRef(false);
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
   const walkthrough = isDemoWalkthrough();
@@ -65,6 +64,10 @@ export function NewOnboardingStatus({
   const label = walkthrough ? t('Guided Tours') : t('Onboarding');
   const totalRemainingTasks = allTasks.length - doneTasks.length;
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
+
+  const skipQuickStart =
+    !organization.features?.includes('onboarding') ||
+    (totalRemainingTasks === 0 && !isActive);
 
   const unseenDoneTasks = useMemo(
     () =>
@@ -97,7 +100,7 @@ export function NewOnboardingStatus({
   }, [onShowPanel, isActive, walkthrough, markDoneTaskAsComplete, organization]);
 
   useEffect(() => {
-    if (totalRemainingTasks !== 0 || hasQuickStartBeenCompleted.current) {
+    if (totalRemainingTasks !== 0 || skipQuickStart) {
       return;
     }
 
@@ -106,9 +109,7 @@ export function NewOnboardingStatus({
       referrer: 'onboarding_sidebar',
       new_experience: true,
     });
-
-    hasQuickStartBeenCompleted.current = true;
-  }, [isActive, totalRemainingTasks, organization]);
+  }, [isActive, totalRemainingTasks, organization, skipQuickStart]);
 
   useEffect(() => {
     if (pendingCompletionSeen && isActive && !hasMarkedUnseenTasksAsComplete.current) {
@@ -121,10 +122,7 @@ export function NewOnboardingStatus({
     }
   }, [isActive, pendingCompletionSeen, markDoneTaskAsComplete]);
 
-  if (
-    !organization.features?.includes('onboarding') ||
-    (totalRemainingTasks === 0 && !isActive)
-  ) {
+  if (skipQuickStart) {
     return null;
   }
 
