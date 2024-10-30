@@ -7,7 +7,6 @@ import type {Client} from 'sentry/api';
 import type {BadgeProps} from 'sentry/components/badge/badge';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {LazyRender} from 'sentry/components/lazyRender';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -72,7 +71,6 @@ type Props = WithRouterProps & {
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
-  noLazyLoad?: boolean;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -117,7 +115,6 @@ function WidgetCard(props: Props) {
     renderErrorMessage,
     tableItemLimit,
     windowWidth,
-    noLazyLoad,
     dashboardFilters,
     isWidgetInvalid,
     location,
@@ -226,28 +223,6 @@ function WidgetCard(props: Props) {
       )
     : [];
 
-  const visualization = (
-    <WidgetCardChartContainer
-      location={location}
-      api={api}
-      organization={organization}
-      selection={selection}
-      widget={widget}
-      isMobile={isMobile}
-      renderErrorMessage={renderErrorMessage}
-      tableItemLimit={tableItemLimit}
-      windowWidth={windowWidth}
-      onDataFetched={onDataFetched}
-      dashboardFilters={dashboardFilters}
-      chartGroup={DASHBOARD_CHART_GROUP}
-      onWidgetSplitDecision={onWidgetSplitDecision}
-      shouldResize={shouldResize}
-      onLegendSelectChanged={onLegendSelectChanged}
-      legendOptions={legendOptions}
-      widgetLegendState={widgetLegendState}
-    />
-  );
-
   return (
     <ErrorBoundary
       customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -276,12 +251,26 @@ function WidgetCard(props: Props) {
                 <IconWarning color="gray500" size="lg" />
               </StyledErrorPanel>
             </Fragment>
-          ) : noLazyLoad ? (
-            visualization
           ) : (
-            <LazyRender containerHeight={200} withoutContainer>
-              {visualization}
-            </LazyRender>
+            <WidgetCardChartContainer
+              location={location}
+              api={api}
+              organization={organization}
+              selection={selection}
+              widget={widget}
+              isMobile={isMobile}
+              renderErrorMessage={renderErrorMessage}
+              tableItemLimit={tableItemLimit}
+              windowWidth={windowWidth}
+              onDataFetched={onDataFetched}
+              dashboardFilters={dashboardFilters}
+              chartGroup={DASHBOARD_CHART_GROUP}
+              onWidgetSplitDecision={onWidgetSplitDecision}
+              shouldResize={shouldResize}
+              onLegendSelectChanged={onLegendSelectChanged}
+              legendOptions={legendOptions}
+              widgetLegendState={widgetLegendState}
+            />
           )}
         </WidgetFrame>
       </VisuallyCompleteWithData>

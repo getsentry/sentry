@@ -29,9 +29,6 @@ import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
 jest.mock('sentry/components/charts/simpleTableChart', () => jest.fn(() => <div />));
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
-jest.mock('sentry/components/lazyRender', () => ({
-  LazyRender: ({children}: {children: React.ReactNode}) => children,
-}));
 
 describe('Dashboards > WidgetCard', function () {
   const {router, organization} = initializeOrg({

@@ -1,6 +1,7 @@
 import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
+import {LazyRender} from 'sentry/components/lazyRender';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 
@@ -72,15 +73,17 @@ function SortableWidget(props: Props) {
   return (
     <GridWidgetWrapper>
       <DashboardsMEPProvider>
-        <WidgetCard {...widgetProps} />
-        {props.isEditingDashboard && (
-          <Toolbar
-            onEdit={props.onEdit}
-            onDelete={props.onDelete}
-            onDuplicate={props.onDuplicate}
-            isMobile={props.isMobile}
-          />
-        )}
+        <LazyRender containerHeight={200} withoutContainer>
+          <WidgetCard {...widgetProps} />
+          {props.isEditingDashboard && (
+            <Toolbar
+              onEdit={props.onEdit}
+              onDelete={props.onDelete}
+              onDuplicate={props.onDuplicate}
+              isMobile={props.isMobile}
+            />
+          )}
+        </LazyRender>
       </DashboardsMEPProvider>
     </GridWidgetWrapper>
   );
