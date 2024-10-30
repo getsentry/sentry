@@ -27,7 +27,7 @@ export default function IssuesPanel() {
         setSearchTerm(transactionToSearchTerm(options.name));
       });
     }
-    return () => {}
+    return () => {};
   }, [client]);
 
   // Fetch issues based on the updated transaction name
