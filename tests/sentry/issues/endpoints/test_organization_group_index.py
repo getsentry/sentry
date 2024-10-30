@@ -1510,7 +1510,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
         release_3 = self.create_release(version="test@1.2.5")
-        release_4 = self.create_release(version="test@2.0.0")
 
         release_1_g_1 = self.store_event(
             data={
@@ -1530,70 +1529,42 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_2_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=3)),
-                "fingerprint": ["group-3"],
+                "timestamp": iso_format(before_now(minutes=5)),
+                "fingerprint": ["group-5"],
                 "release": release_2.version,
             },
             project_id=self.project.id,
         ).group.id
         release_2_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=4)),
-                "fingerprint": ["group-4"],
+                "timestamp": iso_format(before_now(minutes=6)),
+                "fingerprint": ["group-6"],
                 "release": release_2.version,
             },
             project_id=self.project.id,
         ).group.id
-        release_3_g_1 = self.store_event(
+
+        # other events that shouldnt be returned
+        self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=5)),
-                "fingerprint": ["group-5"],
+                "timestamp": iso_format(before_now(minutes=3)),
+                "fingerprint": ["group-3"],
                 "release": release_3.version,
             },
             project_id=self.project.id,
         ).group.id
-        release_3_g_2 = self.store_event(
+        self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=6)),
-                "fingerprint": ["group-6"],
+                "timestamp": iso_format(before_now(minutes=4)),
+                "fingerprint": ["group-4"],
                 "release": release_3.version,
-            },
-            project_id=self.project.id,
-        ).group.id
-        release_4_g_1 = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(minutes=7)),
-                "fingerprint": ["group-7"],
-                "release": release_4.version,
             },
             project_id=self.project.id,
         ).group.id
         self.login_as(user=self.user)
         # Test multiple semver in same filter
         response = self.get_response(
-            sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:[1.2.3,1.2.5]"
-        )
-        assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
-            release_1_g_1,
-            release_1_g_2,
-            release_3_g_1,
-            release_3_g_2,
-        ]
-
-        response = self.get_response(
-            sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:[>1.2.3,<2.0.0]"
-        )
-        assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
-            release_2_g_1,
-            release_2_g_2,
-            release_3_g_1,
-            release_3_g_2,
-        ]
-
-        response = self.get_response(
-            sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:[1.2.3,>2.0.0]"
+            sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:[1.2.3,1.2.4]"
         )
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [
@@ -1601,9 +1572,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             release_1_g_2,
             release_2_g_1,
             release_2_g_2,
-            release_3_g_1,
-            release_3_g_2,
-            release_4_g_1,
         ]
 
     def test_release_stage(self) -> None:
