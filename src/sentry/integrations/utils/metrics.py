@@ -24,12 +24,6 @@ class EventLifecycleOutcome(Enum):
         return self.value.lower()
 
 
-@dataclass(frozen=True, eq=True)
-class MetricId:
-    key: str
-    tags: Mapping[str, str]
-
-
 class EventLifecycleMetric(ABC):
     """Information about an event to be measured.
 
@@ -40,8 +34,13 @@ class EventLifecycleMetric(ABC):
     """
 
     @abstractmethod
-    def get_metric_id(self, outcome: EventLifecycleOutcome) -> MetricId:
-        """Construct the metrics key and tags that will represent this event."""
+    def get_metric_key(self, outcome: EventLifecycleOutcome) -> str:
+        """Get the metrics key that will identify this event."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_metric_tags(self) -> Mapping[str, str]:
+        """Get the metrics tags that will identify this event along with the key."""
         raise NotImplementedError
 
     def get_extras(self) -> Mapping[str, Any]:
@@ -88,16 +87,16 @@ class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
 
         raise NotImplementedError
 
-    def get_metric_id(self, outcome: EventLifecycleOutcome) -> MetricId:
-        """Construct the metrics key and tags that will represent this event."""
+    def get_metric_key(self, outcome: EventLifecycleOutcome) -> str:
+        tokens = ("integrations", self.get_metrics_domain(), str(outcome))
+        return ".".join(tokens)
 
-        key = ".".join(("integrations", self.get_metrics_domain(), str(outcome)))
-        tags = {
+    def get_metric_tags(self) -> Mapping[str, str]:
+        return {
             "integration_domain": self.get_integration_domain(),
             "integration_name": self.get_integration_name(),
             "interaction_type": self.get_interaction_type(),
         }
-        return MetricId(key, tags)
 
 
 class EventLifecycle:
@@ -134,17 +133,18 @@ class EventLifecycle:
         only by the other "record" methods.
         """
 
-        metric_id = self.payload.get_metric_id(outcome)
+        key = self.payload.get_metric_key(outcome)
+        tags = self.payload.get_metric_tags()
 
         sample_rate = (
             1.0 if outcome == EventLifecycleOutcome.FAILURE else settings.SENTRY_METRICS_SAMPLE_RATE
         )
-        metrics.incr(metric_id.key, tags=metric_id.tags, sample_rate=sample_rate)
+        metrics.incr(key, tags=tags, sample_rate=sample_rate)
 
         if outcome == EventLifecycleOutcome.FAILURE:
             extra = dict(self._extra)
-            extra.update(metric_id.tags)
-            logger.error(metric_id.key, extra=self._extra, exc_info=exc)
+            extra.update(tags)
+            logger.error(key, extra=self._extra, exc_info=exc)
 
     @staticmethod
     def _report_flow_error(message) -> None:
