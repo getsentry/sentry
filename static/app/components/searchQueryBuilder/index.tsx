@@ -83,10 +83,6 @@ export interface SearchQueryBuilderProps {
    */
   filterKeySections?: FilterKeySection[];
   /**
-   * When true, the clear query button will be hidden when the query is empty.
-   */
-  hideClearWhenEmpty?: boolean;
-  /**
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
@@ -147,32 +143,33 @@ function SearchIndicator({
   );
 }
 
-const ActionButtons = forwardRef<
-  HTMLDivElement,
-  {hideClearWhenEmpty?: boolean; trailingItems?: React.ReactNode}
->(({trailingItems = null, hideClearWhenEmpty = false}, ref) => {
-  const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
+const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNode}>(
+  ({trailingItems = null}, ref) => {
+    const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
 
-  if (disabled || (hideClearWhenEmpty && query === '')) {
-    return null;
+    if (disabled) {
+      return null;
+    }
+
+    return (
+      <ButtonsWrapper ref={ref}>
+        {trailingItems}
+        {query === '' ? null : (
+          <ActionButton
+            aria-label={t('Clear search query')}
+            size="zero"
+            icon={<IconClose />}
+            borderless
+            onClick={() => {
+              dispatch({type: 'CLEAR'});
+              handleSearch('');
+            }}
+          />
+        )}
+      </ButtonsWrapper>
+    );
   }
-
-  return (
-    <ButtonsWrapper ref={ref}>
-      {trailingItems}
-      <ActionButton
-        aria-label={t('Clear search query')}
-        size="zero"
-        icon={<IconClose />}
-        borderless
-        onClick={() => {
-          dispatch({type: 'CLEAR'});
-          handleSearch('');
-        }}
-      />
-    </ButtonsWrapper>
-  );
-});
+);
 
 export function SearchQueryBuilder({
   className,
@@ -192,7 +189,6 @@ export function SearchQueryBuilder({
   onChange,
   onSearch,
   onBlur,
-  hideClearWhenEmpty = false,
   placeholder,
   queryInterface = QueryInterfaceType.TOKENIZED,
   recentSearches,
@@ -311,11 +307,7 @@ export function SearchQueryBuilder({
             <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
           )}
           {size !== 'small' && (
-            <ActionButtons
-              ref={actionBarRef}
-              trailingItems={trailingItems}
-              hideClearWhenEmpty={hideClearWhenEmpty}
-            />
+            <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
           )}
         </PanelProvider>
       </Wrapper>

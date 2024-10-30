@@ -224,13 +224,7 @@ describe('SearchQueryBuilder', function () {
 
     it('is hidden if the prop is specified and text is empty', async function () {
       const mockOnChange = jest.fn();
-      render(
-        <SearchQueryBuilder
-          {...defaultProps}
-          onChange={mockOnChange}
-          hideClearWhenEmpty
-        />
-      );
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
       await screen.findByRole('combobox', {name: 'Add a search term'});
 
       expect(
