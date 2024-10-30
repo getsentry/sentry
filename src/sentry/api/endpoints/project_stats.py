@@ -22,9 +22,6 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
         Retrieve Event Counts for a Project
         ```````````````````````````````````
 
-        .. caution::
-           This endpoint may change in the future without notice.
-
         Return a set of points representing a normalized timestamp and the
         number of events seen in the period.
 
