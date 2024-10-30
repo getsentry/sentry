@@ -35,15 +35,13 @@ export function PageloadModule() {
   const onboardingProject = useOnboardingProject();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
   const {isInDomainView} = useDomainViewFilters();
-  const shouldShowDomainViewHeader =
-    organization.features.includes('insights-domain-view') && isInDomainView;
 
   const crumbs = useModuleBreadcrumbs('screen_load');
 
   return (
     <Layout.Page>
       <PageAlertProvider>
-        {!shouldShowDomainViewHeader && (
+        {!isInDomainView && (
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs crumbs={crumbs} />
@@ -66,7 +64,7 @@ export function PageloadModule() {
           </Layout.Header>
         )}
 
-        {shouldShowDomainViewHeader && (
+        {isInDomainView && (
           <MobileHeader
             module={ModuleName.SCREEN_LOAD}
             headerTitle={

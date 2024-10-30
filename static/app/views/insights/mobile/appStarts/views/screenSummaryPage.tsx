@@ -58,15 +58,13 @@ export function ScreenSummary() {
   const organization = useOrganization();
   const crumbs = useModuleBreadcrumbs('app_start');
   const {isInDomainView} = useDomainViewFilters();
-  const shouldShowDomainViewHeader =
-    organization.features.includes('insights-domain-view') && isInDomainView;
 
   const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
 
   return (
     <Layout.Page>
       <PageAlertProvider>
-        {!shouldShowDomainViewHeader && (
+        {!isInDomainView && (
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs
@@ -81,7 +79,7 @@ export function ScreenSummary() {
             </Layout.HeaderContent>
           </Layout.Header>
         )}
-        {shouldShowDomainViewHeader && (
+        {isInDomainView && (
           <MobileHeader
             hideDefaultTabs={isMobileScreensEnabled}
             module={

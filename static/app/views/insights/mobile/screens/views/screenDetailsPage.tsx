@@ -44,8 +44,6 @@ export function ScreenDetailsPage() {
   const location: Location = useLocation<Query>();
   const organization = useOrganization();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
-  const shouldShowDomainViewHeader =
-    organization.features.includes('insights-domain-view') && isInDomainView;
 
   const {transaction: transactionName} = location.query;
   const moduleName = ModuleName.MOBILE_SCREENS;
@@ -122,7 +120,7 @@ export function ScreenDetailsPage() {
       <Layout.Page>
         <PageAlertProvider>
           <Tabs value={selectedTabKey} onChange={tabKey => handleTabChange(tabKey)}>
-            {!shouldShowDomainViewHeader && (
+            {!isInDomainView && (
               <Layout.Header>
                 <Layout.HeaderContent style={{margin: 0}}>
                   <Breadcrumbs crumbs={crumbs} />
@@ -137,7 +135,7 @@ export function ScreenDetailsPage() {
               </Layout.Header>
             )}
 
-            {shouldShowDomainViewHeader && (
+            {isInDomainView && (
               <MobileHeader
                 module={ModuleName.MOBILE_SCREENS}
                 hideDefaultTabs

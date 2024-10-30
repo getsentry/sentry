@@ -60,8 +60,6 @@ export function ScreensLandingPage() {
   const location = useLocation();
   const organization = useOrganization();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
-  const shouldShowDomainViewHeader =
-    organization.features.includes('insights-domain-view') && isInDomainView;
 
   const handleProjectChange = useCallback(() => {
     browserHistory.replace({
@@ -296,7 +294,7 @@ export function ScreensLandingPage() {
     <ModulePageProviders moduleName="mobile-screens" features={[MODULE_FEATURE]}>
       <Layout.Page>
         <PageAlertProvider>
-          {!shouldShowDomainViewHeader && (
+          {!isInDomainView && (
             <Layout.Header>
               <Layout.HeaderContent>
                 <Breadcrumbs crumbs={crumbs} />
@@ -316,7 +314,7 @@ export function ScreensLandingPage() {
               </Layout.HeaderActions>
             </Layout.Header>
           )}
-          {shouldShowDomainViewHeader && (
+          {isInDomainView && (
             <MobileHeader
               headerTitle={
                 <Fragment>

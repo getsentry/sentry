@@ -12,7 +12,6 @@ import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
@@ -43,9 +42,6 @@ export default function ScreensTemplate({
   const location = useLocation();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
   const {isInDomainView} = useDomainViewFilters();
-  const organization = useOrganization();
-  const shouldShowDomainViewHeader =
-    organization.features.includes('insights-domain-view') && isInDomainView;
 
   const handleProjectChange = useCallback(() => {
     browserHistory.replace({
@@ -61,7 +57,7 @@ export default function ScreensTemplate({
   return (
     <Layout.Page>
       <PageAlertProvider>
-        {!shouldShowDomainViewHeader && (
+        {!isInDomainView && (
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs crumbs={crumbs} />
@@ -82,7 +78,7 @@ export default function ScreensTemplate({
           </Layout.Header>
         )}
 
-        {shouldShowDomainViewHeader && (
+        {isInDomainView && (
           <MobileHeader
             headerTitle={
               <Fragment>
