@@ -34,7 +34,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self.__commit = CommitOffsets(commit_function)
         self.__closed = False
         self.__produced_message_offsets: MutableMapping[Partition, int] = {}
-        self.__produced_message_ts = datetime.datetime | None
+        self.__produced_message_ts: datetime.datetime | None = None
         # TODO: Need to make these flags
         self.__producer_queue_max_size = 80000
         self.__producer_long_poll_timeout = 3.0
