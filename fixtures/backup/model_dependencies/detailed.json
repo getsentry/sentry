@@ -5333,7 +5333,7 @@
       ]
     ]
   },
-  "sentry.rollbackorganizationdata": {
+  "sentry.rollbackorganization": {
     "dangling": false,
     "foreign_keys": {
       "organization": {
@@ -5342,16 +5342,16 @@
         "nullable": false
       }
     },
-    "model": "sentry.rollbackorganizationdata",
+    "model": "sentry.rollbackorganization",
     "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
-    "table_name": "sentry_rollbackorganizationdata",
+    "table_name": "sentry_rollbackorganization",
     "uniques": []
   },
-  "sentry.rollbackuserdata": {
+  "sentry.rollbackuser": {
     "dangling": false,
     "foreign_keys": {
       "organization": {
@@ -5365,23 +5365,17 @@
         "nullable": false
       }
     },
-    "model": "sentry.rollbackuserdata",
+    "model": "sentry.rollbackuser",
     "relocation_dependencies": [],
     "relocation_scope": "Excluded",
     "silos": [
       "Region"
     ],
-    "table_name": "sentry_rollbackuserdata",
+    "table_name": "sentry_rollbackuser",
     "uniques": [
       [
         "organization_id",
         "user_id"
-      ],
-      [
-        "share_uuid"
-      ],
-      [
-        "uuid"
       ]
     ]
   },

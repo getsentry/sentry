@@ -96,8 +96,6 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.rollbackorganizationdata import RollbackOrganizationData
-from sentry.models.rollbackuserdata import RollbackUserData
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
@@ -620,15 +618,6 @@ class ExhaustiveFixtures(Fixtures):
             access_start=timezone.now(),
             access_end=timezone.now() + timedelta(days=1),
         )
-
-        # Rollback*
-        RollbackUserData.objects.create(
-            user_id=owner_id,
-            organization=org,
-            data={"fruit": "grape"},
-            share_data={"fruit": "apple"},
-        )
-        RollbackOrganizationData.objects.create(organization=org, data={"fruit": "pineapple"})
 
         # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)
