@@ -91,15 +91,9 @@ class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
     def get_metric_id(self, outcome: EventLifecycleOutcome) -> MetricId:
         """Construct the metrics key and tags that will represent this event."""
 
-        key_tokens = (
-            "sentry",
-            "integrations",
-            self.get_metrics_domain(),
-            self.get_integration_domain(),
-            outcome,
-        )
-        key = ".".join(str(token for token in key_tokens))
+        key = ".".join(("integrations", self.get_metrics_domain(), str(outcome)))
         tags = {
+            "integration_domain": self.get_integration_domain(),
             "integration_name": self.get_integration_name(),
             "interaction_type": self.get_interaction_type(),
         }
