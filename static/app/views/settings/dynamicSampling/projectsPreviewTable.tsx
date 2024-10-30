@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
@@ -75,9 +76,8 @@ export function ProjectsPreviewTable({period}: Props) {
       isLoading={isPending}
       headers={[
         t('Project'),
-        t('Spans'),
         <SortableHeader key="spans" onClick={handleTableSort}>
-          {t('Total Spans')}
+          {t('Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
         t('Projected Rate'),
@@ -110,36 +110,58 @@ interface SubProject {
   slug: string;
 }
 
-function getSubProjectContent(subProjects: SubProject[], isExpanded: boolean) {
+function getSubProjectContent(
+  ownSlug: string,
+  subProjects: SubProject[],
+  isExpanded: boolean
+) {
   let subProjectContent: React.ReactNode = t('No distributed traces');
-  if (subProjects.length > 0) {
+  if (subProjects.length > 1) {
     const truncatedSubProjects = subProjects.slice(0, MAX_PROJECTS_COLLAPSED);
-    const overflowingProjects = subProjects.length - MAX_PROJECTS_COLLAPSED;
+    const overflowCount = subProjects.length - MAX_PROJECTS_COLLAPSED;
+    const moreTranslation = t('+%d more', overflowCount);
     const stringifiedSubProjects =
-      truncatedSubProjects.map(p => p.slug).join(', ') +
-      (overflowingProjects > 0 ? `, +${overflowingProjects} more` : '');
+      overflowCount > 0
+        ? `${truncatedSubProjects.map(p => p.slug).join(', ')}, ${moreTranslation}`
+        : oxfordizeArray(truncatedSubProjects.map(p => p.slug));
 
-    subProjectContent = isExpanded
-      ? subProjects.map(subProject => <div key={subProject.slug}>{subProject.slug}</div>)
-      : stringifiedSubProjects;
+    subProjectContent = isExpanded ? (
+      <Fragment>
+        <div>{ownSlug}</div>
+        {subProjects.map(subProject => (
+          <div key={subProject.slug}>{subProject.slug}</div>
+        ))}
+      </Fragment>
+    ) : (
+      t('Including spans in ') + stringifiedSubProjects
+    );
   }
 
   return subProjectContent;
 }
 
-function getSubSpansContent(subProjects: SubProject[], isExpanded: boolean) {
-  let subSpansContent: React.ReactNode = '+0';
-  if (subProjects.length > 0) {
+function getSubSpansContent(
+  ownCount: number,
+  subProjects: SubProject[],
+  isExpanded: boolean
+) {
+  let subSpansContent: React.ReactNode = '';
+  if (subProjects.length > 1) {
     const subProjectSum = subProjects.reduce(
       (acc, subProject) => acc + subProject.count,
       0
     );
 
-    subSpansContent = isExpanded
-      ? subProjects.map(subProject => (
+    subSpansContent = isExpanded ? (
+      <Fragment>
+        <div>{ownCount}</div>
+        {subProjects.map(subProject => (
           <div key={subProject.slug}>+{formatAbbreviatedNumber(subProject.count, 2)}</div>
-        ))
-      : `+${formatAbbreviatedNumber(subProjectSum, 2)}`;
+        ))}
+      </Fragment>
+    ) : (
+      formatAbbreviatedNumber(subProjectSum, 2)
+    );
   }
 
   return subSpansContent;
@@ -164,21 +186,21 @@ const TableRow = memo(function TableRow({
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const hasSubProjects = subProjects.length > 0;
+  const isExpandable = subProjects.length > 0;
 
-  const subProjectContent = getSubProjectContent(subProjects, isExpanded);
-  const subSpansContent = getSubSpansContent(subProjects, isExpanded);
+  const subProjectContent = getSubProjectContent(project.slug, subProjects, isExpanded);
+  const subSpansContent = getSubSpansContent(ownCount, subProjects, isExpanded);
 
   return (
     <Fragment key={project.slug}>
       <Cell>
-        <FirstCellLine data-has-chevron={hasSubProjects}>
+        <FirstCellLine data-has-chevron={isExpandable}>
           <HiddenButton
-            disabled={!hasSubProjects}
+            disabled={!isExpandable}
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
             onClick={() => setIsExpanded(value => !value)}
           >
-            {hasSubProjects && (
+            {isExpandable && (
               <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
             )}
             <ProjectBadge project={project} disableLink avatarSize={16} />
@@ -196,14 +218,9 @@ const TableRow = memo(function TableRow({
       </Cell>
       <Cell>
         <FirstCellLine data-align="right">
-          {formatAbbreviatedNumber(ownCount, 2)}
-        </FirstCellLine>
-        <SubSpans>{subSpansContent}</SubSpans>
-      </Cell>
-      <Cell>
-        <FirstCellLine data-align="right">
           {formatAbbreviatedNumber(count, 2)}
         </FirstCellLine>
+        <SubSpans>{subSpansContent}</SubSpans>
       </Cell>
       <Cell>
         <FirstCellLine>
@@ -240,7 +257,7 @@ const TableRow = memo(function TableRow({
 });
 
 const ProjectsTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content max-content max-content;
+  grid-template-columns: 1fr max-content max-content;
 `;
 
 const SmallPrint = styled('span')`
