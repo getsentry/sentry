@@ -8,6 +8,7 @@ import type {ModuleName} from 'sentry/views/insights/types';
 
 export const OVERVIEW_PAGE_TITLE = t('Overview');
 export const DOMAIN_VIEW_BASE_URL = 'performance';
+export const DOMAIN_VIEW_BASE_TITLE = t('Performance');
 
 export const DOMAIN_VIEW_MODULES: Record<DomainView, ModuleName[]> = {
   frontend: FRONTEND_MODULES,
