@@ -145,7 +145,10 @@ function Controls({
     ? DataSet.ERRORS
     : DataSet.EVENTS;
 
-  const hasEditAccess = checkUserHasEditAccess(dashboard, currentUser, organization);
+  let hasEditAccess = true;
+  if (organization.features.includes('dashboards-edit-access')) {
+    hasEditAccess = checkUserHasEditAccess(dashboard, currentUser, organization);
+  }
 
   return (
     <StyledButtonBar gap={1} key="controls">

@@ -146,7 +146,6 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       value={selectedOptions}
       triggerLabel={[t('Edit Access:'), triggerAvatars]}
       searchPlaceholder={t('Search Teams')}
-      disableSearchFilter
     />
   );
 

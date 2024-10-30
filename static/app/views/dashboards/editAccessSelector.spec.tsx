@@ -6,14 +6,16 @@ import {UserFixture} from 'sentry-fixture/user';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
+
 import EditAccessSelector from './editAccessSelector';
 
 function renderTestComponent(
   initialData,
   mockDashboard = DashboardFixture([], {
     id: '1',
-    createdBy: UserFixture({id: '1'}),
-    title: 'Custom Errors',
+    title: 'test dashboard 2',
+    createdBy: UserFixture({id: '35478'}),
   })
 ) {
   render(
@@ -54,6 +56,7 @@ describe('When EditAccessSelector is rendered', () => {
           ...DashboardFixture([], {
             id: '1',
             title: 'test dashboard 2',
+            createdBy: UserFixture({id: '35478'}),
           }),
         },
       ],
@@ -87,7 +90,7 @@ describe('When EditAccessSelector is rendered', () => {
     expect(screen.getByText('All')).toBeInTheDocument();
   });
 
-  it('renders All badge when dashboards everyone is selected', async function () {
+  it('renders All badge when perms is set to', async function () {
     const mockDashboard = DashboardFixture([], {
       id: '1',
       createdBy: UserFixture({id: '1'}),
@@ -96,6 +99,32 @@ describe('When EditAccessSelector is rendered', () => {
     });
     renderTestComponent(initialData, mockDashboard);
     await screen.findByText('Edit Access:');
+    expect(screen.getByText('All')).toBeInTheDocument();
+  });
+
+  it('renders All badge when everyone is selected', async function () {
+    const mockDashboard = DashboardFixture([], {
+      id: '1',
+      createdBy: UserFixture({id: '1'}),
+      title: 'Custom Errors',
+      permissions: {isCreatorOnlyEditable: true}, // set to false
+    });
+    renderTestComponent(initialData, mockDashboard);
+    await userEvent.click(await screen.findByText('Edit Access:'));
+
+    expect(screen.queryByText('All')).not.toBeInTheDocument();
+
+    // Select everyone
+    expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Everyone'}));
+    expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+
     expect(screen.getByText('All')).toBeInTheDocument();
   });
 
@@ -112,71 +141,28 @@ describe('When EditAccessSelector is rendered', () => {
     expect(screen.queryByText('All')).not.toBeInTheDocument();
   });
 
-  it('creates and updates new permissions for dashboard with no edit perms initialized', async function () {
-    const mockDashboard = DashboardFixture([], {
-      id: '1',
-      createdBy: UserFixture({id: '1'}),
-      title: 'Custom Errors',
-    });
-    const mockPUT = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/1/',
-      method: 'PUT',
-      body: [],
-    });
+  it('disables dropdown options when current user is not dashboard creator', async function () {
+    const currentUser = UserFixture({id: '781629'});
+    ConfigStore.set('user', currentUser);
 
-    renderTestComponent(initialData, mockDashboard);
+    renderTestComponent(initialData);
     await userEvent.click(await screen.findByText('Edit Access:'));
 
-    // deselects 'Everyone' so only creator has edit access
-    expect(await screen.findByText('Everyone')).toBeEnabled();
-    await userEvent.click(await screen.findByText('Everyone'));
-
-    // clicks out of dropdown to trigger onChange()
-    await userEvent.click(await screen.findByText('Edit Access:'));
-
-    expect(mockPUT).toHaveBeenCalledTimes(1);
-    expect(mockPUT).toHaveBeenCalledWith(
-      '/organizations/org-slug/dashboards/',
-      expect.objectContaining({
-        data: expect.objectContaining({
-          permissions: {isCreatorOnlyEditable: true},
-        }),
-      })
+    // Everyone option should be disabled
+    expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+      'aria-selected',
+      'true'
     );
-
-    // refresh to check if 'Everyone' is deselcted
-  });
-
-  it('disables dropdown options when current user is not dashboard creator', async function () {});
-
-  it('disables edit dashboard and add widget buttons when user does not have edit perms', async function () {});
-
-  it('makes a post request onchange with success message', async function () {
-    //   const mockPOST = MockApiClient.addMockResponse({
-    //     url: '/organizations/org-slug/dashboards/',
-    //     method: 'POST',
-    //     body: [],
-    //   });
-    //   renderTestComponent(initialData);
-    //   await userEvent.click(await screen.findByText('Edit Access:'));
-    //   await userEvent.click(await screen.findByText('Everyone'));
-    //   // Click out to trigger onChange
-    //   await userEvent.click(await screen.findByText('Edit Access:'));
-    //   await screen.findByText('Dashboard Edit Access updated.');
-    //   expect(mockPOST).toHaveBeenCalledWith(
-    //     '/organizations/org-slug/dashboards/'
-    //     // expect.objectContaining({
-    //     //   data: expect.objectContaining({
-    //     //     projects: [2],
-    //     //     environment: ['alpha', 'beta'],
-    //     //     period: '7d',
-    //     //   }),
-    //     // })
-    //   );
+    await userEvent.click(screen.getByRole('option', {name: 'Everyone'}));
+    expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
   });
 
   // [WIP] (Teams based access)
   it('renders all teams', async function () {});
   it('selects all teams when everyone is selected', async function () {});
+  it('retains team selection on re-opening selector', async function () {});
   it('makes a post request with success message when different teams are selected', async function () {});
 });

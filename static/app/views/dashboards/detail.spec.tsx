@@ -18,6 +18,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
+import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -603,7 +604,7 @@ describe('Dashboards > Detail', function () {
         {router: initialData.router}
       );
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
-      expect(mockReleases).toHaveBeenCalledTimes(1);
+      expect(mockReleases).toHaveBeenCalledTimes(2); // Called once when PageFiltersStore is initialized
     });
 
     it('hides add widget option', async function () {
@@ -1669,7 +1670,7 @@ describe('Dashboards > Detail', function () {
       const mockPUT = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: [],
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors'}),
       });
 
       render(
@@ -1695,13 +1696,11 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(await screen.findByText('Edit Access:'));
 
       // deselects 'Everyone' so only creator has edit access
-
       expect(await screen.findByText('Everyone')).toBeEnabled();
       expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
         'aria-selected',
         'true'
       );
-      // await userEvent.click(await screen.findByText('Everyone'));
       await userEvent.click(screen.getByRole('option', {name: 'Everyone'}));
       expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
         'aria-selected',
@@ -1711,43 +1710,138 @@ describe('Dashboards > Detail', function () {
       // clicks out of dropdown to trigger onClose()
       await userEvent.click(await screen.findByText('Edit Access:'));
 
-      expect(mockPUT).toHaveBeenCalledTimes(1);
-      expect(mockPUT).toHaveBeenCalledWith(
-        '/organizations/org-slug/dashboards/1/',
-        expect.objectContaining({
-          data: expect.objectContaining({
-            permissions: {isCreatorOnlyEditable: true},
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(mockPUT).toHaveBeenCalledTimes(1);
+        expect(mockPUT).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/',
+          expect.objectContaining({
+            data: expect.objectContaining({
+              permissions: {isCreatorOnlyEditable: true},
+            }),
+          })
+        );
+      });
     });
 
-    // it('disables edit dashboard and add widget button if user cannot edit dashboard', async function () {
-    //   render(
-    //     <ViewEditDashboard
-    //       {...RouteComponentPropsFixture()}
-    //       organization={{
-    //         ...initialData.organization,
-    //         features: ['dashboards-edit-access', ...initialData.organization.features],
-    //       }}
-    //       params={{orgId: 'org-slug', dashboardId: '1'}}
-    //       router={initialData.router}
-    //       location={initialData.router.location}
-    //     >
-    //       {null}
-    //     </ViewEditDashboard>,
-    //     {
-    //       router: initialData.router,
-    //       organization: {
-    //         features: ['dashboards-edit-access', ...initialData.organization.features],
-    //       },
-    //     }
-    //   );
+    it('creator can update permissions for dashboard', async function () {
+      const mockPUT = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors'}),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          createdBy: UserFixture({id: '781629'}),
+          permissions: {isCreatorOnlyEditable: true},
+        }),
+      });
 
-    //   await screen.findByText('Edit Access:');
-    //   expect(screen.findByText('Edit Dashboard')).toBeDisabled();
-    //   expect(screen.findByText('Add Widget')).toBeDisabled();
-    // });
+      const currentUser = UserFixture({id: '781629'});
+      ConfigStore.set('user', currentUser);
+
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          }}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          },
+        }
+      );
+      await userEvent.click(await screen.findByText('Edit Access:'));
+
+      // selects 'Everyone' so everyone has edit access
+      expect(await screen.findByText('Everyone')).toBeEnabled();
+      expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Everyone'}));
+      expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // clicks out of dropdown to trigger onClose()
+      await userEvent.click(await screen.findByText('Edit Access:'));
+
+      await waitFor(() => {
+        expect(mockPUT).toHaveBeenCalledTimes(1);
+        expect(mockPUT).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/',
+          expect.objectContaining({
+            data: expect.objectContaining({
+              permissions: {isCreatorOnlyEditable: false},
+            }),
+          })
+        );
+      });
+    });
+
+    it('disables edit dashboard and add widget button if user cannot edit dashboard', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [
+          DashboardFixture([], {
+            id: '1',
+            title: 'Custom Errors',
+            createdBy: UserFixture({id: '238900'}),
+            permissions: {isCreatorOnlyEditable: true},
+          }),
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          createdBy: UserFixture({id: '238900'}),
+          permissions: {isCreatorOnlyEditable: true},
+        }),
+      });
+
+      const currentUser = UserFixture({id: '781629'});
+      ConfigStore.set('user', currentUser);
+
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          }}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          },
+        }
+      );
+
+      await screen.findByText('Edit Access:');
+      expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+    });
 
     describe('discover split', function () {
       it('calls the dashboard callbacks with the correct widgetType for discover split', function () {
