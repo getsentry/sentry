@@ -221,6 +221,26 @@ describe('SearchQueryBuilder', function () {
         screen.queryByRole('button', {name: 'Clear search query'})
       ).not.toBeInTheDocument();
     });
+
+    it('is hidden if the prop is specified and text is empty', async function () {
+      const mockOnChange = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
+      await screen.findByRole('combobox', {name: 'Add a search term'});
+
+      expect(
+        screen.queryByRole('button', {name: 'Clear search query'})
+      ).not.toBeInTheDocument();
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'foo a:b{enter}'
+      );
+
+      await waitFor(() => expect(mockOnChange).toHaveBeenCalled());
+
+      expect(
+        screen.getByRole('button', {name: 'Clear search query'})
+      ).toBeInTheDocument();
+    });
   });
 
   describe('disabled', function () {
