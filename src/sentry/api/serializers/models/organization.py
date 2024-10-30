@@ -300,7 +300,7 @@ class OrganizationSerializer(Serializer):
                 ).exists()
 
                 # Do not include the onboarding feature if all required onboarding tasks are completed
-                # The required tasks are defined in https://github.com/getsentry/sentry/blob/master/src/sentry/models/organizationonboardingtask.py#L147
+                # The required tasks are defined in https://github.com/getsentry/sentry/blob/797e317dadcec25b0426851c6b29c0e1d2d0c3c2/src/sentry/models/organizationonboardingtask.py#L147
                 if all_required_onboarding_tasks_complete:
                     feature_set.remove("onboarding")
             else:
