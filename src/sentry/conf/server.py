@@ -92,8 +92,6 @@ _env_cache: dict[str, object] = {}
 
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
-NO_SPOTLIGHT = os.environ.get("NO_SPOTLIGHT", False)
-
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
@@ -2230,9 +2228,6 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 # This flag activates consuming GroupAttribute messages in the development environment
 SENTRY_USE_GROUP_ATTRIBUTES = True
 
-# This flag activates Spotlight Sidecar in the development environment
-SENTRY_USE_SPOTLIGHT = False
-
 # This flag activates uptime checks in the developemnt environment
 SENTRY_USE_UPTIME = False
 
@@ -2477,14 +2472,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             },
             "ports": {"8085/tcp": 8085},
             "only_if": settings.SENTRY_USE_PROFILING,
-        }
-    ),
-    "spotlight-sidecar": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/spotlight:latest",
-            "environment": {},
-            "ports": {"8969/tcp": 8969},
-            "only_if": settings.SENTRY_USE_SPOTLIGHT,
         }
     ),
 }
