@@ -113,6 +113,8 @@ export function getOnboardingTasks({
   projects,
   onboardingContext,
 }: Options): OnboardingTaskDescriptor[] {
+  const performanceUrl = `${getPerformanceBaseUrl(organization.slug)}/`;
+
   if (isDemoWalkthrough()) {
     return [
       {
@@ -137,7 +139,7 @@ export function getOnboardingTasks({
         skippable: false,
         requisites: [],
         actionType: 'app',
-        location: getPerformanceBaseUrl(organization.slug),
+        location: performanceUrl,
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },
@@ -333,7 +335,7 @@ export function getOnboardingTasks({
         // TODO: add analytics here for this specific action.
 
         if (!projects) {
-          navigateTo(getPerformanceBaseUrl(organization.slug), router);
+          navigateTo(performanceUrl, router);
           return;
         }
 
@@ -341,20 +343,20 @@ export function getOnboardingTasks({
           filterProjects(projects);
 
         if (projectsWithoutFirstTransactionEvent.length <= 0) {
-          navigateTo(getPerformanceBaseUrl(organization.slug), router);
+          navigateTo(performanceUrl, router);
           return;
         }
 
         if (projectsForOnboarding.length) {
           navigateTo(
-            `${getPerformanceBaseUrl(organization.slug)}/?project=${projectsForOnboarding[0].id}#performance-sidequest`,
+            `${performanceUrl}?project=${projectsForOnboarding[0].id}#performance-sidequest`,
             router
           );
           return;
         }
 
         navigateTo(
-          `${getPerformanceBaseUrl(organization.slug)}/?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
+          `${performanceUrl}?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
           router
         );
       },

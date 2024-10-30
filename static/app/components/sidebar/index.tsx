@@ -459,7 +459,7 @@ function Sidebar() {
             {hasNewNav ? 'Perf.' : t('Performance')}
           </GuideAnchor>
         }
-        to={getPerformanceBaseUrl(organization.slug)}
+        to={`${getPerformanceBaseUrl(organization.slug)}/`}
         id="performance"
       />
     </Feature>
