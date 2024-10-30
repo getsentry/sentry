@@ -45,6 +45,7 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   MetricsFields,
   type MetricsQueryFilters,
@@ -56,6 +57,7 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
@@ -63,6 +65,7 @@ export function CacheSamplePanel() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const {view} = useDomainViewFilters();
 
   const query = useLocationQuery({
     fields: {
@@ -279,7 +282,7 @@ export function CacheSamplePanel() {
               <Title>
                 <Link
                   to={normalizeUrl(
-                    `/organizations/${organization.slug}/performance/summary?${qs.stringify(
+                    `${getTransactionSummaryBaseUrl(organization.slug, view)}?${qs.stringify(
                       {
                         project: query.project,
                         transaction: query.transaction,

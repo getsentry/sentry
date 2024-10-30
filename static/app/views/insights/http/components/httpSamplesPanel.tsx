@@ -19,7 +19,6 @@ import {
   escapeFilterValue,
   MutableSearch,
 } from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -55,6 +54,7 @@ import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
 import decodePanel from 'sentry/views/insights/http/utils/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanFunction,
@@ -63,6 +63,7 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
@@ -82,6 +83,7 @@ export function HTTPSamplesPanel() {
   });
 
   const organization = useOrganization();
+  const {view} = useDomainViewFilters();
 
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -328,14 +330,12 @@ export function HTTPSamplesPanel() {
               )}
               <Title>
                 <Link
-                  to={normalizeUrl(
-                    `/organizations/${organization.slug}/performance/summary?${qs.stringify(
-                      {
-                        project: query.project,
-                        transaction: query.transaction,
-                      }
-                    )}`
-                  )}
+                  to={`${getTransactionSummaryBaseUrl(organization.slug, view)}?${qs.stringify(
+                    {
+                      project: query.project,
+                      transaction: query.transaction,
+                    }
+                  )}`}
                 >
                   {query.transaction &&
                   query.transactionMethod &&

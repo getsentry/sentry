@@ -11,6 +11,7 @@ import {IconOpen} from 'sentry/icons';
 import type {EventTag} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 const iconStyle = css`
   position: relative;
@@ -58,7 +59,7 @@ function EventTagsContent({
           <EventTagsValue
             tag={tag}
             meta={meta?.value?.['']}
-            streamPath={`/organizations/${organization.slug}/performance/summary/`}
+            streamPath={`${getTransactionSummaryBaseUrl(organization.slug)}/`}
             locationSearch={`?${qs.stringify({
               project: projectId,
               transaction: value,
