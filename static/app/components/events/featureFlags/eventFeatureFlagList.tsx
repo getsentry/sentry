@@ -22,10 +22,8 @@ import {
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconMegaphone, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -111,7 +109,7 @@ export function EventFeatureFlagList({
           value: suspectFlagNames.has(f.flag) ? (
             <ValueWrapper>
               {f.result.toString()}
-              <StyledQuestionTooltip size="xs" title={t('Suspect Flag')} />
+              <SuspectLabel>{t('Suspect')}</SuspectLabel>
             </ValueWrapper>
           ) : (
             f.result.toString()
@@ -248,8 +246,8 @@ export function EventFeatureFlagList({
   );
 }
 
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-top: ${space(0.25)};
+const SuspectLabel = styled('div')`
+  color: ${p => p.theme.subText};
 `;
 
 const ValueWrapper = styled('div')`
