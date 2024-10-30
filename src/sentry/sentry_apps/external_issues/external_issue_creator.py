@@ -30,7 +30,6 @@ class ExternalIssueCreator:
                         "web_url": self.web_url,
                     },
                     group_id=self.group.id,
-                    project_id=self.group.project_id,
                     service_type=self.install.sentry_app.slug,
                 )
 
