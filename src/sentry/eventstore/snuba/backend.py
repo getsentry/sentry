@@ -18,6 +18,7 @@ from snuba_sdk import (
     Limit,
     Offset,
     Op,
+    Or,
     OrderBy,
     Query,
     Request,
@@ -494,7 +495,16 @@ class SnubaEventStorage(EventStorage):
                     Op.LT,
                     event.datetime + timedelta(seconds=1),
                 ),
-                Condition(Column("event_id"), Op.LT, event.event_id),
+                Or(
+                    conditions=[
+                        Condition(
+                            Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                            Op.LT,
+                            event.datetime,
+                        ),
+                        Condition(Column("event_id"), Op.LT, event.event_id),
+                    ],
+                ),
             ]
 
         def make_next_timestamp_conditions(event):
@@ -505,9 +515,20 @@ class SnubaEventStorage(EventStorage):
                     event.datetime + timedelta(days=100),
                 ),
                 Condition(
-                    Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.GTE, event.datetime
+                    Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                    Op.GTE,
+                    event.datetime,
                 ),
-                Condition(Column("event_id"), Op.GT, event.event_id),
+                Or(
+                    conditions=[
+                        Condition(Column("event_id"), Op.GT, event.event_id),
+                        Condition(
+                            Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                            Op.GT,
+                            event.datetime,
+                        ),
+                    ],
+                ),
             ]
 
         def make_request(is_prev):
