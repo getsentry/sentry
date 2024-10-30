@@ -76,14 +76,6 @@ class TaskNamespace:
 
         return wrapped
 
-    def retry_task(self, activation: TaskActivation) -> None:
-        # TODO(taskworker) Should we be incrementing retry_state and rotating
-        # the taskid here instead of in the Worker?
-        self.producer.produce(
-            ArroyoTopic(name=self.topic),
-            KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
-        )
-
     def send_task(self, activation: TaskActivation) -> None:
         # TODO(taskworker) producer callback handling
         self.producer.produce(

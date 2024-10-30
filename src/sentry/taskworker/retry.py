@@ -8,12 +8,12 @@ from sentry_protos.sentry.v1.taskworker_pb2 import RetryState
 
 class RetryError(Exception):
     """
-    Exception that tasks can raise to indicate that the current task
+    Exception that tasks can raise to indicate that the current task activation
     should be retried.
     """
 
 
-class FinalAction(Enum):
+class LastAction(Enum):
     Deadletter = 1
     Discard = 2
 
@@ -27,12 +27,12 @@ class Retry:
         times: int = 1,
         on: tuple[type[BaseException], ...] | None = None,
         ignore: tuple[type[BaseException], ...] | None = None,
-        final_action: FinalAction = FinalAction.Deadletter,
+        times_exceeded: LastAction = LastAction.Deadletter,
     ):
         self._times = times
         self._allowed_exception_types: tuple[type[BaseException], ...] = on or ()
         self._denied_exception_types: tuple[type[BaseException], ...] = ignore or ()
-        self._final = final_action
+        self._times_exceeded = times_exceeded
 
     def should_retry(self, state: RetryState, exc: Exception) -> bool:
         # No more attempts left
@@ -57,7 +57,11 @@ class Retry:
     def initial_state(self) -> RetryState:
         return RetryState(
             attempts=0,
-            discard_after_attempt=self._times if self._final == FinalAction.Discard else None,
-            deadletter_after_attempt=self._times if self._final == FinalAction.Deadletter else None,
+            discard_after_attempt=(
+                self._times if self._times_exceeded == LastAction.Discard else None
+            ),
+            deadletter_after_attempt=(
+                self._times if self._times_exceeded == LastAction.Deadletter else None
+            ),
             kind="sentry.taskworker.retry.Retry",
         )

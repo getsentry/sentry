@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from multiprocessing.context import TimeoutError
 
-from sentry.taskworker.retry import FinalAction, Retry, RetryError
+from sentry.taskworker.retry import LastAction, Retry, RetryError
 
 
 class RuntimeChildError(RuntimeError):
@@ -10,7 +10,7 @@ class RuntimeChildError(RuntimeError):
 
 
 def test_initial_state__discard() -> None:
-    retry = Retry(times=1, final_action=FinalAction.Discard)
+    retry = Retry(times=1, times_exceeded=LastAction.Discard)
     proto = retry.initial_state()
 
     assert proto.attempts == 0
@@ -20,7 +20,7 @@ def test_initial_state__discard() -> None:
 
 
 def test_initial_state__deadletter() -> None:
-    retry = Retry(times=5, final_action=FinalAction.Deadletter)
+    retry = Retry(times=5, times_exceeded=LastAction.Deadletter)
     proto = retry.initial_state()
 
     assert proto.attempts == 0
