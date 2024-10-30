@@ -21,7 +21,7 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
@@ -32,7 +32,7 @@ import GridPreview from './gridPreview';
 
 type Props = {
   api: Client;
-  dashboards: DashboardListItem[] | null;
+  dashboards: DashboardListItem[] | undefined;
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
@@ -47,6 +47,7 @@ function DashboardList({
   pageLinks,
   onDashboardsChange,
 }: Props) {
+  const navigate = useNavigate();
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
       .then(() => {
@@ -185,7 +186,7 @@ function DashboardList({
           }
           trackAnalytics('dashboards_manage.paginate', {organization});
 
-          browserHistory.push({
+          navigate({
             pathname: path,
             query: newQuery,
           });
