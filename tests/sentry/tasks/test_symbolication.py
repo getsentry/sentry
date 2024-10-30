@@ -2,11 +2,9 @@ from unittest import mock
 
 import pytest
 
-from sentry.lang.native.symbolicator import SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.tasks.store import preprocess_event
 from sentry.tasks.symbolication import submit_symbolicate, symbolicate_event
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -127,40 +125,3 @@ def test_symbolicate_event_doesnt_call_process_inline(
     assert mock_save_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 1
     assert mock_do_process_event.call_count == 0
-
-
-@django_db_all
-@mock.patch("sentry.event_manager.EventManager.save", return_value=None)
-def test_submit_symbolicate_queue_switch(
-    self,  # NOTE: the `self` here is load-bearing.
-    # removing it will fail this test with a completely un-understandable error.
-    default_project,
-    mock_should_demote_symbolication,
-    mock_submit_symbolicate,
-    mock_event_processing_store,
-):
-    data = {
-        "project": default_project.id,
-        "platform": "native",
-        "logentry": {"formatted": "test"},
-        "event_id": EVENT_ID,
-        "extra": {"foo": "bar"},
-    }
-    mock_event_processing_store.get.return_value = data
-    mock_event_processing_store.store.return_value = "e:1"
-
-    is_low_priority = mock_should_demote_symbolication(
-        SymbolicatorPlatform.native, default_project.id
-    )
-    assert is_low_priority
-    with TaskRunner():
-        task_kind = SymbolicatorTaskKind(
-            platform=SymbolicatorPlatform.native, is_low_priority=is_low_priority
-        )
-        mock_submit_symbolicate(
-            task_kind,
-            cache_key="e:1",
-            event_id=EVENT_ID,
-            start_time=0,
-        )
-    assert mock_submit_symbolicate.call_count == 4

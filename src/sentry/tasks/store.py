@@ -177,7 +177,6 @@ def _do_preprocess_event(
             submit_symbolicate(
                 SymbolicatorTaskKind(
                     platform=first_platform,
-                    is_low_priority=False,
                     is_reprocessing=from_reprocessing,
                 ),
                 cache_key=cache_key,
