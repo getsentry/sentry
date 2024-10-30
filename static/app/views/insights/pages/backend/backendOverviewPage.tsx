@@ -47,9 +47,9 @@ import {
 } from 'sentry/views/performance/utils';
 
 export const BACKEND_COLUMN_TITLES = [
+  'http method',
   'transaction',
   'operation',
-  'http method',
   'project',
   'tpm',
   'p50',
@@ -80,9 +80,9 @@ function BackendOverviewPage() {
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
     {field: 'team_key_transaction'},
+    {field: 'http.method'},
     {field: 'transaction'},
     {field: 'transaction.op'},
-    {field: 'http.method'},
     {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50(transaction.duration)'},
