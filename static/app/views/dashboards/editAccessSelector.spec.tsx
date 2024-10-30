@@ -90,7 +90,7 @@ describe('When EditAccessSelector is rendered', () => {
     expect(screen.getByText('All')).toBeInTheDocument();
   });
 
-  it('renders All badge when perms is set to', async function () {
+  it('renders All badge when perms is set to everyone', async function () {
     const mockDashboard = DashboardFixture([], {
       id: '1',
       createdBy: UserFixture({id: '1'}),
