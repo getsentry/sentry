@@ -1,3 +1,5 @@
+import {TagsFixture} from 'sentry-fixture/tags';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
@@ -27,6 +29,12 @@ async function renderFlagDrawer() {
 }
 
 describe('FeatureFlagDrawer', function () {
+  beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/tags/`,
+      body: TagsFixture(),
+    });
+  });
   it('renders the drawer as expected', async function () {
     const drawerScreen = await renderFlagDrawer();
     expect(drawerScreen.getByRole('button', {name: 'Close Drawer'})).toBeInTheDocument();
@@ -75,24 +83,24 @@ describe('FeatureFlagDrawer', function () {
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
 
-    // the flags are reversed by default, so webVitalsFlag should be below enableReplay
+    // the flags are reversed by default, so webVitalsFlag should be following enableReplay
     expect(
       drawerScreen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(drawerScreen.getByText(enableReplay.flag))
+        .getByText(enableReplay.flag)
+        .compareDocumentPosition(drawerScreen.getByText(webVitalsFlag.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
 
-    // the sort should be reversed
     const sortControl = drawerScreen.getByRole('button', {
       name: 'Newest',
     });
     await userEvent.click(sortControl);
     await userEvent.click(drawerScreen.getByRole('option', {name: 'Oldest'}));
 
+    // expect webVitalsFlag to be preceding enableReplay
     expect(
       drawerScreen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(drawerScreen.getByText(enableReplay.flag))
+        .getByText(enableReplay.flag)
+        .compareDocumentPosition(drawerScreen.getByText(webVitalsFlag.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
     const sortGroupControl = drawerScreen.getByRole('button', {
@@ -103,11 +111,11 @@ describe('FeatureFlagDrawer', function () {
     await userEvent.click(sortControl);
     await userEvent.click(drawerScreen.getByRole('option', {name: 'Z-A'}));
 
-    // webVitalsFlag comes after enableReplay alphabetically
+    // enableReplay follows webVitalsFlag in Z-A sort
     expect(
       drawerScreen
         .getByText(webVitalsFlag.flag)
         .compareDocumentPosition(drawerScreen.getByText(enableReplay.flag))
-    ).toBe(document.DOCUMENT_POSITION_PRECEDING);
+    ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
   });
 });

@@ -22,7 +22,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import useFlagSeries from 'sentry/views/issueDetails/streamline/flagSeries';
+import useFlagSeries from 'sentry/views/issueDetails/streamline/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
@@ -110,7 +110,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       statsPeriod: eventView.statsPeriod,
     },
     event,
-    group,
   });
 
   const series = useMemo((): BarChartSeries[] => {
