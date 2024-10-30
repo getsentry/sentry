@@ -23,6 +23,6 @@ INT = AttributeKey.TYPE_INT
 TYPE_MAP = {
     # TODO:  need to update these to float once the proto supports float arrays
     "number": INT,
-    "duration": INT,
+    "duration": FLOAT,
     "string": STRING,
 }
