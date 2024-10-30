@@ -394,9 +394,15 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
   );
 }
 
-export function getPerformanceBaseUrl(orgSlug: string, view?: DomainView) {
+export function getPerformanceBaseUrl(
+  orgSlug: string,
+  view?: DomainView,
+  bare: boolean = false
+) {
+  let url = 'performance';
   if (view) {
-    return normalizeUrl(`/organizations/${orgSlug}/${DOMAIN_VIEW_BASE_URL}/${view}`);
+    url = `${DOMAIN_VIEW_BASE_URL}/${view}`;
   }
-  return normalizeUrl(`/organizations/${orgSlug}/performance`);
+
+  return bare ? url : normalizeUrl(`/organizations/${orgSlug}/${url}`);
 }
