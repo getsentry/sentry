@@ -2598,7 +2598,7 @@ describe('WidgetBuilder', function () {
   });
 
   describe('Spans Dataset', () => {
-    it.only('queries for span tags and returns the correct data', async () => {
+    it('queries for span tags and returns the correct data', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/spans/fields/`,
         body: [],
