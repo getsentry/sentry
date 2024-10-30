@@ -1,3 +1,5 @@
+import {TagsFixture} from 'sentry-fixture/tags';
+
 import {
   render,
   screen,
@@ -25,6 +27,12 @@ jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation
 }));
 
 describe('EventFeatureFlagList', function () {
+  beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/tags/`,
+      body: TagsFixture(),
+    });
+  });
   it('renders a list of feature flags with a button to view all', async function () {
     render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS} />);
 
@@ -107,39 +115,48 @@ describe('EventFeatureFlagList', function () {
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
 
-    // the flags are reversed by default, so webVitalsFlag should be below enableReplay
+    // the flags are reversed by default
+    // expect enableReplay to be preceding webVitalsFlag
     expect(
       screen
         .getByText(webVitalsFlag.flag)
         .compareDocumentPosition(screen.getByText(enableReplay.flag))
-    ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
+    ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
-    // the sort should be reversed
     const sortControl = screen.getByRole('button', {
       name: 'Newest',
     });
     await userEvent.click(sortControl);
     await userEvent.click(screen.getByRole('option', {name: 'Oldest'}));
 
+    // expect enableReplay to be following webVitalsFlag
     expect(
       screen
         .getByText(webVitalsFlag.flag)
         .compareDocumentPosition(screen.getByText(enableReplay.flag))
-    ).toBe(document.DOCUMENT_POSITION_PRECEDING);
+    ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
 
     const sortGroupControl = screen.getByRole('button', {
       name: 'Evaluation Order',
     });
     await userEvent.click(sortGroupControl);
     await userEvent.click(screen.getByRole('option', {name: 'Alphabetical'}));
-    await userEvent.click(sortControl);
-    await userEvent.click(screen.getByRole('option', {name: 'Z-A'}));
 
-    // webVitalsFlag comes after enableReplay alphabetically
+    // expect enableReplay to be preceding webVitalsFlag, A-Z sort by default
     expect(
       screen
         .getByText(webVitalsFlag.flag)
         .compareDocumentPosition(screen.getByText(enableReplay.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
+
+    await userEvent.click(sortControl);
+    await userEvent.click(screen.getByRole('option', {name: 'Z-A'}));
+
+    // expect enableReplay to be following webVitalsFlag
+    expect(
+      screen
+        .getByText(webVitalsFlag.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+    ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
   });
 });

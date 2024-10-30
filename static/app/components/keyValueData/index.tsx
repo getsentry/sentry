@@ -36,6 +36,11 @@ export interface KeyValueDataContentProps {
    */
   errors?: MetaError[];
   /**
+   * Used for the feature flag section.
+   * If true, then the row will be highlighted in red.
+   */
+  isSuspectFlag?: boolean;
+  /**
    * Metadata pertaining to content item
    */
   meta?: Record<string, any>;
@@ -47,6 +52,7 @@ export function Content({
   errors = [],
   disableLink = false,
   disableFormattedData = false,
+  isSuspectFlag = false,
   ...props
 }: KeyValueDataContentProps) {
   const {
@@ -78,7 +84,7 @@ export function Content({
   );
 
   return (
-    <ContentWrapper hasErrors={hasErrors} {...props}>
+    <ContentWrapper hasErrors={hasErrors} isSuspectFlag={isSuspectFlag} {...props}>
       {subjectNode !== undefined ? subjectNode : <Subject>{subject}</Subject>}
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
         <ValueWrapper hasSuffix={hasSuffix}>
@@ -212,21 +218,35 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const ContentWrapper = styled('div')<{hasErrors: boolean}>`
+const ContentWrapper = styled('div')<{hasErrors: boolean; isSuspectFlag: boolean}>`
   display: grid;
   grid-template-columns: subgrid;
   grid-column: span 2;
   column-gap: ${space(1.5)};
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: 4px;
-  color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
+  color: ${p =>
+    p.hasErrors
+      ? p.theme.alert.error.color
+      : p.isSuspectFlag
+        ? p.theme.yellow400
+        : p.theme.subText};
   box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
+    ${p =>
+      p.hasErrors ? p.theme.red100 : p.isSuspectFlag ? p.theme.yellow100 : 'transparent'};
   background-color: ${p =>
-    p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
+    p.hasErrors
+      ? p.theme.alert.error.backgroundLight
+      : p.isSuspectFlag
+        ? p.theme.yellow100
+        : p.theme.background};
   &:nth-child(odd) {
     background-color: ${p =>
-      p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.backgroundSecondary};
+      p.hasErrors
+        ? p.theme.alert.error.backgroundLight
+        : p.isSuspectFlag
+          ? p.theme.yellow100
+          : p.theme.backgroundSecondary};
   }
 `;
 

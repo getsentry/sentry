@@ -1,4 +1,4 @@
-type RawFlag = {
+export type RawFlag = {
   action: string;
   createdAt: string;
   createdBy: string;
