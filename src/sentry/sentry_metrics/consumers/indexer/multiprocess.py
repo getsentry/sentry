@@ -7,7 +7,8 @@ from typing import Any
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
-from arroyo.types import Commit, FilteredPayload, Message, Partition
+from arroyo.processing.strategies.commit import CommitOffsets
+from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
 from confluent_kafka import Producer
 
 from sentry.conf.types.kafka_definition import Topic
@@ -28,8 +29,8 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
         )
         self.__producer_topic = snuba_metrics["real_topic_name"]
-        self.__commit_function = commit_function
 
+        self.__commit = CommitOffsets(commit_function)
         self.__closed = False
         self.__produced_message_offsets: MutableMapping[Partition, int] = {}
         # TODO: Need to make these flags
@@ -67,7 +68,9 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self.poll_producer(timeout)
 
         with metrics.timer("simple_produce_step.poll.maybe_commit", sample_rate=0.05):
-            self.__commit_function(self.__produced_message_offsets)
+            message_to_commit = Message(Value(None, self.__produced_message_offsets))
+            self.__commit.submit(message_to_commit)
+            self.__commit.poll()
             self.__produced_message_offsets = {}
 
     def submit(self, message: Message[KafkaPayload | FilteredPayload]) -> None:
@@ -109,5 +112,5 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         with metrics.timer("simple_produce_step.join_duration"):
             self.__producer.flush(timeout=5.0)
 
-        self.__commit_function(self.__produced_message_offsets, force=True)
+        self.__commit.join(timeout)
         self.__produced_message_offsets = {}
