@@ -508,10 +508,10 @@ export function generateBackendPerformanceEventView(
 
   const fields = [
     'team_key_transaction',
-    'transaction',
-    'project',
-    'transaction.op',
     'http.method',
+    'transaction',
+    'transaction.op',
+    'project',
     'tpm()',
     'p50()',
     'p95()',
@@ -563,8 +563,8 @@ export function generateMobilePerformanceEventView(
   const fields = [
     'team_key_transaction',
     'transaction',
-    'project',
     'transaction.op',
+    'project',
     'tpm()',
     'p75(measurements.frames_slow_rate)',
     'p75(measurements.frames_frozen_rate)',
@@ -679,8 +679,8 @@ export function generateFrontendOtherPerformanceEventView(
   const fields = [
     'team_key_transaction',
     'transaction',
-    'project',
     'transaction.op',
+    'project',
     'tpm()',
     'p50(transaction.duration)',
     'p75(transaction.duration)',

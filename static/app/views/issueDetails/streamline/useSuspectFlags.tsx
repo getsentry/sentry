@@ -9,12 +9,12 @@ import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {
   hydrateToFlagSeries,
+  type RawFlag,
   type RawFlagData,
 } from 'sentry/views/issueDetails/streamline/featureFlagUtils';
 
 export default function useSuspectFlags({
   organization,
-  query,
   firstSeen,
   rawFlagData,
   event,
@@ -22,9 +22,8 @@ export default function useSuspectFlags({
   event: Event | undefined;
   firstSeen: string;
   organization: Organization;
-  query: Record<string, any>;
   rawFlagData: RawFlagData | undefined;
-}): UseApiQueryResult<RawFlagData, RequestError> {
+}): UseApiQueryResult<RawFlagData, RequestError> & {suspectFlags: RawFlag[]} {
   const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
 
   // map flag data to arrays of flag names
@@ -54,7 +53,6 @@ export default function useSuspectFlags({
       `/organizations/${organization.slug}/flags/logs/`,
       {
         query: {
-          ...query,
           flag: intersectionFlags,
           start,
           end: firstSeen,
@@ -66,7 +64,7 @@ export default function useSuspectFlags({
       staleTime: 0,
       // if no intersection, then there are no suspect flags
       enabled: Boolean(
-        organization.features?.includes('feature-flag-ui') && intersectionFlags.length
+        organization.features.includes('feature-flag-ui') && intersectionFlags.length
       ),
     }
   );
@@ -78,7 +76,7 @@ export default function useSuspectFlags({
   const suspectFlags = useMemo(() => {
     return data
       ? data.data
-          .reverse()
+          .toReversed()
           .filter(
             (rawFlag, idx, rawFlagArray) =>
               idx === rawFlagArray.findIndex(f => f.flag === rawFlag.flag)
@@ -107,5 +105,5 @@ export default function useSuspectFlags({
     organization,
   ]);
 
-  return apiQueryResponse;
+  return {...apiQueryResponse, suspectFlags};
 }

@@ -873,7 +873,6 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
             "threshold_type": 0,
             "resolve_threshold": 1,
             "alert_threshold": 0,
-            "excluded_projects": [self.project.slug],
             "actions": [{"type": "email", "targetType": "team", "targetIdentifier": self.team.id}],
         }
 
