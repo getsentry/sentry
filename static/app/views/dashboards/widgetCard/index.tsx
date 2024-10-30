@@ -1,17 +1,15 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import type {BadgeProps} from 'sentry/components/badge/badge';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -236,16 +234,16 @@ function WidgetCard(props: Props) {
 
   const isFirstWidget = Number(props.index) !== 0;
 
-  if (widget.displayType === DisplayType.BIG_NUMBER) {
-    return (
-      <ErrorBoundary
-        customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+  return (
+    <ErrorBoundary
+      customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+    >
+      <VisuallyCompleteWithData
+        id="DashboardList-FirstWidgetCard"
+        hasData={widgetHasData}
+        disabled={isFirstWidget}
       >
-        <VisuallyCompleteWithData
-          id="DashboardList-FirstWidgetCard"
-          hasData={widgetHasData}
-          disabled={isFirstWidget}
-        >
+        {widget.displayType === DisplayType.BIG_NUMBER ? (
           <WidgetCardDataLoader
             widget={widget}
             selection={selection}
@@ -294,38 +292,18 @@ function WidgetCard(props: Props) {
               );
             }}
           </WidgetCardDataLoader>
-        </VisuallyCompleteWithData>
-      </ErrorBoundary>
-    );
-  }
-
-  return (
-    <ErrorBoundary
-      customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
-    >
-      <VisuallyCompleteWithData
-        id="DashboardList-FirstWidgetCard"
-        hasData={widgetHasData}
-        disabled={isFirstWidget}
-      >
-        <WidgetFrame
-          title={widget.title}
-          description={widget.description}
-          badgeProps={badges}
-          warnings={warnings}
-          actionsDisabled={actionsDisabled}
-          actionsMessage={actionsMessage}
-          actions={actions}
-          onFullScreenViewClick={onFullScreenViewClick}
-        >
-          {isWidgetInvalid ? (
-            <Fragment>
-              {renderErrorMessage?.('Widget query condition is invalid.')}
-              <StyledErrorPanel>
-                <IconWarning color="gray500" size="lg" />
-              </StyledErrorPanel>
-            </Fragment>
-          ) : (
+        ) : (
+          <WidgetFrame
+            title={widget.title}
+            description={widget.description}
+            badgeProps={badges}
+            warnings={warnings}
+            actionsDisabled={actionsDisabled}
+            error={widgetQueryError}
+            actionsMessage={actionsMessage}
+            actions={actions}
+            onFullScreenViewClick={onFullScreenViewClick}
+          >
             <WidgetCardChartContainer
               location={location}
               api={api}
@@ -345,8 +323,8 @@ function WidgetCard(props: Props) {
               legendOptions={legendOptions}
               widgetLegendState={widgetLegendState}
             />
-          )}
-        </WidgetFrame>
+          </WidgetFrame>
+        )}
       </VisuallyCompleteWithData>
     </ErrorBoundary>
   );
@@ -433,10 +411,6 @@ export const WidgetCardPanel = styled(Panel, {
       box-shadow 100ms linear;
     box-shadow: ${p => p.theme.dropShadowLight};
   }
-`;
-
-const StyledErrorPanel = styled(ErrorPanel)`
-  padding: ${space(2)};
 `;
 
 export const WidgetTitleRow = styled('span')`
