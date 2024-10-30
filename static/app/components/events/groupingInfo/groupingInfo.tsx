@@ -15,12 +15,6 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
 
-const groupingFeedbackTypes = [
-  t('Too eager grouping'),
-  t('Too specific grouping'),
-  t('Other grouping issue'),
-];
-
 function GroupConfigSelect({
   event,
   configOverride,
@@ -100,7 +94,11 @@ export default function GroupingInfo({
         </div>
         <FeatureFeedback
           featureName="grouping"
-          feedbackTypes={groupingFeedbackTypes}
+          feedbackTypes={[
+            t('Too eager grouping'),
+            t('Too specific grouping'),
+            t('Other grouping issue'),
+          ]}
           buttonProps={{size: 'sm'}}
         />
       </ConfigHeader>
