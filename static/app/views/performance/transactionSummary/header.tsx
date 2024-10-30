@@ -147,7 +147,7 @@ function TransactionHeader({
 
   const project = projects.find(p => p.id === projectId);
 
-  const hasAnomalyDetection = organization.features?.includes(
+  const hasAnomalyDetection = organization.features.includes(
     'performance-anomaly-detection-ui'
   );
 

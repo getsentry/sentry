@@ -40,7 +40,7 @@ export function LLMMonitoringPage() {
   const organization = useOrganization();
 
   const crumbs = useModuleBreadcrumbs('ai');
-  const useEAP = organization?.features?.includes('insights-use-eap');
+  const useEAP = organization.features.includes('insights-use-eap');
 
   return (
     <Layout.Page>

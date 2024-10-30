@@ -66,7 +66,7 @@ export function LLMMonitoringPage({params}: Props) {
     'span.group': groupId,
     'span.category': 'ai.pipeline',
   };
-  const useEAP = organization?.features?.includes('insights-use-eap');
+  const useEAP = organization.features.includes('insights-use-eap');
 
   const {data: spanMetricData, isPending: areSpanMetricsLoading} = useSpanMetrics(
     {

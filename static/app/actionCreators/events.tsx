@@ -257,7 +257,7 @@ export const useFetchEventAttachments = (
       staleTime: Infinity,
       ...options,
       enabled:
-        (organization.features?.includes('event-attachments') ?? false) &&
+        (organization.features.includes('event-attachments') ?? false) &&
         options.enabled !== false,
     }
   );
