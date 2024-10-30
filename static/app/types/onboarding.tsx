@@ -42,8 +42,8 @@ export enum OnboardingTaskKey {
 }
 
 export type OnboardingSupplementComponentProps = {
-  onCompleteTask: () => void;
   task: OnboardingTask;
+  onCompleteTask?: () => void;
 };
 
 export type OnboardingCustomComponentProps = {
