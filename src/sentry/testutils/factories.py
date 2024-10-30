@@ -1557,9 +1557,7 @@ class Factories:
         aggregate="count()",
         time_window=10,
         threshold_period=1,
-        include_all_projects=False,
         environment=None,
-        excluded_projects=None,
         date_added=None,
         query_type=None,
         dataset=Dataset.Events,
@@ -1595,8 +1593,6 @@ class Factories:
             query_type=query_type,
             dataset=dataset,
             environment=environment,
-            include_all_projects=include_all_projects,
-            excluded_projects=excluded_projects,
             user=user,
             event_types=event_types,
             comparison_delta=comparison_delta,
@@ -1637,13 +1633,11 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_trigger(
-        alert_rule, label=None, alert_threshold=100, excluded_projects=None
-    ):
+    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
         if not label:
             label = petname.generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects)
+        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
