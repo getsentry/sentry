@@ -6,8 +6,6 @@ from enum import Enum
 from types import TracebackType
 from typing import Any, Self
 
-from django.conf import settings
-
 from sentry.integrations.base import IntegrationDomain
 from sentry.utils import metrics
 
@@ -93,7 +91,7 @@ class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
 
     def get_metric_tags(self) -> Mapping[str, str]:
         return {
-            "integration_domain": self.get_integration_domain(),
+            "integration_domain": str(self.get_integration_domain()),
             "integration_name": self.get_integration_name(),
             "interaction_type": self.get_interaction_type(),
         }
@@ -136,9 +134,7 @@ class EventLifecycle:
         key = self.payload.get_metric_key(outcome)
         tags = self.payload.get_metric_tags()
 
-        sample_rate = (
-            1.0 if outcome == EventLifecycleOutcome.FAILURE else settings.SENTRY_METRICS_SAMPLE_RATE
-        )
+        sample_rate = 1.0
         metrics.incr(key, tags=tags, sample_rate=sample_rate)
 
         if outcome == EventLifecycleOutcome.FAILURE:
