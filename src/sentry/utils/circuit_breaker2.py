@@ -383,20 +383,22 @@ class CircuitBreaker:
 
     def _get_remaining_error_quota(
         self, quota: Quota | None = None, window_end: int | None = None
-    ) -> int | None:
+    ) -> int:
         """
         Get the number of allowable errors remaining in the given quota for the time window ending
         at the given time.
 
         If no quota is given, in OK and RECOVERY states, return the current controlling quota's
-        remaining errors. In BROKEN state, return None.
+        remaining errors. In BROKEN state, return -1.
 
         If no time window end is given, return the current amount of quota remaining.
         """
         if not quota:
             quota = self._get_controlling_quota()
+            # This is another spot where logically we should never land, but might if we hit a race
+            # condition with two errors tripping the circiut breaker nearly simultenously.
             if quota is None:  # BROKEN state
-                return None
+                return -1
 
         now = int(time.time())
         window_end = window_end or now
