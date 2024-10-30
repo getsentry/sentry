@@ -74,7 +74,7 @@ function getBreadCrumbTarget(
 function getPerformanceBreadCrumbs(
   organization: Organization,
   location: Location,
-  view: DomainView
+  view?: DomainView
 ) {
   const crumbs: Crumb[] = [];
 
@@ -93,7 +93,7 @@ function getPerformanceBreadCrumbs(
   }
 
   crumbs.push({
-    label: DOMAIN_VIEW_TITLES[view] || t('Performance'),
+    label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
     to: getBreadCrumbTarget(performanceUrl, location.query, organization),
   });
 
