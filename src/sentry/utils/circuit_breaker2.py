@@ -345,6 +345,12 @@ class CircuitBreaker:
     @overload
     def _get_controlling_quota(self) -> Quota | None: ...
 
+    @overload
+    def _get_controlling_quota(self, state: CircuitBreakerState) -> Quota | None: ...
+
+    @overload
+    def _get_controlling_quota(self, state: None) -> Quota | None: ...
+
     def _get_controlling_quota(self, state: CircuitBreakerState | None = None) -> Quota | None:
         """
         Return the Quota corresponding to the given breaker state (or the current breaker state, if
