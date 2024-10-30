@@ -23,6 +23,7 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 interface EventTagTreeRowConfig {
   // Omits the dropdown of actions applicable to this tag
@@ -204,7 +205,7 @@ function EventTagsTreeRowDropdown({
           to:
             originalTag.key === 'transaction'
               ? {
-                  pathname: `/organizations/${organization.slug}/performance/summary/`,
+                  pathname: `${getTransactionSummaryBaseUrl(organization.slug)}/`,
                   query: {
                     project: event.projectID,
                     transaction: content.value,
@@ -281,7 +282,7 @@ function EventTagsTreeValue({
         transaction: content.value,
         referrer,
       });
-      const transactionDestination = `/organizations/${organization.slug}/performance/summary/?${transactionQuery}`;
+      const transactionDestination = `${getTransactionSummaryBaseUrl(organization.slug)}/?${transactionQuery}`;
       tagValue = (
         <TagLinkText>
           <Link to={transactionDestination}>{content.value}</Link>

@@ -22,11 +22,12 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import useFlagSeries from 'sentry/views/issueDetails/streamline/flagSeries';
+import useFlagSeries from 'sentry/views/issueDetails/streamline/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
 } from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/useReleaseMarkLineSeries';
 
 export const enum EventGraphSeries {
   EVENT = 'event',
@@ -101,6 +102,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     saveOnZoom: true,
   });
 
+  const releaseSeries = useReleaseMarkLineSeries({group});
   const flagSeries = useFlagSeries({
     query: {
       start: eventView.start,
@@ -108,7 +110,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       statsPeriod: eventView.statsPeriod,
     },
     event,
-    group,
   });
 
   const series = useMemo((): BarChartSeries[] => {
@@ -141,30 +142,35 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       });
     }
 
+    if (releaseSeries.markLine) {
+      seriesData.push(releaseSeries as BarChartSeries);
+    }
+
     if (flagSeries.markLine) {
       seriesData.push(flagSeries as BarChartSeries);
     }
 
     return seriesData;
-  }, [visibleSeries, userSeries, eventSeries, flagSeries, theme]);
+  }, [visibleSeries, userSeries, eventSeries, releaseSeries, flagSeries, theme]);
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
     'issue-details-graph-legend',
     {
+      ['Releases']: true,
       ['Feature Flags']: true,
     }
   );
 
   const legend = Legend({
     theme: theme,
-    icon: 'path://M 10 10 H 500 V 9000 H 10 L 10 10',
     orient: 'horizontal',
     align: 'left',
     show: true,
-    top: 8,
+    top: 4,
     right: 95,
-    data: ['Feature Flags'],
+    data: ['Releases', 'Feature Flags'],
     selected: legendSelected,
+    zlevel: 10,
   });
 
   const onLegendSelectChanged = useMemo(
@@ -243,7 +249,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           grid={{
             left: 8,
             right: 8,
-            top: 12,
+            top: 20,
             bottom: 0,
           }}
           yAxis={{

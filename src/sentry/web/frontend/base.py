@@ -364,12 +364,6 @@ class BaseView(View, OrganizationMixin):
             if response:
                 return response
 
-        if self.is_auth_required(request, *args, **kwargs):
-            return self.handle_auth_required(request, *args, **kwargs)
-
-        if self.is_sudo_required(request):
-            return self.handle_sudo_required(request, *args, **kwargs)
-
         if (
             is_using_customer_domain(request)
             and "organization_slug" in inspect.signature(self.convert_args).parameters
@@ -377,6 +371,12 @@ class BaseView(View, OrganizationMixin):
         ):
             # In customer domain contexts, we will need to pre-populate the organization_slug keyword argument.
             kwargs["organization_slug"] = organization_slug
+
+        if self.is_auth_required(request, *args, **kwargs):
+            return self.handle_auth_required(request, *args, **kwargs)
+
+        if self.is_sudo_required(request):
+            return self.handle_sudo_required(request, *args, **kwargs)
 
         args, kwargs = self.convert_args(request, *args, **kwargs)
 
