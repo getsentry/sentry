@@ -48,8 +48,8 @@ import {
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import useTags from 'sentry/utils/useTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import withTags from 'sentry/utils/withTags';
 import {
   assignTempId,
   enforceWidgetHeightValues,
@@ -62,6 +62,7 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
@@ -143,7 +144,6 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   onSave: (widgets: Widget[]) => void;
   organization: Organization;
   selection: PageFilters;
-  tags: TagCollection;
   widgetLegendState: WidgetLegendSelectionState;
   displayType?: DisplayType;
   end?: DateString;
@@ -184,7 +184,6 @@ function WidgetBuilder({
   statsPeriod,
   onSave,
   router,
-  tags,
   updateDashboardSplitDecision,
   widgetLegendState,
 }: Props) {
@@ -304,13 +303,22 @@ function WidgetBuilder({
 
   const [splitDecision, setSplitDecision] = useState<WidgetType | undefined>(undefined);
 
+  let tags: TagCollection = useTags();
+
+  // HACK: Inject EAP dataset tags when selecting the Spans dataset
+  const numericSpanTags = useSpanTags('number');
+  const stringSpanTags = useSpanTags('string');
+  if (state.dataSet === DataSet.SPANS) {
+    tags = {...numericSpanTags, ...stringSpanTags};
+  }
+
   useEffect(() => {
     trackAnalytics('dashboards_views.widget_builder.opened', {
       organization,
       new_widget: !isEditing,
     });
 
-    if (isEmptyObject(tags)) {
+    if (isEmptyObject(tags) && dataSet !== DataSet.SPANS) {
       loadOrganizationTags(api, organization.slug, {
         ...selection,
         // Pin the request to 14d to avoid timeouts, see DD-967 for
@@ -1386,7 +1394,7 @@ function WidgetBuilder({
   );
 }
 
-export default withPageFilters(withTags(WidgetBuilder));
+export default withPageFilters(WidgetBuilder);
 
 const TitleInput = styled(TextField)`
   padding: 0 ${space(2)} 0 0;

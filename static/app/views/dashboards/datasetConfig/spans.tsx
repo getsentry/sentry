@@ -15,10 +15,7 @@ import {
   doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-  TRACE_FIELD_DEFINITIONS,
-} from 'sentry/utils/fields';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
@@ -26,7 +23,6 @@ import {
   handleOrderByReset,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
-  filterAggregateParams,
   getCustomEventsFieldRenderer,
   getTableSortOptions,
   transformEventsResponseToSeries,
@@ -35,16 +31,18 @@ import {
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
+import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['span.op', 'count(span.op)'],
+  fields: ['span.op', 'avg(span.duration)'],
   columns: ['span.op'],
   fieldAliases: [],
-  aggregates: ['count(span.op)'],
+  aggregates: ['avg(span.duration)'],
   conditions: '',
-  orderby: '-count(span.op)',
+  orderby: '-avg(span.duration)',
 };
 
 const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
@@ -54,8 +52,8 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggre
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['string', 'integer', 'number', 'duration', 'date', 'boolean'],
-        defaultValue: 'user',
+        columnTypes: ['number', 'string'], // Need to keep the string type for unknown values before tags are resolved
+        defaultValue: 'span.duration',
         required: true,
       },
     ],
@@ -113,21 +111,63 @@ export const SpansConfig: DatasetConfig<
   // getSeriesRequest: getErrorsSeriesRequest,
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
+  filterTableOptions,
   filterAggregateParams,
 };
 
-// TODO: Update tags to use EAP tags
 function getEventsTableFieldOptions(
   organization: Organization,
   tags?: TagCollection,
   _customMeasurements?: CustomMeasurementCollection
 ) {
-  return generateFieldOptions({
+  const baseFieldOptions = generateFieldOptions({
     organization,
-    tagKeys: Object.values(tags ?? {}).map(({key}) => key),
-    fieldKeys: Object.keys(TRACE_FIELD_DEFINITIONS),
+    tagKeys: [],
+    fieldKeys: [],
     aggregations: EAP_AGGREGATIONS,
   });
+
+  const spanTags = Object.values(tags ?? {}).reduce(
+    (acc, tag) => ({
+      ...acc,
+      [`${tag.kind}:${tag.key}`]: {
+        label: tag.name,
+        value: {
+          kind: FieldValueKind.TAG,
+
+          // We have numeric and string tags which have the same
+          // display name, but one is used for aggregates and the other
+          // is used for grouping.
+          meta: {name: tag.key, dataType: tag.kind === 'tag' ? 'string' : 'number'},
+        },
+      },
+    }),
+    {}
+  );
+
+  return {...baseFieldOptions, ...spanTags};
+}
+
+function filterTableOptions(option: FieldValueOption) {
+  // Filter out numeric tags from primary options, they only show up in
+  // the parameter fields for aggregate functions
+  if ('dataType' in option.value.meta) {
+    return option.value.meta.dataType !== 'number';
+  }
+  return true;
+}
+
+function filterAggregateParams(option: FieldValueOption) {
+  // Allow for unknown values to be used for aggregate functions
+  // This supports showing the tag value even if it's not in the current
+  // set of tags.
+  if ('unknown' in option.value.meta && option.value.meta.unknown) {
+    return true;
+  }
+  if ('dataType' in option.value.meta) {
+    return option.value.meta.dataType === 'number';
+  }
+  return true;
 }
 
 function getEventsRequest(

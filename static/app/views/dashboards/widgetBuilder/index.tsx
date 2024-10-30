@@ -2,7 +2,9 @@ import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 
 import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
@@ -24,18 +26,20 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
         </Layout.Page>
       )}
     >
-      <WidgetBuilder
-        {...props}
-        organization={organization}
-        widgetLegendState={
-          new WidgetLegendSelectionState({
-            location: props.location,
-            organization,
-            dashboard: props.dashboard,
-            router: props.router,
-          })
-        }
-      />
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+        <WidgetBuilder
+          {...props}
+          organization={organization}
+          widgetLegendState={
+            new WidgetLegendSelectionState({
+              location: props.location,
+              organization,
+              dashboard: props.dashboard,
+              router: props.router,
+            })
+          }
+        />
+      </SpanTagsProvider>
     </Feature>
   );
 }
