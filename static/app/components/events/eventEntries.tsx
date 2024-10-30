@@ -126,7 +126,7 @@ function EventEntries({
           startTimestamp={event.startTimestamp}
         />
       )}
-      {!isShare && event.groupID && group && (
+      {!isShare && event.groupID && (
         <EventGroupingInfoSection
           projectSlug={projectSlug}
           event={event}

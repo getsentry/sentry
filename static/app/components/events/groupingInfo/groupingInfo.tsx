@@ -41,7 +41,7 @@ function GroupConfigSelect({
 
 interface GroupingSummaryProps {
   event: Event;
-  group: Group;
+  group: Group | undefined;
   projectSlug: string;
   showGroupingConfig: boolean;
 }

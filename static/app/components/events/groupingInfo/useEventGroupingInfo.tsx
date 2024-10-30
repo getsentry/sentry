@@ -17,7 +17,7 @@ function generatePerformanceGroupInfo({
   group,
 }: {
   event: Event;
-  group: Group;
+  group: Group | undefined;
 }): EventGroupingInfoResponse | null {
   if (!event.occurrence) {
     return null;
@@ -55,7 +55,7 @@ export function useEventGroupingInfo({
   query,
 }: {
   event: Event;
-  group: Group;
+  group: Group | undefined;
   projectSlug: string;
   query: Record<string, string>;
 }) {
@@ -64,7 +64,7 @@ export function useEventGroupingInfo({
   const hasPerformanceGrouping =
     event.occurrence &&
     event.type === 'transaction' &&
-    group.issueCategory === IssueCategory.PERFORMANCE;
+    group?.issueCategory === IssueCategory.PERFORMANCE;
 
   const {data, isPending, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
     [

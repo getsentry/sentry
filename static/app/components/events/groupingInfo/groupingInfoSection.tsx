@@ -12,7 +12,7 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface EventGroupingInfoSectionProps {
   event: Event;
-  group: Group;
+  group: Group | undefined;
   projectSlug: string;
   showGroupingConfig: boolean;
 }

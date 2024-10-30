@@ -9,7 +9,7 @@ export function GroupInfoSummary({
   projectSlug,
 }: {
   event: Event;
-  group: Group;
+  group: Group | undefined;
   projectSlug: string;
 }) {
   const {groupInfo} = useEventGroupingInfo({
