@@ -673,6 +673,11 @@ urlpatterns += [
                     name="sentry-customer-domain-legal-settings",
                 ),
                 re_path(
+                    r"^dynamic-sampling/",
+                    react_page_view,
+                    name="sentry-customer-domain-dynamic-sampling-settings",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-settings",

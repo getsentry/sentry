@@ -29,6 +29,7 @@ import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
@@ -65,14 +66,14 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // but if the user falls into this case for some reason,
   // he needs to select the platform again since it is not available as a parameter here
   if (!projects || !projects.length) {
-    return `/getting-started/:projectId/`;
+    return `/${organization.slug}/:projectId/getting-started/`;
   }
 
   const allProjectsWithoutErrors = projects.every(project => !project.firstEvent);
   // If all created projects don't have any errors,
   // we ask the user to pick a project before navigating to the instructions
   if (allProjectsWithoutErrors) {
-    return `/getting-started/:projectId/`;
+    return `/${organization.slug}/:projectId/getting-started/`;
   }
 
   // Pick the first project without an error
@@ -112,6 +113,8 @@ export function getOnboardingTasks({
   projects,
   onboardingContext,
 }: Options): OnboardingTaskDescriptor[] {
+  const performanceUrl = `${getPerformanceBaseUrl(organization.slug)}/`;
+
   if (isDemoWalkthrough()) {
     return [
       {
@@ -136,7 +139,7 @@ export function getOnboardingTasks({
         skippable: false,
         requisites: [],
         actionType: 'app',
-        location: `/organizations/${organization.slug}/performance/`,
+        location: performanceUrl,
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },
@@ -221,7 +224,7 @@ export function getOnboardingTasks({
             organization={organization}
             project={projects[0]}
             eventType="error"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
             {() => <EventWaitingIndicator text={t('Waiting for error')} />}
           </EventWaiter>
@@ -332,7 +335,7 @@ export function getOnboardingTasks({
         // TODO: add analytics here for this specific action.
 
         if (!projects) {
-          navigateTo(`/organizations/${organization.slug}/performance/`, router);
+          navigateTo(performanceUrl, router);
           return;
         }
 
@@ -340,20 +343,20 @@ export function getOnboardingTasks({
           filterProjects(projects);
 
         if (projectsWithoutFirstTransactionEvent.length <= 0) {
-          navigateTo(`/organizations/${organization.slug}/performance/`, router);
+          navigateTo(performanceUrl, router);
           return;
         }
 
         if (projectsForOnboarding.length) {
           navigateTo(
-            `/organizations/${organization.slug}/performance/?project=${projectsForOnboarding[0].id}#performance-sidequest`,
+            `${performanceUrl}?project=${projectsForOnboarding[0].id}#performance-sidequest`,
             router
           );
           return;
         }
 
         navigateTo(
-          `/organizations/${organization.slug}/performance/?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
+          `${performanceUrl}?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
           router
         );
       },
@@ -379,7 +382,7 @@ export function getOnboardingTasks({
             organization={organization}
             project={projects[0]}
             eventType="transaction"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
             {() => <EventWaitingIndicator />}
           </EventWaiter>
@@ -449,7 +452,7 @@ export function getOnboardingTasks({
             organization={organization}
             project={projects[0]}
             eventType="replay"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
             {() => <EventWaitingIndicator text={t('Waiting for user session')} />}
           </EventWaiter>
