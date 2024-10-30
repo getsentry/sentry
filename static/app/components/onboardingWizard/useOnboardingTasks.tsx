@@ -37,7 +37,7 @@ export function useOnboardingTasks({
   refetchInterval,
 }: {
   enabled: boolean;
-  refetchInterval: '10s' | '1s';
+  refetchInterval: '10s' | '1m';
   supportedTasks: OnboardingTask[];
 }): {
   allTasks: OnboardingTask[];
@@ -64,10 +64,10 @@ export function useOnboardingTasks({
       // Stop polling if all tasks are complete
       return serverCompletedTasks.length === supportedTasks.length
         ? false
-        : refetchInterval === '10s'
+        : refetchInterval === '1m'
           ? // We want to avoid refetching too frequently when the sidebar is closed,
             // as it could overload our server
-            10000 // 10s
+            60000 // 1m
           : 1000; // 1s
     },
   });

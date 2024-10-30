@@ -58,7 +58,7 @@ export function NewOnboardingStatus({
       enabled:
         !!organization.features?.includes('onboarding') &&
         !supportedTasks.every(findCompleteTasks),
-      refetchInterval: isActive ? '1s' : '10s',
+      refetchInterval: isActive ? '1s' : '1m',
     });
 
   const label = walkthrough ? t('Guided Tours') : t('Onboarding');
