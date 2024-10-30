@@ -14,7 +14,6 @@ import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -32,6 +31,7 @@ import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spa
 import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/components/tables/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
@@ -49,6 +49,7 @@ import {
   SpanIndexedField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 
 export function MessageSpanSamplesPanel() {
@@ -71,6 +72,7 @@ export function MessageSpanSamplesPanel() {
   const project = projects.find(p => query.project === p.id);
 
   const organization = useOrganization();
+  const {view} = useDomainViewFilters();
 
   const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
     undefined,
@@ -271,14 +273,12 @@ export function MessageSpanSamplesPanel() {
                 </Subtitle>
                 <Title>
                   <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/performance/summary?${qs.stringify(
-                        {
-                          project: query.project,
-                          transaction: query.transaction,
-                        }
-                      )}`
-                    )}
+                    to={`${getTransactionSummaryBaseUrl(organization.slug, view)}?${qs.stringify(
+                      {
+                        project: query.project,
+                        transaction: query.transaction,
+                      }
+                    )}`}
                   >
                     {query.transaction}
                   </Link>

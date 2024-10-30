@@ -45,7 +45,7 @@ export function generateTransactionSummaryRoute({
   subPath?: string;
   view?: DomainView; // TODO - this should be mantatory once we release domain view
 }): string {
-  return `${getPerformanceBaseUrl(orgSlug, view)}/summary/${subPath ? `${subPath}/` : ''}`;
+  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/${subPath ? `${subPath}/` : ''}`;
 }
 
 // normalizes search conditions by removing any redundant search conditions before presenting them in:
@@ -265,8 +265,12 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
   };
 }
 
-export function getTransactionSummaryBaseUrl(orgSlug: string, view?: DomainView) {
-  return `${getPerformanceBaseUrl(orgSlug, view)}/summary`;
+export function getTransactionSummaryBaseUrl(
+  orgSlug: string,
+  view?: DomainView,
+  bare: boolean = false
+) {
+  return `${getPerformanceBaseUrl(orgSlug, view, bare)}/summary`;
 }
 
 export const SidebarSpacer = styled('div')`

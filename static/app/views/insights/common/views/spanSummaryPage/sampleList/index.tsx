@@ -27,12 +27,14 @@ import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samp
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanIndexedField,
   SpanMetricsField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
@@ -54,13 +56,17 @@ export function SampleList({
   transactionMethod,
   subregions,
   onClose,
-  transactionRoute = '/performance/summary/',
+  transactionRoute,
   referrer,
 }: Props) {
+  const organization = useOrganization();
+  const {view} = useDomainViewFilters();
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
+
+  transactionRoute ??= `/${getTransactionSummaryBaseUrl(organization.slug, view, true)}`;
 
   // A a transaction name is required to show the panel, but a transaction
   // method is not
@@ -76,7 +82,6 @@ export function SampleList({
     []
   );
 
-  const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
   const {projects} = useProjects();
