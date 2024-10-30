@@ -1001,3 +1001,40 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         assert lower_limit == pytest.approx(190_000, abs=5000)
         assert extrapolated == pytest.approx(500_000)
         assert upper_limit == pytest.approx(810_000, abs=5000)
+
+    def test_skip_aggregate_conditions_option(self):
+        span_1 = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            start_ts=self.ten_mins_ago,
+        )
+        span_2 = self.create_span(
+            {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans(
+            [span_1, span_2],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description"],
+                "query": "description:foo count():>1",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "allowAggregateConditions": "0",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "description": "foo",
+                "project.name": self.project.slug,
+                "id": span_1["span_id"],
+            },
+        ]
+        assert meta["dataset"] == self.dataset

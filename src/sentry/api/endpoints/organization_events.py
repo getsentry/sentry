@@ -413,6 +413,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     )
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
+        use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
+
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
             query_source = self.get_request_source(request)
             return scoped_dataset.query(
@@ -426,7 +428,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 referrer=referrer,
                 auto_fields=True,
                 auto_aggregations=True,
-                use_aggregate_conditions=True,
+                use_aggregate_conditions=use_aggregate_conditions,
                 allow_metric_aggregates=allow_metric_aggregates,
                 transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
