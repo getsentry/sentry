@@ -347,6 +347,13 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 ## End of Feedback v2
 
 
+## DevToolbar
+/src/sentry/templates/sentry/toolbar/  @getsentry/replay
+/src/sentry/toolbar/                   @getsentry/replay
+/tests/sentry/toolbar/                 @getsentry/replay
+## End of DevToolbar
+
+
 ## Integrations
 /src/sentry/sentry_apps/                                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /tests/sentry/sentry_apps                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
