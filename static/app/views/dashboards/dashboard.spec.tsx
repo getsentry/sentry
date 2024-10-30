@@ -17,6 +17,10 @@ import {OrganizationContext} from '../organizationContext';
 
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
+jest.mock('sentry/components/lazyRender', () => ({
+  LazyRender: ({children}: {children: React.ReactNode}) => children,
+}));
+
 describe('Dashboards > Dashboard', () => {
   const organization = OrganizationFixture({
     features: ['dashboards-basic', 'dashboards-edit'],
