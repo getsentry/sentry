@@ -291,12 +291,15 @@ class OrganizationSerializer(Serializer):
                     # Remove the organization scope prefix
                     feature_set.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
 
-        # Do not include the onboarding feature if OrganizationOptions exist
-        if (
-            "onboarding" in feature_set
-            and OrganizationOption.objects.filter(organization=obj).exists()
-        ):
-            feature_set.remove("onboarding")
+        if "onboarding" in feature_set:
+            all_required_onboarding_tasks_complete = OrganizationOption.objects.filter(
+                organization_id=obj.id, key="onboarding:complete"
+            ).exists()
+
+            # Do not include the onboarding feature if all required onboarding tasks are completed
+            # The required tasks are defined in https://github.com/getsentry/sentry/blob/master/src/sentry/models/organizationonboardingtask.py#L147
+            if all_required_onboarding_tasks_complete:
+                feature_set.remove("onboarding")
 
         # Include api-keys feature if they previously had any api-keys
         if "api-keys" not in feature_set and attrs["has_api_key"]:
