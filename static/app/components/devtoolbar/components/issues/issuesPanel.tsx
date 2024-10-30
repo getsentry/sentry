@@ -1,7 +1,9 @@
+import {useEffect, useState} from 'react';
+
 import IssueListItem from 'sentry/components/devtoolbar/components/issueListItem';
+import {useScopeAndClient} from 'sentry/components/devtoolbar/hooks/useSentryClientAndScope';
 import Placeholder from 'sentry/components/placeholder';
 
-import useCurrentTransactionName from '../../hooks/useCurrentTransactionName';
 import {listItemPlaceholderWrapperCss} from '../../styles/listItem';
 import {panelDescCss, panelInsetContentCss, panelSectionCss} from '../../styles/panel';
 import {resetFlexColumnCss} from '../../styles/reset';
@@ -9,13 +11,28 @@ import {smallCss} from '../../styles/typography';
 import InfiniteListItems from '../infiniteListItems';
 import InfiniteListState from '../infiniteListState';
 import PanelLayout from '../panelLayout';
+import transactionToSearchTerm from '../transactionToSearchTerm';
 
 import useInfiniteIssuesList from './useInfiniteIssuesList';
 
 export default function IssuesPanel() {
-  const transactionName = useCurrentTransactionName();
+  const {scope, client} = useScopeAndClient();
+  const [searchTerm, setSearchTerm] = useState(
+    transactionToSearchTerm(scope?.getScopeData().transactionName)
+  );
+
+  useEffect(() => {
+    if (client) {
+      return client.on('startNavigationSpan', options => {
+        setSearchTerm(transactionToSearchTerm(options.name));
+      });
+    }
+    return () => {};
+  }, [client]);
+
+  // Fetch issues based on the updated transaction name
   const queryResult = useInfiniteIssuesList({
-    query: `url:*${transactionName}`,
+    query: `url:*${searchTerm}`,
   });
 
   const estimateSize = 89;
