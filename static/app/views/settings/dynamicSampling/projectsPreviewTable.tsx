@@ -80,23 +80,7 @@ export function ProjectsPreviewTable({period}: Props) {
           {t('Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
-        <RateHeaderCell key="projectedRate">
-          {t('Projected Rate')}
-          {/* <ToggleWrapper> */}
-          {/* <PeriodToggle
-              data-is-active={period === '24h'}
-              onClick={() => setPeriod('24h')}
-            >
-              {t('24h')}
-            </PeriodToggle>
-            <PeriodToggle
-              data-is-active={period === '30d'}
-              onClick={() => setPeriod('30d')}
-            >
-              {t('30d')}
-            </PeriodToggle>
-          </ToggleWrapper> */}
-        </RateHeaderCell>,
+        <RateHeaderCell key="projectedRate">{t('Projected Rate')}</RateHeaderCell>,
       ]}
     >
       {balancedItems
@@ -295,22 +279,6 @@ const RateHeaderCell = styled('div')`
   display: flex;
   justify-content: space-between;
 `;
-
-// const ToggleWrapper = styled('div')`
-//   display: flex;
-//   align-items: center;
-//   gap: ${space(0.5)};
-//   padding: 0 0 0 ${space(1)};
-// `;
-
-// const PeriodToggle = styled('button')`
-//   border: none;
-//   background: none;
-//   color: ${p => (p['data-is-active'] ? p.theme.textColor : p.theme.disabled)};
-//   cursor: pointer;
-//   padding: 0;
-//   text-transform: uppercase;
-// `;
 
 const Cell = styled('div')`
   display: flex;
