@@ -18,7 +18,7 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import GroupingConfigSelect from './groupingConfigSelect';
-import GroupVariant from './groupingVariant';
+import GroupingVariant from './groupingVariant';
 
 const groupingFeedbackTypes = [
   t('Too eager grouping'),
@@ -191,7 +191,7 @@ export function EventGroupingInfo({
           {hasPerformanceGrouping || isSuccess
             ? variants.map((variant, index) => (
                 <Fragment key={variant.key}>
-                  <GroupVariant
+                  <GroupingVariant
                     event={event}
                     variant={variant}
                     showGroupingConfig={showGroupingConfig}
