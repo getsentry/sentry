@@ -548,6 +548,73 @@ class TestPhpDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
 
+class TestCSharpDeriveCodeMappings(BaseDeriveCodeMappings):
+    def setUp(self):
+        super().setUp()
+        self.platform = "csharp"
+        self.event_data = self.generate_data(
+            [
+                {"in_app": True, "filename": "/sentry/capybara.cs"},
+                {"in_app": True, "filename": "/sentry/potato/kangaroo.cs"},
+                {
+                    "in_app": False,
+                    "filename": "/sentry/potato/vendor/sentry/sentry/src/functions.cs",
+                },
+            ],
+            self.platform,
+        )
+
+        self.event_data_backslashes = self.generate_data(
+            [
+                {"in_app": True, "filename": "\\sentry\\capybara.cs"},
+                {"in_app": True, "filename": "\\sentry\\potato\\kangaroo.cs"},
+            ],
+            self.platform,
+        )
+
+    @responses.activate
+    def test_derive_code_mappings_csharp_trivial(self):
+        repo_name = "csharp/repo"
+        with patch(
+            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/potato/kangaroo.cs"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            assert code_mapping.stack_root == "/"
+            assert code_mapping.source_root == ""
+            assert code_mapping.repository.name == repo_name
+
+    @responses.activate
+    def test_derive_code_mappings_different_roots_csharp(self):
+        repo_name = "csharp/repo"
+        with patch(
+            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["src/sentry/potato/kangaroo.cs"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            code_mapping = RepositoryProjectPathConfig.objects.all()[0]
+            assert code_mapping.stack_root == "/sentry/"
+            assert code_mapping.source_root == "src/sentry/"
+            assert code_mapping.repository.name == repo_name
+
+    @responses.activate
+    def test_derive_code_mappings_non_in_app_frame(self):
+        repo_name = "csharp/repo"
+        with patch(
+            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org"
+        ) as mock_get_trees_for_org:
+            mock_get_trees_for_org.return_value = {
+                repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/src/functions.cs"])
+            }
+            derive_code_mappings(self.project.id, self.event_data)
+            assert not RepositoryProjectPathConfig.objects.exists()
+
+
 class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()

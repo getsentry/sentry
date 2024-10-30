@@ -70,7 +70,7 @@ export function TraceTransactionRow(
           />
           <span className="TraceOperation">{props.node.value['transaction.op']}</span>
           <strong className="TraceEmDash"> — </strong>
-          <span>{props.node.value.transaction}</span>
+          <span className="TraceDescription">{props.node.value.transaction}</span>
         </div>
       </div>
       <div
@@ -79,6 +79,7 @@ export function TraceTransactionRow(
         onDoubleClick={props.onRowDoubleClick}
       >
         <TraceBar
+          node={props.node}
           virtualized_index={props.virtualized_index}
           manager={props.manager}
           color={makeTraceNodeBarColor(props.theme, props.node)}

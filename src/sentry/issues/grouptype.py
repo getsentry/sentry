@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
     from sentry.users.models.user import User
     from sentry.workflow_engine.models.detector import DetectorHandler
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -570,6 +571,7 @@ class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     category = GroupCategory.REPLAY.value
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig()
+    released = True
 
 
 @dataclass(frozen=True)
@@ -580,6 +582,7 @@ class ReplayHydrationErrorType(ReplayGroupTypeDefaults, GroupType):
     category = GroupCategory.REPLAY.value
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig()
+    released = True
 
 
 @dataclass(frozen=True)
@@ -591,7 +594,9 @@ class FeedbackGroup(GroupType):
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig(context=[])
+    released = True
     in_default_search = False  # hide from issues stream
+    released = True
 
 
 @dataclass(frozen=True)

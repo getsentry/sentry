@@ -29,9 +29,6 @@ import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
 jest.mock('sentry/components/charts/simpleTableChart', () => jest.fn(() => <div />));
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
-jest.mock('sentry/components/lazyRender', () => ({
-  LazyRender: ({children}: {children: React.ReactNode}) => children,
-}));
 
 describe('Dashboards > WidgetCard', function () {
   const {router, organization} = initializeOrg({
@@ -577,7 +574,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
+    await userEvent.click(await screen.findByLabelText('Open Full-Screen View'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
     );
@@ -785,7 +782,11 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('displays the discover split warning icon when the dataset source is forced', async function () {
-    const testWidget = {...WidgetFixture(), datasetSource: DatasetSource.FORCED};
+    const testWidget = {
+      ...WidgetFixture(),
+      datasetSource: DatasetSource.FORCED,
+      widgetType: WidgetType.ERRORS,
+    };
 
     renderWithProviders(
       <WidgetCard
@@ -805,7 +806,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await userEvent.hover(screen.getByLabelText('Dataset split warning'));
+    await userEvent.hover(screen.getByLabelText('Widget warnings'));
 
     expect(
       await screen.findByText(/We're splitting our datasets up/)

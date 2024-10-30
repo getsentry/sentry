@@ -36,17 +36,17 @@ lxml>=4.9.3
 maxminddb>=2.3
 mistune>=2.0.3
 mmh3>=4.0.0
-packaging>=21.3
+packaging>=24.1
 parsimonious>=0.10.0
 petname>=2.6
 phonenumberslite>=8.12.32
-Pillow>=10.2.0
+Pillow>=10.4.0
 progressbar2>=3.41.0
 protobuf>=5.27.3
 proto-plus>=1.24.0
 python-rapidjson>=1.4
 psutil>=5.9.2
-psycopg2-binary>=2.9.9
+psycopg2-binary>=2.9.10
 PyJWT>=2.4.0
 pydantic>=1.10.17,<2
 python-dateutil>=2.9.0
@@ -65,7 +65,7 @@ rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
 sentry-arroyo>=2.16.5
-sentry-kafka-schemas>=0.1.111
+sentry-kafka-schemas>=0.1.116
 sentry-ophio==1.0.0
 sentry-protos>=0.1.29
 sentry-redis-tools>=0.1.7
@@ -78,7 +78,7 @@ sqlparse>=0.4.4
 statsd>=3.3
 structlog>=22
 symbolic==12.12.0
-tiktoken>=0.6.0
+tiktoken>=0.8.0
 tldextract>=5.1.2
 toronado>=0.1.0
 typing-extensions>=4.9.0
@@ -86,7 +86,7 @@ ua-parser>=0.10.0
 unidiff>=0.7.4
 urllib3[brotli]>=2.2.2
 brotli>=1.1
-pyuwsgi==2.0.27a1
+pyuwsgi==2.0.27.post1
 zstandard>=0.18.0
 sentry-usage-accountant==0.0.10
 orjson>=3.10.3

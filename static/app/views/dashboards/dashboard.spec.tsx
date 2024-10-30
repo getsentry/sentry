@@ -7,6 +7,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
+import {DatasetSource} from 'sentry/utils/discover/types';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import Dashboard from 'sentry/views/dashboards/dashboard';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -15,6 +16,10 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {OrganizationContext} from '../organizationContext';
 
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
+
+jest.mock('sentry/components/lazyRender', () => ({
+  LazyRender: ({children}: {children: React.ReactNode}) => children,
+}));
 
 describe('Dashboards > Dashboard', () => {
   const organization = OrganizationFixture({
@@ -241,6 +246,52 @@ describe('Dashboards > Dashboard', () => {
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
     expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
+  });
+
+  it('updates the widget dataset split', async () => {
+    const splitWidget = {
+      ...newWidget,
+      widgetType: WidgetType.ERRORS,
+      datasetSource: DatasetSource.FORCED,
+    };
+    const splitWidgets = [splitWidget];
+    const dashboardWithOneWidget = {...mockDashboard, widgets: splitWidgets};
+
+    const mockOnUpdate = jest.fn();
+    const mockHandleUpdateWidgetList = jest.fn();
+
+    render(
+      <OrganizationContext.Provider value={initialData.organization}>
+        <MEPSettingProvider forceTransactions={false}>
+          <Dashboard
+            paramDashboardId="1"
+            dashboard={dashboardWithOneWidget}
+            organization={initialData.organization}
+            isEditingDashboard={false}
+            onUpdate={mockOnUpdate}
+            handleUpdateWidgetList={mockHandleUpdateWidgetList}
+            handleAddCustomWidget={() => undefined}
+            router={initialData.router}
+            location={initialData.router.location}
+            widgetLimitReached={false}
+            onSetNewWidget={() => undefined}
+            widgetLegendState={widgetLegendState}
+          />
+        </MEPSettingProvider>
+      </OrganizationContext.Provider>
+    );
+
+    await userEvent.hover(screen.getByLabelText('Widget warnings'));
+
+    expect(
+      await screen.findByText(/We're splitting our datasets up/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByText(/Switch to Transactions/));
+    await waitFor(() => {
+      expect(mockOnUpdate).toHaveBeenCalled();
+      expect(mockHandleUpdateWidgetList).toHaveBeenCalled();
+    });
   });
 
   describe('Issue Widgets', () => {
