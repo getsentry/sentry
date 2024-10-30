@@ -70,3 +70,36 @@ class Status(models.TextChoices):
 class InflightTaskStoreSqlite(InflightTaskStore):
     def __init__(self):
         pass
+
+    def store(self, batch: Sequence[InflightActivation]) -> None:
+        pass
+
+    def get_pending_task(self) -> InflightActivation | None:
+        return None
+
+    def count_pending_task(self) -> int:
+        return 0
+
+    def set_task_status(self, task_id: str, task_status: TaskActivationStatus.ValueType) -> None:
+        pass
+
+    def set_task_deadline(self, task_id: str, task_deadline: datetime | None) -> None:
+        pass
+
+    def delete_task(self, task_id: str) -> None:
+        pass
+
+    def handle_retry_state_tasks(self) -> None:
+        pass
+
+    def handle_deadletter_at(self) -> None:
+        pass
+
+    def handle_processing_deadlines(self) -> None:
+        pass
+
+    def handle_failed_tasks(self) -> None:
+        pass
+
+    def remove_completed(self) -> None:
+        pass

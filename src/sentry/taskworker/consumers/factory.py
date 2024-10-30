@@ -13,7 +13,6 @@ from arroyo.processing.strategies import (
     RunTask,
 )
 from arroyo.processing.strategies.abstract import MessageRejected
-from arroyo.processing.strategies.run_task_with_multiprocessing import MultiprocessingPool
 from arroyo.types import BaseValue, Commit, Message, Partition
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
@@ -39,7 +38,6 @@ class TaskWorkerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         output_block_size: int | None,
     ) -> None:
         super().__init__()
-        self.pool = MultiprocessingPool(num_processes)
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.input_block_size = input_block_size
@@ -52,7 +50,7 @@ class TaskWorkerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # Maximum number of pending inflight activations in the store before backpressure is emitted
         self.max_inflight_activation_in_store = max_inflight_activation_in_store
 
-        self.pending_task_store = InflightTaskStoreSqlite()
+        self.inflight_task_store = InflightTaskStoreSqlite()
 
     def create_with_partitions(
         self, commit: Commit, _: Mapping[Partition, int]
@@ -83,24 +81,24 @@ class TaskWorkerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             message: Message[MutableSequence[InflightActivation]],
         ) -> Message[MutableSequence[InflightActivation]]:
             logger.info("Flushing batch. Messages: %r...", len(message.payload))
-            self.pending_task_store.store(message.value.payload)
+            self.inflight_task_store.store(message.value.payload)
             return message
 
         def do_upkeep(
             message: Message[KafkaPayload],
         ) -> KafkaPayload:
-            self.pending_task_store.handle_processing_deadlines()
-            self.pending_task_store.handle_retry_state_tasks()
-            self.pending_task_store.handle_deadletter_at()
-            self.pending_task_store.handle_failed_tasks()
-            self.pending_task_store.remove_completed()
+            self.inflight_task_store.handle_processing_deadlines()
+            self.inflight_task_store.handle_retry_state_tasks()
+            self.inflight_task_store.handle_deadletter_at()
+            self.inflight_task_store.handle_failed_tasks()
+            self.inflight_task_store.remove_completed()
 
             return message.payload
 
         def limit_tasks(
             message: Message[KafkaPayload],
         ) -> KafkaPayload:
-            count = self.pending_task_store.count_pending_task()
+            count = self.inflight_task_store.count_pending_task()
             if count >= self.max_inflight_activation_in_store:
                 # The number of pending inflight activations in the store exceeds the limit.
                 # Wait for workers to complete tasks before adding the next offset to the queue.
@@ -140,6 +138,3 @@ class TaskWorkerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             # TODO ideally we commit offsets for completed work
             next_step=limit,
         )
-
-    def shutdown(self):
-        self.pool.close()
