@@ -80,7 +80,23 @@ export function ProjectsPreviewTable({period}: Props) {
           {t('Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
-        t('Projected Rate'),
+        <RateHeaderCell key="projectedRate">
+          {t('Projected Rate')}
+          {/* <ToggleWrapper> */}
+          {/* <PeriodToggle
+              data-is-active={period === '24h'}
+              onClick={() => setPeriod('24h')}
+            >
+              {t('24h')}
+            </PeriodToggle>
+            <PeriodToggle
+              data-is-active={period === '30d'}
+              onClick={() => setPeriod('30d')}
+            >
+              {t('30d')}
+            </PeriodToggle>
+          </ToggleWrapper> */}
+        </RateHeaderCell>,
       ]}
     >
       {balancedItems
@@ -275,6 +291,27 @@ const SortableHeader = styled('button')`
   gap: ${space(0.5)};
 `;
 
+const RateHeaderCell = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
+// const ToggleWrapper = styled('div')`
+//   display: flex;
+//   align-items: center;
+//   gap: ${space(0.5)};
+//   padding: 0 0 0 ${space(1)};
+// `;
+
+// const PeriodToggle = styled('button')`
+//   border: none;
+//   background: none;
+//   color: ${p => (p['data-is-active'] ? p.theme.textColor : p.theme.disabled)};
+//   cursor: pointer;
+//   padding: 0;
+//   text-transform: uppercase;
+// `;
+
 const Cell = styled('div')`
   display: flex;
   flex-direction: column;
@@ -285,6 +322,9 @@ const FirstCellLine = styled('div')`
   display: flex;
   align-items: center;
   height: 32px;
+  & > * {
+    flex-shrink: 0;
+  }
   &[data-align='right'] {
     justify-content: flex-end;
   }
@@ -338,7 +378,7 @@ const HiddenButton = styled('button')`
   align-items: center;
 
   /* Overwrite the platform icon's cursor style */
-  & img {
+  &:not([disabled]) img {
     cursor: pointer;
   }
 `;
@@ -353,6 +393,14 @@ const StyledIconChevron = styled(IconChevron)`
 const SettingsButton = styled(LinkButton)`
   margin-left: ${space(0.5)};
   color: ${p => p.theme.subText};
+  visibility: hidden;
+
+  &:focus {
+    visibility: visible;
+  }
+  ${Cell}:hover & {
+    visibility: visible;
+  }
 `;
 
 const TrailingPercent = styled('strong')`
