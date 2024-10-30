@@ -3,7 +3,7 @@ import logging
 import pytest
 
 from sentry.taskworker.registry import TaskNamespace
-from sentry.taskworker.retry import Retry, RetryError
+from sentry.taskworker.retry import FinalAction, Retry, RetryError
 from sentry.taskworker.task import Task
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.utils import json
@@ -28,7 +28,7 @@ def test_define_task_defaults(task_namespace: TaskNamespace) -> None:
 
 
 def test_define_task_retry(task_namespace: TaskNamespace) -> None:
-    retry = Retry(times=3, deadletter=True)
+    retry = Retry(times=3, final_action=FinalAction.Deadletter)
     task = Task(name="test.do_things", func=do_things, namespace=task_namespace, retry=retry)
     assert task.retry == retry
 
@@ -57,7 +57,7 @@ def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:
 
 
 def test_should_retry(task_namespace: TaskNamespace) -> None:
-    retry = Retry(times=3, deadletter=True)
+    retry = Retry(times=3, final_action=FinalAction.Deadletter)
     state = retry.initial_state()
 
     task = Task(
@@ -89,7 +89,7 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
         retry=None,
     )
 
-    retry = Retry(times=3, deadletter=True)
+    retry = Retry(times=3, final_action=FinalAction.Deadletter)
     retry_task = Task(
         name="test.with_retry",
         func=do_things,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from multiprocessing.context import TimeoutError
 
 from sentry_protos.sentry.v1.taskworker_pb2 import RetryState
@@ -12,6 +13,11 @@ class RetryError(Exception):
     """
 
 
+class FinalAction(Enum):
+    Deadletter = 1
+    Discard = 2
+
+
 class Retry:
     """Used with tasks to define the retry policy for a task"""
 
@@ -21,16 +27,12 @@ class Retry:
         times: int = 1,
         on: tuple[type[BaseException], ...] | None = None,
         ignore: tuple[type[BaseException], ...] | None = None,
-        deadletter: bool = False,
-        discard: bool = False,
+        final_action: FinalAction = FinalAction.Deadletter,
     ):
-        if discard and deadletter:
-            raise AssertionError("You cannot enable both discard and deadletter modes")
         self._times = times
         self._allowed_exception_types: tuple[type[BaseException], ...] = on or ()
         self._denied_exception_types: tuple[type[BaseException], ...] = ignore or ()
-        self._deadletter = deadletter
-        self._discard = discard
+        self._final = final_action
 
     def should_retry(self, state: RetryState, exc: Exception) -> bool:
         # No more attempts left
@@ -55,7 +57,7 @@ class Retry:
     def initial_state(self) -> RetryState:
         return RetryState(
             attempts=0,
-            discard_after_attempt=self._times if self._discard else None,
-            deadletter_after_attempt=self._times if self._deadletter else None,
+            discard_after_attempt=self._times if self._final == FinalAction.Discard else None,
+            deadletter_after_attempt=self._times if self._final == FinalAction.Deadletter else None,
             kind="sentry.taskworker.retry.Retry",
         )

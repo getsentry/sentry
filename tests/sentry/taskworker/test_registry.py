@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.taskworker.registry import TaskNamespace
-from sentry.taskworker.retry import Retry
+from sentry.taskworker.retry import FinalAction, Retry
 
 
 def test_register_task() -> None:
@@ -40,7 +40,7 @@ def test_register_inherits_default_retry() -> None:
     def no_retry_param() -> None:
         pass
 
-    retry = Retry(times=2, deadletter=True)
+    retry = Retry(times=2, final_action=FinalAction.Deadletter)
 
     @namespace.register(name="test.with_retry_param", retry=retry)
     def with_retry_param() -> None:
@@ -103,7 +103,9 @@ def test_send_task_with_retry() -> None:
         retry=None,
     )
 
-    @namespace.register(name="test.simpletask", retry=Retry(times=3, deadletter=True))
+    @namespace.register(
+        name="test.simpletask", retry=Retry(times=3, final_action=FinalAction.Deadletter)
+    )
     def simple_task() -> None:
         pass
 

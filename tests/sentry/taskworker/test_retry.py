@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from multiprocessing.context import TimeoutError
 
-import pytest
-
-from sentry.taskworker.retry import Retry, RetryError
+from sentry.taskworker.retry import FinalAction, Retry, RetryError
 
 
 class RuntimeChildError(RuntimeError):
@@ -12,7 +10,7 @@ class RuntimeChildError(RuntimeError):
 
 
 def test_initial_state__discard() -> None:
-    retry = Retry(times=1, discard=True)
+    retry = Retry(times=1, final_action=FinalAction.Discard)
     proto = retry.initial_state()
 
     assert proto.attempts == 0
@@ -22,19 +20,13 @@ def test_initial_state__discard() -> None:
 
 
 def test_initial_state__deadletter() -> None:
-    retry = Retry(times=5, deadletter=True)
+    retry = Retry(times=5, final_action=FinalAction.Deadletter)
     proto = retry.initial_state()
 
     assert proto.attempts == 0
     assert proto.kind == "sentry.taskworker.retry.Retry"
     assert proto.discard_after_attempt == 0
     assert proto.deadletter_after_attempt == 5
-
-
-def test_init_no_deadletter_and_discard() -> None:
-    with pytest.raises(AssertionError) as err:
-        Retry(times=2, discard=True, deadletter=True)
-    assert "cannot enable both discard and deadletter" in str(err)
 
 
 def test_should_retry_no_matching_error() -> None:
