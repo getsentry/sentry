@@ -6,7 +6,6 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 
-from sentry import options
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.features.rollout import in_random_rollout
@@ -219,33 +218,6 @@ def _do_symbolicate_event(
 
     symbolication_start_time = time()
 
-    def record_symbolication_duration() -> float:
-        """
-        Returns the symbolication duration so far, and optionally record the duration to the LPQ metrics if configured.
-        """
-        symbolication_duration = time() - symbolication_start_time
-
-        # we throw the dice on each record operation, otherwise an unlucky extremely slow event would never count
-        # towards the budget.
-        submit_realtime_metrics = in_random_rollout(
-            "symbolicate-event.low-priority.metrics.submission-rate"
-        )
-        if submit_realtime_metrics:
-            with sentry_sdk.start_span(op="tasks.store.symbolicate_event.low_priority.metrics"):
-                submission_ratio = options.get(
-                    "symbolicate-event.low-priority.metrics.submission-rate"
-                )
-                try:
-                    # we adjust the duration according to the `submission_ratio` so that the budgeting works
-                    # the same even considering sampling of metrics.
-                    recorded_duration = symbolication_duration / submission_ratio
-                    realtime_metrics.record_project_duration(
-                        task_kind.platform, project_id, recorded_duration
-                    )
-                except Exception as e:
-                    sentry_sdk.capture_exception(e)
-        return symbolication_duration
-
     project = Project.objects.get_from_cache(id=project_id)
     # needed for efficient featureflag checks in getsentry
     # NOTE: The `organization` is used for constructing the symbol sources.
@@ -255,7 +227,7 @@ def _do_symbolicate_event(
         )
 
     def on_symbolicator_request():
-        duration = record_symbolication_duration()
+        duration = time() - symbolication_start_time
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout
         elif duration > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
