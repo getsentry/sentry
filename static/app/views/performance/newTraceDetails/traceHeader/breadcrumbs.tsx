@@ -17,6 +17,8 @@ import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import Tab from '../../transactionSummary/tabs';
 
@@ -69,12 +71,30 @@ function getBreadCrumbTarget(
   };
 }
 
-function getPerformanceBreadCrumbs(organization: Organization, location: Location) {
+function getPerformanceBreadCrumbs(
+  organization: Organization,
+  location: Location,
+  view?: DomainView
+) {
   const crumbs: Crumb[] = [];
 
+  const performanceUrl = getPerformanceBaseUrl(organization.slug, view, true);
+  const transactionSummaryUrl = getTransactionSummaryBaseUrl(
+    organization.slug,
+    view,
+    true
+  );
+
+  if (view) {
+    crumbs.push({
+      label: DOMAIN_VIEW_BASE_TITLE,
+      to: undefined,
+    });
+  }
+
   crumbs.push({
-    label: t('Performance'),
-    to: getBreadCrumbTarget(`performance`, location.query, organization),
+    label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
+    to: getBreadCrumbTarget(performanceUrl, location.query, organization),
   });
 
   switch (location.query.tab) {
@@ -82,7 +102,7 @@ function getPerformanceBreadCrumbs(organization: Organization, location: Locatio
       crumbs.push({
         label: t('All Events'),
         to: getBreadCrumbTarget(
-          `performance/summary/events`,
+          `${transactionSummaryUrl}/events`,
           location.query,
           organization
         ),
@@ -91,14 +111,18 @@ function getPerformanceBreadCrumbs(organization: Organization, location: Locatio
     case Tab.TAGS:
       crumbs.push({
         label: t('Tags'),
-        to: getBreadCrumbTarget(`performance/summary/tags`, location.query, organization),
+        to: getBreadCrumbTarget(
+          `${transactionSummaryUrl}/tags`,
+          location.query,
+          organization
+        ),
       });
       break;
     case Tab.SPANS:
       crumbs.push({
         label: t('Spans'),
         to: getBreadCrumbTarget(
-          `performance/summary/spans`,
+          `${transactionSummaryUrl}/spans`,
           location.query,
           organization
         ),
@@ -109,7 +133,7 @@ function getPerformanceBreadCrumbs(organization: Organization, location: Locatio
         crumbs.push({
           label: t('Span Summary'),
           to: getBreadCrumbTarget(
-            `performance/summary/spans/${spanSlug}`,
+            `${transactionSummaryUrl}/spans/${spanSlug}`,
             location.query,
             organization
           ),
@@ -120,7 +144,7 @@ function getPerformanceBreadCrumbs(organization: Organization, location: Locatio
       crumbs.push({
         label: t('Transaction Summary'),
         to: getBreadCrumbTarget(
-          `performance/summary/aggregateWaterfall`,
+          `${transactionSummaryUrl}/aggregateWaterfall`,
           location.query,
           organization
         ),
@@ -129,7 +153,7 @@ function getPerformanceBreadCrumbs(organization: Organization, location: Locatio
     default:
       crumbs.push({
         label: t('Transaction Summary'),
-        to: getBreadCrumbTarget(`performance/summary`, location.query, organization),
+        to: getBreadCrumbTarget(`${transactionSummaryUrl}`, location.query, organization),
       });
       break;
   }
@@ -361,7 +385,7 @@ export function getTraceViewBreadcrumbs(
     case TraceViewSources.ISSUE_DETAILS:
       return getIssuesBreadCrumbs(organization, location);
     case TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY:
-      return getPerformanceBreadCrumbs(organization, location);
+      return getPerformanceBreadCrumbs(organization, location, view);
     default:
       return [{label: t('Trace View')}];
   }
