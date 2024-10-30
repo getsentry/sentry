@@ -62,11 +62,15 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
 
         cls = req.__class__
         class_name = cls.__name__
+        endpoint_names = {
+            "TraceItemTableRequest": "EndpointTraceItemTable",
+        }
+        endpoint_name = endpoint_names.get(class_name, class_name)
         class_version = cls.__module__.split(".", 3)[2]
 
         http_resp = _snuba_pool.urlopen(
             "POST",
-            f"/rpc/{class_name}/{class_version}",
+            f"/rpc/{endpoint_name}/{class_version}",
             body=req.SerializeToString(),
             headers={
                 "referer": referrer,

@@ -25,6 +25,7 @@ def run_table_query(
 ) -> Any:
     """Make the query"""
     resolver = SearchResolver(params=params, config=config)
+    meta = resolver.resolve_meta(referrer="test")
     columns, contexts = resolver.resolve_columns(selected_columns)
     final_columns = []
     for col in columns:
@@ -37,10 +38,14 @@ def run_table_query(
 
     """Run the query"""
     rpc_request = TraceItemTableRequest(
-        meta=None,  # TODO
+        meta=meta,
         filter=query,
         columns=final_columns,
-        group_by=[col for col in columns if isinstance(col, AttributeKey)],
+        group_by=[
+            col.proto_definition
+            for col in columns
+            if isinstance(col.proto_definition, AttributeKey)
+        ],
         virtual_column_contexts=[context for context in contexts if context is not None],
     )
     rpc_response = snuba_rpc.rpc(rpc_request, TraceItemTableResponse)
