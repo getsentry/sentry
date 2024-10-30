@@ -26,6 +26,7 @@ import withProjects from 'sentry/utils/withProjects';
 import {generatePerformanceVitalDetailView} from '../data';
 import {
   addRoutePerformanceContext,
+  getPerformanceBaseUrl,
   getSelectedProjectPlatforms,
   getTransactionName,
 } from '../utils';
@@ -103,7 +104,7 @@ class VitalDetail extends Component<Props, State> {
     if (!eventView) {
       browserHistory.replace(
         normalizeUrl({
-          pathname: `/organizations/${organization.slug}/performance/`,
+          pathname: getPerformanceBaseUrl(organization.slug),
           query: {
             ...location.query,
           },
