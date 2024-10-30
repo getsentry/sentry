@@ -1,36 +1,20 @@
 from __future__ import annotations
 
-import abc
-import dataclasses
 import logging
-from datetime import timedelta
-from typing import Any, Generic, TypeVar
+from typing import TYPE_CHECKING
 
-from django.conf import settings
 from django.db import models
-from django.db.models import Q, UniqueConstraint
-from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
+from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.issues import grouptype
 from sentry.models.owner_base import OwnerModel
-from sentry.utils import metrics, redis
-from sentry.utils.function_cache import cache_func_for_models
-from sentry.utils.iterators import chunked
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataPacket
-from sentry.workflow_engine.models.detector_state import DetectorState
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
+
+if TYPE_CHECKING:
+    from sentry.workflow_engine.processors.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
-
-
-REDIS_TTL = int(timedelta(days=7).total_seconds())
-
-
-def get_redis_client() -> RetryingRedisCluster:
-    cluster_key = settings.SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
 @region_silo_model
