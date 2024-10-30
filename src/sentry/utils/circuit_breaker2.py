@@ -18,6 +18,7 @@ from sentry.ratelimits.sliding_windows import (
     RedisSlidingWindowRateLimiter,
     RequestedQuota,
 )
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +118,9 @@ class CircuitBreaker:
     to prevent calls to it. In that case, the circuit breaker must be reinstantiated with the same
     config. This works because the breaker has no state of its own, instead relying on redis-backed
     rate limiters and redis itself to track error count and breaker status.
+
+    Emits a `circuit_breaker.{self.key}.error_limit_hit` DD metic when tripped so activation can be
+    easily monitored.
     """
 
     def __init__(self, key: str, config: CircuitBreakerConfig):
@@ -240,6 +244,11 @@ class CircuitBreaker:
                     "error_limit_window": controlling_quota.window_seconds,
                 },
             )
+            metrics.incr(
+                f"circuit_breaker.{self.key}.error_limit_hit",
+                sample_rate=1.0,
+                tags={"current_state": state.value},
+            )
 
             # RECOVERY will only start after the BROKEN state has expired, so push out the RECOVERY
             # expiry time. We'll store the expiry times as our redis values so we can determine how
@@ -284,6 +293,7 @@ class CircuitBreaker:
             # being changed, so just to be safe we also check qouta here.
             self._get_remaining_error_quota(controlling_quota) <= 0
         ):
+            metrics.incr(f"circuit_breaker.{self.key}.request_blocked")
             return False
 
         return True
