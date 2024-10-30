@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
-import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
@@ -14,21 +13,18 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import OrganizationStore from 'sentry/stores/organizationStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {dynamicSamplingForm} from 'sentry/views/settings/dynamicSampling/dynamicSamplingForm';
+import {OrganizationSampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampleRateField';
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
-import {TargetSampleRateField} from 'sentry/views/settings/dynamicSampling/targetSampleRateField';
+import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
+import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
+import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
-const {useFormState, FormProvider} = dynamicSamplingForm;
+const {useFormState, FormProvider} = organizationSamplingForm;
 
-export function DynamicSampling() {
-  const api = useApi();
+export function OrganizationSampling() {
   const organization = useOrganization();
   const {hasAccess} = useAccess({access: ['org:write']});
 
@@ -36,34 +32,25 @@ export function DynamicSampling() {
 
   const formState = useFormState({
     targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toLocaleString(),
-    samplingMode: 'auto' as const,
   });
 
-  const modeField = formState.fields.samplingMode;
-  const endpoint = `/organizations/${organization.slug}/`;
-
-  const {mutate: updateOrganization, isPending} = useMutation<Organization>({
-    mutationFn: () => {
-      const {fields} = formState;
-      return api.requestPromise(endpoint, {
-        method: 'PUT',
-        data: {
-          targetSampleRate: Number(fields.targetSampleRate.value) / 100,
-        },
-      });
-    },
-    onSuccess: newOrg => {
-      OrganizationStore.onUpdate(newOrg);
-      addSuccessMessage(t('Changes applied.'));
-      formState.save();
-    },
-    onError: () => {
-      addErrorMessage(t('Unable to save changes. Please try again.'));
-    },
-  });
+  const {mutate: updateOrganization, isPending} = useUpdateOrganization();
 
   const handleSubmit = () => {
-    updateOrganization();
+    updateOrganization(
+      {
+        targetSampleRate: Number(formState.fields.targetSampleRate.value) / 100,
+      },
+      {
+        onSuccess: () => {
+          addSuccessMessage(t('Changes applied.'));
+          formState.save();
+        },
+        onError: () => {
+          addErrorMessage(t('Unable to save changes. Please try again.'));
+        },
+      }
+    );
   };
 
   const handleReset = () => {
@@ -101,28 +88,8 @@ export function DynamicSampling() {
                 />
               </div>
             </FieldGroup>
-            {/* TODO(aknaus): move into separate component when we make it interactive */}
-            <FieldGroup
-              disabled
-              label={t('Switch Mode')}
-              help={t(
-                'Take control over the individual sample rates in your projects. This disables automatic adjustments.'
-              )}
-            >
-              <Confirm disabled>
-                <Button
-                  title={t('This feature is not yet available.')}
-                  css={css`
-                    width: max-content;
-                  `}
-                >
-                  {modeField.value === 'auto'
-                    ? t('Switch to Manual')
-                    : t('Switch to Auto')}
-                </Button>
-              </Confirm>
-            </FieldGroup>
-            {modeField.value === 'auto' ? <TargetSampleRateField /> : null}
+            <SamplingModeField />
+            <OrganizationSampleRateField />
           </PanelBody>
         </Panel>
         <FormActions>

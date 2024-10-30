@@ -59,10 +59,7 @@ function AllEventsTable(props: Props) {
   const groupIsOccurrenceBacked = !!data?.occurrence;
 
   const eventView: EventView = EventView.fromLocation(props.location);
-  if (
-    config.usesIssuePlatform ||
-    (group.issueCategory === IssueCategory.PERFORMANCE && groupIsOccurrenceBacked)
-  ) {
+  if (config.usesIssuePlatform) {
     eventView.dataset = DiscoverDatasets.ISSUE_PLATFORM;
   }
   eventView.fields = fields.map(fieldName => ({field: fieldName}));
