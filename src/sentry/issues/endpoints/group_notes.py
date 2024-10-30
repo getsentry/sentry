@@ -61,7 +61,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             datetime__gte=timezone.now() - timedelta(hours=1),
         ).exists():
             return Response(
-                '{"detail": "You have already posted that comment."}',
+                {"detail": "You have already posted that comment."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
