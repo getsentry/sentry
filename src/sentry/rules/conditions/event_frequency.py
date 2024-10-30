@@ -23,6 +23,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition, GenericCondition
+from sentry.rules.match import MatchType
 from sentry.tsdb.base import TSDBModel
 from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,
@@ -672,7 +673,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-        conditions: list[tuple[str, str, str]] | None = None,
+        conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
             model=model,
@@ -698,7 +699,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-        conditions: list[tuple[str, str, str]] | None = None,
+        conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -721,34 +722,46 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
     @staticmethod
     def convert_rule_condition_to_snuba_condition(
         condition: dict[str, Any]
-    ) -> tuple[str, str, str] | None:
+    ) -> tuple[str, str, str | list[str]] | None:
         if condition["id"] != "sentry.rules.filters.tagged_event.TaggedEventFilter":
             return None
         lhs = f"tags[{condition['key']}]"
         rhs = condition["value"]
         match condition["match"]:
-            case "eq":
+            case MatchType.EQUAL:
                 operator = Op.EQ
-            case "ne":
+            case MatchType.NOT_EQUAL:
                 operator = Op.NEQ
-            case "sw":
+            case MatchType.STARTS_WITH:
                 operator = Op.LIKE
                 rhs = f"{rhs}%"
-            case "ew":
+            case MatchType.NOT_STARTS_WITH:
+                operator = Op.NOT_LIKE
+                rhs = f"{rhs}%"
+            case MatchType.ENDS_WITH:
                 operator = Op.LIKE
                 rhs = f"%{rhs}"
-            case "co":
+            case MatchType.NOT_ENDS_WITH:
+                operator = Op.NOT_LIKE
+                rhs = f"%{rhs}"
+            case MatchType.CONTAINS:
                 operator = Op.LIKE
                 rhs = f"%{rhs}%"
-            case "nc":
+            case MatchType.NOT_CONTAINS:
                 operator = Op.NOT_LIKE
                 rhs = f"%{rhs}%"
-            case "is":
+            case MatchType.IS_SET:
                 operator = Op.IS_NOT_NULL
                 rhs = None
-            case "ns":
+            case MatchType.NOT_SET:
                 operator = Op.IS_NULL
                 rhs = None
+            case MatchType.IS_IN:
+                operator = Op.IN
+                rhs = rhs.split(",")
+            case MatchType.NOT_IN:
+                operator = Op.NOT_IN
+                rhs = rhs.split(",")
             case _:
                 raise ValueError(f"Unsupported match type: {condition['match']}")
 

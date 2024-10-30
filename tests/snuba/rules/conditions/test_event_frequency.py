@@ -18,6 +18,7 @@ from sentry.rules.conditions.event_frequency import (
     EventUniqueUserFrequencyCondition,
     EventUniqueUserFrequencyConditionWithConditions,
 )
+from sentry.rules.match import MatchType
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import (
     BaseMetricsTestCase,
@@ -725,7 +726,7 @@ def test_convert_rule_condition_to_snuba_condition():
     }
 
     # Test equality
-    eq_condition = {**base_condition, "match": "eq"}
+    eq_condition = {**base_condition, "match": MatchType.EQUAL}
     assert (
         EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
             eq_condition
@@ -738,7 +739,7 @@ def test_convert_rule_condition_to_snuba_condition():
     )
 
     # Test inequality
-    ne_condition = {**base_condition, "match": "ne"}
+    ne_condition = {**base_condition, "match": MatchType.NOT_EQUAL}
     assert (
         EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
             ne_condition
@@ -751,7 +752,7 @@ def test_convert_rule_condition_to_snuba_condition():
     )
 
     # Test starts with
-    sw_condition = {**base_condition, "match": "sw"}
+    sw_condition = {**base_condition, "match": MatchType.STARTS_WITH}
     assert (
         EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
             sw_condition
@@ -763,8 +764,21 @@ def test_convert_rule_condition_to_snuba_condition():
         )
     )
 
+    # Test not starts with
+    nsw_condition = {**base_condition, "match": MatchType.NOT_STARTS_WITH}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            nsw_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.NOT_LIKE.value,
+            "test_value%",
+        )
+    )
+
     # Test ends with
-    ew_condition = {**base_condition, "match": "ew"}
+    ew_condition = {**base_condition, "match": MatchType.ENDS_WITH}
     assert (
         EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
             ew_condition
@@ -776,8 +790,21 @@ def test_convert_rule_condition_to_snuba_condition():
         )
     )
 
+    # Test not ends with
+    new_condition = {**base_condition, "match": MatchType.NOT_ENDS_WITH}
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            new_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.NOT_LIKE.value,
+            "%test_value",
+        )
+    )
+
     # Test contains
-    co_condition = {**base_condition, "match": "co"}
+    co_condition = {**base_condition, "match": MatchType.CONTAINS}
     assert (
         EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
             co_condition
@@ -790,7 +817,7 @@ def test_convert_rule_condition_to_snuba_condition():
     )
 
     # Test not contains
-    nc_condition = {**base_condition, "match": "nc"}
+    nc_condition = {**base_condition, "match": MatchType.NOT_CONTAINS}
     assert (
         EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
             nc_condition
@@ -802,8 +829,8 @@ def test_convert_rule_condition_to_snuba_condition():
         )
     )
 
-    # Test is not null
-    is_condition = {**base_condition, "match": "is"}
+    # Test is set
+    is_condition = {**base_condition, "match": MatchType.IS_SET}
     assert (
         EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
             is_condition
@@ -815,8 +842,8 @@ def test_convert_rule_condition_to_snuba_condition():
         )
     )
 
-    # Test is null
-    ns_condition = {**base_condition, "match": "ns"}
+    # Test not set
+    ns_condition = {**base_condition, "match": MatchType.NOT_SET}
     assert (
         EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
             ns_condition
@@ -825,6 +852,42 @@ def test_convert_rule_condition_to_snuba_condition():
             "tags[test_key]",
             Op.IS_NULL.value,
             None,
+        )
+    )
+
+    # Test is in
+    in_condition = {
+        "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+        "key": "test_key",
+        "value": "test_value_1,test_value_2",
+        "match": MatchType.IS_IN,
+    }
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            in_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.IN.value,
+            ["test_value_1", "test_value_2"],
+        )
+    )
+
+    # Test not in
+    not_in_condition = {
+        "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+        "key": "test_key",
+        "value": "test_value_1,test_value_2",
+        "match": MatchType.NOT_IN,
+    }
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            not_in_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.NOT_IN.value,
+            ["test_value_1", "test_value_2"],
         )
     )
 
