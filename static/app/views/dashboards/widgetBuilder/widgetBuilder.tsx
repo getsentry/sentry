@@ -385,7 +385,7 @@ function WidgetBuilder({
   }): boolean {
     return (
       locationChange.currentLocation.pathname !== locationChange.nextLocation.pathname &&
-      isSubmittingRef.current &&
+      !isSubmittingRef.current &&
       state.userHasModified
     );
   }
