@@ -1,3 +1,4 @@
+import datetime
 import logging
 import time
 from collections.abc import Mapping, MutableMapping
@@ -33,6 +34,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self.__commit = CommitOffsets(commit_function)
         self.__closed = False
         self.__produced_message_offsets: MutableMapping[Partition, int] = {}
+        self.__produced_message_ts: datetime.datetime | None = None
         # TODO: Need to make these flags
         self.__producer_queue_max_size = 80000
         self.__producer_long_poll_timeout = 3.0
@@ -68,10 +70,13 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self.poll_producer(timeout)
 
         with metrics.timer("simple_produce_step.poll.maybe_commit", sample_rate=0.05):
-            message_to_commit = Message(Value(None, self.__produced_message_offsets))
+            message_to_commit = Message(
+                Value(None, self.__produced_message_offsets, self.__produced_message_ts)
+            )
             self.__commit.submit(message_to_commit)
             self.__commit.poll()
             self.__produced_message_offsets = {}
+            self.__produced_message_ts = None
 
     def submit(self, message: Message[KafkaPayload | FilteredPayload]) -> None:
         if isinstance(message.payload, FilteredPayload):
@@ -85,11 +90,20 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             topic=self.__producer_topic,
             key=None,
             value=message.payload.value,
-            on_delivery=partial(self.callback, committable=message.committable),
+            on_delivery=partial(
+                self.callback, committable=message.committable, timestamp=message.timestamp
+            ),
             headers=message.payload.headers,
         )
 
-    def callback(self, error: Any, message: Any, committable: Mapping[Partition, int]) -> None:
+    def callback(
+        self,
+        error: Any,
+        message: Any,
+        committable: Mapping[Partition, int],
+        timestamp: datetime.datetime | None,
+    ) -> None:
+        self.__produced_message_ts = timestamp
         if message and error is None:
             self.__produced_message_offsets.update(committable)
         if error is not None:
