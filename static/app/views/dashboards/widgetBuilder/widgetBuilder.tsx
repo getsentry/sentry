@@ -35,8 +35,6 @@ import {
   generateFieldAsString,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
-  isAggregateField,
-  parseFunction,
 } from 'sentry/utils/discover/fields';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -312,38 +310,7 @@ function WidgetBuilder({
   const numericSpanTags = useSpanTags('number');
   const stringSpanTags = useSpanTags('string');
   if (state.dataSet === DataSet.SPANS) {
-    const numericTagRegex = /tags\[(?<tagName>.+),number\]/;
-
-    // Inject tags that were set on the widget, but may not have been returned
-    // by the API yet or at all to avoid a blank field while no tag options match
-    const injectedTags = state.queries[0].fields?.reduce((acc, field) => {
-      if (isAggregateField(field)) {
-        const parsedFunction = parseFunction(field);
-        if (parsedFunction?.arguments[0]) {
-          const numericTagKey = parsedFunction.arguments[0];
-          return {
-            ...acc,
-            [numericTagKey]: {
-              key: numericTagKey,
-              name: numericTagKey,
-              kind: 'measurement',
-            },
-          };
-        }
-      }
-
-      return {
-        ...acc,
-        [field]: {
-          key: field,
-          name: field,
-          kind: numericTagRegex.test(field) ? 'measurement' : 'tag',
-        },
-      };
-    }, {});
-
-    // Inject the tags first so the API tags override the injected ones
-    tags = {...injectedTags, ...numericSpanTags, ...stringSpanTags};
+    tags = {...numericSpanTags, ...stringSpanTags};
   }
 
   useEffect(() => {

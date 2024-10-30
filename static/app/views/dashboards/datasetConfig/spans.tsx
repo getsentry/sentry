@@ -52,7 +52,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggre
     parameters: [
       {
         kind: 'column',
-        columnTypes: ['number'],
+        columnTypes: ['number', 'string'], // Need to keep the string type for unknown values before tags are resolved
         defaultValue: 'span.duration',
         required: true,
       },
@@ -112,6 +112,7 @@ export const SpansConfig: DatasetConfig<
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
   filterTableOptions,
+  filterAggregateParams,
 };
 
 function getEventsTableFieldOptions(
@@ -152,6 +153,19 @@ function filterTableOptions(option: FieldValueOption) {
   // the parameter fields for aggregate functions
   if ('dataType' in option.value.meta) {
     return option.value.meta.dataType !== 'number';
+  }
+  return true;
+}
+
+function filterAggregateParams(option: FieldValueOption) {
+  // Allow for unknown values to be used for aggregate functions
+  // This supports showing the tag value even if it's not in the current
+  // set of tags.
+  if ('unknown' in option.value.meta && option.value.meta.unknown) {
+    return true;
+  }
+  if ('dataType' in option.value.meta) {
+    return option.value.meta.dataType === 'number';
   }
   return true;
 }
