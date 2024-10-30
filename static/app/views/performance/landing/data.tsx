@@ -23,10 +23,10 @@ export const FRONTEND_OTHER_COLUMN_TITLES = [
 ];
 
 export const BACKEND_COLUMN_TITLES = [
+  'http method',
   'transaction',
   'operation',
   'project',
-  'http method',
   'tpm',
   'p50',
   'p95',

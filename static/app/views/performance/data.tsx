@@ -508,10 +508,10 @@ export function generateBackendPerformanceEventView(
 
   const fields = [
     'team_key_transaction',
+    'http.method',
     'transaction',
     'transaction.op',
     'project',
-    'http.method',
     'tpm()',
     'p50()',
     'p95()',
