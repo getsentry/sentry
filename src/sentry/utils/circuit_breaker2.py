@@ -274,13 +274,19 @@ class CircuitBreaker:
         remaining, whether requests should be allowed through.
         """
         state, _ = self._get_state_and_remaining_time()
-
-        if state == CircuitBreakerState.BROKEN:
-            return False
-
         controlling_quota = self._get_controlling_quota(state)
 
-        return self._get_remaining_error_quota(controlling_quota) > 0
+        if (
+            state == CircuitBreakerState.BROKEN
+            or
+            # If there's no remaining quota, in theory we should already be in a broken state. That
+            # said, it's possible we could be in a race condition and hit this just as the state is
+            # being changed, so just to be safe we also check qouta here.
+            self._get_remaining_error_quota(controlling_quota) <= 0
+        ):
+            return False
+
+        return True
 
     def _get_from_redis(self, keys: list[str]) -> Any:
         for key in keys:
@@ -339,6 +345,12 @@ class CircuitBreaker:
     @overload
     def _get_controlling_quota(self) -> Quota | None: ...
 
+    @overload
+    def _get_controlling_quota(self, state: CircuitBreakerState) -> Quota | None: ...
+
+    @overload
+    def _get_controlling_quota(self, state: None) -> Quota | None: ...
+
     def _get_controlling_quota(self, state: CircuitBreakerState | None = None) -> Quota | None:
         """
         Return the Quota corresponding to the given breaker state (or the current breaker state, if
@@ -354,37 +366,24 @@ class CircuitBreaker:
 
         return controlling_quota_by_state[_state]
 
-    @overload
-    def _get_remaining_error_quota(self, quota: None, window_end: int | None) -> None: ...
-
-    @overload
-    def _get_remaining_error_quota(self, quota: Quota, window_end: int | None) -> int: ...
-
-    @overload
-    def _get_remaining_error_quota(self, quota: None) -> None: ...
-
-    @overload
-    def _get_remaining_error_quota(self, quota: Quota) -> int: ...
-
-    @overload
-    def _get_remaining_error_quota(self) -> int | None: ...
-
     def _get_remaining_error_quota(
         self, quota: Quota | None = None, window_end: int | None = None
-    ) -> int | None:
+    ) -> int:
         """
         Get the number of allowable errors remaining in the given quota for the time window ending
         at the given time.
 
         If no quota is given, in OK and RECOVERY states, return the current controlling quota's
-        remaining errors. In BROKEN state, return None.
+        remaining errors. In BROKEN state, return -1.
 
         If no time window end is given, return the current amount of quota remaining.
         """
         if not quota:
             quota = self._get_controlling_quota()
+            # This is another spot where logically we should never land, but might if we hit a race
+            # condition with two errors tripping the circiut breaker nearly simultenously.
             if quota is None:  # BROKEN state
-                return None
+                return -1
 
         now = int(time.time())
         window_end = window_end or now
