@@ -2208,14 +2208,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.headers["X-Data-Source"] == "materialized-view"
 
 
-# class MaterializedViewOrganizationReplayIndexTest(OrganizationReplayIndexTest):
-#     @property
-#     def features(self):
-#         return {
-#             "organizations:session-replay": True,
-#             "organizations:session-replay-materialized-view": True,
-#         }
-#
-#     def _test_empty_filters(self, *args, **kwargs):
-#         # Skipping these tests since they fail. MV is unused and soon to be removed.
-#         pass
+class MaterializedViewOrganizationReplayIndexTest(OrganizationReplayIndexTest):
+    @property
+    def features(self):
+        return {
+            "organizations:session-replay": True,
+            "organizations:session-replay-materialized-view": True,
+        }
+
+    def _test_empty_filters(self, *args, **kwargs):
+        # Skipping these tests since they fail. MV is unused and soon to be removed.
+        pass
