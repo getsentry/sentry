@@ -304,6 +304,7 @@ class OrganizationSerializer(Serializer):
                 if all_required_onboarding_tasks_complete:
                     feature_set.remove("onboarding")
             else:
+                # Retaining the old logic to prevent older organizations from seeing the quick start sidebar again
                 if OrganizationOption.objects.filter(organization=obj).exists():
                     feature_set.remove("onboarding")
 
