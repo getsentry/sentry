@@ -8,6 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouter from 'sentry/utils/useRouter';
 import {PERFORMANCE_TOUR_STEPS} from 'sentry/views/performance/onboarding';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 const DOCS_URL = 'https://docs.sentry.io/performance-monitoring/getting-started/';
 
@@ -48,7 +49,7 @@ function MissingPerformanceButtons({organization}: Props) {
             event.preventDefault();
             // TODO: add analytics here for this specific action.
             navigateTo(
-              `/organizations/${organization.slug}/performance/?project=:project#performance-sidequest`,
+              `${getPerformanceBaseUrl(organization.slug)}/?project=:project#performance-sidequest`,
               router
             );
           }}

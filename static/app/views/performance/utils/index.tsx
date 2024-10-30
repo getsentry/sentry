@@ -187,12 +187,13 @@ export function isSummaryViewFrontend(eventView: EventView, projects: Project[])
   );
 }
 
+// TODO - remove in favour of `getPerformanceBaseUrl`
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
-  return `/organizations/${organization.slug}/performance/`;
+  return `${getPerformanceBaseUrl(organization.slug)}/`;
 }
 
 export function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
-  return `/organizations/${organization.slug}/performance/trends/`;
+  return `${getPerformanceBaseUrl(organization.slug)}/trends/`;
 }
 
 export function getTransactionSearchQuery(location: Location, query: string = '') {

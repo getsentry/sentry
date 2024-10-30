@@ -29,6 +29,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   CRASH_FREE_DECIMAL_THRESHOLD,
@@ -157,7 +158,7 @@ class ProjectCard extends Component<Props> {
                       <em>|</em>
                       <TransactionsLink
                         data-test-id="project-transactions"
-                        to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
+                        to={`${getPerformanceBaseUrl(organization.slug)}/?project=${project.id}`}
                       >
                         {t(
                           'Transactions: %s',
