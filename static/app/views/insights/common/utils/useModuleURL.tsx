@@ -49,7 +49,10 @@ export const useModuleURL = (
   return builder(moduleName, view);
 };
 
-type URLBuilder = (moduleName: RoutableModuleNames, domainView?: DomainView) => string;
+export type URLBuilder = (
+  moduleName: RoutableModuleNames,
+  domainView?: DomainView
+) => string;
 
 /**
  *  This hook returns a function to build URLs for the module summary pages.
