@@ -279,6 +279,9 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const traceView = useMemo(() => new TraceViewModel(), []);
   const traceScheduler = useMemo(() => new TraceScheduler(), []);
 
+  const projectsRef = useRef<Project[]>(projects);
+  projectsRef.current = projects;
+
   const scrollQueueRef = useTraceScrollToPath(props.scrollToNode);
   const forceRerender = useCallback(() => {
     flushSync(rerender);
@@ -691,9 +694,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
+    logTraceMetadata(props.tree, projectsRef.current, props.organization);
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
+
     const query = qs.parse(location.search);
     if (query.fov && typeof query.fov === 'string') {
       viewManager.maybeInitializeTraceViewFromQS(query.fov);
@@ -785,8 +790,9 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     onTraceSearch,
     viewManager,
     traceScheduler,
-    props.tree,
     scrollQueueRef,
+    props.tree,
+    props.organization,
   ]);
 
   // Setup the middleware for the trace reducer
@@ -875,14 +881,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   // Memoized because it requires tree traversal
   const shape = useMemo(() => props.tree.shape, [props.tree]);
-
-  useEffect(() => {
-    if (props.tree.type !== 'trace') {
-      return;
-    }
-
-    logTraceMetadata(props.tree, projects, props.organization);
-  }, [props.tree, projects, props.organization]);
 
   useLayoutEffect(() => {
     if (props.tree.type !== 'trace') {
