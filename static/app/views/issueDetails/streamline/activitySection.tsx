@@ -14,6 +14,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import textStyles from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -49,7 +50,8 @@ function TimelineItem({
     teams
   );
 
-  const Icon = groupActivityTypeIconMapping[item.type]?.Component ?? null;
+  const iconMapping = groupActivityTypeIconMapping[item.type];
+  const Icon = iconMapping?.Component ?? null;
 
   return (
     <ActivityTimelineItem
@@ -66,11 +68,21 @@ function TimelineItem({
       timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
       icon={
         Icon && (
-          <Icon {...groupActivityTypeIconMapping[item.type].defaultProps} size="xs" />
+          <Icon
+            {...iconMapping.defaultProps}
+            {...iconMapping.propsFunction?.(item.data)}
+            size="xs"
+          />
         )
       }
     >
-      {typeof message === 'string' ? <NoteBody text={message} /> : message}
+      {typeof message === 'string' ? (
+        <NoteWrapper>
+          <NoteBody text={message} />
+        </NoteWrapper>
+      ) : (
+        message
+      )}
     </ActivityTimelineItem>
   );
 }
@@ -239,4 +251,8 @@ const TextButton = styled(Button)`
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg) translateY(1px);
+`;
+
+const NoteWrapper = styled('div')`
+  ${textStyles}
 `;

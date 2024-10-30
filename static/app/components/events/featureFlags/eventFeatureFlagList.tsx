@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -20,9 +21,7 @@ import {
   SortGroup,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
-import KeyValueData, {
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+import KeyValueData from 'sentry/components/keyValueData';
 import {IconMegaphone, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -33,6 +32,9 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/useOrganizationFlagLog';
+import useSuspectFlags from 'sentry/views/issueDetails/streamline/useSuspectFlags';
 
 export function EventFeatureFlagList({
   event,
@@ -68,24 +70,55 @@ export function EventFeatureFlagList({
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const organization = useOrganization();
+  const eventView = useIssueDetailsEventView({group});
+  const {data: rawFlagData} = useOrganizationFlagLog({
+    organization,
+    query: {
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+    },
+  });
 
-  // Transform the flags array into something readable by the key-value component
-  const hydrateFlags = (flags: FeatureFlag[] | undefined): KeyValueDataContentProps[] => {
-    if (!flags) {
-      return [];
-    }
+  const {
+    suspectFlags,
+    isError: isSuspectError,
+    isPending: isSuspectPending,
+  } = useSuspectFlags({
+    organization,
+    firstSeen: group.firstSeen,
+    rawFlagData,
+    event,
+  });
+
+  const suspectFlagNames: Set<string> = useMemo(() => {
+    return isSuspectError || isSuspectPending
+      ? new Set()
+      : new Set(suspectFlags.map(f => f.flag));
+  }, [isSuspectError, isSuspectPending, suspectFlags]);
+
+  const hydratedFlags = useMemo(() => {
+    // Transform the flags array into something readable by the key-value component
+    // Reverse the flags to show newest at the top by default
+    const flags: FeatureFlag[] = event.contexts?.flags?.values.toReversed() ?? [];
     return flags.map(f => {
       return {
-        item: {key: f.flag, subject: f.flag, value: f.result.toString()},
+        item: {
+          key: f.flag,
+          subject: f.flag,
+          value: suspectFlagNames.has(f.flag) ? (
+            <ValueWrapper>
+              {f.result.toString()}
+              <SuspectLabel>{t('Suspect')}</SuspectLabel>
+            </ValueWrapper>
+          ) : (
+            f.result.toString()
+          ),
+        },
+        isSuspectFlag: suspectFlagNames.has(f.flag),
       };
     });
-  };
-
-  // Reverse the flags to show newest at the top by default
-  const hydratedFlags = useMemo(
-    () => hydrateFlags(event.contexts?.flags?.values.reverse()),
-    [event]
-  );
+  }, [event, suspectFlagNames]);
 
   const onViewAllFlags = useCallback(
     (focusControl?: FlagControlOptions) => {
@@ -212,3 +245,12 @@ export function EventFeatureFlagList({
     </ErrorBoundary>
   );
 }
+
+const SuspectLabel = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const ValueWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;

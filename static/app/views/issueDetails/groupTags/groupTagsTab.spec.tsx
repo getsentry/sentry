@@ -4,7 +4,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import GroupTagsTab from './groupTagsTab';
+import {GroupTagsTab} from './groupTagsTab';
 
 describe('GroupTagsTab', function () {
   const {routerProps, router, organization} = initializeOrg();
