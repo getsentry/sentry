@@ -165,7 +165,7 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
   // When this happens, we assemble a fake trace response to only include the transaction that had already been
   // created and stored already so that the users can visualize in the context of a trace.
   // The trace meta query has to reflect this by returning a single transaction and project.
-  if (mode === 'demo') {
+  const demoResults = useMemo(() => {
     return {
       data: {
         errors: 0,
@@ -175,9 +175,9 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
         transactiontoSpanChildrenCount: {},
       },
       errors: [],
-      status: 'success',
+      status: 'success' as QueryStatus,
     };
-  }
+  }, []);
 
-  return results;
+  return mode === 'demo' ? demoResults : results;
 }
