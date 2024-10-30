@@ -156,11 +156,11 @@ function getSubSpansContent(
       <Fragment>
         <div>{formatAbbreviatedNumber(ownCount, 2)}</div>
         {subProjects.map(subProject => (
-          <div key={subProject.slug}>{formatAbbreviatedNumber(subProject.count, 2)}</div>
+          <div key={subProject.slug}>{formatAbbreviatedNumber(subProject.count)}</div>
         ))}
       </Fragment>
     ) : (
-      formatAbbreviatedNumber(subProjectSum, 2)
+      formatAbbreviatedNumber(subProjectSum)
     );
   }
 
@@ -217,9 +217,7 @@ const TableRow = memo(function TableRow({
         <SubProjects>{subProjectContent}</SubProjects>
       </Cell>
       <Cell>
-        <FirstCellLine data-align="right">
-          {formatAbbreviatedNumber(count, 2)}
-        </FirstCellLine>
+        <FirstCellLine data-align="right">{formatAbbreviatedNumber(count)}</FirstCellLine>
         <SubSpans>{subSpansContent}</SubSpans>
       </Cell>
       <Cell>
