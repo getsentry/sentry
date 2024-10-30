@@ -154,9 +154,9 @@ function getSubSpansContent(
 
     subSpansContent = isExpanded ? (
       <Fragment>
-        <div>{ownCount}</div>
+        <div>{formatAbbreviatedNumber(ownCount, 2)}</div>
         {subProjects.map(subProject => (
-          <div key={subProject.slug}>+{formatAbbreviatedNumber(subProject.count)}</div>
+          <div key={subProject.slug}>{formatAbbreviatedNumber(subProject.count)}</div>
         ))}
       </Fragment>
     ) : (
