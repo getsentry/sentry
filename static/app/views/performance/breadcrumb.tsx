@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 
 import Tab from './transactionSummary/tabs';
 import {eventsRouteWithQuery} from './transactionSummary/transactionEvents/utils';
@@ -87,6 +88,7 @@ export const getTabCrumbs = ({
   eventSlug,
   traceSlug,
   tab,
+  view,
 }: {
   location: Location;
   organization: Organization;
@@ -98,6 +100,7 @@ export const getTabCrumbs = ({
     name: string;
     project: string;
   };
+  view?: DomainView;
   vitalName?: string;
 }) => {
   const crumbs: Crumb[] = [];
@@ -119,6 +122,7 @@ export const getTabCrumbs = ({
       transaction: transaction.name,
       projectID: transaction.project,
       query: location.query,
+      view,
     };
 
     switch (tab) {
