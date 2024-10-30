@@ -28,6 +28,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
     DatasetSourcesTypes,
 )
+from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import is_function
@@ -475,11 +476,12 @@ class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
     is_editable_by_everyone = serializers.BooleanField(
         help_text="Whether the dashboard is editable only by the creator.",
     )
-    # teams_with_edit_access = TeamSerializer(
-    #     # help_text="List of team IDs that have edit access to a dashboard.",
-    #     required=False,
-    #     many=True,
-    # )
+    teams_with_edit_access = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="List of team IDs that have edit access to a dashboard.",
+        required=False,
+        default=[],
+    )
 
 
 class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
@@ -620,9 +622,24 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         self.update_dashboard_filters(instance, validated_data)
         if "permissions" in validated_data:
-            DashboardPermissions.objects.update_or_create(
-                dashboard=instance, defaults=validated_data["permissions"]
+            permissions = DashboardPermissions.objects.update_or_create(
+                dashboard=instance,
+                defaults={
+                    "is_editable_by_everyone": validated_data["permissions"][
+                        "is_editable_by_everyone"
+                    ]
+                },
             )
+            if (
+                "teams_with_edit_access" in validated_data["permissions"]
+                and validated_data["permissions"]["teams_with_edit_access"] != []
+            ):
+                teams_with_edit_access = Team.objects.filter(
+                    id__in=validated_data["permissions"]["teams_with_edit_access"]
+                )
+                teams_ids_with_edit_access = [team.id for team in teams_with_edit_access]
+
+                permissions.teams_with_edit_access.set(teams_ids_with_edit_access)
 
         schedule_update_project_configs(instance)
 

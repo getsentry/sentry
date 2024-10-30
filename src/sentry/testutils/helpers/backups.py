@@ -544,7 +544,11 @@ class ExhaustiveFixtures(Fixtures):
             created_by_id=owner_id,
             organization=org,
         )
-        DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=dashboard)
+        team1 = self.create_team(name=f"test_team_in_{slug}", organization=org)
+        team2 = self.create_team(name=f"test_team_in_{slug}", organization=org)
+        DashboardPermissions.objects.create(
+            is_editable_by_everyone=True, teams_with_edit_access=[team1, team2], dashboard=dashboard
+        )
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             order=1,
