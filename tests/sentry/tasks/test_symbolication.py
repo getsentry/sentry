@@ -1,15 +1,10 @@
 from unittest import mock
 
 import pytest
-from django.test import override_settings
 
 from sentry.lang.native.symbolicator import SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.tasks.store import preprocess_event
-from sentry.tasks.symbolication import (
-    should_demote_symbolication,
-    submit_symbolicate,
-    symbolicate_event,
-)
+from sentry.tasks.symbolication import submit_symbolicate, symbolicate_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -50,15 +45,6 @@ def mock_get_symbolication_function_for_platform():
 @pytest.fixture
 def mock_event_processing_store():
     with mock.patch("sentry.eventstore.processing.event_processing_store") as m:
-        yield m
-
-
-@pytest.fixture
-def mock_should_demote_symbolication():
-    with mock.patch(
-        "sentry.tasks.symbolication.should_demote_symbolication",
-        side_effect=[True, False, True, False, True],
-    ) as m:
         yield m
 
 
@@ -141,46 +127,6 @@ def test_symbolicate_event_doesnt_call_process_inline(
     assert mock_save_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 1
     assert mock_do_process_event.call_count == 0
-
-
-@django_db_all
-def test_should_demote_symbolication_empty(default_project):
-    assert not should_demote_symbolication(SymbolicatorPlatform.native, default_project.id)
-
-
-@django_db_all
-def test_should_demote_symbolication_always(default_project):
-    with override_options({"store.symbolicate-event-lpq-always": [default_project.id]}):
-        assert should_demote_symbolication(SymbolicatorPlatform.native, default_project.id)
-
-
-@django_db_all
-def test_should_demote_symbolication_never(default_project):
-    with override_options({"store.symbolicate-event-lpq-never": [default_project.id]}):
-        assert not should_demote_symbolication(SymbolicatorPlatform.native, default_project.id)
-
-
-@django_db_all
-def test_should_demote_symbolication_always_and_never(default_project):
-    with override_options(
-        {
-            "store.symbolicate-event-lpq-never": [default_project.id],
-            "store.symbolicate-event-lpq-always": [default_project.id],
-        }
-    ):
-        assert not should_demote_symbolication(SymbolicatorPlatform.native, default_project.id)
-
-
-@django_db_all
-@override_settings(SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE=True)
-def test_should_demote_symbolication_with_non_existing_lpq_projects(default_project):
-    with override_options(
-        {
-            "store.symbolicate-event-lpq-never": [],
-            "store.symbolicate-event-lpq-always": [],
-        }
-    ):
-        assert not should_demote_symbolication(SymbolicatorPlatform.native, default_project.id)
 
 
 @django_db_all
