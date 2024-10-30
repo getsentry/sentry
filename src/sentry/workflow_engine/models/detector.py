@@ -15,7 +15,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.issues import grouptype
 from sentry.models.owner_base import OwnerModel
-from sentry.utils import redis
+from sentry.utils import metrics, redis
 from sentry.utils.iterators import chunked
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.detector_state import DetectorState
@@ -196,6 +196,54 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
                 counter_updates=counter_updates[gk],
             )
         return results
+
+    def evaluate(self, data_packet: DataPacket[T]) -> list[DetectorEvaluationResult]:
+        """
+        Evaluates a given data packet and returns a list of `DetectorEvaluationResult`.
+        There will be one result for each group key result in the packet, unless the
+        evaluation is skipped due to various rules.
+        """
+        dedupe_value = self.get_dedupe_value(data_packet)
+        group_values = self.get_group_key_values(data_packet)
+        all_state_data = self.get_state_data(list(group_values.keys()))
+        results = []
+        for group_key, group_value in group_values.items():
+            result = self.evaluate_group_key_value(
+                group_key, group_value, all_state_data[group_key], dedupe_value
+            )
+            if result:
+                results.append(result)
+        return results
+
+    def evaluate_group_key_value(
+        self, group_key: str | None, value: int, state_data: DetectorStateData, dedupe_value: int
+    ) -> DetectorEvaluationResult | None:
+        """
+        Evaluates a value associated with a given `group_key` and returns a `DetectorEvaluationResult` with the results
+        and any state changes that need to be made.
+
+        Checks that we haven't already processed this datapacket for this group_key, and skips evaluation if we have.
+        """
+        if dedupe_value <= state_data.dedupe_value:
+            # TODO: Does it actually make more sense to just do this at the data packet level rather than the group
+            # key level?
+            metrics.incr("workflow_engine.detector.skipping_already_processed_update")
+            return None
+
+        return DetectorEvaluationResult(
+            False,
+            DetectorPriorityLevel.OK,
+            {},
+            DetectorStateData(
+                group_key=group_key,
+                active=False,
+                status=DetectorPriorityLevel.OK,
+                dedupe_value=dedupe_value,
+                # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
+                # so we no-op
+                counter_updates={},
+            ),
+        )
 
     def build_dedupe_value_key(self, group_key: str | None) -> str:
         if group_key is None:
