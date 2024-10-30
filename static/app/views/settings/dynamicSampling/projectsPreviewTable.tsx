@@ -2,18 +2,20 @@ import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconChevron} from 'sentry/icons';
+import {IconArrow, IconChevron, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import useOrganization from 'sentry/utils/useOrganization';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
 import {useProjectSampleCounts} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
@@ -159,6 +161,7 @@ const TableRow = memo(function TableRow({
   sampleRate: number;
   subProjects: SubProject[];
 }) {
+  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const hasSubProjects = subProjects.length > 0;
@@ -170,15 +173,24 @@ const TableRow = memo(function TableRow({
     <Fragment key={project.slug}>
       <Cell>
         <FirstCellLine data-has-chevron={hasSubProjects}>
-          {hasSubProjects && (
-            <StyledIconChevron
-              role="button"
-              aria-label={isExpanded ? t('Collapse') : t('Expand')}
-              direction={isExpanded ? 'down' : 'right'}
-              onClick={() => setIsExpanded(value => !value)}
-            />
-          )}
-          <ProjectBadge project={project} avatarSize={16} />
+          <HiddenButton
+            disabled={!hasSubProjects}
+            aria-label={isExpanded ? t('Collapse') : t('Expand')}
+            onClick={() => setIsExpanded(value => !value)}
+          >
+            {hasSubProjects && (
+              <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
+            )}
+            <ProjectBadge project={project} disableLink avatarSize={16} />
+          </HiddenButton>
+          <SettingsButton
+            title={t('Open Project Settings')}
+            aria-label={t('Open Project Settings')}
+            size="xs"
+            priority="link"
+            icon={<IconSettings />}
+            to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance`}
+          />
         </FirstCellLine>
         <SubProjects>{subProjectContent}</SubProjects>
       </Cell>
@@ -302,14 +314,32 @@ const SubSpans = styled('div')`
   }
 `;
 
+const HiddenButton = styled('button')`
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+
+  /* Overwrite the platform icon's cursor style */
+  & img {
+    cursor: pointer;
+  }
+`;
+
 const StyledIconChevron = styled(IconChevron)`
   height: 12px;
   width: 12px;
   margin-right: ${space(0.5)};
   color: ${p => p.theme.subText};
-  cursor: pointer;
+`;
+
+const SettingsButton = styled(LinkButton)`
+  margin-left: ${space(0.5)};
+  color: ${p => p.theme.subText};
 `;
 
 const TrailingPercent = styled('strong')`
-  padding: 0 ${space(0.25)}px;
+  padding: 0 ${space(0.25)};
 `;
