@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -65,13 +65,9 @@ describe('Dashboards > Detail', function () {
 
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.getByText('Dashboards')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Dashboards')).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.getByText('Test Dashboard')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
   });
 
   it('shows error message when receiving error', async function () {
@@ -84,9 +80,7 @@ describe('Dashboards > Detail', function () {
       organization: mockAuthorizedOrg,
     });
 
-    await waitFor(() => {
-      expect(screen.getByText('Oops! Something went wrong')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Oops! Something went wrong')).toBeInTheDocument();
   });
 
   it('denies access on missing feature', async function () {
@@ -95,11 +89,9 @@ describe('Dashboards > Detail', function () {
       organization: mockUnauthorizedOrg,
     });
 
-    await waitFor(() => {
-      expect(
-        screen.getByText("You don't have access to this feature")
-      ).toBeInTheDocument();
-    });
+    expect(
+      await screen.findByText("You don't have access to this feature")
+    ).toBeInTheDocument();
   });
 
   it('denies access on no projects', async function () {
@@ -110,11 +102,9 @@ describe('Dashboards > Detail', function () {
       organization: mockAuthorizedOrg,
     });
 
-    await waitFor(() => {
-      expect(
-        screen.getByText('You need at least one project to use this view')
-      ).toBeInTheDocument();
-    });
+    expect(
+      await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
   });
 
   it('creates new dashboard', async function () {
@@ -127,15 +117,11 @@ describe('Dashboards > Detail', function () {
       organization: org,
     });
 
-    await waitFor(() => {
-      userEvent.click(screen.getByTestId('dashboard-create'));
-    });
+    await userEvent.click(await screen.findByTestId('dashboard-create'));
 
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/dashboards/new/',
-        query: {},
-      });
+    expect(mockNavigate).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/dashboards/new/',
+      query: {},
     });
   });
 
@@ -149,18 +135,14 @@ describe('Dashboards > Detail', function () {
       organization: org,
     });
 
-    await waitFor(() => {
-      selectEvent.select(
-        screen.getByRole('button', {name: /sort by/i}),
-        'Dashboard Name (A-Z)'
-      );
-    });
+    await selectEvent.select(
+      await screen.findByRole('button', {name: /sort by/i}),
+      'Dashboard Name (A-Z)'
+    );
 
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({query: {sort: 'title'}})
-      );
-    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      await expect.objectContaining({query: {sort: 'title'}})
+    );
   });
 
   it('can search', async function () {
@@ -173,17 +155,13 @@ describe('Dashboards > Detail', function () {
       organization: org,
     });
 
-    await waitFor(async () => {
-      await userEvent.click(screen.getByPlaceholderText('Search Dashboards'));
-      await userEvent.keyboard('dash');
-      await userEvent.keyboard('[Enter]');
-    });
+    await userEvent.click(await screen.findByPlaceholderText('Search Dashboards'));
+    await userEvent.keyboard('dash');
+    await userEvent.keyboard('[Enter]');
 
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({query: {query: 'dash'}})
-      );
-    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      await expect.objectContaining({query: {query: 'dash'}})
+    );
   });
 
   it('uses pagination correctly', async function () {
@@ -202,19 +180,15 @@ describe('Dashboards > Detail', function () {
     });
 
     expect(await screen.findByText('Test Dashboard 1')).toBeInTheDocument();
-    await waitFor(async () => {
-      await userEvent.click(screen.getByLabelText('Next'));
-    });
+    await userEvent.click(await screen.findByLabelText('Next'));
 
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {
-            cursor: '0:9:0',
-          },
-        })
-      );
-    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      await expect.objectContaining({
+        query: {
+          cursor: '0:9:0',
+        },
+      })
+    );
   });
 
   it('disables pagination correctly', async function () {
@@ -233,12 +207,8 @@ describe('Dashboards > Detail', function () {
     });
 
     expect(await screen.findByText('Test Dashboard 1')).toBeInTheDocument();
-    await waitFor(async () => {
-      await userEvent.click(screen.getByLabelText('Previous'));
-    });
+    await userEvent.click(await screen.findByLabelText('Previous'));
 
-    await waitFor(() => {
-      expect(mockNavigate).not.toHaveBeenCalled();
-    });
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });
