@@ -57,6 +57,10 @@ describe('EventDetailsHeader', () => {
       body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
       method: 'GET',
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [{'count_unique(user)': 21}]},
+    });
   });
 
   it('renders filters alongside the graph', async function () {
