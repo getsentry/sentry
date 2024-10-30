@@ -19,8 +19,8 @@ class RollbackUser(DefaultFieldsModel):
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization")
-    uuid = models.UUIDField(default=uuid4, editable=False, db_index=True)
-    share_uuid = models.UUIDField(default=uuid4, editable=False, db_index=True)
+    uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
+    share_uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
     data = models.JSONField(null=True, default=None)
     share_data = models.JSONField(null=True, default=None)
 

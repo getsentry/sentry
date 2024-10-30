@@ -5376,6 +5376,12 @@
       [
         "organization_id",
         "user_id"
+      ],
+      [
+        "share_uuid"
+      ],
+      [
+        "uuid"
       ]
     ]
   },
