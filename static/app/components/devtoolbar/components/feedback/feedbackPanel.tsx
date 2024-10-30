@@ -58,10 +58,11 @@ export default function FeedbackPanel() {
 
   useEffect(() => {
     if (client) {
-      client.on('startNavigationSpan', options => {
+      return client.on('startNavigationSpan', options => {
         setSearchTerm(transactionToSearchTerm(options.name));
       });
     }
+    return () => {};
   }, [client]);
 
   // Fetch issues based on the updated transaction name
