@@ -59,6 +59,7 @@ OPTION_KEYS = frozenset(
         "sentry:metrics_extraction_rules",
         "sentry:dynamic_sampling",
         "sentry:dynamic_sampling_biases",
+        "sentry:target_sample_rate",
         "sentry:breakdowns",
         "sentry:transaction_name_cluster_rules",
         "sentry:uptime_autodetection",

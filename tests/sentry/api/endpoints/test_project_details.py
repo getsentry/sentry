@@ -16,6 +16,7 @@ from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
@@ -1341,6 +1342,42 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_success_response(self.org_slug, self.proj_slug, uptimeAutodetection=True)
         assert self.project.get_option("sentry:uptime_autodetection") is True
         assert resp.data["uptimeAutodetection"] is True
+
+    @with_feature({"organizations:dynamic-sampling-custom": False})
+    def test_target_sample_rate_without_feature(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        self.get_error_response(
+            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
+        )
+        assert self.project.get_option("sentry:target_sample_rate") == 1.0
+
+    @with_feature({"organizations:dynamic-sampling-custom": True})
+    def test_target_sample_rate_automatic_mode(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        # automatic mode is called "organization" in code
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.get_error_response(
+            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
+        )
+        assert self.project.get_option("sentry:target_sample_rate") == 1.0
+
+    @with_feature({"organizations:dynamic-sampling-custom": True})
+    def test_target_sample_rate_invalid(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        self.get_error_response(
+            self.org_slug, self.proj_slug, targetSampleRate=2.0, status_code=400
+        )
+        assert self.project.get_option("sentry:target_sample_rate") == 1.0
+
+    @with_feature({"organizations:dynamic-sampling-custom": True})
+    def test_target_sample_rate(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        self.get_success_response(self.org_slug, self.proj_slug, targetSampleRate=0.1)
+        assert self.project.get_option("sentry:target_sample_rate") == 0.1
 
 
 class CopyProjectSettingsTest(APITestCase):
