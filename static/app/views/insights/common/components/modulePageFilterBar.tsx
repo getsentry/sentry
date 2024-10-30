@@ -1,12 +1,16 @@
 import {type ComponentProps, Fragment, useEffect, useState} from 'react';
 
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {
+  DatePageFilter,
+  type DatePageFilterProps,
+} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {SECOND} from 'sentry/utils/formatters';
+// import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import type {ModuleName} from 'sentry/views/insights/types';
@@ -21,10 +25,13 @@ const CHANGE_PROJECT_TEXT = t('Make sure you have the correct project selected.'
 
 export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}: Props) {
   const {projects: allProjects} = useProjects();
+  // const organization = useOrganization();
 
   const hasDataWithSelectedProjects = useHasFirstSpan(moduleName);
   const hasDataWithAllProjects = useHasFirstSpan(moduleName, allProjects);
   const [showTooltip, setShowTooltip] = useState(false);
+
+  // const hasDateRangeQueryLimit = organization.features.includes('insights-query-date-range-limit');
 
   const handleClickAnywhereOnPage = () => {
     setShowTooltip(false);
@@ -50,6 +57,11 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
     };
   }, []);
 
+  const dateFilterProps: DatePageFilterProps = {};
+  if (true) {
+    dateFilterProps.maxPickableDays = 7;
+  }
+
   return (
     <Fragment>
       <PageFilterBar condensed>
@@ -65,7 +77,7 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
         </Tooltip>
         <ProjectPageFilter onChange={onProjectChange} />
         <EnvironmentPageFilter />
-        <DatePageFilter />
+        <DatePageFilter {...dateFilterProps} />
       </PageFilterBar>
       {hasDataWithSelectedProjects && extraFilters}
     </Fragment>
