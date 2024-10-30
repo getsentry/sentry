@@ -28,6 +28,7 @@ def test_backpressure_unhealthy():
             "celery": Exception("Couldn't check celery"),
             "attachments-store": [],
             "processing-store": [],
+            "processing-store-transactions": [],
             "processing-locks": [],
             "post-process-locks": [],
         }
@@ -64,6 +65,7 @@ def test_backpressure_healthy(process_profile_task):
             "celery": [],
             "attachments-store": [],
             "processing-store": [],
+            "processing-store-transactions": [],
             "processing-locks": [],
             "post-process-locks": [],
         }
