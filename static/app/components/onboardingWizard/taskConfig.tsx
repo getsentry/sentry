@@ -65,14 +65,14 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // but if the user falls into this case for some reason,
   // he needs to select the platform again since it is not available as a parameter here
   if (!projects || !projects.length) {
-    return `/getting-started/:projectId/`;
+    return `/${organization.slug}/:projectId/getting-started/`;
   }
 
   const allProjectsWithoutErrors = projects.every(project => !project.firstEvent);
   // If all created projects don't have any errors,
   // we ask the user to pick a project before navigating to the instructions
   if (allProjectsWithoutErrors) {
-    return `/getting-started/:projectId/`;
+    return `/${organization.slug}/:projectId/getting-started/`;
   }
 
   // Pick the first project without an error
@@ -221,7 +221,7 @@ export function getOnboardingTasks({
             organization={organization}
             project={projects[0]}
             eventType="error"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
             {() => <EventWaitingIndicator text={t('Waiting for error')} />}
           </EventWaiter>
@@ -379,7 +379,7 @@ export function getOnboardingTasks({
             organization={organization}
             project={projects[0]}
             eventType="transaction"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
             {() => <EventWaitingIndicator />}
           </EventWaiter>
@@ -449,7 +449,7 @@ export function getOnboardingTasks({
             organization={organization}
             project={projects[0]}
             eventType="replay"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
             {() => <EventWaitingIndicator text={t('Waiting for user session')} />}
           </EventWaiter>
