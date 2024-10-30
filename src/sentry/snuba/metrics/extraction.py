@@ -884,7 +884,7 @@ def _is_error_field(token: str) -> bool:
 
 
 def _is_standard_metrics_search_term(field: str) -> bool:
-    return field in _STANDARD_METRIC_FIELDS
+    return field in _STANDARD_METRIC_FIELDS or field in _IGNORED_METRIC_FIELDS
 
 
 def _is_on_demand_supported_field(field: str) -> bool:

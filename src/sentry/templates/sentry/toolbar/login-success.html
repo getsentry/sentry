@@ -9,15 +9,16 @@
   <body>
     <div>
       <p>You are logged in!</p>
-      <p>This window will automatically close after 3 seconds. If not then check the console for errors.</p>
+      <p>This window will automatically close after {{ delay_sec }} seconds. If not then check the console for errors.</p>
       <button type="button" id="close-popup">Close Popup</button>
     </div>
 
     {% script %}
     <script>
       (function() {
-        const delay = {{ delay|escapejs }};
+        const delay = {{ delay_ms|escapejs }};
         const cookie = '{{ cookie|escapejs }}';
+        const token = '{{ token|escapejs }}';
 
         document.getElementById('close-popup').addEventListener('click', () => {
           window.close();
@@ -31,7 +32,8 @@
           window.opener.postMessage({
             source: 'sentry-toolbar',
             message: 'did-login',
-            cookie: cookie,
+            cookie,
+            token,
           }, origin);
 
           if (delay && typeof delay === 'number') {

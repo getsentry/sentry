@@ -722,7 +722,6 @@ def test_create_feedback_spam_detection_set_status_ignored(
         {
             "organizations:user-feedback-spam-filter-actions": True,
             "organizations:user-feedback-spam-filter-ingest": True,
-            "organizations:feedback-ingest": True,
         }
     ):
         event = {
@@ -798,7 +797,6 @@ def test_create_feedback_large_message_skips_spam_detection(
             {
                 "organizations:user-feedback-spam-filter-actions": True,
                 "organizations:user-feedback-spam-filter-ingest": True,
-                "organizations:feedback-ingest": True,
             }
         ),
         set_sentry_option("feedback.message.max-size", 4096),
