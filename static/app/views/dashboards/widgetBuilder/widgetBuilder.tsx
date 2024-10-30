@@ -183,7 +183,6 @@ function WidgetBuilder({
   end,
   statsPeriod,
   onSave,
-  route,
   router,
   tags,
   updateDashboardSplitDecision,
@@ -380,19 +379,14 @@ function WidgetBuilder({
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
   }, [selection.projects, api, organization.slug]);
 
-  function onLegacyRouteLeave(): string | undefined {
-    return !isSubmittingRef.current && state.userHasModified
-      ? UNSAVED_CHANGES_MESSAGE
-      : undefined;
-  }
-
   function onRouteLeave(locationChange: {
     currentLocation: Location;
     nextLocation: Location;
   }): boolean {
     return (
       locationChange.currentLocation.pathname !== locationChange.nextLocation.pathname &&
-      !!onLegacyRouteLeave()
+      !isSubmittingRef.current &&
+      state.userHasModified
     );
   }
   const widgetType = DATA_SET_TO_WIDGET_TYPE[state.dataSet];
@@ -1148,13 +1142,7 @@ function WidgetBuilder({
           datetime: {start: null, end: null, utc: null, period: DEFAULT_STATS_PERIOD},
         }}
       >
-        <OnRouteLeave
-          message={UNSAVED_CHANGES_MESSAGE}
-          when={onRouteLeave}
-          legacyWhen={onLegacyRouteLeave}
-          route={route}
-          router={router}
-        />
+        <OnRouteLeave message={UNSAVED_CHANGES_MESSAGE} when={onRouteLeave} />
         <CustomMeasurementsProvider organization={organization} selection={selection}>
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
