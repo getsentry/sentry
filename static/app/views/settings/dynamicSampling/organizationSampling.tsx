@@ -13,22 +13,18 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import OrganizationStore from 'sentry/stores/organizationStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationSampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampleRateField';
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
+import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
 const {useFormState, FormProvider} = organizationSamplingForm;
 
 export function OrganizationSampling() {
-  const api = useApi();
   const organization = useOrganization();
   const {hasAccess} = useAccess({access: ['org:write']});
 
@@ -38,30 +34,23 @@ export function OrganizationSampling() {
     targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toLocaleString(),
   });
 
-  const endpoint = `/organizations/${organization.slug}/`;
-
-  const {mutate: updateOrganization, isPending} = useMutation<Organization>({
-    mutationFn: () => {
-      const {fields} = formState;
-      return api.requestPromise(endpoint, {
-        method: 'PUT',
-        data: {
-          targetSampleRate: Number(fields.targetSampleRate.value) / 100,
-        },
-      });
-    },
-    onSuccess: newOrg => {
-      OrganizationStore.onUpdate(newOrg);
-      addSuccessMessage(t('Changes applied.'));
-      formState.save();
-    },
-    onError: () => {
-      addErrorMessage(t('Unable to save changes. Please try again.'));
-    },
-  });
+  const {mutate: updateOrganization, isPending} = useUpdateOrganization();
 
   const handleSubmit = () => {
-    updateOrganization();
+    updateOrganization(
+      {
+        targetSampleRate: Number(formState.fields.targetSampleRate.value) / 100,
+      },
+      {
+        onSuccess: () => {
+          addSuccessMessage(t('Changes applied.'));
+          formState.save();
+        },
+        onError: () => {
+          addErrorMessage(t('Unable to save changes. Please try again.'));
+        },
+      }
+    );
   };
 
   const handleReset = () => {
@@ -99,7 +88,6 @@ export function OrganizationSampling() {
                 />
               </div>
             </FieldGroup>
-            {/* TODO(aknaus): move into separate component when we make it interactive */}
             <SamplingModeField />
             <OrganizationSampleRateField />
           </PanelBody>
