@@ -327,18 +327,18 @@ def _semver_filter_converter(
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
     version: str | Sequence[str] = search_filter.value.raw_value
     operator: str = search_filter.operator
-
-    def get_versions(v: str, op: str) -> tuple[str, list[str]]:
+    order_by = Release.SEMVER_COLS
+    if isinstance(version, str):
         # Note that we sort this such that if we end up fetching more than
         # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
         # the passed filter.
-        order_by = Release.SEMVER_COLS
-        if op.startswith("<"):
+
+        if operator.startswith("<"):
             order_by = list(map(_flip_field_sort, order_by))
         qs = (
             Release.objects.filter_by_semver(
                 organization_id,
-                parse_semver(v, op),
+                parse_semver(version, operator),
                 project_ids=project_ids,
             )
             .values_list("version", flat=True)
@@ -351,12 +351,12 @@ def _semver_filter_converter(
             # the limit, make an extra query and see whether the inverse has fewer ids.
             # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
             # do our best.
-            op = OPERATOR_NEGATION_MAP[op]
+            operator = OPERATOR_NEGATION_MAP[operator]
             # Note that the `order_by` here is important for index usage. Postgres seems
             # to seq scan with this query if the `order_by` isn't included, so we
             # include it even though we don't really care about order for this query
             qs_flipped = (
-                Release.objects.filter_by_semver(organization_id, parse_semver(v, op))
+                Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
                 .order_by(*map(_flip_field_sort, order_by))
                 .values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
             )
@@ -366,16 +366,20 @@ def _semver_filter_converter(
                 versions = exclude_versions
         if not versions:
             versions = [SEMVER_EMPTY_RELEASE]
-        return final_operator, versions
-
-    if isinstance(version, str):
-        final_operator, versions = get_versions(version, operator)
         return ["release", final_operator, versions]
     else:
         semver_filters = []
         for v in version:
-            _, versions = get_versions(v, operator)
-            semver_filters.extend(versions)
+            qs = (
+                Release.objects.filter_by_semver(
+                    organization_id,
+                    parse_semver(v, operator),
+                    project_ids=project_ids,
+                )
+                .values_list("version", flat=True)
+                .order_by(*order_by)[:MAX_SEARCH_RELEASES]
+            )
+            semver_filters.extend(list(qs))
         return ["release", "IN", semver_filters]
 
 

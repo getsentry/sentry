@@ -184,46 +184,61 @@ def semver_filter_converter(
         raise ValueError("organization is a required param")
     organization_id: int = builder.params.organization.id
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
-    version: str = search_filter.value.raw_value
+    version: str | list[str] = search_filter.value.raw_value
     operator: str = search_filter.operator
-
     # Note that we sort this such that if we end up fetching more than
     # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
     # the passed filter.
     order_by = Release.SEMVER_COLS
-    if operator.startswith("<"):
-        order_by = list(map(_flip_field_sort, order_by))
-    qs = (
-        Release.objects.filter_by_semver(
-            organization_id,
-            parse_semver(version, operator),
-            project_ids=builder.params.project_ids,
-        )
-        .values_list("version", flat=True)
-        .order_by(*order_by)[: constants.MAX_SEARCH_RELEASES]
-    )
-    versions = list(qs)
-    final_operator = Op.IN
-    if len(versions) == constants.MAX_SEARCH_RELEASES:
-        # We want to limit how many versions we pass through to Snuba. If we've hit
-        # the limit, make an extra query and see whether the inverse has fewer ids.
-        # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
-        # do our best.
-        operator = constants.OPERATOR_NEGATION_MAP[operator]
-        # Note that the `order_by` here is important for index usage. Postgres seems
-        # to seq scan with this query if the `order_by` isn't included, so we
-        # include it even though we don't really care about order for this query
-        qs_flipped = (
-            Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
-            .order_by(*map(_flip_field_sort, order_by))
-            .values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
-        )
 
-        exclude_versions = list(qs_flipped)
-        if exclude_versions and len(exclude_versions) < len(versions):
-            # Do a negative search instead
-            final_operator = Op.NOT_IN
-            versions = exclude_versions
+    if isinstance(version, str):
+        if operator.startswith("<"):
+            order_by = list(map(_flip_field_sort, order_by))
+        qs = (
+            Release.objects.filter_by_semver(
+                organization_id,
+                parse_semver(version, operator),
+                project_ids=builder.params.project_ids,
+            )
+            .values_list("version", flat=True)
+            .order_by(*order_by)[: constants.MAX_SEARCH_RELEASES]
+        )
+        versions = list(qs)
+        final_operator = Op.IN
+        if len(versions) == constants.MAX_SEARCH_RELEASES:
+            # We want to limit how many versions we pass through to Snuba. If we've hit
+            # the limit, make an extra query and see whether the inverse has fewer ids.
+            # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
+            # do our best.
+            operator = constants.OPERATOR_NEGATION_MAP[operator]
+            # Note that the `order_by` here is important for index usage. Postgres seems
+            # to seq scan with this query if the `order_by` isn't included, so we
+            # include it even though we don't really care about order for this query
+            qs_flipped = (
+                Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
+                .order_by(*map(_flip_field_sort, order_by))
+                .values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
+            )
+
+            exclude_versions = list(qs_flipped)
+            if exclude_versions and len(exclude_versions) < len(versions):
+                # Do a negative search instead
+                final_operator = Op.NOT_IN
+                versions = exclude_versions
+    else:
+        final_operator = Op.IN
+        versions = []
+        for v in version:
+            qs = (
+                Release.objects.filter_by_semver(
+                    organization_id,
+                    parse_semver(v, operator),
+                    project_ids=builder.params.project_ids,
+                )
+                .values_list("version", flat=True)
+                .order_by(*order_by)[: constants.MAX_SEARCH_RELEASES]
+            )
+            versions.extend(list(qs))
 
     if not validate_snuba_array_parameter(versions):
         raise InvalidSearchQuery(
