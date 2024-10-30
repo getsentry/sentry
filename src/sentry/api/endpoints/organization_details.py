@@ -45,7 +45,6 @@ from sentry.constants import (
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
-    DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -194,8 +193,6 @@ ORG_OPTIONS = (
         bool,
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
-    ("aggregatedDataConsent", "sentry:aggregated_data_consent", bool, DATA_CONSENT_DEFAULT),
-    ("genAIConsent", "sentry:gen_ai_consent", bool, DATA_CONSENT_DEFAULT),
     (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
@@ -276,8 +273,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     metricsActivatePercentiles = serializers.BooleanField(required=False)
     metricsActivateLastForGauges = serializers.BooleanField(required=False)
-    aggregatedDataConsent = serializers.BooleanField(required=False)
-    genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
@@ -816,12 +811,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         required=False,
     )
 
-    # legal and compliance
-    aggregatedDataConsent = serializers.BooleanField(
-        help_text="Specify `true` to let Sentry use your error messages, stack traces, spans, and DOM interactions data for issue workflow and other product improvements.",
-        required=False,
-    )
-
     # restore org
     cancelDeletion = serializers.BooleanField(
         help_text="Specify `true` to restore an organization that is pending deletion.",
@@ -839,7 +828,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     apdexThreshold = serializers.IntegerField(required=False)
 
     # TODO: publish when GA'd
-    genAIConsent = serializers.BooleanField(required=False)
     metricsActivatePercentiles = serializers.BooleanField(required=False)
     metricsActivateLastForGauges = serializers.BooleanField(required=False)
 
