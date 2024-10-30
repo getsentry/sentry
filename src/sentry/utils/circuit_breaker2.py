@@ -366,21 +366,6 @@ class CircuitBreaker:
 
         return controlling_quota_by_state[_state]
 
-    @overload
-    def _get_remaining_error_quota(self, quota: None, window_end: int | None) -> None: ...
-
-    @overload
-    def _get_remaining_error_quota(self, quota: Quota, window_end: int | None) -> int: ...
-
-    @overload
-    def _get_remaining_error_quota(self, quota: None) -> None: ...
-
-    @overload
-    def _get_remaining_error_quota(self, quota: Quota) -> int: ...
-
-    @overload
-    def _get_remaining_error_quota(self) -> int | None: ...
-
     def _get_remaining_error_quota(
         self, quota: Quota | None = None, window_end: int | None = None
     ) -> int:
