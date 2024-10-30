@@ -295,6 +295,7 @@ function TransactionHeader({
           name: transactionName,
           project: projectId,
         },
+        view,
       }),
     };
     if (view === FRONTEND_LANDING_SUB_PATH) {
