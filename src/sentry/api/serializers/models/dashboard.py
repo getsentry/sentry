@@ -68,7 +68,7 @@ class DashboardWidgetResponse(TypedDict):
 
 class DashboardPermissionsResponse(TypedDict):
     is_editable_by_everyone: bool
-    teams_with_edit_access: list[str]
+    teams_with_edit_access: list[int]
 
 
 @register(DashboardWidget)
@@ -181,7 +181,7 @@ class DashboardPermissionsSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardPermissionsResponse:
         return {
             "isEditableByEveryone": obj.is_editable_by_everyone,
-            # "teamsWithEditAccess": obj.teams_with_edit_access,
+            "teamsWithEditAccess": [team.id for team in obj.teams_with_edit_access.all()],
         }
 
 

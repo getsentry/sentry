@@ -411,8 +411,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 
         assert "permissions" in response.data
         assert not response.data["permissions"]["isEditableByEveryone"]
-        assert "teams_with_edit_access" in response.data
-        assert response.data["permissions"]["teamsWithEditAccess"] is [str(team1.id), str(team2.id)]
+        assert "teamsWithEditAccess" in response.data["permissions"]
+        assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
@@ -2039,6 +2039,33 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         with self.feature({"organizations:dashboards-edit-access": True}):
             response = self.do_request("put", self.url(dashboard.id))
         assert response.status_code == 200, response.content
+
+    def test_update_dashboard_permissions_with_teams(self):
+        mock_project = self.create_project()
+        permission = DashboardPermissions.objects.create(
+            is_editable_by_everyone=True, dashboard=self.dashboard
+        )
+        self.create_environment(project=mock_project, name="mock_env")
+        team1 = self.create_team(organization=self.organization)
+        team2 = self.create_team(organization=self.organization)
+        data = {
+            "title": "Dashboard",
+            "permissions": {
+                "isEditableByEveryone": "false",
+                "teamsWithEditAccess": [str(team1.id), str(team2.id)],
+            },
+        }
+
+        assert permission.is_editable_by_everyone is True
+        response = self.do_request(
+            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["permissions"]["isEditableByEveryone"] is False
+        assert response.data["permissions"]["teamsWithEditAccess"] is ["1", "2"]
+
+        permission.refresh_from_db()
+        assert permission.is_editable_by_everyone is False
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
