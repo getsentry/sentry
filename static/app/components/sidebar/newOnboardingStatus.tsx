@@ -109,7 +109,7 @@ export function NewOnboardingStatus({
       referrer: 'onboarding_sidebar',
       new_experience: true,
     });
-  }, [isActive, totalRemainingTasks, organization, skipQuickStart]);
+  }, [totalRemainingTasks, organization, skipQuickStart]);
 
   useEffect(() => {
     if (pendingCompletionSeen && isActive && !hasMarkedUnseenTasksAsComplete.current) {
