@@ -23,6 +23,7 @@ import {
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanIndexedField} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Column = GridColumnHeader<
   | SpanIndexedField.ID
@@ -74,6 +75,7 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 interface Props {
   groupId: string;
   useEAP: boolean;
+  referrer?: string;
 }
 export function PipelineSpansTable({groupId, useEAP}: Props) {
   const location = useLocation();
@@ -162,7 +164,7 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
               sortParameterName: QueryParameterNames.SPANS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
+            renderBodyCell(column, row, meta, location, organization, groupId),
         }}
       />
     </VisuallyCompleteWithData>
@@ -174,7 +176,8 @@ function renderBodyCell(
   row: any,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  groupId: string
 ) {
   if (column.key === SpanIndexedField.ID) {
     if (!row[SpanIndexedField.ID]) {
@@ -191,9 +194,16 @@ function renderBodyCell(
           projectSlug: row[SpanIndexedField.PROJECT],
           traceSlug: row[SpanIndexedField.TRACE],
           timestamp: row[SpanIndexedField.TIMESTAMP],
-          location,
+          location: {
+            ...location,
+            query: {
+              ...location.query,
+              groupId,
+            },
+          },
           eventView: EventView.fromLocation(location),
           spanId: row[SpanIndexedField.ID],
+          source: TraceViewSources.LLM_MODULE,
         })}
       >
         {row[SpanIndexedField.ID]}

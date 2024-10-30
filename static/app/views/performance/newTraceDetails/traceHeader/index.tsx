@@ -20,6 +20,8 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {ProjectsRenderer} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
+import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import TraceConfigurations from '../traceConfigurations';
@@ -40,13 +42,22 @@ interface TraceMetadataHeaderProps {
 }
 
 function PlaceHolder({organization}: {organization: Organization}) {
+  const {view} = useDomainViewFilters();
+  const moduleURLBuilder = useModuleURLBuilder(true);
   const location = useLocation();
 
   return (
     <Layout.Header>
       <HeaderContent>
         <HeaderRow>
-          <Breadcrumbs crumbs={getTraceViewBreadcrumbs(organization, location)} />
+          <Breadcrumbs
+            crumbs={getTraceViewBreadcrumbs(
+              organization,
+              location,
+              moduleURLBuilder,
+              view
+            )}
+          />
         </HeaderRow>
         <HeaderRow>
           <PlaceHolderTitleWrapper>
@@ -92,6 +103,8 @@ const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>
 
 function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
   const location = useLocation();
+  const {view} = useDomainViewFilters();
+  const moduleURLBuilder = useModuleURLBuilder(true);
 
   const trackOpenInDiscover = useCallback(() => {
     trackAnalytics('performance_views.trace_view.open_in_discover', {
@@ -102,7 +115,14 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <Breadcrumbs crumbs={getTraceViewBreadcrumbs(props.organization, location)} />
+        <Breadcrumbs
+          crumbs={getTraceViewBreadcrumbs(
+            props.organization,
+            location,
+            moduleURLBuilder,
+            view
+          )}
+        />
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
@@ -131,6 +151,8 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const location = useLocation();
   const hasNewTraceViewUi = useHasTraceNewUi();
+  const {view} = useDomainViewFilters();
+  const moduleURLBuilder = useModuleURLBuilder(true);
 
   if (!hasNewTraceViewUi) {
     return <LegacyTraceMetadataHeader {...props} />;
@@ -149,7 +171,14 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     <Layout.Header>
       <HeaderContent>
         <HeaderRow>
-          <Breadcrumbs crumbs={getTraceViewBreadcrumbs(props.organization, location)} />
+          <Breadcrumbs
+            crumbs={getTraceViewBreadcrumbs(
+              props.organization,
+              location,
+              moduleURLBuilder,
+              view
+            )}
+          />
         </HeaderRow>
         <HeaderRow>
           <Title traceSlug={props.traceSlug} tree={props.tree} />
