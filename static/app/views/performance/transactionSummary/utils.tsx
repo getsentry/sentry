@@ -45,12 +45,7 @@ export function generateTransactionSummaryRoute({
   subPath?: string;
   view?: DomainView; // TODO - this should be mantatory once we release domain view
 }): string {
-  if (view) {
-    return normalizeUrl(
-      `/organizations/${orgSlug}/performance/${view}/summary/${subPath ? `${subPath}/` : ''}`
-    );
-  }
-  return `/organizations/${orgSlug}/performance/summary/${subPath ? `${subPath}/` : ''}`;
+  return `${getPerformanceBaseUrl(orgSlug, view)}/summary/${subPath ? `${subPath}/` : ''}`;
 }
 
 // normalizes search conditions by removing any redundant search conditions before presenting them in:
