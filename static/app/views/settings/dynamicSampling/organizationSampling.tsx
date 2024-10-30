@@ -14,6 +14,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationSampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampleRateField';
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
@@ -23,6 +24,9 @@ import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
 const {useFormState, FormProvider} = organizationSamplingForm;
+const UNSAVED_CHANGES_MESSAGE = t(
+  'You have unsaved changes, are you sure you want to leave?'
+);
 
 export function OrganizationSampling() {
   const organization = useOrganization();
@@ -92,6 +96,13 @@ export function OrganizationSampling() {
             <OrganizationSampleRateField />
           </PanelBody>
         </Panel>
+        <OnRouteLeave
+          message={UNSAVED_CHANGES_MESSAGE}
+          when={locationChange =>
+            locationChange.currentLocation.pathname !==
+              locationChange.nextLocation.pathname && formState.hasChanged
+          }
+        />
         <FormActions>
           <Button disabled={!formState.hasChanged || isPending} onClick={handleReset}>
             {t('Reset')}
