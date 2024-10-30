@@ -17,6 +17,7 @@ import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import Tab from '../../transactionSummary/tabs';
@@ -78,6 +79,11 @@ function getPerformanceBreadCrumbs(
   const crumbs: Crumb[] = [];
 
   const performanceUrl = getPerformanceBaseUrl(organization.slug, view, true);
+  const transactionSummaryUrl = getTransactionSummaryBaseUrl(
+    organization.slug,
+    view,
+    true
+  );
 
   if (view) {
     crumbs.push({
@@ -96,7 +102,7 @@ function getPerformanceBreadCrumbs(
       crumbs.push({
         label: t('All Events'),
         to: getBreadCrumbTarget(
-          `${performanceUrl}/summary/events`,
+          `${transactionSummaryUrl}/events`,
           location.query,
           organization
         ),
@@ -106,7 +112,7 @@ function getPerformanceBreadCrumbs(
       crumbs.push({
         label: t('Tags'),
         to: getBreadCrumbTarget(
-          `${performanceUrl}/summary/tags`,
+          `${transactionSummaryUrl}/tags`,
           location.query,
           organization
         ),
@@ -116,7 +122,7 @@ function getPerformanceBreadCrumbs(
       crumbs.push({
         label: t('Spans'),
         to: getBreadCrumbTarget(
-          `${performanceUrl}/summary/spans`,
+          `${transactionSummaryUrl}/spans`,
           location.query,
           organization
         ),
@@ -127,7 +133,7 @@ function getPerformanceBreadCrumbs(
         crumbs.push({
           label: t('Span Summary'),
           to: getBreadCrumbTarget(
-            `${performanceUrl}/summary/spans/${spanSlug}`,
+            `${transactionSummaryUrl}/spans/${spanSlug}`,
             location.query,
             organization
           ),
@@ -138,7 +144,7 @@ function getPerformanceBreadCrumbs(
       crumbs.push({
         label: t('Transaction Summary'),
         to: getBreadCrumbTarget(
-          `${performanceUrl}/summary/aggregateWaterfall`,
+          `${transactionSummaryUrl}/aggregateWaterfall`,
           location.query,
           organization
         ),
@@ -147,11 +153,7 @@ function getPerformanceBreadCrumbs(
     default:
       crumbs.push({
         label: t('Transaction Summary'),
-        to: getBreadCrumbTarget(
-          `${performanceUrl}/summary`,
-          location.query,
-          organization
-        ),
+        to: getBreadCrumbTarget(`${transactionSummaryUrl}`, location.query, organization),
       });
       break;
   }

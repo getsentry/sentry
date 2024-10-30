@@ -270,8 +270,12 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
   };
 }
 
-export function getTransactionSummaryBaseUrl(orgSlug: string, view?: DomainView) {
-  return `${getPerformanceBaseUrl(orgSlug, view)}/summary`;
+export function getTransactionSummaryBaseUrl(
+  orgSlug: string,
+  view?: DomainView,
+  bare: boolean = false
+) {
+  return `${getPerformanceBaseUrl(orgSlug, view, bare)}/summary`;
 }
 
 export const SidebarSpacer = styled('div')`
