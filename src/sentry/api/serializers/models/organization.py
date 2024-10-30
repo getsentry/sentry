@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
@@ -69,6 +69,8 @@ from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
+
+START_DATE_FOR_CHECKING_ONBOARDING_COMPLETION = datetime(2024, 10, 30, tzinfo=timezone.utc)
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
@@ -292,14 +294,18 @@ class OrganizationSerializer(Serializer):
                     feature_set.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
 
         if "onboarding" in feature_set:
-            all_required_onboarding_tasks_complete = OrganizationOption.objects.filter(
-                organization_id=obj.id, key="onboarding:complete"
-            ).exists()
+            if obj.date_added > START_DATE_FOR_CHECKING_ONBOARDING_COMPLETION:
+                all_required_onboarding_tasks_complete = OrganizationOption.objects.filter(
+                    organization_id=obj.id, key="onboarding:complete"
+                ).exists()
 
-            # Do not include the onboarding feature if all required onboarding tasks are completed
-            # The required tasks are defined in https://github.com/getsentry/sentry/blob/master/src/sentry/models/organizationonboardingtask.py#L147
-            if all_required_onboarding_tasks_complete:
-                feature_set.remove("onboarding")
+                # Do not include the onboarding feature if all required onboarding tasks are completed
+                # The required tasks are defined in https://github.com/getsentry/sentry/blob/master/src/sentry/models/organizationonboardingtask.py#L147
+                if all_required_onboarding_tasks_complete:
+                    feature_set.remove("onboarding")
+            else:
+                if OrganizationOption.objects.filter(organization=obj).exists():
+                    feature_set.remove("onboarding")
 
         # Include api-keys feature if they previously had any api-keys
         if "api-keys" not in feature_set and attrs["has_api_key"]:
