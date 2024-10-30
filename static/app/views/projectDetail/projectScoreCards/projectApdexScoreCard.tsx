@@ -13,6 +13,8 @@ import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
 
+import {ActionWrapper} from './actionWrapper';
+
 type Props = {
   isProjectStabilized: boolean;
   organization: Organization;
@@ -114,7 +116,9 @@ function ProjectApdexScoreCard(props: Props) {
   if (!hasTransactions || !organization.features.includes('performance-view')) {
     return (
       <WidgetFrame title={cardTitle} description={cardHelp}>
-        <MissingPerformanceButtons organization={organization} />
+        <ActionWrapper>
+          <MissingPerformanceButtons organization={organization} />
+        </ActionWrapper>
       </WidgetFrame>
     );
   }
