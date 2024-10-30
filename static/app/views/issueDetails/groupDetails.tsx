@@ -8,7 +8,6 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -40,7 +39,6 @@ import {
 } from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
@@ -50,6 +48,7 @@ import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -57,18 +56,16 @@ import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
 import GroupHeader from 'sentry/views/issueDetails//header';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
-import {useGroupEventAttachmentsDrawer} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachmentsDrawer';
-import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails';
 import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
-import {useReplaysDrawer} from 'sentry/views/issueDetails/streamline/useReplaysDrawer';
-import {useUserFeedbackDrawer} from 'sentry/views/issueDetails/streamline/useUserFeedbackDrawer';
+import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
+import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/useMergedIssuesDrawer';
+import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/useSimilarIssuesDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
-  getGroupEventDetailsQueryData,
+  getGroupEventQueryKey,
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
@@ -204,53 +201,48 @@ function useEventApiQuery({
 }) {
   const organization = useOrganization();
   const location = useLocation<{query?: string}>();
-  const {currentTab: tab} = useGroupDetailsRoute();
+  const navigate = useNavigate();
   const defaultIssueEvent = useDefaultIssueEvent();
   const eventIdUrl = eventId ?? defaultIssueEvent;
   const recommendedEventQuery =
     typeof location.query.query === 'string' ? location.query.query : undefined;
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
-  const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/issues/${groupId}/events/${eventIdUrl}/`,
-    {
-      query: getGroupEventDetailsQueryData({
-        environments,
-        query: recommendedEventQuery,
-      }),
-    },
-  ];
-
-  const isOnDetailsTab = tab === Tab.DETAILS;
 
   const isLatestOrRecommendedEvent =
     eventIdUrl === 'latest' || eventIdUrl === 'recommended';
-  const latestOrRecommendedEvent = useApiQuery<Event>(queryKey, {
-    // Latest/recommended event will change over time, so only cache for 30 seconds
-    staleTime: 30000,
-    gcTime: 30000,
-    enabled: isLatestOrRecommendedEvent && (hasStreamlinedUI || isOnDetailsTab),
-    retry: false,
+
+  const queryKey = getGroupEventQueryKey({
+    orgSlug: organization.slug,
+    groupId,
+    eventId: eventIdUrl,
+    environments,
+    recommendedEventQuery: isLatestOrRecommendedEvent ? recommendedEventQuery : undefined,
   });
-  const otherEventQuery = useApiQuery<Event>(queryKey, {
+
+  const eventQuery = useApiQuery<Event>(queryKey, {
+    // Latest/recommended event will change over time, so only cache for 30 seconds
     // Oldest/specific events will never change
-    staleTime: Infinity,
-    enabled: !isLatestOrRecommendedEvent && (hasStreamlinedUI || isOnDetailsTab),
+    staleTime: isLatestOrRecommendedEvent ? 30000 : Infinity,
     retry: false,
   });
 
   useEffect(() => {
-    if (latestOrRecommendedEvent.isError) {
+    if (isLatestOrRecommendedEvent && eventQuery.isError && location.query.query) {
       // If we get an error from the helpful event endpoint, it probably means
       // the query failed validation. We should remove the query to try again.
-      browserHistory.replace({
-        ...window.location,
-        query: omit(qs.parse(window.location.search), 'query'),
-      });
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            query: undefined,
+          },
+        },
+        {replace: true}
+      );
     }
-  }, [latestOrRecommendedEvent.isError]);
+  }, [isLatestOrRecommendedEvent, eventQuery.isError, navigate, location]);
 
-  return isLatestOrRecommendedEvent ? latestOrRecommendedEvent : otherEventQuery;
+  return eventQuery;
 }
 
 /**
@@ -620,14 +612,9 @@ function GroupDetailsContent({
   refetchData,
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
-  const router = useRouter();
-  const {openAttachmentDrawer} = useGroupEventAttachmentsDrawer({
-    group,
-    project,
-  });
   const {openTagsDrawer} = useGroupTagsDrawer({group});
-  const {openUserFeedbackDrawer} = useUserFeedbackDrawer({group, project});
-  const {openReplaysDrawer} = useReplaysDrawer({group, project});
+  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
+  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {isDrawerOpen} = useDrawer();
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
@@ -641,23 +628,20 @@ function GroupDetailsContent({
       return;
     }
 
-    if (currentTab === Tab.ATTACHMENTS) {
-      openAttachmentDrawer();
-    } else if (currentTab === Tab.TAGS) {
+    if (currentTab === Tab.TAGS) {
       openTagsDrawer();
-    } else if (currentTab === Tab.USER_FEEDBACK) {
-      openUserFeedbackDrawer();
-    } else if (currentTab === Tab.REPLAYS) {
-      openReplaysDrawer();
+    } else if (currentTab === Tab.SIMILAR_ISSUES) {
+      openSimilarIssuesDrawer();
+    } else if (currentTab === Tab.MERGED) {
+      openMergedIssuesDrawer();
     }
   }, [
     currentTab,
     hasStreamlinedUI,
     isDrawerOpen,
-    openAttachmentDrawer,
     openTagsDrawer,
-    openUserFeedbackDrawer,
-    openReplaysDrawer,
+    openSimilarIssuesDrawer,
+    openMergedIssuesDrawer,
   ]);
 
   useTrackView({group, event, project, tab: currentTab});
@@ -675,31 +659,14 @@ function GroupDetailsContent({
   };
 
   return hasStreamlinedUI ? (
-    <div>
-      <StreamlinedGroupHeader
-        event={event}
-        group={group}
-        project={project}
-        groupReprocessingStatus={groupReprocessingStatus}
-        baseUrl={baseUrl}
-      />
-      <GroupEventDetails
-        location={router.location}
-        route={router.routes.at(-1)!}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        params={router.params}
-        organization={organization}
-        event={event!}
-        group={group}
-        project={project}
-        loadingEvent={loadingEvent}
-        eventError={eventError}
-        groupReprocessingStatus={groupReprocessingStatus}
-        onRetry={refetchData}
-      />
-    </div>
+    <GroupDetailsLayout
+      group={group}
+      event={event ?? undefined}
+      project={project}
+      groupReprocessingStatus={groupReprocessingStatus}
+    >
+      {isValidElement(children) ? cloneElement(children, childProps) : children}
+    </GroupDetailsLayout>
   ) : (
     <Tabs
       value={currentTab}

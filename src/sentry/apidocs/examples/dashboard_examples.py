@@ -37,6 +37,7 @@ DASHBOARD_OBJECT = {
             "interval": "5m",
             "dateCreated": "2024-07-16T15:36:46.048343Z",
             "dashboardId": "1",
+            "datasetSource": "user",
             "queries": [
                 {
                     "id": "1",
@@ -67,6 +68,7 @@ DASHBOARD_OBJECT = {
     "projects": [1],
     "filters": {},
     "period": "7d",
+    "permissions": {"is_creator_only_editable": False},
 }
 
 DASHBOARDS_OBJECT = [

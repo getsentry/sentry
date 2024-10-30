@@ -31,6 +31,10 @@ export interface TabsProps<T>
    * selected tab item.
    */
   defaultValue?: T;
+  /**
+   * Disable tabs from being put in the overflow menu.
+   */
+  disableOverflow?: boolean;
   disabled?: boolean;
   /**
    * Callback when the selected tab changes.

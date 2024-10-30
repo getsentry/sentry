@@ -39,8 +39,8 @@ describe('useResultMode', function () {
 
     expect(resultMode).toEqual('samples'); // default
     expect(sampleFields).toEqual([
-      'project',
       'span_id',
+      'project',
       'span.op',
       'span.description',
       'span.duration',
@@ -56,8 +56,8 @@ describe('useResultMode', function () {
     expect(resultMode).toEqual('samples');
 
     expect(sampleFields).toEqual([
-      'project',
       'span_id',
+      'project',
       'span.op',
       'span.description',
       'span.duration',

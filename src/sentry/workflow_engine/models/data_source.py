@@ -1,4 +1,5 @@
-from typing import Protocol
+import dataclasses
+from typing import Generic, TypeVar
 
 from django.db import models
 
@@ -11,9 +12,13 @@ from sentry.db.models import (
 )
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 
+T = TypeVar("T")
 
-class DataPacket(Protocol):
-    query_id: int
+
+@dataclasses.dataclass
+class DataPacket(Generic[T]):
+    query_id: str
+    packet: T
 
 
 @region_silo_model

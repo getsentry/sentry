@@ -158,6 +158,7 @@
   "sentry_debugidartifactbundle",
   "sentry_dashboardwidget",
   "sentry_dashboardproject",
+  "sentry_dashboardpermissions",
   "sentry_customdynamicsamplingruleproject",
   "sentry_commitfilechange",
   "sentry_broadcastseen",

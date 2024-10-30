@@ -260,7 +260,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                 t('I use NPM or Yarn')
               ),
             ],
-            ['jsLoader', t('I use HTML templates')],
+            ['jsLoader', t('I use HTML templates (Loader Script)')],
           ]}
           value={setupMode()}
           onChange={setSetupMode}

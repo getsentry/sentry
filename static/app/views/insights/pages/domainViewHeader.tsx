@@ -5,18 +5,22 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
-import {MODULE_TITLES} from 'sentry/views/insights/settings';
+import {
+  DOMAIN_VIEW_BASE_TITLE,
+  OVERVIEW_PAGE_TITLE,
+} from 'sentry/views/insights/pages/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-type Props = {
+export type Props = {
   domainBaseUrl: string;
+  domainTitle: string;
   headerTitle: React.ReactNode;
   modules: ModuleName[];
   selectedModule: ModuleName | undefined;
@@ -34,6 +38,7 @@ type Tab = {
 export function DomainViewHeader({
   modules,
   headerTitle,
+  domainTitle,
   selectedModule,
   hideDefaultTabs,
   additonalHeaderActions,
@@ -42,26 +47,32 @@ export function DomainViewHeader({
   tabs,
 }: Props) {
   const navigate = useNavigate();
+  const organization = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
+  const moduleTitles = useModuleTitles();
 
   const baseCrumbs: Crumb[] = [
     {
-      label: t('Performance'),
+      label: DOMAIN_VIEW_BASE_TITLE,
       to: undefined, // There is no base /performance/ page
       preservePageFilters: true,
     },
     {
-      label: headerTitle,
+      label: domainTitle,
       to: domainBaseUrl,
       preservePageFilters: true,
     },
     {
-      label: selectedModule ? MODULE_TITLES[selectedModule] : OVERVIEW_PAGE_TITLE,
-      to: `${moduleURLBuilder(selectedModule as RoutableModuleNames)}/`,
+      label: selectedModule ? moduleTitles[selectedModule] : OVERVIEW_PAGE_TITLE,
+      to: selectedModule
+        ? `${moduleURLBuilder(selectedModule as RoutableModuleNames)}/`
+        : domainBaseUrl,
       preservePageFilters: true,
     },
     ...additionalBreadCrumbs,
   ];
+
+  const showModuleTabs = organization.features.includes('insights-entry-points');
 
   const defaultHandleTabChange = (key: ModuleName | typeof OVERVIEW_PAGE_TITLE) => {
     if (key === selectedModule || (key === OVERVIEW_PAGE_TITLE && !module)) {
@@ -88,24 +99,32 @@ export function DomainViewHeader({
       key: OVERVIEW_PAGE_TITLE,
       label: OVERVIEW_PAGE_TITLE,
     },
-    ...modules.map(moduleName => ({key: moduleName, label: MODULE_TITLES[moduleName]})),
   ];
+
+  if (showModuleTabs) {
+    tabList.push(
+      ...modules.map(moduleName => ({
+        key: moduleName,
+        label: moduleTitles[moduleName],
+      }))
+    );
+  }
 
   return (
     <Fragment>
-      <Tabs value={tabValue} onChange={handleTabChange}>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={baseCrumbs} />
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Breadcrumbs crumbs={baseCrumbs} />
 
-            <Layout.Title>{headerTitle}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              {additonalHeaderActions}
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
+          <Layout.Title>{headerTitle}</Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            {additonalHeaderActions}
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
+        <Tabs value={tabValue} onChange={handleTabChange}>
           {!hideDefaultTabs && (
             <TabList hideBorder>
               {tabList.map(tab => (
@@ -114,8 +133,8 @@ export function DomainViewHeader({
             </TabList>
           )}
           {hideDefaultTabs && tabs && tabs.tabList}
-        </Layout.Header>
-      </Tabs>
+        </Tabs>
+      </Layout.Header>
     </Fragment>
   );
 }

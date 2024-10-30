@@ -21,7 +21,6 @@ import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -39,7 +38,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -53,12 +52,14 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
 import {getDatasetConfig} from '../datasetConfig/base';
 import type {Widget} from '../types';
 import {DisplayType} from '../types';
+import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
+import {BigNumberWidgetVisualization} from '../widgets/bigNumberWidget/bigNumberWidgetVisualization';
 
 import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
@@ -88,6 +89,7 @@ type WidgetCardChartProps = Pick<
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   chartZoomOptions?: DataZoomComponentOption;
   expandNumbers?: boolean;
@@ -164,21 +166,22 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const eventView = eventViewFromWidget(widget.title, widget.queries[0], selection);
 
       return (
-        <StyledSimpleTableChart
-          key={`table:${result.title}`}
-          eventView={eventView}
-          fieldAliases={fieldAliases}
-          location={location}
-          fields={fields}
-          title={tableResults.length > 1 ? result.title : ''}
-          loading={loading}
-          loader={<LoadingPlaceholder />}
-          metadata={result.meta}
-          data={result.data}
-          stickyHeaders
-          fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-          getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
-        />
+        <TableWrapper key={`table:${result.title}`}>
+          <StyledSimpleTableChart
+            eventView={eventView}
+            fieldAliases={fieldAliases}
+            location={location}
+            fields={fields}
+            title={tableResults.length > 1 ? result.title : ''}
+            loading={loading}
+            loader={<LoadingPlaceholder />}
+            metadata={result.meta}
+            data={result.data}
+            stickyHeaders
+            fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
+            getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
+          />
+        </TableWrapper>
       );
     });
   }
@@ -200,19 +203,16 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       return <BigNumber>{'\u2014'}</BigNumber>;
     }
 
-    const {location, organization, widget, isMobile, expandNumbers} = this.props;
+    const {widget} = this.props;
 
-    return tableResults.map(result => {
+    return tableResults.map((result, i) => {
       const tableMeta = {...result.meta};
       const fields = Object.keys(tableMeta);
 
       let field = fields[0];
       let selectedField = field;
 
-      if (
-        organization.features.includes('dashboards-bignumber-equations') &&
-        defined(widget.queries[0].selectedAggregate)
-      ) {
+      if (defined(widget.queries[0].selectedAggregate)) {
         const index = widget.queries[0].selectedAggregate;
         selectedField = widget.queries[0].aggregates[index];
         if (fields.includes(selectedField)) {
@@ -220,47 +220,31 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         }
       }
 
-      // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
-      const shouldExpandInteger = !!expandNumbers && tableMeta[field] === 'integer';
-      if (shouldExpandInteger) {
-        tableMeta[field] = 'string';
-      }
+      const data = result?.data;
+      const meta = result?.meta as EventsMetaType;
+      const value = data?.[0]?.[selectedField];
 
       if (
         !field ||
         !result.data?.length ||
         selectedField === 'equation|' ||
-        selectedField === ''
+        selectedField === '' ||
+        !defined(value) ||
+        !Number.isFinite(value) ||
+        Number.isNaN(value)
       ) {
         return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
       }
 
-      const dataRow = result.data[0];
-      const fieldRenderer = getFieldFormatter(field, tableMeta, false);
-
-      const unit = tableMeta.units?.[field];
-      const rendered = fieldRenderer(
-        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
-        {location, organization, unit}
-      );
-
-      const isModalWidget = !(widget.id || widget.tempId);
-      if (isModalWidget || isMobile) {
-        return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
-      }
-
-      return expandNumbers ? (
-        <BigText>{rendered}</BigText>
-      ) : (
-        <AutoResizeParent key={`big_number:${result.title}`}>
-          <AutoSizedText>
-            <NumberContainerOverride>
-              <Tooltip title={rendered} showOnlyOnOverflow>
-                {rendered}
-              </Tooltip>
-            </NumberContainerOverride>
-          </AutoSizedText>
-        </AutoResizeParent>
+      return (
+        <BigNumberWidgetVisualization
+          key={i}
+          field={field}
+          value={value}
+          meta={meta}
+          thresholds={widget.thresholds ?? undefined}
+          preferredPolarity="-"
+        />
       );
     });
   }
@@ -347,7 +331,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       );
     }
 
-    const {location, selection, onLegendSelectChanged} = this.props;
+    const {location, selection, onLegendSelectChanged, widgetLegendState} = this.props;
     const {start, end, period, utc} = selection.datetime;
     const {projects, environments} = selection;
 
@@ -356,6 +340,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       top: 0,
       selected: getSeriesSelection(location),
       formatter: (seriesName: string) => {
+        seriesName = WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName);
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {
           const slug = getMeasurementSlug(arg);
@@ -386,13 +371,20 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     const bucketSize = getBucketSize(timeseriesResults);
 
     const valueFormatter = (value: number, seriesName?: string) => {
-      const aggregateName = seriesName?.split(':').pop()?.trim();
+      const decodedSeriesName = seriesName
+        ? WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName)
+        : seriesName;
+      const aggregateName = decodedSeriesName?.split(':').pop()?.trim();
       if (aggregateName) {
         return timeseriesResultsTypes
           ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
           : tooltipFormatter(value, aggregateOutputType(aggregateName));
       }
       return tooltipFormatter(value, 'number');
+    };
+
+    const nameFormatter = (name: string) => {
+      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name);
     };
 
     const chartOptions = {
@@ -424,6 +416,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
           return getFormatter({
             valueFormatter,
+            nameFormatter,
             isGroupedByDate: true,
             bucketSize,
             addSecondsToTimeFormat: false,
@@ -530,8 +523,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
           const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
 
           return organization.features.includes('dashboards-releases-on-charts') &&
-            (widget.displayType === DisplayType.LINE ||
-              widget.displayType === DisplayType.AREA) ? (
+            widgetLegendState.widgetRequiresLegendUnselection(widget) ? (
             <ReleaseSeries
               end={end}
               start={start}
@@ -541,8 +533,14 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
               memoized
             >
               {({releaseSeries}) => {
-                legend.selected = {Releases: false, ...legend.selected};
-
+                // make series name into seriesName:widgetId form for individual widget legend control
+                // NOTE: e-charts legends control all charts that have the same series name so attaching
+                // widget id will differentiate the charts allowing them to be controlled individually
+                const modifiedReleaseSeriesResults =
+                  WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(
+                    widget,
+                    releaseSeries
+                  );
                 return (
                   <TransitionChart loading={loading} reloading={loading}>
                     <LoadingScreen loading={loading} />
@@ -565,7 +563,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                               }
                             : {}),
                           legend,
-                          series: [...series, ...releaseSeries],
+                          series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
                           onLegendSelectChanged,
                           forwardedRef,
                         }),
@@ -649,7 +647,6 @@ const BigNumberResizeWrapper = styled('div')`
   flex-grow: 1;
   overflow: hidden;
   position: relative;
-  margin: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
 `;
 
 const BigNumber = styled('div')`
@@ -667,57 +664,22 @@ const BigNumber = styled('div')`
   }
 `;
 
-const AutoResizeParent = styled('div')`
-  position: absolute;
-  color: ${p => p.theme.headingColor};
-  inset: 0;
-
-  * {
-    line-height: 1;
-    text-align: left !important;
-  }
-`;
-
-const BigText = styled('div')`
-  display: block;
-  width: 100%;
-  color: ${p => p.theme.headingColor};
-  font-size: max(min(8vw, 90px), 30px);
-  padding: ${space(1)} ${space(3)} 0 ${space(3)};
-  white-space: nowrap;
-
-  * {
-    text-align: left !important;
-  }
-`;
-
-/**
- * This component overrides the default behavior of `NumberContainer`,
- * which wraps every single number in big widgets. This override forces
- * `NumberContainer` to never truncate its values, which makes it possible
- * to auto-size them.
- */
-const NumberContainerOverride = styled('div')`
-  display: inline-block;
-
-  * {
-    text-overflow: clip !important;
-    display: inline;
-    white-space: nowrap;
-  }
-`;
-
 const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
-  padding: ${p => (p.noPadding ? `0` : `0 ${space(3)} ${space(3)}`)};
+  width: 100%;
+  padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
+`;
+
+const TableWrapper = styled('div')`
+  margin-top: ${space(1.5)};
+  min-height: 0;
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
-  margin-top: ${space(1.5)};
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
-  box-shadow: none;
+  overflow: auto;
+  height: 100%;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`

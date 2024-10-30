@@ -26,6 +26,7 @@ from sentry.grouping.variants import (
     ComponentVariant,
     CustomFingerprintVariant,
     FallbackVariant,
+    HashedChecksumVariant,
     SaltedComponentVariant,
 )
 from sentry.models.grouphash import GroupHash
@@ -234,7 +235,15 @@ def get_fingerprinting_config_for_project(
 
 
 def apply_server_fingerprinting(event, config, allow_custom_title=True):
-    client_fingerprint = event.get("fingerprint")
+    fingerprint_info = {}
+
+    client_fingerprint = event.get("fingerprint", [])
+    client_fingerprint_is_default = len(client_fingerprint) == 1 and is_default_fingerprint_var(
+        client_fingerprint[0]
+    )
+    if client_fingerprint and not client_fingerprint_is_default:
+        fingerprint_info["client_fingerprint"] = client_fingerprint
+
     rv = config.get_fingerprint_values_for_event(event)
     if rv is not None:
         rule, new_fingerprint, attributes = rv
@@ -247,13 +256,10 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
 
         # Persist the rule that matched with the fingerprint in the event
         # dictionary for later debugging.
-        event["_fingerprint_info"] = {
-            "client_fingerprint": client_fingerprint,
-            "matched_rule": rule.to_json(),
-        }
+        fingerprint_info["matched_rule"] = rule.to_json()
 
-        if rule.is_builtin:
-            event["_fingerprint_info"]["is_builtin"] = True
+    if fingerprint_info:
+        event["_fingerprint_info"] = fingerprint_info
 
 
 def _get_calculated_grouping_variants_for_event(
@@ -301,13 +307,21 @@ def get_grouping_variants_for_event(
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this
     # event is the checksum variant.
+    #
+    # TODO: Is there a reason we don't treat a checksum like a custom fingerprint, and run the other
+    # strategies but mark them as non-contributing, with explanations why?
+    #
+    # TODO: In the case where we have to hash the checksum to get a value in the right format, we
+    # store the raw value as well (provided it's not so long that it will overflow the DB field).
+    # Even when we do this, though, we don't set the raw value as non-cotributing, and we don't add
+    # an "ignored because xyz" hint on the variant, which we should.
     checksum = event.data.get("checksum")
     if checksum:
         if HASH_RE.match(checksum):
             return {"checksum": ChecksumVariant(checksum)}
 
         rv: dict[str, BaseVariant] = {
-            "hashed-checksum": ChecksumVariant(hash_from_values(checksum), hashed=True),
+            "hashed-checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
         }
 
         # The legacy code path also supported arbitrary values here but
@@ -345,7 +359,7 @@ def get_grouping_variants_for_event(
             rv[key] = ComponentVariant(component, context.config)
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        if fingerprint_info and fingerprint_info.get("is_builtin", False):
+        if (fingerprint_info or {}).get("matched_rule", {}).get("is_builtin") is True:
             rv["built-in-fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
         else:
             rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)

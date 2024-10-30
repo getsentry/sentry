@@ -1551,6 +1551,24 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
         trace_transaction = response.data["transactions"][0]
         self.assert_event(trace_transaction, self.gen1_events[0], "root")
 
+    def test_span_id(self):
+        """Event id is going away, so some parts of the UI have started passing a span id instead"""
+        self.load_trace()
+        # When given an event_id even if its not the root transaction we should prioritize loading that specific event
+        # over loading roots
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={
+                    "timestamp": self.root_event.timestamp,
+                    # Limit of one means the only result is the target event
+                    "limit": 1,
+                    "eventId": self.gen1_events[0].data["contexts"]["trace"]["span_id"],
+                },
+            )
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        self.assert_event(trace_transaction, self.gen1_events[0], "root")
+
     def test_timestamp_optimization_without_mock(self):
         """Make sure that even if the params are smaller the query still works"""
         self.load_trace()

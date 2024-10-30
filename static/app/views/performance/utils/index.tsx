@@ -27,6 +27,8 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 
 import {DEFAULT_MAX_DURATION} from '../trends/utils';
 
@@ -390,4 +392,11 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
       enabled: Boolean(project),
     }
   );
+}
+
+export function getPerformanceBaseUrl(orgSlug: string, view?: DomainView) {
+  if (view) {
+    return normalizeUrl(`/organizations/${orgSlug}/${DOMAIN_VIEW_BASE_URL}/${view}`);
+  }
+  return normalizeUrl(`/organizations/${orgSlug}/performance`);
 }

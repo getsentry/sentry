@@ -234,6 +234,7 @@ class SearchResolver:
             return self.resolve_aggregate(column, match)
         else:
             return self.resolve_attribute(column)
+
         # TODO: Cache the column
         # self.resolved_coluumn[alias] = ResolvedColumn()
         # return ResolvedColumn()

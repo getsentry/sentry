@@ -27,8 +27,8 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
-from sentry.mediators.project_rules.creator import Creator
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processing.processor import is_condition_slow
@@ -505,8 +505,8 @@ A list of actions that take place when all required conditions and filters for t
 - `workspace` - The integration ID associated with the Slack workspace.
 - `channel` - The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
 - `channel_id` (optional) - The ID of the channel to send the notification to.
-- `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
-- `notes` - Text to show alongside the notification. To @ a user, include their user id like `@<USER_ID>`. To include a clickable link, format the link and title like `<http://example.com|Click Here>`.
+- `tags` (optional) - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+- `notes` (optional) - Text to show alongside the notification. To @ a user, include their user id like `@<USER_ID>`. To include a clickable link, format the link and title like `<http://example.com|Click Here>`.
 ```json
 {
     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
@@ -531,7 +531,7 @@ A list of actions that take place when all required conditions and filters for t
 **Send a Discord notification**
 - `server` - The integration ID associated with the Discord server.
 - `channel_id` - The ID of the channel to send the notification to.
-- `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+- `tags` (optional) - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
 ```json
 {
     "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
@@ -844,7 +844,18 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
             kwargs["actions"]
         )
-        rule = Creator.run(request=request, **kwargs)
+        rule = ProjectRuleCreator(
+            name=kwargs["name"],
+            project=project,
+            action_match=kwargs["action_match"],
+            actions=kwargs["actions"],
+            conditions=conditions,
+            frequency=kwargs["frequency"],
+            environment=kwargs["environment"],
+            owner=owner,
+            filter_match=kwargs["filter_match"],
+            request=request,
+        ).run()
 
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value

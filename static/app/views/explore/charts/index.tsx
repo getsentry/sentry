@@ -3,12 +3,17 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {
+  aggregateOutputType,
+  formatParsedFunction,
+  parseFunction,
+} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -128,6 +133,14 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     <Fragment>
       {visualizes.map((visualize, index) => {
         const dedupedYAxes = dedupeArray(visualize.yAxes);
+
+        const formattedYAxes = dedupedYAxes
+          .map(yaxis => {
+            const func = parseFunction(yaxis);
+            return func ? formatParsedFunction(func) : undefined;
+          })
+          .filter(Boolean);
+
         const {chartType} = visualize;
         const chartIcon =
           chartType === ChartType.LINE
@@ -140,34 +153,42 @@ export function ExploreCharts({query}: ExploreChartsProps) {
           <ChartContainer key={index}>
             <ChartPanel>
               <ChartHeader>
-                <ChartTitle>{dedupedYAxes.join(',')}</ChartTitle>
+                <ChartTitle>{formattedYAxes.join(',')}</ChartTitle>
                 <ChartSettingsContainer>
-                  <CompactSelect
-                    triggerLabel=""
-                    triggerProps={{
-                      icon: <IconGraph type={chartIcon} />,
-                      borderless: true,
-                      showChevron: false,
-                      size: 'sm',
-                    }}
-                    value={chartType}
-                    menuTitle="Type"
-                    options={exploreChartTypeOptions}
-                    onChange={option => handleChartTypeChange(option.value, index)}
-                  />
-                  <CompactSelect
-                    triggerLabel=""
-                    value={interval}
-                    onChange={({value}) => setInterval(value)}
-                    triggerProps={{
-                      icon: <IconClock />,
-                      borderless: true,
-                      showChevron: false,
-                      size: 'sm',
-                    }}
-                    menuTitle="Interval"
-                    options={intervalOptions}
-                  />
+                  <Tooltip
+                    title={t('Type of chart displayed in this visualization (ex. line)')}
+                  >
+                    <CompactSelect
+                      triggerLabel=""
+                      triggerProps={{
+                        icon: <IconGraph type={chartIcon} />,
+                        borderless: true,
+                        showChevron: false,
+                        size: 'sm',
+                      }}
+                      value={chartType}
+                      menuTitle="Type"
+                      options={exploreChartTypeOptions}
+                      onChange={option => handleChartTypeChange(option.value, index)}
+                    />
+                  </Tooltip>
+                  <Tooltip
+                    title={t('Time interval displayed in this visualization (ex. 5m)')}
+                  >
+                    <CompactSelect
+                      triggerLabel=""
+                      value={interval}
+                      onChange={({value}) => setInterval(value)}
+                      triggerProps={{
+                        icon: <IconClock />,
+                        borderless: true,
+                        showChevron: false,
+                        size: 'sm',
+                      }}
+                      menuTitle="Interval"
+                      options={intervalOptions}
+                    />
+                  </Tooltip>
                 </ChartSettingsContainer>
               </ChartHeader>
               <Chart

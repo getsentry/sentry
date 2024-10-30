@@ -10,7 +10,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Tabs, TabsContext} from 'sentry/components/tabs';
-import {IconPause, IconPlay} from 'sentry/icons';
+import {IconMegaphone, IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -18,6 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -68,6 +69,9 @@ function CustomViewsIssueListHeader({
 
   const {newViewActive} = useContext(NewTabContext);
 
+  const openForm = useFeedbackForm();
+  const hasNewLayout = props.organization.features.includes('issue-stream-table-layout');
+
   return (
     <Layout.Header
       noActionWrap
@@ -88,8 +92,28 @@ function CustomViewsIssueListHeader({
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        {!newViewActive && (
-          <ButtonBar gap={1}>
+        <ButtonBar gap={1}>
+          {openForm && hasNewLayout && (
+            <Button
+              size="sm"
+              aria-label="issue-stream-feedback"
+              icon={<IconMegaphone />}
+              onClick={() =>
+                openForm({
+                  messagePlaceholder: t(
+                    'How can we make the issue stream better for you?'
+                  ),
+                  tags: {
+                    ['feedback.source']: 'new_issue_stream_layout',
+                    ['feedback.owner']: 'issues',
+                  },
+                })
+              }
+            >
+              {t('Give Feedback')}
+            </Button>
+          )}
+          {!newViewActive && (
             <Button
               size="sm"
               data-test-id="real-time"
@@ -98,14 +122,14 @@ function CustomViewsIssueListHeader({
               icon={realtimeActive ? <IconPause /> : <IconPlay />}
               onClick={() => onRealtimeChange(!realtimeActive)}
             />
-          </ButtonBar>
-        )}
+          )}
+        </ButtonBar>
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {groupSearchViews ? (
-        <Tabs>
+        <StyledTabs>
           <CustomViewsIssueListHeaderTabsContent {...props} views={groupSearchViews} />
-        </Tabs>
+        </StyledTabs>
       ) : (
         <div style={{height: 33}} />
       )}
@@ -313,6 +337,14 @@ function CustomViewsIssueListHeaderTabsContent({
     if (query) {
       if (!tabListState?.selectionManager.isSelected(TEMPORARY_TAB_KEY)) {
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
+        setTempTab({
+          id: TEMPORARY_TAB_KEY,
+          key: TEMPORARY_TAB_KEY,
+          label: t('Unsaved'),
+          query: query,
+          querySort: sort ?? IssueSortOptions.DATE,
+          isCommitted: true,
+        });
         navigate(
           normalizeUrl({
             ...location,
@@ -450,6 +482,10 @@ function CustomViewsIssueListHeaderTabsContent({
 }
 
 export default CustomViewsIssueListHeader;
+
+const StyledTabs = styled(Tabs)`
+  grid-column: 1 / -1;
+`;
 
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   grid-column: 1/-1;

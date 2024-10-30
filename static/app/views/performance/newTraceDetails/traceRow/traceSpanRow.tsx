@@ -27,12 +27,12 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
       onKeyDown={props.onRowKeyDown}
       style={props.style}
     >
-      <div className="TraceLeftColumn" ref={props.registerListColumnRef}>
-        <div
-          className="TraceLeftColumnInner"
-          style={props.listColumnStyle}
-          onDoubleClick={props.onRowDoubleClick}
-        >
+      <div
+        className="TraceLeftColumn"
+        ref={props.registerListColumnRef}
+        onDoubleClick={props.onRowDoubleClick}
+      >
+        <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
           <div className={props.listColumnClassName}>
             <TraceRowConnectors node={props.node} manager={props.manager} />
             {props.node.children.length > 0 || props.node.canFetch ? (
@@ -74,6 +74,7 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
         onDoubleClick={props.onRowDoubleClick}
       >
         <TraceBar
+          node={props.node}
           virtualized_index={props.virtualized_index}
           manager={props.manager}
           color={makeTraceNodeBarColor(props.theme, props.node)}

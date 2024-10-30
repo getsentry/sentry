@@ -9,7 +9,7 @@ from sentry.models.userreport import UserReport
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import redis
 
 # Use the default redis client as a cluster client in the similarity index
@@ -55,7 +55,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "extra": {"foo": "bar"},
             },
@@ -65,7 +65,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-2"],
                 "extra": {"foo": "baz"},
             },
@@ -113,7 +113,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "tags": {"foo": "bar"},
                 "environment": self.environment.name,
@@ -123,7 +123,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-2"],
                 "tags": {"foo": "bar"},
                 "environment": self.environment.name,

@@ -1,9 +1,15 @@
+import {Fragment} from 'react';
+
+import {CommitRow} from 'sentry/components/commitRow';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionType} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {TraceEventDataSection} from '../traceEventDataSection';
 
@@ -14,13 +20,21 @@ import {isStacktraceNewestFirst} from './utils';
 type Props = {
   data: ExceptionType;
   event: Event;
+  group: Group | undefined;
   projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
 };
 
-export function Exception({event, data, projectSlug, groupingCurrentLevel}: Props) {
+export function Exception({
+  event,
+  data,
+  projectSlug,
+  group,
+  groupingCurrentLevel,
+}: Props) {
   const eventHasThreads = !!event.entries.some(entry => entry.type === EntryType.THREADS);
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   // in case there are threads in the event data, we don't render the
   // exception block.  Instead the exception is contained within the
@@ -78,30 +92,45 @@ export function Exception({event, data, projectSlug, groupingCurrentLevel}: Prop
       }
       stackTraceNotFound={stackTraceNotFound}
     >
-      {({recentFirst, display, fullStackTrace}) =>
-        stackTraceNotFound ? (
+      {({recentFirst, display, fullStackTrace}) => {
+        return stackTraceNotFound ? (
           <NoStackTraceMessage />
         ) : (
-          <ExceptionContent
-            stackType={
-              display.includes('minified') ? StackType.MINIFIED : StackType.ORIGINAL
-            }
-            stackView={
-              display.includes('raw-stack-trace')
-                ? StackView.RAW
-                : fullStackTrace
-                  ? StackView.FULL
-                  : StackView.APP
-            }
-            projectSlug={projectSlug}
-            newestFirst={recentFirst}
-            event={event}
-            values={data.values}
-            groupingCurrentLevel={groupingCurrentLevel}
-            meta={meta}
-          />
-        )
-      }
+          <Fragment>
+            <ExceptionContent
+              stackType={
+                display.includes('minified') ? StackType.MINIFIED : StackType.ORIGINAL
+              }
+              stackView={
+                display.includes('raw-stack-trace')
+                  ? StackView.RAW
+                  : fullStackTrace
+                    ? StackView.FULL
+                    : StackView.APP
+              }
+              projectSlug={projectSlug}
+              newestFirst={recentFirst}
+              event={event}
+              values={data.values}
+              groupingCurrentLevel={groupingCurrentLevel}
+              meta={meta}
+            />
+            {hasStreamlinedUI && group && (
+              <ErrorBoundary
+                mini
+                message={t('There was an error loading the suspect commits')}
+              >
+                <SuspectCommits
+                  projectSlug={projectSlug}
+                  eventId={event.id}
+                  group={group}
+                  commitRow={CommitRow}
+                />
+              </ErrorBoundary>
+            )}
+          </Fragment>
+        );
+      }}
     </TraceEventDataSection>
   );
 }

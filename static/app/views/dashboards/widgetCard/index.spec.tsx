@@ -1,3 +1,5 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -21,6 +23,10 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
+
+import {DashboardsMEPProvider} from './dashboardsMEPContext';
+
 jest.mock('sentry/components/charts/simpleTableChart', () => jest.fn(() => <div />));
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 jest.mock('sentry/components/lazyRender', () => ({
@@ -37,7 +43,9 @@ describe('Dashboards > WidgetCard', function () {
 
   const renderWithProviders = (component: React.ReactNode) =>
     render(
-      <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>,
+      <DashboardsMEPProvider>
+        <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+      </DashboardsMEPProvider>,
       {organization, router}
     );
 
@@ -78,7 +86,14 @@ describe('Dashboards > WidgetCard', function () {
   };
 
   const api = new MockApiClient();
-  let eventsMock;
+  let eventsMock: jest.Mock;
+
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([multipleQueryWidget]),
+    organization,
+    router,
+  });
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -112,6 +127,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -137,6 +153,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -160,6 +177,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -194,6 +212,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -228,6 +247,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -263,6 +283,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -291,6 +312,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -316,6 +338,7 @@ describe('Dashboards > WidgetCard', function () {
         onDuplicate={mock}
         renderErrorMessage={() => undefined}
         showContextMenu
+        widgetLegendState={widgetLegendState}
         widgetLimitReached
       />
     );
@@ -343,6 +366,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -369,6 +393,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -403,6 +428,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -436,6 +462,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -482,6 +509,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -516,6 +544,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -544,55 +573,14 @@ describe('Dashboards > WidgetCard', function () {
         widgetLimitReached={false}
         index="10"
         isPreview
+        widgetLegendState={widgetLegendState}
       />
     );
 
-    await userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
+    await userEvent.click(await screen.findByLabelText('Open Full-Screen View'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
     );
-  });
-
-  it('renders stored data disclaimer', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        meta: {title: 'string', isMetricsData: false},
-        data: [{title: 'title'}],
-      },
-    });
-
-    renderWithProviders(
-      <WidgetCard
-        api={api}
-        organization={{
-          ...organization,
-          features: [...organization.features, 'dashboards-mep'],
-        }}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0]}],
-        }}
-        selection={selection}
-        isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        showContextMenu
-        widgetLimitReached={false}
-        showStoredAlert
-      />
-    );
-
-    // Badge in the widget header
-    expect(await screen.findByText('Indexed')).toBeInTheDocument();
-
-    expect(
-      // Alert below the widget
-      await screen.findByText(/we've automatically adjusted your results/i)
-    ).toBeInTheDocument();
   });
 
   it('renders chart using axis and tooltip formatters from custom measurement meta', async function () {
@@ -653,6 +641,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
     await waitFor(function () {
@@ -751,6 +740,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
     await waitFor(function () {
@@ -787,6 +777,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         isPreview
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -794,7 +785,11 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('displays the discover split warning icon when the dataset source is forced', async function () {
-    const testWidget = {...WidgetFixture(), datasetSource: DatasetSource.FORCED};
+    const testWidget = {
+      ...WidgetFixture(),
+      datasetSource: DatasetSource.FORCED,
+      widgetType: WidgetType.ERRORS,
+    };
 
     renderWithProviders(
       <WidgetCard
@@ -810,10 +805,11 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         isPreview
+        widgetLegendState={widgetLegendState}
       />
     );
 
-    await userEvent.hover(screen.getByLabelText('Dataset split warning'));
+    await userEvent.hover(screen.getByLabelText('Widget warnings'));
 
     expect(
       await screen.findByText(/We're splitting our datasets up/)

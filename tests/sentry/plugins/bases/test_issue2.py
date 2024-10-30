@@ -6,7 +6,7 @@ from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
 from sentry.utils import json
@@ -77,7 +77,7 @@ class IssuePlugin2GroupActionTest(TestCase):
         super().setUp()
         self.project = self.create_project()
         self.plugin_instance = plugins.get(slug="issuetrackingplugin2")
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.event = self.store_event(
             data={"timestamp": min_ago, "fingerprint": ["group-1"]}, project_id=self.project.id
         )

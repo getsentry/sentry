@@ -18,15 +18,17 @@ from sentry.utils.validators import is_event_id, is_span_id
 @dataclass(frozen=True)
 class ResolvedColumn:
     # The alias for this column
-    public_alias: str  # `p95() as foo` has the public alias `foo` and `p95()` has the public alias `p95()`
+    public_alias: (
+        str  # `p95() as foo` has the public alias `foo` and `p95()` has the public alias `p95()`
+    )
     # The internal rpc alias for this column
     internal_name: str | Function.ValueType
     # The public type for this column
     search_type: str
-    # Only for aggregates, we only support functions with 1 argument right now
-    argument: AttributeKey | None = None
     # The internal rpc type for this column, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
+    # Only for aggregates, we only support functions with 1 argument right now
+    argument: AttributeKey | None = None
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
@@ -53,9 +55,11 @@ class ResolvedColumn:
         else:
             return AttributeKey(
                 name=self.internal_name,
-                type=self.internal_type
-                if self.internal_type is not None
-                else constants.TYPE_MAP[self.search_type],
+                type=(
+                    self.internal_type
+                    if self.internal_type is not None
+                    else constants.TYPE_MAP[self.search_type]
+                ),
             )
 
     @property
@@ -226,12 +230,7 @@ SPAN_FUNCTION_DEFINITIONS = {
     "sum": FunctionDefinition(
         internal_function=Function.FUNCTION_SUM,
         search_type="duration",
-        arguments=[
-            ArgumentDefinition(
-                argument_type="duration",
-                default_arg="span.duration",
-            )
-        ],
+        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
     ),
     "avg": FunctionDefinition(
         internal_function=Function.FUNCTION_AVERAGE,
@@ -241,7 +240,7 @@ SPAN_FUNCTION_DEFINITIONS = {
     "count": FunctionDefinition(
         internal_function=Function.FUNCTION_COUNT,
         search_type="number",
-        arguments=[ArgumentDefinition(ignored=True)],
+        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
     ),
     "p50": FunctionDefinition(
         internal_function=Function.FUNCTION_P50,

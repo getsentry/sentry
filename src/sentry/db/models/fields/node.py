@@ -192,7 +192,7 @@ class NodeField(GzippedDictField):
                 try:
                     value = pickle.loads(decompress(value))
                 except Exception as e:
-                    # TODO this is a bit dangerous as a failure to read/decode the
+                    # TODO: this is a bit dangerous as a failure to read/decode the
                     # node_id will end up with this record being replaced with an
                     # empty value under a new key, potentially orphaning an
                     # original value in nodestore. OTOH if we can't decode the info

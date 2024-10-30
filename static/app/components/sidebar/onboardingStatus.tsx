@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext} from 'react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -52,14 +52,11 @@ export default function OnboardingStatus({
     if (!walkthrough && !isActive === true) {
       trackAnalytics('quick_start.opened', {
         organization: org,
+        new_experience: false,
       });
     }
     onShowPanel();
   }, [walkthrough, isActive, onShowPanel, org]);
-
-  if (!org.features?.includes('onboarding')) {
-    return null;
-  }
 
   const tasks = getMergedTasks({
     organization: org,
@@ -67,9 +64,7 @@ export default function OnboardingStatus({
     onboardingContext,
   });
 
-  const allDisplayedTasks = tasks
-    .filter(task => task.display)
-    .filter(task => !task.renderCard);
+  const allDisplayedTasks = tasks.filter(task => task.display);
 
   const doneTasks = allDisplayedTasks.filter(isDone);
   const numberRemaining = allDisplayedTasks.length - doneTasks.length;
@@ -81,7 +76,21 @@ export default function OnboardingStatus({
       !task.completionSeen
   );
 
-  if (doneTasks.length >= allDisplayedTasks.length && !isActive) {
+  const allTasksCompleted = doneTasks.length >= allDisplayedTasks.length;
+
+  useEffect(() => {
+    if (!allTasksCompleted || isActive) {
+      return;
+    }
+
+    trackAnalytics('quick_start.completed', {
+      organization: org,
+      referrer: 'onboarding_sidebar',
+      new_experience: false,
+    });
+  }, [isActive, allTasksCompleted, org]);
+
+  if (!org.features?.includes('onboarding') || (allTasksCompleted && !isActive)) {
     return null;
   }
 

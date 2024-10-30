@@ -64,6 +64,11 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
     text: feedbackItem.shortId,
   });
 
+  const {onClick: handleCopyMarkdown} = useCopyToClipboard({
+    text: `[${feedbackItem.shortId}](${feedbackUrl})`,
+    successMessage: t('Copied Markdown Feedback Link to clipboard'),
+  });
+
   return (
     <Flex
       gap={space(1)}
@@ -103,6 +108,11 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
             key: 'copy-short-id',
             label: t('Copy Short-ID'),
             onAction: handleCopyShortId,
+          },
+          {
+            key: 'copy-markdown-link',
+            label: t('Copy Markdown Link'),
+            onAction: handleCopyMarkdown,
           },
         ]}
       />

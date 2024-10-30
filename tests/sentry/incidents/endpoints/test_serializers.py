@@ -428,6 +428,14 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.is_valid(), serializer.errors
 
     def test_boundary_off_by_one(self):
+        actions = [
+            {
+                "type": "slack",
+                "targetIdentifier": "my-channel",
+                "targetType": "specific",
+                "integration": self.integration.id,
+            }
+        ]
         self.run_fail_validation_test(
             {
                 "thresholdType": AlertRuleThresholdType.ABOVE.value,
@@ -436,7 +444,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
                     {
                         "label": "critical",
                         "alertThreshold": 0,
-                        "actions": [],
+                        "actions": actions,
                     },
                 ],
             },
@@ -457,7 +465,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
                     {
                         "label": "critical",
                         "alertThreshold": 2,
-                        "actions": [],
+                        "actions": actions,
                     },
                 ],
             },
@@ -719,8 +727,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.team_id is None
 
     def test_invalid_detection_type(self):
-        with self.feature("organizations:anomaly-detection-alerts"), self.feature(
-            "organizations:anomaly-detection-rollout"
+        with (
+            self.feature("organizations:anomaly-detection-alerts"),
+            self.feature("organizations:anomaly-detection-rollout"),
         ):
             params = self.valid_params.copy()
             params["detection_type"] = AlertRuleDetectionType.PERCENT  # requires comparison delta

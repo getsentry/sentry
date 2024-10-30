@@ -16,7 +16,7 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.release import Release, _get_cache_key
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import ReplaysSnubaTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
@@ -28,7 +28,7 @@ pytestmark = requires_snuba
 class GroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).isoformat()
 
     def test_is_resolved(self):
         group = self.create_group(status=GroupStatus.RESOLVED)
@@ -355,9 +355,9 @@ class GroupIsOverResolveAgeTest(TestCase):
 class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
-        self.two_min_ago = iso_format(before_now(minutes=2))
-        self.just_over_one_min_ago = iso_format(before_now(seconds=61))
+        self.min_ago = before_now(minutes=1).isoformat()
+        self.two_min_ago = before_now(minutes=2).isoformat()
+        self.just_over_one_min_ago = before_now(seconds=61).isoformat()
 
     def test_get_latest_event_no_events(self):
         project = self.create_project()
@@ -433,7 +433,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
                 "message": "Hello world",
                 "level": "error",
                 "contexts": {"replay": {"replay_id": replay1_id}},
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -462,7 +462,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
 
     def test_no_replay_project(self):
         event = self.store_event(
-            data={"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=1))},
+            data={"fingerprint": ["group1"], "timestamp": before_now(minutes=1).isoformat()},
             project_id=self.project.id,
         )
         group = event.group
@@ -473,7 +473,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
         self.project.save()
 
         event = self.store_event(
-            data={"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=1))},
+            data={"fingerprint": ["group1"], "timestamp": before_now(minutes=1).isoformat()},
             project_id=self.project.id,
         )
 

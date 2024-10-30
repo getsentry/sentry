@@ -10,7 +10,7 @@ from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -28,7 +28,7 @@ class DeleteGroupTest(TestCase):
         event = self.store_event(
             data={
                 "event_id": event_id,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group1"],
             },
             project_id=project.id,
@@ -37,7 +37,7 @@ class DeleteGroupTest(TestCase):
         self.store_event(
             data={
                 "event_id": event_id_2,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group1"],
             },
             project_id=project.id,

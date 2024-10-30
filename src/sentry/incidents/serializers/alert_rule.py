@@ -165,11 +165,17 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             self.context["organization"],
             actor=self.context.get("user", None),
         )
+        allow_eap = features.has(
+            "organizations:alerts-eap",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        )
 
         try:
             if not check_aggregate_column_support(
                 aggregate,
                 allow_mri=allow_mri,
+                allow_eap=allow_eap,
             ):
                 raise serializers.ValidationError(
                     "Invalid Metric: We do not currently support this field."
@@ -257,6 +263,11 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             raise serializers.ValidationError(
                 "Must send 1 or 2 triggers - A critical trigger, and an optional warning trigger"
             )
+        for trigger in triggers:
+            if not trigger.get("actions", []):
+                raise serializers.ValidationError(
+                    "Each trigger must have an associated action for this alert to fire."
+                )
 
         if query_type == SnubaQuery.Type.CRASH_RATE:
             data["event_types"] = []

@@ -42,13 +42,13 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {
   FlamegraphProvider,
   useFlamegraph,
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
+import {TraceViewSources} from '../../newTraceDetails/traceHeader/breadcrumbs';
 import {generateProfileLink} from '../utils';
 
 const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
@@ -100,9 +100,9 @@ function isEmpty(resp: Profiling.Schema) {
   return false;
 }
 
-function ProfileVisualization({query}: TransactionProfilesContentProps) {
-  const {data, isPending, isError} = useAggregateFlamegraphQuery({
-    query,
+function ProfileVisualization(props: TransactionProfilesContentProps) {
+  const {data, status} = useAggregateFlamegraphQuery({
+    query: props.query,
   });
 
   const [frameFilter, setFrameFilter] = useLocalStorageState<
@@ -115,6 +115,10 @@ function ProfileVisualization({query}: TransactionProfilesContentProps) {
     },
     [setFrameFilter]
   );
+
+  const onResetFrameFilter = useCallback(() => {
+    setFrameFilter('all');
+  }, [setFrameFilter]);
 
   const flamegraphFrameFilter: ((frame: Frame) => boolean) | undefined = useMemo(() => {
     if (frameFilter === 'all') {
@@ -164,6 +168,9 @@ function ProfileVisualization({query}: TransactionProfilesContentProps) {
               <FlamegraphContainer>
                 {visualization === 'flamegraph' ? (
                   <AggregateFlamegraph
+                    status={status}
+                    filter={frameFilter}
+                    onResetFilter={onResetFrameFilter}
                     canvasPoolManager={canvasPoolManager}
                     scheduler={scheduler}
                   />
@@ -177,11 +184,11 @@ function ProfileVisualization({query}: TransactionProfilesContentProps) {
                   />
                 )}
               </FlamegraphContainer>
-              {isPending ? (
+              {status === 'pending' ? (
                 <RequestStateMessageContainer>
                   <LoadingIndicator />
                 </RequestStateMessageContainer>
-              ) : isError ? (
+              ) : status === 'error' ? (
                 <RequestStateMessageContainer>
                   {t('There was an error loading the flamegraph.')}
                 </RequestStateMessageContainer>
