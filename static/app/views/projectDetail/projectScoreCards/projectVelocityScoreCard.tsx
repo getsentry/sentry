@@ -11,6 +11,8 @@ import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
+import {ActionWrapper} from './actionWrapper';
+
 const API_LIMIT = 1000;
 
 type Release = {date: string; version: string};
@@ -147,7 +149,9 @@ function ProjectVelocityScoreCard(props: Props) {
   if (!isLoading && noReleaseEver) {
     return (
       <WidgetFrame title={cardTitle} description={cardHelp}>
-        <MissingReleasesButtons organization={organization} />
+        <ActionWrapper>
+          <MissingReleasesButtons organization={organization} />
+        </ActionWrapper>
       </WidgetFrame>
     );
   }

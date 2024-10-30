@@ -187,12 +187,13 @@ export function isSummaryViewFrontend(eventView: EventView, projects: Project[])
   );
 }
 
+// TODO - remove in favour of `getPerformanceBaseUrl`
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
-  return `/organizations/${organization.slug}/performance/`;
+  return `${getPerformanceBaseUrl(organization.slug)}/`;
 }
 
 export function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
-  return `/organizations/${organization.slug}/performance/trends/`;
+  return `${getPerformanceBaseUrl(organization.slug)}/trends/`;
 }
 
 export function getTransactionSearchQuery(location: Location, query: string = '') {
@@ -394,9 +395,15 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
   );
 }
 
-export function getPerformanceBaseUrl(orgSlug: string, view?: DomainView) {
+export function getPerformanceBaseUrl(
+  orgSlug: string,
+  view?: DomainView,
+  bare: boolean = false
+) {
+  let url = 'performance';
   if (view) {
-    return normalizeUrl(`/organizations/${orgSlug}/${DOMAIN_VIEW_BASE_URL}/${view}`);
+    url = `${DOMAIN_VIEW_BASE_URL}/${view}`;
   }
-  return normalizeUrl(`/organizations/${orgSlug}/performance`);
+
+  return bare ? url : normalizeUrl(`/organizations/${orgSlug}/${url}`);
 }
