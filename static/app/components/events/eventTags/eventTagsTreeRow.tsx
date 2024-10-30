@@ -205,7 +205,7 @@ function EventTagsTreeRowDropdown({
           to:
             originalTag.key === 'transaction'
               ? {
-                  pathname: `${getTransactionSummaryBaseUrl(organization.slug)}`,
+                  pathname: `${getTransactionSummaryBaseUrl(organization.slug)}/`,
                   query: {
                     project: event.projectID,
                     transaction: content.value,
