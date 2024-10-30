@@ -29,6 +29,7 @@ import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
@@ -112,6 +113,8 @@ export function getOnboardingTasks({
   projects,
   onboardingContext,
 }: Options): OnboardingTaskDescriptor[] {
+  const performanceUrl = `${getPerformanceBaseUrl(organization.slug)}/`;
+
   if (isDemoWalkthrough()) {
     return [
       {
@@ -136,7 +139,7 @@ export function getOnboardingTasks({
         skippable: false,
         requisites: [],
         actionType: 'app',
-        location: `/organizations/${organization.slug}/performance/`,
+        location: performanceUrl,
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },
@@ -332,7 +335,7 @@ export function getOnboardingTasks({
         // TODO: add analytics here for this specific action.
 
         if (!projects) {
-          navigateTo(`/organizations/${organization.slug}/performance/`, router);
+          navigateTo(performanceUrl, router);
           return;
         }
 
@@ -340,20 +343,20 @@ export function getOnboardingTasks({
           filterProjects(projects);
 
         if (projectsWithoutFirstTransactionEvent.length <= 0) {
-          navigateTo(`/organizations/${organization.slug}/performance/`, router);
+          navigateTo(performanceUrl, router);
           return;
         }
 
         if (projectsForOnboarding.length) {
           navigateTo(
-            `/organizations/${organization.slug}/performance/?project=${projectsForOnboarding[0].id}#performance-sidequest`,
+            `${performanceUrl}?project=${projectsForOnboarding[0].id}#performance-sidequest`,
             router
           );
           return;
         }
 
         navigateTo(
-          `/organizations/${organization.slug}/performance/?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
+          `${performanceUrl}?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
           router
         );
       },
