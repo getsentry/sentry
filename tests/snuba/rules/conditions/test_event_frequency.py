@@ -828,6 +828,41 @@ def test_convert_rule_condition_to_snuba_condition():
         )
     )
 
+    # Test in
+    in_condition = {
+        "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+        "key": "test_key",
+        "value": "test_value_1,test_value_2",
+        "match": "in",
+    }
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            in_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.IN.value,
+            ["test_value_1", "test_value_2"],
+        )
+    )
+    # Test not in
+    not_in_condition = {
+        "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+        "key": "test_key",
+        "value": "test_value_1,test_value_2",
+        "match": "not in",
+    }
+    assert (
+        EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(
+            not_in_condition
+        )
+        == (
+            "tags[test_key]",
+            Op.NOT_IN.value,
+            ["test_value_1", "test_value_2"],
+        )
+    )
+
     # Test unsupported match type
     with pytest.raises(ValueError, match="Unsupported match type: unsupported"):
         EventUniqueUserFrequencyConditionWithConditions.convert_rule_condition_to_snuba_condition(

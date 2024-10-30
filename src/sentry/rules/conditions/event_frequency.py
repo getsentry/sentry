@@ -672,7 +672,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-        conditions: list[tuple[str, str, str]] | None = None,
+        conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
             model=model,
@@ -698,7 +698,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-        conditions: list[tuple[str, str, str]] | None = None,
+        conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -721,7 +721,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
     @staticmethod
     def convert_rule_condition_to_snuba_condition(
         condition: dict[str, Any]
-    ) -> tuple[str, str, str] | None:
+    ) -> tuple[str, str, str | list[str]] | None:
         if condition["id"] != "sentry.rules.filters.tagged_event.TaggedEventFilter":
             return None
         lhs = f"tags[{condition['key']}]"
@@ -749,6 +749,12 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
             case "ns":
                 operator = Op.IS_NULL
                 rhs = None
+            case "in":
+                operator = Op.IN
+                rhs = rhs.split(",")
+            case "not in":
+                operator = Op.NOT_IN
+                rhs = rhs.split(",")
             case _:
                 raise ValueError(f"Unsupported match type: {condition['match']}")
 
