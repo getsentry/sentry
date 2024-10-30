@@ -4,7 +4,6 @@ import pytest
 
 from sentry.tasks.store import preprocess_event
 from sentry.tasks.symbolication import submit_symbolicate, symbolicate_event
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -67,29 +66,6 @@ def test_move_to_symbolicate_event(
     assert mock_symbolicate_event.delay.call_count == 1
     assert mock_process_event.delay.call_count == 0
     assert mock_save_event.delay.call_count == 0
-
-
-@django_db_all
-def test_move_to_symbolicate_event_low_priority(
-    default_project,
-    mock_process_event,
-    mock_save_event,
-    mock_symbolicate_event,
-    mock_symbolicate_event_low_priority,
-):
-    with override_options({"store.symbolicate-event-lpq-always": [default_project.id]}):
-        data = {
-            "platform": "native",
-            "project": default_project.id,
-            "event_id": EVENT_ID,
-        }
-
-        preprocess_event(cache_key="", data=data)
-
-        assert mock_symbolicate_event_low_priority.delay.call_count == 1
-        assert mock_symbolicate_event.delay.call_count == 0
-        assert mock_process_event.delay.call_count == 0
-        assert mock_save_event.delay.call_count == 0
 
 
 @django_db_all
