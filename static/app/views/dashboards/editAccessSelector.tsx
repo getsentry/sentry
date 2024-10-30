@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import Badge from 'sentry/components/badge/badge';
+import Checkbox from 'sentry/components/checkbox';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {CheckWrap} from 'sentry/components/compactSelect/styles';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -64,9 +65,9 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
     ),
     textValue: '_creatorbadge',
     disabled: dashboardCreator?.id !== currentUser.id,
-    checkboxProps: {
-      isDisabled: true,
-    },
+    // Creator option is always disabled
+    leadingItems: <Checkbox size="sm" checked disabled />,
+    hideCheck: true,
   });
 
   // Single team option in the dropdown [WIP]
