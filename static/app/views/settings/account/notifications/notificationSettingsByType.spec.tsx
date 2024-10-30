@@ -147,7 +147,7 @@ describe('NotificationSettingsByType', function () {
     expect(projectsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('renders all the quota subcatories', async function () {
+  it('renders all the quota subcategories', async function () {
     renderComponent({notificationType: 'quota'});
 
     // check for all the quota subcategories
@@ -161,7 +161,7 @@ describe('NotificationSettingsByType', function () {
     ).toBeInTheDocument();
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
-    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.queryByText('Spans')).not.toBeInTheDocument();
@@ -330,7 +330,7 @@ describe('NotificationSettingsByType', function () {
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
@@ -348,7 +348,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     // toggle spans quota notifications off
-    await selectEvent.select(screen.getAllByText('On')[2], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[4], 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
@@ -378,7 +378,7 @@ describe('NotificationSettingsByType', function () {
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
@@ -397,7 +397,7 @@ describe('NotificationSettingsByType', function () {
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
@@ -415,7 +415,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     // toggle spans quota notifications off
-    await selectEvent.select(screen.getAllByText('On')[1], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[3], 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
