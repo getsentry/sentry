@@ -2,11 +2,7 @@ from unittest import mock
 
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.models.detector import (
-    DetectorEvaluationResult,
-    DetectorHandler,
-    DetectorStateData,
-)
+from sentry.workflow_engine.models.detector import DetectorEvaluationResult, DetectorHandler
 from sentry.workflow_engine.processors.detector import process_detectors
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
@@ -24,7 +20,9 @@ class TestProcessDetectors(BaseGroupTypeTest):
 
         class MockDetectorHandler(DetectorHandler[dict]):
             def evaluate(self, data_packet: DataPacket[dict]) -> list[DetectorEvaluationResult]:
-                return [DetectorEvaluationResult(True, DetectorPriorityLevel.HIGH, data_packet)]
+                return [
+                    DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH, data_packet)
+                ]
 
         class HandlerGroupType(GroupType):
             type_id = 2
@@ -38,16 +36,10 @@ class TestProcessDetectors(BaseGroupTypeTest):
                 group_keys = data_packet.packet.get("group_keys", [None])
                 return [
                     DetectorEvaluationResult(
+                        group_key,
                         True,
                         DetectorPriorityLevel.HIGH,
                         data_packet,
-                        DetectorStateData(
-                            group_key,
-                            True,
-                            DetectorPriorityLevel.OK,
-                            100,
-                            {},
-                        ),
                     )
                     for group_key in group_keys
                 ]
@@ -72,7 +64,10 @@ class TestProcessDetectors(BaseGroupTypeTest):
         data_packet = self.build_data_packet()
         results = process_detectors(data_packet, [detector])
         assert results == [
-            (detector, [DetectorEvaluationResult(True, DetectorPriorityLevel.HIGH, data_packet)])
+            (
+                detector,
+                [DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH, data_packet)],
+            )
         ]
 
     def test_state_results(self):
@@ -80,10 +75,10 @@ class TestProcessDetectors(BaseGroupTypeTest):
         data_packet = self.build_data_packet()
         results = process_detectors(data_packet, [detector])
         result = DetectorEvaluationResult(
+            None,
             True,
             DetectorPriorityLevel.HIGH,
             data_packet,
-            DetectorStateData(None, True, DetectorPriorityLevel.OK, 100, {}),
         )
         assert results == [
             (
@@ -97,16 +92,16 @@ class TestProcessDetectors(BaseGroupTypeTest):
         data_packet = self.build_data_packet(group_keys=["group_1", "group_2"])
         results = process_detectors(data_packet, [detector])
         result_1 = DetectorEvaluationResult(
+            "group_1",
             True,
             DetectorPriorityLevel.HIGH,
             data_packet,
-            DetectorStateData("group_1", True, DetectorPriorityLevel.OK, 100, {}),
         )
         result_2 = DetectorEvaluationResult(
+            "group_2",
             True,
             DetectorPriorityLevel.HIGH,
             data_packet,
-            DetectorStateData("group_2", True, DetectorPriorityLevel.OK, 100, {}),
         )
         assert results == [
             (
@@ -122,10 +117,10 @@ class TestProcessDetectors(BaseGroupTypeTest):
             results = process_detectors(data_packet, [detector])
             assert mock_logger.error.call_args[0][0] == "Duplicate detector state group keys found"
         result = DetectorEvaluationResult(
+            "dupe",
             True,
             DetectorPriorityLevel.HIGH,
             data_packet,
-            DetectorStateData("dupe", True, DetectorPriorityLevel.OK, 100, {}),
         )
         assert results == [
             (

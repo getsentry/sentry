@@ -10,3 +10,6 @@ class DetectorPriorityLevel(IntEnum):
     LOW = PriorityLevel.LOW
     MEDIUM = PriorityLevel.MEDIUM
     HIGH = PriorityLevel.HIGH
+
+
+DetectorGroupKey = str | None
