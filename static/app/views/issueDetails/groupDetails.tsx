@@ -8,7 +8,6 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -40,7 +39,6 @@ import {
 } from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
@@ -50,6 +48,7 @@ import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -66,7 +65,7 @@ import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
-  getGroupEventDetailsQueryData,
+  getGroupEventQueryKey,
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
@@ -202,53 +201,48 @@ function useEventApiQuery({
 }) {
   const organization = useOrganization();
   const location = useLocation<{query?: string}>();
-  const {currentTab: tab} = useGroupDetailsRoute();
+  const navigate = useNavigate();
   const defaultIssueEvent = useDefaultIssueEvent();
   const eventIdUrl = eventId ?? defaultIssueEvent;
   const recommendedEventQuery =
     typeof location.query.query === 'string' ? location.query.query : undefined;
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
-  const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/issues/${groupId}/events/${eventIdUrl}/`,
-    {
-      query: getGroupEventDetailsQueryData({
-        environments,
-        query: recommendedEventQuery,
-      }),
-    },
-  ];
-
-  const isOnDetailsTab = tab === Tab.DETAILS;
 
   const isLatestOrRecommendedEvent =
     eventIdUrl === 'latest' || eventIdUrl === 'recommended';
-  const latestOrRecommendedEvent = useApiQuery<Event>(queryKey, {
-    // Latest/recommended event will change over time, so only cache for 30 seconds
-    staleTime: 30000,
-    gcTime: 30000,
-    enabled: isLatestOrRecommendedEvent && (hasStreamlinedUI || isOnDetailsTab),
-    retry: false,
+
+  const queryKey = getGroupEventQueryKey({
+    orgSlug: organization.slug,
+    groupId,
+    eventId: eventIdUrl,
+    environments,
+    recommendedEventQuery: isLatestOrRecommendedEvent ? recommendedEventQuery : undefined,
   });
-  const otherEventQuery = useApiQuery<Event>(queryKey, {
+
+  const eventQuery = useApiQuery<Event>(queryKey, {
+    // Latest/recommended event will change over time, so only cache for 30 seconds
     // Oldest/specific events will never change
-    staleTime: Infinity,
-    enabled: !isLatestOrRecommendedEvent && (hasStreamlinedUI || isOnDetailsTab),
+    staleTime: isLatestOrRecommendedEvent ? 30000 : Infinity,
     retry: false,
   });
 
   useEffect(() => {
-    if (latestOrRecommendedEvent.isError) {
+    if (isLatestOrRecommendedEvent && eventQuery.isError && location.query.query) {
       // If we get an error from the helpful event endpoint, it probably means
       // the query failed validation. We should remove the query to try again.
-      browserHistory.replace({
-        ...window.location,
-        query: omit(qs.parse(window.location.search), 'query'),
-      });
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            query: undefined,
+          },
+        },
+        {replace: true}
+      );
     }
-  }, [latestOrRecommendedEvent.isError]);
+  }, [isLatestOrRecommendedEvent, eventQuery.isError, navigate, location]);
 
-  return isLatestOrRecommendedEvent ? latestOrRecommendedEvent : otherEventQuery;
+  return eventQuery;
 }
 
 /**

@@ -62,7 +62,7 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
