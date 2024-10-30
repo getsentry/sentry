@@ -48,8 +48,8 @@ import {
 
 export const BACKEND_COLUMN_TITLES = [
   'transaction',
-  'project',
   'operation',
+  'project',
   'http method',
   'tpm',
   'p50',
@@ -82,8 +82,8 @@ function BackendOverviewPage() {
     {field: 'team_key_transaction'},
     {field: 'transaction'},
     {field: 'transaction.op'},
-    {field: 'http.method'},
     {field: 'project'},
+    {field: 'http.method'},
     {field: 'tpm()'},
     {field: 'p50(transaction.duration)'},
     {field: 'p95(transaction.duration)'},

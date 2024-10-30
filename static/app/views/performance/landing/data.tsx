@@ -12,8 +12,8 @@ export const FRONTEND_PAGELOAD_COLUMN_TITLES = [
 
 export const FRONTEND_OTHER_COLUMN_TITLES = [
   'transaction',
-  'project',
   'operation',
+  'project',
   'tpm',
   'p50()',
   'p75()',
@@ -24,8 +24,8 @@ export const FRONTEND_OTHER_COLUMN_TITLES = [
 
 export const BACKEND_COLUMN_TITLES = [
   'transaction',
-  'project',
   'operation',
+  'project',
   'http method',
   'tpm',
   'p50',
@@ -38,8 +38,8 @@ export const BACKEND_COLUMN_TITLES = [
 
 export const MOBILE_COLUMN_TITLES = [
   'transaction',
-  'project',
   'operation',
+  'project',
   'tpm',
   'slow frame %',
   'frozen frame %',
@@ -49,8 +49,8 @@ export const MOBILE_COLUMN_TITLES = [
 
 export const REACT_NATIVE_COLUMN_TITLES = [
   'transaction',
-  'project',
   'operation',
+  'project',
   'tpm',
   'slow frame %',
   'frozen frame %',
