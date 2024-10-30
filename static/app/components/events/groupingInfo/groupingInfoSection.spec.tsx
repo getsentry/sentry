@@ -49,7 +49,7 @@ describe('EventGroupingInfo', function () {
     // Hash should not be visible until toggling open
     expect(screen.queryByText('123')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
-    expect(screen.getByText('123')).toBeInTheDocument();
+    expect(await screen.findByText('123')).toBeInTheDocument();
   });
 
   it('gets performance grouping info from group/event data', async function () {
