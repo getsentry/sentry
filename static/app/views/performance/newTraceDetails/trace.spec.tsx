@@ -1009,6 +1009,7 @@ describe('trace view', () => {
       expect(screen.queryByText(/Missing instrumentation/i)).not.toBeInTheDocument();
     });
 
+    // biome-ignore lint/suspicious/noSkippedTests: @JonasBa will fix these flakey tests soon
     describe.skip('preferences', () => {
       it('toggles autogrouping', async () => {
         mockTracePreferences({autogroup: {parent: true, sibling: true}});
