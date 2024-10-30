@@ -35,7 +35,7 @@ const switchToAutoMessage = tct(
 
 export function SamplingModeField() {
   const {samplingMode} = useOrganization();
-  const hasAccess = useAccess({access: ['org:write']});
+  const {hasAccess} = useAccess({access: ['org:write']});
 
   const {mutate: updateOrganization, isPending} = useUpdateOrganization({
     onMutate: () => {

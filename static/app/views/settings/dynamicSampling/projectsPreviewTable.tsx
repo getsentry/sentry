@@ -2,6 +2,7 @@ import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {InputGroup} from 'sentry/components/inputGroup';
@@ -187,6 +188,7 @@ const TableRow = memo(function TableRow({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const isExpandable = subProjects.length > 0;
+  const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
   const subProjectContent = getSubProjectContent(project.slug, subProjects, isExpanded);
   const subSpansContent = getSubSpansContent(ownCount, subProjects, isExpanded);
@@ -205,14 +207,16 @@ const TableRow = memo(function TableRow({
             )}
             <ProjectBadge project={project} disableLink avatarSize={16} />
           </HiddenButton>
-          <SettingsButton
-            title={t('Open Project Settings')}
-            aria-label={t('Open Project Settings')}
-            size="xs"
-            priority="link"
-            icon={<IconSettings />}
-            to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance`}
-          />
+          {hasAccess && (
+            <SettingsButton
+              title={t('Open Project Settings')}
+              aria-label={t('Open Project Settings')}
+              size="xs"
+              priority="link"
+              icon={<IconSettings />}
+              to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance`}
+            />
+          )}
         </FirstCellLine>
         <SubProjects>{subProjectContent}</SubProjects>
       </Cell>
