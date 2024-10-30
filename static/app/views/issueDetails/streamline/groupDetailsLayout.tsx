@@ -1,11 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import {GroupSummary} from 'sentry/components/group/groupSummary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -51,14 +47,6 @@ export function GroupDetailsLayout({
         <div>
           <EventDetailsHeader event={event} group={group} />
           <GroupContent>
-            <PageErrorBoundary
-              mini
-              message={t('There was an error loading the issue summary')}
-            >
-              <Feature features={['organizations:ai-summary']}>
-                <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-              </Feature>
-            </PageErrorBoundary>
             <div>
               <IssueEventNavigation event={event} group={group} query={searchQuery} />
               {children}
@@ -97,9 +85,4 @@ const GroupContent = styled(Layout.Main)`
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     border-bottom-width: 1px solid ${p => p.theme.translucentBorder};
   }
-`;
-
-const PageErrorBoundary = styled(ErrorBoundary)`
-  margin: 0;
-  border: 1px solid ${p => p.theme.translucentBorder};
 `;
