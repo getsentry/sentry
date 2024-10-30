@@ -269,6 +269,9 @@ from sentry.replays.endpoints.project_replay_recording_segment_index import (
 )
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
+from sentry.rollback.endpoints.organization_rollback_settings import (
+    OrganizationRollbackSettingsEndpoint,
+)
 from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
@@ -1757,6 +1760,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/$",
         OrganizationGroupSearchViewsEndpoint.as_view(),
         name="sentry-api-0-organization-group-search-views",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/rollback-settings/$",
+        OrganizationRollbackSettingsEndpoint.as_view(),
+        name="sentry-api-0-organization-rollback-settings",
     ),
     # Pinned and saved search
     re_path(
