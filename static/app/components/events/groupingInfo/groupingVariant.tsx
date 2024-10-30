@@ -21,7 +21,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import GroupingComponent from './groupingComponent';
 import {hasNonContributingComponent} from './utils';
 
-interface GroupVariantProps {
+interface GroupingVariantProps {
   event: Event;
   showGroupingConfig: boolean;
   variant: EventGroupVariant;
@@ -63,7 +63,7 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
   }
 }
 
-function GroupingVariant({event, showGroupingConfig, variant}: GroupVariantProps) {
+function GroupingVariant({event, showGroupingConfig, variant}: GroupingVariantProps) {
   const [showNonContributing, setShowNonContributing] = useState(false);
 
   const getVariantData = (): [VariantData, EventGroupComponent | undefined] => {
