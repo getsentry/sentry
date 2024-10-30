@@ -229,19 +229,16 @@ function WidgetCard(props: Props) {
     ? t('Widget query condition is invalid.')
     : undefined;
 
-  const widgetHasData =
-    ((data?.tableResults?.length || data?.timeseriesResults?.length) ?? 0) > 0;
-
-  const isFirstWidget = Number(props.index) !== 0;
-
   return (
     <ErrorBoundary
       customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
     >
       <VisuallyCompleteWithData
         id="DashboardList-FirstWidgetCard"
-        hasData={widgetHasData}
-        disabled={isFirstWidget}
+        hasData={
+          ((data?.tableResults?.length || data?.timeseriesResults?.length) ?? 0) > 0
+        }
+        disabled={Number(props.index) !== 0}
       >
         {widget.displayType === DisplayType.BIG_NUMBER ? (
           <WidgetCardDataLoader
