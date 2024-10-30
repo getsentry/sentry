@@ -119,9 +119,10 @@ function getSubProjectContent(
   if (subProjects.length > 1) {
     const truncatedSubProjects = subProjects.slice(0, MAX_PROJECTS_COLLAPSED);
     const overflowCount = subProjects.length - MAX_PROJECTS_COLLAPSED;
+    const moreTranslation = t('+%d more', overflowCount);
     const stringifiedSubProjects =
       overflowCount > 0
-        ? `${truncatedSubProjects.map(p => p.slug).join(', ')}, +${overflowCount} more`
+        ? `${truncatedSubProjects.map(p => p.slug).join(', ')}, ${moreTranslation}`
         : oxfordizeArray(truncatedSubProjects.map(p => p.slug));
 
     subProjectContent = isExpanded ? (
@@ -132,7 +133,7 @@ function getSubProjectContent(
         ))}
       </Fragment>
     ) : (
-      'Creates spans in ' + stringifiedSubProjects
+      t('Including spans in ') + stringifiedSubProjects
     );
   }
 
