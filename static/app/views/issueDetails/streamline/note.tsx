@@ -11,7 +11,10 @@ import type {
   MentionChangeEvent,
   Mentioned,
 } from 'sentry/components/activity/note/types';
+import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';
 import {useMembers} from 'sentry/utils/useMembers';
@@ -129,33 +132,45 @@ function StreamlinedNoteInput({
         : errorJSON.detail?.message || t('Unable to post comment'))) ||
     null;
   return (
-    <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
-      <MentionsInput
-        aria-errormessage={errorMessage ? errorId : undefined}
-        style={mentionStyle({theme, minHeight: 14, streamlined: true})}
-        placeholder={placeholder}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        value={value}
-        required
+    <Flex column gap={space(0.75)} align="end">
+      <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
+        <MentionsInput
+          aria-label={t('Add a comment')}
+          aria-errormessage={errorMessage ? errorId : undefined}
+          style={mentionStyle({theme, minHeight: 14, streamlined: true})}
+          placeholder={placeholder}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          value={value}
+          required
+        >
+          <Mention
+            trigger="@"
+            data={suggestMembers}
+            onAdd={handleAddMember}
+            displayTransform={(_id, display) => `@${display}`}
+            markup="**[sentry.strip:member]__display__**"
+            appendSpaceOnAdd
+          />
+          <Mention
+            trigger="#"
+            data={suggestTeams}
+            onAdd={handleAddTeam}
+            markup="**[sentry.strip:team]__display__**"
+            appendSpaceOnAdd
+          />
+        </MentionsInput>
+      </NoteInputForm>
+      <Button
+        priority="primary"
+        size="xs"
+        disabled={!canSubmit}
+        onClick={submitForm}
+        aria-label={t('Submit comment')}
       >
-        <Mention
-          trigger="@"
-          data={suggestMembers}
-          onAdd={handleAddMember}
-          displayTransform={(_id, display) => `@${display}`}
-          markup="**[sentry.strip:member]__display__**"
-          appendSpaceOnAdd
-        />
-        <Mention
-          trigger="#"
-          data={suggestTeams}
-          onAdd={handleAddTeam}
-          markup="**[sentry.strip:team]__display__**"
-          appendSpaceOnAdd
-        />
-      </MentionsInput>
-    </NoteInputForm>
+        {t('Comment')}
+      </Button>
+    </Flex>
   );
 }
 
@@ -201,6 +216,7 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
 };
 
 const NoteInputForm = styled('form')<{error?: string}>`
+  width: 100%;
   transition: padding 0.2s ease-in-out;
 
   ${p => getNoteInputErrorStyles(p)};
