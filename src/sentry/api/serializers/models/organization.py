@@ -688,6 +688,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "metricsActivatePercentiles",
         "metricsActivateLastForGauges",
         "quota",
+        "rollbackEnabled",
+        "rollbackSharingEnabled",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
