@@ -99,4 +99,10 @@ describe('HighlightsIconSummary', function () {
     await userEvent.hover(screen.getByText('x86'));
     expect(await screen.findByText('Device Architecture')).toBeInTheDocument();
   });
+
+  it('renders release and environment tags', function () {
+    render(<HighlightsIconSummary event={event} />);
+    expect(screen.getByText('1.8')).toBeInTheDocument();
+    expect(screen.getByText('production')).toBeInTheDocument();
+  });
 });
