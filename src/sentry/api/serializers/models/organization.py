@@ -45,6 +45,8 @@ from sentry.constants import (
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
+    ROLLBACK_ENABLED_DEFAULT,
+    ROLLBACK_SHARING_ENABLED_DEFAULT,
     SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
@@ -483,6 +485,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricsActivatePercentiles: bool
     metricsActivateLastForGauges: bool
     requiresSso: bool
+    rollbackEnabled: bool
+    rollbackSharingEnabled: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -617,6 +621,14 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     obj.get_option(
                         "sentry:metrics_activate_last_for_gauges",
                         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+                    )
+                ),
+                "rollbackEnabled": bool(
+                    obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
+                ),
+                "rollbackSharingEnabled": bool(
+                    obj.get_option(
+                        "sentry:rollback_sharing_enabled", ROLLBACK_SHARING_ENABLED_DEFAULT
                     )
                 ),
             }
