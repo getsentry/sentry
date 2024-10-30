@@ -24,8 +24,10 @@ export function useSpansQuery<T = any[]>({
   limit,
   enabled,
   referrer = 'use-spans-query',
+  allowAggregateConditions = true,
   cursor,
 }: {
+  allowAggregateConditions?: boolean;
   cursor?: string;
   enabled?: boolean;
   eventView?: EventView;
@@ -50,6 +52,7 @@ export function useSpansQuery<T = any[]>({
       enabled: (enabled || enabled === undefined) && pageFiltersReady,
       referrer,
       cursor,
+      allowAggregateConditions,
     });
 
     TrackResponse(eventView, response);
@@ -134,8 +137,10 @@ export function useWrappedDiscoverQuery<T>({
   limit,
   cursor,
   noPagination,
+  allowAggregateConditions,
 }: {
   eventView: EventView;
+  allowAggregateConditions?: boolean;
   cursor?: string;
   enabled?: boolean;
   initialData?: T;
@@ -159,6 +164,9 @@ export function useWrappedDiscoverQuery<T>({
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       staleTime: Infinity,
+    },
+    queryExtras: {
+      allowAggregateConditions: allowAggregateConditions ? '1' : '0',
     },
     noPagination,
   });

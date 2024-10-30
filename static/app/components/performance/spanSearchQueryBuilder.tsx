@@ -10,7 +10,7 @@ import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group'
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {
-  type AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   DEVICE_CLASS_TAG_VALUES,
   FieldKind,
   getFieldDefinition,
@@ -33,15 +33,10 @@ interface SpanSearchQueryBuilderProps {
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
-  supportedAggregates?: AggregationKey[];
 }
 
-const getFunctionTags = (supportedAggregates: AggregationKey[] | undefined) => {
-  if (!supportedAggregates?.length) {
-    return {};
-  }
-
-  return supportedAggregates.reduce((acc, item) => {
+const getFunctionTags = () => {
+  return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, item) => {
     acc[item] = {
       key: item,
       name: item,
@@ -51,8 +46,8 @@ const getFunctionTags = (supportedAggregates: AggregationKey[] | undefined) => {
   }, {});
 };
 
-const getSpanFieldDefinition = (key: string) => {
-  return getFieldDefinition(key, 'span');
+const getSpanFieldDefinition = (key: string, kind?: FieldKind) => {
+  return getFieldDefinition(key, 'span', kind);
 };
 
 export function SpanSearchQueryBuilder({
@@ -62,15 +57,14 @@ export function SpanSearchQueryBuilder({
   onSearch,
   placeholder,
   projects,
-  supportedAggregates,
 }: SpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const functionTags = useMemo(() => {
-    return getFunctionTags(supportedAggregates);
-  }, [supportedAggregates]);
+    return getFunctionTags();
+  }, []);
 
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for spans, users, tags, and more');
@@ -166,9 +160,13 @@ export function EAPSpanSearchQueryBuilder({
 
   const placeholderText = placeholder ?? t('Search for spans, users, tags, and more');
 
+  const functionTags = useMemo(() => {
+    return getFunctionTags();
+  }, []);
+
   const tags = useMemo(() => {
-    return {...numberTags, ...stringTags};
-  }, [numberTags, stringTags]);
+    return {...functionTags, ...numberTags, ...stringTags};
+  }, [numberTags, stringTags, functionTags]);
 
   const filterKeySections = useMemo(() => {
     const predefined = new Set(
