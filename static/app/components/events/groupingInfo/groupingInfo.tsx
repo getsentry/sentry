@@ -13,7 +13,7 @@ import type {Group} from 'sentry/types/group';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import GroupingConfigSelect from './groupingConfigSelect';
-import GroupVariant from './groupingVariant';
+import GroupingVariant from './groupingVariant';
 
 function GroupConfigSelect({
   event,
@@ -107,7 +107,7 @@ export default function GroupingInfo({
       {hasPerformanceGrouping || isSuccess
         ? variants.map((variant, index) => (
             <Fragment key={variant.key}>
-              <GroupVariant
+              <GroupingVariant
                 event={event}
                 variant={variant}
                 showGroupingConfig={showGroupingConfig}
