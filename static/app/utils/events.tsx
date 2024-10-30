@@ -413,6 +413,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     has_otel: event?.contexts?.otel !== undefined,
     event_mechanism:
       event?.tags?.find(tag => tag.key === 'mechanism')?.value || undefined,
+    is_sample_event: event ? event.tags?.some(tag => tag.key === 'sample_event') : false,
   };
 }
 

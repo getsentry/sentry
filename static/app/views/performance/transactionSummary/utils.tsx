@@ -18,7 +18,7 @@ import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
-import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../newTraceDetails/traceHeader/breadcrumbs';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
@@ -45,12 +45,7 @@ export function generateTransactionSummaryRoute({
   subPath?: string;
   view?: DomainView; // TODO - this should be mantatory once we release domain view
 }): string {
-  if (view) {
-    return normalizeUrl(
-      `/organizations/${orgSlug}/performance/${view}/summary/${subPath ? `${subPath}/` : ''}`
-    );
-  }
-  return `/organizations/${orgSlug}/performance/summary/${subPath ? `${subPath}/` : ''}`;
+  return `${getTransactionSummaryBaseUrl(orgSlug, view)}/${subPath ? `${subPath}/` : ''}`;
 }
 
 // normalizes search conditions by removing any redundant search conditions before presenting them in:
@@ -270,8 +265,12 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
   };
 }
 
-export function getTransactionSummaryBaseUrl(orgSlug: string, view?: DomainView) {
-  return `${getPerformanceBaseUrl(orgSlug, view)}/summary`;
+export function getTransactionSummaryBaseUrl(
+  orgSlug: string,
+  view?: DomainView,
+  bare: boolean = false
+) {
+  return `${getPerformanceBaseUrl(orgSlug, view, bare)}/summary`;
 }
 
 export const SidebarSpacer = styled('div')`

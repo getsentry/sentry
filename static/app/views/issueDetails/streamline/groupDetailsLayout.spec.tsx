@@ -30,6 +30,10 @@ describe('GroupDetailsLayout', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
       body: [],
     });
@@ -51,6 +55,10 @@ describe('GroupDetailsLayout', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [{'count_unique(user)': 21}]},
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,

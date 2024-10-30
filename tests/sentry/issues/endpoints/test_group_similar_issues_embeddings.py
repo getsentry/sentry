@@ -189,7 +189,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             parent_group_id=NonNone(self.similar_event.group_id),
             parent_hash=NonNone(self.similar_event.get_primary_hash()),
             should_group=True,
-            stacktrace_distance=0.01,
+            stacktrace_distance=0.00001,
         )
         # test without including message_distance
         similar_issue_data_2 = SeerSimilarIssueData(
@@ -207,7 +207,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 NonNone(self.similar_event.group_id),
                 NonNone(event_from_second_similar_group.group_id),
             ],
-            [0.99, 0.77],
+            [1.0000, 0.7700],
             ["Yes", "No"],
         )
 

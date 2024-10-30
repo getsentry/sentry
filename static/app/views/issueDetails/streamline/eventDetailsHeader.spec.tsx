@@ -38,6 +38,10 @@ describe('EventDetailsHeader', () => {
       body: TagsFixture(),
       method: 'GET',
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [],
+    });
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
       {
@@ -52,6 +56,10 @@ describe('EventDetailsHeader', () => {
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
       method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [{'count_unique(user)': 21}]},
     });
   });
 
@@ -72,6 +80,7 @@ describe('EventDetailsHeader', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('figure')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Close Sidebar'})).toBeInTheDocument();
   });
 
   it('updates the query params with search tokens', async function () {
