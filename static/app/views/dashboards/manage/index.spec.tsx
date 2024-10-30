@@ -141,7 +141,7 @@ describe('Dashboards > Detail', function () {
     );
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      await expect.objectContaining({query: {sort: 'title'}})
+      expect.objectContaining({query: {sort: 'title'}})
     );
   });
 
@@ -160,7 +160,7 @@ describe('Dashboards > Detail', function () {
     await userEvent.keyboard('[Enter]');
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      await expect.objectContaining({query: {query: 'dash'}})
+      expect.objectContaining({query: {query: 'dash'}})
     );
   });
 
@@ -183,7 +183,7 @@ describe('Dashboards > Detail', function () {
     await userEvent.click(await screen.findByLabelText('Next'));
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      await expect.objectContaining({
+      expect.objectContaining({
         query: {
           cursor: '0:9:0',
         },
