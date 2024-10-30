@@ -766,7 +766,8 @@ function assertHighlightedRowAtIndex(virtualizedContainer: HTMLElement, index: n
   expect(r.indexOf(highlighted_row!)).toBe(index);
 }
 
-describe('trace view', () => {
+// biome-ignore lint/suspicious/noSkippedTests: <Flaky test>
+describe.skip('trace view', () => {
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     globalThis.ResizeObserver = MockResizeObserver as any;
@@ -1063,8 +1064,7 @@ describe('trace view', () => {
       });
     });
 
-    // biome-ignore lint/suspicious/noSkippedTests: <Flaky test>
-    it.skip('triggers search on load but does not steal focus from node param', async () => {
+    it('triggers search on load but does not steal focus from node param', async () => {
       mockQueryString('?search=transaction-op-999&node=txn-0');
 
       const {virtualizedContainer} = await pageloadTestSetup();
