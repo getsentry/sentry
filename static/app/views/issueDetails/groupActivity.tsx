@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {
@@ -22,17 +22,20 @@ import type {
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {User} from 'sentry/types/user';
 import type {MutateOptions} from 'sentry/utils/queryClient';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import ActivitySection from 'sentry/views/issueDetails/activitySection';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
   getGroupMostRecentActivity,
   getGroupReprocessingStatus,
   ReprocessingStatus,
+  useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
 
 type Props = {
   group: Group;
-} & RouteComponentProps<{}, {}>;
+} & RouteComponentProps<{groupId: string; orgId: string}, {}>;
 
 export type MutateActivityOptions = MutateOptions<TData, TError, TVariables, TContext>;
 
@@ -144,4 +147,22 @@ function GroupActivity({group}: Props) {
   );
 }
 
-export default GroupActivity;
+function GroupActivityRoute(props: Props) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const navigate = useNavigate();
+  const {baseUrl} = useGroupDetailsRoute();
+
+  // TODO(streamlined-ui): Activity will become a router redirect to the event details page
+  useEffect(() => {
+    if (hasStreamlinedUI) {
+      navigate({
+        ...props.location,
+        pathname: baseUrl,
+      });
+    }
+  }, [hasStreamlinedUI, navigate, baseUrl, props.location]);
+
+  return <GroupActivity {...props} />;
+}
+
+export default GroupActivityRoute;

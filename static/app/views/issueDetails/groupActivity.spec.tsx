@@ -72,7 +72,11 @@ describe('GroupActivity', function () {
     TeamStore.loadInitialData([TeamFixture({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
     return render(
-      <GroupActivity {...routerProps} params={{orgId: 'org-slug'}} group={group} />,
+      <GroupActivity
+        {...routerProps}
+        params={{orgId: 'org-slug', groupId: group.id}}
+        group={group}
+      />,
       {router, organization}
     );
   }
