@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -21,15 +21,11 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import GroupingComponent from './groupingComponent';
 import {hasNonContributingComponent} from './utils';
 
-type Props = {
+interface GroupingVariantProps {
   event: Event;
   showGroupingConfig: boolean;
   variant: EventGroupVariant;
-};
-
-type State = {
-  showNonContributing: boolean;
-};
+}
 
 type VariantData = [string, React.ReactNode][];
 
@@ -67,17 +63,14 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
   }
 }
 
-class GroupVariant extends Component<Props, State> {
-  state: State = {
-    showNonContributing: false,
-  };
+function GroupingVariant({event, showGroupingConfig, variant}: GroupingVariantProps) {
+  const [showNonContributing, setShowNonContributing] = useState(false);
 
-  getVariantData(): [VariantData, EventGroupComponent | undefined] {
-    const {event, variant, showGroupingConfig} = this.props;
+  const getVariantData = (): [VariantData, EventGroupComponent | undefined] => {
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
 
-    if (!this.state.showNonContributing && variant.hash === null) {
+    if (!showNonContributing && variant.hash === null) {
       return [data, component];
     }
 
@@ -217,17 +210,32 @@ class GroupVariant extends Component<Props, State> {
         <GroupingTree key={component.id}>
           <GroupingComponent
             component={component}
-            showNonContributing={this.state.showNonContributing}
+            showNonContributing={showNonContributing}
           />
         </GroupingTree>,
       ]);
     }
 
     return [data, component];
-  }
+  };
 
-  renderTitle() {
-    const {variant} = this.props;
+  const renderContributionToggle = () => {
+    return (
+      <SegmentedControl
+        aria-label={t('Filter by contribution')}
+        size="xs"
+        value={showNonContributing ? 'all' : 'relevant'}
+        onChange={key => setShowNonContributing(key === 'all')}
+      >
+        <SegmentedControl.Item key="relevant">
+          {t('Contributing values')}
+        </SegmentedControl.Item>
+        <SegmentedControl.Item key="all">{t('All values')}</SegmentedControl.Item>
+      </SegmentedControl>
+    );
+  };
+
+  const renderTitle = () => {
     const isContributing = variant.hash !== null;
 
     let title: string;
@@ -254,48 +262,27 @@ class GroupVariant extends Component<Props, State> {
         </VariantTitle>
       </Tooltip>
     );
-  }
+  };
 
-  renderContributionToggle() {
-    const {showNonContributing} = this.state;
+  const [data, component] = getVariantData();
+  return (
+    <VariantWrapper>
+      <Header>
+        {renderTitle()}
+        {hasNonContributingComponent(component) && renderContributionToggle()}
+      </Header>
 
-    return (
-      <SegmentedControl
-        aria-label={t('Filter by contribution')}
-        size="xs"
-        value={showNonContributing ? 'all' : 'relevant'}
-        onChange={key => this.setState({showNonContributing: key === 'all'})}
-      >
-        <SegmentedControl.Item key="relevant">
-          {t('Contributing values')}
-        </SegmentedControl.Item>
-        <SegmentedControl.Item key="all">{t('All values')}</SegmentedControl.Item>
-      </SegmentedControl>
-    );
-  }
-
-  render() {
-    const [data, component] = this.getVariantData();
-
-    return (
-      <VariantWrapper>
-        <Header>
-          {this.renderTitle()}
-          {hasNonContributingComponent(component) && this.renderContributionToggle()}
-        </Header>
-
-        <KeyValueList
-          data={data.map(d => ({
-            key: d[0],
-            subject: d[0],
-            value: d[1],
-          }))}
-          isContextData
-          shouldSort={false}
-        />
-      </VariantWrapper>
-    );
-  }
+      <KeyValueList
+        data={data.map(d => ({
+          key: d[0],
+          subject: d[0],
+          value: d[1],
+        }))}
+        isContextData
+        shouldSort={false}
+      />
+    </VariantWrapper>
+  );
 }
 
 const VariantWrapper = styled('div')`
@@ -347,4 +334,4 @@ const Hash = styled('span')`
   }
 `;
 
-export default GroupVariant;
+export default GroupingVariant;
