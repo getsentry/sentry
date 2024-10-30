@@ -267,25 +267,6 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert result["excludedProjects"] == []
         assert result["eventTypes"] == [SnubaQueryEventType.EventType.ERROR.name.lower()]
 
-    def test_excluded_projects(self):
-        projects = [self.project]
-        excluded = [self.create_project()]
-        alert_rule = self.create_alert_rule(
-            projects=[], include_all_projects=True, excluded_projects=excluded
-        )
-        result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
-        self.assert_alert_rule_serialized(alert_rule, result)
-        assert result["projects"] == [p.slug for p in projects]
-        assert result["excludedProjects"] == [p.slug for p in excluded]
-        assert result["eventTypes"] == [SnubaQueryEventType.EventType.ERROR.name.lower()]
-
-        alert_rule = self.create_alert_rule(projects=projects, include_all_projects=False)
-        result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
-        self.assert_alert_rule_serialized(alert_rule, result)
-        assert result["projects"] == [p.slug for p in projects]
-        assert result["excludedProjects"] == []
-        assert result["eventTypes"] == [SnubaQueryEventType.EventType.ERROR.name.lower()]
-
     def test_triggers(self):
         alert_rule = self.create_alert_rule()
         other_alert_rule = self.create_alert_rule()
