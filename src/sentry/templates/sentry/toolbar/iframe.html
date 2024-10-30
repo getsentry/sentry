@@ -36,8 +36,12 @@ Required context variables:
         }
 
         function requestAuthn(delay_ms) {
+          const origin = window.location.origin.endsWith('.sentry.io')
+            ? 'https://sentry.io'
+            : window.location.origin;
+
           window.open(
-            `/toolbar/${organizationSlug}/${projectIdOrSlug}/login-success/?delay=${delay_ms ?? '0'}`,
+            `${origin}/toolbar/${organizationSlug}/${projectIdOrSlug}/login-success/?delay=${delay_ms ?? '0'}`,
             'sentry-toolbar-auth-popup',
             'popup=true,innerWidth=800,innerHeight=550,noopener=false'
           );
