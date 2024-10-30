@@ -265,6 +265,10 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/releases/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/spans/fields/`,
+      body: [],
+    });
 
     TagStore.reset();
   });
@@ -2599,10 +2603,6 @@ describe('WidgetBuilder', function () {
 
   describe('Spans Dataset', () => {
     it('queries for span tags and returns the correct data', async () => {
-      MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/spans/fields/`,
-        body: [],
-      });
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/spans/fields/`,
         body: [
