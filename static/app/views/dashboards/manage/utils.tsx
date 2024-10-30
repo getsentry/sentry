@@ -1,6 +1,7 @@
 import localStorage from 'sentry/utils/localStorage';
 
-const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
+// TODO(nikkikapadia): delete this file and move contents to index.tsx
+export const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
 
 export function shouldShowTemplates(): boolean {
   const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
