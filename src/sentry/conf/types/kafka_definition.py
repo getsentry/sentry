@@ -57,6 +57,7 @@ class Topic(Enum):
     SNUBA_SPANS = "snuba-spans"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
+    TASK_WORKER = "task-worker"
 
 
 class ConsumerDefinition(TypedDict, total=False):

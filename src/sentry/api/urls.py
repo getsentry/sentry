@@ -545,6 +545,7 @@ from .endpoints.organization_releases import (
     OrganizationReleasesStatsEndpoint,
 )
 from .endpoints.organization_request_project_creation import OrganizationRequestProjectCreation
+from .endpoints.organization_sampling_project_rates import OrganizationSamplingProjectRatesEndpoint
 from .endpoints.organization_sdk_updates import (
     OrganizationSdksEndpoint,
     OrganizationSdkUpdatesEndpoint,
@@ -1410,6 +1411,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-config-repositories",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/sampling/project-rates/$",
+        OrganizationSamplingProjectRatesEndpoint.as_view(),
+        name="sentry-api-0-organization-sampling-project-rates",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/sdk-updates/$",
         OrganizationSdkUpdatesEndpoint.as_view(),
         name="sentry-api-0-organization-sdk-updates",
@@ -2043,7 +2049,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-flag-log",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/token/(?P<token>.+)/$",
         OrganizationFlagsHooksEndpoint.as_view(),
         name="sentry-api-0-organization-flag-hooks",
     ),

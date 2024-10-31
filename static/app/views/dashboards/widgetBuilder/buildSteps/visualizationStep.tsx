@@ -21,6 +21,7 @@ import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards
 import {DisplayType} from 'sentry/views/dashboards/types';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
+import {IndexedEventsSelectionAlert} from '../../indexedEventsSelectionAlert';
 import {getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
 import type WidgetLegendSelectionState from '../../widgetLegendSelectionState';
@@ -39,7 +40,6 @@ interface Props {
   widgetLegendState: WidgetLegendSelectionState;
   dashboardFilters?: DashboardFilters;
   error?: string;
-  noDashboardsMEPProvider?: boolean;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 }
@@ -52,7 +52,6 @@ export function VisualizationStep({
   onChange,
   widget,
   onDataFetched,
-  noDashboardsMEPProvider,
   dashboardFilters,
   location,
   isWidgetInvalid,
@@ -137,9 +136,6 @@ export function VisualizationStep({
               <PanelAlert type="error">{errorMessage}</PanelAlert>
             )
           }
-          noLazyLoad
-          showStoredAlert
-          noDashboardsMEPProvider={noDashboardsMEPProvider}
           isWidgetInvalid={isWidgetInvalid}
           onDataFetched={onDataFetched}
           onWidgetSplitDecision={onWidgetSplitDecision}
@@ -153,6 +149,8 @@ export function VisualizationStep({
           }
           widgetLegendState={widgetLegendState}
         />
+
+        <IndexedEventsSelectionAlert widget={widget} />
       </VisualizationWrapper>
     </StyledBuildStep>
   );

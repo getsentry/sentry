@@ -206,17 +206,20 @@ def test_get_control_silo_ip_address():
 
     with override_settings(SENTRY_CONTROL_ADDRESS=control_address):
         get_control_silo_ip_address.cache_clear()
-        with patch("socket.gethostbyname") as mock_gethostbyname, patch(
-            "sentry_sdk.capture_exception"
-        ) as mock_capture_exception:
+        with (
+            patch("socket.gethostbyname") as mock_gethostbyname,
+            patch("sentry_sdk.capture_exception") as mock_capture_exception,
+        ):
             mock_gethostbyname.return_value = "172.31.255.255"
             assert get_control_silo_ip_address() == ipaddress.ip_address("172.31.255.255")
             assert mock_capture_exception.call_count == 0
 
         get_control_silo_ip_address.cache_clear()
-        with patch("socket.gethostbyname") as mock_gethostbyname, patch(
-            "urllib3.util.parse_url"
-        ) as mock_parse_url, patch("sentry_sdk.capture_exception") as mock_capture_exception:
+        with (
+            patch("socket.gethostbyname") as mock_gethostbyname,
+            patch("urllib3.util.parse_url") as mock_parse_url,
+            patch("sentry_sdk.capture_exception") as mock_capture_exception,
+        ):
             mock_parse_url.return_value = MagicMock(host=None)
             assert get_control_silo_ip_address() is None
             assert mock_gethostbyname.call_count == 0

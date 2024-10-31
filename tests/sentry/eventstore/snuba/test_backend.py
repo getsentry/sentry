@@ -82,16 +82,6 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             event_data=event_data_3, project_id=self.project2.id
         )
 
-        """
-        event_data_4 = load_data("transaction")
-        event_data_4["timestamp"] = iso_format(before_now(seconds=30))
-        event_data_4["start_timestamp"] = iso_format(before_now(seconds=31))
-
-        event_data_4["event_id"] = "g" * 32
-
-        self.transaction_event_4 = self.store_event(data=event_data_4, project_id=self.project2.id)
-        """
-
         self.eventstore = SnubaEventStorage()
 
     def test_get_events(self):
@@ -347,6 +337,49 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         event3 = self.store_event(
             data={
                 "event_id": "c" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": before_now(minutes=0).isoformat(),
+            },
+            project_id=project.id,
+        )
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event2.organization.id,
+            project_id=event2.project_id,
+            group_id=event2.group_id,
+            environments=[],
+            event=event2,
+        )
+
+        assert prev_ids == (str(event1.project_id), event1.event_id)
+        assert next_ids == (str(event3.project_id), event3.event_id)
+
+    def test_get_adjacent_event_ids_snql_order_of_event_ids(self):
+        project = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.two_min_ago,
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+        event3 = self.store_event(
+            data={
+                "event_id": "a" * 32,
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group"],

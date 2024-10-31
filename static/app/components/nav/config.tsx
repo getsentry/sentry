@@ -30,6 +30,7 @@ import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_LANDING_TITLE,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {INSIGHTS_BASE_URL, MODULE_TITLES} from 'sentry/views/insights/settings';
 import {getSearchForIssueGroup, IssueGroup} from 'sentry/views/issueList/utils';
 
@@ -100,23 +101,23 @@ export function createNavConfig({organization}: {organization: Organization}): N
   const perfDomainViews: NavSidebarItem = {
     label: t('Perf.'),
     icon: <IconLightning />,
-    feature: {features: 'insights-domain-view'},
+    feature: {features: ['insights-domain-view', 'performance-view']},
     submenu: [
       {
         label: FRONTEND_LANDING_TITLE,
-        to: `/${prefix}/performance/${FRONTEND_LANDING_SUB_PATH}/`,
+        to: `/${prefix}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`,
       },
       {
         label: BACKEND_LANDING_TITLE,
-        to: `/${prefix}/performance/${BACKEND_LANDING_SUB_PATH}/`,
+        to: `/${prefix}/${DOMAIN_VIEW_BASE_URL}/${BACKEND_LANDING_SUB_PATH}/`,
       },
       {
         label: AI_LANDING_TITLE,
-        to: `/${prefix}/performance/${AI_LANDING_SUB_PATH}/`,
+        to: `/${prefix}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/`,
       },
       {
         label: MOBILE_LANDING_TITLE,
-        to: `/${prefix}/performance/${MOBILE_LANDING_SUB_PATH}/`,
+        to: `/${prefix}/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}/`,
       },
     ],
   };
@@ -194,7 +195,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
           {label: t('Crons'), to: `/${prefix}/crons/`},
         ],
       },
-      ...(hasPerfDomainViews ? [perfDomainViews] : [insights, perf]),
+      ...(hasPerfDomainViews ? [perfDomainViews, perf] : [insights, perf]),
       {
         label: t('Boards'),
         to: '/dashboards/',

@@ -280,6 +280,9 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
+    sdk_options.setdefault("_experiments", {}).update(
+        transport_http2=True,
+    )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
     dsns = Dsns(
@@ -471,7 +474,6 @@ def configure_sdk():
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
         ],
-        spotlight=settings.IS_DEV and not settings.NO_SPOTLIGHT,
         **sdk_options,
     )
 

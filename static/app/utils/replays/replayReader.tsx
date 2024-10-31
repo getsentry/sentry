@@ -66,6 +66,11 @@ interface ReplayReaderParams {
   errors: ReplayError[] | undefined;
 
   /**
+   * Is replay data still fetching?
+   */
+  fetching: boolean;
+
+  /**
    * The root Replay event, created at the start of the browser session.
    */
   replayRecord: ReplayRecord | undefined;
@@ -168,6 +173,7 @@ export default class ReplayReader {
     replayRecord,
     clipWindow,
     featureFlags,
+    fetching,
   }: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
       return null;
@@ -179,6 +185,7 @@ export default class ReplayReader {
         errors,
         replayRecord,
         featureFlags,
+        fetching,
         clipWindow,
       });
     } catch (err) {
@@ -192,6 +199,7 @@ export default class ReplayReader {
         attachments: [],
         errors: [],
         featureFlags,
+        fetching,
         replayRecord,
         clipWindow,
       });
@@ -202,10 +210,12 @@ export default class ReplayReader {
     attachments,
     errors,
     featureFlags,
+    fetching,
     replayRecord,
     clipWindow,
   }: RequiredNotNull<ReplayReaderParams>) {
     this._cacheKey = domId('replayReader-');
+    this._fetching = fetching;
 
     if (replayRecord.is_archived) {
       this._replayRecord = replayRecord;
@@ -305,6 +315,7 @@ export default class ReplayReader {
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
   private _featureFlags: string[] | undefined = [];
+  private _fetching: boolean = true;
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
@@ -437,6 +448,9 @@ export default class ReplayReader {
   };
 
   getExtractDomNodes = memoize(async () => {
+    if (this._fetching) {
+      return null;
+    }
     const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
 
     const results = await replayerStepper({

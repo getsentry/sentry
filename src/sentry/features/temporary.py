@@ -133,8 +133,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:escalating-metrics-backend", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable logging for failure rate subscription processor
     manager.add("organizations:failure-rate-metric-alert-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable feature flag UI in issue details
-    manager.add("organizations:feature-flag-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable disabling gitlab integrations when broken is detected
     manager.add("organizations:gitlab-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Allow creating `GroupHashMetadata` records
@@ -190,8 +188,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:members-invite-teammates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:mep-use-default-tags", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable messaging integration onboarding when setting up alerts
-    manager.add("organizations:messaging-integration-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable messaging-integration onboarding when creating a new project
     manager.add("organizations:messaging-integration-onboarding-project-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable threshold period in metric alert rule builder
@@ -211,8 +207,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:more-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     manager.add("organizations:navigation-sidebar-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
-    # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
-    manager.add("organizations:notification-all-recipients", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Drop obsoleted status changes in occurence consumer
     manager.add("organizations:occurence-consumer-prune-status-changes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable User Feedback v1
@@ -363,6 +357,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:replay-play-from-replay-tab", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable version 2 of reprocessing (completely distinct from v1)
     manager.add("organizations:reprocessing-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    # Enable Sentry's 2024 Rollback feature
+    manager.add("organizations:sentry-rollback-2024", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable resolve in upcoming release
     # TODO(steve): Remove when we remove the feature from the UI
     manager.add("organizations:resolve-in-upcoming-release", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=True)
@@ -439,6 +435,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-initial-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable access to newer Insights modules (Caches, Queues, LLMs, Mobile UI)
     manager.add("organizations:insights-addon-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    # Make insights modules restrict queries to 14 days
+    manager.add("organizations:insights-query-date-range-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Make Insights modules use EAP instead of metrics
     manager.add("organizations:insights-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to insights metrics alerts
@@ -479,6 +477,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:trace-view-load-more", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load new trace view.
     manager.add("organizations:trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable feature to load new trace view ui improvements
+    manager.add("organizations:trace-view-new-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load new trace view in replay trace tab.
     manager.add("organizations:replay-trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature to load quota exceeded banner in new trace view.
@@ -527,7 +527,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enabled unresolved issue webhook for organization
     manager.add("organizations:webhooks-unresolved", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=True)
     # Enable EventUniqueUserFrequencyConditionWithConditions special alert condition
-    manager.add("organizations:event-unique-user-frequency-condition-with-conditions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:event-unique-user-frequency-condition-with-conditions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Use spans instead of transactions for dynamic sampling calculations. This will become the new default.
     manager.add("organizations:dynamic-sampling-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # NOTE: Don't add features down here! Add them to their specific group and sort
@@ -570,3 +570,17 @@ def register_temporary_features(manager: FeatureManager):
 
     manager.add("projects:profiling-ingest-unsampled-profiles", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # fmt: on
+
+    # Feature flags
+    manager.add(
+        "organizations:feature-flag-audit-log",
+        OrganizationFeature,
+        FeatureHandlerStrategy.FLAGPOLE,
+        api_expose=True,
+    )
+    manager.add(
+        "organizations:feature-flag-ui",
+        OrganizationFeature,
+        FeatureHandlerStrategy.FLAGPOLE,
+        api_expose=True,
+    )

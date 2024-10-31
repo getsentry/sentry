@@ -17,6 +17,7 @@ import {
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 import {VisualizationStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/visualizationStep';
 
+import {DashboardsMEPProvider} from '../../widgetCard/dashboardsMEPContext';
 import WidgetLegendSelectionState from '../../widgetLegendSelectionState';
 
 jest.unmock('lodash/debounce');
@@ -84,6 +85,10 @@ function mockRequests(orgSlug: Organization['slug']) {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/recent-searches/',
     method: 'GET',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/spans/fields/`,
     body: [],
   });
 
@@ -314,17 +319,19 @@ describe('VisualizationStep', function () {
 
     render(
       <MEPSettingProvider>
-        <VisualizationStep
-          organization={organization}
-          pageFilters={PageFiltersFixture()}
-          displayType={DisplayType.TABLE}
-          error={undefined}
-          onChange={jest.fn()}
-          widget={mockSpanWidget}
-          isWidgetInvalid={false}
-          location={router.location}
-          widgetLegendState={widgetLegendState}
-        />
+        <DashboardsMEPProvider>
+          <VisualizationStep
+            organization={organization}
+            pageFilters={PageFiltersFixture()}
+            displayType={DisplayType.TABLE}
+            error={undefined}
+            onChange={jest.fn()}
+            widget={mockSpanWidget}
+            isWidgetInvalid={false}
+            location={router.location}
+            widgetLegendState={widgetLegendState}
+          />
+        </DashboardsMEPProvider>
       </MEPSettingProvider>,
       {organization}
     );

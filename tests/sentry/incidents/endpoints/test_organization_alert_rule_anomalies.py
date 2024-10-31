@@ -14,7 +14,7 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.seer.anomaly_detection.types import AnomalyType, StoreDataResponse
 from sentry.testutils.cases import SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.skips import requires_snuba
@@ -45,7 +45,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "super duper bad",
-                "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+                "timestamp": (two_weeks_ago + timedelta(minutes=1)).isoformat(),
                 "fingerprint": ["group1"],
                 "tags": {"sentry:user": self.user.email},
                 "exception": [{"value": "BadError"}],
@@ -56,7 +56,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "super bad",
-                "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
+                "timestamp": (two_weeks_ago + timedelta(days=10)).isoformat(),
                 "fingerprint": ["group2"],
                 "tags": {"sentry:user": self.user.email},
                 "exception": [{"value": "BadError"}],
@@ -166,7 +166,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "super duper bad",
-                "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+                "timestamp": (two_weeks_ago + timedelta(minutes=1)).isoformat(),
                 "fingerprint": ["group1"],
                 "tags": {"sentry:user": self.user.email},
                 "exception": [{"value": "BadError"}],
@@ -177,7 +177,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "super bad",
-                "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
+                "timestamp": (two_weeks_ago + timedelta(days=10)).isoformat(),
                 "fingerprint": ["group2"],
                 "tags": {"sentry:user": self.user.email},
                 "exception": [{"value": "BadError"}],
@@ -238,7 +238,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "super duper bad",
-                "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
+                "timestamp": (two_weeks_ago + timedelta(minutes=1)).isoformat(),
                 "fingerprint": ["group1"],
                 "tags": {"sentry:user": self.user.email},
                 "exception": [{"value": "BadError"}],
@@ -249,7 +249,7 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "super bad",
-                "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
+                "timestamp": (two_weeks_ago + timedelta(days=10)).isoformat(),
                 "fingerprint": ["group2"],
                 "tags": {"sentry:user": self.user.email},
                 "exception": [{"value": "BadError"}],

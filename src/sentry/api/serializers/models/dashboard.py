@@ -63,6 +63,7 @@ class DashboardWidgetResponse(TypedDict):
     limit: int | None
     widgetType: str
     layout: dict[str, int]
+    datasetSource: str | None
 
 
 class DashboardPermissionsResponse(TypedDict):
@@ -178,7 +179,7 @@ class DashboardWidgetQuerySerializer(Serializer):
 class DashboardPermissionsSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardPermissionsResponse:
         return {
-            "is_creator_only_editable": obj.is_creator_only_editable,
+            "isCreatorOnlyEditable": obj.is_creator_only_editable,
         }
 
 

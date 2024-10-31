@@ -15,7 +15,7 @@ from sentry.rules.history.preview_strategy import DATASET_TO_COLUMN_NAME, get_da
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.types.condition_activity import ConditionActivity
-from sentry.utils.registry import Registry
+from sentry.utils.registry import NoRegistrationExistsError, Registry
 
 
 @dataclass(frozen=True)
@@ -141,7 +141,11 @@ class EventAttributeCondition(EventCondition):
         path = attr.split(".")
 
         first_attr = path[0]
-        attr_handler = attribute_registry.get(first_attr)
+        try:
+            attr_handler = attribute_registry.get(first_attr)
+        except NoRegistrationExistsError:
+            attr_handler = None
+
         if not attr_handler:
             attribute_values = []
         else:
@@ -288,7 +292,8 @@ class UserAttributeHandler(AttributeHandler):
         if path[1] not in ("id", "ip_address", "email", "username"):
             return []
 
-        return [getattr(event.interfaces.get("user", {}), path[1])]
+        result = getattr(event.interfaces.get("user", {}), path[1], None)
+        return [result] if result is not None else []
 
 
 @attribute_registry.register("http")
@@ -298,7 +303,8 @@ class HttpAttributeHandler(AttributeHandler):
     @classmethod
     def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
         if path[1] in ("url", "method"):
-            return [getattr(event.interfaces["request"], path[1])]
+            result = getattr(event.interfaces.get("request"), path[1], None)
+            return [result] if result is not None else []
         elif path[1] in ("status_code"):
             contexts = event.data.get("contexts", {})
             response = contexts.get("response")

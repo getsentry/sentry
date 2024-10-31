@@ -33,8 +33,7 @@ class IntermediateSearchQueryPartial(Protocol):
         groupby: Sequence[str],
         having: Sequence[Any],
         orderby: Sequence[str],
-    ) -> Mapping[str, Any]:
-        ...
+    ) -> Mapping[str, Any]: ...
 
 
 class SearchQueryPartial(Protocol):
@@ -46,8 +45,7 @@ class SearchQueryPartial(Protocol):
         conditions: Sequence[Any],
         aggregations: Sequence[Any],
         condition_resolver: Any,
-    ) -> Mapping[str, Any]:
-        ...
+    ) -> Mapping[str, Any]: ...
 
 
 GroupSearchFilterUpdater = Callable[[Sequence[SearchFilter]], Sequence[SearchFilter]]

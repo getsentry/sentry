@@ -95,8 +95,7 @@ class ApiError(Exception):
 
 class _RequestHasUrl(Protocol):
     @property
-    def url(self) -> str:
-        ...
+    def url(self) -> str: ...
 
 
 class ApiHostError(ApiError):

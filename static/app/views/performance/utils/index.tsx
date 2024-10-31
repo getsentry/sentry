@@ -27,6 +27,8 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 
 import {DEFAULT_MAX_DURATION} from '../trends/utils';
 
@@ -185,12 +187,13 @@ export function isSummaryViewFrontend(eventView: EventView, projects: Project[])
   );
 }
 
+// TODO - remove in favour of `getPerformanceBaseUrl`
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
-  return `/organizations/${organization.slug}/performance/`;
+  return `${getPerformanceBaseUrl(organization.slug)}/`;
 }
 
 export function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
-  return `/organizations/${organization.slug}/performance/trends/`;
+  return `${getPerformanceBaseUrl(organization.slug)}/trends/`;
 }
 
 export function getTransactionSearchQuery(location: Location, query: string = '') {
@@ -390,4 +393,17 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
       enabled: Boolean(project),
     }
   );
+}
+
+export function getPerformanceBaseUrl(
+  orgSlug: string,
+  view?: DomainView,
+  bare: boolean = false
+) {
+  let url = 'performance';
+  if (view) {
+    url = `${DOMAIN_VIEW_BASE_URL}/${view}`;
+  }
+
+  return bare ? url : normalizeUrl(`/organizations/${orgSlug}/${url}`);
 }
