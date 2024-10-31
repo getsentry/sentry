@@ -30,6 +30,7 @@ import {
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -216,6 +217,10 @@ function Task({task, status, hidePanel, showWaitingIndicator}: TaskProps) {
 
 interface TaskGroupProps {
   description: string;
+  /**
+   * Used for analytics
+   */
+  group: 'getting_started' | 'beyond_basics';
   hidePanel: () => void;
   taskKeyForWaitingIndicator: OnboardingTaskKey | undefined;
   tasks: OnboardingTask[];
@@ -232,13 +237,39 @@ function TaskGroup({
   hidePanel,
   taskKeyForWaitingIndicator,
   toggleable = true,
+  group,
 }: TaskGroupProps) {
+  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(expanded);
   const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
+  const [taskGroupComplete, setTaskGroupComplete] = useLocalStorageState(
+    `quick-start:${organization.slug}:${group}-completed`,
+    false
+  );
 
   useEffect(() => {
     setIsExpanded(expanded);
   }, [expanded]);
+
+  useEffect(() => {
+    if (completedTasks.length !== tasks.length || taskGroupComplete) {
+      return;
+    }
+
+    trackAnalytics('quick_start.task_group_completed', {
+      organization,
+      group,
+    });
+
+    setTaskGroupComplete(true);
+  }, [
+    group,
+    organization,
+    completedTasks,
+    tasks,
+    setTaskGroupComplete,
+    taskGroupComplete,
+  ]);
 
   return (
     <TaskGroupWrapper>
@@ -364,10 +395,11 @@ export function NewOnboardingSidebar({
           tasks={sortedGettingStartedTasks}
           hidePanel={onClose}
           expanded={
-            groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length > 0
+            groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
           }
           toggleable={sortedBeyondBasicsTasks.length > 0}
           taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
+          group="getting_started"
         />
         {sortedBeyondBasicsTasks.length > 0 && (
           <TaskGroup
@@ -378,9 +410,12 @@ export function NewOnboardingSidebar({
             tasks={sortedBeyondBasicsTasks}
             hidePanel={onClose}
             expanded={
-              groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
+              groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks
+                .length === 0 &&
+              groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
             }
             taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
+            group="beyond_basics"
           />
         )}
       </Content>
