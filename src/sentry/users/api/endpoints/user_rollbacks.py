@@ -16,9 +16,6 @@ class UserRollbacksEndpoint(RegionSiloUserEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    scope_map = {
-        "GET": ["member:read"],
-    }
 
     def get(self, request: Request, user: RpcUser) -> Response:
         """
