@@ -24,7 +24,7 @@ export function useSpansQuery<T = any[]>({
   limit,
   enabled,
   referrer = 'use-spans-query',
-  allowAggregateConditions = true,
+  allowAggregateConditions,
   cursor,
 }: {
   allowAggregateConditions?: boolean;
@@ -151,6 +151,13 @@ export function useWrappedDiscoverQuery<T>({
   const location = useLocation();
   const organization = useOrganization();
   const {isReady: pageFiltersReady} = usePageFilters();
+
+  const queryExtras = {};
+
+  if (allowAggregateConditions !== undefined) {
+    queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
+  }
+
   const result = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
@@ -165,9 +172,7 @@ export function useWrappedDiscoverQuery<T>({
       retryDelay: getRetryDelay,
       staleTime: Infinity,
     },
-    queryExtras: {
-      allowAggregateConditions: allowAggregateConditions ? '1' : '0',
-    },
+    queryExtras,
     noPagination,
   });
 
