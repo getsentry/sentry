@@ -43,7 +43,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         # Cannot skip unskippable tasks
         if (
             status == OnboardingTaskStatus.SKIPPED
-            and task_id not in onboarding_tasks.get_skippable_tasks()
+            and task_id not in onboarding_tasks.get_skippable_tasks(organization)
         ):
             return Response(status=422)
 

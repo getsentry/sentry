@@ -8,6 +8,7 @@ from django.utils import timezone as django_timezone
 
 from sentry import analytics, features
 from sentry.constants import InsightModules
+from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
@@ -677,25 +678,43 @@ def record_integration_added(
     if integration is None:
         return
 
-    task = OrganizationOnboardingTask.objects.filter(
-        organization_id=organization_id,
-        task=OnboardingTask.INTEGRATIONS,
-    ).first()
+    organization = Organization.objects.get(id=organization_id)
 
-    if task:
-        providers = task.data.get("providers", [])
-        if integration.provider not in providers:
-            providers.append(integration.provider)
-        task.data["providers"] = providers
-        if task.status != OnboardingTaskStatus.COMPLETE:
-            task.status = OnboardingTaskStatus.COMPLETE
-            task.user_id = user_id
-            task.date_completed = django_timezone.now()
-        task.save()
+    if features.has("organizations:quick-start-updates", organization):
+        integration_types = get_integration_types(integration.provider)
+
+        task_mapping = {
+            IntegrationDomain.SOURCE_CODE_MANAGEMENT: OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+            IntegrationDomain.MESSAGING: OnboardingTask.REAL_TIME_NOTIFICATIONS,
+        }
+
+        for integration_type in integration_types:
+            if integration_type in task_mapping:
+                OrganizationOnboardingTask.objects.create(
+                    organization_id=organization_id,
+                    task=task_mapping[integration_type],
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
     else:
-        task = OrganizationOnboardingTask.objects.create(
+        task = OrganizationOnboardingTask.objects.filter(
             organization_id=organization_id,
             task=OnboardingTask.INTEGRATIONS,
-            status=OnboardingTaskStatus.COMPLETE,
-            data={"providers": [integration.provider]},
-        )
+        ).first()
+
+        if task:
+            providers = task.data.get("providers", [])
+            if integration.provider not in providers:
+                providers.append(integration.provider)
+            task.data["providers"] = providers
+            if task.status != OnboardingTaskStatus.COMPLETE:
+                task.status = OnboardingTaskStatus.COMPLETE
+                task.user_id = user_id
+                task.date_completed = django_timezone.now()
+            task.save()
+        else:
+            task = OrganizationOnboardingTask.objects.create(
+                organization_id=organization_id,
+                task=OnboardingTask.INTEGRATIONS,
+                status=OnboardingTaskStatus.COMPLETE,
+                data={"providers": [integration.provider]},
+            )

@@ -895,3 +895,55 @@ class OrganizationOnboardingTaskTest(TestCase):
                 count += 1
 
         assert count == 0
+
+    @patch("sentry.analytics.record")
+    def test_real_time_notifications_added(self, record_analytics):
+        with self.feature("organizations:quick-start-updates"):
+            integration_id = self.create_integration("slack", 123).id
+            integration_added.send(
+                integration_id=integration_id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                sender=None,
+            )
+            task = OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.REAL_TIME_NOTIFICATIONS,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+            assert task is not None
+
+            record_analytics.assert_called_with(
+                "integration.added",
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="slack",
+            )
+
+    @patch("sentry.analytics.record")
+    def test_source_code_management_added(self, record_analytics):
+        with self.feature("organizations:quick-start-updates"):
+            integration_id = self.create_integration("github", 123).id
+            integration_added.send(
+                integration_id=integration_id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                sender=None,
+            )
+            task = OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+            assert task is not None
+
+            record_analytics.assert_called_with(
+                "integration.added",
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="github",
+            )
