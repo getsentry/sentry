@@ -608,7 +608,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 }
 
-const getBucketSize = (series: Series[] | undefined) => {
+export const getBucketSize = (series: Series[] | undefined) => {
   if (!series || series.length < 2) {
     return 0;
   }

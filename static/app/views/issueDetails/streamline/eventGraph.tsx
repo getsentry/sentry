@@ -6,6 +6,7 @@ import Alert from 'sentry/components/alert';
 import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
+import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -24,6 +25,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {getBucketSize} from 'sentry/views/dashboards/widgetCard/chart';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
@@ -180,6 +182,8 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     return seriesData;
   }, [visibleSeries, userSeries, eventSeries, releaseSeries, flagSeries, theme]);
 
+  const bucketSize = eventSeries ? getBucketSize(series) : undefined;
+
   const [legendSelected, setLegendSelected] = useLocalStorageState(
     'issue-details-graph-legend',
     {
@@ -278,6 +282,27 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
             right: 8,
             top: 20,
             bottom: 0,
+          }}
+          tooltip={{
+            formatAxisLabel: (
+              value,
+              isTimestamp,
+              utc,
+              showTimeInTooltip,
+              addSecondsToTimeFormat,
+              _bucketSize,
+              _seriesParamsOrParam
+            ) =>
+              String(
+                defaultFormatAxisLabel(
+                  value,
+                  isTimestamp,
+                  utc,
+                  showTimeInTooltip,
+                  addSecondsToTimeFormat,
+                  bucketSize
+                )
+              ),
           }}
           yAxis={{
             splitNumber: 2,
