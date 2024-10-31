@@ -33,17 +33,11 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   const dashboardCreator: User | undefined = dashboard.createdBy;
   const {teams} = useTeamsById();
   const teamIds: string[] = Object.values(teams).map(team => team.id);
-
-  let newDashboardPermissions = dashboard.permissions
-    ? structuredClone(dashboard.permissions)
-    : undefined;
-
   const [selectedOptions, setselectedOptions] = useState<string[]>(
     dashboard.permissions?.isCreatorOnlyEditable
       ? ['_creator']
       : ['_everyone', '_creator', ...teamIds]
   );
-
   let isEverythingSelected =
     selectedOptions.length === ['_everyone', '_creator', ...teamIds].length;
 
@@ -123,20 +117,10 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   };
 
   // Creates or modifies permissions object based on the options selected
-  function setNewDashboardPermisssions() {
-    if (!selectedOptions.includes('_everyone')) {
-      if (newDashboardPermissions === undefined) {
-        // When dashboard does not have a permissions object associated, we create
-        //  a new perms object only if 'everyone' isn't selected (i.e default behavior)
-        newDashboardPermissions = {isCreatorOnlyEditable: true};
-      } else {
-        newDashboardPermissions.isCreatorOnlyEditable = true;
-      }
-    } else {
-      if (defined(newDashboardPermissions)) {
-        newDashboardPermissions.isCreatorOnlyEditable = false;
-      }
-    }
+  function getDashboardPermissions() {
+    return {
+      isCreatorOnlyEditable: !selectedOptions.includes('_everyone'),
+    };
   }
 
   const dropdownMenu = (
@@ -146,11 +130,10 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         onSelectOptions(newSelectedOptions);
       }}
       onClose={() => {
-        setNewDashboardPermisssions();
-        if (
-          defined(newDashboardPermissions) &&
-          !isEqual(newDashboardPermissions, dashboard.permissions)
-        ) {
+        const isDefaultState =
+          !defined(dashboard.permissions) && selectedOptions.includes('_everyone');
+        const newDashboardPermissions = getDashboardPermissions();
+        if (!isDefaultState && !isEqual(newDashboardPermissions, dashboard.permissions)) {
           onChangeEditAccess?.(newDashboardPermissions);
         }
       }}
