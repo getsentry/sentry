@@ -243,7 +243,7 @@ function TaskGroup({
   const [isExpanded, setIsExpanded] = useState(expanded);
   const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
   const [taskGroupComplete, setTaskGroupComplete] = useLocalStorageState(
-    `quick-start:${group}-completed`,
+    `quick-start:${organization.slug}:${group}-completed`,
     false
   );
 
@@ -395,9 +395,10 @@ export function NewOnboardingSidebar({
           tasks={sortedGettingStartedTasks}
           hidePanel={onClose}
           expanded={
-            groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length > 0
+            groupTasksByCompletion(sortedGettingStartedTasks).completedTasks.length !==
+            sortedGettingStartedTasks.length
           }
-          toggleable={sortedBeyondBasicsTasks.length > 0}
+          toggleable={sortedGettingStartedTasks.length > 0}
           taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
           group="getting_started"
         />
@@ -410,7 +411,9 @@ export function NewOnboardingSidebar({
             tasks={sortedBeyondBasicsTasks}
             hidePanel={onClose}
             expanded={
-              groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
+              groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks
+                .length === 0 &&
+              groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
             }
             taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
             group="beyond_basics"
