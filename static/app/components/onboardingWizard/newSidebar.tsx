@@ -184,9 +184,7 @@ function Task({task, status, hidePanel, showWaitingIndicator}: TaskProps) {
           )}
           {status === 'pending' && (
             <Tooltip
-              title={t(
-                'You’ve invited members, and their acceptance is pending. Keep an eye out for updates!'
-              )}
+              title={task.pendingTitle ?? t('Task in progress\u2026')}
               containerDisplayMode="flex"
               css={css`
                 justify-content: center;

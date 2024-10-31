@@ -250,6 +250,9 @@ export function getOnboardingTasks({
       action: () => openInviteMembersModal({source: 'onboarding_widget'}),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
+      pendingTitle: t(
+        'You’ve invited members, and their acceptance is pending. Keep an eye out for updates!'
+      ),
     },
     {
       task: OnboardingTaskKey.FIRST_INTEGRATION,
@@ -308,6 +311,7 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: `/organizations/${organization.slug}/projects/new/`,
       display: true,
+      pendingTitle: t('Awaiting an error for this project.'),
       SupplementComponent: ({task}: OnboardingSupplementComponentProps) => {
         if (!hasQuickStartUpdatesFeature(organization)) {
           return null;
