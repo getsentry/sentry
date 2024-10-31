@@ -58,7 +58,7 @@ export default function ReplayDiffChooser({
           <TabPanels.Item key={DiffType.HTML}>
             <StyledAlert type="info" showIcon>
               {tct(
-                `This feature may be buggy, so we are looking at other potential solutions. Weigh in on these solutions [link:here].`,
+                `We're currently testing this feature, please [link:let us know] if you're having any issues.`,
                 {
                   link: (
                     <ExternalLink
