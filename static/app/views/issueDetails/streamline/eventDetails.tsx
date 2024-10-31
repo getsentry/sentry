@@ -86,14 +86,11 @@ const FloatingEventNavigation = styled(EventTitle)`
   }
 `;
 
-const ExtraContent = styled('div')`
+const GroupContent = styled('div')`
+  position: relative;
   border: 1px solid ${p => p.theme.translucentBorder};
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
-`;
-
-const GroupContent = styled(ExtraContent)`
-  position: relative;
 `;
 
 const ContentPadding = styled('div')`
