@@ -38,9 +38,6 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       ? ['_creator']
       : ['_everyone', '_creator', ...teamIds]
   );
-  let isEverythingSelected =
-    selectedOptions.length === ['_everyone', '_creator', ...teamIds].length;
-
   // Dashboard creator option in the dropdown
   const makeCreatorOption = () => ({
     value: '_creator',
@@ -75,7 +72,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
 
   // Avatars/Badges in the Edit Selector Button
   const triggerAvatars =
-    isEverythingSelected || !dashboardCreator ? (
+    selectedOptions.includes('_everyone') || !dashboardCreator ? (
       <StyledBadge key="_all" text={'All'} />
     ) : (
       <StyledAvatarList key="avatar-list" users={[dashboardCreator]} avatarSize={25} />
@@ -108,9 +105,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
     const newSelectedValues = newSelectedOptions.map(
       (option: {value: string}) => option.value
     );
-    isEverythingSelected = false;
     if (newSelectedValues.includes('_everyone')) {
-      isEverythingSelected = true;
       setselectedOptions(['_everyone', '_creator', ...teamIds]);
     } else if (!newSelectedValues.includes('_everyone')) {
       setselectedOptions(['_creator']);
