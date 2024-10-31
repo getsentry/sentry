@@ -27,6 +27,8 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.access import Access
 from sentry.auth.superuser import superuser_has_permission
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
@@ -526,4 +528,18 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             )
             omt.delete()
 
+        self._unsubscribe_issues(team, member)
+
         return Response(serialize(team, request.user, TeamSerializer()), status=200)
+
+    @staticmethod
+    def _unsubscribe_issues(team: Team, member: OrganizationMember) -> None:
+        """
+        Unsubscribe user from issues the team is subscribed to
+        """
+        team_assigned_issues = GroupAssignee.objects.filter(team_id=team.id)
+        team_subscribed_isses = GroupSubscription.objects.filter(team_id=team.id)
+        issues_to_unsubscribe = set(team_assigned_issues) | set(team_subscribed_isses)
+        GroupSubscription.objects.filter(
+            group_id__in=[group.id for group in issues_to_unsubscribe], user_id=member.user_id
+        ).delete()
