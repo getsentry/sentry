@@ -2,6 +2,7 @@ import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {InputGroup} from 'sentry/components/inputGroup';
@@ -80,7 +81,7 @@ export function ProjectsPreviewTable({period}: Props) {
           {t('Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
-        t('Projected Rate'),
+        <RateHeaderCell key="projectedRate">{t('Projected Rate')}</RateHeaderCell>,
       ]}
     >
       {balancedItems
@@ -187,6 +188,7 @@ const TableRow = memo(function TableRow({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const isExpandable = subProjects.length > 0;
+  const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
   const subProjectContent = getSubProjectContent(project.slug, subProjects, isExpanded);
   const subSpansContent = getSubSpansContent(ownCount, subProjects, isExpanded);
@@ -205,14 +207,16 @@ const TableRow = memo(function TableRow({
             )}
             <ProjectBadge project={project} disableLink avatarSize={16} />
           </HiddenButton>
-          <SettingsButton
-            title={t('Open Project Settings')}
-            aria-label={t('Open Project Settings')}
-            size="xs"
-            priority="link"
-            icon={<IconSettings />}
-            to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance`}
-          />
+          {hasAccess && (
+            <SettingsButton
+              title={t('Open Project Settings')}
+              aria-label={t('Open Project Settings')}
+              size="xs"
+              priority="link"
+              icon={<IconSettings />}
+              to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance`}
+            />
+          )}
         </FirstCellLine>
         <SubProjects>{subProjectContent}</SubProjects>
       </Cell>
@@ -275,6 +279,11 @@ const SortableHeader = styled('button')`
   gap: ${space(0.5)};
 `;
 
+const RateHeaderCell = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
 const Cell = styled('div')`
   display: flex;
   flex-direction: column;
@@ -285,6 +294,9 @@ const FirstCellLine = styled('div')`
   display: flex;
   align-items: center;
   height: 32px;
+  & > * {
+    flex-shrink: 0;
+  }
   &[data-align='right'] {
     justify-content: flex-end;
   }
@@ -338,7 +350,7 @@ const HiddenButton = styled('button')`
   align-items: center;
 
   /* Overwrite the platform icon's cursor style */
-  & img {
+  &:not([disabled]) img {
     cursor: pointer;
   }
 `;
@@ -353,6 +365,14 @@ const StyledIconChevron = styled(IconChevron)`
 const SettingsButton = styled(LinkButton)`
   margin-left: ${space(0.5)};
   color: ${p => p.theme.subText};
+  visibility: hidden;
+
+  &:focus {
+    visibility: visible;
+  }
+  ${Cell}:hover & {
+    visibility: visible;
+  }
 `;
 
 const TrailingPercent = styled('strong')`

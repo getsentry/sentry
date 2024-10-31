@@ -75,10 +75,9 @@ const StyledLayoutBody = styled(Layout.Body)<{
 const GroupContent = styled(Layout.Main)`
   background: ${p => p.theme.backgroundSecondary};
   min-height: 100vh;
-  padding: ${space(1.5)};
+  padding: 10px ${space(1.5)} ${space(1.5)};
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     border-right: 1px solid ${p => p.theme.translucentBorder};
   }
