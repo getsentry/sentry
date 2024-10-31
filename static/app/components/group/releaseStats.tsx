@@ -131,10 +131,8 @@ function GroupReleaseStats({
                       fixed: '2016-01-13T03:08:25Z',
                     })}
                     dateGlobal={allEnvironments.lastSeen}
-                    hasRelease={hasRelease}
                     environment={shortEnvironmentLabel}
                     release={lastRelease}
-                    title={t('Last Seen')}
                   />
                 </StyledSidebarSectionContent>
               </SidebarSection.Wrap>
@@ -156,10 +154,8 @@ function GroupReleaseStats({
                       fixed: '2015-08-13T03:08:25Z',
                     })}
                     dateGlobal={allEnvironments.firstSeen}
-                    hasRelease={hasRelease}
                     environment={shortEnvironmentLabel}
                     release={firstRelease}
-                    title={t('First seen')}
                   />
                 </StyledSidebarSectionContent>
               </SidebarSection.Wrap>
