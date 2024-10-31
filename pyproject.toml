@@ -479,6 +479,7 @@ module = [
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.store",
+    "sentry.taskworker.*",
     "sentry.testutils.helpers.task_runner",
     "sentry.types.actor",
     "sentry.types.region",
