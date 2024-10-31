@@ -15,6 +15,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
+  MEPSettingProvider,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -47,10 +48,10 @@ import {
 } from 'sentry/views/performance/utils';
 
 export const BACKEND_COLUMN_TITLES = [
-  'transaction',
-  'project',
-  'operation',
   'http method',
+  'transaction',
+  'operation',
+  'project',
   'tpm',
   'p50',
   'p95',
@@ -80,9 +81,9 @@ function BackendOverviewPage() {
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
     {field: 'team_key_transaction'},
+    {field: 'http.method'},
     {field: 'transaction'},
     {field: 'transaction.op'},
-    {field: 'http.method'},
     {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50(transaction.duration)'},
@@ -230,11 +231,14 @@ function BackendOverviewPage() {
 
 function BackendOverviewPageWithProviders() {
   const organization = useOrganization();
+  const location = useLocation();
 
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
-        <BackendOverviewPage />
+        <MEPSettingProvider location={location}>
+          <BackendOverviewPage />
+        </MEPSettingProvider>
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );

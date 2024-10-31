@@ -7,6 +7,7 @@ import {space} from 'sentry/styles/space';
 import {type IntegrationAction, IssueAlertActionType} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SetupMessagingIntegrationButton, {
@@ -68,7 +69,6 @@ export type IssueAlertNotificationProps = {
   provider: string | undefined;
   providersToIntegrations: Record<string, OrganizationIntegration[]>;
   querySuccess: boolean;
-  refetchConfigs: () => void;
   setActions: (action: MultipleCheckboxOptions[]) => void;
   setChannel: (channel: string | undefined) => void;
   setIntegration: (integration: OrganizationIntegration | undefined) => void;
@@ -82,7 +82,7 @@ export function useCreateNotificationAction() {
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
     [`/organizations/${organization.slug}/integrations/?integrationType=messaging`],
-    {staleTime: Infinity}
+    {staleTime: 0, refetchOnWindowFocus: true}
   );
 
   const providersToIntegrations = useMemo(() => {
@@ -214,7 +214,6 @@ export function useCreateNotificationAction() {
       setIntegration,
       setChannel,
       providersToIntegrations,
-      refetchConfigs: messagingIntegrationsQuery.refetch,
       querySuccess: messagingIntegrationsQuery.isSuccess,
       shouldRenderSetupButton,
     },
@@ -224,12 +223,15 @@ export function useCreateNotificationAction() {
 export default function IssueAlertNotificationOptions(
   notificationProps: IssueAlertNotificationProps
 ) {
-  const {actions, setActions, refetchConfigs, querySuccess, shouldRenderSetupButton} =
-    notificationProps;
+  const {actions, setActions, querySuccess, shouldRenderSetupButton} = notificationProps;
 
   const shouldRenderNotificationConfigs = actions.some(
     v => v !== MultipleCheckboxOptions.EMAIL
   );
+
+  useRouteAnalyticsParams({
+    setup_message_integration_button_shown: shouldRenderSetupButton,
+  });
 
   if (!querySuccess) {
     return null;
@@ -260,7 +262,6 @@ export default function IssueAlertNotificationOptions(
       </MultipleCheckbox>
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
-          refetchConfigs={refetchConfigs}
           analyticsParams={{
             view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
           }}

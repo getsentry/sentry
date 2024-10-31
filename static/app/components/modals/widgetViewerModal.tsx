@@ -55,12 +55,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
-  getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
@@ -68,6 +68,8 @@ import {
   getWidgetMetricsUrl,
   getWidgetReleasesUrl,
   hasDatasetSelector,
+  isUsingPerformanceScore,
+  performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
 import {
   SESSION_DURATION_ALERT,
@@ -119,6 +121,7 @@ interface Props extends ModalRenderProps, WidgetViewerModalOptions {
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const HALF_CONTAINER_HEIGHT = 300;
+const BIG_NUMBER_HEIGHT = 160;
 const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
 const shouldWidgetCardChartMemo = (prevProps, props) => {
@@ -852,7 +855,7 @@ function WidgetViewerModal(props: Props) {
                   ].includes(widget.displayType)
                     ? SLIDER_HEIGHT
                     : 0)
-                : null
+                : BIG_NUMBER_HEIGHT
             }
           >
             {(!!seriesData || !!tableData) && chartUnmodified ? (
@@ -1019,9 +1022,7 @@ function WidgetViewerModal(props: Props) {
                     <WidgetHeader>
                       <WidgetTitleRow>
                         <h3>{widget.title}</h3>
-                        {widget.thresholds &&
-                          tableData &&
-                          getColoredWidgetIndicator(widget.thresholds, tableData)}
+                        <DiscoverSplitAlert widget={widget} />
                       </WidgetTitleRow>
                       {widget.description && (
                         <Tooltip
@@ -1062,6 +1063,12 @@ function WidgetViewerModal(props: Props) {
                             organization={organization}
                             selection={modalTableSelection}
                             selectedQueryIndex={selectedQueryIndex}
+                            disabled={isUsingPerformanceScore(widget)}
+                            disabledTooltip={
+                              isUsingPerformanceScore(widget)
+                                ? performanceScoreTooltip
+                                : undefined
+                            }
                           />
                         )}
                       </ButtonBar>
@@ -1082,6 +1089,8 @@ interface OpenButtonProps {
   selectedQueryIndex: number;
   selection: PageFilters;
   widget: Widget;
+  disabled?: boolean;
+  disabledTooltip?: string;
 }
 
 function OpenButton({
@@ -1089,6 +1098,8 @@ function OpenButton({
   selection,
   organization,
   selectedQueryIndex,
+  disabled,
+  disabledTooltip,
 }: OpenButtonProps) {
   let openLabel: string;
   let path: string;
@@ -1125,15 +1136,18 @@ function OpenButton({
 
   return (
     <Tooltip
-      title={t(
-        'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-      )}
-      disabled={!buttonDisabled}
+      title={
+        disabledTooltip ??
+        t(
+          'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
+        )
+      }
+      disabled={defined(disabled) ? !disabled : !buttonDisabled}
     >
       <LinkButton
         to={path}
         priority="primary"
-        disabled={buttonDisabled}
+        disabled={disabled || buttonDisabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
             organization,
@@ -1182,6 +1196,8 @@ export const modalCss = css`
 `;
 
 const Container = styled('div')<{height?: number | null}>`
+  display: flex;
+  flex-direction: column;
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
   padding-bottom: ${space(3)};

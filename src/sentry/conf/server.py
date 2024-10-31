@@ -41,13 +41,11 @@ _EnvTypes = Union[str, float, int, list, dict]
 
 
 @overload
-def env(key: str) -> str:
-    ...
+def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes:
-    ...
+def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
 
 
 def env(
@@ -94,8 +92,6 @@ _env_cache: dict[str, object] = {}
 
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
-NO_SPOTLIGHT = os.environ.get("NO_SPOTLIGHT", False)
-
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
@@ -138,6 +134,7 @@ SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
 SENTRY_ASSEMBLE_CLUSTER = "default"
 SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
+SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -385,7 +382,9 @@ SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
 INSTALLED_APPS: tuple[str, ...] = (
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.humanize",
     "django.contrib.messages",
+    "django.contrib.postgres",
     "django.contrib.sessions",
     "django.contrib.sites",
     "drf_spectacular",
@@ -522,6 +521,9 @@ STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
 # as we configure webpack to include file content based hash in the filename
 STATIC_FRONTEND_APP_URL = "/_static/dist/"
+
+# URL origin from where the static files are served.
+STATIC_ORIGIN = None
 
 # The webpack output directory
 STATICFILES_DIRS = [
@@ -713,6 +715,10 @@ BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
+TASK_WORKER_ALWAYS_EAGER = False
+
+# Ensure workers run async by default
+# in Development you might want them to run in-process
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
@@ -789,7 +795,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing2",
-    "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
     "sentry.tasks.store",
     "sentry.tasks.symbolication",
@@ -1666,6 +1671,14 @@ SENTRY_EVENT_PROCESSING_STORE = (
 )
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
+# Transactions processing backend
+# If these are set, transactions will be written to a different processing store
+# than errors. If these are set to none, Events(errors) and transactions will
+# both write to the EVENT_PROCESSING_STORE.
+SENTRY_TRANSACTION_PROCESSING_STORE: str | None = None
+SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
+
+
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
@@ -2219,9 +2232,6 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 # This flag activates consuming GroupAttribute messages in the development environment
 SENTRY_USE_GROUP_ATTRIBUTES = True
 
-# This flag activates Spotlight Sidecar in the development environment
-SENTRY_USE_SPOTLIGHT = False
-
 # This flag activates uptime checks in the developemnt environment
 SENTRY_USE_UPTIME = False
 
@@ -2466,14 +2476,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             },
             "ports": {"8085/tcp": 8085},
             "only_if": settings.SENTRY_USE_PROFILING,
-        }
-    ),
-    "spotlight-sidecar": lambda settings, options: (
-        {
-            "image": "ghcr.io/getsentry/spotlight:latest",
-            "environment": {},
-            "ports": {"8969/tcp": 8969},
-            "only_if": settings.SENTRY_USE_SPOTLIGHT,
         }
     ),
 }
@@ -2726,13 +2728,6 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
-        # This tells Symbolicator to accept invalid SSL certs
-        # when connecting to this source. Currently Symbolicator can't deal
-        # with this source's certs because the `openssl` version we use
-        # lacks support for Authority Information Access (AIA),
-        # so we ignore the certs for now.
-        # TODO: Remove this once we can support AIA.
-        "accept_invalid_certs": True,
     },
     "chromium": {
         "type": "http",
@@ -2918,6 +2913,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
+    "task-worker": "default",
 }
 
 
@@ -3042,67 +3038,6 @@ SENTRY_REPROCESSING_PAGE_SIZE = 10
 # is about "remaining events" exclusively.
 SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 
-# Which backend to use for RealtimeMetricsStore.
-#
-# Currently, only redis is supported.
-SENTRY_REALTIME_METRICS_BACKEND = (
-    "sentry.processing.realtime_metrics.dummy.DummyRealtimeMetricsStore"
-)
-SENTRY_REALTIME_METRICS_OPTIONS = {
-    # The redis cluster used for the realtime store redis backend.
-    "cluster": "default",
-    # Length of the sliding symbolicate_event budgeting window, in seconds.
-    #
-    # The LPQ selection is computed based on the `SENTRY_LPQ_OPTIONS["project_budget"]`
-    # defined below.
-    "budget_time_window": 2 * 60,
-    # The bucket size of the project budget metric.
-    #
-    # The size (in seconds) of the buckets that events are sorted into.
-    "budget_bucket_size": 10,
-    # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
-    # before its eligibility can be changed again.
-    #
-    # This backoff is only applied to automatic changes to project eligibility, and has zero effect
-    # on any manually-triggered changes to a project's presence in the LPQ.
-    "backoff_timer": 5 * 60,
-}
-
-# Whether badly behaving projects will be automatically
-# sent to the low priority queue
-SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
-
-# Tunable knobs for automatic LPQ eligibility.
-#
-# LPQ eligibility is based on the average spent budget in a sliding time window
-# defined in `SENTRY_REALTIME_METRICS_OPTIONS["budget_time_window"]` above.
-#
-# The `project_budget` option is defined as the average per-second
-# "symbolication time budget" a project can spend.
-# See `RealtimeMetricsStore.record_project_duration` for an explanation of how
-# this works.
-# The "regular interval" at which symbolication time is submitted is defined by
-# `SYMBOLICATOR_POLL_TIMEOUT`.
-#
-# This value is already adjusted according to the
-# `symbolicate-event.low-priority.metrics.submission-rate` option.
-SENTRY_LPQ_OPTIONS = {
-    # These are the per-project budget in per-second "symbolication time budget".
-    # There is one budget for each of the symbolication platforms: native, js, and jvm.
-    # The "project_budget" value exists for backward compatibility.
-    #
-    # This has been arbitrarily chosen as `5.0`, which means an average of:
-    # -  1x 5-second event per second, or
-    # -  5x 1-second events per second, or
-    # - 10x 0.5-second events per second
-    #
-    # Cost increases quadratically with symbolication time.
-    "project_budget": 5.0,
-    "project_budget_native": 5.0,
-    "project_budget_js": 5.0,
-    "project_budget_jvm": 5.0,
-}
-
 # XXX(meredith): Temporary metrics indexer
 SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 
@@ -3122,10 +3057,6 @@ ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
 
 # A set of extra tasks to sample
 ADDITIONAL_SAMPLED_TASKS: dict[str, float] = {}
-
-# This controls whether Sentry is run in a demo mode.
-# Enabling this will allow users to create accounts without an email or password.
-DEMO_MODE = False
 
 # all demo orgs are owned by the user with this email
 DEMO_ORG_OWNER_EMAIL: str | None = None

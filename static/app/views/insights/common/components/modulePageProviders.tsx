@@ -10,7 +10,8 @@ import type {InsightEventKey} from 'sentry/utils/analytics/insightAnalyticEvents
 import useOrganization from 'sentry/utils/useOrganization';
 import {NoAccess} from 'sentry/views/insights/common/components/noAccess';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
-import {INSIGHTS_TITLE, MODULE_TITLES} from 'sentry/views/insights/settings';
+import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {INSIGHTS_TITLE} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 type ModuleNameStrings = `${ModuleName}`;
@@ -32,10 +33,11 @@ export function ModulePageProviders({
   analyticEventName,
 }: Props) {
   const organization = useOrganization();
+  const moduleTitles = useModuleTitles();
 
   useHasDataTrackAnalytics(moduleName as ModuleName, analyticEventName);
 
-  const moduleTitle = MODULE_TITLES[moduleName];
+  const moduleTitle = moduleTitles[moduleName];
 
   const fullPageTitle = [pageTitle, moduleTitle, INSIGHTS_TITLE]
     .filter(Boolean)

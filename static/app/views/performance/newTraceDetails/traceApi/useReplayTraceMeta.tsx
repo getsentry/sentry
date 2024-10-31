@@ -87,7 +87,7 @@ export function useReplayTraceMeta(
   const metaResults = useMemo(() => {
     return {
       data: meta.data,
-      isLoading: eventsIsLoading || meta.isLoading,
+      isLoading: eventsIsLoading || meta.status === 'pending',
       errors: meta.errors,
       status: meta.status,
     };

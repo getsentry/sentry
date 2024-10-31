@@ -21,15 +21,13 @@ import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
-import type {GroupRelease} from 'sentry/views/issueDetails/streamline/activitySection';
 
 export default function getGroupActivityItem(
   activity: GroupActivity,
   organization: Organization,
   projectId: Project['id'],
   author: React.ReactNode,
-  teams: Team[],
-  groupReleaseData?: GroupRelease
+  teams: Team[]
 ) {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
 
@@ -453,7 +451,7 @@ export default function getGroupActivityItem(
         }
         return {
           title: t('Unresolved'),
-          message: tct('by [author] as unresolved', {author}),
+          message: tct('by [author]', {author}),
         };
       }
       case GroupActivityType.SET_IGNORED: {
@@ -593,26 +591,6 @@ export default function getGroupActivityItem(
       }
       case GroupActivityType.FIRST_SEEN:
         if (activity.data.priority) {
-          const firstRelease = groupReleaseData?.firstRelease;
-
-          if (firstRelease) {
-            return {
-              title: t('First Seen'),
-              message: tct('in [firstRelease]. Marked as [priority] priority', {
-                priority: activity.data.priority,
-                firstRelease: (
-                  <ReleaseWrapper>
-                    <Version
-                      version={firstRelease.version}
-                      projectId={projectId}
-                      tooltipRawVersion
-                    />
-                  </ReleaseWrapper>
-                ),
-              }),
-            };
-          }
-
           return {
             title: t('First Seen'),
             message: tct('Marked as [priority] priority', {
@@ -622,28 +600,6 @@ export default function getGroupActivityItem(
         }
         return {
           title: t('First Seen'),
-          message: null,
-        };
-      case GroupActivityType.LAST_SEEN:
-        const lastRelease = groupReleaseData?.lastRelease;
-        if (lastRelease) {
-          return {
-            title: t('Last Seen'),
-            message: tct('in [lastRelease]', {
-              lastRelease: (
-                <ReleaseWrapper>
-                  <Version
-                    version={lastRelease.version}
-                    projectId={projectId}
-                    tooltipRawVersion
-                  />
-                </ReleaseWrapper>
-              ),
-            }),
-          };
-        }
-        return {
-          title: t('Last Seen'),
           message: null,
         };
       case GroupActivityType.ASSIGNED: {
@@ -683,7 +639,7 @@ export default function getGroupActivityItem(
       }
       case GroupActivityType.AUTO_SET_ONGOING: {
         return {
-          title: t('Marked As Ongoing'),
+          title: t('Marked as Ongoing'),
           message: activity.data?.afterDays
             ? tct('automatically by [author] after [afterDays] days', {
                 author,

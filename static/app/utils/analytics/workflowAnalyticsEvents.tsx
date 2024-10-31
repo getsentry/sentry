@@ -47,6 +47,7 @@ export type BaseEventAnalyticsParams = {
   frames_without_source_maps_percent?: number;
   has_graphql_request?: boolean;
   has_otel?: boolean;
+  is_sample_event?: boolean;
   mobile?: boolean;
   release_user_agent?: string;
   sdk_name?: string;
@@ -144,6 +145,8 @@ export type TeamInsightsEventParameters = {
   };
   'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
+    created_integration_notification: boolean;
+    has_onboarding_feature_flag: boolean;
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     platform: string;
     project_id: string;

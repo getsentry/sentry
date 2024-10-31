@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
 import {getMessage, getTitle, isTombstone} from 'sentry/utils/events';
@@ -32,8 +33,33 @@ function EventOrGroupTitle({
 
   const secondaryTitle = hasNewLayout ? getMessage(data) : subtitle;
 
+  if (hasNewLayout) {
+    return (
+      <span className={className}>
+        {!isTombstone(data) && withStackTracePreview ? (
+          <GroupPreviewTooltip
+            groupId={groupID ? groupID : id}
+            issueCategory={data.issueCategory}
+            groupingCurrentLevel={data.metadata?.current_level}
+            query={query}
+          >
+            <Title data-issue-title-primary>{titleLabel}</Title>
+          </GroupPreviewTooltip>
+        ) : (
+          titleLabel
+        )}
+        {secondaryTitle && (
+          <Fragment>
+            <Spacer width={space(1)} />
+            <Message title={secondaryTitle}>{secondaryTitle}</Message>
+          </Fragment>
+        )}
+      </span>
+    );
+  }
+
   return (
-    <Wrapper className={className} hasNewLayout={hasNewLayout}>
+    <Wrapper className={className}>
       {!isTombstone(data) && withStackTracePreview ? (
         <GroupPreviewTooltip
           groupId={groupID ? groupID : id}
@@ -41,23 +67,15 @@ function EventOrGroupTitle({
           groupingCurrentLevel={data.metadata?.current_level}
           query={query}
         >
-          {hasNewLayout ? (
-            <Title data-issue-title-primary>{titleLabel}</Title>
-          ) : (
-            titleLabel
-          )}
+          {titleLabel}
         </GroupPreviewTooltip>
       ) : (
         titleLabel
       )}
       {secondaryTitle && (
         <Fragment>
-          <Spacer />
-          {hasNewLayout ? (
-            <Message title={secondaryTitle}>{secondaryTitle}</Message>
-          ) : (
-            <Subtitle title={secondaryTitle}>{secondaryTitle}</Subtitle>
-          )}
+          <Spacer width="10px" />
+          <Subtitle title={secondaryTitle}>{secondaryTitle}</Subtitle>
           <br />
         </Fragment>
       )}
@@ -72,8 +90,8 @@ export default EventOrGroupTitle;
  * into 2 separate text nodes on the HTML AST. This allows the
  * title to be highlighted without spilling over to the subtitle.
  */
-function Spacer() {
-  return <span style={{display: 'inline-block', width: 10}}>&nbsp;</span>;
+function Spacer({width}: {width: string}) {
+  return <span style={{display: 'inline-block', width}}>&nbsp;</span>;
 }
 
 const Subtitle = styled('em')`
@@ -85,24 +103,18 @@ const Subtitle = styled('em')`
 `;
 
 const Message = styled('span')`
-  ${p => p.theme.overflowEllipsis};
-  display: inline-block;
-  height: 100%;
-  color: ${p => p.theme.textColor};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Title = styled('span')`
-  ${p => p.theme.overflowEllipsis};
-  display: inline-block;
-  color: ${p => p.theme.textColor};
+  position: relative;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const Wrapper = styled('span')<{hasNewLayout: boolean}>`
+const Wrapper = styled('span')`
   display: inline-grid;
   grid-template-columns: auto max-content 1fr max-content;
 
-  align-items: ${p => (p.hasNewLayout ? 'normal' : 'baseline')};
+  align-items: baseline;
 `;

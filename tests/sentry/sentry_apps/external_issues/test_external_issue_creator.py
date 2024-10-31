@@ -38,3 +38,36 @@ class TextExternalIssueCreator(TestCase):
         assert external_issue.web_url == "https://example.com/project/issue-id"
         assert external_issue.display_name == "Projectname#issue-1"
         assert external_issue.service_type == self.sentry_app.slug
+
+    def test_updates_platform_external_issue(self):
+        result1 = ExternalIssueCreator(
+            install=self.install,
+            group=self.group,
+            web_url="https://example.com/project/issue-id",
+            project="Projectname",
+            identifier="issue-1",
+        ).run()
+
+        result2 = ExternalIssueCreator(
+            install=self.install,
+            group=self.group,
+            web_url="https://example.com/project/issue-id-2",
+            project="Projectname2",
+            identifier="issue-2",
+        ).run()
+
+        new_issue = PlatformExternalIssue.objects.all()[0]
+
+        # assert issue has been updated
+        assert result1.id == new_issue.id
+        assert result1.group_id == new_issue.group_id
+        assert result1.web_url != new_issue.web_url
+        assert result1.display_name != new_issue.display_name
+
+        # assert new issue has the fields we specified
+        assert result2 == new_issue
+        assert new_issue.group_id == self.group.id
+        assert new_issue.project_id == self.group.project.id
+        assert new_issue.web_url == "https://example.com/project/issue-id-2"
+        assert new_issue.display_name == "Projectname2#issue-2"
+        assert new_issue.service_type == self.sentry_app.slug

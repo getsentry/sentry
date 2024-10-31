@@ -23,6 +23,7 @@ import {
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -702,3 +703,26 @@ export function appendQueryDatasetParam(
   }
   return {};
 }
+
+/**
+ * Checks if the widget is using the performance_score aggregate
+ */
+export function isUsingPerformanceScore(widget: Widget) {
+  if (widget.queries.length === 0) {
+    return false;
+  }
+  return widget.queries.some(_doesWidgetUsePerformanceScore);
+}
+
+function _doesWidgetUsePerformanceScore(query: WidgetQuery) {
+  if (query.conditions?.includes('performance_score')) {
+    return true;
+  }
+  if (query.aggregates.some(aggregate => aggregate.includes('performance_score'))) {
+    return true;
+  }
+
+  return false;
+}
+
+export const performanceScoreTooltip = t('peformance_score is not supported in Discover');

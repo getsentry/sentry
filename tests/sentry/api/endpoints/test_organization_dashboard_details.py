@@ -19,7 +19,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -198,8 +198,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.data["filters"]["release"] == filters["release"]
 
     def test_start_and_end_filters_are_returned_in_response(self):
-        start = iso_format(datetime.now() - timedelta(seconds=10))
-        end = iso_format(datetime.now())
+        start = (datetime.now() - timedelta(seconds=10)).isoformat()
+        end = datetime.now().isoformat()
         filters = {"start": start, "end": end, "utc": False}
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
@@ -210,8 +210,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         dashboard.projects.set([Project.objects.create(organization=self.organization)])
 
         response = self.do_request("get", self.url(dashboard.id))
-        assert iso_format(response.data["start"]) == start
-        assert iso_format(response.data["end"]) == end
+        assert response.data["start"].replace(tzinfo=None).isoformat() == start
+        assert response.data["end"].replace(tzinfo=None).isoformat() == end
         assert not response.data["utc"]
 
     def test_response_truncates_with_retention(self):
@@ -230,8 +230,9 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("get", self.url(dashboard.id))
 
         assert response.data["expired"]
-        assert iso_format(response.data["start"].replace(second=0)) == iso_format(
-            expected_adjusted_retention_start.replace(second=0)
+        assert (
+            response.data["start"].replace(second=0, microsecond=0).isoformat()
+            == expected_adjusted_retention_start.replace(second=0, microsecond=0).isoformat()
         )
 
     def test_dashboard_widget_type_returns_split_decision(self):
@@ -360,7 +361,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.content
 
         assert "permissions" in response.data
-        assert not response.data["permissions"]["is_creator_only_editable"]
+        assert not response.data["permissions"]["isCreatorOnlyEditable"]
 
     def test_dashboard_details_data_returns_Null_permissions(self):
         dashboard = Dashboard.objects.create(
@@ -681,6 +682,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                             "conditions": "event.type:error",
                         }
                     ],
+                    "datasetSource": "user",
                 },
             ],
         }
@@ -1157,6 +1159,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                             "conditions": "event.type:transaction",
                         },
                     ],
+                    "datasetSource": "user",
                 },
                 {"id": str(self.widget_2.id)},
             ],
@@ -1866,12 +1869,60 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.create_environment(project=mock_project, name="mock_env")
         data = {
             "title": "Dashboard",
-            "permissions": {"is_creator_only_editable": "False"},
+            "permissions": {"isCreatorOnlyEditable": "False"},
         }
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
         )
         assert response.status_code == 200, response.data
+        assert response.data["permissions"]["isCreatorOnlyEditable"] is False
+
+    def test_update_dashboard_permissions_to_true(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Dashboard",
+            "permissions": {"isCreatorOnlyEditable": "true"},
+        }
+        response = self.do_request(
+            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["permissions"]["isCreatorOnlyEditable"] is True
+
+    def test_update_dashboard_permissions_when_already_created(self):
+        mock_project = self.create_project()
+        permission = DashboardPermissions.objects.create(
+            is_creator_only_editable=False, dashboard=self.dashboard
+        )
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Dashboard",
+            "permissions": {"isCreatorOnlyEditable": "true"},
+        }
+
+        assert permission.is_creator_only_editable is False
+        response = self.do_request(
+            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["permissions"]["isCreatorOnlyEditable"] is True
+
+        permission.refresh_from_db()
+        assert permission.is_creator_only_editable is True
+
+    def test_update_dashboard_permissions_with_invalid_value(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Dashboard",
+            "permissions": {"isCreatorOnlyEditable": "something-invalid"},
+        }
+        response = self.do_request(
+            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+        )
+        assert response.status_code == 400, response.data
+        assert "isCreatorOnlyEditable" in response.data["permissions"]
 
     def test_edit_dashboard_with_edit_permissions_not_granted(self):
         dashboard = Dashboard.objects.create(
