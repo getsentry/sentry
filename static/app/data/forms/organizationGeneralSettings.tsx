@@ -3,7 +3,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {BaseRole} from 'sentry/types/organization';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
@@ -107,7 +106,7 @@ const formGroups: JsonFormObject[] = [
         label: t('Let Members Create Projects'),
         help: t('Allow organization members to create and configure new projects.'),
         disabled: ({features, access}) =>
-          !isActiveSuperuser() || !access.has('org:write') || !features.has('team-roles'),
+          !access.has('org:write') || !features.has('team-roles'),
         disabledReason: ({features}) =>
           !features.has('team-roles')
             ? t('You must be on a business plan to toggle this feature.')
