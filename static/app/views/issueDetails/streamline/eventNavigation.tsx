@@ -191,6 +191,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.REPLAYS],
+              disabled: replaysCount === 0,
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
@@ -207,6 +208,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.ATTACHMENTS],
+              disabled: attachments.attachments.length === 0 && !hasManyAttachments,
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
@@ -220,6 +222,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.USER_FEEDBACK],
+              disabled: group.userReportCount === 0,
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
@@ -341,7 +344,7 @@ const LargeDropdownButtonWrapper = styled('div')`
 const NavigationDropdownButton = styled(DropdownButton)`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightBold};
-  padding-right: ${space(0.25)};
+  padding-right: ${space(0.5)};
 `;
 
 const LargeInThisIssueText = styled('div')`
@@ -355,12 +358,11 @@ const EventNavigationWrapper = styled('div')`
   flex-direction: column;
   justify-content: space-between;
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${space(1)} 0 ${space(0.5)} ${space(0.25)};
+  padding: 0 0 ${space(0.5)} ${space(0.25)};
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
     flex-direction: row;
     align-items: center;
-    padding: ${space(1)} 0 ${space(0.5)} ${space(0.25)};
   }
 `;
 
