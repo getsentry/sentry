@@ -1,5 +1,5 @@
 ---
-created: '2024-10-10T17:26:11.327180+00:00'
+created: '2024-10-30T19:48:46.854616+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1342,6 +1342,27 @@ source: tests/sentry/backup/test_comparators.py
     - project
     - repository
   model_name: sentry.repositoryprojectpathconfig
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - organization
+  model_name: sentry.rollbackorganization
+- comparators:
+  - class: UUID4Comparator
+    fields:
+    - share_uuid
+    - uuid
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - organization
+    - user_id
+  model_name: sentry.rollbackuser
 - comparators:
   - class: ForeignKeyComparator
     fields:
