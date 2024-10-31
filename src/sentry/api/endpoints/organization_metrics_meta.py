@@ -27,7 +27,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
     """
 
     def get(self, request: Request, organization: Organization) -> Response:
-        data = {
+        data: dict[str, list[int]] = {
             "incompatible_projects": [],
             "compatible_projects": [],
         }
@@ -58,7 +58,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
             )
             data["incompatible_projects"] = sorted(
                 list(set(original_project_ids) - set(data["compatible_projects"]))[
-                    : request.GET.get("per_page", 50)
+                    : int(request.GET.get("per_page", 50))
                 ]
             )
 
