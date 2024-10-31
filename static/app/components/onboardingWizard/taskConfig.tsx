@@ -518,16 +518,10 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.ALERT_RULE,
-      title: hasQuickStartUpdatesFeature(organization)
-        ? t('Set up Ownership Rules')
-        : t('Configure an Issue Alert'),
-      description: hasQuickStartUpdatesFeature(organization)
-        ? t(
-            'Define ownership rules to automatically assign and notify owners based on your criteria.'
-          )
-        : t(
-            'We all have issues. Get real-time error notifications by setting up alerts for issues that match your set criteria.'
-          ),
+      title: t('Configure an Issue Alert'),
+      description: t(
+        'We all have issues. Get real-time error notifications by setting up alerts for issues that match your set criteria.'
+      ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
