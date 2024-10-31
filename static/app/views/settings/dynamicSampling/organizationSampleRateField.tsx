@@ -20,7 +20,7 @@ export function OrganizationSampleRateField({}) {
       required
       label={t('Target Sample Rate')}
       help={t(
-        'Sentry will balance the sample rates of your projects automatically based on an overall target for your organization.'
+        'Sentry automatically adapts the sample rates of your projects based on this organization-wide target.'
       )}
       error={field.error}
     >
