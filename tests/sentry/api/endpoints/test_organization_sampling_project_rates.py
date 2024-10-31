@@ -1,3 +1,4 @@
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.testutils.cases import APITestCase
 
 
@@ -6,6 +7,13 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
 
     def setUp(self):
         super().setUp()
+
+        self.features = {
+            "organizations:dynamic-sampling": True,
+            "organizations:dynamic-sampling-custom": True,
+        }
+
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
         self.login_as(user=self.user)
 
     def test_get(self):
@@ -13,7 +21,9 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
         project2 = self.create_project(teams=[self.team])
         project2.update_option("sentry:target_sample_rate", 0.2)
 
-        response = self.get_success_response(self.organization.slug)
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug)
+
         assert response.data == [
             {"id": project1.id, "sampleRate": 1.0},
             {"id": project2.id, "sampleRate": 0.2},
@@ -30,7 +40,11 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
             {"id": project2.id, "sampleRate": 0.5},
         ]
 
-        response = self.get_success_response(self.organization.slug, method="put", raw_data=data)
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug, method="put", raw_data=data
+            )
+
         assert response.data == [
             {"id": project2.id, "sampleRate": 0.5},
         ]
@@ -38,5 +52,14 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
         assert project1.get_option("sentry:target_sample_rate") == 0.2
         assert project2.get_option("sentry:target_sample_rate") == 0.5
 
+    def test_put_automatic_mode(self):
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+
+        data = [{"id": self.project.id, "sampleRate": 0.5}]
+        with self.feature(self.features):
+            self.get_error_response(self.organization.slug, method="put", raw_data=data)
+
     def test_put_invalid_body(self):
-        self.get_error_response(self.organization.slug, method="put", raw_data={})
+        self.get_error_response(self.organization.slug, method="put", raw_data={}, status_code=400)
