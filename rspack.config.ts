@@ -207,7 +207,7 @@ const appConfig: rspack.Configuration = {
                   {
                     sourceMap: true,
                     // The "dev-only" option does not seem to apply correctly
-                    autoLabel: IS_PRODUCTION ? 'never' : 'always',
+                    autoLabel: DEV_MODE ? 'always' : 'never',
                   },
                 ],
               ],
