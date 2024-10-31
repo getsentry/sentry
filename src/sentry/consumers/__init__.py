@@ -63,9 +63,7 @@ def multiprocessing_options(
 
 
 def taskworker_options(
-    default_max_batch_size: int | None = 2,
-    default_max_batch_time_ms: int | None = 2,
-    include_worker_addrs: bool = False,
+    default_max_batch_size: int | None = 2, default_max_batch_time_ms: int | None = 2
 ) -> list[click.Option]:
     options = multiprocessing_options(
         default_max_batch_size=default_max_batch_size,
@@ -87,8 +85,6 @@ def taskworker_options(
             help="Maximum number of pending inflight activations in the store before backpressure is emitted",
         ),
     )
-    if include_worker_addrs:
-        options.append(click.Option(["--worker-addrs"], type=str, default="127.0.0.1:50051"))
 
     return options
 
