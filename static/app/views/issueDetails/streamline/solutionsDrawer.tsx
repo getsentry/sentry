@@ -54,7 +54,7 @@ export function SolutionsDrawer({group, project, event}: SolutionsDrawerProps) {
             <HeadlineContent>{data.headline}</HeadlineContent>
             <SummaryContent
               dangerouslySetInnerHTML={{
-                __html: marked(data.summary ?? ''),
+                __html: marked(data.summary),
               }}
             />
           </GroupSummaryWrapper>
