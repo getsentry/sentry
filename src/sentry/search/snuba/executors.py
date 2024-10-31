@@ -38,7 +38,7 @@ from snuba_sdk.relationships import Relationship
 
 from sentry import features, options
 from sentry.api.event_search import SearchFilter
-from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
+from sentry.api.paginator import MAX_SNUBA_ELEMENTS, DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -1873,7 +1873,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 orderby=[
                     OrderBy(dataclasses.replace(sort_func, alias=None), direction=Direction.DESC)
                 ],
-                limit=Limit(limit + 1),
+                limit=Limit(min(limit + 1, MAX_SNUBA_ELEMENTS)),
             )
             dataset = Dataset.Events.value if is_errors else Dataset.IssuePlatform.value
             request = Request(

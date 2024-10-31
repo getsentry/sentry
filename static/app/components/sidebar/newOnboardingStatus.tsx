@@ -119,7 +119,7 @@ export function NewOnboardingStatus({
   }, [isActive, pendingCompletionSeen, markDoneTaskAsComplete]);
 
   if (
-    !organization.features?.includes('onboarding') ||
+    !organization.features.includes('onboarding') ||
     (totalRemainingTasks === 0 && !isActive)
   ) {
     return null;
