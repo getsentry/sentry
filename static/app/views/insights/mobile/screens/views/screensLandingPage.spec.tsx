@@ -25,7 +25,7 @@ describe('Screens Landing Page', function () {
     action: 'PUSH',
     hash: '',
     key: '',
-    pathname: '/organizations/org-slug/insights/mobile/mobile-screens',
+    pathname: '/organizations/org-slug/insights/mobile-screens',
     query: {
       project: project.id,
     },
@@ -83,7 +83,7 @@ describe('Screens Landing Page', function () {
         action: 'PUSH',
         hash: '',
         key: '',
-        pathname: '/organizations/org-slug/insights/mobile/mobile-screens',
+        pathname: '/organizations/org-slug/insights/mobile-screens',
         query: {
           project: project.id,
         },

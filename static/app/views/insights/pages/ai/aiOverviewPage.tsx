@@ -15,6 +15,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
+  MEPSettingProvider,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -199,11 +200,14 @@ function AiOverviewPage() {
 
 function AiOverviewPageWithProviders() {
   const organization = useOrganization();
+  const location = useLocation();
 
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
-        <AiOverviewPage />
+        <MEPSettingProvider location={location}>
+          <AiOverviewPage />
+        </MEPSettingProvider>
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );

@@ -85,7 +85,7 @@ describe('Screen Summary', function () {
         action: 'PUSH',
         hash: '',
         key: '',
-        pathname: '/organizations/org-slug/insights/mobile/screens/spans/',
+        pathname: '/organizations/org-slug/insights/screens/spans/',
         query: {
           project: project.id,
           transaction: 'MainActivity',
