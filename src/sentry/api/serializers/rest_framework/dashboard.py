@@ -621,6 +621,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             self.update_widgets(instance, validated_data["widgets"])
 
         self.update_dashboard_filters(instance, validated_data)
+
+        # make this a helper func
         if "permissions" in validated_data:
             permissions = DashboardPermissions.objects.update_or_create(
                 dashboard=instance,
@@ -637,9 +639,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 teams_with_edit_access = Team.objects.filter(
                     id__in=validated_data["permissions"]["teams_with_edit_access"]
                 )
-                teams_ids_with_edit_access = [team.id for team in teams_with_edit_access]
+                permissions[0].teams_with_edit_access.set(teams_with_edit_access)
 
-                permissions.teams_with_edit_access.set(teams_ids_with_edit_access)
+            instance.permissions = permissions[0]
 
         schedule_update_project_configs(instance)
 

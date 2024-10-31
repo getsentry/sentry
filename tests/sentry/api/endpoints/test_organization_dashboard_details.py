@@ -2040,12 +2040,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("put", self.url(dashboard.id))
         assert response.status_code == 200, response.content
 
-    def test_update_dashboard_permissions_with_teams(self):
+    def test_update_dashboard_permissions_with_new_teams(self):
         mock_project = self.create_project()
         permission = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=self.dashboard
         )
         self.create_environment(project=mock_project, name="mock_env")
+        assert permission.is_editable_by_everyone is True
+
         team1 = self.create_team(organization=self.organization)
         team2 = self.create_team(organization=self.organization)
         data = {
@@ -2056,16 +2058,56 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        assert permission.is_editable_by_everyone is True
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
         )
         assert response.status_code == 200, response.data
         assert response.data["permissions"]["isEditableByEveryone"] is False
-        assert response.data["permissions"]["teamsWithEditAccess"] is ["1", "2"]
+        assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
 
         permission.refresh_from_db()
         assert permission.is_editable_by_everyone is False
+        assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
+
+        updated_perms = DashboardPermissions.objects.get(dashboard=self.dashboard)
+        assert set(updated_perms.teams_with_edit_access.all()) == {team1, team2}
+
+    def test_update_dashboard_permissions_with_updated_teams(self):
+        mock_project = self.create_project()
+        team1 = self.create_team(organization=self.organization)
+        team2 = self.create_team(organization=self.organization)
+        perms = DashboardPermissions.objects.create(
+            is_editable_by_everyone=True, dashboard=self.dashboard
+        )
+        perms.teams_with_edit_access.add(team1)
+        perms.teams_with_edit_access.add(team2)
+        assert set(perms.teams_with_edit_access.all()) == {team1, team2}
+
+        self.create_environment(project=mock_project, name="mock_env")
+        assert perms.is_editable_by_everyone is True
+
+        new_team1 = self.create_team(organization=self.organization)
+        new_team2 = self.create_team(organization=self.organization)
+        data = {
+            "title": "Dashboard",
+            "permissions": {
+                "isEditableByEveryone": "false",
+                "teamsWithEditAccess": [str(team1.id), str(new_team1.id), str(new_team2.id)],
+            },
+        }
+        response = self.do_request(
+            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["permissions"]["teamsWithEditAccess"] == [
+            team1.id,
+            new_team1.id,
+            new_team2.id,
+        ]
+
+        updated_perms = DashboardPermissions.objects.get(dashboard=self.dashboard)
+        assert set(updated_perms.teams_with_edit_access.all()) == {team1, new_team1, new_team2}
+        assert set(perms.teams_with_edit_access.all()) == {team1, new_team1, new_team2}
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
