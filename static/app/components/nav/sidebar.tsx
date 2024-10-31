@@ -132,7 +132,12 @@ function SidebarLink({children, item}: SidebarItemProps & {children: React.React
   const isActive = isNavItemActive(item, location);
   const isSubmenuActive = isSubmenuItemActive(item, location);
   const to = resolveNavItemTo(item);
-  const linkProps = makeLinkPropsFromTo(to!);
+  if (!to) {
+    throw new Error(
+      `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
+    );
+  }
+  const linkProps = makeLinkPropsFromTo(to);
 
   return (
     <NavLink
