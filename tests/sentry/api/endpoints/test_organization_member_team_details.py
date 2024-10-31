@@ -17,6 +17,7 @@ from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.users.services.user.service import user_service
 from tests.sentry.api.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -766,6 +767,11 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         we want to unsubscribe them from the issues the team was subscribed to
         """
         self.login_as(self.member_on_team)
+        rpc_user = user_service.get_user(user_id=self.member_on_team.user_id)
+        # one of the previous tests made it so this user is no longer a member of the team
+        self.create_member(
+            user=rpc_user, organization=self.organization, role="member", teams=[self.team]
+        )
         user2 = self.create_user()
         self.create_member(
             user=user2, organization=self.organization, role="member", teams=[self.team]
@@ -781,7 +787,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             )
 
         # check member is subscribed
-        assert GroupSubscription.objects.filter(user_id=self.member_on_team.user_id).exists()
+        assert GroupSubscription.objects.filter(user_id=rpc_user.id).exists()
         # check user2 is subscribed
         assert GroupSubscription.objects.filter(user_id=user2.id).exists()
         response = self.get_success_response(
@@ -795,9 +801,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         # team is still assigned
         assert GroupAssignee.objects.filter(team=self.team).exists()
         # user is not subscribed
-        assert not GroupSubscription.objects.filter(
-            group=group, user_id=self.member_on_team.user_id
-        ).exists()
+        assert not GroupSubscription.objects.filter(group=group, user_id=rpc_user.id).exists()
         # other user in team still subscribed
         assert GroupSubscription.objects.filter(group=group, user_id=user2.id).exists()
 
