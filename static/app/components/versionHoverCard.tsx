@@ -171,8 +171,8 @@ interface VersionHoverHeaderProps {
 
 function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
   return (
-    <HeaderWrapper>
-      {t('Release')}
+    <Flex align="center" gap={space(0.5)}>
+      {t('Release:')}
       <VersionWrapper>
         <StyledVersion version={releaseVersion} truncate anchor={false} />
         <CopyToClipboardButton
@@ -182,7 +182,7 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
           text={releaseVersion}
         />
       </VersionWrapper>
-    </HeaderWrapper>
+    </Flex>
   );
 }
 
@@ -198,22 +198,16 @@ const StyledTimeSince = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const VersionWrapper = styled('div')`
   display: flex;
-  flex: 1;
   align-items: center;
+  gap: ${space(0.5)};
   justify-content: flex-end;
 `;
 
 const StyledVersion = styled(Version)`
-  margin-right: ${space(0.5)};
   max-width: 190px;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const CountSince = styled('div')`
