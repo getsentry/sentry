@@ -23,7 +23,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getBucketSize} from 'sentry/views/dashboards/widgetCard/chart';
+import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
