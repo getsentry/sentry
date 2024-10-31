@@ -21,6 +21,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -42,6 +43,10 @@ export function NewOnboardingStatus({
   const {projects} = useProjects();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const hasMarkedUnseenTasksAsComplete = useRef(false);
+  const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
+    `quick-start:${organization.slug}:completed`,
+    false
+  );
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
   const walkthrough = isDemoWalkthrough();
@@ -70,6 +75,10 @@ export function NewOnboardingStatus({
   const label = walkthrough ? t('Guided Tours') : t('Onboarding');
   const totalRemainingTasks = allTasks.length - doneTasks.length;
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
+
+  const skipQuickStart =
+    !organization.features?.includes('onboarding') ||
+    (completeTasks.length === allTasks.length && !isActive);
 
   const unseenDoneTasks = useMemo(
     () =>
@@ -102,7 +111,7 @@ export function NewOnboardingStatus({
   }, [onShowPanel, isActive, walkthrough, markDoneTaskAsComplete, organization]);
 
   useEffect(() => {
-    if (totalRemainingTasks !== 0 || isActive) {
+    if (totalRemainingTasks !== 0 || skipQuickStart || quickStartCompleted) {
       return;
     }
 
@@ -111,7 +120,15 @@ export function NewOnboardingStatus({
       referrer: 'onboarding_sidebar',
       new_experience: true,
     });
-  }, [isActive, totalRemainingTasks, organization]);
+
+    setQuickStartCompleted(true);
+  }, [
+    totalRemainingTasks,
+    organization,
+    skipQuickStart,
+    quickStartCompleted,
+    setQuickStartCompleted,
+  ]);
 
   useEffect(() => {
     if (pendingCompletionSeen && isActive && !hasMarkedUnseenTasksAsComplete.current) {
@@ -124,10 +141,7 @@ export function NewOnboardingStatus({
     }
   }, [isActive, pendingCompletionSeen, markDoneTaskAsComplete]);
 
-  if (
-    !organization.features.includes('onboarding') ||
-    (totalRemainingTasks === 0 && !isActive)
-  ) {
+  if (skipQuickStart) {
     return null;
   }
 
