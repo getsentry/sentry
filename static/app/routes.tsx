@@ -1701,6 +1701,10 @@ function buildRoutes() {
           path="trace/:traceSlug/"
           component={make(() => import('sentry/views/performance/traceDetails'))}
         />
+        <Route
+          path="trends/"
+          component={make(() => import('sentry/views/performance/trends'))}
+        />
         <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
           <IndexRoute
             component={make(
@@ -1761,6 +1765,10 @@ function buildRoutes() {
           path="trace/:traceSlug/"
           component={make(() => import('sentry/views/performance/traceDetails'))}
         />
+        <Route
+          path="trends/"
+          component={make(() => import('sentry/views/performance/trends'))}
+        />
         <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
           <IndexRoute
             component={make(
@@ -1818,6 +1826,10 @@ function buildRoutes() {
         <Route
           path="trace/:traceSlug/"
           component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
+        <Route
+          path="trends/"
+          component={make(() => import('sentry/views/performance/trends'))}
         />
         <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
           <IndexRoute
@@ -1910,6 +1922,10 @@ function buildRoutes() {
         <Route
           path="trace/:traceSlug/"
           component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
+        <Route
+          path="trends/"
+          component={make(() => import('sentry/views/performance/trends'))}
         />
         <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
           <IndexRoute
