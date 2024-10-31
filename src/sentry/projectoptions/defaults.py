@@ -1,3 +1,4 @@
+from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.projectoptions import register
 
 # This controls what sentry:option-epoch value is given to a project when it is created
@@ -186,4 +187,4 @@ register(
 )
 
 # Dynamic sampling rate in project-level "manual" configuration mode
-register(key="sentry:target_sample_rate", default=1.0)
+register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
