@@ -81,12 +81,10 @@ class SentryAppWebhookRequestsBuffer:
         pipeline.expire(buffer_key, KEY_EXPIRY)
 
     @overload
-    def _get_all_from_buffer(self, buffer_key: str, pipeline: Pipeline[str]) -> None:
-        ...
+    def _get_all_from_buffer(self, buffer_key: str, pipeline: Pipeline[str]) -> None: ...
 
     @overload
-    def _get_all_from_buffer(self, buffer_key: str) -> list[str]:
-        ...
+    def _get_all_from_buffer(self, buffer_key: str) -> list[str]: ...
 
     def _get_all_from_buffer(
         self, buffer_key: str, pipeline: Pipeline[str] | None = None

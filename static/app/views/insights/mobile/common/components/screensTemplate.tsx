@@ -18,7 +18,9 @@ import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
-import type {ModuleName} from 'sentry/views/insights/types';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName} from 'sentry/views/insights/types';
 
 type ScreensTemplateProps = {
   content: ReactNode;
@@ -39,6 +41,7 @@ export default function ScreensTemplate({
 }: ScreensTemplateProps) {
   const location = useLocation();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
+  const {isInDomainView} = useDomainViewFilters();
 
   const handleProjectChange = useCallback(() => {
     browserHistory.replace({
@@ -54,24 +57,42 @@ export default function ScreensTemplate({
   return (
     <Layout.Page>
       <PageAlertProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
-            <Layout.Title>
-              {title}
-              <PageHeadingQuestionTooltip
-                docsUrl={moduleDocLink}
-                title={moduleDescription}
-              />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              {isProjectCrossPlatform && <PlatformSelector />}
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
+        {!isInDomainView && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs crumbs={crumbs} />
+              <Layout.Title>
+                {title}
+                <PageHeadingQuestionTooltip
+                  docsUrl={moduleDocLink}
+                  title={moduleDescription}
+                />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                {isProjectCrossPlatform && <PlatformSelector />}
+                <FeedbackWidgetButton />
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+        )}
+
+        {isInDomainView && (
+          <MobileHeader
+            headerTitle={
+              <Fragment>
+                {title}
+                <PageHeadingQuestionTooltip
+                  docsUrl={moduleDocLink}
+                  title={moduleDescription}
+                />
+              </Fragment>
+            }
+            module={ModuleName.APP_START}
+            headerActions={isProjectCrossPlatform && <PlatformSelector />}
+          />
+        )}
 
         <Layout.Body>
           <Layout.Main fullWidth>

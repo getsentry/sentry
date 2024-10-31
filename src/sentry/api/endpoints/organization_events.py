@@ -405,12 +405,15 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         if request.auth:
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
-            with sentry_sdk.isolation_scope() as scope:
-                scope.set_tag("forbidden_referrer", referrer)
-                sentry_sdk.capture_message(
-                    "Forbidden Referrer. If this is intentional, add it to `ALLOWED_EVENTS_REFERRERS`"
-                )
+            if referrer:
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("forbidden_referrer", referrer)
+                    sentry_sdk.capture_message(
+                        "Forbidden Referrer. If this is intentional, add it to `ALLOWED_EVENTS_REFERRERS`"
+                    )
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
+
+        use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
             query_source = self.get_request_source(request)
@@ -425,7 +428,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 referrer=referrer,
                 auto_fields=True,
                 auto_aggregations=True,
-                use_aggregate_conditions=True,
+                use_aggregate_conditions=use_aggregate_conditions,
                 allow_metric_aggregates=allow_metric_aggregates,
                 transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
@@ -495,16 +498,16 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     if decision == DashboardWidgetTypes.DISCOVER:
                         return _data_fn(discover, offset, limit, scoped_query)
                     elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
-                        original_results["meta"][
-                            "discoverSplitDecision"
-                        ] = DashboardWidgetTypes.get_type_name(
-                            DashboardWidgetTypes.TRANSACTION_LIKE
+                        original_results["meta"]["discoverSplitDecision"] = (
+                            DashboardWidgetTypes.get_type_name(
+                                DashboardWidgetTypes.TRANSACTION_LIKE
+                            )
                         )
                         return original_results
                     elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
-                        error_results["meta"][
-                            "discoverSplitDecision"
-                        ] = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+                        error_results["meta"]["discoverSplitDecision"] = (
+                            DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+                        )
                         return error_results
                     else:
                         return original_results
@@ -544,9 +547,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                             limit,
                             scoped_query,
                         )
-                        result["meta"][
-                            "discoverSplitDecision"
-                        ] = DiscoverSavedQueryTypes.get_type_name(dataset_inferred_from_query)
+                        result["meta"]["discoverSplitDecision"] = (
+                            DiscoverSavedQueryTypes.get_type_name(dataset_inferred_from_query)
+                        )
 
                         self.save_discover_saved_query_split_decision(
                             discover_query,
@@ -581,10 +584,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                         try:
                             error_results = map["errors"]
-                            error_results["meta"][
-                                "discoverSplitDecision"
-                            ] = DiscoverSavedQueryTypes.get_type_name(
-                                DiscoverSavedQueryTypes.ERROR_EVENTS
+                            error_results["meta"]["discoverSplitDecision"] = (
+                                DiscoverSavedQueryTypes.get_type_name(
+                                    DiscoverSavedQueryTypes.ERROR_EVENTS
+                                )
                             )
                             has_errors = len(error_results["data"]) > 0
                         except KeyError:
@@ -592,10 +595,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                         try:
                             transaction_results = map["transactions"]
-                            transaction_results["meta"][
-                                "discoverSplitDecision"
-                            ] = DiscoverSavedQueryTypes.get_type_name(
-                                DiscoverSavedQueryTypes.TRANSACTION_LIKE
+                            transaction_results["meta"]["discoverSplitDecision"] = (
+                                DiscoverSavedQueryTypes.get_type_name(
+                                    DiscoverSavedQueryTypes.TRANSACTION_LIKE
+                                )
                             )
                             has_transactions = len(transaction_results["data"]) > 0
                         except KeyError:

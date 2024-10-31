@@ -14,7 +14,6 @@ import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface GroupSummaryProps {
   groupCategory: IssueCategory;
@@ -87,15 +86,13 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
 
   const openForm = useFeedbackForm();
 
-  const isStreamlined = useHasStreamlinedUI();
-
   if (!isSummaryEnabled(hasGenAIConsent, groupCategory)) {
     // TODO: Render a banner for needing genai consent
     return null;
   }
 
   return (
-    <Wrapper isStreamlined={isStreamlined}>
+    <Wrapper>
       <StyledTitleRow onClick={() => setExpanded(!data ? false : !expanded)}>
         <CollapsedRow>
           <IconContainer>
@@ -108,7 +105,9 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
               <HeadlinePreview>{data.headline}</HeadlinePreview>
               <SummaryPreview
                 dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(`Details: ${data.summary}`),
+                  __html: singleLineRenderer(
+                    `Details: ${data.summary.replaceAll('\n', ' ').replaceAll('-', '')}`
+                  ),
                 }}
               />
             </Fragment>
@@ -126,16 +125,9 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
             <Content>
               <SummaryContent
                 dangerouslySetInnerHTML={{
-                  __html: marked(`**Details:** ${data.summary}`),
+                  __html: marked(data.summary),
                 }}
               />
-              <ImpactContent>
-                <SummaryContent
-                  dangerouslySetInnerHTML={{
-                    __html: marked(`**Impact:** ${data.impact}`),
-                  }}
-                />
-              </ImpactContent>
             </Content>
           )}
           {openForm && !isPending && (
@@ -187,8 +179,8 @@ const SummaryPreview = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
-const Wrapper = styled(Panel)<{isStreamlined: boolean}>`
-  margin-bottom: ${p => (p.isStreamlined ? 0 : space(1))};
+const Wrapper = styled(Panel)`
+  margin-bottom: ${space(1)};
   padding: ${space(0.5)};
 `;
 
@@ -234,11 +226,6 @@ const SummaryContent = styled('div')`
   }
 `;
 
-const ImpactContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
-
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
@@ -246,7 +233,6 @@ const Content = styled('div')`
 `;
 
 const ButtonContainer = styled('div')`
-  margin-top: ${space(1.5)};
   align-items: center;
   display: flex;
 `;

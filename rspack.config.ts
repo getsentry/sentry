@@ -237,8 +237,8 @@ const appConfig: rspack.Configuration = {
         },
       },
       {
-        test: /\.pegjs/,
-        loader: 'pegjs-loader?cache=false&optimize=speed',
+        test: /\.pegjs$/,
+        use: [{loader: path.resolve(__dirname, './build-utils/peggy-loader.ts')}],
       },
       {
         test: /\.css/,

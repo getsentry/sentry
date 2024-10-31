@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from base64 import b64encode
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -323,6 +323,24 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
                 assert not response.data["isDynamicallySampled"]
                 assert "planSampleRate" not in response.data
 
+    def test_dynamic_sampling_custom_target_sample_rate(self):
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data["targetSampleRate"] == 1.0
+
+        with self.feature({"organizations:dynamic-sampling-custom": False}):
+            response = self.get_success_response(self.organization.slug)
+            assert "targetSampleRate" not in response.data
+
+    def test_dynamic_sampling_custom_sampling_mode(self):
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data["samplingMode"] == "organization"
+
+        with self.feature({"organizations:dynamic-sampling-custom": False}):
+            response = self.get_success_response(self.organization.slug)
+            assert "samplingMode" not in response.data
+
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]
         resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
@@ -345,6 +363,47 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             resp.data["avatar"]["avatarUrl"]
             == generate_region_url() + "/organization-avatar/abc123/"
         )
+
+    def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self):
+        with self.feature("organizations:onboarding"):
+            old_date = datetime(2023, 12, 31, tzinfo=UTC)
+            old_org = self.create_organization(name="old-org", date_added=old_date, owner=self.user)
+            self.login_as(user=self.user)
+
+            OrganizationOption.objects.create(organization_id=old_org.id, key="foo:bar", value=True)
+
+            response = self.get_success_response(
+                old_org.slug, qs_params={"include_feature_flags": 1}
+            )
+            assert "onboarding" not in response.data["features"]
+
+    def test_new_orgs_with_options_get_onboarding_feature_flag(self):
+        with self.feature("organizations:onboarding"):
+            newer_date = datetime(2024, 12, 31, tzinfo=UTC)
+            new_org = self.create_organization(date_added=newer_date, owner=self.user)
+            self.login_as(user=self.user)
+
+            OrganizationOption.objects.create(organization_id=new_org.id, key="foo:bar", value=True)
+
+            response = self.get_success_response(
+                new_org.slug, qs_params={"include_feature_flags": 1}
+            )
+            assert "onboarding" in response.data["features"]
+
+    def test_new_orgs_with_options_do_not_get_onboarding_feature_flag(self):
+        with self.feature("organizations:onboarding"):
+            newer_date = datetime(2024, 12, 31, tzinfo=UTC)
+            new_org = self.create_organization(date_added=newer_date, owner=self.user)
+            self.login_as(user=self.user)
+
+            OrganizationOption.objects.create(
+                organization_id=new_org.id, key="onboarding:complete", value=True
+            )
+
+            response = self.get_success_response(
+                new_org.slug, qs_params={"include_feature_flags": 1}
+            )
+            assert "onboarding" not in response.data["features"]
 
 
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
@@ -410,7 +469,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         "sentry.integrations.github.integration.GitHubApiClient.get_repositories",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
-    @with_feature("organizations:codecov-integration")
+    @with_feature(["organizations:codecov-integration", "organizations:dynamic-sampling-custom"])
     def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -448,13 +507,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "aggregatedDataConsent": True,
-            "genAIConsent": True,
             "issueAlertsThreadFlag": False,
             "metricAlertsThreadFlag": False,
             "metricsActivatePercentiles": False,
             "metricsActivateLastForGauges": True,
             "uptimeAutodetection": False,
+            "targetSampleRate": 0.1,
+            "samplingMode": "project",
         }
 
         # needed to set require2FA
@@ -493,6 +552,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:metrics_activate_percentiles") is False
         assert options.get("sentry:metrics_activate_last_for_gauges") is True
         assert options.get("sentry:uptime_autodetection") is False
+        assert options.get("sentry:target_sample_rate") == 0.1
+        assert options.get("sentry:sampling_mode") == "project"
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -525,8 +586,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
-        assert "to {}".format(data["aggregatedDataConsent"]) in log.data["aggregatedDataConsent"]
-        assert "to {}".format(data["genAIConsent"]) in log.data["genAIConsent"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
         assert (
@@ -939,6 +998,58 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_org_mapping_already_taken(self):
         self.create_organization(slug="taken")
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
+
+    def test_target_sample_rate_feature(self):
+        with self.feature("organizations:dynamic-sampling-custom"):
+            data = {"targetSampleRate": 0.1}
+            self.get_success_response(self.organization.slug, **data)
+
+        with self.feature({"organizations:dynamic-sampling-custom": False}):
+            data = {"targetSampleRate": 0.1}
+            self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    @with_feature("organizations:dynamic-sampling-custom")
+    def test_target_sample_rate_range(self):
+        # low, within and high
+        data = {"targetSampleRate": 0.0}
+        self.get_success_response(self.organization.slug, **data)
+
+        data = {"targetSampleRate": 0.1}
+        self.get_success_response(self.organization.slug, **data)
+
+        data = {"targetSampleRate": 1.0}
+        self.get_success_response(self.organization.slug, **data)
+
+        # below range
+        data = {"targetSampleRate": -0.1}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+        # above range
+        data = {"targetSampleRate": 1.1}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_sampling_mode_feature(self):
+        with self.feature("organizations:dynamic-sampling-custom"):
+            data = {"samplingMode": "project"}
+            self.get_success_response(self.organization.slug, **data)
+
+        with self.feature({"organizations:dynamic-sampling-custom": False}):
+            data = {"samplingMode": "project"}
+            self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    @with_feature("organizations:dynamic-sampling-custom")
+    def test_sampling_mode_values(self):
+        # project
+        data = {"samplingMode": "project"}
+        self.get_success_response(self.organization.slug, **data)
+
+        # organization
+        data = {"samplingMode": "organization"}
+        self.get_success_response(self.organization.slug, **data)
+
+        # invalid
+        data = {"samplingMode": "invalid"}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
 
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):

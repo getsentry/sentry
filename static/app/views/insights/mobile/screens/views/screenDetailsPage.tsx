@@ -103,7 +103,7 @@ export function ScreenDetailsPage() {
     <TabList hideBorder>
       {tabs.map(tab => {
         const visible =
-          tab.feature === undefined || organization.features?.includes(tab.feature);
+          tab.feature === undefined || organization.features.includes(tab.feature);
         return (
           <TabList.Item key={tab.key} hidden={!visible} textValue={tab.label}>
             {tab.label}
@@ -141,6 +141,12 @@ export function ScreenDetailsPage() {
                 hideDefaultTabs
                 tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
                 headerActions={isProjectCrossPlatform && <PlatformSelector />}
+                headerTitle={transactionName}
+                breadcrumbs={[
+                  {
+                    label: t('Screen Summary'),
+                  },
+                ]}
               />
             )}
             <Layout.Body>

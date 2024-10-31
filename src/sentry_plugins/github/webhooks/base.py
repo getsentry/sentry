@@ -11,7 +11,6 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from rest_framework.request import Request
 
 from sentry.models.organization import Organization
 from sentry.utils import json
@@ -49,7 +48,7 @@ class GithubWebhookBase(View, abc.ABC):
     def get_secret(self, organization: Organization) -> str | None:
         raise NotImplementedError
 
-    def handle(self, request: Request, organization=None) -> HttpResponse:
+    def handle(self, request: HttpRequest, organization=None) -> HttpResponse:
         secret = self.get_secret(organization)
         if secret is None:
             logger.info("github.webhook.missing-secret", extra=self.get_logging_data(organization))

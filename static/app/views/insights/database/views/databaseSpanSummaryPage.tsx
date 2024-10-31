@@ -51,7 +51,7 @@ import {
   SpanIndexedField,
   SpanMetricsField,
 } from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Query = {
   transaction: string;
@@ -193,7 +193,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
               crumbs={[
                 ...crumbs,
                 {
-                  label: 'Query Summary',
+                  label: t('Query Summary'),
                 },
               ]}
             />
@@ -207,7 +207,17 @@ export function DatabaseSpanSummaryPage({params}: Props) {
         </Layout.Header>
       )}
 
-      {isInDomainView && <BackendHeader module={ModuleName.DB} />}
+      {isInDomainView && (
+        <BackendHeader
+          headerTitle={t('Query Summary')}
+          breadcrumbs={[
+            {
+              label: t('Query Summary'),
+            },
+          ]}
+          module={ModuleName.DB}
+        />
+      )}
 
       <Layout.Body>
         <Layout.Main fullWidth>

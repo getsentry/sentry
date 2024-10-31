@@ -3,6 +3,7 @@ import type {Location, LocationDescriptorObject} from 'history';
 
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTimeStampFromTableDateField} from '../dates';
@@ -52,11 +53,13 @@ export function generateLinkToEventInTraceView({
   eventId,
   transactionName,
   eventView,
+  targetId,
   demo,
   source,
   type = 'performance',
+  view,
 }: {
-  eventId: string;
+  eventId: string | undefined;
   location: Location;
   organization: Organization;
   projectSlug: string;
@@ -67,8 +70,12 @@ export function generateLinkToEventInTraceView({
   isHomepage?: boolean;
   source?: string;
   spanId?: string;
+  // targetId represents the span id of the transaction. It will replace eventId once all links
+  // to trace view are updated to use spand ids of transactions instead of event ids.
+  targetId?: string;
   transactionName?: string;
   type?: 'performance' | 'discover';
+  view?: DomainView;
 }) {
   const _eventView = eventView ?? EventView.fromLocation(location);
   const dateSelection = _eventView.normalizeDateSelection(location);
@@ -90,10 +97,12 @@ export function generateLinkToEventInTraceView({
       dateSelection,
       timestamp: normalizedTimestamp,
       eventId,
+      targetId,
       spanId,
       demo,
       location,
       source,
+      view,
     });
   }
 
@@ -103,7 +112,8 @@ export function generateLinkToEventInTraceView({
       eventSlug,
       transactionName,
       location.query,
-      spanId
+      spanId,
+      view
     );
   }
 

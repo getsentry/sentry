@@ -306,6 +306,7 @@ def record_alert_rule_created(
     alert_rule_ui_component=None,
     duplicate_rule=None,
     wizard_v3=None,
+    query_type=None,
     **kwargs,
 ):
     # NOTE: This intentionally does not fire for the default issue alert rule
@@ -334,6 +335,7 @@ def record_alert_rule_created(
         alert_rule_ui_component=alert_rule_ui_component,
         duplicate_rule=duplicate_rule,
         wizard_v3=wizard_v3,
+        query_type=query_type,
     )
 
 

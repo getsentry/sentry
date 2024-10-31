@@ -5,6 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {DatasetSource} from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
 import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
+import {WidgetType} from 'sentry/views/dashboards/types';
 
 describe('DiscoverSplitAlert', () => {
   beforeEach(() => {
@@ -14,7 +15,11 @@ describe('DiscoverSplitAlert', () => {
   it('renders if the widget has a forced split decision', async () => {
     render(
       <DiscoverSplitAlert
-        widget={{...WidgetFixture(), datasetSource: DatasetSource.FORCED}}
+        widget={{
+          ...WidgetFixture(),
+          datasetSource: DatasetSource.FORCED,
+          widgetType: WidgetType.ERRORS,
+        }}
       />
     );
 

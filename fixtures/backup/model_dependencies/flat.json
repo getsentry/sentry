@@ -193,6 +193,9 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "sentry.dashboardpermissions": [
+    "sentry.dashboard"
+  ],
   "sentry.dashboardproject": [
     "sentry.dashboard",
     "sentry.project"
@@ -734,6 +737,13 @@
     "sentry.organizationintegration",
     "sentry.project",
     "sentry.repository"
+  ],
+  "sentry.rollbackorganization": [
+    "sentry.organization"
+  ],
+  "sentry.rollbackuser": [
+    "sentry.organization",
+    "sentry.user"
   ],
   "sentry.rule": [
     "sentry.environment",

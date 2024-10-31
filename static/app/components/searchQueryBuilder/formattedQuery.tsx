@@ -41,7 +41,7 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
       <AggregateKeyVisual token={token} />
     </div>
   ) : (
-    <div>{getKeyName(token.key)}</div>
+    <div>{getKeyName(token.key, {showExplicitTagPrefix: true})}</div>
   );
 }
 

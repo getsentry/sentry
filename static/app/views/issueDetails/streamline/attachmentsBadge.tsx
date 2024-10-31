@@ -43,7 +43,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
         size="zero"
         icon={<IconAttachment size="xs" />}
         to={{
-          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+          pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
           query: location.query,
           replace: true,
         }}

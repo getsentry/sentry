@@ -1,4 +1,6 @@
 import {urlEncode} from '@sentry/utils';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
@@ -8,7 +10,6 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  fireEvent,
   render,
   renderGlobalModal,
   screen,
@@ -29,6 +30,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -81,6 +84,13 @@ function renderTestComponent({
 
   ProjectsStore.loadInitialData(projects);
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
+    organization,
+    router,
+  });
+
   render(
     <WidgetBuilder
       route={{}}
@@ -105,6 +115,7 @@ function renderTestComponent({
         ...params,
       }}
       updateDashboardSplitDecision={updateDashboardSplitDecision}
+      widgetLegendState={widgetLegendState}
     />,
     {
       router,
@@ -252,6 +263,10 @@ describe('WidgetBuilder', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/spans/fields/`,
       body: [],
     });
 
@@ -479,16 +494,12 @@ describe('WidgetBuilder', function () {
       dashboard: testDashboard,
     });
 
-    const search = await screen.findByTestId(/smart-search-input/);
-
-    await userEvent.click(search);
-
-    // Use fireEvent for performance reasons as this test suite is slow
-    fireEvent.paste(search, {
-      target: {value: 'color:blue'},
-      clipboardData: {getData: () => 'color:blue'},
-    });
+    await userEvent.click(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
+    );
+    await userEvent.paste('color:blue');
     await userEvent.keyboard('{enter}');
+
     await userEvent.click(screen.getByText('Add Widget'));
 
     await waitFor(() => {
@@ -743,10 +754,10 @@ describe('WidgetBuilder', function () {
 
     // Filters
     expect(
-      screen.getAllByPlaceholderText('Search for events, users, tags, and more')
+      await screen.findAllByRole('grid', {name: 'Create a search query'})
     ).toHaveLength(2);
-    expect(screen.getByText('event.type:csp')).toBeInTheDocument();
-    expect(screen.getByText('event.type:error')).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'event.type:csp'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'event.type:error'})).toBeInTheDocument();
 
     // Y-axis
     expect(screen.getAllByRole('button', {name: 'Remove query'})).toHaveLength(2);
@@ -866,7 +877,7 @@ describe('WidgetBuilder', function () {
     // Should set widget data up.
     expect(screen.getByText(widget.title)).toBeInTheDocument();
     expect(screen.getByText('Table')).toBeInTheDocument();
-    expect(screen.getByLabelText('Search events')).toBeInTheDocument();
+    await screen.findByRole('grid', {name: 'Create a search query'});
 
     // Should have an orderby select
     expect(screen.getByText('Sort by a column')).toBeInTheDocument();
@@ -988,7 +999,7 @@ describe('WidgetBuilder', function () {
       },
     });
 
-    expect(await screen.findByText('tag:value')).toBeInTheDocument();
+    expect(await screen.findByRole('row', {name: 'tag:value'})).toBeInTheDocument();
 
     // Table display, column, and sort field
     await waitFor(() => {
@@ -1699,10 +1710,10 @@ describe('WidgetBuilder', function () {
     await userEvent.click(screen.getByText('Line Chart'));
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
 
-    await userEvent.type(
-      screen.getByTestId('smart-search-input'),
-      'transaction.duration:123a'
+    await userEvent.click(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
     );
+    await userEvent.paste('transaction.duration:123a');
 
     // Unfocus input
     await userEvent.click(screen.getByText('Filter your results'));
@@ -1838,7 +1849,7 @@ describe('WidgetBuilder', function () {
 
         expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
         expect(screen.getByText('transaction.duration')).toBeInTheDocument();
-        expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'testFilter:value'})).toBeInTheDocument();
         expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
 
         // Switch to errors
@@ -1850,7 +1861,7 @@ describe('WidgetBuilder', function () {
         // The state is still the same
         expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
         expect(screen.getByText('transaction.duration')).toBeInTheDocument();
-        expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'testFilter:value'})).toBeInTheDocument();
       });
 
       it('sets the correct default count_if parameters for the errors dataset', async function () {
@@ -2051,7 +2062,7 @@ describe('WidgetBuilder', function () {
 
         expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
         expect(screen.getByText('transaction.duration')).toBeInTheDocument();
-        expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'testFilter:value'})).toBeInTheDocument(); // Check for query builder token
         expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
 
         // Switch to errors
@@ -2063,7 +2074,7 @@ describe('WidgetBuilder', function () {
         // The state is still the same
         expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
         expect(screen.getByText('transaction.duration')).toBeInTheDocument();
-        expect(screen.getByText('testFilter:value')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'testFilter:value'})).toBeInTheDocument();
       });
 
       it('sets the correct default count_if parameters for the errors dataset', async function () {
@@ -2587,6 +2598,82 @@ describe('WidgetBuilder', function () {
           }),
         })
       );
+    });
+  });
+
+  describe('Spans Dataset', () => {
+    it('queries for span tags and returns the correct data', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/spans/fields/`,
+        body: [
+          {
+            key: 'plan',
+            name: 'Plan',
+          },
+        ],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.query.type === 'string';
+          },
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/spans/fields/`,
+        body: [
+          {
+            key: 'lcp.size',
+            name: 'Lcp.Size',
+          },
+          {
+            key: 'something.else',
+            name: 'Something.Else',
+          },
+        ],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.query.type === 'number';
+          },
+        ],
+      });
+
+      const dashboard = mockDashboard({
+        widgets: [
+          WidgetFixture({
+            widgetType: WidgetType.SPANS,
+            displayType: DisplayType.TABLE,
+            queries: [
+              {
+                name: 'Test Widget',
+                fields: ['count(tags[lcp.size,number])'],
+                columns: [],
+                aggregates: ['count(tags[lcp.size,number])'],
+                conditions: '',
+                orderby: '',
+              },
+            ],
+          }),
+        ],
+      });
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      // Click the argument to the count() function
+      expect(await screen.findByText('lcp.size')).toBeInTheDocument();
+      await userEvent.click(screen.getByText('lcp.size'));
+
+      // The option now appears in the aggregate property dropdown
+      expect(screen.queryAllByText('lcp.size')).toHaveLength(2);
+      expect(screen.getByText('something.else')).toBeInTheDocument();
+
+      // Click count() to verify the string tag is in the dropdown
+      expect(screen.queryByText('plan')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByText(`count(…)`));
+      expect(screen.getByText('plan')).toBeInTheDocument();
     });
   });
 });

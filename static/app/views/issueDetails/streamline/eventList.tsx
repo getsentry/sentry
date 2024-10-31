@@ -24,7 +24,6 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 interface EventListProps {
@@ -41,7 +40,6 @@ export function EventList({group}: EventListProps) {
   const [_error, setError] = useState('');
   const {fields, columnTitles} = useEventColumns(group, organization);
   const eventView = useIssueDetailsEventView({group, queryProps: {fields}});
-  const {baseUrl} = useGroupDetailsRoute();
 
   const grayText = css`
     color: ${theme.subText};
@@ -127,20 +125,6 @@ export function EventList({group}: EventListProps) {
                   />
                 </ButtonBar>
               </EventListHeaderItem>
-
-              <EventListHeaderItem>
-                <LinkButton
-                  borderless
-                  size="xs"
-                  css={grayText}
-                  to={{
-                    pathname: baseUrl,
-                    query: location.query,
-                  }}
-                >
-                  {t('Close')}
-                </LinkButton>
-              </EventListHeaderItem>
             </EventListHeader>
           );
         }}
@@ -154,19 +138,19 @@ const EventListHeader = styled('div')`
   grid-template-columns: 1fr auto auto auto;
   gap: ${space(1.5)};
   align-items: center;
-  padding: ${space(0.75)} ${space(2)};
+  padding: ${space(1)} ${space(2)};
   background: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
   position: sticky;
   top: 0;
-  z-index: 500;
+  z-index: ${p => p.theme.zIndex.header};
   border-radius: ${p => p.theme.borderRadiusTop};
 `;
 
 const EventListTitle = styled('div')`
   color: ${p => p.theme.textColor};
   font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const EventListHeaderItem = styled('div')`
@@ -176,8 +160,12 @@ const EventListHeaderItem = styled('div')`
 `;
 
 const StreamlineEventsTable = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+
   ${Panel} {
     border: 0;
+    margin-bottom: 0;
   }
 
   ${GridHead} {
@@ -193,7 +181,7 @@ const StreamlineEventsTable = styled('div')`
     padding: 0 ${space(1.5)};
     white-space: nowrap;
     text-overflow: ellipsis;
-    text-transform: capitalize;
+    text-transform: none;
     border-width: 0 1px 0 0;
     border-style: solid;
     border-image: linear-gradient(

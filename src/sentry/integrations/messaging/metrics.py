@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
-from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecycleOutcome
+from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.users.models import User
@@ -14,7 +15,7 @@ from sentry.users.services.user import RpcUser
 class MessagingInteractionType(Enum):
     """A way in which a user can interact with Sentry through a messaging app."""
 
-    # General interactions
+    # Direct interactions with the user
     HELP = "HELP"
     LINK_IDENTITY = "LINK_IDENTITY"
     UNLINK_IDENTITY = "UNLINK_IDENTITY"
@@ -34,12 +35,19 @@ class MessagingInteractionType(Enum):
     IGNORE = "IGNORE"
     MARK_ONGOING = "MARK_ONGOING"
 
+    # Automatic behaviors
+    UNFURL_ISSUES = "UNFURL_ISSUES"
+    UNFURL_METRIC_ALERTS = "UNFURL_METRIC_ALERTS"
+    UNFURL_DISCOVER = "UNFURL_DISCOVER"
+
+    GET_PARENT_NOTIFICATION = "GET_PARENT_NOTIFICATION"
+
     def __str__(self) -> str:
         return self.value.lower()
 
 
 @dataclass
-class MessagingInteractionEvent(EventLifecycleMetric):
+class MessagingInteractionEvent(IntegrationEventLifecycleMetric):
     """An instance to be recorded of a user interacting through a messaging app."""
 
     interaction_type: MessagingInteractionType
@@ -49,13 +57,14 @@ class MessagingInteractionEvent(EventLifecycleMetric):
     user: User | RpcUser | None = None
     organization: Organization | RpcOrganization | None = None
 
-    def get_key(self, outcome: EventLifecycleOutcome) -> str:
-        return self.get_standard_key(
-            domain="messaging",
-            integration_name=self.spec.provider_slug,
-            interaction_type=str(self.interaction_type),
-            outcome=outcome,
-        )
+    def get_integration_domain(self) -> IntegrationDomain:
+        return IntegrationDomain.MESSAGING
+
+    def get_integration_name(self) -> str:
+        return self.spec.provider_slug
+
+    def get_interaction_type(self) -> str:
+        return str(self.interaction_type)
 
     def get_extras(self) -> Mapping[str, Any]:
         return {

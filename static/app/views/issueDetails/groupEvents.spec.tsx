@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,7 +11,6 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -28,11 +28,12 @@ describe('groupEvents', () => {
     routes: [],
     location: {},
     environments: [],
-    group: GroupFixture() as Group,
+    group: GroupFixture(),
+    project: ProjectFixture(),
   });
 
   let organization: Organization;
-  let router;
+  let router: ReturnType<typeof initializeOrg>['router'];
 
   beforeEach(() => {
     browserHistory.push = jest.fn();
@@ -207,7 +208,7 @@ describe('groupEvents', () => {
       {router, organization}
     );
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
     expect(requests.discover).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
@@ -238,7 +239,7 @@ describe('groupEvents', () => {
       })
     );
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
   });
 
@@ -273,7 +274,7 @@ describe('groupEvents', () => {
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    const attachmentsColumn = screen.queryByText('attachments');
+    const attachmentsColumn = screen.queryByText('Attachments');
     expect(attachmentsColumn).not.toBeInTheDocument();
     expect(requests.attachments).not.toHaveBeenCalled();
   });
@@ -288,7 +289,7 @@ describe('groupEvents', () => {
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    const attachmentsColumn = screen.queryByText('attachments');
+    const attachmentsColumn = screen.queryByText('Attachments');
     expect(attachmentsColumn).not.toBeInTheDocument();
     expect(requests.attachments).toHaveBeenCalled();
   });
@@ -303,7 +304,7 @@ describe('groupEvents', () => {
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    const minidumpColumn = screen.queryByText('minidump');
+    const minidumpColumn = screen.queryByText('Minidump');
     expect(minidumpColumn).not.toBeInTheDocument();
   });
 
@@ -335,7 +336,7 @@ describe('groupEvents', () => {
       {router, organization}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    const minidumpColumn = screen.queryByText('minidump');
+    const minidumpColumn = screen.queryByText('Minidump');
     expect(minidumpColumn).toBeInTheDocument();
   });
 
@@ -367,8 +368,8 @@ describe('groupEvents', () => {
       {router, organization}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    const attachmentsColumn = screen.queryByText('attachments');
-    const minidumpColumn = screen.queryByText('minidump');
+    const attachmentsColumn = screen.queryByText('Attachments');
+    const minidumpColumn = screen.queryByText('Minidump');
     expect(attachmentsColumn).not.toBeInTheDocument();
     expect(minidumpColumn).toBeInTheDocument();
     expect(requests.attachments).toHaveBeenCalled();
@@ -393,7 +394,7 @@ describe('groupEvents', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
   });
 
@@ -410,7 +411,7 @@ describe('groupEvents', () => {
       expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
     );
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
   });
 
@@ -439,7 +440,7 @@ describe('groupEvents', () => {
       })
     );
     await waitFor(() => {
-      expect(screen.getByText('transaction')).toBeInTheDocument();
+      expect(screen.getByText('Transaction')).toBeInTheDocument();
     });
   });
 

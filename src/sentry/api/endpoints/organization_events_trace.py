@@ -38,7 +38,7 @@ from sentry.utils.iterators import chunked
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import bulk_snuba_queries
-from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
+from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id, is_span_id
 
 logger: logging.Logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
@@ -618,7 +618,11 @@ def query_trace_data(
     # id is just for consistent results
     transaction_orderby = ["-root", "timestamp", "id"]
     if event_id is not None:
-        transaction_columns.append(f'to_other(id, "{event_id}", 0, 1) AS target')
+        # Already validated to be one of the two
+        if is_event_id(event_id):
+            transaction_columns.append(f'to_other(id, "{event_id}", 0, 1) AS target')
+        else:
+            transaction_columns.append(f'to_other(trace.span, "{event_id}", 0, 1) AS target')
         # Target is the event_id the frontend plans to render, we try to sort it to the top so it loads even if its not
         # within the query limit, needs to be the first orderby cause it takes precedence over finding the root
         transaction_orderby.insert(0, "-target")
@@ -758,7 +762,7 @@ def build_span_query(trace_id: str, spans_params: SnubaParams, query_spans: list
     sentry_sdk.set_measurement("trace_view.spans.span_minimum", span_minimum)
     sentry_sdk.set_tag("trace_view.split_by_char.optimization", len(query_spans) > span_minimum)
     if len(query_spans) > span_minimum:
-        # TODO because we're not doing an IN on a list of literals, snuba will not optimize the query with the HexInt
+        # TODO: because we're not doing an IN on a list of literals, snuba will not optimize the query with the HexInt
         # column processor which means we won't be taking advantage of the span_id index but if we only do this when we
         # have a lot of query_spans we should have a great performance improvement still once we do that we can simplify
         # this code and always apply this optimization
@@ -1062,10 +1066,12 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         if detailed and use_spans:
             raise ParseError("Cannot return a detailed response while using spans")
         limit = min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 10_000)
-        event_id = request.GET.get("event_id") or request.GET.get("eventId")
+        event_id = (
+            request.GET.get("targetId") or request.GET.get("event_id") or request.GET.get("eventId")
+        )
 
         # Only need to validate event_id as trace_id is validated in the URL
-        if event_id and not is_event_id(event_id):
+        if event_id and not (is_event_id(event_id) or is_span_id(event_id)):
             return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
 
         query_source = self.get_request_source(request)

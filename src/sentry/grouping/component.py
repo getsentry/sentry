@@ -19,6 +19,7 @@ KNOWN_MAJOR_COMPONENT_NAMES = {
     "violation": "violation",
     "uri": "URL",
     "message": "message",
+    "template": "template",
 }
 
 
@@ -78,7 +79,8 @@ class GroupingComponent:
 
         if items and items[-1]:
             return " ".join(items[-1])
-        return self.name or "others"
+
+        return self.name or self.id
 
     def get_subcomponent(
         self, id: str, only_contributing: bool = False

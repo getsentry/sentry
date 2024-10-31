@@ -62,7 +62,10 @@ export default function useReplayCount({
             data_source: dataSource,
             project: -1,
             statsPeriod,
-            query: `${fieldName}:[${ids.join(',')}]`,
+            query:
+              fieldName === 'transaction'
+                ? `${fieldName}:[${ids.map(id => `"${id}"`).join(',')}]`
+                : `${fieldName}:[${ids.join(',')}]`,
           },
         },
       ],

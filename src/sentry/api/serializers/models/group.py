@@ -764,8 +764,10 @@ class GroupSerializer(GroupSerializerBase):
         ) -> Mapping[int, int]:
             pass
 
-    def __init__(self, environment_func: Callable[[], Environment] | None = None):
-        GroupSerializerBase.__init__(self)
+    def __init__(
+        self, collapse=None, expand=None, environment_func: Callable[[], Environment] | None = None
+    ):
+        GroupSerializerBase.__init__(self, collapse=collapse, expand=expand)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
     def _seen_stats_error(self, item_list, user) -> Mapping[Group, SeenStats]:

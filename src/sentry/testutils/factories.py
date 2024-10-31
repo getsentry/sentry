@@ -75,14 +75,12 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
@@ -137,6 +135,7 @@ from sentry.sentry_apps.installations import (
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
@@ -144,6 +143,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
+from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -439,9 +439,7 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_api_key(organization, scope_list=None, **kwargs):
-        return ApiKey.objects.create(
-            organization_id=organization.id if organization else None, scope_list=scope_list
-        )
+        return ApiKey.objects.create(organization_id=organization.id, scope_list=scope_list)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -1214,12 +1212,13 @@ class Factories:
             ):
                 assert install.api_grant is not None
                 assert install.sentry_app.application is not None
-                GrantExchanger.run(
+                assert install.sentry_app.proxy_user is not None
+                GrantExchanger(
                     install=rpc_install,
                     code=install.api_grant.code,
                     client_id=install.sentry_app.application.client_id,
                     user=install.sentry_app.proxy_user,
-                )
+                ).run()
                 install = SentryAppInstallation.objects.get(id=install.id)
         return install
 
@@ -1558,9 +1557,7 @@ class Factories:
         aggregate="count()",
         time_window=10,
         threshold_period=1,
-        include_all_projects=False,
         environment=None,
-        excluded_projects=None,
         date_added=None,
         query_type=None,
         dataset=Dataset.Events,
@@ -1596,8 +1593,6 @@ class Factories:
             query_type=query_type,
             dataset=dataset,
             environment=environment,
-            include_all_projects=include_all_projects,
-            excluded_projects=excluded_projects,
             user=user,
             event_types=event_types,
             comparison_delta=comparison_delta,
@@ -1638,13 +1633,11 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_trigger(
-        alert_rule, label=None, alert_threshold=100, excluded_projects=None
-    ):
+    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
         if not label:
             label = petname.generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects)
+        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2138,7 +2131,11 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return Detector.objects.create(
-            organization=organization, name=name, owner_user_id=owner_user_id, owner_team=owner_team
+            organization=organization,
+            name=name,
+            owner_user_id=owner_user_id,
+            owner_team=owner_team,
+            **kwargs,
         )
 
     @staticmethod

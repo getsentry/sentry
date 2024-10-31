@@ -17,7 +17,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
     sync_status_inbound as sync_status_inbound_task,
 )
-from sentry.integrations.utils import where_should_sync
+from sentry.integrations.utils.sync import where_should_sync
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -260,11 +260,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
         user_defaults = user_option_value.get(self.model.provider, {})
 
-        defaults = {}
-        defaults.update(project_defaults)
-        defaults.update(user_defaults)
-
-        return defaults
+        return {**project_defaults, **user_defaults}
 
     @abstractmethod
     def create_issue(self, data, **kwargs):

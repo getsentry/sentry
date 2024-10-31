@@ -77,6 +77,7 @@ each child (such as Event). However, when you delete a project, it won't actuall
 registered Group task. It will instead take a more efficient approach of batch deleting its indirect
 descendants, such as Event, so it can more efficiently bulk delete rows.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -104,6 +105,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry.models.commitfilechange import CommitFileChange
     from sentry.models.rulefirehistory import RuleFireHistory
     from sentry.monitors import models as monitor_models
+    from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
     from sentry.sentry_apps.models.sentry_app import SentryApp
     from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
     from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
@@ -153,7 +155,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
     manager.register(models.OrganizationMember, defaults.OrganizationMemberDeletionTask)
     manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
-    manager.register(models.PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask)
+    manager.register(PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask)
     manager.register(models.Project, defaults.ProjectDeletionTask)
     manager.register(models.ProjectBookmark, BulkModelDeletionTask)
     manager.register(models.ProjectKey, BulkModelDeletionTask)

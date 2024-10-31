@@ -22,7 +22,7 @@ describe('PagePerformanceTable', function () {
   const organization = OrganizationFixture();
   const router = RouterFixture();
 
-  let eventsMock;
+  let eventsMock: jest.Mock;
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue(router.location);
@@ -147,7 +147,7 @@ describe('PagePerformanceTable', function () {
     expect(screen.getByRole('cell', {name: '/insights/browser/'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '/insights/browser/'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/browser/pageloads/overview/?project=11276&transaction=%2Finsights%2Fbrowser%2F'
+      '/organizations/org-slug/insights/pageloads/overview/?project=11276&transaction=%2Finsights%2Fbrowser%2F'
     );
 
     expect(screen.getByRole('cell', {name: 'frontend'})).toBeInTheDocument();

@@ -10,7 +10,7 @@ import useRouter from './useRouter';
  *
  * @deprecated only use in legacy react class components
  */
-function withSentryRouter<P extends WithRouterProps>(
+function withSentryRouter<P extends Partial<WithRouterProps>>(
   WrappedComponent: React.ComponentType<P>
 ): React.ComponentType<Omit<P, keyof WithRouterProps>> {
   function WithSentryRouterWrapper(props: Omit<P, keyof WithRouterProps>) {

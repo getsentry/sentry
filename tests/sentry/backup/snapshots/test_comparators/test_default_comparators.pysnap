@@ -1,9 +1,5 @@
 ---
-<<<<<<< HEAD
-created: '2024-09-30T17:27:03.064802+00:00'
-=======
-created: '2024-09-28T00:12:56.122846+00:00'
->>>>>>> 2a2d464df9a (GENERATED - Snapshots)
+created: '2024-10-30T19:48:46.854616+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -362,6 +358,11 @@ source: tests/sentry/backup/test_comparators.py
     - created_by_id
     - organization
   model_name: sentry.dashboard
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - dashboard
+  model_name: sentry.dashboardpermissions
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -1341,6 +1342,27 @@ source: tests/sentry/backup/test_comparators.py
     - project
     - repository
   model_name: sentry.repositoryprojectpathconfig
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - organization
+  model_name: sentry.rollbackorganization
+- comparators:
+  - class: UUID4Comparator
+    fields:
+    - share_uuid
+    - uuid
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - organization
+    - user_id
+  model_name: sentry.rollbackuser
 - comparators:
   - class: ForeignKeyComparator
     fields:

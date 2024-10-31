@@ -51,7 +51,7 @@ type Options = {
   project?: Readonly<number[]>;
   query?: string;
   queryBatching?: QueryBatching;
-  queryExtras?: Record<string, string>;
+  queryExtras?: Record<string, string | boolean | number>;
   referrer?: string;
   start?: DateString;
   team?: Readonly<string | string[]>;
@@ -257,7 +257,7 @@ export const useFetchEventAttachments = (
       staleTime: Infinity,
       ...options,
       enabled:
-        (organization.features?.includes('event-attachments') ?? false) &&
+        (organization.features.includes('event-attachments') ?? false) &&
         options.enabled !== false,
     }
   );

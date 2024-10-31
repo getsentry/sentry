@@ -19,6 +19,7 @@ from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.messaging import commands
@@ -84,8 +85,8 @@ class MsTeamsIntegrationResolve(MsTeamsIntegrationAnalytics):
     type = "integrations.msteams.resolve"
 
 
-class MsTeamsIntegrationIgnore(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.ignore"
+class MsTeamsIntegrationArchive(MsTeamsIntegrationAnalytics):
+    type = "integrations.msteams.archive"
 
 
 class MsTeamsIntegrationUnresolve(MsTeamsIntegrationAnalytics):
@@ -98,7 +99,7 @@ class MsTeamsIntegrationUnassign(MsTeamsIntegrationAnalytics):
 
 analytics.register(MsTeamsIntegrationAssign)
 analytics.register(MsTeamsIntegrationResolve)
-analytics.register(MsTeamsIntegrationIgnore)
+analytics.register(MsTeamsIntegrationArchive)
 analytics.register(MsTeamsIntegrationUnresolve)
 analytics.register(MsTeamsIntegrationUnassign)
 
@@ -445,8 +446,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
                     action_data.update({"statusDetails": {"inNextRelease": True}})
                 elif resolve_type == "inCurrentRelease":
                     action_data.update({"statusDetails": {"inRelease": "latest"}})
-        elif action_type == ACTION_TYPE.IGNORE:
-            ignore_count = data.get("ignoreInput")
+        # ignore has been renamed to archive, but ignore is still used in the payload
+        elif action_type == ACTION_TYPE.ARCHIVE:
+            ignore_count = data.get("archiveInput")
             if ignore_count:
                 action_data = {"status": "ignored"}
                 if int(ignore_count) > 0:
@@ -462,7 +464,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
     _ACTION_TYPES = {
         ACTION_TYPE.RESOLVE: ("resolve", MessagingInteractionType.RESOLVE),
-        ACTION_TYPE.IGNORE: ("ignore", MessagingInteractionType.IGNORE),
+        ACTION_TYPE.ARCHIVE: ("archive", MessagingInteractionType.ARCHIVE),
         ACTION_TYPE.ASSIGN: ("assign", MessagingInteractionType.ASSIGN),
         ACTION_TYPE.UNRESOLVE: ("unresolve", MessagingInteractionType.UNRESOLVE),
         ACTION_TYPE.UNASSIGN: ("unassign", MessagingInteractionType.UNASSIGN),
@@ -524,7 +526,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         group = Group.objects.select_related("project__organization").filter(id=group_id).first()
         if group:
-            integration = integration_service.get_integration(integration_id=integration.id)
+            integration = integration_service.get_integration(
+                integration_id=integration.id, status=ObjectStatus.ACTIVE
+            )
             if integration is None:
                 group = None
 

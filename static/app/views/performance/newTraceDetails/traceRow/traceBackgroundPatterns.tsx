@@ -1,11 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
 
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
 
 function getMaxErrorSeverity(errors: TraceTree.TraceError[]) {
   return errors.reduce((acc, error) => {

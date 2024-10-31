@@ -43,7 +43,11 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
+from sentry.incidents.models.alert_rule import (
+    AlertRuleExcludedProjects,
+    AlertRuleMonitorTypeInt,
+    AlertRuleTriggerExclusion,
+)
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
@@ -65,6 +69,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
 from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
@@ -476,13 +481,15 @@ class ExhaustiveFixtures(Fixtures):
         alert = self.create_alert_rule(
             organization=org,
             projects=[project],
-            include_all_projects=True,
-            excluded_projects=[other_project],
             user=owner,
         )
+        AlertRuleExcludedProjects.objects.create(alert_rule=alert, project=other_project)
         alert.user_id = owner_id
         alert.save()
-        trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
+        trigger = self.create_alert_rule_trigger(alert_rule=alert)
+        AlertRuleTriggerExclusion.objects.create(
+            alert_rule_trigger=trigger, query_subscription=alert.snuba_query.subscriptions.first()
+        )
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         activated_alert = self.create_alert_rule(
             organization=org,
@@ -533,8 +540,11 @@ class ExhaustiveFixtures(Fixtures):
 
         # Dashboard
         dashboard = Dashboard.objects.create(
-            title=f"Dashboard 1 for {slug}", created_by_id=owner_id, organization=org
+            title=f"Dashboard 1 for {slug}",
+            created_by_id=owner_id,
+            organization=org,
         )
+        DashboardPermissions.objects.create(is_creator_only_editable=False, dashboard=dashboard)
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             order=1,

@@ -8,7 +8,6 @@ import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import getDuration from 'sentry/utils/duration/getDuration';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {
   PERFORMANCE_SCORE_MEDIANS,
   PERFORMANCE_SCORE_P90S,
@@ -20,7 +19,6 @@ interface Props {
 
 export function WebVitalStatusLineChart({webVitalSeries}: Props) {
   const theme = useTheme();
-  const router = useRouter();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
 
@@ -206,7 +204,7 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
   return (
     <ChartContainer>
       {webVital && (
-        <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+        <ChartZoom period={period} start={start} end={end} utc={utc}>
           {zoomRenderProps => (
             <LineChart
               {...zoomRenderProps}

@@ -13,8 +13,10 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
-from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardDatasetSourcesTypes
+from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.models.user import User
 from sentry.utils.samples import load_data
@@ -22,7 +24,11 @@ from sentry.utils.samples import load_data
 pytestmark = pytest.mark.sentry_metrics
 
 
-class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
+class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    @property
+    def now(self):
+        return before_now(minutes=10)
+
     def setUp(self):
         super().setUp()
         self.org = self.create_organization()
@@ -44,7 +50,6 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
 
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
         self.dry_run = False
 
         self.dashboard = Dashboard.objects.create(
@@ -96,6 +101,46 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
             fields=["transaction", "count()"],
             columns=[],
             aggregates=[],
+            conditions="",
+            order=0,
+        )
+
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            project_id=self.project.id,
+            tags={"transaction": "/sentry/scripts/views.js"},
+            value=30,
+            org_id=self.dashboard.organization.id,
+            hours_before_now=2,
+        )
+
+        with self.feature({"organizations:dynamic-sampling": True}):
+            _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+                metrics_query, self.dry_run
+            )
+        metrics_widget.refresh_from_db()
+        assert (
+            metrics_widget.discover_widget_split is None
+            if self.dry_run
+            else metrics_widget.discover_widget_split == 101
+        )
+        assert queried_snuba
+
+    def test_metrics_compatible_query_no_data(self):
+        metrics_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        metrics_query = DashboardWidgetQuery.objects.create(
+            widget=metrics_widget,
+            fields=["transaction", "count()"],
+            columns=[],
+            aggregates=[],
             conditions="transaction:'/sentry/scripts/views.js'",
             order=0,
         )
@@ -108,7 +153,41 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
         assert (
             metrics_widget.discover_widget_split is None
             if self.dry_run
-            else metrics_widget.discover_widget_split == 101
+            else metrics_widget.discover_widget_split == 100
+        )
+        assert queried_snuba
+
+    def test_metrics_compatible_query_no_data_only_aggregates(self):
+        metrics_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+
+        # When only aggregates are requested, the response has a row but it's
+        # completely empty.
+        metrics_query = DashboardWidgetQuery.objects.create(
+            widget=metrics_widget,
+            fields=["count()", "count_unique(user)"],
+            columns=[],
+            aggregates=[],
+            conditions=f"project:[{self.project_2.slug}]",
+            order=0,
+        )
+
+        with self.feature({"organizations:dynamic-sampling": True}):
+            _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
+                metrics_query, self.dry_run
+            )
+        metrics_widget.refresh_from_db()
+        assert (
+            metrics_widget.discover_widget_split is None
+            if self.dry_run
+            else metrics_widget.discover_widget_split == 100
         )
         assert queried_snuba
 
@@ -342,6 +421,203 @@ class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
         assert snuba_dataclass.start == datetime(2024, 5, 1, 11, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.environments == [environment]
+
+    def test_errors_widget_unhandled_in_conditions(self):
+        error_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        errors_widget_query = DashboardWidgetQuery.objects.create(
+            widget=error_widget,
+            fields=["title", "issue", "project", "release", "count()", "count_unique(user)"],
+            columns=[],
+            aggregates=["count_unique(user)"],
+            conditions="(error.unhandled:true message:testing) OR message:test",
+            order=0,
+        )
+
+        _get_and_save_split_decision_for_dashboard_widget(errors_widget_query, self.dry_run)
+        error_widget.refresh_from_db()
+        assert (
+            error_widget.discover_widget_split is None
+            if self.dry_run
+            else error_widget.discover_widget_split == 100
+        )
+        if not self.dry_run:
+            assert error_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
+
+    def test_dashboard_projects_empty(self):
+        # Dashboard belonging to an org with no projects
+        self.organization = self.create_organization()
+        self.dashboard = Dashboard.objects.create(
+            title="Dashboard With Split Widgets",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        error_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        errors_widget_query = DashboardWidgetQuery.objects.create(
+            widget=error_widget,
+            fields=["title", "issue", "project", "release", "count()", "count_unique(user)"],
+            columns=[],
+            aggregates=["count_unique(user)"],
+            conditions="(error.unhandled:true message:testing) OR message:test",
+            order=0,
+        )
+
+        _get_and_save_split_decision_for_dashboard_widget(errors_widget_query, self.dry_run)
+        error_widget.refresh_from_db()
+        assert (
+            error_widget.discover_widget_split is None
+            if self.dry_run
+            else error_widget.discover_widget_split == 100
+        )
+        if not self.dry_run:
+            assert error_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
+
+    def test_dashboard_split_equation_without_aggregates(self):
+        transaction_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        transaction_widget_query = DashboardWidgetQuery.objects.create(
+            widget=transaction_widget,
+            fields=[
+                "equation|count_if(blah-key-set,equals,True) / count()",
+            ],
+            columns=[],
+            aggregates=[
+                "equation|count_if(blah-key-set,equals,True) / count()",
+            ],
+            conditions="event.type:transaction transaction:foo",
+            order=0,
+        )
+
+        _get_and_save_split_decision_for_dashboard_widget(transaction_widget_query, self.dry_run)
+        transaction_widget.refresh_from_db()
+        assert (
+            transaction_widget.discover_widget_split is None
+            if self.dry_run
+            else transaction_widget.discover_widget_split == 101
+        )
+        if not self.dry_run:
+            assert (
+                transaction_widget.dataset_source
+                == DashboardDatasetSourcesTypes.SPLIT_VERSION_2.value
+            )
+
+    def test_dashboard_split_transaction_status_error_events_dataset(self):
+        transaction_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        transaction_widget_query = DashboardWidgetQuery.objects.create(
+            widget=transaction_widget,
+            fields=["transaction", "p75(transaction.duration)", "total.count"],
+            columns=["transaction"],
+            aggregates=["p75(transaction.duration)", "total.count"],
+            conditions="event.type:transaction transaction.status:ok",
+            order=0,
+        )
+
+        _get_and_save_split_decision_for_dashboard_widget(transaction_widget_query, self.dry_run)
+        transaction_widget.refresh_from_db()
+        assert (
+            transaction_widget.discover_widget_split is None
+            if self.dry_run
+            else transaction_widget.discover_widget_split == 101
+        )
+        if not self.dry_run:
+            assert transaction_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
+
+    def test_unhandled_filter_sets_error_events_dataset(self):
+        error_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        error_widget_query = DashboardWidgetQuery.objects.create(
+            widget=error_widget,
+            fields=[
+                "equation|count() / total.count * 100",
+                "release",
+                "error_event",
+                "count()",
+                "total.count",
+            ],
+            columns=["release"],
+            aggregates=["equation|count() / total.count * 100", "count()", "total.count"],
+            conditions="error.unhandled:false",
+            order=0,
+        )
+
+        _get_and_save_split_decision_for_dashboard_widget(error_widget_query, self.dry_run)
+        error_widget.refresh_from_db()
+        assert (
+            error_widget.discover_widget_split is None
+            if self.dry_run
+            else error_widget.discover_widget_split == 100
+        )
+        if not self.dry_run:
+            assert error_widget.dataset_source == DashboardDatasetSourcesTypes.FORCED.value
+
+    def test_empty_equation_is_filtered_out(self):
+        error_widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        error_widget_query = DashboardWidgetQuery.objects.create(
+            widget=error_widget,
+            fields=[
+                "count()",
+                "equation|",
+            ],
+            columns=[],
+            aggregates=["count()", "equation|"],
+            conditions='message:"Testing"',
+            order=0,
+        )
+
+        _get_and_save_split_decision_for_dashboard_widget(error_widget_query, self.dry_run)
+        error_widget.refresh_from_db()
+        assert (
+            error_widget.discover_widget_split is None
+            if self.dry_run
+            else error_widget.discover_widget_split == 100
+        )
+        if not self.dry_run:
+            assert error_widget.dataset_source == DashboardDatasetSourcesTypes.SPLIT_VERSION_2.value
 
 
 class DashboardWidgetDatasetSplitDryRunTestCase(DashboardWidgetDatasetSplitTestCase):

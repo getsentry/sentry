@@ -2,9 +2,10 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
+import type {TraceEventResponse} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 
 import {EventTraceView} from './eventTraceView';
 
@@ -15,17 +16,6 @@ class ResizeObserver {
 }
 
 window.ResizeObserver = ResizeObserver;
-
-jest.mock('screenfull', () => ({
-  enabled: true,
-  isFullscreen: false,
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
-
-// We are having replay errors about invalid stylesheets, though the CSS seems valid
 
 describe('EventTraceView', () => {
   const traceId = 'this-is-a-good-trace-id';
@@ -39,6 +29,17 @@ describe('EventTraceView', () => {
         trace_id: traceId,
       },
     },
+  });
+  const issuePlatformBody: TraceEventResponse = {
+    data: [],
+    meta: {fields: {}, units: {}},
+  };
+
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: issuePlatformBody,
+    });
   });
 
   it('renders a trace', async () => {
@@ -88,16 +89,9 @@ describe('EventTraceView', () => {
       body: {},
     });
 
-    render(
-      <EventTraceView
-        group={group}
-        event={event}
-        organization={organization}
-        projectSlug={project.slug}
-      />
-    );
+    render(<EventTraceView group={group} event={event} organization={organization} />);
 
-    expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
+    expect(await screen.findByText('Trace')).toBeInTheDocument();
     expect(await screen.findByText('transaction')).toBeInTheDocument();
   });
 
@@ -121,16 +115,11 @@ describe('EventTraceView', () => {
       },
     });
 
-    const {container} = render(
-      <EventTraceView
-        group={group}
-        event={event}
-        organization={organization}
-        projectSlug={project.slug}
-      />
-    );
+    render(<EventTraceView group={group} event={event} organization={organization} />);
 
-    await act(tick);
-    expect(container).toBeEmptyDOMElement();
+    expect(await screen.findByText('Trace')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {name: 'View Full Trace'})
+    ).toBeInTheDocument();
   });
 });

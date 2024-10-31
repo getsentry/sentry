@@ -45,7 +45,6 @@ from sentry.constants import (
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
-    DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -60,12 +59,18 @@ from sentry.constants import (
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     SAFE_FIELDS_DEFAULT,
+    SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    TARGET_SAMPLE_RATE_DEFAULT,
     UPTIME_AUTODETECTION,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
+    boost_low_volume_projects_of_org_with_query,
+)
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -188,8 +193,6 @@ ORG_OPTIONS = (
         bool,
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
-    ("aggregatedDataConsent", "sentry:aggregated_data_consent", bool, DATA_CONSENT_DEFAULT),
-    ("genAIConsent", "sentry:gen_ai_consent", bool, DATA_CONSENT_DEFAULT),
     (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
@@ -215,6 +218,8 @@ ORG_OPTIONS = (
         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
     ),
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
+    ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
+    ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
@@ -268,14 +273,14 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     metricsActivatePercentiles = serializers.BooleanField(required=False)
     metricsActivateLastForGauges = serializers.BooleanField(required=False)
-    aggregatedDataConsent = serializers.BooleanField(required=False)
-    genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
+    targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
+    samplingMode = serializers.ChoiceField(choices=DynamicSamplingMode.choices, required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -363,6 +368,46 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             raise serializers.ValidationError(
                 "The accountRateLimit option cannot be configured for this organization"
             )
+        return value
+
+    def validate_targetSampleRate(self, value):
+        from sentry import features
+
+        organization = self.context["organization"]
+        request = self.context["request"]
+        has_dynamic_sampling_custom = features.has(
+            "organizations:dynamic-sampling-custom", organization, actor=request.user
+        )
+        if not has_dynamic_sampling_custom:
+            raise serializers.ValidationError(
+                "Organization does not have the custom dynamic sample rate feature enabled."
+            )
+
+        if (
+            organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
+            != DynamicSamplingMode.ORGANIZATION.value
+        ):
+            raise serializers.ValidationError(
+                "Must be in Automatic Mode to configure the organization sample rate."
+            )
+
+        return value
+
+    def validate_samplingMode(self, value):
+        from sentry import features
+
+        organization = self.context["organization"]
+        request = self.context["request"]
+        has_dynamic_sampling_custom = features.has(
+            "organizations:dynamic-sampling-custom", organization, actor=request.user
+        )
+        if not has_dynamic_sampling_custom:
+            raise serializers.ValidationError(
+                "Organization does not have the custom dynamic sample rate feature enabled."
+            )
+
+        # as this is handled by a choice field, we don't need to check the values of the field
+
         return value
 
     def validate(self, attrs):
@@ -766,12 +811,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         required=False,
     )
 
-    # legal and compliance
-    aggregatedDataConsent = serializers.BooleanField(
-        help_text="Specify `true` to let Sentry use your error messages, stack traces, spans, and DOM interactions data for issue workflow and other product improvements.",
-        required=False,
-    )
-
     # restore org
     cancelDeletion = serializers.BooleanField(
         help_text="Specify `true` to restore an organization that is pending deletion.",
@@ -789,7 +828,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     apdexThreshold = serializers.IntegerField(required=False)
 
     # TODO: publish when GA'd
-    genAIConsent = serializers.BooleanField(required=False)
     metricsActivatePercentiles = serializers.BooleanField(required=False)
     metricsActivateLastForGauges = serializers.BooleanField(required=False)
 
@@ -911,6 +949,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     )
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
+
+            if "targetSampleRate" in changed_data:
+                boost_low_volume_projects_of_org_with_query.delay(organization.id)
 
             if was_pending_deletion:
                 self.create_audit_entry(

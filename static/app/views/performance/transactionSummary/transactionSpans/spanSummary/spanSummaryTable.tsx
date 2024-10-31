@@ -41,7 +41,7 @@ import {
   type SpanIndexedResponse,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
@@ -188,7 +188,7 @@ export default function SpanSummaryTable(props: Props) {
   });
 
   // Restructure the transaction durations into a map for faster lookup
-  const transactionDurationMap = {};
+  const transactionDurationMap: Record<string, number> = {};
   txnDurationData?.data.forEach(datum => {
     transactionDurationMap[datum.id] = datum['transaction.duration'];
   });

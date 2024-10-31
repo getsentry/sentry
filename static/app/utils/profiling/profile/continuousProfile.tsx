@@ -13,13 +13,13 @@ export class ContinuousProfile extends Profile {
     const firstSample = chunk.samples[0];
     const lastSample = chunk.samples[chunk.samples.length - 1];
 
-    const duration = lastSample.timestamp - firstSample.timestamp;
     const {threadId, threadName} = getThreadData(chunk);
 
     const profile = new ContinuousProfile({
-      duration,
-      endedAt: lastSample.timestamp,
-      startedAt: firstSample.timestamp,
+      // Duration is in seconds, convert to nanoseconds
+      duration: (lastSample.timestamp - firstSample.timestamp) * 1e3,
+      endedAt: lastSample.timestamp * 1e3,
+      startedAt: firstSample.timestamp * 1e3,
       threadId: threadId,
       name: threadName,
       type: 'flamechart',
@@ -63,6 +63,9 @@ export class ContinuousProfile extends Profile {
   }
 
   appendSample(stack: Frame[], duration: number, end: number): void {
+    // Keep track of discarded samples and ones that may have negative weights
+    this.trackSampleStats(duration);
+
     // Ignore samples with 0 weight
     if (duration === 0) {
       return;

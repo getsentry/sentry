@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from django.urls import reverse
 
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -58,8 +58,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         for axis in ["epm()", "spm()"]:
             response = self._do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=6)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=6),
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -93,8 +93,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         for axis in ["epm()", "spm()"]:
             response = self._do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=24)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=24),
                     "interval": "24h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -126,8 +126,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         for axis in ["epm()", "spm()"]:
             response = self._do_request(
                 data={
-                    "start": iso_format(self.day_ago + timedelta(minutes=30)),
-                    "end": iso_format(self.day_ago + timedelta(hours=6, minutes=30)),
+                    "start": self.day_ago + timedelta(minutes=30),
+                    "end": self.day_ago + timedelta(hours=6, minutes=30),
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -161,8 +161,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         for axis in ["eps()", "sps()"]:
             response = self._do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(minutes=6),
                     "interval": "1m",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -203,8 +203,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         response = self._do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
                 "interval": "1m",
                 "yAxis": "count()",
                 "field": ["transaction", "sum(span.self_time)"],

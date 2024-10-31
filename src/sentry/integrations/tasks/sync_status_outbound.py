@@ -1,4 +1,5 @@
 from sentry import analytics, features
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
@@ -34,7 +35,9 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
         # Issue link could have been deleted while sync job was in the queue.
         return None
 
-    integration = integration_service.get_integration(integration_id=external_issue.integration_id)
+    integration = integration_service.get_integration(
+        integration_id=external_issue.integration_id, status=ObjectStatus.ACTIVE
+    )
     if not integration:
         return None
     installation = integration.get_installation(organization_id=external_issue.organization_id)

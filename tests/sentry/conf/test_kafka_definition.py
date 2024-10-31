@@ -13,21 +13,8 @@ from sentry.testutils.cases import TestCase
 
 def test_topic_definition() -> None:
     # All topic are registered
-    # TODO: Remove this once these topics are actually registered in sentry-kafka-schemas
-    currently_unregistered_topics = [
-        "outcomes-billing",
-        "ingest-attachments",
-        "ingest-transactions",
-        "profiles",
-        "ingest-occurrences",
-        "monitors-clock-pulse",
-        "monitors-mark-missing",
-        "monitors-mark-timeout",
-    ]
-
     for topic in Topic:
-        if topic.value not in currently_unregistered_topics:
-            assert sentry_kafka_schemas.get_topic(topic.value) is not None
+        assert sentry_kafka_schemas.get_topic(topic.value) is not None
 
     for topic in Topic:
         cluster_name = settings.KAFKA_TOPIC_TO_CLUSTER[topic.value]

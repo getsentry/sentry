@@ -5,7 +5,8 @@ import UnsubscribeProject from 'sentry/views/unsubscribe/project';
 
 describe('UnsubscribeProject', function () {
   const params = {orgId: 'acme', id: '9876'};
-  let mockUpdate, mockGet;
+  let mockUpdate: jest.Mock;
+  let mockGet: jest.Mock;
   beforeEach(() => {
     mockUpdate = MockApiClient.addMockResponse({
       url: '/organizations/acme/unsubscribe/project/9876/?_=signature-value',

@@ -259,9 +259,6 @@ from sentry.replays.endpoints.organization_replay_index import OrganizationRepla
 from sentry.replays.endpoints.organization_replay_selector_index import (
     OrganizationReplaySelectorIndexEndpoint,
 )
-from sentry.replays.endpoints.project_replay_accessibility_issues import (
-    ProjectReplayAccessibilityIssuesEndpoint,
-)
 from sentry.replays.endpoints.project_replay_clicks_index import ProjectReplayClicksIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
 from sentry.replays.endpoints.project_replay_recording_segment_details import (
@@ -548,6 +545,7 @@ from .endpoints.organization_releases import (
     OrganizationReleasesStatsEndpoint,
 )
 from .endpoints.organization_request_project_creation import OrganizationRequestProjectCreation
+from .endpoints.organization_sampling_project_rates import OrganizationSamplingProjectRatesEndpoint
 from .endpoints.organization_sdk_updates import (
     OrganizationSdksEndpoint,
     OrganizationSdkUpdatesEndpoint,
@@ -1413,6 +1411,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-config-repositories",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/sampling/project-rates/$",
+        OrganizationSamplingProjectRatesEndpoint.as_view(),
+        name="sentry-api-0-organization-sampling-project-rates",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/sdk-updates/$",
         OrganizationSdkUpdatesEndpoint.as_view(),
         name="sentry-api-0-organization-sdk-updates",
@@ -2046,7 +2049,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-flag-log",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/token/(?P<token>.+)/$",
         OrganizationFlagsHooksEndpoint.as_view(),
         name="sentry-api-0-organization-flag-hooks",
     ),
@@ -2541,11 +2544,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/viewed-by/$",
         ProjectReplayViewedByEndpoint.as_view(),
         name="sentry-api-0-project-replay-viewed-by",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/accessibility-issues/$",
-        ProjectReplayAccessibilityIssuesEndpoint.as_view(),
-        name="sentry-api-0-project-replay-accessibility-issues",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^\/]+)/replays/(?P<replay_id>[\w-]+)/clicks/$",
