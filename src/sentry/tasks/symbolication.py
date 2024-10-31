@@ -26,56 +26,6 @@ from sentry.utils.sdk import set_current_event_project
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.symbolication")
 
-# The maximum number of times an event will be moved between the normal
-# and low priority queues
-SYMBOLICATOR_MAX_QUEUE_SWITCHES = 3
-
-
-def should_demote_symbolication(
-    platform: SymbolicatorPlatform, project_id: int, emit_metrics=True
-) -> bool:
-    """
-    Determines whether a project's symbolication events should be pushed to the low priority queue.
-
-    The decision is made based on three factors, in order:
-        1. is the store.symbolicate-event-lpq-never killswitch set for the project? -> normal queue
-        2. is the store.symbolicate-event-lpq-always killswitch set for the project? -> low priority queue
-        3. has the project been selected for the lpq according to realtime_metrics? -> low priority queue
-
-    Note that 3 is gated behind the config setting SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE.
-    """
-    never_lowpri = killswitch_matches_context(
-        "store.symbolicate-event-lpq-never",
-        {
-            "project_id": project_id,
-        },
-        emit_metrics=emit_metrics,
-    )
-
-    if never_lowpri:
-        return False
-
-    always_lowpri = killswitch_matches_context(
-        "store.symbolicate-event-lpq-always",
-        {
-            "project_id": project_id,
-        },
-        emit_metrics=emit_metrics,
-    )
-
-    if always_lowpri:
-        return True
-    elif settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE and in_random_rollout(
-        "store.symbolicate-event-lpq-rate"
-    ):
-        try:
-            return realtime_metrics.is_lpq_project(platform, project_id)
-        # realtime_metrics is empty in getsentry
-        except AttributeError:
-            return False
-    else:
-        return False
-
 
 def get_symbolication_function_for_platform(
     platform: SymbolicatorPlatform,
@@ -149,25 +99,6 @@ def _do_symbolicate_event(
     has_changed = False
 
     set_current_event_project(project_id)
-
-    # check whether the event is in the wrong queue and if so, move it to the other one.
-    # we do this at most SYMBOLICATOR_MAX_QUEUE_SWITCHES times.
-    if queue_switches >= SYMBOLICATOR_MAX_QUEUE_SWITCHES:
-        metrics.incr("tasks.store.symbolicate_event.low_priority.max_queue_switches", sample_rate=1)
-    else:
-        should_be_low_priority = should_demote_symbolication(task_kind.platform, project_id)
-
-        if task_kind.is_low_priority != should_be_low_priority:
-            metrics.incr("tasks.store.symbolicate_event.low_priority.wrong_queue", sample_rate=1)
-            submit_symbolicate(
-                task_kind.with_low_priority(should_be_low_priority),
-                cache_key,
-                event_id,
-                start_time,
-                queue_switches + 1,
-                has_attachments=has_attachments,
-            )
-            return
 
     def _continue_to_process_event(was_killswitched: bool = False) -> None:
         # Go through the remaining symbolication platforms
