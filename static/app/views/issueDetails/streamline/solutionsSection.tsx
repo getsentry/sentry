@@ -25,7 +25,7 @@ export default function SolutionsSection({
 }: {
   group: Group;
   project: Project;
-  event?: Event;
+  event: Event | undefined;
 }) {
   const {openDrawer} = useDrawer();
   const openButtonRef = useRef<HTMLButtonElement>(null);
