@@ -16,6 +16,9 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
         self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
         self.login_as(user=self.user)
 
+    def test_without_ds(self):
+        self.get_error_response(self.organization.slug, status_code=404)
+
     def test_get(self):
         project1 = self.create_project(teams=[self.team])
         project2 = self.create_project(teams=[self.team])
@@ -62,4 +65,7 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
             self.get_error_response(self.organization.slug, method="put", raw_data=data)
 
     def test_put_invalid_body(self):
-        self.get_error_response(self.organization.slug, method="put", raw_data={}, status_code=400)
+        with self.feature(self.features):
+            self.get_error_response(
+                self.organization.slug, method="put", raw_data={}, status_code=400
+            )
