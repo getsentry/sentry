@@ -71,7 +71,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
     "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1
     * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.profiles.task.process_profile": 0.01 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.clock_pulse": 1.0,
