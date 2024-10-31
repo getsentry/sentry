@@ -1475,14 +1475,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
 
         if (options.preferences.missing_instrumentation) {
-          TraceTree.DetectMissingInstrumentation(this.root);
+          TraceTree.DetectMissingInstrumentation(root);
         }
-
         if (options.preferences.autogroup.sibling) {
-          TraceTree.AutogroupSiblingSpanNodes(this.root);
+          TraceTree.AutogroupSiblingSpanNodes(root);
         }
         if (options.preferences.autogroup.parent) {
-          TraceTree.AutogroupDirectChildrenSpanNodes(this.root);
+          TraceTree.AutogroupDirectChildrenSpanNodes(root);
         }
 
         if (index !== -1) {

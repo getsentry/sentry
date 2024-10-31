@@ -16,7 +16,6 @@ export function SimilarIssuesSidebarSection() {
     <Flex justify="space-between" align="center">
       <SidebarSectionTitle style={{margin: 0}}>{t('Similar Issues')}</SidebarSectionTitle>
       <SectionButton
-        onClick={() => {}}
         aria-label={t('View Similar Issues')}
         priority="link"
         size="zero"

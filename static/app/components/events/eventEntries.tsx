@@ -5,6 +5,7 @@ import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
 import EventReplay from 'sentry/components/events/eventReplay';
+import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
@@ -27,7 +28,6 @@ import {EventExtraData} from './eventExtraData';
 import {EventSdk} from './eventSdk';
 import {EventTagsAndScreenshot} from './eventTagsAndScreenshot';
 import {EventViewHierarchy} from './eventViewHierarchy';
-import {EventGroupingInfo} from './groupingInfo';
 import {EventPackageData} from './packageData';
 import {EventRRWebIntegration} from './rrwebIntegration';
 import {DataSection} from './styles';
@@ -127,7 +127,7 @@ function EventEntries({
         />
       )}
       {!isShare && event.groupID && (
-        <EventGroupingInfo
+        <EventGroupingInfoSection
           projectSlug={projectSlug}
           event={event}
           showGroupingConfig={

@@ -192,8 +192,11 @@ export function getPerformanceLandingUrl(organization: OrganizationSummary): str
   return `${getPerformanceBaseUrl(organization.slug)}/`;
 }
 
-export function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
-  return `${getPerformanceBaseUrl(organization.slug)}/trends/`;
+export function getPerformanceTrendsUrl(
+  organization: OrganizationSummary,
+  view?: DomainView
+): string {
+  return `${getPerformanceBaseUrl(organization.slug, view)}/trends/`;
 }
 
 export function getTransactionSearchQuery(location: Location, query: string = '') {
@@ -225,11 +228,13 @@ export function trendsTargetRoute({
   organization,
   initialConditions,
   additionalQuery,
+  view,
 }: {
   location: Location;
   organization: Organization;
   additionalQuery?: {[x: string]: string};
   initialConditions?: MutableSearch;
+  view?: DomainView;
 }) {
   const newQuery = {
     ...location.query,
@@ -264,7 +269,7 @@ export function trendsTargetRoute({
   }
   newQuery.query = modifiedConditions.formatString();
 
-  return {pathname: getPerformanceTrendsUrl(organization), query: {...newQuery}};
+  return {pathname: getPerformanceTrendsUrl(organization, view), query: {...newQuery}};
 }
 
 export function removeTracingKeysFromSearch(

@@ -2848,3 +2848,9 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "issues.collapse-group-stats-in-activity",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

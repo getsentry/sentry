@@ -168,7 +168,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   }
 
   return (
-    <Layout.Header>
+    <HeaderLayout>
       <HeaderContent>
         <HeaderRow>
           <Breadcrumbs
@@ -203,9 +203,13 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           </HeaderRow>
         ) : null}
       </HeaderContent>
-    </Layout.Header>
+    </HeaderLayout>
   );
 }
+
+const HeaderLayout = styled(Layout.Header)`
+  padding: ${space(2)} ${space(2)} !important;
+`;
 
 const HeaderRow = styled('div')`
   display: flex;
