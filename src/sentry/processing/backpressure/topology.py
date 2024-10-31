@@ -15,13 +15,14 @@ class ProcessingServices(Enum):
     ProcessingLocks = "processing-locks"
     PostProcessLocks = "post-process-locks"
 
-    def get_all() -> list[str]:
-        return [item.value for item in ProcessingServices]
+
+def get_all_services() -> list[str]:
+    return [item.value for item in ProcessingServices]
 
 
 CONSUMERS = {
     # fallback if no explicit consumer was defined
-    "default": ProcessingServices.get_all(),
+    "default": get_all_services(),
     "profiles": [ProcessingServices.Celery.value],
     # Transactions have been split into their own consumer here,
     # We should consider this for our other consumer types.
