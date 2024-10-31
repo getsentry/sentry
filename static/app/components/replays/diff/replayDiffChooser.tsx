@@ -8,6 +8,7 @@ import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff'
 import {ReplayTextDiff} from 'sentry/components/replays/diff/replayTextDiff';
 import {TabList, TabPanels, TabStateProvider} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -62,7 +63,7 @@ export default function ReplayDiffChooser({
                 {
                   link: (
                     <ExternalLink
-                      href={'https://github.com/getsentry/sentry/issues/80074'}
+                      href={'https://github.com/getsentry/sentry/issues/80092'}
                     />
                   ),
                 }
@@ -88,7 +89,7 @@ export default function ReplayDiffChooser({
 }
 
 const StyledAlert = styled(Alert)`
-  margin: 0;
+  margin: ${space(1)} 0 0;
 `;
 
 const Grid = styled('div')`
