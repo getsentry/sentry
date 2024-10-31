@@ -61,19 +61,6 @@ function groupTasksByCompletion(tasks: OnboardingTask[]) {
   };
 }
 
-function getPanelDescription(walkthrough: boolean) {
-  if (walkthrough) {
-    return {
-      title: t('Guided Tours'),
-      description: t('Take a guided tour to see what Sentry can do for you'),
-    };
-  }
-  return {
-    title: t('Quick Start'),
-    description: t('Walk through this guide to get the most out of Sentry right away.'),
-  };
-}
-
 interface TaskProps extends Pick<OnboardingTaskStatus, 'status'> {
   hidePanel: () => void;
   task: OnboardingTask;
@@ -359,7 +346,6 @@ export function NewOnboardingSidebar({
   beyondBasicsTasks,
 }: NewSidebarProps) {
   const walkthrough = isDemoWalkthrough();
-  const {title, description} = getPanelDescription(walkthrough);
 
   const sortedGettingStartedTasks = gettingStartedTasks.sort(
     (a, b) =>
@@ -383,14 +369,13 @@ export function NewOnboardingSidebar({
       collapsed={collapsed}
       hidePanel={onClose}
       orientation={orientation}
-      title={title}
+      title={walkthrough ? t('Guided Tour') : t('Quick Setup')}
     >
       <Content>
-        <p>{description}</p>
         <TaskGroup
           title={t('Getting Started')}
           description={t(
-            'Learn the essentials to set up monitoring, capture errors, and track releases.'
+            'Complete these essential setups to capture your first errors, add commit and release information and get alerted when something’s wrong.'
           )}
           tasks={sortedGettingStartedTasks}
           hidePanel={onClose}
@@ -405,7 +390,7 @@ export function NewOnboardingSidebar({
           <TaskGroup
             title={t('Beyond the Basics')}
             description={t(
-              'Explore advanced features like release tracking, performance alerts and more to enhance your monitoring.'
+              'Ready to level-up? Get even more value out of Sentry by enabling advanced features and fine-tuning your workflow.'
             )}
             tasks={sortedBeyondBasicsTasks}
             hidePanel={onClose}
