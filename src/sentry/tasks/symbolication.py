@@ -355,7 +355,5 @@ symbolicate_jvm_event = make_task_fn(
 symbolicate_event_from_reprocessing = make_task_fn(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(
-        platform=SymbolicatorPlatform.native, is_low_priority=False, is_reprocessing=True
-    ),
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=True),
 )
