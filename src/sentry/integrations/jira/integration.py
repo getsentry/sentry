@@ -125,6 +125,10 @@ class JiraIntegration(IssueSyncIntegration):
     issues_ignored_fields_key = "issues_ignored_fields"
     resolution_strategy_key = "resolution_strategy"
 
+    @property
+    def issue_provider_name(self) -> str:
+        return "jira"
+
     @classproperty
     def use_email_scope(cls):
         return settings.JIRA_USE_EMAIL_SCOPE

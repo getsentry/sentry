@@ -25,6 +25,10 @@ from sentry.utils.strings import truncatechars
 
 
 class GitHubIssuesSpec(SourceCodeIssueIntegration):
+    @property
+    def issue_provider_name(self):
+        return "github"
+
     def make_external_key(self, data: Mapping[str, Any]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
 

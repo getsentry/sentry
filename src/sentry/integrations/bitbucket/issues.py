@@ -31,6 +31,10 @@ PRIORITIES = (
 
 
 class BitbucketIssuesSpec(SourceCodeIssueIntegration):
+    @property
+    def issue_provider_name(self) -> str:
+        return "bitbucket"
+
     def get_issue_url(self, key: str) -> str:
         repo, issue_id = key.split("#")
         return f"https://bitbucket.org/{repo}/issues/{issue_id}"

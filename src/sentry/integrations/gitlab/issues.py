@@ -20,6 +20,10 @@ ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")
 
 
 class GitlabIssuesSpec(SourceCodeIssueIntegration):
+    @property
+    def issue_provider_name(self) -> str:
+        return "gitlab"
+
     def make_external_key(self, data):
         return "{}:{}".format(self.model.metadata["domain_name"], data["key"])
 

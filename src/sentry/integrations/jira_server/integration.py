@@ -283,6 +283,10 @@ class JiraServerIntegration(IssueSyncIntegration):
 
     default_identity = None
 
+    @property
+    def issue_provider_name(self) -> str:
+        return "jira_server"
+
     def get_client(self):
         try:
             self.default_identity = self.get_default_identity()

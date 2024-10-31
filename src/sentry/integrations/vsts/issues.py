@@ -33,6 +33,10 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
     issue_fields = frozenset(["id", "title", "url"])
     done_categories = frozenset(["Resolved", "Completed", "Closed"])
 
+    @property
+    def issue_provider_name(self) -> str:
+        return "vsts"
+
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "work_item_type"]
 
