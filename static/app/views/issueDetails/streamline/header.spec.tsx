@@ -69,7 +69,7 @@ describe('StreamlinedGroupHeader', () => {
 
       expect(screen.getByText('RequestError')).toBeInTheDocument();
       expect(screen.getByText('Unhandled')).toBeInTheDocument();
-      expect(await screen.findByRole('link', {name: 'Events'})).toBeInTheDocument();
+      expect(await screen.findByText('Events')).toBeInTheDocument();
       expect(screen.getByText(formatAbbreviatedNumber(group.count))).toBeInTheDocument();
       expect(await screen.findByRole('link', {name: 'Users'})).toBeInTheDocument();
       expect(

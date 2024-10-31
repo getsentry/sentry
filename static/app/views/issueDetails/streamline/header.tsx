@@ -104,9 +104,15 @@ export default function StreamlinedGroupHeader({
               {secondaryTitle ?? t('No error message')}
             </SecondaryTitle>
           </Flex>
-          <StatTitle to={`${baseUrl}events/${location.search}`}>{t('Events')}</StatTitle>
-          <StatTitle to={`${baseUrl}tags/user/${location.search}`}>
-            {t('Users')}
+          <StatTitle>{t('Events')}</StatTitle>
+          <StatTitle>
+            {userCount === 0 ? (
+              t('Users')
+            ) : (
+              <StatLink to={`${baseUrl}tags/user/${location.search}`}>
+                {t('Users')}
+              </StatLink>
+            )}
           </StatTitle>
           <Flex gap={space(1)} align="center" justify="flex-start">
             <ErrorLevel level={group.level} size={'10px'} />
@@ -187,14 +193,19 @@ const SecondaryTitle = styled(Tooltip)<{isDefault: boolean}>`
   font-style: ${p => (p.isDefault ? 'italic' : 'initial')};
 `;
 
-const StatTitle = styled(Link)`
+const StatTitle = styled('div')`
   display: block;
-  text-decoration: underline;
-  text-decoration-style: dotted;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
   justify-self: flex-end;
+`;
+
+const StatLink = styled(Link)`
+  color: ${p => p.theme.subText};
+  text-decoration: ${p => (p['aria-disabled'] ? 'none' : 'underline')};
+  text-decoration-style: dotted;
 `;
 
 const StatCount = styled(Count)`
