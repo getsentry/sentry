@@ -51,11 +51,12 @@ import type {ParentAutogroupNode} from '../../traceModels/parentAutogroupNode';
 import type {SiblingAutogroupNode} from '../../traceModels/siblingAutogroupNode';
 import {TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
+import {useHasTraceNewUi} from '../../useHasTraceNewUi';
 
-const DetailContainer = styled('div')`
+const DetailContainer = styled('div')<{hasNewTraceUi?: boolean}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => (p.hasNewTraceUi ? 0 : space(2))};
   padding: ${space(1)};
 
   ${DataSection} {
@@ -568,6 +569,16 @@ const ActionsContainer = styled('div')`
 `;
 
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
+  const hasNewTraceUi = useHasTraceNewUi();
+
+  if (!hasNewTraceUi) {
+    return <LegacyEventTags event={event} projectSlug={projectSlug} />;
+  }
+
+  return <EventTagsDataSection event={event} projectSlug={projectSlug} />;
+}
+
+function LegacyEventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   return (
     <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
       <TagsWrapper>

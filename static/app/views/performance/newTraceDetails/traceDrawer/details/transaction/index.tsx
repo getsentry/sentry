@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -25,7 +25,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import type {
+  SpanMetricsQueryFilters,
+  SpanMetricsResponse,
+} from 'sentry/views/insights/types';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {Referrer} from '../../../referrers';
 import {traceAnalytics} from '../../../traceAnalytics';
@@ -35,11 +39,13 @@ import {CacheMetrics} from '../../../traceDrawer/details/transaction/sections/ca
 import type {TraceTreeNodeDetailsProps} from '../../../traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from '../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
+import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
 import {IssueList} from '../issues/issues';
 import {TraceDrawerComponents} from '../styles';
 
 import {AdditionalData, hasAdditionalData} from './sections/additionalData';
 import {BreadCrumbs} from './sections/breadCrumbs';
+import {BuiltIn} from './sections/builtIn';
 import {Entries} from './sections/entries';
 import GeneralInfo from './sections/generalInfo';
 import {hasMeasurements, Measurements} from './sections/measurements';
@@ -100,12 +106,10 @@ export function TransactionNodeDetails({
   onParentClick,
   replay,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
-  const location = useLocation();
   const {projects} = useProjects();
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
   }, [node.errors, node.performance_issues]);
-
   const {
     data: event,
     isError,
@@ -114,7 +118,7 @@ export function TransactionNodeDetails({
     node,
     organization,
   });
-
+  const hasNewTraceUi = useHasTraceNewUi();
   const {data: cacheMetrics} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
@@ -136,7 +140,7 @@ export function TransactionNodeDetails({
   const project = projects.find(proj => proj.slug === event?.projectSlug);
 
   return (
-    <TraceDrawerComponents.DetailContainer>
+    <TraceDrawerComponents.DetailContainer hasNewTraceUi={hasNewTraceUi}>
       {!node.canFetch ? (
         <StyledAlert type="info" showIcon>
           {tct(
@@ -165,33 +169,13 @@ export function TransactionNodeDetails({
 
       <IssueList node={node} organization={organization} issues={issues} />
 
-      <TraceDrawerComponents.SectionCardGroup>
-        <GeneralInfo
-          node={node}
-          onParentClick={onParentClick}
-          organization={organization}
-          event={event}
-          location={location}
-        />
-        {hasAdditionalData(event) ? <AdditionalData event={event} /> : null}
-        {hasMeasurements(event) ? (
-          <Measurements event={event} location={location} organization={organization} />
-        ) : null}
-        {cacheMetrics.length > 0 ? <CacheMetrics cacheMetrics={cacheMetrics} /> : null}
-        {hasSDKContext(event) ? <Sdk event={event} /> : null}
-        {eventHasCustomMetrics(organization, event._metrics_summary) ? (
-          <CustomMetricsEventData
-            metricsSummary={event._metrics_summary}
-            startTimestamp={event.startTimestamp}
-            projectId={event.projectID}
-          />
-        ) : null}
-        {event.contexts.trace?.data ? (
-          <TraceDrawerComponents.TraceDataSection event={event} />
-        ) : null}
-      </TraceDrawerComponents.SectionCardGroup>
-
-      <Request event={event} />
+      <TransactionSpecificSections
+        event={event}
+        node={node}
+        onParentClick={onParentClick}
+        organization={organization}
+        cacheMetrics={cacheMetrics}
+      />
 
       {event.projectSlug ? (
         <Entries
@@ -229,6 +213,106 @@ export function TransactionNodeDetails({
         />
       ) : null}
     </TraceDrawerComponents.DetailContainer>
+  );
+}
+
+type TransactionSpecificSectionsProps = {
+  cacheMetrics: Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>[];
+  event: EventTransaction;
+  node: TraceTreeNode<TraceTree.Transaction>;
+  onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  organization: Organization;
+};
+
+function TransactionSpecificSections(props: TransactionSpecificSectionsProps) {
+  const location = useLocation();
+  const hasNewTraceUi = useHasTraceNewUi();
+  const {event, node, onParentClick, organization, cacheMetrics} = props;
+
+  if (!hasNewTraceUi) {
+    return <LegacyTransactionSpecificSections {...props} />;
+  }
+
+  return (
+    <Fragment>
+      <GeneralInfo
+        node={node}
+        onParentClick={onParentClick}
+        organization={organization}
+        event={event}
+        location={location}
+        cacheMetrics={cacheMetrics}
+      />
+      <InterimSection
+        title={t('Transaction Specific')}
+        type="transaction_specifc"
+        initialCollapse
+      >
+        <TraceDrawerComponents.SectionCardGroup>
+          {hasSDKContext(event) || cacheMetrics.length > 0 ? (
+            <BuiltIn event={event} cacheMetrics={cacheMetrics} />
+          ) : null}
+          {hasAdditionalData(event) ? <AdditionalData event={event} /> : null}
+          {hasMeasurements(event) ? (
+            <Measurements event={event} location={location} organization={organization} />
+          ) : null}
+          {eventHasCustomMetrics(organization, event._metrics_summary) ? (
+            <CustomMetricsEventData
+              metricsSummary={event._metrics_summary}
+              startTimestamp={event.startTimestamp}
+              projectId={event.projectID}
+            />
+          ) : null}
+          {event.contexts.trace?.data ? (
+            <TraceDrawerComponents.TraceDataSection event={event} />
+          ) : null}
+        </TraceDrawerComponents.SectionCardGroup>
+        <Request event={event} />
+      </InterimSection>
+    </Fragment>
+  );
+}
+
+function LegacyTransactionSpecificSections({
+  event,
+  node,
+  onParentClick,
+  organization,
+  cacheMetrics,
+}: TransactionSpecificSectionsProps) {
+  const location = useLocation();
+
+  return (
+    <Fragment>
+      <TraceDrawerComponents.SectionCardGroup>
+        <GeneralInfo
+          node={node}
+          onParentClick={onParentClick}
+          organization={organization}
+          event={event}
+          location={location}
+          cacheMetrics={cacheMetrics}
+        />
+        {hasAdditionalData(event) ? <AdditionalData event={event} /> : null}
+        {hasMeasurements(event) ? (
+          <Measurements event={event} location={location} organization={organization} />
+        ) : null}
+        {cacheMetrics.length > 0 ? <CacheMetrics cacheMetrics={cacheMetrics} /> : null}
+        {hasSDKContext(event) ? <Sdk event={event} /> : null}
+        {eventHasCustomMetrics(organization, event._metrics_summary) ? (
+          <CustomMetricsEventData
+            metricsSummary={event._metrics_summary}
+            startTimestamp={event.startTimestamp}
+            projectId={event.projectID}
+          />
+        ) : null}
+        {event.contexts.trace?.data ? (
+          <TraceDrawerComponents.TraceDataSection event={event} />
+        ) : null}
+      </TraceDrawerComponents.SectionCardGroup>
+
+      <Request event={event} />
+    </Fragment>
   );
 }
 
