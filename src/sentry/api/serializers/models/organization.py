@@ -70,6 +70,9 @@ from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
+# This cut-off date ensures that only new organizations created after this date go
+# through the logic that checks for the 'onboarding:complete' key in OrganizationOption.
+# This prevents older organizations from seeing the Quick Start again if they haven't completed it.
 START_DATE_FOR_CHECKING_ONBOARDING_COMPLETION = datetime(2024, 10, 30, tzinfo=timezone.utc)
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
