@@ -55,6 +55,11 @@ export function BigNumberWidget(props: Props) {
       title={props.title}
       description={props.description}
       actions={props.actions}
+      actionsDisabled={props.actionsDisabled}
+      actionsMessage={props.actionsMessage}
+      badgeProps={props.badgeProps}
+      onFullScreenViewClick={props.onFullScreenViewClick}
+      warnings={props.warnings}
       error={error}
       onRetry={props.onRetry}
     >
