@@ -20,6 +20,7 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
+import {GroupEventLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
@@ -48,14 +49,21 @@ const SafeLazyLoad = errorHandler(LazyLoad) as unknown as React.ComponentType<
  * _with_ the required props.
  */
 export function makeLazyloadComponent<C extends React.ComponentType<any>>(
-  resolve: () => Promise<{default: C}>
+  resolve: () => Promise<{default: C}>,
+  loadingFallback?: React.ReactNode
 ) {
   const LazyComponent = lazy<C>(() => retryableImport(resolve));
   // XXX: Assign the component to a variable so it has a displayname
   function RouteLazyLoad(props: React.ComponentProps<C>) {
     // we can use this hook to set the organization as it's
     // a child of the organization context
-    return <SafeLazyLoad {...props} LazyComponent={LazyComponent} />;
+    return (
+      <SafeLazyLoad
+        {...props}
+        LazyComponent={LazyComponent}
+        loadingFallback={loadingFallback}
+      />
+    );
   }
 
   return RouteLazyLoad;
@@ -2015,7 +2023,8 @@ function buildRoutes() {
           component={hoc(
             make(
               () =>
-                import('sentry/views/issueDetails/groupEventDetails/groupEventDetails')
+                import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
+              <GroupEventLoading />
             )
           )}
         />
