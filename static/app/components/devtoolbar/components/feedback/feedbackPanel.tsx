@@ -1,8 +1,9 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
+import {useScopeAndClient} from 'sentry/components/devtoolbar/hooks/useSentryClientAndScope';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -11,7 +12,6 @@ import {IconChat, IconFatal, IconImage, IconMegaphone, IconPlay} from 'sentry/ic
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 
 import useConfiguration from '../../hooks/useConfiguration';
-import useCurrentTransactionName from '../../hooks/useCurrentTransactionName';
 import {useSDKFeedbackButton} from '../../hooks/useSDKFeedbackButton';
 import useVisibility from '../../hooks/useVisibility';
 import {
@@ -34,6 +34,7 @@ import InfiniteListItems from '../infiniteListItems';
 import InfiniteListState from '../infiniteListState';
 import PanelLayout from '../panelLayout';
 import SentryAppLink from '../sentryAppLink';
+import transactionToSearchTerm from '../transactionToSearchTerm';
 
 import useInfiniteFeedbackList from './useInfiniteFeedbackList';
 
@@ -49,9 +50,24 @@ export default function FeedbackPanel() {
       [setVisible]
     )
   );
-  const transactionName = useCurrentTransactionName();
+
+  const {scope, client} = useScopeAndClient();
+  const [searchTerm, setSearchTerm] = useState(
+    transactionToSearchTerm(scope?.getScopeData().transactionName)
+  );
+
+  useEffect(() => {
+    if (client) {
+      return client.on('startNavigationSpan', options => {
+        setSearchTerm(transactionToSearchTerm(options.name));
+      });
+    }
+    return () => {};
+  }, [client]);
+
+  // Fetch issues based on the updated transaction name
   const queryResult = useInfiniteFeedbackList({
-    query: `url:*${transactionName}`,
+    query: `url:*${searchTerm}`,
   });
 
   const estimateSize = 108;
