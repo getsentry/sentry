@@ -3,17 +3,19 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Count from 'sentry/components/count';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
@@ -22,7 +24,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
@@ -69,6 +73,13 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
   const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
   const environments = useEnvironmentsFromUrl();
+  const eventView = useIssueDetailsEventView({group});
+
+  const discoverUrl = eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+  );
 
   // Reset shouldPreload when the groupId changes
   useEffect(() => {
@@ -321,10 +332,25 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
               {t('All Events')}
             </LinkButton>
           )}
+
           {currentTab === Tab.EVENTS && (
-            <LinkButton to={{pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`}} size="xs">
-              {t('Close')}
-            </LinkButton>
+            <ButtonBar gap={1}>
+              <LinkButton
+                to={discoverUrl}
+                aria-label={t('Open in Discover')}
+                size="xs"
+                icon={<IconTelescope />}
+              >
+                {t('Discover')}
+              </LinkButton>
+              <LinkButton
+                to={{pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`}}
+                aria-label={t('Return to event details')}
+                size="xs"
+              >
+                {t('Close')}
+              </LinkButton>
+            </ButtonBar>
           )}
         </NavigationWrapper>
       ) : null}
