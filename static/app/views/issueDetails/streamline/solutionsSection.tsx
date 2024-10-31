@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -54,32 +54,17 @@ export default function SolutionsSection({
     group.issueCategory
   );
 
-  if (isPending) {
-    return (
-      <Fragment>
-        <div>
-          <SidebarSectionTitle style={{marginTop: 0}}>
-            {t('Solutions & Resources')}
-          </SidebarSectionTitle>
-          <Placeholder height="19px" width="95%" style={{marginBottom: space(1)}} />
-          <StyledButton ref={openButtonRef} onClick={() => openSolutionsDrawer()}>
-            {t('See More')}
-          </StyledButton>
-        </div>
-      </Fragment>
-    );
-  }
-
-  if (!isSummaryEnabled(hasGenAIConsent, group.issueCategory)) {
-    return null;
-  }
-
   return (
     <div>
       <SidebarSectionTitle style={{marginTop: 0}}>
         {t('Solutions & Resources')}
       </SidebarSectionTitle>
-      {data && <Summary>{data.headline}</Summary>}
+      {isPending && (
+        <Placeholder height="19px" width="95%" style={{marginBottom: space(1)}} />
+      )}
+      {isSummaryEnabled(hasGenAIConsent, group.issueCategory) && data && (
+        <Summary>{data.headline}</Summary>
+      )}
       <StyledButton ref={openButtonRef} onClick={() => openSolutionsDrawer()}>
         {t('See More')}
       </StyledButton>
