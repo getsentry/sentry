@@ -347,9 +347,6 @@ class Factories:
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
-        if date_added is None:
-            date_added = timezone.now()
-
         with contextlib.ExitStack() as ctx:
             if region is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
                 region_name = get_local_region().name
