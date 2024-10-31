@@ -20,7 +20,7 @@ export function ProjectSampling() {
         <PanelBody>
           <FieldGroup
             label={t('Sampling Mode')}
-            help={t('Changes the level of detail and configuring sample rates.')}
+            help={t('The current configuration mode for dynamic sampling.')}
           >
             <div
               css={css`
@@ -29,15 +29,16 @@ export function ProjectSampling() {
                 gap: ${space(1)};
               `}
             >
-              {t('Manual Sampling per Project')}{' '}
+              {t('Manual')}{' '}
               <QuestionTooltip
                 size="sm"
                 isHoverable
                 title={tct(
-                  'Manual sampling allows you to set individual sample rates for each project. [link:Learn more about sampling]',
+                  'Manual mode allows you to set fixed sample rates for each project. [link:Learn more]',
                   {
-                    // TODO(aknaus): Add link to documentation
-                    link: <ExternalLink href="https://docs.sentry.io/" />,
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                    ),
                   }
                 )}
               />
