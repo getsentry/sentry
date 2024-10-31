@@ -715,6 +715,10 @@ BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
+TASK_WORKER_ALWAYS_EAGER = False
+
+# Ensure workers run async by default
+# in Development you might want them to run in-process
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
@@ -2909,6 +2913,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
+    "task-worker": "default",
 }
 
 
