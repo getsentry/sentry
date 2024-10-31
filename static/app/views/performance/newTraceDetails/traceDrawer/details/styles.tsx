@@ -306,9 +306,9 @@ function IssuesLink({
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = params.traceSlug?.trim() ?? '';
 
-  // Adding a buffer since a trace can just be made of errors, where there is no concept of
+  // Adding a buffer of 15mins for errors only traces, where there is no concept of
   // trace duration and start equals end timestamps.
-  const buffer = 60 * 60 * 1000; // 1 hour in milliseconds
+  const buffer = node.space[1] > 0 ? 0 : 15 * 60 * 1000;
 
   return (
     <Link

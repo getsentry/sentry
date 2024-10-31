@@ -136,10 +136,6 @@ export declare namespace TraceTree {
     slug: string;
   };
   type Root = null;
-  type Title = {
-    op: string;
-    transaction?: string;
-  } | null;
 
   // All possible node value types
   type NodeValue =
