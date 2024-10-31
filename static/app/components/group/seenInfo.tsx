@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {type CSSProperties, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -19,13 +19,13 @@ type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 type Props = {
   date: RelaxedDateType;
   dateGlobal: RelaxedDateType;
-  hasRelease: boolean;
   organization: Organization;
   projectId: string;
   projectSlug: string;
-  title: string;
+  className?: string;
   environment?: string;
   release?: Release;
+  style?: CSSProperties;
 };
 
 function SeenInfo({
@@ -36,9 +36,10 @@ function SeenInfo({
   organization,
   projectSlug,
   projectId,
+  ...styleProps
 }: Props) {
   return (
-    <HovercardWrapper>
+    <HovercardWrapper {...styleProps}>
       <StyledHovercard
         showUnderline
         header={
