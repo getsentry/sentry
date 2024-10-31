@@ -21,6 +21,11 @@ export default function DynamicSamplingSettings() {
       <SentryDocumentTitle title={t('Dynamic Sampling')} orgSlug={organization.slug} />
       <div>
         <SettingsPageHeader title={t('Dynamic Sampling')} />
+        <p>
+          {t(
+            'Dynamic sampling allows you to send more traces within your budget by retaining the most relevant traces and reducing redundant data. Additionally, it ensures that high-level metrics and insights remain accurate. With these settings you can customize and fine-tune the sampling behavior to prioritize what matters most.'
+          )}
+        </p>
         {organization.samplingMode === 'organization' ? (
           <OrganizationSampling />
         ) : (
