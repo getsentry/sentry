@@ -30,8 +30,8 @@ import {
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
 import useRouter from 'sentry/utils/useRouter';
 
 const orderedGettingStartedTasks = [
@@ -242,17 +242,17 @@ function TaskGroup({
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(expanded);
   const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
-  const previousCompletedTasksCount = usePrevious(completedTasks.length);
+  const [taskGroupComplete, setTaskGroupComplete] = useLocalStorageState(
+    `quick-start:${group}-completed`,
+    false
+  );
 
   useEffect(() => {
     setIsExpanded(expanded);
   }, [expanded]);
 
   useEffect(() => {
-    if (
-      completedTasks.length !== tasks.length ||
-      previousCompletedTasksCount !== tasks.length - 1
-    ) {
+    if (completedTasks.length !== tasks.length || taskGroupComplete) {
       return;
     }
 
@@ -260,7 +260,16 @@ function TaskGroup({
       organization,
       group,
     });
-  }, [previousCompletedTasksCount, completedTasks, tasks, group, organization]);
+
+    setTaskGroupComplete(true);
+  }, [
+    group,
+    organization,
+    completedTasks,
+    tasks,
+    setTaskGroupComplete,
+    taskGroupComplete,
+  ]);
 
   return (
     <TaskGroupWrapper>
