@@ -69,13 +69,20 @@ def process_detectors(
                 continue
 
             if result.result is not None:
+                occurrence, status_change = None, None
+                if isinstance(result.result, IssueOccurrence):
+                    occurrence = (
+                        result.result if isinstance(result.result, IssueOccurrence) else None
+                    )
+                    payload_type = PayloadType.OCCURRENCE
+                else:
+                    status_change = result.result
+                    payload_type = PayloadType.STATUS_CHANGE
+
                 produce_occurrence_to_kafka(
-                    payload_type=(
-                        PayloadType.OCCURRENCE
-                        if isinstance(result.result, IssueOccurrence)
-                        else PayloadType.STATUS_CHANGE
-                    ),
-                    occurrence=result.result,
+                    payload_type=payload_type,
+                    occurrence=occurrence,
+                    status_change=status_change,
                     event_data=result.event_data,
                 )
 
