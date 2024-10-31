@@ -56,7 +56,7 @@ export function NewOnboardingStatus({
     useOnboardingTasks({
       supportedTasks,
       enabled:
-        !!organization.features?.includes('onboarding') &&
+        !!organization.features.includes('onboarding') &&
         !supportedTasks.every(findCompleteTasks),
       refetchInterval: isActive ? '1s' : '10s',
     });
@@ -119,7 +119,7 @@ export function NewOnboardingStatus({
   }, [isActive, pendingCompletionSeen, markDoneTaskAsComplete]);
 
   if (
-    !organization.features?.includes('onboarding') ||
+    !organization.features.includes('onboarding') ||
     (totalRemainingTasks === 0 && !isActive)
   ) {
     return null;
