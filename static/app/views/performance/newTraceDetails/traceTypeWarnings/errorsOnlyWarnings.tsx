@@ -193,9 +193,9 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
 
   const title = tct("You've exceeded your [billingType]", {
     billingType: subscription?.onDemandBudgets?.enabled
-      ? subscription.planTier === 'am3'
-        ? t('pay-as-you-go budget')
-        : t('on-demand budget')
+      ? ['am1', 'am2'].includes(subscription.planTier)
+        ? t('on-demand budget')
+        : t('pay-as-you-go budget')
       : t('quota'),
   });
 
