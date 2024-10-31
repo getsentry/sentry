@@ -43,10 +43,11 @@ export function useOnboardingTasks({
   completeTasks: OnboardingTask[];
   doneTasks: OnboardingTask[];
   gettingStartedTasks: OnboardingTask[];
+  refetch: () => void;
 } {
   const organization = useOrganization();
 
-  const {data: serverTasks = {onboardingTasks: []}} = useApiQuery<{
+  const {data: serverTasks = {onboardingTasks: []}, refetch} = useApiQuery<{
     onboardingTasks: OnboardingTaskStatus[];
   }>([`/organizations/${organization.slug}/onboarding-tasks/`], {
     staleTime: 0,
@@ -79,5 +80,6 @@ export function useOnboardingTasks({
     beyondBasicsTasks: mergedTasks.filter(
       task => task.group !== OnboardingTaskGroup.GETTING_STARTED
     ),
+    refetch,
   };
 }
