@@ -21,7 +21,7 @@ type Options = {
   /**
    * The replayId
    */
-  replayId: string;
+  replayId: string | undefined;
 
   /**
    * Default: 50
@@ -91,6 +91,7 @@ function useReplayData({
   } = useApiQuery<{data: unknown}>([`/organizations/${orgSlug}/replays/${replayId}/`], {
     staleTime: Infinity,
     retry: false,
+    enabled: Boolean(replayId),
   });
   const replayRecord = useMemo(
     () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
@@ -125,7 +126,11 @@ function useReplayData({
     isFetching: isFetchingAttachments,
     error: fetchAttachmentsError,
   } = useFetchParallelPages({
-    enabled: !fetchReplayError && Boolean(projectSlug) && Boolean(replayRecord),
+    enabled:
+      !fetchReplayError &&
+      Boolean(replayId) &&
+      Boolean(projectSlug) &&
+      Boolean(replayRecord),
     hits: replayRecord?.count_segments ?? 0,
     getQueryKey: getAttachmentsQueryKey,
     perPage: segmentsPerPage,
