@@ -76,7 +76,7 @@ export default function BreadcrumbsTimeline({
     const timeDate = new Date(breadcrumb.timestamp ?? '');
     const startTimeDate = new Date(startTimeString ?? '');
 
-    const absoluteFormat = shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS';
+    const absoluteFormat = shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS A';
     const timestampComponent = isValidDate(timeDate) ? (
       <Timestamp>
         <Tooltip
