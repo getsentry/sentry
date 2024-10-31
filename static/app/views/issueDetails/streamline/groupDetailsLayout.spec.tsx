@@ -22,6 +22,11 @@ describe('GroupDetailsLayout', () => {
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      method: 'GET',
+      body: group,
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });

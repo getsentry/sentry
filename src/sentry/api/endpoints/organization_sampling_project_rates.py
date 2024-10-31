@@ -6,14 +6,18 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, serialize
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 OPTION_KEY = "sentry:target_sample_rate"
@@ -55,7 +59,13 @@ class OrganizationSamplingProjectRatesEndpoint(OrganizationEndpoint):
 
     permission_classes = (OrganizationPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def _check_feature(self, request: Request, organization: Organization):
+        if not features.has(
+            "organizations:dynamic-sampling-custom", organization, actor=request.user
+        ):
+            raise ResourceDoesNotExist
+
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List Sampling Rates for Projects
         ````````````````````````````````
@@ -67,6 +77,8 @@ class OrganizationSamplingProjectRatesEndpoint(OrganizationEndpoint):
             organization.
         :auth: required
         """
+
+        self._check_feature(request, organization)
 
         # NOTE: This fetches all projects in the organization. We do not filter
         # to projects the org member has access to as the sample rate and
@@ -84,7 +96,7 @@ class OrganizationSamplingProjectRatesEndpoint(OrganizationEndpoint):
             on_results=lambda x: serialize(x, request.user, GetSerializer()),
         )
 
-    def put(self, request: Request, organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response:
         """
         Update Sampling Rates of Projects
         `````````````````````````````````
@@ -95,6 +107,14 @@ class OrganizationSamplingProjectRatesEndpoint(OrganizationEndpoint):
             organization.
         :auth: required
         """
+
+        self._check_feature(request, organization)
+
+        if organization.get_option("sentry:sampling_mode") != DynamicSamplingMode.PROJECT:
+            return Response(
+                {"detail": "Sample rates for projects cannot be changed in Automatic Mode"},
+                status=403,
+            )
 
         serializer = PutSerializer(data=request.data, many=True)
         if not serializer.is_valid():
