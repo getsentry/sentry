@@ -14,13 +14,14 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import {defined} from 'sentry/utils';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
 
 interface EditAccessSelectorProps {
   dashboard: DashboardDetails;
-  onChangeEditAccess?: (newDashboardPermissions?: DashboardPermissions) => void;
+  onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 }
 
 /**
@@ -33,9 +34,9 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   const {teams} = useTeamsById();
   const teamIds: string[] = Object.values(teams).map(team => team.id);
 
-  const [newDashboardPermissions, setNewDashboardPermissions] = useState<
-    DashboardPermissions | undefined
-  >(dashboard.permissions ? structuredClone(dashboard.permissions) : undefined);
+  let newDashboardPermissions = dashboard.permissions
+    ? structuredClone(dashboard.permissions)
+    : undefined;
 
   const [selectedOptions, setselectedOptions] = useState<string[]>(
     dashboard.permissions?.isCreatorOnlyEditable
@@ -63,7 +64,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         displayEmail={t('Creator')}
       />
     ),
-    textValue: '_creatorbadge',
+    textValue: `creator_${currentUser.email}`,
     disabled: dashboardCreator?.id !== currentUser.id,
     // Creator option is always disabled
     leadingItems: <Checkbox size="sm" checked disabled />,
@@ -116,19 +117,27 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
     if (newSelectedValues.includes('_everyone')) {
       isEverythingSelected = true;
       setselectedOptions(['_everyone', '_creator', ...teamIds]);
-      if (newDashboardPermissions) {
-        newDashboardPermissions.isCreatorOnlyEditable = false;
-      }
     } else if (!newSelectedValues.includes('_everyone')) {
       setselectedOptions(['_creator']);
+    }
+  };
+
+  // Creates or modifies permissions object based on the options selected
+  function setNewDashboardPermisssions() {
+    if (!selectedOptions.includes('_everyone')) {
       if (newDashboardPermissions === undefined) {
-        // When the dashboard does not have a permissions model associated
-        setNewDashboardPermissions({isCreatorOnlyEditable: true});
+        // When dashboard does not have a permissions object associated, we create
+        //  a new perms object only if 'everyone' isn't selected (i.e default behavior)
+        newDashboardPermissions = {isCreatorOnlyEditable: true};
       } else {
         newDashboardPermissions.isCreatorOnlyEditable = true;
       }
+    } else {
+      if (defined(newDashboardPermissions)) {
+        newDashboardPermissions.isCreatorOnlyEditable = false;
+      }
     }
-  };
+  }
 
   const dropdownMenu = (
     <StyledCompactSelect
@@ -137,7 +146,11 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         onSelectOptions(newSelectedOptions);
       }}
       onClose={() => {
-        if (!isEqual(newDashboardPermissions, dashboard.permissions)) {
+        setNewDashboardPermisssions();
+        if (
+          defined(newDashboardPermissions) &&
+          !isEqual(newDashboardPermissions, dashboard.permissions)
+        ) {
           onChangeEditAccess?.(newDashboardPermissions);
         }
       }}

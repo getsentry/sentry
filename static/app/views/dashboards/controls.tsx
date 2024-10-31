@@ -38,7 +38,7 @@ type Props = {
   organization: Organization;
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
-  onChangeEditAccess?: (newDashboardPermissions?: DashboardPermissions) => void;
+  onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
 
 function Controls({

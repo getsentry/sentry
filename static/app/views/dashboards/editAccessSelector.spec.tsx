@@ -35,8 +35,6 @@ describe('When EditAccessSelector is rendered', () => {
   let initialData;
   const organization = OrganizationFixture({});
   beforeEach(() => {
-    window.confirm = jest.fn();
-
     initialData = initializeOrg({
       organization,
       router: {
@@ -128,16 +126,19 @@ describe('When EditAccessSelector is rendered', () => {
     expect(screen.getByText('All')).toBeInTheDocument();
   });
 
-  it('renders User badge when creator only is selected', async function () {
+  it('renders User badge when creator-only is selected', async function () {
+    const currentUser = UserFixture({id: '781629', name: 'John Doe'});
+    ConfigStore.set('user', currentUser);
+
     const mockDashboard = DashboardFixture([], {
       id: '1',
-      createdBy: UserFixture({id: '1'}),
+      createdBy: UserFixture({id: '1', name: 'Lorem Ipsum'}),
       title: 'Custom Errors',
       permissions: {isCreatorOnlyEditable: true}, // set to true
     });
     renderTestComponent(initialData, mockDashboard);
     await screen.findByText('Edit Access:');
-    expect(screen.getByText('FB')).toBeInTheDocument(); // current User's initials
+    expect(screen.getByText('LI')).toBeInTheDocument(); // dashboard owner's initials
     expect(screen.queryByText('All')).not.toBeInTheDocument();
   });
 

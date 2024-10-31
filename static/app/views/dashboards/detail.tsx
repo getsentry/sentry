@@ -614,10 +614,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   /* Handles POST request for Edit Access Selector Changes */
-  onChangeEditAccess = (newDashboardPermissions?: DashboardPermissions) => {
-    if (!defined(newDashboardPermissions)) {
-      return;
-    }
+  onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
     const {dashboard, api, organization} = this.props;
 
     const dashboardCopy = cloneDashboard(dashboard);
