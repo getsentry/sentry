@@ -1,23 +1,22 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import type {BadgeProps} from 'sentry/components/badge/badge';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -38,11 +37,14 @@ import type {DashboardFilters, Widget} from '../types';
 import {DisplayType, OnDemandExtractionState, WidgetType} from '../types';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
+import {BigNumberWidget} from '../widgets/bigNumberWidget/bigNumberWidget';
+import type {Meta} from '../widgets/common/types';
 import {WidgetFrame} from '../widgets/common/widgetFrame';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
+import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
@@ -223,6 +225,10 @@ function WidgetCard(props: Props) {
       )
     : [];
 
+  const widgetQueryError = isWidgetInvalid
+    ? t('Widget query condition is invalid.')
+    : undefined;
+
   return (
     <ErrorBoundary
       customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -234,24 +240,67 @@ function WidgetCard(props: Props) {
         }
         disabled={Number(props.index) !== 0}
       >
-        <WidgetFrame
-          title={widget.title}
-          description={widget.description}
-          badgeProps={badges}
-          warnings={warnings}
-          actionsDisabled={actionsDisabled}
-          actionsMessage={actionsMessage}
-          actions={actions}
-          onFullScreenViewClick={onFullScreenViewClick}
-        >
-          {isWidgetInvalid ? (
-            <Fragment>
-              {renderErrorMessage?.('Widget query condition is invalid.')}
-              <StyledErrorPanel>
-                <IconWarning color="gray500" size="lg" />
-              </StyledErrorPanel>
-            </Fragment>
-          ) : (
+        {widget.displayType === DisplayType.BIG_NUMBER ? (
+          <WidgetCardDataLoader
+            widget={widget}
+            selection={selection}
+            dashboardFilters={dashboardFilters}
+            onDataFetched={onDataFetched}
+            onWidgetSplitDecision={onWidgetSplitDecision}
+            tableItemLimit={tableItemLimit}
+          >
+            {({loading, errorMessage, tableResults}) => {
+              // Big Number widgets only support one query, so we take the first query's results and meta
+              const tableData = tableResults?.[0]?.data;
+              const tableMeta = tableResults?.[0]?.meta as Meta | undefined;
+              const fields = Object.keys(tableMeta?.fields ?? {});
+
+              let field = fields[0];
+              let selectedField = field;
+
+              if (defined(widget.queries[0].selectedAggregate)) {
+                const index = widget.queries[0].selectedAggregate;
+                selectedField = widget.queries[0].aggregates[index];
+                if (fields.includes(selectedField)) {
+                  field = selectedField;
+                }
+              }
+
+              const value = tableData?.[0]?.[selectedField];
+
+              return (
+                <BigNumberWidget
+                  title={widget.title}
+                  description={widget.description}
+                  badgeProps={badges}
+                  warnings={warnings}
+                  actionsDisabled={actionsDisabled}
+                  actionsMessage={actionsMessage}
+                  actions={actions}
+                  onFullScreenViewClick={onFullScreenViewClick}
+                  isLoading={loading}
+                  thresholds={widget.thresholds ?? undefined}
+                  value={value}
+                  field={field}
+                  meta={tableMeta}
+                  error={widgetQueryError || errorMessage || undefined}
+                  preferredPolarity="-"
+                />
+              );
+            }}
+          </WidgetCardDataLoader>
+        ) : (
+          <WidgetFrame
+            title={widget.title}
+            description={widget.description}
+            badgeProps={badges}
+            warnings={warnings}
+            actionsDisabled={actionsDisabled}
+            error={widgetQueryError}
+            actionsMessage={actionsMessage}
+            actions={actions}
+            onFullScreenViewClick={onFullScreenViewClick}
+          >
             <WidgetCardChartContainer
               location={location}
               api={api}
@@ -271,8 +320,8 @@ function WidgetCard(props: Props) {
               legendOptions={legendOptions}
               widgetLegendState={widgetLegendState}
             />
-          )}
-        </WidgetFrame>
+          </WidgetFrame>
+        )}
       </VisuallyCompleteWithData>
     </ErrorBoundary>
   );
@@ -359,10 +408,6 @@ export const WidgetCardPanel = styled(Panel, {
       box-shadow 100ms linear;
     box-shadow: ${p => p.theme.dropShadowLight};
   }
-`;
-
-const StyledErrorPanel = styled(ErrorPanel)`
-  padding: ${space(2)};
 `;
 
 export const WidgetTitleRow = styled('span')`
