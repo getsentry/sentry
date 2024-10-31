@@ -1,11 +1,10 @@
 /* eslint-env node */
 
-import type {Configuration, RuleSetRule} from '@rspack/core';
-import rspack from '@rspack/core';
 import childProcess from 'node:child_process';
 import path from 'node:path';
+import webpack from 'webpack';
 
-import baseConfig from '../rspack.config';
+import baseConfig from '../webpack.config';
 
 const commitHash =
   process.env.SENTRY_BUILD ||
@@ -17,10 +16,12 @@ const findLoader = (loaderName: string) =>
     rule =>
       rule &&
       typeof rule === 'object' &&
-      (rule.loader === loaderName || rule.use?.loader === loaderName)
-  ) as RuleSetRule;
+      typeof rule.use === 'object' &&
+      !Array.isArray(rule.use) &&
+      rule.use.loader === loaderName
+  ) as webpack.RuleSetRule;
 
-export default {
+const config: webpack.Configuration = {
   mode: baseConfig.mode,
   context: baseConfig.context,
   resolve: baseConfig.resolve,
@@ -35,7 +36,7 @@ export default {
   },
 
   plugins: [
-    new rspack.DefinePlugin({
+    new webpack.DefinePlugin({
       'process.env.COMMIT_SHA': JSON.stringify(commitHash),
     }),
   ],
@@ -46,4 +47,6 @@ export default {
   },
 
   optimization: {minimize: false},
-} as Configuration;
+};
+
+export default config;
