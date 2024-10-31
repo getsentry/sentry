@@ -590,3 +590,11 @@ def disable_integration(
             data={"provider": rpc_integration.provider},
         )
     return None
+
+
+def get_integration_types(provider: str):
+    types = []
+    for integration_type, providers in INTEGRATION_TYPE_TO_PROVIDER.items():
+        if provider in providers:
+            types.append(integration_type)
+    return types
