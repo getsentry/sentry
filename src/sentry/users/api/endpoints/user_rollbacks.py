@@ -14,7 +14,7 @@ from sentry.users.services.user.model import RpcUser
 @region_silo_endpoint
 class UserRollbacksEndpoint(RegionSiloUserEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     scope_map = {
         "GET": ["member:read"],
@@ -25,7 +25,7 @@ class UserRollbacksEndpoint(RegionSiloUserEndpoint):
         Get rollback information for the current user
         `````````````````````````````````````````
 
-        Retrieve rollback information for the current user in the organization.
+        Retrieve rollback information for the current user.
         """
         queryset = RollbackUser.objects.filter(user_id=user.id).order_by("organization__name")
 
