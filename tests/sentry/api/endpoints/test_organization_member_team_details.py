@@ -765,17 +765,15 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         where there is a row for each user_id of all team members. If a user leaves the team
         we want to unsubscribe them from the issues the team was subscribed to
         """
-
         self.login_as(self.member_on_team)
         user2 = self.create_user()
         self.create_member(
             user=user2, organization=self.organization, role="member", teams=[self.team]
         )
-
         group = self.create_group()
         GroupAssignee.objects.create(group=group, team=self.team, project=self.project)
         for member in OrganizationMemberTeam.objects.filter(team=self.team):
-            GroupSubscription.objects.create(
+            GroupSubscription.objects.get_or_create(
                 group=group,
                 project_id=self.project.id,
                 user_id=member.organizationmember.user_id,
@@ -783,7 +781,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             )
 
         # check member is subscribed
-        assert GroupSubscription.objects.filter(user_id=self.member_on_team.id).exists()
+        assert GroupSubscription.objects.filter(user_id=self.member_on_team.user_id).exists()
         # check user2 is subscribed
         assert GroupSubscription.objects.filter(user_id=user2.id).exists()
         response = self.get_success_response(
@@ -798,7 +796,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert GroupAssignee.objects.filter(team=self.team).exists()
         # user is not subscribed
         assert not GroupSubscription.objects.filter(
-            group=group, user_id=self.member_on_team.id
+            group=group, user_id=self.member_on_team.user_id
         ).exists()
         # other user in team still subscribed
         assert GroupSubscription.objects.filter(group=group, user_id=user2.id).exists()
