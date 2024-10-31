@@ -31,7 +31,7 @@ import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreen
 import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
-import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
+import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
@@ -396,7 +396,7 @@ export function EventDetailsContent({
         <EventProcessingErrors event={event} project={project} isShare={false} />
       )}
       {event.groupID && (
-        <EventGroupingInfo
+        <EventGroupingInfoSection
           projectSlug={project.slug}
           event={event}
           showGroupingConfig={

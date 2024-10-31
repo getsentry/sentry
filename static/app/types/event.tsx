@@ -55,7 +55,7 @@ type EventGroupVariantKey =
   | 'default'
   | 'system';
 
-export enum EventGroupVariantType {
+export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
