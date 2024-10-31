@@ -7,7 +7,10 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
  * A search bar for exploring tags and values for spans in Dashboards.
  * This assumes that the dataset used is the EAP spans dataset.
  */
-function SpansSearchBar({widgetQuery, onSearch}: WidgetBuilderSearchBarProps) {
+function SpansSearchBar({
+  widgetQuery,
+  onSearch,
+}: Pick<WidgetBuilderSearchBarProps, 'widgetQuery' | 'onSearch'>) {
   const {
     selection: {projects},
   } = usePageFilters();
