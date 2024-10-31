@@ -395,8 +395,7 @@ export function NewOnboardingSidebar({
           tasks={sortedGettingStartedTasks}
           hidePanel={onClose}
           expanded={
-            groupTasksByCompletion(sortedGettingStartedTasks).completedTasks.length !==
-            sortedGettingStartedTasks.length
+            groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
           }
           toggleable={sortedBeyondBasicsTasks.length > 0}
           taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
