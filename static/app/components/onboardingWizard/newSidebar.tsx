@@ -398,7 +398,7 @@ export function NewOnboardingSidebar({
             groupTasksByCompletion(sortedGettingStartedTasks).completedTasks.length !==
             sortedGettingStartedTasks.length
           }
-          toggleable={sortedGettingStartedTasks.length > 0}
+          toggleable={sortedBeyondBasicsTasks.length > 0}
           taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
           group="getting_started"
         />
