@@ -1,3 +1,4 @@
+from sentry import options
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.models.activity import Activity
@@ -64,8 +65,12 @@ class ActivitySerializer(Serializer):
         else:
             pull_requests = {}
 
+        collapse_group_stats_in_activity = options.get("issues.collapse-group-stats-in-activity")
+
         groups = {
-            k: serialize(v, user=user)
+            k: serialize(
+                v, user=user, collapse=["stats"] if collapse_group_stats_in_activity else None
+            )
             for k, v in Group.objects.in_bulk(
                 {
                     i.data["source_id"]
