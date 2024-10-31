@@ -45,8 +45,8 @@ const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
 ];
 
 function AddViewPage({
-  personalSavedSearches,
-  organizationSavedSearches,
+  personalSavedSearches = [],
+  organizationSavedSearches = [],
 }: {
   organizationSavedSearches: SavedSearch[];
   personalSavedSearches: SavedSearch[];
