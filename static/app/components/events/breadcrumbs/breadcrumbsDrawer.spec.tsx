@@ -58,7 +58,7 @@ describe('BreadcrumbsDrawer', function () {
       expect(drawerScreen.getByText(level)).toBeInTheDocument();
       expect(drawerScreen.getByText(message)).toBeInTheDocument();
     }
-    expect(drawerScreen.getAllByText('06:00:48.760')).toHaveLength(
+    expect(drawerScreen.getAllByText('06:00:48.760 PM')).toHaveLength(
       MOCK_BREADCRUMBS.length
     );
   });
@@ -148,7 +148,7 @@ describe('BreadcrumbsDrawer', function () {
 
   it('allows time display dropdown to change all displayed crumbs', async function () {
     const drawerScreen = await renderBreadcrumbDrawer();
-    expect(drawerScreen.getAllByText('06:00:48.760')).toHaveLength(
+    expect(drawerScreen.getAllByText('06:00:48.760 PM')).toHaveLength(
       MOCK_BREADCRUMBS.length
     );
     expect(drawerScreen.queryByText('-1min 2ms')).not.toBeInTheDocument();
@@ -158,13 +158,13 @@ describe('BreadcrumbsDrawer', function () {
     await userEvent.click(timeControl);
     await userEvent.click(drawerScreen.getByRole('option', {name: 'Relative'}));
 
-    expect(drawerScreen.queryByText('06:00:48.760')).not.toBeInTheDocument();
+    expect(drawerScreen.queryByText('06:00:48.760 PM')).not.toBeInTheDocument();
     expect(drawerScreen.getAllByText('-1min 2ms')).toHaveLength(MOCK_BREADCRUMBS.length);
 
     await userEvent.click(timeControl);
     await userEvent.click(drawerScreen.getByRole('option', {name: 'Absolute'}));
 
-    expect(drawerScreen.getAllByText('06:00:48.760')).toHaveLength(
+    expect(drawerScreen.getAllByText('06:00:48.760 PM')).toHaveLength(
       MOCK_BREADCRUMBS.length
     );
     expect(drawerScreen.queryByText('-1min 2ms')).not.toBeInTheDocument();

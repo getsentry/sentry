@@ -90,113 +90,202 @@ SPAN_COLUMN_DEFINITIONS = {
     for column in [
         ResolvedColumn(
             public_alias="id",
-            internal_name="span_id",
+            internal_name="sentry.span_id",
             search_type="string",
             validator=is_span_id,
         ),
         ResolvedColumn(
-            public_alias="organization.id", internal_name="organization_id", search_type="string"
-        ),
-        ResolvedColumn(
-            public_alias="span.action",
-            internal_name="action",
+            public_alias="id",
+            internal_name="sentry.span_id",
             search_type="string",
+            validator=is_span_id,
         ),
         ResolvedColumn(
-            public_alias="span.description",
-            internal_name="name",
+            public_alias="parent_span",
+            internal_name="sentry.sentry,parent_span_id",
             search_type="string",
+            validator=is_span_id,
         ),
         ResolvedColumn(
-            public_alias="description",
-            internal_name="name",
+            public_alias="organization.id",
+            internal_name="sentry.organization_id",
             search_type="string",
-        ),
-        # Message maps to description, this is to allow wildcard searching
-        ResolvedColumn(
-            public_alias="message",
-            internal_name="name",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="span.domain", internal_name="attr_str[domain]", search_type="string"
-        ),
-        ResolvedColumn(
-            public_alias="span.group", internal_name="attr_str[group]", search_type="string"
-        ),
-        ResolvedColumn(public_alias="span.op", internal_name="attr_str[op]", search_type="string"),
-        ResolvedColumn(
-            public_alias="span.category", internal_name="attr_str[category]", search_type="string"
-        ),
-        ResolvedColumn(
-            public_alias="span.self_time", internal_name="exclusive_time_ms", search_type="duration"
-        ),
-        ResolvedColumn(
-            public_alias="span.duration", internal_name="duration_ms", search_type="duration"
-        ),
-        ResolvedColumn(
-            public_alias="span.status", internal_name="attr_str[status]", search_type="string"
-        ),
-        ResolvedColumn(
-            public_alias="trace",
-            internal_name="trace_id",
-            search_type="string",
-            validator=is_event_id,
-        ),
-        ResolvedColumn(
-            public_alias="messaging.destination.name",
-            internal_name="attr_str[messaging.destination.name]",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="messaging.message.id",
-            internal_name="attr_str[messaging.message.id]",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="span.status_code",
-            internal_name="attr_str[status_code]",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="replay.id", internal_name="attr_str[replay_id]", search_type="string"
-        ),
-        ResolvedColumn(
-            public_alias="span.ai.pipeline.group",
-            internal_name="attr_str[ai_pipeline_group]",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="trace.status",
-            internal_name="attr_str[trace.status]",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="browser.name",
-            internal_name="attr_str[browser.name]",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="ai.total_cost",
-            internal_name="attr_num[ai.total_cost]",
-            search_type="number",
-        ),
-        ResolvedColumn(
-            public_alias="ai.total_tokens.used",
-            internal_name="attr_num[ai_total_tokens_used]",
-            search_type="number",
         ),
         ResolvedColumn(
             public_alias="project",
-            internal_name="project_id",
+            internal_name="sentry.project_id",
+            internal_type=constants.INT,
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="project.id",
+            internal_name="sentry.project_id",
+            internal_type=constants.INT,
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="project_id",
+            internal_name="sentry.project_id",
             internal_type=constants.INT,
             search_type="string",
         ),
         ResolvedColumn(
             public_alias="project.slug",
-            internal_name="project_id",
+            internal_name="sentry.project_id",
             search_type="string",
             internal_type=constants.INT,
+        ),
+        ResolvedColumn(
+            public_alias="span.action",
+            internal_name="sentry.action",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="span.description",
+            internal_name="sentry.name",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="description",
+            internal_name="sentry.name",
+            search_type="string",
+        ),
+        # Message maps to description, this is to allow wildcard searching
+        ResolvedColumn(
+            public_alias="message",
+            internal_name="sentry.name",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="span.domain",
+            internal_name="sentry.domain",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="span.group",
+            internal_name="sentry.group",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="span.op",
+            internal_name="sentry.op",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="span.category",
+            internal_name="sentry.category",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="span.self_time",
+            internal_name="sentry.exclusive_time_ms",
+            search_type="duration",
+        ),
+        ResolvedColumn(
+            public_alias="span.duration",
+            internal_name="sentry.duration_ms",
+            search_type="duration",
+        ),
+        ResolvedColumn(
+            public_alias="span.status",
+            internal_name="sentry.status",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="trace",
+            internal_name="sentry.trace_id",
+            search_type="string",
+            validator=is_event_id,
+        ),
+        ResolvedColumn(
+            public_alias="messaging.destination.name",
+            internal_name="sentry.messaging.destination.name",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="messaging.message.id",
+            internal_name="sentry.messaging.message.id",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="span.status_code",
+            internal_name="sentry.status_code",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="replay.id",
+            internal_name="sentry.replay_id",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="span.ai.pipeline.group",
+            internal_name="sentry.ai_pipeline_group",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="trace.status",
+            internal_name="sentry.trace.status",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="browser.name",
+            internal_name="sentry.browser.name",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="ai.total_tokens.used",
+            internal_name="ai_total_tokens_used",
+            search_type="number",
+        ),
+        ResolvedColumn(
+            public_alias="ai.total_cost",
+            internal_name="ai.total_cost",
+            search_type="number",
+        ),
+        ResolvedColumn(
+            public_alias="sdk.name",
+            internal_name="sentry.sdk.name",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="release",
+            internal_name="sentry.release",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="user",
+            internal_name="sentry.user",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="user.id",
+            internal_name="sentry.user.id",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="user.email",
+            internal_name="sentry.user.email",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="user.username",
+            internal_name="sentry.user.username",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="user.ip",
+            internal_name="sentry.user.ip",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="user.geo.subregion",
+            internal_name="sentry.user.geo.subregion",
+            search_type="string",
+        ),
+        ResolvedColumn(
+            public_alias="user.geo.country_code",
+            internal_name="sentry.user.geo.country_code",
+            search_type="string",
         ),
     ]
 }

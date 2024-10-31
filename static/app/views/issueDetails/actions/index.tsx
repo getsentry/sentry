@@ -435,7 +435,8 @@ export function Actions(props: Props) {
           size: 'sm',
         }}
         items={[
-          ...(isIgnored
+          // XXX: Never show for streamlined UI
+          ...(isIgnored || hasStreamlinedUI
             ? []
             : [
                 {

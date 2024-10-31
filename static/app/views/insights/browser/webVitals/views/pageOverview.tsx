@@ -77,7 +77,7 @@ export function PageOverview() {
   const location = useLocation();
   const {projects} = useProjects();
   const router = useRouter();
-  const {isInDomainView} = useDomainViewFilters();
+  const {isInDomainView, view} = useDomainViewFilters();
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
       ? location.query.transaction[0]
@@ -128,6 +128,7 @@ export function PageOverview() {
       transaction,
       query: {...location.query},
       projectID: project.id,
+      view,
     });
 
   const projectScore =

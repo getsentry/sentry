@@ -74,9 +74,11 @@ import {
 import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
+  DOMAIN_VIEW_RELEASE_LEVEL,
 } from 'sentry/views/insights/pages/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
@@ -444,7 +446,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const performance = hasOrganization && !hasPerfDomainViews && (
+  const performance = hasOrganization && (
     <Feature
       hookName="feature-disabled:performance-sidebar-item"
       features="performance-view"
@@ -458,7 +460,7 @@ function Sidebar() {
             {hasNewNav ? 'Perf.' : t('Performance')}
           </GuideAnchor>
         }
-        to={`/organizations/${organization.slug}/performance/`}
+        to={`${getPerformanceBaseUrl(organization.slug)}/`}
         id="performance"
       />
     </Feature>
@@ -618,9 +620,11 @@ function Sidebar() {
         {...sidebarItemProps}
         icon={<IconGraph />}
         label={DOMAIN_VIEW_BASE_TITLE}
-        id="performance-domains"
+        id="insights-domains"
         initiallyExpanded={false}
         exact={!shouldAccordionFloat}
+        isAlpha={DOMAIN_VIEW_RELEASE_LEVEL === 'alpha'}
+        isBeta={DOMAIN_VIEW_RELEASE_LEVEL === 'beta'}
       >
         <SidebarItem
           {...sidebarItemProps}

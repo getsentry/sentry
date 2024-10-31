@@ -1,4 +1,3 @@
-import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
@@ -6,8 +5,6 @@ from dataclasses import dataclass
 from enum import Enum
 from types import TracebackType
 from typing import Any, Self
-
-from django.conf import settings
 
 from sentry.integrations.base import IntegrationDomain
 from sentry.utils import metrics
@@ -28,54 +25,21 @@ class EventLifecycleOutcome(Enum):
 class EventLifecycleMetric(ABC):
     """Information about an event to be measured.
 
-    This class is intended to be used across different integrations that share the
-    same business concern. Generally a subclass would represent one business concern
-    (such as MessagingInteractionEvent, which extends this class and is used in the
-    `slack`, `msteams`, and `discord` integration packages).
+    This is a generic base class not tied specifically to integrations. See
+    IntegrationEventLifecycleMetric for integration-specific key structure. (This
+    class could be moved from this module to a more generic package if we ever want
+    to use it outside of integrations.)
     """
 
     @abstractmethod
-    def get_key(self, outcome: EventLifecycleOutcome) -> str:
-        """Construct the metrics key that will represent this event.
-
-        It is recommended to implement this method by delegating to a
-        `get_standard_key` call.
-        """
-
+    def get_metric_key(self, outcome: EventLifecycleOutcome) -> str:
+        """Get the metrics key that will identify this event."""
         raise NotImplementedError
 
-    @staticmethod
-    def get_standard_key(
-        domain: str,
-        integration_name: str,
-        interaction_type: str,
-        outcome: EventLifecycleOutcome,
-        *extra_tokens: str,
-    ) -> str:
-        """Construct a key with a standard cross-integration structure.
-
-        Implementations of `get_key` generally should delegate to this method in
-        order to ensure consistency across integrations.
-
-        :param domain:           a constant string representing the category of business
-                                 concern or vertical domain that the integration belongs
-                                 to (e.g., "messaging" or "source_code_management")
-        :param integration_name: the name of the integration (generally should match a
-                                 package name from `sentry.integrations`)
-        :param interaction_type: a key representing the category of interaction being
-                                 captured (generally should come from an Enum class)
-        :param outcome:          the object representing the event outcome
-        :param extra_tokens:     additional tokens to add extra context, if needed
-        :return: a key to represent the event in metrics or logging
-        """
-
-        # For now, universally include an "slo" token to distinguish from any
-        # previously existing metrics keys.
-        # TODO: Merge with or replace existing keys?
-        root_tokens = ("sentry", "integrations", "slo")
-
-        specific_tokens = (domain, integration_name, interaction_type, str(outcome))
-        return ".".join(itertools.chain(root_tokens, specific_tokens, extra_tokens))
+    @abstractmethod
+    def get_metric_tags(self) -> Mapping[str, str]:
+        """Get the metrics tags that will identify this event along with the key."""
+        raise NotImplementedError
 
     def get_extras(self) -> Mapping[str, Any]:
         """Get extra data to log."""
@@ -84,6 +48,53 @@ class EventLifecycleMetric(ABC):
     def capture(self, assume_success: bool = True) -> "EventLifecycle":
         """Open a context to measure the event."""
         return EventLifecycle(self, assume_success)
+
+
+class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
+    """A metric relating to integrations that uses a standard naming structure."""
+
+    def get_metrics_domain(self) -> str:
+        """Return a constant describing the top-level metrics category.
+
+        This defaults to a catch-all value but can optionally be overridden.
+        """
+
+        return "slo"
+
+    @abstractmethod
+    def get_integration_domain(self) -> IntegrationDomain:
+        """Return the domain that the integration belongs to."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_integration_name(self) -> str:
+        """Return the name of the integration.
+
+        This value generally should match a package name from `sentry.integrations`.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_interaction_type(self) -> str:
+        """Return a key representing the category of interaction being captured.
+
+        Generally, this string value should always come from an instance of an Enum
+        class. But each subclass can define its own Enum of interaction types and
+        there is no strict contract that relies on the Enum class.
+        """
+
+        raise NotImplementedError
+
+    def get_metric_key(self, outcome: EventLifecycleOutcome) -> str:
+        tokens = ("integrations", self.get_metrics_domain(), str(outcome))
+        return ".".join(tokens)
+
+    def get_metric_tags(self) -> Mapping[str, str]:
+        return {
+            "integration_domain": str(self.get_integration_domain()),
+            "integration_name": self.get_integration_name(),
+            "interaction_type": self.get_interaction_type(),
+        }
 
 
 class EventLifecycle:
@@ -120,14 +131,15 @@ class EventLifecycle:
         only by the other "record" methods.
         """
 
-        key = self.payload.get_key(outcome)
+        key = self.payload.get_metric_key(outcome)
+        tags = self.payload.get_metric_tags()
 
-        sample_rate = (
-            1.0 if outcome == EventLifecycleOutcome.FAILURE else settings.SENTRY_METRICS_SAMPLE_RATE
-        )
-        metrics.incr(key, sample_rate=sample_rate)
+        sample_rate = 1.0
+        metrics.incr(key, tags=tags, sample_rate=sample_rate)
 
         if outcome == EventLifecycleOutcome.FAILURE:
+            extra = dict(self._extra)
+            extra.update(tags)
             logger.error(key, extra=self._extra, exc_info=exc)
 
     @staticmethod
@@ -249,21 +261,21 @@ class IntegrationPipelineViewType(Enum):
 
 
 @dataclass
-class IntegrationPipelineViewEvent(EventLifecycleMetric):
+class IntegrationPipelineViewEvent(IntegrationEventLifecycleMetric):
     """An instance to be recorded of a user going through an integration pipeline view (step)."""
 
     interaction_type: IntegrationPipelineViewType
     domain: IntegrationDomain
     provider_key: str
 
-    def get_key(self, outcome: EventLifecycleOutcome) -> str:
-        # not reporting as SLOs
-        root_tokens = ("sentry", "integrations", "installation")
-        specific_tokens = (
-            self.domain,
-            self.provider_key,
-            str(self.interaction_type),
-            str(outcome),
-        )
+    def get_metrics_domain(self) -> str:
+        return "installation"
 
-        return ".".join(itertools.chain(root_tokens, specific_tokens))
+    def get_integration_domain(self) -> IntegrationDomain:
+        return self.domain
+
+    def get_integration_name(self) -> str:
+        return self.provider_key
+
+    def get_interaction_type(self) -> str:
+        return str(self.interaction_type)
