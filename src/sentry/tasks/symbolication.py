@@ -8,14 +8,12 @@ from django.conf import settings
 
 from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
-from sentry.features.rollout import in_random_rollout
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import process_js_stacktraces
 from sentry.lang.native.processing import get_native_symbolication_function
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.processing import realtime_metrics
 from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.tasks import store
@@ -339,60 +337,23 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
 symbolicate_event = make_task_fn(
     name="sentry.tasks.store.symbolicate_event",
     queue="events.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(
-        platform=SymbolicatorPlatform.native, is_low_priority=False, is_reprocessing=False
-    ),
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=False),
 )
 symbolicate_js_event = make_task_fn(
     name="sentry.tasks.symbolicate_js_event",
     queue="events.symbolicate_js_event",
-    task_kind=SymbolicatorTaskKind(
-        platform=SymbolicatorPlatform.js, is_low_priority=False, is_reprocessing=False
-    ),
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.js, is_reprocessing=False),
 )
 symbolicate_jvm_event = make_task_fn(
     name="sentry.tasks.symbolicate_jvm_event",
     queue="events.symbolicate_jvm_event",
-    task_kind=SymbolicatorTaskKind(
-        platform=SymbolicatorPlatform.jvm, is_low_priority=False, is_reprocessing=False
-    ),
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.jvm, is_reprocessing=False),
 )
 
-# LPQ variants:
-symbolicate_event_low_priority = make_task_fn(
-    name="sentry.tasks.store.symbolicate_event_low_priority",
-    queue="events.symbolicate_event_low_priority",
-    task_kind=SymbolicatorTaskKind(
-        platform=SymbolicatorPlatform.native, is_low_priority=True, is_reprocessing=False
-    ),
-)
-symbolicate_js_event_low_priority = make_task_fn(
-    name="sentry.tasks.symbolicate_js_event_low_priority",
-    queue="events.symbolicate_js_event_low_priority",
-    task_kind=SymbolicatorTaskKind(
-        platform=SymbolicatorPlatform.js, is_low_priority=True, is_reprocessing=False
-    ),
-)
-symbolicate_jvm_event_low_priority = make_task_fn(
-    name="sentry.tasks.symbolicate_jvm_event_low_priority",
-    queue="events.symbolicate_jvm_event_low_priority",
-    task_kind=SymbolicatorTaskKind(
-        platform=SymbolicatorPlatform.jvm, is_low_priority=True, is_reprocessing=False
-    ),
-)
 
 # Reprocessing variants, only for "native" events:
 symbolicate_event_from_reprocessing = make_task_fn(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(
-        platform=SymbolicatorPlatform.native, is_low_priority=False, is_reprocessing=True
-    ),
-)
-symbolicate_event_from_reprocessing_low_priority = make_task_fn(
-    name="sentry.tasks.store.symbolicate_event_from_reprocessing_low_priority",
-    queue="events.reprocessing.symbolicate_event_low_priority",
-    task_kind=SymbolicatorTaskKind(
-        platform=SymbolicatorPlatform.native, is_low_priority=True, is_reprocessing=True
-    ),
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=True),
 )
