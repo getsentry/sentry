@@ -311,7 +311,7 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: `/organizations/${organization.slug}/projects/new/`,
       display: true,
-      pendingTitle: t('Waiting for error'),
+      pendingTitle: t('Awaiting an error for this project.'),
       SupplementComponent: ({task}: OnboardingSupplementComponentProps) => {
         if (!hasQuickStartUpdatesFeature(organization)) {
           return null;
