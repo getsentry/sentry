@@ -52,14 +52,20 @@ export function NewOnboardingStatus({
     onboardingContext,
   }).filter(task => task.display);
 
-  const {allTasks, gettingStartedTasks, beyondBasicsTasks, doneTasks, completeTasks} =
-    useOnboardingTasks({
-      supportedTasks,
-      enabled:
-        !!organization.features.includes('onboarding') &&
-        !supportedTasks.every(findCompleteTasks),
-      refetchInterval: isActive ? '1s' : '10s',
-    });
+  const {
+    allTasks,
+    gettingStartedTasks,
+    beyondBasicsTasks,
+    doneTasks,
+    completeTasks,
+    refetch,
+  } = useOnboardingTasks({
+    supportedTasks,
+    enabled:
+      !!organization.features?.includes('onboarding') &&
+      !supportedTasks.every(findCompleteTasks) &&
+      isActive,
+  });
 
   const label = walkthrough ? t('Guided Tours') : t('Onboarding');
   const totalRemainingTasks = allTasks.length - doneTasks.length;
@@ -132,6 +138,9 @@ export function NewOnboardingStatus({
         aria-label={label}
         onClick={handleShowPanel}
         isActive={isActive}
+        onMouseEnter={() => {
+          refetch();
+        }}
       >
         <ProgressRing
           animateText
