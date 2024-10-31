@@ -24,12 +24,21 @@ class TaskNamespace:
     worker pool.
     """
 
-    def __init__(self, name: str, topic: str, deadletter_topic: str, retry: Retry | None):
-        # TODO(taskworker) implement default deadlines for tasks
+    def __init__(
+        self,
+        name: str,
+        topic: str,
+        deadletter_topic: str,
+        retry: Retry | None,
+        expires: int = 10 * 60,
+        processing_deadline_duration: int = 30,
+    ):
         self.name = name
         self.topic = topic
         self.deadletter_topic = deadletter_topic
         self.default_retry = retry
+        self.default_expires = expires  # seconds
+        self.default_processing_deadline_duration = processing_deadline_duration  # seconds
         self._registered_tasks: dict[str, Task[Any, Any]] = {}
         self._producer: KafkaProducer | None = None
 
@@ -57,17 +66,21 @@ class TaskNamespace:
         name: str,
         idempotent: bool = False,
         retry: Retry | None = None,
+        expires: int | None = None,
+        processing_deadline_duration: int | None = None,
     ) -> Callable[[Callable[P, R]], Task[P, R]]:
         """register a task, used as a decorator"""
 
         def wrapped(func: Callable[P, R]) -> Task[P, R]:
-            # TODO(taskworker) Implement task deadlines
             task = Task(
                 name=name,
                 func=func,
                 namespace=self,
                 idempotent=idempotent,
                 retry=retry or self.default_retry,
+                expires=expires or self.default_expires,
+                processing_deadline_duration=processing_deadline_duration
+                or self.default_processing_deadline_duration,
             )
             # TODO(taskworker) tasks should be registered into the registry
             # so that we can ensure task names are globally unique

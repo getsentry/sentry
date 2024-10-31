@@ -13,6 +13,7 @@ def test_register_task() -> None:
         topic="tests",
         deadletter_topic="tests-dlq",
         retry=None,
+        deadline=60,
     )
 
     @namespace.register(name="tests.simple_task")
@@ -34,6 +35,7 @@ def test_register_inherits_default_retry() -> None:
         topic="tests",
         deadletter_topic="tests-dlq",
         retry=Retry(times=5, on=(RuntimeError,)),
+        deadline=60,
     )
 
     @namespace.register(name="test.no_retry_param")

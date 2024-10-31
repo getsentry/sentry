@@ -28,6 +28,8 @@ class Task(Generic[P, R]):
         func: Callable[P, R],
         namespace: TaskNamespace,
         retry: Retry | None,
+        expires: int,
+        processing_deadline_duration: int,
         idempotent: bool = False,
     ):
         # TODO(taskworker) Implement task execution deadlines
@@ -35,6 +37,8 @@ class Task(Generic[P, R]):
         self._func = func
         self._namespace = namespace
         self._retry = retry
+        self._expires = expires
+        self._processing_deadline_duration = processing_deadline_duration
         self._idempotent = idempotent
         update_wrapper(self, func)
 
@@ -69,6 +73,7 @@ class Task(Generic[P, R]):
             parameters=orjson.dumps({"args": args, "kwargs": kwargs}).decode("utf8"),
             retry_state=self._create_retry_state(),
             received_at=received_at,
+            processing_deadline_duration=self._processing_deadline_duration,
         )
 
     def _create_retry_state(self) -> RetryState:
