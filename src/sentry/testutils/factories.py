@@ -337,9 +337,18 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
 class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_organization(name=None, owner=None, region: Region | str | None = None, **kwargs):
+    def create_organization(
+        name=None,
+        owner=None,
+        region: Region | str | None = None,
+        date_added: datetime | None = None,
+        **kwargs,
+    ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
+
+        if date_added is None:
+            date_added = timezone.now()
 
         with contextlib.ExitStack() as ctx:
             if region is None or SiloMode.get_current_mode() == SiloMode.MONOLITH:
@@ -356,7 +365,7 @@ class Factories:
                 )
 
             with outbox_context(flush=False):
-                org = Organization.objects.create(name=name, **kwargs)
+                org = Organization.objects.create(name=name, date_added=date_added, **kwargs)
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 # Organization mapping creation relies on having a matching org slug reservation
