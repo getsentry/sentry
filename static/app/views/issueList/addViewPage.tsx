@@ -48,8 +48,8 @@ function AddViewPage({
   personalSavedSearches = [],
   organizationSavedSearches = [],
 }: {
-  organizationSavedSearches: SavedSearch[];
-  personalSavedSearches: SavedSearch[];
+  organizationSavedSearches?: SavedSearch[];
+  personalSavedSearches?: SavedSearch[];
 }) {
   const toolTipContents = (
     <Container>
