@@ -183,7 +183,7 @@ const appConfig: rspack.Configuration = {
   context: staticPrefix,
   experiments: {
     // New experimental faster HMR https://github.com/web-infra-dev/rspack/releases/tag/v1.1.0-beta.0
-    incremental: true,
+    incremental: DEV_MODE,
     futureDefaults: true,
     css: true,
   },
