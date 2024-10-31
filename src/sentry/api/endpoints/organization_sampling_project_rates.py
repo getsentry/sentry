@@ -12,7 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, serialize
-from sentry.constants import ObjectStatus
+from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 
@@ -20,17 +20,23 @@ OPTION_KEY = "sentry:target_sample_rate"
 
 
 class GetSerializer(Serializer):
-    """TODO"""
+    """Serializer for OrganizationSamplingProjectRatesEndpoint.get"""
 
     def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Any, Any]:
-        return dict(ProjectOption.objects.get_value_bulk(item_list, OPTION_KEY))
+        options = ProjectOption.objects.get_value_bulk(item_list, OPTION_KEY)
+        # NOTE: `get_value_bulk` does not resolve defaults. The default does not
+        # depend on epochs, so we can speed this up by using the constant.
+        return {
+            item: value if value is not None else TARGET_SAMPLE_RATE_DEFAULT
+            for item, value in options.items()
+        }
 
     def serialize(self, obj: Any, attrs: Any, user, **kwargs) -> Mapping[str, Any]:
         return {"id": obj.id, "sampleRate": attrs}
 
 
 class PutSerializer(serializers.Serializer):
-    """TODO"""
+    """Serializer for OrganizationSamplingProjectRatesEndpoint.put"""
 
     id = serializers.IntegerField(required=True)
     sampleRate = serializers.FloatField(required=True, min_value=0, max_value=1)
@@ -71,10 +77,7 @@ class OrganizationSamplingProjectRatesEndpoint(OrganizationEndpoint):
     def put(self, request: Request, organization) -> Response:
         """TODO"""
 
-        if not isinstance(request.DATA, list):
-            raise ValueError("projects must be a dictionary")
-
-        serializer = PutSerializer(request.DATA, many=True)
+        serializer = PutSerializer(data=request.data, many=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -86,4 +89,4 @@ class OrganizationSamplingProjectRatesEndpoint(OrganizationEndpoint):
             for project in projects:
                 project.update_option(OPTION_KEY, rate_by_project[project.id])
 
-        return Response(status=204)
+        return Response(serialize(projects, request.user, GetSerializer()), status=200)
