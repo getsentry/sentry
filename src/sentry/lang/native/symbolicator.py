@@ -64,11 +64,11 @@ def pool_for_platform(platform: SymbolicatorPlatform) -> SymbolicatorPools:
     """
     match platform:
         case SymbolicatorPlatform.native:
-            return SymbolicatorPools.default.value
+            return SymbolicatorPools.default
         case SymbolicatorPlatform.js:
-            return SymbolicatorPools.js.value
+            return SymbolicatorPools.js
         case SymbolicatorPlatform.jvm:
-            return SymbolicatorPools.jvm.value
+            return SymbolicatorPools.jvm
 
 
 class Symbolicator:
