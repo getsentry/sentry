@@ -329,7 +329,7 @@
   color: '584774'
   description: ''
 
-# Generic useful label
+# Generic useful labels
 - name: Do Not Merge
   color: 'C83852'
   description: Don't merge
