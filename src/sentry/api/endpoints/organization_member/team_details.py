@@ -34,6 +34,7 @@ from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
+from sentry.notifications.types import GroupSubscriptionReason
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
@@ -538,7 +539,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         Unsubscribe user from issues the team is subscribed to
         """
         team_assigned_issues = GroupAssignee.objects.filter(team_id=team.id)
-        team_subscribed_isses = GroupSubscription.objects.filter(team_id=team.id)
+        team_subscribed_isses = GroupSubscription.objects.filter(
+            team_id=team.id, reason=GroupSubscriptionReason.assigned
+        )
         issues_to_unsubscribe = set(team_assigned_issues) | set(team_subscribed_isses)
         GroupSubscription.objects.filter(
             group_id__in=[group.id for group in issues_to_unsubscribe], user_id=member.user_id
