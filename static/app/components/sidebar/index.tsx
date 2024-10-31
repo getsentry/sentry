@@ -445,7 +445,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const performance = hasOrganization && !hasPerfDomainViews && (
+  const performance = hasOrganization && (
     <Feature
       hookName="feature-disabled:performance-sidebar-item"
       features="performance-view"
@@ -619,7 +619,7 @@ function Sidebar() {
         {...sidebarItemProps}
         icon={<IconGraph />}
         label={DOMAIN_VIEW_BASE_TITLE}
-        id="performance-domains"
+        id="insights-domains"
         initiallyExpanded={false}
         exact={!shouldAccordionFloat}
       >

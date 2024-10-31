@@ -15,6 +15,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
+  MEPSettingProvider,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -230,11 +231,14 @@ function BackendOverviewPage() {
 
 function BackendOverviewPageWithProviders() {
   const organization = useOrganization();
+  const location = useLocation();
 
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
-        <BackendOverviewPage />
+        <MEPSettingProvider location={location}>
+          <BackendOverviewPage />
+        </MEPSettingProvider>
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );

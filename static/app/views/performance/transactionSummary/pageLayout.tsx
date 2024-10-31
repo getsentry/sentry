@@ -22,7 +22,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
-import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {
+  MetricsCardinalityProvider,
+  useMetricsCardinalityContext,
+} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -272,51 +275,53 @@ function PageLayout(props: Props) {
         organization={organization}
         renderDisabled={NoAccess}
       >
-        <PerformanceEventViewProvider value={{eventView}}>
-          <PageFiltersContainer
-            shouldForceProject={defined(project)}
-            forceProject={project}
-            specificProjectSlugs={defined(project) ? [project.slug] : []}
-          >
-            <Tabs value={tab} onChange={onTabChange}>
-              <Layout.Page>
-                <TransactionHeader
-                  eventView={eventView}
-                  location={location}
-                  organization={organization}
-                  projects={projects}
-                  projectId={projectId}
-                  transactionName={transactionName}
-                  currentTab={tab}
-                  hasWebVitals={hasWebVitals}
-                  onChangeThreshold={(threshold, metric) => {
-                    setTransactionThreshold(threshold);
-                    setTransactionThresholdMetric(metric);
-                  }}
-                  metricsCardinality={metricsCardinality}
-                />
-                <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                  {defined(error) && (
-                    <StyledAlert type="error" showIcon>
-                      {error}
-                    </StyledAlert>
-                  )}
-                  <ChildComponent
+        <MetricsCardinalityProvider location={location} organization={organization}>
+          <PerformanceEventViewProvider value={{eventView}}>
+            <PageFiltersContainer
+              shouldForceProject={defined(project)}
+              forceProject={project}
+              specificProjectSlugs={defined(project) ? [project.slug] : []}
+            >
+              <Tabs value={tab} onChange={onTabChange}>
+                <Layout.Page>
+                  <TransactionHeader
+                    eventView={eventView}
                     location={location}
                     organization={organization}
                     projects={projects}
-                    eventView={eventView}
                     projectId={projectId}
                     transactionName={transactionName}
-                    setError={setError}
-                    transactionThreshold={transactionThreshold}
-                    transactionThresholdMetric={transactionThresholdMetric}
+                    currentTab={tab}
+                    hasWebVitals={hasWebVitals}
+                    onChangeThreshold={(threshold, metric) => {
+                      setTransactionThreshold(threshold);
+                      setTransactionThresholdMetric(metric);
+                    }}
+                    metricsCardinality={metricsCardinality}
                   />
-                </StyledBody>
-              </Layout.Page>
-            </Tabs>
-          </PageFiltersContainer>
-        </PerformanceEventViewProvider>
+                  <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
+                    {defined(error) && (
+                      <StyledAlert type="error" showIcon>
+                        {error}
+                      </StyledAlert>
+                    )}
+                    <ChildComponent
+                      location={location}
+                      organization={organization}
+                      projects={projects}
+                      eventView={eventView}
+                      projectId={projectId}
+                      transactionName={transactionName}
+                      setError={setError}
+                      transactionThreshold={transactionThreshold}
+                      transactionThresholdMetric={transactionThresholdMetric}
+                    />
+                  </StyledBody>
+                </Layout.Page>
+              </Tabs>
+            </PageFiltersContainer>
+          </PerformanceEventViewProvider>
+        </MetricsCardinalityProvider>
       </Feature>
     </SentryDocumentTitle>
   );
