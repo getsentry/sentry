@@ -343,6 +343,7 @@ from sentry.users.api.endpoints.user_permissions_config import UserPermissionsCo
 from sentry.users.api.endpoints.user_regions import UserRegionsEndpoint
 from sentry.users.api.endpoints.user_role_details import UserUserRoleDetailsEndpoint
 from sentry.users.api.endpoints.user_roles import UserUserRolesEndpoint
+from sentry.users.api.endpoints.user_rollbacks import UserRollbacksEndpoint
 from sentry.users.api.endpoints.userroles_details import UserRoleDetailsEndpoint
 from sentry.users.api.endpoints.userroles_index import UserRolesEndpoint
 
@@ -1106,6 +1107,11 @@ USER_URLS = [
         r"^(?P<user_id>[^\/]+)/roles/(?P<role_name>[^\/]+)/$",
         UserUserRoleDetailsEndpoint.as_view(),
         name="sentry-api-0-user-userrole-details",
+    ),
+    re_path(
+        r"^(?P<user_id>[^\/]+)/rollbacks/$",
+        UserRollbacksEndpoint.as_view(),
+        name="sentry-api-0-user-rollbacks",
     ),
     re_path(
         r"^(?P<user_id>[^\/]+)/subscriptions/$",
