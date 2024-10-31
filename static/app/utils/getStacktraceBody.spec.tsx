@@ -26,7 +26,7 @@ describe('getStacktraceBody', function () {
     expect(result).toEqual(['Something is broken']);
   });
 
-  it('formats with an thread', function () {
+  it('formats with a thread', function () {
     const result = getStacktraceBody(eventThreads);
     expect(result).toEqual([
       `Error: an error occurred
