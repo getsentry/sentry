@@ -9,6 +9,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import * as useMedia from 'sentry/utils/useMedia';
 import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 import {IssueEventNavigation} from './eventNavigation';
 
@@ -47,12 +48,44 @@ describe('EventNavigation', () => {
       dispatch: jest.fn(),
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
       body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
       body: {},
+    });
+  });
+
+  describe('all events buttons', () => {
+    it('renders the all events controls', () => {
+      const allEventsRouter = RouterFixture({
+        params: {groupId: group.id},
+        routes: [{path: TabPaths[Tab.EVENTS]}],
+        location: LocationFixture({
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+        }),
+      });
+
+      render(<IssueEventNavigation {...defaultProps} />, {router: allEventsRouter});
+
+      const discoverButton = screen.getByLabelText('Open in Discover');
+      expect(discoverButton).toBeInTheDocument();
+      expect(discoverButton).toHaveAttribute(
+        'href',
+        expect.stringContaining(`/organizations/${organization.slug}/discover/results/`)
+      );
+
+      const closeButton = screen.getByRole('button', {name: 'Return to event details'});
+      expect(closeButton).toBeInTheDocument();
+      expect(closeButton).toHaveAttribute(
+        'href',
+        expect.stringContaining(`/organizations/${organization.slug}/issues/${group.id}/`)
+      );
     });
   });
 
