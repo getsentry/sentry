@@ -125,7 +125,6 @@ def _do_preprocess_event(
     from sentry.tasks.symbolication import (
         get_symbolication_function_for_platform,
         get_symbolication_platforms,
-        should_demote_symbolication,
         submit_symbolicate,
     )
 
@@ -175,11 +174,9 @@ def _do_preprocess_event(
         ):
             reprocessing2.backup_unprocessed_event(data=original_data)
 
-            is_low_priority = should_demote_symbolication(first_platform, project_id)
             submit_symbolicate(
                 SymbolicatorTaskKind(
                     platform=first_platform,
-                    is_low_priority=is_low_priority,
                     is_reprocessing=from_reprocessing,
                 ),
                 cache_key=cache_key,
