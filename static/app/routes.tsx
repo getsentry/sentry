@@ -20,7 +20,7 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import {GroupEventLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventLoading';
+import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
@@ -2024,7 +2024,7 @@ function buildRoutes() {
             make(
               () =>
                 import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
-              <GroupEventLoading />
+              <GroupEventDetailsLoading />
             )
           )}
         />
