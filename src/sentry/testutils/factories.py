@@ -362,7 +362,10 @@ class Factories:
                 )
 
             with outbox_context(flush=False):
-                org = Organization.objects.create(name=name, date_added=date_added, **kwargs)
+                if date_added is None:
+                    org = Organization.objects.create(name=name, **kwargs)
+                else:
+                    org = Organization.objects.create(name=name, date_added=date_added, **kwargs)
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 # Organization mapping creation relies on having a matching org slug reservation
