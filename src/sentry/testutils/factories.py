@@ -341,7 +341,6 @@ class Factories:
         name=None,
         owner=None,
         region: Region | str | None = None,
-        date_added: datetime | None = None,
         **kwargs,
     ):
         if not name:
@@ -362,10 +361,7 @@ class Factories:
                 )
 
             with outbox_context(flush=False):
-                if date_added is None:
-                    org = Organization.objects.create(name=name, **kwargs)
-                else:
-                    org = Organization.objects.create(name=name, date_added=date_added, **kwargs)
+                org = Organization.objects.create(name=name, **kwargs)
 
             with assume_test_silo_mode(SiloMode.CONTROL):
                 # Organization mapping creation relies on having a matching org slug reservation
