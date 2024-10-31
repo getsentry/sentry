@@ -13,15 +13,19 @@ export default function getStacktraceBody(
   // diff multiple exceptions
   //
   // See: https://github.com/getsentry/sentry/issues/6055
-  const exc = event.entries.find(({type}) => type === 'exception');
+  let exc = event.entries.find(({type}) => type === 'exception');
 
   if (!exc) {
-    // Look for a message if not an exception
-    const msg = event.entries.find(({type}) => type === 'message');
-    if (!msg) {
-      return [];
+    // Look for threads if not an exception
+    exc = event.entries.find(({type}) => type === 'threads');
+    if (!exc) {
+      // Look for a message if not an exception
+      const msg = event.entries.find(({type}) => type === 'message');
+      if (!msg) {
+        return [];
+      }
+      return msg?.data?.formatted && [msg.data.formatted];
     }
-    return msg?.data?.formatted && [msg.data.formatted];
   }
 
   if (!exc.data) {
