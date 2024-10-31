@@ -21,6 +21,7 @@ export default function FeatureFlagItem({flag}: {flag: FeatureFlag}) {
   const {featureFlags, trackAnalytics} = useConfiguration();
   const {eventName, eventKey} = useContext(AnalyticsContext);
   // console.log(test);
+  // test
 
   return (
     <Fragment>
