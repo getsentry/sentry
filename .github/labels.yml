@@ -274,11 +274,9 @@
 - name: Hacktoberfest-accepted
   color: 'e99695'
   description: Accept for Hacktoberfest - will merge later
-
 - name: 'Hackweek :zap:'
   color: 'F91A8A'
   description: ''
-
 - name: 'Papercut'
   color: 'F91A8A'
   description: ''
