@@ -333,6 +333,7 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
+    expect(screen.getByText('Continuous Profiling')).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
@@ -382,6 +383,28 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
+    expect(screen.getByText('Continuous Profiling')).toBeInTheDocument();
+  });
+
+  it('spend notifications on org with am1 org only', async function () {
+    const organization = OrganizationFixture();
+    organization.features.push('spend-visibility-notifications');
+    organization.features.push('am1-tier');
+    const otherOrganization = OrganizationFixture();
+    renderComponent({
+      notificationType: 'quota',
+      organizations: [organization, otherOrganization],
+    });
+
+    expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
+
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Attachments')).toBeInTheDocument();
+    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
+    expect(screen.getByText('Transactions')).toBeInTheDocument();
+    expect(screen.queryByText('Continuous Profiling')).not.toBeInTheDocument();
+    expect(screen.queryByText('Spans')).not.toBeInTheDocument();
   });
 
   it('spend notifications on org with am3 without spend visibility notifications', async function () {
@@ -400,6 +423,7 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
+    expect(screen.getByText('Continuous Profiling')).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
