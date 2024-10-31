@@ -2,13 +2,14 @@ import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
+import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Divider, Hovercard} from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import RepoLabel from 'sentry/components/repoLabel';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -67,7 +68,7 @@ function VersionHoverCard({
               'Connect a repository to see commit info, files changed, and authors involved in future releases.'
             )}
           </p>
-          <LinkButton href={`/organizations/${orgSlug}/repos/`} priority="primary">
+          <LinkButton to={`/organizations/${orgSlug}/repos/`} priority="primary">
             {t('Connect a repository')}
           </LinkButton>
         </ConnectRepo>
@@ -80,31 +81,23 @@ function VersionHoverCard({
       return {header: null, body: null};
     }
 
-    const {lastCommit} = release;
-    const recentDeploysByEnvironment = deploys.reduce(function (dbe, deploy) {
-      const {dateFinished, environment} = deploy;
-      if (!dbe.hasOwnProperty(environment)) {
-        dbe[environment] = dateFinished;
-      }
-
-      return dbe;
-    }, {});
-    let mostRecentDeploySlice = Object.keys(recentDeploysByEnvironment);
-
-    if (Object.keys(recentDeploysByEnvironment).length > 3) {
-      mostRecentDeploySlice = Object.keys(recentDeploysByEnvironment).slice(0, 3);
-    }
+    const recentDeploysByEnvironment = deploys
+      .toSorted(
+        // Sorted by most recent deploy first
+        (a, b) => new Date(b.dateFinished).getTime() - new Date(a.dateFinished).getTime()
+      )
+      .slice(0, 3);
 
     return {
       header: <VersionHoverHeader releaseVersion={releaseVersion} />,
       body: (
-        <div>
-          <div className="row">
-            <div className="col-xs-4">
+        <Flex column gap={space(2)}>
+          <Flex gap={space(2)} justify="space-between">
+            <div>
               <h6>{t('New Issues')}</h6>
               <CountSince>{release.newGroups}</CountSince>
             </div>
-            <div className="col-xs-8">
+            <div>
               <h6 style={{textAlign: 'right'}}>
                 {release.commitCount}{' '}
                 {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
@@ -118,25 +111,31 @@ function VersionHoverCard({
                 typeAvatars="authors"
               />
             </div>
-          </div>
-          {lastCommit && <StyledLastCommit commit={lastCommit} />}
+          </Flex>
+          {release.lastCommit && <LastCommit commit={release.lastCommit} />}
           {deploys.length > 0 && (
-            <div>
-              <Divider>
-                <h6>{t('Deploys')}</h6>
-              </Divider>
-              {mostRecentDeploySlice.map((env, idx) => {
-                const dateFinished = recentDeploysByEnvironment[env];
+            <Flex column gap={space(0.5)}>
+              <h6>{t('Deploys')}</h6>
+              {recentDeploysByEnvironment.map(deploy => {
                 return (
-                  <DeployWrap key={idx}>
-                    <VersionRepoLabel>{env}</VersionRepoLabel>
-                    {dateFinished && <StyledTimeSince date={dateFinished} />}
-                  </DeployWrap>
+                  <Flex
+                    key={deploy.id}
+                    align="center"
+                    gap={space(1)}
+                    justify="space-between"
+                  >
+                    <Tag type="highlight" textMaxWidth={150}>
+                      {deploy.environment}
+                    </Tag>
+                    {deploy.dateFinished && (
+                      <StyledTimeSince date={deploy.dateFinished} />
+                    )}
+                  </Flex>
                 );
               })}
-            </div>
+            </Flex>
           )}
-        </div>
+        </Flex>
       ),
     };
   }
@@ -153,7 +152,7 @@ function VersionHoverCard({
   } else if (error) {
     body = <LoadingError />;
   } else {
-    const renderObj: {[key: string]: React.ReactNode} =
+    const renderObj: {body: React.ReactNode; header: React.ReactNode} =
       hasRepos && release ? getBody() : getRepoLink();
     header = renderObj.header;
     body = renderObj.body;
@@ -172,8 +171,8 @@ interface VersionHoverHeaderProps {
 
 function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
   return (
-    <HeaderWrapper>
-      {t('Release')}
+    <Flex align="center" gap={space(0.5)}>
+      {t('Release:')}
       <VersionWrapper>
         <StyledVersion version={releaseVersion} truncate anchor={false} />
         <CopyToClipboardButton
@@ -183,7 +182,7 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
           text={releaseVersion}
         />
       </VersionWrapper>
-    </HeaderWrapper>
+    </Flex>
   );
 }
 
@@ -194,46 +193,24 @@ const ConnectRepo = styled('div')`
   text-align: center;
 `;
 
-const VersionRepoLabel = styled(RepoLabel)`
-  width: 86px;
-`;
-
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const VersionWrapper = styled('div')`
   display: flex;
-  flex: 1;
   align-items: center;
+  gap: ${space(0.5)};
   justify-content: flex-end;
 `;
 
 const StyledVersion = styled(Version)`
-  margin-right: ${space(0.5)};
   max-width: 190px;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const CountSince = styled('div')`
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.headerFontSize};
-`;
-
-const StyledLastCommit = styled(LastCommit)`
-  margin-top: ${space(2)};
-`;
-
-const DeployWrap = styled('div')`
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: ${space(1)};
-  justify-items: start;
-  align-items: center;
 `;
