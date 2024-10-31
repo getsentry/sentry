@@ -3038,67 +3038,6 @@ SENTRY_REPROCESSING_PAGE_SIZE = 10
 # is about "remaining events" exclusively.
 SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
 
-# Which backend to use for RealtimeMetricsStore.
-#
-# Currently, only redis is supported.
-SENTRY_REALTIME_METRICS_BACKEND = (
-    "sentry.processing.realtime_metrics.dummy.DummyRealtimeMetricsStore"
-)
-SENTRY_REALTIME_METRICS_OPTIONS = {
-    # The redis cluster used for the realtime store redis backend.
-    "cluster": "default",
-    # Length of the sliding symbolicate_event budgeting window, in seconds.
-    #
-    # The LPQ selection is computed based on the `SENTRY_LPQ_OPTIONS["project_budget"]`
-    # defined below.
-    "budget_time_window": 2 * 60,
-    # The bucket size of the project budget metric.
-    #
-    # The size (in seconds) of the buckets that events are sorted into.
-    "budget_bucket_size": 10,
-    # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
-    # before its eligibility can be changed again.
-    #
-    # This backoff is only applied to automatic changes to project eligibility, and has zero effect
-    # on any manually-triggered changes to a project's presence in the LPQ.
-    "backoff_timer": 5 * 60,
-}
-
-# Whether badly behaving projects will be automatically
-# sent to the low priority queue
-SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
-
-# Tunable knobs for automatic LPQ eligibility.
-#
-# LPQ eligibility is based on the average spent budget in a sliding time window
-# defined in `SENTRY_REALTIME_METRICS_OPTIONS["budget_time_window"]` above.
-#
-# The `project_budget` option is defined as the average per-second
-# "symbolication time budget" a project can spend.
-# See `RealtimeMetricsStore.record_project_duration` for an explanation of how
-# this works.
-# The "regular interval" at which symbolication time is submitted is defined by
-# `SYMBOLICATOR_POLL_TIMEOUT`.
-#
-# This value is already adjusted according to the
-# `symbolicate-event.low-priority.metrics.submission-rate` option.
-SENTRY_LPQ_OPTIONS = {
-    # These are the per-project budget in per-second "symbolication time budget".
-    # There is one budget for each of the symbolication platforms: native, js, and jvm.
-    # The "project_budget" value exists for backward compatibility.
-    #
-    # This has been arbitrarily chosen as `5.0`, which means an average of:
-    # -  1x 5-second event per second, or
-    # -  5x 1-second events per second, or
-    # - 10x 0.5-second events per second
-    #
-    # Cost increases quadratically with symbolication time.
-    "project_budget": 5.0,
-    "project_budget_native": 5.0,
-    "project_budget_js": 5.0,
-    "project_budget_jvm": 5.0,
-}
-
 # XXX(meredith): Temporary metrics indexer
 SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 
