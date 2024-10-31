@@ -1,4 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -14,6 +16,8 @@ jest.mock('sentry/components/events/contexts/contextIcon', () => ({
 }));
 
 describe('HighlightsIconSummary', function () {
+  const organization = OrganizationFixture();
+  const group = GroupFixture();
   const event = EventFixture({
     contexts: TEST_EVENT_CONTEXTS,
     tags: TEST_EVENT_TAGS,
@@ -100,9 +104,21 @@ describe('HighlightsIconSummary', function () {
     expect(await screen.findByText('Device Architecture')).toBeInTheDocument();
   });
 
-  it('renders release and environment tags', function () {
-    render(<HighlightsIconSummary event={event} />);
-    expect(screen.getByText('1.8')).toBeInTheDocument();
+  it('renders release and environment tags', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${group.project.slug}/releases/1.8/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/1.8/deploys/`,
+      body: [],
+    });
+    render(<HighlightsIconSummary event={event} group={group} />);
+    expect(await screen.findByText('1.8')).toBeInTheDocument();
     expect(screen.getByText('production')).toBeInTheDocument();
   });
 });
