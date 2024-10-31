@@ -123,33 +123,3 @@ class ActivitySerializer(Serializer):
             "data": data,
             "dateCreated": obj.datetime,
         }
-
-
-class OrganizationActivitySerializer(ActivitySerializer):
-    def get_attrs(self, item_list, user, **kwargs):
-        from sentry.api.serializers import GroupSerializer
-
-        # TODO(dcramer); assert on relations
-        attrs = super().get_attrs(item_list, user)
-
-        groups = {
-            d["id"]: d
-            for d in serialize(
-                {i.group for i in item_list if i.group_id},
-                user,
-                GroupSerializer(environment_func=self.environment_func),
-            )
-        }
-
-        projects = {d["id"]: d for d in serialize({i.project for i in item_list}, user)}
-
-        for item in item_list:
-            attrs[item]["issue"] = groups[str(item.group_id)] if item.group_id else None
-            attrs[item]["project"] = projects[str(item.project_id)]
-        return attrs
-
-    def serialize(self, obj, attrs, user, **kwargs):
-        context = super().serialize(obj, attrs, user)
-        context["issue"] = attrs["issue"]
-        context["project"] = attrs["project"]
-        return context
