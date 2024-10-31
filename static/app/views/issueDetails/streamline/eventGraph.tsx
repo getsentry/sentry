@@ -3,27 +3,27 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
-import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
+import {Button, type ButtonProps} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
+import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
-import {IconTelescope} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
-import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
@@ -120,11 +120,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     return createSeriesAndCount(groupStats['count_unique(user)']).series;
   }, [groupStats]);
 
-  const discoverUrl = eventView.getResultsViewUrlTarget(
-    organization.slug,
-    false,
-    hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
-  );
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
   });
@@ -180,6 +175,8 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     return seriesData;
   }, [visibleSeries, userSeries, eventSeries, releaseSeries, flagSeries, theme]);
 
+  const bucketSize = eventSeries ? getBucketSize(series) : undefined;
+
   const [legendSelected, setLegendSelected] = useLocalStorageState(
     'issue-details-graph-legend',
     {
@@ -194,7 +191,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     align: 'left',
     show: true,
     top: 4,
-    right: 95,
+    right: 8,
     data: ['Releases', 'Feature Flags'],
     selected: legendSelected,
     zlevel: 10,
@@ -279,6 +276,27 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
             top: 20,
             bottom: 0,
           }}
+          tooltip={{
+            formatAxisLabel: (
+              value,
+              isTimestamp,
+              utc,
+              showTimeInTooltip,
+              addSecondsToTimeFormat,
+              _bucketSize,
+              _seriesParamsOrParam
+            ) =>
+              String(
+                defaultFormatAxisLabel(
+                  value,
+                  isTimestamp,
+                  utc,
+                  showTimeInTooltip,
+                  addSecondsToTimeFormat,
+                  bucketSize
+                )
+              ),
+          }}
           yAxis={{
             splitNumber: 2,
             axisLabel: {
@@ -289,14 +307,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           }}
           {...chartZoomProps}
         />
-        <OpenInDiscoverButton
-          size="xs"
-          icon={<IconTelescope />}
-          to={discoverUrl}
-          aria-label={t('Open in Discover')}
-        >
-          {t('Discover')}
-        </OpenInDiscoverButton>
       </ChartContainer>
     </GraphWrapper>
   );
@@ -374,12 +384,6 @@ const ChartContainer = styled('div')`
 const LoadingChartContainer = styled('div')`
   position: relative;
   padding: ${space(1)} ${space(1)};
-`;
-
-const OpenInDiscoverButton = styled(LinkButton)`
-  position: absolute;
-  top: ${space(1)};
-  right: ${space(1)};
 `;
 
 const GraphAlert = styled(Alert)`

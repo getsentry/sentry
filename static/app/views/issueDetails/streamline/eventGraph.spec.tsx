@@ -113,13 +113,6 @@ describe('EventGraph', () => {
         },
       })
     );
-
-    const discoverButton = screen.getByLabelText('Open in Discover');
-    expect(discoverButton).toBeInTheDocument();
-    expect(discoverButton).toHaveAttribute(
-      'href',
-      expect.stringContaining(`/organizations/${organization.slug}/discover/results/`)
-    );
   });
 
   it('allows filtering by environment', async function () {
