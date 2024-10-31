@@ -384,6 +384,93 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             response = self.get_success_response(self.organization.slug)
             assert "samplingMode" not in response.data
 
+    def test_sampling_mode_project_to_org(self):
+        """
+        Test changing sampling mode from project-level to organization-level:
+        - Should set org-level target sample rate to the blended rate
+        - Should remove project-level sampling rates
+        """
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+
+        project1.update_option("sentry:sampling_rate", 0.3)
+        project2.update_option("sentry:sampling_rate", 0.5)
+
+        with patch(
+            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+            return_value=0.4,
+        ):
+
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                samplingMode=DynamicSamplingMode.ORGANIZATION.value,
+            )
+
+        assert response.status_code == 200
+
+        # Verify org option was set
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.4
+
+        # Verify project options were removed
+        assert project1.get_option("sentry:sampling_rate")
+        assert project2.get_option("sentry:sampling_rate")
+
+    def test_sampling_mode_org_to_project(self):
+        """
+        Test changing sampling mode from organization-level to project-level:
+        - Should preserve existing project rates
+        - Should remove org-level target sample rate
+        """
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.organization.update_option("sentry:target_sample_rate", 0.4)
+
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+
+        # Set some existing sampling rates
+        project1.update_option("sentry:sampling_rate", 0.3)
+        project2.update_option("sentry:sampling_rate", 0.5)
+
+        response = self.get_response(
+            self.organization.slug,
+            method="put",
+            samplingMode=DynamicSamplingMode.PROJECT.value,
+        )
+
+        assert response.status_code == 200
+
+        # Verify project rates were preserved
+        assert project1.get_option("sentry:sampling_rate") == 0.3
+        assert project2.get_option("sentry:sampling_rate") == 0.5
+
+        # Verify org target rate was removed
+        assert not self.organization.get_option("sentry:target_sample_rate")
+
+    def test_sampling_mode_change_requires_write_scope(self):
+        """
+        Test that changing sampling mode requires org:write scope
+        """
+        self.non_write_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.non_write_user,
+            organization=self.organization,
+            role="member",  # Member role doesn't have org:write scope
+        )
+        self.login_as(user=self.non_write_user)
+
+        response = self.get_response(
+            self.organization.slug,
+            method="put",
+            data={"samplingMode": DynamicSamplingMode.ORGANIZATION.value},
+        )
+
+        assert response.status_code == 403
+
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]
         resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)

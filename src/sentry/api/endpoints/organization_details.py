@@ -14,7 +14,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import audit_log, roles
+from sentry import audit_log, quotas, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -892,7 +892,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.UPDATE_ORGANIZATION,
     )
-    def put(self, request: Request, organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response:
         """
         Update various attributes and configurable settings for the given organization.
         """
@@ -945,6 +945,28 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 organization, changed_data = serializer.save()
 
             if "targetSampleRate" in changed_data:
+                boost_low_volume_projects_of_org_with_query.delay(organization.id)
+
+            if "samplingMode" in changed_data and request.access.has_scope("org:write"):
+                if changed_data["samplingMode"] == DynamicSamplingMode.PROJECT:
+                    with transaction.atomic(router.db_for_write(OrganizationOption)):
+                        for project in organization.projects:
+                            current_rate = project.get_sampling_rate()
+                            if current_rate:
+                                project.update_option("sentry:sampling_rate", current_rate)
+
+                        organization.update_option("sentry:target_sample_rate", None)
+
+                with transaction.atomic(router.db_for_write(OrganizationOption)):
+                    if changed_data["samplingMode"] == DynamicSamplingMode.ORGANIZATION:
+                        if blended_rate := quotas.backend.get_blended_sample_rate(
+                            organization_id=organization.id
+                        ):
+                            organization.update_option("sentry:target_sample_rate", blended_rate)
+
+                        for project in organization.projects:
+                            project.delete_option("sentry:sampling_rate")
+
                 boost_low_volume_projects_of_org_with_query.delay(organization.id)
 
             if was_pending_deletion:
