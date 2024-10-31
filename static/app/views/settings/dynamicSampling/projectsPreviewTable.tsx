@@ -2,18 +2,22 @@ import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
+import {LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {InputGroup} from 'sentry/components/inputGroup';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow, IconChevron} from 'sentry/icons';
+import {IconArrow, IconChevron, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import useOrganization from 'sentry/utils/useOrganization';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
 import {useProjectSampleCounts} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
@@ -73,12 +77,11 @@ export function ProjectsPreviewTable({period}: Props) {
       isLoading={isPending}
       headers={[
         t('Project'),
-        t('Spans'),
         <SortableHeader key="spans" onClick={handleTableSort}>
-          {t('Total Spans')}
+          {t('Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
-        t('Projected Rate'),
+        <RateHeaderCell key="projectedRate">{t('Projected Rate')}</RateHeaderCell>,
       ]}
     >
       {balancedItems
@@ -108,36 +111,58 @@ interface SubProject {
   slug: string;
 }
 
-function getSubProjectContent(subProjects: SubProject[], isExpanded: boolean) {
+function getSubProjectContent(
+  ownSlug: string,
+  subProjects: SubProject[],
+  isExpanded: boolean
+) {
   let subProjectContent: React.ReactNode = t('No distributed traces');
-  if (subProjects.length > 0) {
+  if (subProjects.length > 1) {
     const truncatedSubProjects = subProjects.slice(0, MAX_PROJECTS_COLLAPSED);
-    const overflowingProjects = subProjects.length - MAX_PROJECTS_COLLAPSED;
+    const overflowCount = subProjects.length - MAX_PROJECTS_COLLAPSED;
+    const moreTranslation = t('+%d more', overflowCount);
     const stringifiedSubProjects =
-      truncatedSubProjects.map(p => p.slug).join(', ') +
-      (overflowingProjects > 0 ? `, +${overflowingProjects} more` : '');
+      overflowCount > 0
+        ? `${truncatedSubProjects.map(p => p.slug).join(', ')}, ${moreTranslation}`
+        : oxfordizeArray(truncatedSubProjects.map(p => p.slug));
 
-    subProjectContent = isExpanded
-      ? subProjects.map(subProject => <div key={subProject.slug}>{subProject.slug}</div>)
-      : stringifiedSubProjects;
+    subProjectContent = isExpanded ? (
+      <Fragment>
+        <div>{ownSlug}</div>
+        {subProjects.map(subProject => (
+          <div key={subProject.slug}>{subProject.slug}</div>
+        ))}
+      </Fragment>
+    ) : (
+      t('Including spans in ') + stringifiedSubProjects
+    );
   }
 
   return subProjectContent;
 }
 
-function getSubSpansContent(subProjects: SubProject[], isExpanded: boolean) {
-  let subSpansContent: React.ReactNode = '+0';
-  if (subProjects.length > 0) {
+function getSubSpansContent(
+  ownCount: number,
+  subProjects: SubProject[],
+  isExpanded: boolean
+) {
+  let subSpansContent: React.ReactNode = '';
+  if (subProjects.length > 1) {
     const subProjectSum = subProjects.reduce(
       (acc, subProject) => acc + subProject.count,
       0
     );
 
-    subSpansContent = isExpanded
-      ? subProjects.map(subProject => (
-          <div key={subProject.slug}>+{formatAbbreviatedNumber(subProject.count, 2)}</div>
-        ))
-      : `+${formatAbbreviatedNumber(subProjectSum, 2)}`;
+    subSpansContent = isExpanded ? (
+      <Fragment>
+        <div>{formatAbbreviatedNumber(ownCount, 2)}</div>
+        {subProjects.map(subProject => (
+          <div key={subProject.slug}>{formatAbbreviatedNumber(subProject.count)}</div>
+        ))}
+      </Fragment>
+    ) : (
+      formatAbbreviatedNumber(subProjectSum)
+    );
   }
 
   return subSpansContent;
@@ -159,39 +184,45 @@ const TableRow = memo(function TableRow({
   sampleRate: number;
   subProjects: SubProject[];
 }) {
+  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const hasSubProjects = subProjects.length > 0;
+  const isExpandable = subProjects.length > 0;
+  const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
-  const subProjectContent = getSubProjectContent(subProjects, isExpanded);
-  const subSpansContent = getSubSpansContent(subProjects, isExpanded);
+  const subProjectContent = getSubProjectContent(project.slug, subProjects, isExpanded);
+  const subSpansContent = getSubSpansContent(ownCount, subProjects, isExpanded);
 
   return (
     <Fragment key={project.slug}>
       <Cell>
-        <FirstCellLine data-has-chevron={hasSubProjects}>
-          {hasSubProjects && (
-            <StyledIconChevron
-              role="button"
-              aria-label={isExpanded ? t('Collapse') : t('Expand')}
-              direction={isExpanded ? 'down' : 'right'}
-              onClick={() => setIsExpanded(value => !value)}
+        <FirstCellLine data-has-chevron={isExpandable}>
+          <HiddenButton
+            disabled={!isExpandable}
+            aria-label={isExpanded ? t('Collapse') : t('Expand')}
+            onClick={() => setIsExpanded(value => !value)}
+          >
+            {isExpandable && (
+              <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
+            )}
+            <ProjectBadge project={project} disableLink avatarSize={16} />
+          </HiddenButton>
+          {hasAccess && (
+            <SettingsButton
+              title={t('Open Project Settings')}
+              aria-label={t('Open Project Settings')}
+              size="xs"
+              priority="link"
+              icon={<IconSettings />}
+              to={`/organizations/${organization.slug}/settings/projects/${project.slug}/performance`}
             />
           )}
-          <ProjectBadge project={project} avatarSize={16} />
         </FirstCellLine>
         <SubProjects>{subProjectContent}</SubProjects>
       </Cell>
       <Cell>
-        <FirstCellLine data-align="right">
-          {formatAbbreviatedNumber(ownCount, 2)}
-        </FirstCellLine>
+        <FirstCellLine data-align="right">{formatAbbreviatedNumber(count)}</FirstCellLine>
         <SubSpans>{subSpansContent}</SubSpans>
-      </Cell>
-      <Cell>
-        <FirstCellLine data-align="right">
-          {formatAbbreviatedNumber(count, 2)}
-        </FirstCellLine>
       </Cell>
       <Cell>
         <FirstCellLine>
@@ -228,7 +259,7 @@ const TableRow = memo(function TableRow({
 });
 
 const ProjectsTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content max-content max-content;
+  grid-template-columns: 1fr max-content max-content;
 `;
 
 const SmallPrint = styled('span')`
@@ -248,6 +279,11 @@ const SortableHeader = styled('button')`
   gap: ${space(0.5)};
 `;
 
+const RateHeaderCell = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
 const Cell = styled('div')`
   display: flex;
   flex-direction: column;
@@ -258,6 +294,9 @@ const FirstCellLine = styled('div')`
   display: flex;
   align-items: center;
   height: 32px;
+  & > * {
+    flex-shrink: 0;
+  }
   &[data-align='right'] {
     justify-content: flex-end;
   }
@@ -302,14 +341,40 @@ const SubSpans = styled('div')`
   }
 `;
 
+const HiddenButton = styled('button')`
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+
+  /* Overwrite the platform icon's cursor style */
+  &:not([disabled]) img {
+    cursor: pointer;
+  }
+`;
+
 const StyledIconChevron = styled(IconChevron)`
   height: 12px;
   width: 12px;
   margin-right: ${space(0.5)};
   color: ${p => p.theme.subText};
-  cursor: pointer;
+`;
+
+const SettingsButton = styled(LinkButton)`
+  margin-left: ${space(0.5)};
+  color: ${p => p.theme.subText};
+  visibility: hidden;
+
+  &:focus {
+    visibility: visible;
+  }
+  ${Cell}:hover & {
+    visibility: visible;
+  }
 `;
 
 const TrailingPercent = styled('strong')`
-  padding: 0 ${space(0.25)}px;
+  padding: 0 ${space(0.25)};
 `;

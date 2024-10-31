@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 
 export const MODULE_TITLE = t('Web Vitals');
-export const BASE_URL = 'browser/pageloads';
+export const BASE_URL = 'pageloads';
 export const DATA_TYPE = t('Web Vitals');
 export const DATA_TYPE_PLURAL = t('Web Vitals');
 

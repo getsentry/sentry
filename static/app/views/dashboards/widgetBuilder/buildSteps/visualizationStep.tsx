@@ -136,7 +136,6 @@ export function VisualizationStep({
               <PanelAlert type="error">{errorMessage}</PanelAlert>
             )
           }
-          noLazyLoad
           isWidgetInvalid={isWidgetInvalid}
           onDataFetched={onDataFetched}
           onWidgetSplitDecision={onWidgetSplitDecision}
