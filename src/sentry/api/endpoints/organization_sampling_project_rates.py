@@ -44,7 +44,7 @@ class PutSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationSamplingProjectRatesEndpoint(OrganizationEndpoint):
-    """TODO"""
+    """Bulk endpoint for managing project sampling rates."""
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
@@ -56,7 +56,17 @@ class OrganizationSamplingProjectRatesEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 
     def get(self, request: Request, organization) -> Response:
-        """TODO"""
+        """
+        List Sampling Rates for Projects
+        ````````````````````````````````
+
+        Return a list of sampling rates for projects in the organization by
+        project ID.
+
+        :pparam string organization_id_or_slug: the id or slug of the
+            organization.
+        :auth: required
+        """
 
         # NOTE: This fetches all projects in the organization. We do not filter
         # to projects the org member has access to as the sample rate and
@@ -75,7 +85,16 @@ class OrganizationSamplingProjectRatesEndpoint(OrganizationEndpoint):
         )
 
     def put(self, request: Request, organization) -> Response:
-        """TODO"""
+        """
+        Update Sampling Rates of Projects
+        `````````````````````````````````
+
+        Bulk update the sample rate of projects in a single request.
+
+        :pparam string organization_id_or_slug: the id or slug of the
+            organization.
+        :auth: required
+        """
 
         serializer = PutSerializer(data=request.data, many=True)
         if not serializer.is_valid():
