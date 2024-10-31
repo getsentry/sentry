@@ -98,3 +98,39 @@ class TaskNamespace:
 
 
 # TODO(taskworker) Import TaskRegistrys
+class TaskRegistry:
+    """
+    Dummy TaskRegistry. TODO: Port over TaskRegistry
+    """
+
+    def __init__(self) -> None:
+        self._namespaces: dict[str, TaskNamespace] = {}
+
+    def get(self, name: str) -> TaskNamespace:
+        """Fetch a namespace by name."""
+        if name not in self._namespaces:
+            raise KeyError(f"No task namespace with the name {name}")
+        return self._namespaces[name]
+
+    def get_task(self, namespace: str, task: str) -> Task[Any, Any]:
+        """Fetch a task by namespace and name."""
+        return self.get(namespace).get(task)
+
+    def create_namespace(
+        self, name: str, topic: str, deadletter_topic: str, retry: Retry | None = None
+    ):
+        """
+        Create a namespaces.
+        Namespaces can define default retry policies, deadlines.
+        Namespaces are mapped onto topics with a router allowing
+        infrastructure to be scaled based on a region's requirements.
+        """
+        namespace = TaskNamespace(
+            name=name, topic=topic, deadletter_topic=deadletter_topic, retry=retry
+        )
+        self._namespaces[name] = namespace
+
+        return namespace
+
+
+taskregistry = TaskRegistry()

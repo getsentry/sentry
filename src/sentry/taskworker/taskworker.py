@@ -15,11 +15,10 @@ from sentry_protos.sentry.v1.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
-    GetTaskResponse,
     TaskActivation,
 )
 
-from sentry.taskworker import worker_process
+from sentry.taskworker import taskworker_process
 from sentry.taskworker.registry import TaskNamespace, taskregistry
 
 logger = logging.getLogger("sentry.taskworker")
@@ -95,7 +94,7 @@ class TaskWorker:
         from sentry.taskworker.service.client import task_client
 
         try:
-            response: GetTaskResponse | None = task_client.get_task(topic=self.namespace.topic)
+            response: None = task_client.get_task(topic=self.namespace.topic)
         except grpc.RpcError:
             logger.info("get_task failed. Retrying in 1 second")
             return (None, None)
@@ -129,7 +128,7 @@ class TaskWorker:
             task_data_parameters = orjson.loads(activation.parameters)
             processing_timeout = (processing_deadline - datetime.now()).total_seconds()
             result = self.__pool.apply_async(
-                func=worker_process._process_activation,
+                func=taskworker_process._process_activation,
                 args=(
                     self.options["namespace"],
                     activation.taskname,
