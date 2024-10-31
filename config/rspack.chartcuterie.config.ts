@@ -32,7 +32,7 @@ const config: webpack.Configuration = {
   },
 
   module: {
-    rules: [findLoader('builtin:swc-loader'), findLoader('po-catalog-loader')],
+    rules: [findLoader('babel-loader'), findLoader('po-catalog-loader')],
   },
 
   plugins: [
