@@ -16,6 +16,8 @@ class ActivitySerializer(Serializer):
         self.environment_func = environment_func
 
     def get_attrs(self, item_list, user, **kwargs):
+        from sentry.api.serializers.models.group import GroupSerializer
+
         # TODO(dcramer); assert on relations
         user_ids = [i.user_id for i in item_list if i.user_id]
         user_list = []
@@ -69,7 +71,11 @@ class ActivitySerializer(Serializer):
 
         groups = {
             k: serialize(
-                v, user=user, collapse=["stats"] if collapse_group_stats_in_activity else None
+                v,
+                user=user,
+                serializer=GroupSerializer(
+                    collapse=["stats"] if collapse_group_stats_in_activity else None
+                ),
             )
             for k, v in Group.objects.in_bulk(
                 {
