@@ -273,7 +273,7 @@ export function getOnboardingTasks({
         'Triage and resolve issues faster by integrating Sentry with messaging platforms like Slack, Discord, and MS Teams.'
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      requisites: [],
       actionType: 'app',
       location: `/settings/${organization.slug}/integrations/?category=chat`,
       display: hasQuickStartUpdatesFeature(organization),
@@ -285,7 +285,7 @@ export function getOnboardingTasks({
         'Resolve bugs faster with commit data and stack trace linking to your source code in GitHub, Gitlab, and more.'
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      requisites: [],
       actionType: 'app',
       location: {
         pathname: `/settings/${organization.slug}/integrations/`,
