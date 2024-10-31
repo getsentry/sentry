@@ -32,6 +32,7 @@ import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import DurationChart from 'sentry/views/performance/charts/chart';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -321,6 +322,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     [props.chartSetting, mepSetting.memoizationKey]
   );
 
+  const {view} = useDomainViewFilters();
+
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => {
       return {
@@ -541,6 +544,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             transaction,
             query: props.eventView.getPageFiltersQuery(),
             additionalQuery,
+            view,
           });
 
       const fieldString = field;
