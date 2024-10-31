@@ -74,6 +74,7 @@ import {
 import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
+  DOMAIN_VIEW_RELEASE_LEVEL,
 } from 'sentry/views/insights/pages/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
@@ -622,6 +623,8 @@ function Sidebar() {
         id="insights-domains"
         initiallyExpanded={false}
         exact={!shouldAccordionFloat}
+        isAlpha={DOMAIN_VIEW_RELEASE_LEVEL === 'alpha'}
+        isBeta={DOMAIN_VIEW_RELEASE_LEVEL === 'beta'}
       >
         <SidebarItem
           {...sidebarItemProps}
