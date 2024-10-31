@@ -1,4 +1,5 @@
-from typing import TypedDict
+from collections.abc import Mapping
+from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.rollbackuser import RollbackUser
@@ -19,7 +20,7 @@ class UserRollbacksSerializerResponse(TypedDict):
 @register(RollbackUser)
 class UserRollbacksSerializer(Serializer):
     def serialize(
-        self, obj: RollbackUser, attrs, user, **kwargs
+        self, obj: RollbackUser, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
     ) -> UserRollbacksSerializerResponse:
         return {
             "organization": {

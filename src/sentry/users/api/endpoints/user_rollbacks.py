@@ -17,7 +17,7 @@ class UserRollbacksEndpoint(RegionSiloUserEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.UNOWNED
+    owner = ApiOwner.ISSUES
 
     def get(self, request: Request, user: RpcUser) -> Response:
         """
