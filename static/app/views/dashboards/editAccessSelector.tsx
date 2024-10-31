@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
-import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import Badge from 'sentry/components/badge/badge';
 import Checkbox from 'sentry/components/checkbox';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -12,7 +11,6 @@ import UserBadge from 'sentry/components/idBadge/userBadge';
 import {InnerWrap, LeadingItems} from 'sentry/components/menuListItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -64,11 +62,11 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   });
 
   // Single team option in the dropdown [WIP]
-  const makeTeamOption = (team: Team) => ({
-    value: team.id,
-    label: `#${team.slug}`,
-    leadingItems: <TeamAvatar team={team} size={18} />,
-  });
+  // const makeTeamOption = (team: Team) => ({
+  //   value: team.id,
+  //   label: `#${team.slug}`,
+  //   leadingItems: <TeamAvatar team={team} size={18} />,
+  // });
 
   // Avatars/Badges in the Edit Selector Button
   const triggerAvatars =
@@ -91,13 +89,13 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       ],
     },
     // [WIP: Selective edit access to teams]
-    {
-      value: '_teams',
-      label: t('Teams'),
-      options: teams.map(makeTeamOption),
-      showToggleAllButton: true,
-      disabled: true,
-    },
+    // {
+    //   value: '_teams',
+    //   label: t('Teams'),
+    //   options: teams.map(makeTeamOption),
+    //   showToggleAllButton: true,
+    //   disabled: true,
+    // },
   ];
 
   // Handles state change when dropdown options are selected
