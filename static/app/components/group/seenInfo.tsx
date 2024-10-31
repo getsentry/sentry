@@ -1,4 +1,4 @@
-import {type CSSProperties, Fragment} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -22,10 +22,8 @@ type Props = {
   organization: Organization;
   projectId: string;
   projectSlug: string;
-  className?: string;
   environment?: string;
   release?: Release;
-  style?: CSSProperties;
 };
 
 function SeenInfo({
@@ -36,10 +34,9 @@ function SeenInfo({
   organization,
   projectSlug,
   projectId,
-  ...styleProps
 }: Props) {
   return (
-    <HovercardWrapper {...styleProps}>
+    <HovercardWrapper>
       <StyledHovercard
         showUnderline
         header={
