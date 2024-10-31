@@ -59,7 +59,7 @@ export default function SolutionsSection({
       <SidebarSectionTitle style={{marginTop: 0}}>
         {t('Solutions & Resources')}
       </SidebarSectionTitle>
-      {isPending && (
+      {isPending && isSummaryEnabled(hasGenAIConsent, group.issueCategory) && (
         <Placeholder height="19px" width="95%" style={{marginBottom: space(1)}} />
       )}
       {isSummaryEnabled(hasGenAIConsent, group.issueCategory) && data && (
