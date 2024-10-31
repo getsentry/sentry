@@ -82,7 +82,7 @@ function VersionHoverCard({
     }
 
     const recentDeploysByEnvironment = deploys
-      .sort(
+      .toSorted(
         // Sorted by most recent deploy first
         (a, b) => new Date(b.dateFinished).getTime() - new Date(a.dateFinished).getTime()
       )
