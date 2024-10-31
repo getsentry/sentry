@@ -152,7 +152,7 @@ export function useWrappedDiscoverQuery<T>({
   const organization = useOrganization();
   const {isReady: pageFiltersReady} = usePageFilters();
 
-  const queryExtras = {};
+  const queryExtras: Record<string, string> = {};
 
   if (allowAggregateConditions !== undefined) {
     queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
