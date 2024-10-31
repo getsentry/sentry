@@ -29,7 +29,11 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
 import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 
-import {getSelectedProjectPlatforms, getTransactionName} from '../utils';
+import {
+  getPerformanceBaseUrl,
+  getSelectedProjectPlatforms,
+  getTransactionName,
+} from '../utils';
 
 import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
@@ -350,7 +354,7 @@ export function redirectToPerformanceHomepage(
   // If there is no transaction name, redirect to the Performance landing page
   browserHistory.replace(
     normalizeUrl({
-      pathname: `/organizations/${organization.slug}/performance/`,
+      pathname: getPerformanceBaseUrl(organization.slug),
       query: {
         ...location.query,
       },

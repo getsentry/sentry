@@ -56,7 +56,7 @@ export function NewOnboardingStatus({
     useOnboardingTasks({
       supportedTasks,
       enabled:
-        !!organization.features?.includes('onboarding') &&
+        !!organization.features.includes('onboarding') &&
         !supportedTasks.every(findCompleteTasks),
       refetchInterval: isActive ? '1s' : '10s',
     });
