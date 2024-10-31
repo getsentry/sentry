@@ -32,9 +32,9 @@ export type Filters = {
 
 export const useDomainViewFilters = () => {
   const location = useLocation();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
 
-  const hasDomainViewFeature = organization.features.includes('insights-domain-view');
+  const hasDomainViewFeature = organization?.features.includes('insights-domain-view');
   const pathSegments = location.pathname.split('/').filter(Boolean);
   const indexOfPerformance = pathSegments.indexOf(DOMAIN_VIEW_BASE_URL);
   const isInDomainView = indexOfPerformance !== -1;
