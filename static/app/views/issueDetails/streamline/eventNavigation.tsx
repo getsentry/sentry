@@ -173,7 +173,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             {
               key: Tab.DETAILS,
               label: (
-                <DropdownCountWrapper>
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.DETAILS}>
                   {TabName[Tab.DETAILS]} <ItemCount value={group.count} />
                 </DropdownCountWrapper>
               ),
@@ -186,7 +186,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             {
               key: Tab.REPLAYS,
               label: (
-                <DropdownCountWrapper>
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.REPLAYS}>
                   {TabName[Tab.REPLAYS]} <ItemCount value={replaysCount} />
                 </DropdownCountWrapper>
               ),
@@ -199,7 +199,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             {
               key: Tab.ATTACHMENTS,
               label: (
-                <DropdownCountWrapper>
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.ATTACHMENTS}>
                   {TabName[Tab.ATTACHMENTS]}
                   <CustomItemCount>
                     {hasManyAttachments ? '50+' : attachments.attachments.length}
@@ -215,7 +215,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             {
               key: Tab.USER_FEEDBACK,
               label: (
-                <DropdownCountWrapper>
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.USER_FEEDBACK}>
                   {TabName[Tab.USER_FEEDBACK]} <ItemCount value={group.userReportCount} />
                 </DropdownCountWrapper>
               ),
@@ -341,7 +341,7 @@ const LargeDropdownButtonWrapper = styled('div')`
 const NavigationDropdownButton = styled(DropdownButton)`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightBold};
-  padding-right: ${space(0.25)};
+  padding-right: ${space(0.5)};
 `;
 
 const LargeInThisIssueText = styled('div')`
@@ -355,12 +355,11 @@ const EventNavigationWrapper = styled('div')`
   flex-direction: column;
   justify-content: space-between;
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${space(1)} 0 ${space(0.5)} ${space(0.25)};
+  padding: 0 0 ${space(0.5)} ${space(0.25)};
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
     flex-direction: row;
     align-items: center;
-    padding: ${space(1)} 0 ${space(0.5)} ${space(0.25)};
   }
 `;
 
@@ -380,11 +379,13 @@ const Navigation = styled('div')`
   border-right: 1px solid ${p => p.theme.gray100};
 `;
 
-const DropdownCountWrapper = styled('div')`
+const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: ${space(3)};
+  font-weight: ${p =>
+    p.isCurrentTab ? p.theme.fontWeightBold : p.theme.fontWeightNormal};
 `;
 
 const ItemCount = styled(Count)`
