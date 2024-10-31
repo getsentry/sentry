@@ -195,7 +195,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
           {label: t('Crons'), to: `/${prefix}/crons/`},
         ],
       },
-      ...(hasPerfDomainViews ? [perfDomainViews] : [insights, perf]),
+      ...(hasPerfDomainViews ? [perfDomainViews, perf] : [insights, perf]),
       {
         label: t('Boards'),
         to: '/dashboards/',
