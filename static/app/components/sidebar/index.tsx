@@ -57,22 +57,27 @@ import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleU
 import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
 import {
   AI_LANDING_SUB_PATH,
-  AI_LANDING_TITLE,
+  AI_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/ai/settings';
 import {
   BACKEND_LANDING_SUB_PATH,
-  BACKEND_LANDING_TITLE,
+  BACKEND_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/backend/settings';
 import {
   FRONTEND_LANDING_SUB_PATH,
-  FRONTEND_LANDING_TITLE,
+  FRONTEND_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {
   MOBILE_LANDING_SUB_PATH,
-  MOBILE_LANDING_TITLE,
+  MOBILE_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {
+  DOMAIN_VIEW_BASE_TITLE,
+  DOMAIN_VIEW_BASE_URL,
+} from 'sentry/views/insights/pages/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
@@ -265,7 +270,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const moduleURLBuilder = useModuleURLBuilder(true, false);
+  const moduleURLBuilder = useModuleURLBuilder(true);
 
   const queries = hasOrganization && (
     <Feature key="db" features="insights-entry-points" organization={organization}>
@@ -454,7 +459,7 @@ function Sidebar() {
             {hasNewNav ? 'Perf.' : t('Performance')}
           </GuideAnchor>
         }
-        to={`/organizations/${organization.slug}/performance/`}
+        to={`${getPerformanceBaseUrl(organization.slug)}/`}
         id="performance"
       />
     </Feature>
@@ -613,36 +618,36 @@ function Sidebar() {
       <SidebarAccordion
         {...sidebarItemProps}
         icon={<IconGraph />}
-        label={t('Performance')}
+        label={DOMAIN_VIEW_BASE_TITLE}
         id="performance-domains"
         initiallyExpanded={false}
         exact={!shouldAccordionFloat}
       >
         <SidebarItem
           {...sidebarItemProps}
-          label={FRONTEND_LANDING_TITLE}
-          to={`/organizations/${organization.slug}/performance/${FRONTEND_LANDING_SUB_PATH}/`}
+          label={FRONTEND_SIDEBAR_LABEL}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`}
           id="performance-domains-web"
           icon={<SubitemDot collapsed />}
         />
         <SidebarItem
           {...sidebarItemProps}
-          label={BACKEND_LANDING_TITLE}
-          to={`/organizations/${organization.slug}/performance/${BACKEND_LANDING_SUB_PATH}/`}
+          label={BACKEND_SIDEBAR_LABEL}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${BACKEND_LANDING_SUB_PATH}/`}
           id="performance-domains-platform"
           icon={<SubitemDot collapsed />}
         />
         <SidebarItem
           {...sidebarItemProps}
-          label={MOBILE_LANDING_TITLE}
-          to={`/organizations/${organization.slug}/performance/${MOBILE_LANDING_SUB_PATH}/`}
+          label={MOBILE_SIDEBAR_LABEL}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}/`}
           id="performance-domains-mobile"
           icon={<SubitemDot collapsed />}
         />
         <SidebarItem
           {...sidebarItemProps}
-          label={AI_LANDING_TITLE}
-          to={`/organizations/${organization.slug}/performance/${AI_LANDING_SUB_PATH}/`}
+          label={AI_SIDEBAR_LABEL}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/`}
           id="performance-domains-ai"
           icon={<SubitemDot collapsed />}
         />

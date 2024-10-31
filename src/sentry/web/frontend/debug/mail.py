@@ -296,9 +296,9 @@ def get_shared_context(rule, org, project: Project, group, event):
 
 def add_unsubscribe_link(context):
     if "unsubscribe_link" not in context:
-        context[
-            "unsubscribe_link"
-        ] = 'javascript:alert("This is a preview page, what did you expect to happen?");'
+        context["unsubscribe_link"] = (
+            'javascript:alert("This is a preview page, what did you expect to happen?");'
+        )
 
 
 # TODO(dcramer): use https://github.com/disqus/django-mailviews

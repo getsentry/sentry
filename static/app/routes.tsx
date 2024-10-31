@@ -1592,6 +1592,14 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Redirect
+        from="mobile/app-startup/"
+        to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.APP_START]}/`}
+      />
+      <Redirect
+        from="mobile/screens/"
+        to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}
+      />
       <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
         <IndexRoute
           component={make(
@@ -1945,6 +1953,14 @@ function buildRoutes() {
         from="browser/resources"
         to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
       />
+      <Redirect
+        from="browser/assets"
+        to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
+      />
+      <Redirect
+        from="browser/pageloads"
+        to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.VITAL]}/`}
+      />
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}
@@ -1997,7 +2013,10 @@ function buildRoutes() {
       <Fragment>
         <IndexRoute
           component={hoc(
-            make(() => import('sentry/views/issueDetails/groupEventDetails'))
+            make(
+              () =>
+                import('sentry/views/issueDetails/groupEventDetails/groupEventDetails')
+            )
           )}
         />
         <Route

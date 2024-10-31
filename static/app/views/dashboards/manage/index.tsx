@@ -1,18 +1,17 @@
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -25,18 +24,19 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {MetricsRemovedAlertsWidgetsAlert} from 'sentry/views/metrics/metricsRemovedAlertsWidgetsAlert';
+import RouteError from 'sentry/views/routeError';
 
 import {getDashboardTemplates} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
@@ -44,7 +44,7 @@ import type {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
 import TemplateCard from './templateCard';
-import {setShowTemplates, shouldShowTemplates} from './utils';
+import {shouldShowTemplates, SHOW_TEMPLATES_KEY} from './utils';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Dashboards'), value: 'mydashboards'},
@@ -55,144 +55,99 @@ const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('Recently Viewed'), value: 'recentlyViewed'},
 ];
 
-type Props = {
-  api: Client;
-  location: Location;
-  organization: Organization;
-  router: InjectedRouter;
-} & DeprecatedAsyncView['props'];
+function ManageDashboards() {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const api = useApi();
 
-type State = {
-  dashboards: DashboardListItem[] | null;
-  dashboardsPageLinks: string;
-  resizing: boolean;
-  showTemplates: boolean;
-  windowWidth: number;
-} & DeprecatedAsyncView['state'];
+  const [resizing, setResizing] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(0);
 
-class ManageDashboards extends DeprecatedAsyncView<Props, State> {
-  shouldReload = true;
+  const {
+    data: dashboards,
+    isLoading,
+    isError,
+    error,
+    getResponseHeader,
+    refetch: refetchDashboards,
+  } = useApiQuery<DashboardListItem[]>(
+    [
+      `/organizations/${organization.slug}/dashboards/`,
+      {
+        query: {
+          ...pick(location.query, ['cursor', 'query']),
+          sort: getActiveSort().value,
+          per_page: getDashboardsPerPage(),
+        },
+      },
+    ],
+    {staleTime: 0}
+  );
 
-  constructor(props: Props, context: any) {
-    super(props, context);
+  const dashboardsPageLinks = getResponseHeader?.('Link') ?? '';
 
-    this.state = {
-      ...this.getDefaultState(),
-      dashboards: [],
-      dashboardsPageLinks: '',
-      windowWidth: window.innerWidth,
-      resizing: false,
-    };
-  }
+  const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
+    SHOW_TEMPLATES_KEY,
+    shouldShowTemplates()
+  );
 
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      showTemplates: shouldShowTemplates(),
-    };
-  }
-
-  debouncedHandleResize = debounce(() => {
+  const debouncedHandleResize = debounce(() => {
     const currentWidth = window.innerWidth;
     // Only update state if the width has changed
-    if (currentWidth !== this.state.windowWidth) {
-      this.setState({windowWidth: currentWidth, resizing: true});
+    if (currentWidth !== windowWidth) {
+      setWindowWidth(currentWidth);
+      setResizing(true);
     } else {
-      this.setState({resizing: false});
+      setResizing(false);
     }
-    const paginationObject = parseLinkHeader(this.state.dashboardsPageLinks);
+    const paginationObject = parseLinkHeader(dashboardsPageLinks);
     if (
-      this.state.dashboards?.length &&
+      dashboards?.length &&
       paginationObject.next.results &&
-      this.getDashboardsPerPage() > this.state.dashboards.length
+      getDashboardsPerPage() > dashboards.length
     ) {
-      this.reloadData();
+      refetchDashboards();
     }
   }, 250);
 
-  componentDidUpdate(prevProps: Props, prevContext: any) {
-    super.componentDidUpdate(prevProps, prevContext);
+  useEffect(() => {
+    window.addEventListener('resize', debouncedHandleResize);
 
-    const {location} = this.props;
-    // Check if the query has changed
-    if (!isEqual(location.query, prevProps.location.query)) {
-      this.setState({resizing: false});
-    }
-  }
+    return () => {
+      window.removeEventListener('resize', debouncedHandleResize);
+    };
+  }, [debouncedHandleResize]);
 
-  componentDidMount() {
-    window.addEventListener('resize', this.debouncedHandleResize);
-    super.componentDidMount();
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('resize', this.debouncedHandleResize);
-    super.componentWillUnmount();
-  }
-
-  shouldComponentUpdate(nextProps: Readonly<Props>, nextState: Readonly<State>): boolean {
-    const propsEqual = isEqual(nextProps, this.props);
-    const stateEqual = isEqual(nextState, this.state);
-    const windowEqual = isEqual(this.state.windowWidth, window.innerWidth);
-    return !propsEqual || !stateEqual || !windowEqual;
-  }
-
-  getDashboardsPerPage(): number {
+  function getDashboardsPerPage(): number {
     // min-midth of widget is 300px with additional 16px margin on each side (also accounting for side menu)
     return Math.floor((window.innerWidth - 100) / (300 + 32)) < 3
       ? 8
       : Math.floor((window.innerWidth - 100) / (300 + 32)) * 3;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization, location} = this.props;
-    const dashboardsPerPage = this.getDashboardsPerPage();
-    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
-      [
-        'dashboards',
-        `/organizations/${organization.slug}/dashboards/`,
-        {
-          query: {
-            ...pick(location.query, ['cursor', 'query']),
-            sort: this.getActiveSort().value,
-            per_page: dashboardsPerPage,
-          },
-        },
-      ],
-    ];
-    return endpoints;
-  }
-
-  getActiveSort() {
-    const {location} = this.props;
-
+  function getActiveSort() {
     const urlSort = decodeScalar(location.query.sort, 'mydashboards');
     return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
   }
 
-  onDashboardsChange() {
-    this.reloadData();
-  }
-
-  handleSearch(query: string) {
-    const {location, router, organization} = this.props;
+  function handleSearch(query: string) {
     trackAnalytics('dashboards_manage.search', {
       organization,
     });
 
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {...location.query, cursor: undefined, query},
     });
   }
 
-  handleSortChange = (value: string) => {
-    const {location, organization} = this.props;
+  const handleSortChange = (value: string) => {
     trackAnalytics('dashboards_manage.change_sort', {
       organization,
       sort: value,
     });
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -202,36 +157,30 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     });
   };
 
-  toggleTemplates = () => {
-    const {showTemplates} = this.state;
-    const {organization} = this.props;
-
+  const toggleTemplates = () => {
     trackAnalytics('dashboards_manage.templates.toggle', {
       organization,
       show_templates: !showTemplates,
     });
 
-    this.setState({showTemplates: !showTemplates}, () => {
-      setShowTemplates(!showTemplates);
-    });
+    setShowTemplatesLocal(!showTemplates);
   };
 
-  getQuery() {
-    const {query} = this.props.location.query;
+  function getQuery() {
+    const {query} = location.query;
 
     return typeof query === 'string' ? query : undefined;
   }
 
-  renderTemplates() {
-    const {organization} = this.props;
+  function renderTemplates() {
     return (
       <TemplateContainer>
         {getDashboardTemplates(organization).map(dashboard => (
           <TemplateCard
             title={dashboard.title}
             description={dashboard.description}
-            onPreview={() => this.onPreview(dashboard.id)}
-            onAdd={() => this.onAdd(dashboard)}
+            onPreview={() => onPreview(dashboard.id)}
+            onAdd={() => onAdd(dashboard)}
             key={dashboard.title}
           />
         ))}
@@ -239,28 +188,28 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  renderActions() {
-    const activeSort = this.getActiveSort();
+  function renderActions() {
+    const activeSort = getActiveSort();
     return (
       <StyledActions>
         <SearchBar
           defaultQuery=""
-          query={this.getQuery()}
+          query={getQuery()}
           placeholder={t('Search Dashboards')}
-          onSearch={query => this.handleSearch(query)}
+          onSearch={query => handleSearch(query)}
         />
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
           value={activeSort.value}
           options={SORT_OPTIONS}
-          onChange={opt => this.handleSortChange(opt.value)}
+          onChange={opt => handleSortChange(opt.value)}
           position="bottom-end"
         />
       </StyledActions>
     );
   }
 
-  renderNoAccess() {
+  function renderNoAccess() {
     return (
       <Layout.Page>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
@@ -268,9 +217,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  renderDashboards() {
-    const {reloading, dashboards, dashboardsPageLinks, loading, resizing} = this.state;
-    const {organization, location, api} = this.props;
+  function renderDashboards() {
     return (
       <DashboardList
         api={api}
@@ -278,26 +225,20 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
         organization={organization}
         pageLinks={dashboardsPageLinks}
         location={location}
-        onDashboardsChange={() => this.onDashboardsChange()}
-        reloading={reloading}
-        loading={loading}
+        onDashboardsChange={() => refetchDashboards()}
+        loading={isLoading}
         resizing={resizing}
-        limit={this.getDashboardsPerPage()}
+        limit={getDashboardsPerPage()}
       />
     );
   }
 
-  getTitle() {
-    return t('Dashboards');
-  }
-
-  onCreate() {
-    const {organization, location} = this.props;
+  function onCreate() {
     trackAnalytics('dashboards_manage.create.start', {
       organization,
     });
 
-    browserHistory.push(
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/`,
         query: location.query,
@@ -305,8 +246,7 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  async onAdd(dashboard: DashboardDetails) {
-    const {organization, api} = this.props;
+  async function onAdd(dashboard: DashboardDetails) {
     trackAnalytics('dashboards_manage.templates.add', {
       organization,
       dashboard_id: dashboard.id,
@@ -324,12 +264,11 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
       true
     );
     addSuccessMessage(`${dashboard.title} dashboard template successfully added.`);
-    this.loadDashboard(newDashboard.id);
+    loadDashboard(newDashboard.id);
   }
 
-  loadDashboard(dashboardId: string) {
-    const {organization, location} = this.props;
-    browserHistory.push(
+  function loadDashboard(dashboardId: string) {
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
         query: location.query,
@@ -337,14 +276,13 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  onPreview(dashboardId: string) {
-    const {organization, location} = this.props;
+  function onPreview(dashboardId: string) {
     trackAnalytics('dashboards_manage.templates.preview', {
       organization,
       dashboard_id: dashboardId,
     });
 
-    browserHistory.push(
+    navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
         query: location.query,
@@ -352,97 +290,104 @@ class ManageDashboards extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  renderLoading() {
-    return (
-      <Layout.Page withPadding>
-        <LoadingIndicator />
-      </Layout.Page>
-    );
-  }
+  function ManageDashboardsContent() {
+    if (isLoading) {
+      return (
+        <Layout.Page withPadding>
+          <LoadingIndicator />
+        </Layout.Page>
+      );
+    }
 
-  renderBody() {
-    const {showTemplates} = this.state;
-    const {organization, api, location} = this.props;
+    if (isError) {
+      return (
+        <Layout.Page withPadding>
+          <RouteError error={error} />
+        </Layout.Page>
+      );
+    }
 
     return (
-      <Feature
-        organization={organization}
-        features="dashboards-edit"
-        renderDisabled={this.renderNoAccess}
-      >
-        <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
-          <Layout.Page>
-            <NoProjectMessage organization={organization}>
-              <Layout.Header>
-                <Layout.HeaderContent>
-                  <Layout.Title>
-                    {t('Dashboards')}
-                    <PageHeadingQuestionTooltip
-                      docsUrl="https://docs.sentry.io/product/dashboards/"
-                      title={t(
-                        'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects.'
-                      )}
-                    />
-                  </Layout.Title>
-                </Layout.HeaderContent>
-                <Layout.HeaderActions>
-                  <ButtonBar gap={1.5}>
-                    <TemplateSwitch>
-                      {t('Show Templates')}
-                      <Switch
-                        isActive={showTemplates}
-                        size="lg"
-                        toggle={this.toggleTemplates}
-                      />
-                    </TemplateSwitch>
-                    <FeedbackWidgetButton />
-                    <DashboardImportButton />
+      <ErrorBoundary>
+        <Layout.Page>
+          <NoProjectMessage organization={organization}>
+            <Layout.Header>
+              <Layout.HeaderContent>
+                <Layout.Title>
+                  {t('Dashboards')}
+                  <PageHeadingQuestionTooltip
+                    docsUrl="https://docs.sentry.io/product/dashboards/"
+                    title={t(
+                      'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects.'
+                    )}
+                  />
+                </Layout.Title>
+              </Layout.HeaderContent>
+              <Layout.HeaderActions>
+                <ButtonBar gap={1.5}>
+                  <TemplateSwitch>
+                    {t('Show Templates')}
+                    <Switch isActive={showTemplates} size="lg" toggle={toggleTemplates} />
+                  </TemplateSwitch>
+                  <FeedbackWidgetButton />
+                  <DashboardImportButton />
+                  <Button
+                    data-test-id="dashboard-create"
+                    onClick={event => {
+                      event.preventDefault();
+                      onCreate();
+                    }}
+                    size="sm"
+                    priority="primary"
+                    icon={<IconAdd isCircled />}
+                  >
+                    {t('Create Dashboard')}
+                  </Button>
+                  <Feature features="dashboards-import">
                     <Button
-                      data-test-id="dashboard-create"
-                      onClick={event => {
-                        event.preventDefault();
-                        this.onCreate();
+                      onClick={() => {
+                        openImportDashboardFromFileModal({
+                          organization,
+                          api,
+                          location,
+                        });
                       }}
                       size="sm"
                       priority="primary"
                       icon={<IconAdd isCircled />}
                     >
-                      {t('Create Dashboard')}
+                      {t('Import Dashboard from JSON')}
                     </Button>
-                    <Feature features="dashboards-import">
-                      <Button
-                        onClick={() => {
-                          openImportDashboardFromFileModal({
-                            organization,
-                            api,
-                            location,
-                          });
-                        }}
-                        size="sm"
-                        priority="primary"
-                        icon={<IconAdd isCircled />}
-                      >
-                        {t('Import Dashboard from JSON')}
-                      </Button>
-                    </Feature>
-                  </ButtonBar>
-                </Layout.HeaderActions>
-              </Layout.Header>
-              <Layout.Body>
-                <Layout.Main fullWidth>
-                  <MetricsRemovedAlertsWidgetsAlert organization={organization} />
+                  </Feature>
+                </ButtonBar>
+              </Layout.HeaderActions>
+            </Layout.Header>
+            <Layout.Body>
+              <Layout.Main fullWidth>
+                <MetricsRemovedAlertsWidgetsAlert organization={organization} />
 
-                  {showTemplates && this.renderTemplates()}
-                  {this.renderActions()}
-                  {this.renderDashboards()}
-                </Layout.Main>
-              </Layout.Body>
-            </NoProjectMessage>
-          </Layout.Page>
-        </SentryDocumentTitle>
-      </Feature>
+                {showTemplates && renderTemplates()}
+                {renderActions()}
+                {renderDashboards()}
+              </Layout.Main>
+            </Layout.Body>
+          </NoProjectMessage>
+        </Layout.Page>
+      </ErrorBoundary>
     );
   }
+
+  return (
+    <Feature
+      organization={organization}
+      features="dashboards-edit"
+      renderDisabled={renderNoAccess}
+    >
+      <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
+        <ManageDashboardsContent />
+      </SentryDocumentTitle>
+    </Feature>
+  );
 }
 
 const StyledActions = styled('div')`
@@ -480,4 +425,4 @@ const TemplateContainer = styled('div')`
   }
 `;
 
-export default withApi(withOrganization(ManageDashboards));
+export default ManageDashboards;

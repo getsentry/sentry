@@ -55,8 +55,9 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
             for page in ["issues", "releases", "discover", "user-feedback"]
         ]
 
-        with self.settings(SENTRY_SINGLE_ORGANIZATION=False), self.feature(
-            "organizations:discover"
+        with (
+            self.settings(SENTRY_SINGLE_ORGANIZATION=False),
+            self.feature("organizations:discover"),
         ):
             for transition_url in transition_urls:
                 navigate_to_issues_page(self.organization.slug)

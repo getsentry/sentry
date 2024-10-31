@@ -34,7 +34,7 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
 import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {anomaliesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionAnomalies/utils';
@@ -147,7 +147,7 @@ function TransactionHeader({
 
   const project = projects.find(p => p.id === projectId);
 
-  const hasAnomalyDetection = organization.features?.includes(
+  const hasAnomalyDetection = organization.features.includes(
     'performance-anomaly-detection-ui'
   );
 
@@ -287,6 +287,16 @@ function TransactionHeader({
         tabList,
         value: currentTab,
       },
+      breadcrumbs: getTabCrumbs({
+        location,
+        organization,
+        tab: currentTab,
+        transaction: {
+          name: transactionName,
+          project: projectId,
+        },
+        view,
+      }),
     };
     if (view === FRONTEND_LANDING_SUB_PATH) {
       return <FrontendHeader {...headerProps} />;

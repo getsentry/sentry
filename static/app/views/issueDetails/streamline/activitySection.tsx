@@ -5,13 +5,16 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import textStyles from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -43,32 +46,43 @@ function TimelineItem({
     item,
     organization,
     group.project.id,
-    <Author>{authorName}</Author>,
+    <strong>{authorName}</strong>,
     teams
   );
 
-  const Icon = groupActivityTypeIconMapping[item.type]?.Component ?? null;
+  const iconMapping = groupActivityTypeIconMapping[item.type];
+  const Icon = iconMapping?.Component ?? null;
 
   return (
     <ActivityTimelineItem
       title={
-        <TitleWrapper>
-          {title}
-          <NoteDropdownWrapper>
-            {item.type === GroupActivityType.NOTE && (
-              <NoteDropdown onDelete={() => handleDelete(item)} user={item.user} />
-            )}
-          </NoteDropdownWrapper>
-        </TitleWrapper>
+        <Flex gap={space(0.5)} align="center" justify="flex-start">
+          <TitleTooltip title={title} showOnlyOnOverflow skipWrapper>
+            {title}
+          </TitleTooltip>
+          {item.type === GroupActivityType.NOTE && (
+            <TitleDropdown onDelete={() => handleDelete(item)} user={item.user} />
+          )}
+        </Flex>
       }
-      timestamp={<SmallTimestamp date={item.dateCreated} />}
+      timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
       icon={
         Icon && (
-          <Icon {...groupActivityTypeIconMapping[item.type].defaultProps} size="xs" />
+          <Icon
+            {...iconMapping.defaultProps}
+            {...iconMapping.propsFunction?.(item.data)}
+            size="xs"
+          />
         )
       }
     >
-      {typeof message === 'string' ? <NoteBody text={message} /> : message}
+      {typeof message === 'string' ? (
+        <NoteWrapper>
+          <NoteBody text={message} />
+        </NoteWrapper>
+      ) : (
+        message
+      )}
     </ActivityTimelineItem>
   );
 }
@@ -136,14 +150,14 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
 
   return (
     <div>
-      <TitleSection>
+      <Flex justify="space-between" align="center">
         <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
         {showAll && (
-          <CollapseButton borderless size="zero" onClick={() => setShowAll(false)}>
+          <TextButton borderless size="zero" onClick={() => setShowAll(false)}>
             {t('Collapse')}
-          </CollapseButton>
+          </TextButton>
         )}
-      </TitleSection>
+      </Flex>
       <Timeline.Container>
         <NoteInputWithStorage
           key={inputId}
@@ -183,16 +197,16 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
             })}
             <ActivityTimelineItem
               title={
-                <ShowAllButton
+                <TextButton
                   aria-label={t('Show all activity')}
                   onClick={() => setShowAll(true)}
                   borderless
                   size="zero"
                 >
-                  {t('%s comments hidden', group.activity.length - 3)}
-                </ShowAllButton>
+                  {t('%s activities hidden', group.activity.length - 3)}
+                </TextButton>
               }
-              icon={<RotatedEllipsisIcon />}
+              icon={<RotatedEllipsisIcon direction={'up'} />}
             />
             <TimelineItem
               item={group.activity[group.activity.length - 1]}
@@ -208,46 +222,37 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
   );
 }
 
-const Author = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+const TitleTooltip = styled(Tooltip)`
+  justify-self: start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
-const NoteDropdownWrapper = styled('span')`
+const TitleDropdown = styled(NoteDropdown)`
   font-weight: normal;
-`;
-
-const TitleWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const ActivityTimelineItem = styled(Timeline.Item)`
   align-items: center;
+  grid-template-columns: 22px minmax(50px, 1fr) auto;
 `;
 
-const SmallTimestamp = styled(TimeSince)`
+const Timestamp = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeSmall};
+  white-space: nowrap;
 `;
 
-const ShowAllButton = styled(Button)`
+const TextButton = styled(Button)`
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-`;
-
-const TitleSection = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-`;
-
-const CollapseButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
-  transform: rotate(90deg);
+  transform: rotate(90deg) translateY(1px);
+`;
+
+const NoteWrapper = styled('div')`
+  ${textStyles}
 `;

@@ -41,7 +41,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 import {COLUMN_TITLES} from '../../data';
-import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../../newTraceDetails/traceHeader/breadcrumbs';
 import Tab from '../tabs';
 import {
   generateProfileLink,
@@ -211,7 +211,7 @@ class EventsTable extends Component<Props, State> {
             view: this.props.domainViewFilters?.view,
           });
         } else {
-          target = generateTraceLink(transactionName)(
+          target = generateTraceLink(transactionName, this.props.domainViewFilters?.view)(
             organization,
             dataRow,
             locationWithTab

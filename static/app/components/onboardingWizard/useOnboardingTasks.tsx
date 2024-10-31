@@ -1,4 +1,4 @@
-import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {
   type OnboardingTask,
   OnboardingTaskGroup,
@@ -6,9 +6,6 @@ import {
 } from 'sentry/types/onboarding';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-
-// Refetch the data every second
-const DEFAULT_POLL_INTERVAL_MS = 1000;
 
 // Merge supported onboarding tasks with their completion status from the server.
 function mergeTasks({
@@ -36,33 +33,35 @@ function mergeTasks({
 // returns the task groups: "allTasks", "gettingStartedTasks", "beyondBasicsTasks", and "completeTasks".
 export function useOnboardingTasks({
   supportedTasks,
+  enabled,
 }: {
+  enabled: boolean;
   supportedTasks: OnboardingTask[];
 }): {
   allTasks: OnboardingTask[];
   beyondBasicsTasks: OnboardingTask[];
   completeTasks: OnboardingTask[];
+  doneTasks: OnboardingTask[];
   gettingStartedTasks: OnboardingTask[];
+  refetch: () => void;
 } {
   const organization = useOrganization();
 
-  const {data: serverTasks = {onboardingTasks: []}} = useApiQuery<{
+  const {data: serverTasks = {onboardingTasks: []}, refetch} = useApiQuery<{
     onboardingTasks: OnboardingTaskStatus[];
   }>([`/organizations/${organization.slug}/onboarding-tasks/`], {
     staleTime: 0,
-    enabled: supportedTasks.length > 0,
+    enabled,
     refetchInterval: query => {
       const data = query.state.data?.[0]?.onboardingTasks;
       if (!data) {
         return false;
       }
 
-      const serverCompletedTasks = (data as OnboardingTask[]).filter(taskIsDone);
+      const serverCompletedTasks = (data as OnboardingTask[]).filter(findCompleteTasks);
 
       // Stop polling if all tasks are complete
-      return serverCompletedTasks.length === supportedTasks.length
-        ? false
-        : DEFAULT_POLL_INTERVAL_MS;
+      return serverCompletedTasks.length === supportedTasks.length ? false : 1000; // 1s
     },
   });
 
@@ -73,12 +72,14 @@ export function useOnboardingTasks({
 
   return {
     allTasks: mergedTasks,
-    completeTasks: mergedTasks.filter(taskIsDone),
+    completeTasks: mergedTasks.filter(findCompleteTasks),
+    doneTasks: mergedTasks.filter(taskIsDone),
     gettingStartedTasks: mergedTasks.filter(
       task => task.group === OnboardingTaskGroup.GETTING_STARTED
     ),
     beyondBasicsTasks: mergedTasks.filter(
       task => task.group !== OnboardingTaskGroup.GETTING_STARTED
     ),
+    refetch,
   };
 }
