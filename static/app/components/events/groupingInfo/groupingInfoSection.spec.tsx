@@ -3,9 +3,10 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
 import {EventGroupVariantType} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
+
+import {EventGroupingInfoSection} from './groupingInfoSection';
 
 describe('EventGroupingInfo', function () {
   const group = GroupFixture();
@@ -22,7 +23,7 @@ describe('EventGroupingInfo', function () {
     group,
   };
 
-  let groupingInfoRequest = jest.fn();
+  let groupingInfoRequest!: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -41,14 +42,14 @@ describe('EventGroupingInfo', function () {
   });
 
   it('fetches and renders grouping info for errors', async function () {
-    render(<EventGroupingInfo {...defaultProps} />);
+    render(<EventGroupingInfoSection {...defaultProps} />);
 
-    await screen.findByText('variant description');
+    expect(await screen.findByText('variant description')).toBeInTheDocument();
 
     // Hash should not be visible until toggling open
     expect(screen.queryByText('123')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
-    expect(screen.getByText('123')).toBeInTheDocument();
+    expect(await screen.findByText('123')).toBeInTheDocument();
   });
 
   it('gets performance grouping info from group/event data', async function () {
@@ -58,7 +59,9 @@ describe('EventGroupingInfo', function () {
     });
     const perfGroup = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
 
-    render(<EventGroupingInfo {...defaultProps} event={perfEvent} group={perfGroup} />);
+    render(
+      <EventGroupingInfoSection {...defaultProps} event={perfEvent} group={perfGroup} />
+    );
 
     expect(screen.getByText('performance problem')).toBeInTheDocument();
 
@@ -80,7 +83,7 @@ describe('EventGroupingInfo', function () {
       ],
     });
 
-    render(<EventGroupingInfo {...defaultProps} showGroupingConfig />);
+    render(<EventGroupingInfoSection {...defaultProps} showGroupingConfig />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
 
@@ -107,6 +110,6 @@ describe('EventGroupingInfo', function () {
     await userEvent.click(screen.getByRole('option', {name: 'new:XXXX'}));
 
     // Should show new hash
-    await screen.findByText('789');
+    expect(await screen.findByText('789')).toBeInTheDocument();
   });
 });
