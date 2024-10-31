@@ -173,7 +173,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             {
               key: Tab.DETAILS,
               label: (
-                <DropdownCountWrapper>
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.DETAILS}>
                   {TabName[Tab.DETAILS]} <ItemCount value={group.count} />
                 </DropdownCountWrapper>
               ),
@@ -186,12 +186,11 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             {
               key: Tab.REPLAYS,
               label: (
-                <DropdownCountWrapper>
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.REPLAYS}>
                   {TabName[Tab.REPLAYS]} <ItemCount value={replaysCount} />
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.REPLAYS],
-              disabled: replaysCount === 0,
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
@@ -200,7 +199,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             {
               key: Tab.ATTACHMENTS,
               label: (
-                <DropdownCountWrapper>
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.ATTACHMENTS}>
                   {TabName[Tab.ATTACHMENTS]}
                   <CustomItemCount>
                     {hasManyAttachments ? '50+' : attachments.attachments.length}
@@ -208,7 +207,6 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.ATTACHMENTS],
-              disabled: attachments.attachments.length === 0 && !hasManyAttachments,
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
@@ -217,12 +215,11 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             {
               key: Tab.USER_FEEDBACK,
               label: (
-                <DropdownCountWrapper>
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.USER_FEEDBACK}>
                   {TabName[Tab.USER_FEEDBACK]} <ItemCount value={group.userReportCount} />
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.USER_FEEDBACK],
-              disabled: group.userReportCount === 0,
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
@@ -382,11 +379,13 @@ const Navigation = styled('div')`
   border-right: 1px solid ${p => p.theme.gray100};
 `;
 
-const DropdownCountWrapper = styled('div')`
+const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: ${space(3)};
+  font-weight: ${p =>
+    p.isCurrentTab ? p.theme.fontWeightBold : p.theme.fontWeightNormal};
 `;
 
 const ItemCount = styled(Count)`
