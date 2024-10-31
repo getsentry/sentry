@@ -1,10 +1,13 @@
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {ReplaySideBySideImageDiff} from 'sentry/components/replays/diff/replaySideBySideImageDiff';
 import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff';
 import {ReplayTextDiff} from 'sentry/components/replays/diff/replayTextDiff';
 import {TabList, TabPanels, TabStateProvider} from 'sentry/components/tabs';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,8 +42,8 @@ export default function ReplayDiffChooser({
         <TabList>
           <TabList.Item key={DiffType.SLIDER}>{t('Slider Diff')}</TabList.Item>
           <TabList.Item key={DiffType.VISUAL}>{t('Side By Side Diff')}</TabList.Item>
-          <TabList.Item key={DiffType.HTML} hidden>
-            {t('HTML Diff')}
+          <TabList.Item key={DiffType.HTML}>
+            {t('HTML Diff')} <FeatureBadge type={'beta'} />
           </TabList.Item>
         </TabList>
 
@@ -53,6 +56,18 @@ export default function ReplayDiffChooser({
             />
           </TabPanels.Item>
           <TabPanels.Item key={DiffType.HTML}>
+            <StyledAlert type="info" showIcon>
+              {tct(
+                `This feature may be buggy, so we are looking at other potential solutions. Weigh in on these solutions [link:here]`,
+                {
+                  link: (
+                    <ExternalLink
+                      href={'https://github.com/getsentry/sentry/issues/80074'}
+                    />
+                  ),
+                }
+              )}
+            </StyledAlert>
             <ReplayTextDiff
               leftOffsetMs={leftOffsetMs}
               replay={replay}
@@ -71,6 +86,10 @@ export default function ReplayDiffChooser({
     </Grid>
   );
 }
+
+const StyledAlert = styled(Alert)`
+  margin: 0;
+`;
 
 const Grid = styled('div')`
   display: grid;
