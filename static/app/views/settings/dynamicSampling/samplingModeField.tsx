@@ -16,20 +16,26 @@ import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
 const switchToManualMessage = tct(
-  'Switching to manual mode will disable automatic adjustments for your projects. You will be able to set individual sample rates for each project. Those rates will be initially set to their current automatic value. [link:Learn more about sampling]',
-  // TODO(aknaus): Add link to documentation
-  {link: <ExternalLink href="https://docs.sentry.io" />}
+  'Switching to manual mode disables automatic adjustments. After the switch, you can configure individual sample rates for each project. Dynamic sampling priorities continue to apply within the projects. [link:Learn more]',
+  {
+    link: (
+      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+    ),
+  }
 );
 
 const switchToAutoMessage = tct(
-  'Switching to automatic mode will enable automatic adjustments for your projects based on a global rate. By switching [strong:you will lose your manually defined sample rates]. [link:Learn more about sampling]',
-  // TODO(aknaus): Add link to documentation
-  {link: <ExternalLink href="https://docs.sentry.io" />, strong: <strong />}
+  'Switching to automatic mode enables continuous adjustments for your projects based on a global target sample rate. Sentry boosts the sample rates of small projects and ensures equal visibility. [link:Learn more]',
+  {
+    link: (
+      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+    ),
+  }
 );
 
 export function SamplingModeField() {
   const {samplingMode} = useOrganization();
-  const hasAccess = useAccess({access: ['org:write']});
+  const {hasAccess} = useAccess({access: ['org:write']});
 
   const {mutate: updateOrganization, isPending} = useUpdateOrganization({
     onMutate: () => {
@@ -55,24 +61,31 @@ export function SamplingModeField() {
       label={t('Switch Mode')}
       help={
         samplingMode === 'organization'
-          ? t(
-              'Take control over the individual sample rates in your projects. This disables automatic adjustments.'
-            )
-          : t(
-              'Let Sentry monitor span volume and adjust sample rates automatically. This resets the custom rates below.'
-            )
+          ? t('Take control over the individual sample rates in your projects.')
+          : t('Let Sentry monitor span volume and adjust sample rates automatically.')
       }
     >
       <Confirm
         disabled={!hasAccess || isPending}
         message={
           <Fragment>
-            <strong>{t('Are you sure?')}</strong>
             <p>
               {samplingMode === 'organization'
                 ? switchToManualMessage
                 : switchToAutoMessage}
             </p>
+            {samplingMode === 'organization' ? (
+              <p>{t('You can switch back to automatic mode at any time.')}</p>
+            ) : (
+              <p>
+                {tct(
+                  'By switching [strong:you will lose your manually defined sample rates].',
+                  {
+                    strong: <strong />,
+                  }
+                )}
+              </p>
+            )}
           </Fragment>
         }
         header={
@@ -91,7 +104,9 @@ export function SamplingModeField() {
             width: max-content;
           `}
         >
-          {samplingMode === 'organization' ? t('Switch to Manual') : t('Switch to Auto')}
+          {samplingMode === 'organization'
+            ? t('Switch to Manual')
+            : t('Switch to Automatic')}
         </Button>
       </Confirm>
     </FieldGroup>
