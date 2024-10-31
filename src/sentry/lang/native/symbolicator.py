@@ -42,16 +42,11 @@ class SymbolicatorPlatform(Enum):
 @dataclass(frozen=True)
 class SymbolicatorTaskKind:
     """Bundles information about a symbolication task:
-    the platform, whether it's on the low priority queue, and
-    whether it's an existing event being reprocessed.
+    the platform and whether it's an existing event being reprocessed.
     """
 
     platform: SymbolicatorPlatform
-    is_low_priority: bool = False
     is_reprocessing: bool = False
-
-    def with_low_priority(self, is_low_priority: bool) -> SymbolicatorTaskKind:
-        return dataclasses.replace(self, is_low_priority=is_low_priority)
 
     def with_platform(self, platform: SymbolicatorPlatform) -> SymbolicatorTaskKind:
         return dataclasses.replace(self, platform=platform)
@@ -61,9 +56,19 @@ class SymbolicatorPools(Enum):
     default = "default"
     js = "js"
     jvm = "jvm"
-    lpq = "lpq"
-    lpq_js = "lpq_js"
-    lpq_jvm = "lpq_jvm"
+
+
+def pool_for_platform(platform: SymbolicatorPlatform) -> SymbolicatorPools:
+    """Returns the Symbolicator pool to use to symbolicate events for
+    the given platform.
+    """
+    match platform:
+        case SymbolicatorPlatform.native:
+            return SymbolicatorPools.default
+        case SymbolicatorPlatform.js:
+            return SymbolicatorPools.js
+        case SymbolicatorPlatform.jvm:
+            return SymbolicatorPools.jvm
 
 
 class Symbolicator:
@@ -75,21 +80,10 @@ class Symbolicator:
         event_id: str,
     ):
         URLS = settings.SYMBOLICATOR_POOL_URLS
-        pool = SymbolicatorPools.default.value
-        if task_kind.is_low_priority:
-            if task_kind.platform == SymbolicatorPlatform.js:
-                pool = SymbolicatorPools.lpq_js.value
-            elif task_kind.platform == SymbolicatorPlatform.jvm:
-                pool = SymbolicatorPools.lpq_jvm.value
-            else:
-                pool = SymbolicatorPools.lpq.value
-        elif task_kind.platform == SymbolicatorPlatform.js:
-            pool = SymbolicatorPools.js.value
-        elif task_kind.platform == SymbolicatorPlatform.jvm:
-            pool = SymbolicatorPools.jvm.value
+        pool = pool_for_platform(task_kind.platform)
 
         base_url = (
-            URLS.get(pool)
+            URLS.get(pool.value)
             or URLS.get(SymbolicatorPools.default.value)
             or options.get("symbolicator.options")["url"]
         )
