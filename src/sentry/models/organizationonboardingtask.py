@@ -202,6 +202,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             # TODO(Telemetry Experience): This task is not shown in the quick start
             # but it is still used in the frontend, check if we can remove it from code
             OnboardingTask.USER_REPORTS,
+            OnboardingTask.ISSUE_TRACKER,
             OnboardingTask.ALERT_RULE,
             OnboardingTask.FIRST_TRANSACTION,
             OnboardingTask.METRIC_ALERT,
