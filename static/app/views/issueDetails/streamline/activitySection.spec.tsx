@@ -42,6 +42,62 @@ describe('StreamlinedActivitySection', function () {
 
   GroupStore.add([group]);
 
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    MockApiClient.clearMockResponses();
+  });
+
+  it('renders the input with a comment button', async function () {
+    const comment = 'nice work friends';
+    const postMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comments/',
+      method: 'POST',
+      body: {
+        id: 'note-2',
+        user: UserFixture({id: '2'}),
+        type: 'note',
+        data: {text: comment},
+        dateCreated: '2024-10-31T00:00:00.000000Z',
+      },
+    });
+
+    render(<StreamlinedActivitySection group={group} />);
+
+    const commentInput = screen.getByRole('textbox', {name: 'Add a comment'});
+    expect(commentInput).toBeInTheDocument();
+    const submitButton = screen.getByRole('button', {name: 'Submit comment'});
+    expect(submitButton).toBeInTheDocument();
+
+    expect(submitButton).toBeDisabled();
+    await userEvent.type(commentInput, comment);
+    expect(submitButton).toBeEnabled();
+
+    await userEvent.click(submitButton);
+    expect(postMock).toHaveBeenCalled();
+  });
+
+  it('allows submitting the comment field with hotkeys', async function () {
+    const comment = 'nice work friends';
+    const postMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comments/',
+      method: 'POST',
+      body: {
+        id: 'note-3',
+        user: UserFixture({id: '2'}),
+        type: 'note',
+        data: {text: comment},
+        dateCreated: '2024-10-31T00:00:00.000000Z',
+      },
+    });
+
+    render(<StreamlinedActivitySection group={group} />);
+
+    const commentInput = screen.getByRole('textbox', {name: 'Add a comment'});
+    await userEvent.type(commentInput, comment);
+    await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+    expect(postMock).toHaveBeenCalled();
+  });
+
   it('renders note and allows for delete', async function () {
     const deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/note-1/',

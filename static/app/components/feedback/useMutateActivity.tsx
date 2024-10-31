@@ -5,12 +5,13 @@ import type {Group, GroupActivity} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 type TPayload = {activity: GroupActivity[]; note?: NoteType; noteId?: string};
 type TMethod = 'PUT' | 'POST' | 'DELETE';
 export type TData = GroupActivity;
-export type TError = unknown;
+export type TError = RequestError;
 export type TVariables = [TPayload, TMethod];
 export type TContext = unknown;
 

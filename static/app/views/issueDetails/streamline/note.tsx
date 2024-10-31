@@ -11,7 +11,9 @@ import type {
   MentionChangeEvent,
   Mentioned,
 } from 'sentry/components/activity/note/types';
+import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';
 import {useMembers} from 'sentry/utils/useMembers';
@@ -131,8 +133,12 @@ function StreamlinedNoteInput({
   return (
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
       <MentionsInput
+        aria-label={t('Add a comment')}
         aria-errormessage={errorMessage ? errorId : undefined}
-        style={mentionStyle({theme, minHeight: 14, streamlined: true})}
+        style={{
+          ...mentionStyle({theme, minHeight: 14, streamlined: true}),
+          width: '100%',
+        }}
         placeholder={placeholder}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -155,6 +161,15 @@ function StreamlinedNoteInput({
           appendSpaceOnAdd
         />
       </MentionsInput>
+      <Button
+        priority="primary"
+        size="xs"
+        disabled={!canSubmit}
+        aria-label={t('Submit comment')}
+        type="submit"
+      >
+        {t('Comment')}
+      </Button>
     </NoteInputForm>
   );
 }
@@ -201,6 +216,11 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
 };
 
 const NoteInputForm = styled('form')<{error?: string}>`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.75)};
+  align-items: flex-end;
+  width: 100%;
   transition: padding 0.2s ease-in-out;
 
   ${p => getNoteInputErrorStyles(p)};
