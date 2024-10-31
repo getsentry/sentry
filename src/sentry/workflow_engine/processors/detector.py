@@ -10,6 +10,9 @@ from django.conf import settings
 from django.db.models import Q
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.utils import metrics, redis
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.iterators import chunked
@@ -29,9 +32,14 @@ REDIS_TTL = int(timedelta(days=7).total_seconds())
 @dataclasses.dataclass(frozen=True)
 class DetectorEvaluationResult:
     group_key: DetectorGroupKey
+    # TODO: Are these actually necessary? We're going to produce the occurrence in the detector, so we probably don't
+    # need to know the other results externally
     is_active: bool
     priority: DetectorPriorityLevel
-    data: Any
+    # TODO: This is only temporarily optional. We should always have a value here if returning a result
+    result: IssueOccurrence | StatusChangeMessage | None = None
+    # Event data to supplement the `IssueOccurrence`, if passed.
+    event_data: dict[str, Any] | None = None
 
 
 def process_detectors(
@@ -58,10 +66,26 @@ def process_detectors(
                         "group_key": result.group_key,
                     },
                 )
+                continue
+
+            if result.result is not None:
+                produce_occurrence_to_kafka(
+                    payload_type=(
+                        PayloadType.OCCURRENCE
+                        if isinstance(result.result, IssueOccurrence)
+                        else PayloadType.STATUS_CHANGE
+                    ),
+                    occurrence=result.result,
+                    event_data=result.event_data,
+                )
+
             detector_group_keys.add(result.group_key)
 
         if detector_results:
             results.append((detector, detector_results))
+
+        # Now that we've processed all results for this detector, commit any state changes
+        handler.commit_state_updates()
 
     return results
 
@@ -103,6 +127,9 @@ class DetectorHandler(abc.ABC, Generic[T]):
 
     @abc.abstractmethod
     def evaluate(self, data_packet: DataPacket[T]) -> list[DetectorEvaluationResult]:
+        pass
+
+    def commit_state_updates(self):
         pass
 
 
@@ -246,11 +273,11 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
 
         if state_data.active != is_active or state_data.status != status:
             self.enqueue_state_update(group_key, is_active, status)
+            # TODO: Add hook here for generating occurrence or status update
             return DetectorEvaluationResult(
                 group_key,
                 is_active,
                 status,
-                {},
             )
         return None
 
