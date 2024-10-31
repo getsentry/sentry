@@ -337,12 +337,7 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
 class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_organization(
-        name=None,
-        owner=None,
-        region: Region | str | None = None,
-        **kwargs,
-    ):
+    def create_organization(name=None, owner=None, region: Region | str | None = None, **kwargs):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
 
