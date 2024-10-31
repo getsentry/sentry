@@ -1,26 +1,26 @@
 /* eslint-env node */
 
-import type {Configuration, RuleSetRule} from '@rspack/core';
-import rspack from '@rspack/core';
 import childProcess from 'node:child_process';
 import path from 'node:path';
+import webpack from 'webpack';
 
-import baseConfig from '../rspack.config';
+import baseConfig from '../webpack.config';
 
 const commitHash =
   process.env.SENTRY_BUILD ||
-  childProcess.execSync('git rev-parse HEAD', {encoding: 'utf8'}).trim();
+  childProcess.execSync('git rev-parse HEAD').toString().trim();
 
-// @ts-ignore
 const findLoader = (loaderName: string) =>
   baseConfig.module?.rules?.find(
     rule =>
       rule &&
       typeof rule === 'object' &&
-      (rule.loader === loaderName || rule.use?.loader === loaderName)
-  ) as RuleSetRule;
+      typeof rule.use === 'object' &&
+      !Array.isArray(rule.use) &&
+      rule.use.loader === loaderName
+  ) as webpack.RuleSetRule;
 
-export default {
+const config: webpack.Configuration = {
   mode: baseConfig.mode,
   context: baseConfig.context,
   resolve: baseConfig.resolve,
@@ -31,12 +31,13 @@ export default {
   },
 
   module: {
-    rules: [findLoader('builtin:swc-loader'), findLoader('po-catalog-loader')],
+    rules: [findLoader('babel-loader'), findLoader('po-catalog-loader')],
+    noParse: baseConfig.module?.noParse,
   },
 
   plugins: [
-    new rspack.DefinePlugin({
-      'process.env.COMMIT_SHA': JSON.stringify(commitHash),
+    new webpack.DefinePlugin({
+      'process.env': {COMMIT_SHA: JSON.stringify(commitHash)},
     }),
   ],
 
@@ -46,4 +47,6 @@ export default {
   },
 
   optimization: {minimize: false},
-} as Configuration;
+};
+
+module.exports = config;
