@@ -1,3 +1,4 @@
+from sentry import options
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.models.activity import Activity
@@ -15,6 +16,8 @@ class ActivitySerializer(Serializer):
         self.environment_func = environment_func
 
     def get_attrs(self, item_list, user, **kwargs):
+        from sentry.api.serializers.models.group import GroupSerializer
+
         # TODO(dcramer); assert on relations
         user_ids = [i.user_id for i in item_list if i.user_id]
         user_list = []
@@ -64,8 +67,16 @@ class ActivitySerializer(Serializer):
         else:
             pull_requests = {}
 
+        collapse_group_stats_in_activity = options.get("issues.collapse-group-stats-in-activity")
+
         groups = {
-            k: serialize(v, user=user)
+            k: serialize(
+                v,
+                user=user,
+                serializer=GroupSerializer(
+                    collapse=["stats"] if collapse_group_stats_in_activity else None
+                ),
+            )
             for k, v in Group.objects.in_bulk(
                 {
                     i.data["source_id"]
