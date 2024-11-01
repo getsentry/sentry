@@ -1,13 +1,10 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
-import {GroupSummary} from 'sentry/components/group/groupSummary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
@@ -18,6 +15,7 @@ import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/firstLast
 import PeopleSection from 'sentry/views/issueDetails/streamline/peopleSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
+import SolutionsSection from 'sentry/views/issueDetails/streamline/solutionsSection';
 
 type Props = {
   group: Group;
@@ -44,11 +42,8 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   return (
     <Side>
-      <ErrorBoundary mini message={t('There was an error loading the issue summary')}>
-        <Feature features={['organizations:ai-summary']}>
-          <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-        </Feature>
-      </ErrorBoundary>
+      <SolutionsSection group={group} project={project} event={event} />
+      <StyledBreak />
       <FirstLastSeenSection group={group} />
       <StyledBreak />
       {event && (
