@@ -72,7 +72,7 @@ export function ModulePageProviders({
               organization={organization}
               renderDisabled={NoAccess}
             >
-              {children}
+              <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
             </Feature>
           </Layout.Page>
         )}
