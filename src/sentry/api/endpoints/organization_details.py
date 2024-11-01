@@ -58,6 +58,7 @@ from sentry.constants import (
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
+    ROLLBACK_ENABLED_DEFAULT,
     SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
@@ -220,6 +221,7 @@ ORG_OPTIONS = (
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
     ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
+    ("rollbackEnabled", "sentry:rollback_enabled", bool, ROLLBACK_ENABLED_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
@@ -281,6 +283,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     uptimeAutodetection = serializers.BooleanField(required=False)
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     samplingMode = serializers.ChoiceField(choices=DynamicSamplingMode.choices, required=False)
+    rollbackEnabled = serializers.BooleanField(required=False)
+    rollbackSharingEnabled = serializers.BooleanField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
