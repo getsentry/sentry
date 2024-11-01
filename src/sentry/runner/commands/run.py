@@ -237,14 +237,6 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
         run_worker(**options)
 
 
-@run.command()
-@click.option(
-    "--hostname",
-    "-n",
-    help=(
-        "Set custom hostname, e.g. 'w1.%h'. Expands: %h" "(hostname), %n (name) and %d, (domain)."
-    ),
-)
 @click.option(
     "--namespace",
     "-N",
