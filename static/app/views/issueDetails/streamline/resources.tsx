@@ -55,5 +55,5 @@ export default function Resources({configResources, eventPlatform, group}: Props
 const LinkSection = styled('div')`
   display: flex;
   gap: ${space(1)};
-  margin-top: ${space(2)};
+  margin-top: ${space(1)};
 `;
