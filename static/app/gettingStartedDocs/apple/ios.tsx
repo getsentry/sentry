@@ -79,7 +79,8 @@ func application(_ application: UIApplication,
         options.tracesSampleRate = 1.0`
             : ''
         }${
-          params.isProfilingSelected
+          params.isProfilingSelected &&
+          params.profilingOptions?.defaultProfilingMode !== 'continuous'
             ? `
 
         // Sample rate for profiling, applied on top of TracesSampleRate.
@@ -87,6 +88,17 @@ func application(_ application: UIApplication,
         options.profilesSampleRate = 1.0`
             : ''
         }
+    }${
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'continuous'
+        ? `
+
+    // Manually call startProfiler and stopProfiler
+    // to profile the code in between
+    SentrySDK.startProfiler()
+    // do some work here
+    SentrySDK.stopProfiler()`
+        : ''
     }
 
     return true
@@ -109,7 +121,8 @@ struct SwiftUIApp: App {
             options.tracesSampleRate = 1.0`
                 : ''
             }${
-              params.isProfilingSelected
+              params.isProfilingSelected &&
+              params.profilingOptions?.defaultProfilingMode !== 'continuous'
                 ? `
 
             // Sample rate for profiling, applied on top of TracesSampleRate.
@@ -117,6 +130,17 @@ struct SwiftUIApp: App {
             options.profilesSampleRate = 1.0`
                 : ''
             }
+        }${
+          params.isProfilingSelected &&
+          params.profilingOptions?.defaultProfilingMode === 'continuous'
+            ? `
+
+        // Manually call start_profiler and stop_profiler
+        // to profile the code in between
+        SentrySDK.startProfiler()
+        // do some work here
+        SentrySDK.stopProfiler()`
+            : ''
         }
     }
 }`;
