@@ -13,12 +13,28 @@ logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 30
 MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
-SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(["python", "javascript", "node", "ruby", "php", "go"])
+SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
+    [
+        "go",
+        "java",
+        "javascript",
+        "node",
+        "php",
+        "python",
+        "ruby",
+    ]
+)
 SEER_ELIGIBLE_PLATFORMS = frozenset(
     [
+        # "android",
+        # "android-profiling-onboarding-1-install",
+        # "android-profiling-onboarding-3-configure-profiling",
+        # "android-profiling-onboarding-4-upload",
         "bun",
+        # "dart",
         "deno",
         "django",
+        # "flutter",
         "go",
         "go-echo",
         "go-fasthttp",
@@ -28,6 +44,16 @@ SEER_ELIGIBLE_PLATFORMS = frozenset(
         "go-iris",
         "go-martini",
         "go-negroni",
+        # "groovy",
+        "java",
+        "java-android",
+        # "java-appengine",
+        # "java-log4j",
+        # "java-log4j2",
+        # "java-logging",
+        "java-logback",
+        # "java-spring",
+        # "java-spring-boot",
         "javascript",
         "javascript-angular",
         "javascript-angularjs",
