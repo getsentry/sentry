@@ -299,6 +299,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           }}
           yAxis={{
             splitNumber: 2,
+            minInterval: 1,
             axisLabel: {
               formatter: (value: number) => {
                 return formatAbbreviatedNumber(value);
