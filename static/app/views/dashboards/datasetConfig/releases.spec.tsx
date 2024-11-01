@@ -81,6 +81,12 @@ describe('transformSessionsResponseToTable', function () {
         release: 'string',
         'session.status': 'string',
         'sum(session)': 'integer',
+        fields: {
+          'count_unique(user)': 'integer',
+          release: 'string',
+          'session.status': 'string',
+          'sum(session)': 'integer',
+        },
       },
     });
   });
@@ -163,6 +169,13 @@ describe('transformSessionsResponseToTable', function () {
         release: 'string',
         'session.status': 'string',
         'sum(session)': 'integer',
+        fields: {
+          'count_crashed(session)': 'integer',
+          'count_unique(user)': 'integer',
+          release: 'string',
+          'session.status': 'string',
+          'sum(session)': 'integer',
+        },
       },
     });
   });
@@ -236,6 +249,12 @@ describe('transformSessionsResponseToTable', function () {
         'count_unique(user)': 'integer',
         release: 'string',
         'session.status': 'string',
+        fields: {
+          'count_crashed(session)': 'integer',
+          'count_unique(user)': 'integer',
+          release: 'string',
+          'session.status': 'string',
+        },
       },
     });
   });
