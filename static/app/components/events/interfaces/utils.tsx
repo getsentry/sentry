@@ -244,29 +244,18 @@ function isValidContextValue(value: unknown): value is string {
   return typeof value === 'string' && value !== FILTER_MASK;
 }
 
+const userAvatarKeys = ['id', 'ip', 'username', 'ip_address', 'name', 'email'] as const;
+
 /**
  * Convert a user context object to an actor object for avatar display
  */
 export function userContextToActor(rawData: Record<string, unknown>): AvatarUser {
   const result: Partial<AvatarUser> = {};
 
-  if (isValidContextValue(rawData.id)) {
-    result.id = rawData.id;
-  }
-  if (isValidContextValue(rawData.ip)) {
-    result.ip = rawData.ip;
-  }
-  if (isValidContextValue(rawData.username)) {
-    result.username = rawData.username;
-  }
-  if (isValidContextValue(rawData.ip_address)) {
-    result.ip_address = rawData.ip_address;
-  }
-  if (isValidContextValue(rawData.name)) {
-    result.name = rawData.name;
-  }
-  if (isValidContextValue(rawData.email)) {
-    result.email = rawData.email;
+  for (const key of userAvatarKeys) {
+    if (isValidContextValue(rawData[key])) {
+      result[key] = rawData[key] as string;
+    }
   }
 
   return result as AvatarUser;
