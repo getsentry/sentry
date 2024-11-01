@@ -958,8 +958,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 },
             ],
         }
-        with self.feature({"organizations:dashboards-bignumber-equations": True}):
-            response = self.do_request("post", self.url, data=data)
+        response = self.do_request("post", self.url, data=data)
         assert response.status_code == 201, response.data
 
         dashboard = Dashboard.objects.get(organization=self.organization, title="First dashboard")

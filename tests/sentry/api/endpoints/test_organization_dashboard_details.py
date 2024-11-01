@@ -339,11 +339,10 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             selected_aggregate=1,
             order=0,
         )
-        with self.feature({"organizations:dashboards-bignumber-equations": True}):
-            response = self.do_request(
-                "get",
-                self.url(self.dashboard.id),
-            )
+        response = self.do_request(
+            "get",
+            self.url(self.dashboard.id),
+        )
         assert response.status_code == 200, response.content
 
         assert response.data["widgets"][0]["queries"][0]["selectedAggregate"] is None
@@ -754,8 +753,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        with self.feature({"organizations:dashboards-bignumber-equations": True}):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
