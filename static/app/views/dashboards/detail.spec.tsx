@@ -398,11 +398,9 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
 
       // Remove the second and third widgets
-      // console.log((await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]);
       await userEvent.click(
         (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]
       );
-      // console.log(await screen.findAllByRole('button', {name: 'Delete Widget'}));
       await userEvent.click(
         (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]
       );
