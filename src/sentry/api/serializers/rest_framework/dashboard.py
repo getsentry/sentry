@@ -584,10 +584,15 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             self.update_widgets(self.instance, validated_data["widgets"])
 
         self.update_dashboard_filters(self.instance, validated_data)
-        if "permissions" in validated_data:
-            DashboardPermissions.objects.create(
-                dashboard=self.instance, **validated_data["permissions"]
-            )
+        if features.has(
+            "organizations:dashboards-edit-access",
+            self.context["organization"],
+            actor=self.context["request"].user,
+        ):
+            if "permissions" in validated_data and validated_data["permissions"] is not None:
+                self.instance.permissions, _ = DashboardPermissions.objects.update_or_create(
+                    dashboard=self.instance, **validated_data["permissions"]
+                )
 
         schedule_update_project_configs(self.instance)
 
@@ -612,10 +617,15 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             self.update_widgets(instance, validated_data["widgets"])
 
         self.update_dashboard_filters(instance, validated_data)
-        if "permissions" in validated_data:
-            DashboardPermissions.objects.update_or_create(
-                dashboard=instance, defaults=validated_data["permissions"]
-            )
+        if features.has(
+            "organizations:dashboards-edit-access",
+            self.context["organization"],
+            actor=self.context["request"].user,
+        ):
+            if "permissions" in validated_data and validated_data["permissions"] is not None:
+                instance.permissions, _ = DashboardPermissions.objects.update_or_create(
+                    dashboard=instance, defaults=validated_data["permissions"]
+                )
 
         schedule_update_project_configs(instance)
 
