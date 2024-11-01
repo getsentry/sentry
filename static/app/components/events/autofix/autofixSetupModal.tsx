@@ -205,7 +205,7 @@ function AutofixGithubIntegrationStep({
             {
               link: (
                 <ExternalLink
-                  href={`https://github.com/apps/sentry-autofix-experimental/installations/new`}
+                  href={`https://github.com/apps/sentry-autofix/installations/new`}
                 />
               ),
             }
@@ -245,7 +245,7 @@ function AutofixGithubIntegrationStep({
           {
             link: (
               <ExternalLink
-                href={`https://github.com/apps/sentry-autofix-experimental/installations/new`}
+                href={`https://github.com/apps/sentry-autofix/installations/new`}
               />
             ),
           }
