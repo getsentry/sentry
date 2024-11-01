@@ -2,7 +2,6 @@ import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
-import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -10,8 +9,6 @@ import {EventOrGroupType} from 'sentry/types/event';
 import {ReleaseStatus} from 'sentry/types/release';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 
 import {QuickContextHoverWrapper} from './quickContextWrapper';
 import {defaultRow, mockedCommit, mockedUser1, mockedUser2} from './testUtils';
@@ -24,35 +21,22 @@ const renderQuickContextContent = (
 ) => {
   const organization = OrganizationFixture();
   render(
-    <QueryClientProvider client={makeTestQueryClient()}>
-      <QuickContextHoverWrapper
-        dataRow={dataRow}
-        contextType={contextType}
-        organization={organization}
-        eventView={eventView}
-      >
-        Text from Child
-      </QuickContextHoverWrapper>
-    </QueryClientProvider>,
+    <QuickContextHoverWrapper
+      dataRow={dataRow}
+      contextType={contextType}
+      organization={organization}
+      eventView={eventView}
+    >
+      Text from Child
+    </QuickContextHoverWrapper>,
     {organization}
   );
 };
 
-jest.mock('sentry/utils/useLocation');
-
 describe('Quick Context', function () {
   describe('Quick Context default behaviour', function () {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/issues/3512441874/events/oldest/',
-        method: 'GET',
-        body: [],
-      });
-    });
-
     afterEach(() => {
       MockApiClient.clearMockResponses();
-      jest.mocked(useLocation).mockReset();
     });
 
     it('Renders child', async () => {
@@ -66,14 +50,8 @@ describe('Quick Context', function () {
         url: '/organizations/org-slug/users/',
         body: [],
       });
-
       MockApiClient.addMockResponse({
-        url: '/projects/org-slug/cool-team/events/6b43e285de834ec5b5fe30d62d549b20/committers/',
-        body: [],
-      });
-
-      MockApiClient.addMockResponse({
-        url: '/issues/3512441874/',
+        url: '/organizations/org-slug/issues/3512441874/',
         method: 'GET',
         body: {},
       });
@@ -89,14 +67,8 @@ describe('Quick Context', function () {
         url: '/organizations/org-slug/users/',
         body: [],
       });
-
       MockApiClient.addMockResponse({
-        url: '/projects/org-slug/cool-team/events/6b43e285de834ec5b5fe30d62d549b20/committers/',
-        body: [],
-      });
-
-      MockApiClient.addMockResponse({
-        url: '/issues/3512441874/',
+        url: '/organizations/org-slug/issues/3512441874/',
         statusCode: 400,
       });
 
@@ -113,7 +85,7 @@ describe('Quick Context', function () {
 
     it('Renders issue context header with copy button', async () => {
       MockApiClient.addMockResponse({
-        url: '/issues/3512441874/',
+        url: '/organizations/org-slug/issues/3512441874/',
         method: 'GET',
         body: {},
       });
