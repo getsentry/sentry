@@ -3,8 +3,21 @@ from __future__ import annotations
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.base import sane_repr
+
+
+@region_silo_model
+class DashboardPermissionsTeam(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    team = FlexibleForeignKey("sentry.Team")
+    permissions = FlexibleForeignKey("sentry.DashboardPermissions")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardpermissionsteam"
+        unique_together = (("team", "permissions"),)
 
 
 @region_silo_model
@@ -16,7 +29,9 @@ class DashboardPermissions(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     is_editable_by_everyone = models.BooleanField(default=True)
-    teams_with_edit_access = models.ManyToManyField("sentry.Team", blank=True)
+    teams_with_edit_access = models.ManyToManyField(
+        "sentry.Team", through=DashboardPermissionsTeam, blank=True
+    )
 
     dashboard = models.OneToOneField(
         "sentry.Dashboard", on_delete=models.CASCADE, related_name="permissions"
