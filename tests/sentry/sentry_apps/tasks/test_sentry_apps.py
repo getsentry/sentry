@@ -103,7 +103,13 @@ class TestSendAlertEvent(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_no_sentry_app(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
-        send_alert_event(event, self.rule, 9999)
+        send_alert_event(
+            instance_id=event.event_id,
+            group_id=event.group_id,
+            occurrence_id=None,
+            rule=self.rule,
+            sentry_app_id=9999,
+        )
 
         assert not safe_urlopen.called
 
