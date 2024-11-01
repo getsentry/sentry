@@ -766,10 +766,8 @@ function assertHighlightedRowAtIndex(virtualizedContainer: HTMLElement, index: n
   expect(r.indexOf(highlighted_row!)).toBe(index);
 }
 
-// biome-ignore lint/suspicious/noSkippedTests: <Flaky test>
-describe.skip('trace view', () => {
+describe('trace view', () => {
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
     globalThis.ResizeObserver = MockResizeObserver as any;
     mockQueryString('');
     MockDate.reset();
@@ -1010,8 +1008,7 @@ describe.skip('trace view', () => {
       expect(screen.queryByText(/Missing instrumentation/i)).not.toBeInTheDocument();
     });
 
-    // biome-ignore lint/suspicious/noSkippedTests: @JonasBa will fix these flakey tests soon
-    describe.skip('preferences', () => {
+    describe('preferences', () => {
       it('toggles autogrouping', async () => {
         mockTracePreferences({autogroup: {parent: true, sibling: true}});
         mockQueryString('?node=span-span0&node=txn-1');
