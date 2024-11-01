@@ -28,7 +28,6 @@ import type {
   EChartDataZoomHandler,
   EChartEventHandler,
   ReactEchartsRef,
-  Series,
 } from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -52,6 +51,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
@@ -166,21 +166,22 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const eventView = eventViewFromWidget(widget.title, widget.queries[0], selection);
 
       return (
-        <StyledSimpleTableChart
-          key={`table:${result.title}`}
-          eventView={eventView}
-          fieldAliases={fieldAliases}
-          location={location}
-          fields={fields}
-          title={tableResults.length > 1 ? result.title : ''}
-          loading={loading}
-          loader={<LoadingPlaceholder />}
-          metadata={result.meta}
-          data={result.data}
-          stickyHeaders
-          fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-          getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
-        />
+        <TableWrapper key={`table:${result.title}`}>
+          <StyledSimpleTableChart
+            eventView={eventView}
+            fieldAliases={fieldAliases}
+            location={location}
+            fields={fields}
+            title={tableResults.length > 1 ? result.title : ''}
+            loading={loading}
+            loader={<LoadingPlaceholder />}
+            metadata={result.meta}
+            data={result.data}
+            stickyHeaders
+            fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
+            getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
+          />
+        </TableWrapper>
       );
     });
   }
@@ -370,13 +371,20 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     const bucketSize = getBucketSize(timeseriesResults);
 
     const valueFormatter = (value: number, seriesName?: string) => {
-      const aggregateName = seriesName?.split(':').pop()?.trim();
+      const decodedSeriesName = seriesName
+        ? WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName)
+        : seriesName;
+      const aggregateName = decodedSeriesName?.split(':').pop()?.trim();
       if (aggregateName) {
         return timeseriesResultsTypes
           ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
           : tooltipFormatter(value, aggregateOutputType(aggregateName));
       }
       return tooltipFormatter(value, 'number');
+    };
+
+    const nameFormatter = (name: string) => {
+      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name);
     };
 
     const chartOptions = {
@@ -408,6 +416,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
           return getFormatter({
             valueFormatter,
+            nameFormatter,
             isGroupedByDate: true,
             bucketSize,
             addSecondsToTimeFormat: false,
@@ -493,19 +502,21 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults
-            ? timeseriesResults.map((values, i: number) => {
-                let seriesName = '';
-                if (values.seriesName !== undefined) {
-                  seriesName = isEquation(values.seriesName)
-                    ? getEquation(values.seriesName)
-                    : values.seriesName;
-                }
-                return {
-                  ...values,
-                  seriesName,
-                  color: colors[i],
-                };
-              })
+            ? timeseriesResults
+                .map((values, i: number) => {
+                  let seriesName = '';
+                  if (values.seriesName !== undefined) {
+                    seriesName = isEquation(values.seriesName)
+                      ? getEquation(values.seriesName)
+                      : values.seriesName;
+                  }
+                  return {
+                    ...values,
+                    seriesName,
+                    color: colors[i],
+                  };
+                })
+                .filter(Boolean) // NOTE: `timeseriesResults` is a sparse array! We have to filter out the empty slots after the colors are assigned, since the colours are assigned based on sparse array index
             : [];
 
           const seriesStart = series[0]?.data[0]?.name;
@@ -554,7 +565,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                               }
                             : {}),
                           legend,
-                          series: [...series, ...modifiedReleaseSeriesResults],
+                          series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
                           onLegendSelectChanged,
                           forwardedRef,
                         }),
@@ -599,14 +610,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 }
 
-const getBucketSize = (series: Series[] | undefined) => {
-  if (!series || series.length < 2) {
-    return 0;
-  }
-
-  return Number(series[0].data[1]?.name) - Number(series[0].data[0]?.name);
-};
-
 export default withTheme(WidgetCardChart);
 
 const StyledTransparentLoadingMask = styled(props => (
@@ -638,7 +641,6 @@ const BigNumberResizeWrapper = styled('div')`
   flex-grow: 1;
   overflow: hidden;
   position: relative;
-  margin: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
 `;
 
 const BigNumber = styled('div')`
@@ -658,15 +660,20 @@ const BigNumber = styled('div')`
 
 const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
-  padding: ${p => (p.noPadding ? `0` : `0 ${space(3)} ${space(3)}`)};
+  width: 100%;
+  padding: ${p => (p.noPadding ? `0` : `0 ${space(2)} ${space(2)}`)};
+`;
+
+const TableWrapper = styled('div')`
+  margin-top: ${space(1.5)};
+  min-height: 0;
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
-  margin-top: ${space(1.5)};
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeMedium};
-  box-shadow: none;
+  overflow: auto;
+  height: 100%;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`

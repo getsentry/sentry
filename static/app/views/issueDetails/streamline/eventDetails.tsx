@@ -18,12 +18,7 @@ import {
   useEventDetails,
   useEventDetailsReducer,
 } from 'sentry/views/issueDetails/streamline/context';
-import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
-import {EventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
-import {IssueContent} from 'sentry/views/issueDetails/streamline/issueContent';
-import {Tab} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 export function EventDetails({
   group,
@@ -31,54 +26,22 @@ export function EventDetails({
   project,
 }: Required<EventDetailsContentProps>) {
   const {eventDetails, dispatch} = useEventDetailsReducer();
-  const searchQuery = useEventQuery({group});
-
-  const {currentTab} = useGroupDetailsRoute();
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      {/* TODO(issues): We should use the router for this */}
-      {currentTab === Tab.EVENTS && (
-        <PageErrorBoundary mini message={t('There was an error loading the event list')}>
-          {/* Overflow added only to this instance to scroll table. Acts weird with sticky nav. */}
-          <GroupContent style={{overflowX: 'auto'}}>
-            <EventList group={group} project={project} />
-          </GroupContent>
-        </PageErrorBoundary>
-      )}
-      {currentTab !== Tab.EVENTS && (
-        <PageErrorBoundary
-          mini
-          message={t('There was an error loading the event content')}
-        >
-          <GroupContent>
-            <StickyEventNav event={event} group={group} searchQuery={searchQuery} />
-            <ContentPadding>
-              <EventDetailsContent group={group} event={event} project={project} />
-            </ContentPadding>
-          </GroupContent>
-        </PageErrorBoundary>
-      )}
-      <PageErrorBoundary mini message={t('There was an error loading the issue content')}>
-        <ExtraContent>
+      <PageErrorBoundary mini message={t('There was an error loading the event content')}>
+        <GroupContent>
+          <StickyEventNav event={event} group={group} />
           <ContentPadding>
-            <IssueContent group={group} project={project} />
+            <EventDetailsContent group={group} event={event} project={project} />
           </ContentPadding>
-        </ExtraContent>
+        </GroupContent>
       </PageErrorBoundary>
     </EventDetailsContext.Provider>
   );
 }
 
-function StickyEventNav({
-  event,
-  group,
-  searchQuery,
-}: {
-  event: Event;
-  group: Group;
-  searchQuery: string;
-}) {
+function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const theme = useTheme();
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
   const isStuck = useIsStuck(nav);
@@ -103,13 +66,12 @@ function StickyEventNav({
       event={event}
       group={group}
       ref={setNav}
-      query={searchQuery}
       data-stuck={isStuck}
     />
   );
 }
 
-const FloatingEventNavigation = styled(EventNavigation)`
+const FloatingEventNavigation = styled(EventTitle)`
   position: sticky;
   top: 0;
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
@@ -124,14 +86,11 @@ const FloatingEventNavigation = styled(EventNavigation)`
   }
 `;
 
-const ExtraContent = styled('div')`
+const GroupContent = styled('div')`
+  position: relative;
   border: 1px solid ${p => p.theme.translucentBorder};
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
-`;
-
-const GroupContent = styled(ExtraContent)`
-  position: relative;
 `;
 
 const ContentPadding = styled('div')`

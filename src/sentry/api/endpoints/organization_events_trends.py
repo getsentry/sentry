@@ -261,9 +261,11 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                         if trend_type == IMPROVED
                         else aggregate_filter.operator
                     ),
-                    -1 * aggregate_filter.value.value
-                    if trend_type == IMPROVED
-                    else aggregate_filter.value.value,
+                    (
+                        -1 * aggregate_filter.value.value
+                        if trend_type == IMPROVED
+                        else aggregate_filter.value.value
+                    ),
                 ),
                 ["minus", "transaction.duration"],
                 trend_columns["trend_difference"],
@@ -276,9 +278,11 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                         if trend_type == REGRESSION
                         else aggregate_filter.operator
                     ),
-                    -1 * aggregate_filter.value.value
-                    if trend_type == REGRESSION
-                    else aggregate_filter.value.value,
+                    (
+                        -1 * aggregate_filter.value.value
+                        if trend_type == REGRESSION
+                        else aggregate_filter.value.value
+                    ),
                 ),
                 None,
                 trend_columns["t_test"],
@@ -304,9 +308,11 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             "trend_percentage()": Alias(
                 lambda aggregate_filter: [
                     "trend_percentage",
-                    CORRESPONDENCE_MAP[aggregate_filter.operator]
-                    if trend_type == IMPROVED
-                    else aggregate_filter.operator,
+                    (
+                        CORRESPONDENCE_MAP[aggregate_filter.operator]
+                        if trend_type == IMPROVED
+                        else aggregate_filter.operator
+                    ),
                     1 + (aggregate_filter.value.value * (-1 if trend_type == IMPROVED else 1)),
                 ],
                 ["percentage", "transaction.duration"],
@@ -315,12 +321,16 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             "trend_difference()": Alias(
                 lambda aggregate_filter: [
                     "trend_difference",
-                    CORRESPONDENCE_MAP[aggregate_filter.operator]
-                    if trend_type == IMPROVED
-                    else aggregate_filter.operator,
-                    -1 * aggregate_filter.value.value
-                    if trend_type == IMPROVED
-                    else aggregate_filter.value.value,
+                    (
+                        CORRESPONDENCE_MAP[aggregate_filter.operator]
+                        if trend_type == IMPROVED
+                        else aggregate_filter.operator
+                    ),
+                    (
+                        -1 * aggregate_filter.value.value
+                        if trend_type == IMPROVED
+                        else aggregate_filter.value.value
+                    ),
                 ],
                 ["minus", "transaction.duration"],
                 None,
@@ -328,12 +338,16 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             "confidence()": Alias(
                 lambda aggregate_filter: [
                     "t_test",
-                    CORRESPONDENCE_MAP[aggregate_filter.operator]
-                    if trend_type == REGRESSION
-                    else aggregate_filter.operator,
-                    -1 * aggregate_filter.value.value
-                    if trend_type == REGRESSION
-                    else aggregate_filter.value.value,
+                    (
+                        CORRESPONDENCE_MAP[aggregate_filter.operator]
+                        if trend_type == REGRESSION
+                        else aggregate_filter.operator
+                    ),
+                    (
+                        -1 * aggregate_filter.value.value
+                        if trend_type == REGRESSION
+                        else aggregate_filter.value.value
+                    ),
                 ],
                 None,
                 None,

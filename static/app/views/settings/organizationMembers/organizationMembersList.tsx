@@ -35,7 +35,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SearchWrapper} from 'sentry/views/settings/components/defaultSearchBar';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import InviteBanner from 'sentry/views/settings/organizationMembers/inviteBanner';
 
@@ -393,10 +392,12 @@ function OrganizationMembersList() {
   );
 }
 
-const SearchWrapperWithFilter = styled(SearchWrapper)`
+const SearchWrapperWithFilter = styled('div')`
+  position: relative;
   display: grid;
   grid-template-columns: max-content 1fr;
-  margin-top: 0;
+  gap: ${space(1.5)};
+  margin-bottom: ${space(1.5)};
 `;
 
 const StyledPanelItem = styled('div')`

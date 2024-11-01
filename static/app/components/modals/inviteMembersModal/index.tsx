@@ -83,7 +83,7 @@ function InviteMembersModal({
         onSendInvites={sendInvites}
       >
         {({
-          sendInvites: _sendInvites,
+          sendInvites: inviteModalSendInvites,
           canSend: canSend,
           headerInfo: headerInfo,
           isOverMemberLimit: isOverMemberLimit,
@@ -97,7 +97,7 @@ function InviteMembersModal({
                 setRole,
                 setTeams,
                 setInviteStatus,
-                sendInvites,
+                sendInvites: inviteModalSendInvites,
                 reset,
                 inviteStatus,
                 pendingInvites: pendingInvites[0],
@@ -144,7 +144,7 @@ function InviteMembersModal({
               removeInviteRow={removeInviteRow}
               reset={reset}
               sendingInvites={sendingInvites}
-              sendInvites={sendInvites}
+              sendInvites={inviteModalSendInvites}
               setEmails={setEmails}
               setRole={setRole}
               setTeams={setTeams}

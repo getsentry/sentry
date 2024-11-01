@@ -10,16 +10,24 @@ import {
 } from 'sentry/components/events/contexts/utils';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {Tooltip} from 'sentry/components/tooltip';
+import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {IconReleases, IconWindow} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
+import useOrganization from 'sentry/utils/useOrganization';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface HighlightsIconSummaryProps {
   event: Event;
+  group?: Group;
 }
 
-export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
+export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps) {
+  const organization = useOrganization();
   // Hide device for non-native platforms since it's mostly duplicate of the client_os or os context
   const shouldDisplayDevice =
     isMobilePlatform(event.platform) || isNativePlatform(event.platform);
@@ -48,10 +56,13 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
       return hasData;
     });
 
+  const releaseTag = event.tags?.find(tag => tag.key === 'release');
+  const environmentTag = event.tags?.find(tag => tag.key === 'environment');
+
   return items.length ? (
     <Fragment>
       <IconBar>
-        <ScrollCarousel gap={4}>
+        <ScrollCarousel gap={3}>
           {items.map((item, index) => (
             <Flex key={index} gap={space(1)} align="center">
               <IconWrapper>{item.icon}</IconWrapper>
@@ -65,9 +76,40 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
               </IconDescription>
             </Flex>
           ))}
+          {releaseTag && (
+            <Flex key="release" gap={space(1)} align="flex-end">
+              <IconWrapper>
+                <IconReleases size="sm" color="subText" />
+              </IconWrapper>
+              <IconDescription>
+                {group && releaseTag && (
+                  <VersionHoverCard
+                    organization={organization}
+                    projectSlug={group.project.slug}
+                    releaseVersion={releaseTag.value}
+                  >
+                    <StyledVersion
+                      version={releaseTag.value}
+                      projectId={group.project.id}
+                    />
+                  </VersionHoverCard>
+                )}
+              </IconDescription>
+            </Flex>
+          )}
+          {environmentTag && (
+            <Flex key="environment" gap={space(1)} align="flex-end">
+              <IconWrapper>
+                <IconWindow size="sm" color="subText" />
+              </IconWrapper>
+              <IconDescription>
+                <Tooltip title={t('Environment')}>{environmentTag.value}</Tooltip>
+              </IconDescription>
+            </Flex>
+          )}
         </ScrollCarousel>
       </IconBar>
-      <SectionDivider />
+      <SectionDivider style={{marginTop: space(1)}} />
     </Fragment>
   ) : null;
 }
@@ -91,4 +133,12 @@ const IconWrapper = styled('div')`
 const IconSubtitle = styled(Tooltip)`
   display: block;
   color: ${p => p.theme.subText};
+`;
+
+const StyledVersion = styled(Version)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.textColor};
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
 `;

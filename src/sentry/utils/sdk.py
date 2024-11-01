@@ -53,8 +53,8 @@ SAMPLED_TASKS = {
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
-    "sentry.tasks.store.save_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
-    "sentry.tasks.store.save_event_transaction": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
+    "sentry.tasks.store.save_event": 0.1 * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
+    "sentry.tasks.store.save_event_transaction": 0.1 * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.process_commit_context": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.post_process.post_process_group": settings.SENTRY_POST_PROCESS_GROUP_APM_SAMPLING,
@@ -280,6 +280,9 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
+    sdk_options.setdefault("_experiments", {}).update(
+        transport_http2=True,
+    )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
     dsns = Dsns(
@@ -471,7 +474,6 @@ def configure_sdk():
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
         ],
-        spotlight=settings.IS_DEV and not settings.NO_SPOTLIGHT,
         **sdk_options,
     )
 

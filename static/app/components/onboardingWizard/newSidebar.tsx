@@ -1,48 +1,38 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 import partition from 'lodash/partition';
+
+import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import SkipConfirm from 'sentry/components/onboardingWizard/skipConfirm';
+import type {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCheckmark, IconClose} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconNot, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
 import {
   type OnboardingTask,
-  OnboardingTaskGroup,
   OnboardingTaskKey,
+  type OnboardingTaskStatus,
 } from 'sentry/types/onboarding';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-
-import {getMergedTasks} from './taskConfig';
-
-/**
- * How long (in ms) to delay before beginning to mark tasks complete
- */
-const INITIAL_MARK_COMPLETE_TIMEOUT = 600;
-
-/**
- * How long (in ms) to delay between marking each unseen task as complete.
- */
-const COMPLETION_SEEN_TIMEOUT = 800;
 
 const orderedGettingStartedTasks = [
   OnboardingTaskKey.FIRST_PROJECT,
@@ -50,8 +40,8 @@ const orderedGettingStartedTasks = [
   OnboardingTaskKey.INVITE_MEMBER,
   OnboardingTaskKey.ALERT_RULE,
   OnboardingTaskKey.SOURCEMAPS,
-  OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
   OnboardingTaskKey.RELEASE_TRACKING,
+  OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
 ];
 
 const orderedBeyondBasicsTasks = [
@@ -60,30 +50,6 @@ const orderedBeyondBasicsTasks = [
   OnboardingTaskKey.FIRST_TRANSACTION,
   OnboardingTaskKey.SECOND_PLATFORM,
 ];
-
-export function useOnboardingTasks(
-  organization: Organization,
-  projects: Project[],
-  onboardingContext: OnboardingContextProps
-) {
-  return useMemo(() => {
-    const all = getMergedTasks({
-      organization,
-      projects,
-      onboardingContext,
-    }).filter(task => task.display);
-    return {
-      allTasks: all,
-      gettingStartedTasks: all.filter(
-        task => task.group === OnboardingTaskGroup.GETTING_STARTED
-      ),
-      beyondBasicsTasks: all.filter(
-        task => task.group !== OnboardingTaskGroup.GETTING_STARTED
-      ),
-      completeTasks: all.filter(findCompleteTasks),
-    };
-  }, [organization, projects, onboardingContext]);
-}
 
 function groupTasksByCompletion(tasks: OnboardingTask[]) {
   const [completedTasks, incompletedTasks] = partition(tasks, task =>
@@ -95,26 +61,14 @@ function groupTasksByCompletion(tasks: OnboardingTask[]) {
   };
 }
 
-function getPanelDescription(walkthrough: boolean) {
-  if (walkthrough) {
-    return {
-      title: t('Guided Tours'),
-      description: t('Take a guided tour to see what Sentry can do for you'),
-    };
-  }
-  return {
-    title: t('Quick Start'),
-    description: t('Walk through this guide to get the most out of Sentry right away.'),
-  };
-}
-
-interface TaskProps {
+interface TaskProps extends Pick<OnboardingTaskStatus, 'status'> {
   hidePanel: () => void;
   task: OnboardingTask;
   completed?: boolean;
+  showWaitingIndicator?: boolean;
 }
 
-function Task({task, completed, hidePanel}: TaskProps) {
+function Task({task, status, hidePanel, showWaitingIndicator}: TaskProps) {
   const api = useApi();
   const organization = useOrganization();
   const router = useRouter();
@@ -126,6 +80,7 @@ function Task({task, completed, hidePanel}: TaskProps) {
         todo_id: task.task,
         todo_title: task.title,
         action: 'clickthrough',
+        new_experience: true,
       });
 
       e.stopPropagation();
@@ -156,17 +111,6 @@ function Task({task, completed, hidePanel}: TaskProps) {
     [task, organization, router, hidePanel]
   );
 
-  const handleMarkComplete = useCallback(
-    (taskKey: OnboardingTaskKey) => {
-      updateOnboardingTask(api, organization, {
-        task: taskKey,
-        status: 'complete',
-        completionSeen: true,
-      });
-    },
-    [api, organization]
-  );
-
   const handleMarkSkipped = useCallback(
     (taskKey: OnboardingTaskKey) => {
       trackAnalytics('quick_start.task_card_clicked', {
@@ -174,6 +118,7 @@ function Task({task, completed, hidePanel}: TaskProps) {
         todo_id: task.task,
         todo_title: task.title,
         action: 'skipped',
+        new_experience: true,
       });
       updateOnboardingTask(api, organization, {
         task: taskKey,
@@ -184,17 +129,30 @@ function Task({task, completed, hidePanel}: TaskProps) {
     [task, organization, api]
   );
 
-  if (completed) {
+  if (status === 'complete') {
     return (
-      <TaskWrapper completed>
+      <TaskWrapper css={taskCompletedCss}>
         <strong>{task.title}</strong>
-        <IconCheckmark color="green300" isCircled />
+        <Tooltip title={t('Task completed')} containerDisplayMode="flex">
+          <IconCheckmark color="green300" isCircled />
+        </Tooltip>
+      </TaskWrapper>
+    );
+  }
+
+  if (status === 'skipped') {
+    return (
+      <TaskWrapper css={taskCompletedCss}>
+        <strong>{task.title}</strong>
+        <Tooltip title={t('Task skipped')} containerDisplayMode="flex">
+          <IconNot color="gray300" />
+        </Tooltip>
       </TaskWrapper>
     );
   }
 
   return (
-    <TaskWrapper onClick={handleClick}>
+    <TaskWrapper onClick={handleClick} css={taskIncompleteCss}>
       <InteractionStateLayer />
       <div>
         <strong>{task.title}</strong>
@@ -221,11 +179,20 @@ function Task({task, completed, hidePanel}: TaskProps) {
               )}
             </SkipConfirm>
           )}
-          {task.SupplementComponent && (
-            <task.SupplementComponent
-              task={task}
-              onCompleteTask={() => handleMarkComplete(task.task)}
-            />
+          {task.SupplementComponent && showWaitingIndicator && (
+            <task.SupplementComponent task={task} />
+          )}
+          {status === 'pending' && (
+            <Tooltip
+              title={task.pendingTitle ?? t('Task in progress\u2026')}
+              containerDisplayMode="flex"
+              css={css`
+                justify-content: center;
+                cursor: default;
+              `}
+            >
+              <IconSync color="pink400" />
+            </Tooltip>
           )}
         </TaskActions>
       )}
@@ -235,24 +202,67 @@ function Task({task, completed, hidePanel}: TaskProps) {
 
 interface TaskGroupProps {
   description: string;
+  /**
+   * Used for analytics
+   */
+  group: 'getting_started' | 'beyond_basics';
   hidePanel: () => void;
+  taskKeyForWaitingIndicator: OnboardingTaskKey | undefined;
   tasks: OnboardingTask[];
   title: string;
   expanded?: boolean;
+  toggleable?: boolean;
 }
 
-function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupProps) {
+function TaskGroup({
+  title,
+  description,
+  tasks,
+  expanded,
+  hidePanel,
+  taskKeyForWaitingIndicator,
+  toggleable = true,
+  group,
+}: TaskGroupProps) {
+  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(expanded);
   const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
+  const [taskGroupComplete, setTaskGroupComplete] = useLocalStorageState(
+    `quick-start:${organization.slug}:${group}-completed`,
+    false
+  );
 
   useEffect(() => {
     setIsExpanded(expanded);
   }, [expanded]);
 
+  useEffect(() => {
+    if (completedTasks.length !== tasks.length || taskGroupComplete) {
+      return;
+    }
+
+    trackAnalytics('quick_start.task_group_completed', {
+      organization,
+      group,
+    });
+
+    setTaskGroupComplete(true);
+  }, [
+    group,
+    organization,
+    completedTasks,
+    tasks,
+    setTaskGroupComplete,
+    taskGroupComplete,
+  ]);
+
   return (
     <TaskGroupWrapper>
-      <TaskGroupHeader role="button" onClick={() => setIsExpanded(!isExpanded)}>
-        <InteractionStateLayer />
+      <TaskGroupHeader
+        role="button"
+        onClick={toggleable ? () => setIsExpanded(!isExpanded) : undefined}
+      >
+        {toggleable && <InteractionStateLayer />}
         <div>
           <TaskGroupTitle>
             <strong>{title}</strong>
@@ -264,11 +274,13 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
           </TaskGroupTitle>
           <p>{description}</p>
         </div>
-        <Chevron
-          direction={isExpanded ? 'up' : 'down'}
-          role="presentation"
-          size="large"
-        />
+        {toggleable && (
+          <Chevron
+            direction={isExpanded ? 'up' : 'down'}
+            role="presentation"
+            size="large"
+          />
+        )}
       </TaskGroupHeader>
       {isExpanded && (
         <Fragment>
@@ -287,13 +299,24 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
               />
             </TaskGroupProgress>
             {incompletedTasks.map(task => (
-              <Task key={task.task} task={task} hidePanel={hidePanel} />
+              <Task
+                key={task.task}
+                task={task}
+                hidePanel={hidePanel}
+                showWaitingIndicator={taskKeyForWaitingIndicator === task.task}
+                status={task.status}
+              />
             ))}
             {completedTasks.length > 0 && (
               <Fragment>
                 <TaskGroupProgress completed>{t('Completed')}</TaskGroupProgress>
                 {completedTasks.map(task => (
-                  <Task key={task.task} task={task} hidePanel={hidePanel} completed />
+                  <Task
+                    key={task.task}
+                    task={task}
+                    hidePanel={hidePanel}
+                    status={task.status}
+                  />
                 ))}
               </Fragment>
             )}
@@ -306,7 +329,10 @@ function TaskGroup({title, description, tasks, expanded, hidePanel}: TaskGroupPr
 
 interface NewSidebarProps
   extends Pick<CommonSidebarProps, 'orientation' | 'collapsed'>,
-    ReturnType<typeof useOnboardingTasks> {
+    Pick<
+      ReturnType<typeof useOnboardingTasks>,
+      'gettingStartedTasks' | 'beyondBasicsTasks'
+    > {
   onClose: () => void;
 }
 
@@ -314,66 +340,10 @@ export function NewOnboardingSidebar({
   onClose,
   orientation,
   collapsed,
-  allTasks,
   gettingStartedTasks,
   beyondBasicsTasks,
 }: NewSidebarProps) {
-  const api = useApi();
-  const organization = useOrganization();
   const walkthrough = isDemoWalkthrough();
-  const {title, description} = getPanelDescription(walkthrough);
-
-  const markCompletionTimeout = useRef<number | undefined>();
-  const markCompletionSeenTimeout = useRef<number | undefined>();
-
-  function completionTimeout(time: number): Promise<void> {
-    window.clearTimeout(markCompletionTimeout.current);
-    return new Promise(resolve => {
-      markCompletionTimeout.current = window.setTimeout(resolve, time);
-    });
-  }
-
-  function seenTimeout(time: number): Promise<void> {
-    window.clearTimeout(markCompletionSeenTimeout.current);
-    return new Promise(resolve => {
-      markCompletionSeenTimeout.current = window.setTimeout(resolve, time);
-    });
-  }
-
-  const markTasksAsSeen = useCallback(
-    async function () {
-      const unseenTasks = allTasks
-        .filter(task => taskIsDone(task) && !task.completionSeen)
-        .map(task => task.task);
-
-      // Incrementally mark tasks as seen. This gives the card completion
-      // animations time before we move each task into the completed section.
-      for (const task of unseenTasks) {
-        await seenTimeout(COMPLETION_SEEN_TIMEOUT);
-        updateOnboardingTask(api, organization, {task, completionSeen: true});
-      }
-    },
-    [api, organization, allTasks]
-  );
-
-  const markSeenOnOpen = useCallback(
-    async function () {
-      // Add a minor delay to marking tasks complete to account for the animation
-      // opening of the sidebar panel
-      await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
-      markTasksAsSeen();
-    },
-    [markTasksAsSeen]
-  );
-
-  useEffect(() => {
-    markSeenOnOpen();
-
-    return () => {
-      window.clearTimeout(markCompletionTimeout.current);
-      window.clearTimeout(markCompletionSeenTimeout.current);
-    };
-  }, [markSeenOnOpen]);
 
   const sortedGettingStartedTasks = gettingStartedTasks.sort(
     (a, b) =>
@@ -386,38 +356,53 @@ export function NewOnboardingSidebar({
       orderedBeyondBasicsTasks.indexOf(a.task) - orderedBeyondBasicsTasks.indexOf(b.task)
   );
 
+  const taskKeyForWaitingIndicator = useMemo(() => {
+    return [...sortedGettingStartedTasks, ...sortedBeyondBasicsTasks].find(
+      task => !taskIsDone(task) && !!task.SupplementComponent
+    )?.task;
+  }, [sortedGettingStartedTasks, sortedBeyondBasicsTasks]);
+
   return (
     <Wrapper
       collapsed={collapsed}
       hidePanel={onClose}
       orientation={orientation}
-      title={title}
+      title={walkthrough ? t('Guided Tour') : t('Quick Setup')}
     >
       <Content>
-        <p>{description}</p>
         <TaskGroup
           title={t('Getting Started')}
           description={t(
-            'Learn the essentials to set up monitoring, capture errors, and track releases.'
+            'Complete these essential setups to capture your first errors, add commit and release information and get alerted when something’s wrong.'
           )}
           tasks={sortedGettingStartedTasks}
           hidePanel={onClose}
           expanded={
-            groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length > 0
+            groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
           }
+          toggleable={sortedBeyondBasicsTasks.length > 0}
+          taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
+          group="getting_started"
         />
-        <TaskGroup
-          title={t('Beyond the Basics')}
-          description={t(
-            'Explore advanced features like release tracking, performance alerts and more to enhance your monitoring.'
-          )}
-          tasks={sortedBeyondBasicsTasks}
-          hidePanel={onClose}
-          expanded={
-            groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
-          }
-        />
+        {sortedBeyondBasicsTasks.length > 0 && (
+          <TaskGroup
+            title={t('Beyond the Basics')}
+            description={t(
+              'Ready to level-up? Get even more value out of Sentry by enabling advanced features and fine-tuning your workflow.'
+            )}
+            tasks={sortedBeyondBasicsTasks}
+            hidePanel={onClose}
+            expanded={
+              groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks
+                .length === 0 &&
+              groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
+            }
+            taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
+            group="beyond_basics"
+          />
+        )}
       </Content>
+      <BottomLeft src={HighlightTopRight} />
     </Wrapper>
   );
 }
@@ -434,6 +419,7 @@ const Content = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+  flex: 1;
 
   p {
     margin-bottom: ${space(1)};
@@ -451,8 +437,8 @@ const TaskGroupWrapper = styled('div')`
   }
 `;
 
-const TaskGroupHeader = styled('div')`
-  cursor: pointer;
+const TaskGroupHeader = styled('div')<{toggleable?: boolean}>`
+  cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   display: grid;
   grid-template-columns: 1fr max-content;
   padding: ${space(1)} ${space(1.5)};
@@ -497,7 +483,20 @@ const TaskGroupProgress = styled('div')<{completed?: boolean}>`
         `}
 `;
 
-const TaskWrapper = styled('div')<{completed?: boolean}>`
+const taskIncompleteCss = css`
+  position: relative;
+  cursor: pointer;
+  align-items: flex-start;
+`;
+
+const taskCompletedCss = css`
+  strong {
+    opacity: 0.5;
+  }
+  align-items: center;
+`;
+
+const TaskWrapper = styled(motion.li)`
   padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
   display: grid;
@@ -509,24 +508,20 @@ const TaskWrapper = styled('div')<{completed?: boolean}>`
     font-size: ${p => p.theme.fontSizeSmall};
     color: ${p => p.theme.subText};
   }
-
-  ${p =>
-    p.completed
-      ? css`
-          strong {
-            opacity: 0.5;
-          }
-          align-items: center;
-        `
-      : css`
-          position: relative;
-          cursor: pointer;
-          align-items: flex-start;
-        `}
 `;
+
+TaskWrapper.defaultProps = {
+  layout: true,
+};
 
 const TaskActions = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+`;
+
+const BottomLeft = styled('img')`
+  width: 60%;
+  transform: rotate(180deg);
+  margin-top: ${space(3)};
 `;

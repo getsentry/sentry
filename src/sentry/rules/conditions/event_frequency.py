@@ -23,6 +23,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition, GenericCondition
+from sentry.rules.match import MatchType
 from sentry.tsdb.base import TSDBModel
 from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,
@@ -537,6 +538,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
 
 class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCondition):
     id = "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions"
+    label = "The issue is seen by more than {value} users in {interval} with conditions"
 
     def query_hook(
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
@@ -580,6 +582,18 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
+        logger = logging.getLogger(
+            "sentry.rules.event_frequency.EventUniqueUserFrequencyConditionWithConditions"
+        )
+        logger.info(
+            "batch_query_hook_start",
+            extra={
+                "group_ids": group_ids,
+                "start": start,
+                "end": end,
+                "environment_id": environment_id,
+            },
+        )
         assert self.rule
         if not features.has(
             "organizations:event-unique-user-frequency-condition-with-conditions",
@@ -610,6 +624,10 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
             if snuba_condition:
                 conditions.append(snuba_condition)
 
+        logger.info(
+            "batch_query_hook_conditions",
+            extra={"conditions": conditions},
+        )
         if error_issue_ids and organization_id:
             error_totals = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_distinct_counts_totals_with_conditions,
@@ -638,6 +656,10 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
             )
             batch_totals.update(error_totals)
 
+        logger.info(
+            "batch_query_hook_end",
+            extra={"batch_totals": batch_totals},
+        )
         return batch_totals
 
     def get_snuba_query_result(
@@ -651,7 +673,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-        conditions: list[tuple[str, str, str]] | None = None,
+        conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
             model=model,
@@ -677,7 +699,7 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
-        conditions: list[tuple[str, str, str]] | None = None,
+        conditions: list[tuple[str, str, str | list[str]]] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -700,34 +722,46 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
     @staticmethod
     def convert_rule_condition_to_snuba_condition(
         condition: dict[str, Any]
-    ) -> tuple[str, str, str] | None:
+    ) -> tuple[str, str, str | list[str]] | None:
         if condition["id"] != "sentry.rules.filters.tagged_event.TaggedEventFilter":
             return None
         lhs = f"tags[{condition['key']}]"
         rhs = condition["value"]
         match condition["match"]:
-            case "eq":
+            case MatchType.EQUAL:
                 operator = Op.EQ
-            case "ne":
+            case MatchType.NOT_EQUAL:
                 operator = Op.NEQ
-            case "sw":
+            case MatchType.STARTS_WITH:
                 operator = Op.LIKE
                 rhs = f"{rhs}%"
-            case "ew":
+            case MatchType.NOT_STARTS_WITH:
+                operator = Op.NOT_LIKE
+                rhs = f"{rhs}%"
+            case MatchType.ENDS_WITH:
                 operator = Op.LIKE
                 rhs = f"%{rhs}"
-            case "co":
+            case MatchType.NOT_ENDS_WITH:
+                operator = Op.NOT_LIKE
+                rhs = f"%{rhs}"
+            case MatchType.CONTAINS:
                 operator = Op.LIKE
                 rhs = f"%{rhs}%"
-            case "nc":
+            case MatchType.NOT_CONTAINS:
                 operator = Op.NOT_LIKE
                 rhs = f"%{rhs}%"
-            case "is":
+            case MatchType.IS_SET:
                 operator = Op.IS_NOT_NULL
                 rhs = None
-            case "ns":
+            case MatchType.NOT_SET:
                 operator = Op.IS_NULL
                 rhs = None
+            case MatchType.IS_IN:
+                operator = Op.IN
+                rhs = rhs.split(",")
+            case MatchType.NOT_IN:
+                operator = Op.NOT_IN
+                rhs = rhs.split(",")
             case _:
                 raise ValueError(f"Unsupported match type: {condition['match']}")
 

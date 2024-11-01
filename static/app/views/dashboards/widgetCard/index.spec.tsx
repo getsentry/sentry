@@ -29,9 +29,6 @@ import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
 jest.mock('sentry/components/charts/simpleTableChart', () => jest.fn(() => <div />));
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
-jest.mock('sentry/components/lazyRender', () => ({
-  LazyRender: ({children}: {children: React.ReactNode}) => children,
-}));
 
 describe('Dashboards > WidgetCard', function () {
   const {router, organization} = initializeOrg({
@@ -577,53 +574,10 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
+    await userEvent.click(await screen.findByLabelText('Open Full-Screen View'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
     );
-  });
-
-  it('renders stored data disclaimer', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        meta: {title: 'string', isMetricsData: false},
-        data: [{title: 'title'}],
-      },
-    });
-
-    renderWithProviders(
-      <WidgetCard
-        api={api}
-        organization={{
-          ...organization,
-          features: [...organization.features, 'dashboards-mep'],
-        }}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0]}],
-        }}
-        selection={selection}
-        isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        showContextMenu
-        widgetLimitReached={false}
-        showStoredAlert
-        widgetLegendState={widgetLegendState}
-      />
-    );
-
-    // Badge in the widget header
-    expect(await screen.findByText('Indexed')).toBeInTheDocument();
-
-    expect(
-      // Alert below the widget
-      await screen.findByText(/we've automatically adjusted your results/i)
-    ).toBeInTheDocument();
   });
 
   it('renders chart using axis and tooltip formatters from custom measurement meta', async function () {
@@ -828,7 +782,11 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('displays the discover split warning icon when the dataset source is forced', async function () {
-    const testWidget = {...WidgetFixture(), datasetSource: DatasetSource.FORCED};
+    const testWidget = {
+      ...WidgetFixture(),
+      datasetSource: DatasetSource.FORCED,
+      widgetType: WidgetType.ERRORS,
+    };
 
     renderWithProviders(
       <WidgetCard
@@ -848,7 +806,7 @@ describe('Dashboards > WidgetCard', function () {
       />
     );
 
-    await userEvent.hover(screen.getByLabelText('Dataset split warning'));
+    await userEvent.hover(screen.getByLabelText('Widget warnings'));
 
     expect(
       await screen.findByText(/We're splitting our datasets up/)

@@ -407,17 +407,17 @@ const SECTIONS: TSection[] = [
         id: 'lock',
         groups: ['action', 'status'],
         keywords: ['secure'],
-        additionalProps: ['isSolid'],
+        additionalProps: ['locked'],
         name: 'Lock',
         defaultProps: {
-          isSolid: false,
+          locked: false,
         },
       },
       {
-        id: 'lock-isSolid',
+        id: 'lock-locked',
         name: 'Lock',
         defaultProps: {
-          isSolid: true,
+          locked: true,
         },
       },
       {

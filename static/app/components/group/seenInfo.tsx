@@ -19,11 +19,9 @@ type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 type Props = {
   date: RelaxedDateType;
   dateGlobal: RelaxedDateType;
-  hasRelease: boolean;
   organization: Organization;
   projectId: string;
   projectSlug: string;
-  title: string;
   environment?: string;
   release?: Release;
 };

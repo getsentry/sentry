@@ -12,6 +12,7 @@ from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
@@ -77,7 +78,6 @@ class OAuthAuthorizeView(AuthLoginView):
         response_type = request.GET.get("response_type")
         client_id = request.GET.get("client_id")
         redirect_uri = request.GET.get("redirect_uri")
-        scopes = request.GET.get("scope")
         state = request.GET.get("state")
         force_prompt = request.GET.get("force_prompt")
 
@@ -127,20 +127,28 @@ class OAuthAuthorizeView(AuthLoginView):
                 err_response="client_id",
             )
 
-        if scopes:
-            scopes = scopes.split(" ")
-            for scope in scopes:
-                if scope not in settings.SENTRY_SCOPES:
-                    return self.error(
-                        request=request,
-                        client_id=client_id,
-                        response_type=response_type,
-                        redirect_uri=redirect_uri,
-                        name="invalid_scope",
-                        state=state,
-                    )
+        # TODO (athena): Clean up this so scopes are always coming from the model
+        # This change is temporarily needed before we migrate existing applications
+        # to have the correct scopes
+        if application.requires_org_level_access:
+            scopes = application.scopes
         else:
-            scopes = []
+            scopes = request.GET.get("scope")
+            if scopes:
+                scopes = scopes.split(" ")
+            else:
+                scopes = []
+
+        for scope in scopes:
+            if scope not in settings.SENTRY_SCOPES:
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_scope",
+                    state=state,
+                )
 
         payload = {
             "rt": response_type,
@@ -201,11 +209,18 @@ class OAuthAuthorizeView(AuthLoginView):
             if pending_scopes:
                 raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
 
+        if application.requires_org_level_access:
+            organization_options = user_service.get_organizations(user_id=request.user.id)
+        else:
+            # If application is not org level we should not show organizations to choose from at all
+            organization_options = []
+
         context = {
             "user": request.user,
             "application": application,
             "scopes": scopes,
             "permissions": permissions,
+            "organization_options": organization_options,
         }
         return self.respond("sentry/oauth-authorize.html", context)
 
@@ -274,15 +289,25 @@ class OAuthAuthorizeView(AuthLoginView):
             raise NotImplementedError
 
     def approve(self, request: HttpRequest, application, **params):
+        # Some applications require org level access, so user who approves only gives
+        # access to that organization by selecting one. If None, means the application
+        # has user level access and will be able to have access to all the organizations of that user.
+        selected_organization_id = request.POST.get("selected_organization_id")
+
         try:
             with transaction.atomic(router.db_for_write(ApiAuthorization)):
                 ApiAuthorization.objects.create(
-                    application=application, user_id=request.user.id, scope_list=params["scopes"]
+                    application=application,
+                    user_id=request.user.id,
+                    scope_list=params["scopes"],
+                    organization_id=selected_organization_id,
                 )
         except IntegrityError:
             if params["scopes"]:
                 auth = ApiAuthorization.objects.get(
-                    application=application, user_id=request.user.id
+                    application=application,
+                    user_id=request.user.id,
+                    organization_id=selected_organization_id,
                 )
                 for scope in params["scopes"]:
                     if scope not in auth.scope_list:
@@ -303,6 +328,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 application=application,
                 redirect_uri=params["redirect_uri"],
                 scope_list=params["scopes"],
+                organization_id=selected_organization_id,
             )
             logger.info(
                 "approve.grant",
@@ -323,6 +349,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 user_id=request.user.id,
                 refresh_token=None,
                 scope_list=params["scopes"],
+                scoping_organization_id=selected_organization_id,
             )
 
             logger.info(

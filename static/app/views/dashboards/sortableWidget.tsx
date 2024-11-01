@@ -1,10 +1,12 @@
 import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
+import {LazyRender} from 'sentry/components/lazyRender';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
+import {Toolbar} from './widgetCard/toolbar';
 import type {DashboardFilters, Widget} from './types';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -16,6 +18,7 @@ type Props = {
   onDelete: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
+  onSetTransactionsDataset: () => void;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
@@ -33,6 +36,7 @@ function SortableWidget(props: Props) {
     onDelete,
     onEdit,
     onDuplicate,
+    onSetTransactionsDataset,
     isPreview,
     isMobile,
     windowWidth,
@@ -48,6 +52,7 @@ function SortableWidget(props: Props) {
     onDelete,
     onEdit,
     onDuplicate,
+    onSetTransactionsDataset,
     showContextMenu: true,
     isPreview,
     index,
@@ -68,7 +73,17 @@ function SortableWidget(props: Props) {
   return (
     <GridWidgetWrapper>
       <DashboardsMEPProvider>
-        <WidgetCard {...widgetProps} />
+        <LazyRender containerHeight={200} withoutContainer>
+          <WidgetCard {...widgetProps} />
+          {props.isEditingDashboard && (
+            <Toolbar
+              onEdit={props.onEdit}
+              onDelete={props.onDelete}
+              onDuplicate={props.onDuplicate}
+              isMobile={props.isMobile}
+            />
+          )}
+        </LazyRender>
       </DashboardsMEPProvider>
     </GridWidgetWrapper>
   );
