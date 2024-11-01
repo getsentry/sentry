@@ -166,6 +166,16 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
     traceDispatch({type: 'go to previous match'});
   }, [traceDispatch, organization]);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useLayoutEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.value = traceState.search.query ?? '';
+      onChange({target: inputRef.current} as React.ChangeEvent<HTMLInputElement>);
+    }
+  }, [traceState.search.query, onChange]);
+
   return (
     <StyledSearchBar>
       <InputGroup.LeadingItems>
@@ -181,12 +191,13 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         )}
       </InputGroup.LeadingItems>
       <InputGroup.Input
+        ref={inputRef}
         size="xs"
         type="text"
         name="query"
         autoComplete="off"
         placeholder={t('Search in trace')}
-        defaultValue={traceState.search.query ?? ''}
+        defaultValue={traceState.search.query}
         onChange={onChange}
         onKeyDown={onKeyDown}
         onFocus={onSearchFocus}

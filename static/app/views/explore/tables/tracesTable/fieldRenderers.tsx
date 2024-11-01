@@ -56,7 +56,9 @@ export function SpanDescriptionRenderer({span}: {span: SpanResult<Field>}) {
 
 interface ProjectsRendererProps {
   projectSlugs: string[];
+  disableLink?: boolean;
   maxVisibleProjects?: number;
+  onProjectClick?: (projectSlug: string) => void;
   visibleAvatarSize?: number;
 }
 
@@ -64,6 +66,8 @@ export function ProjectsRenderer({
   projectSlugs,
   visibleAvatarSize,
   maxVisibleProjects = 2,
+  onProjectClick,
+  disableLink,
 }: ProjectsRendererProps) {
   const organization = useOrganization();
   const {projects} = useProjects({slugs: projectSlugs, orgId: organization.slug});
@@ -101,8 +105,10 @@ export function ProjectsRenderer({
       )}
       {visibleProjectAvatars.map(project => (
         <StyledProjectBadge
-          key={project.slug}
           hideName
+          key={project.slug}
+          onClick={() => onProjectClick?.(project.slug)}
+          disableLink={disableLink}
           project={project}
           avatarSize={visibleAvatarSize ?? 16}
           avatarProps={{hasTooltip: true, tooltip: project.slug}}

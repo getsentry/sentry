@@ -507,6 +507,13 @@ function resolveValueFromKey(
         }
       }
 
+      // Aliases for fields that do not exist on raw data
+      if (key === 'project' || key === 'project.name') {
+        // project.name and project fields do not exist on raw data and are
+        // aliases for project_slug key that does exist.
+        key = 'project_slug';
+      }
+
       // Check for direct key access.
       if (value[key] !== undefined) {
         return value[key];

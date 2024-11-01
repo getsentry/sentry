@@ -432,4 +432,27 @@ describe('TraceSearchEvaluator', () => {
       });
     });
   });
+
+  describe('project aliases', () => {
+    it('project -> project_slug', async () => {
+      const tree = makeTree([makeTransaction({project_slug: 'test_project'})]);
+
+      const cb = jest.fn();
+      search('project:test_project', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+    it('project.name -> project_slug', async () => {
+      const tree = makeTree([makeTransaction({project_slug: 'test_project'})]);
+
+      const cb = jest.fn();
+      search('project.name:test_project', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+  });
 });
