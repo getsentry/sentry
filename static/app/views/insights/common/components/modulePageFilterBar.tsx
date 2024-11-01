@@ -17,6 +17,7 @@ import {DAY, SECOND} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
+import {QUERY_DATE_RANGE_LIMIT} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
@@ -26,8 +27,7 @@ type Props = {
 };
 
 const CHANGE_PROJECT_TEXT = t('Make sure you have the correct project selected.');
-const QUERY_DATE_RANGE_LIMIT = 7;
-const QUERY_DATE_RANGE_LIMIT_MS = 7 * DAY;
+const QUERY_DATE_RANGE_LIMIT_MS = QUERY_DATE_RANGE_LIMIT * DAY;
 
 export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}: Props) {
   const {projects: allProjects} = useProjects();
