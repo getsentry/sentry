@@ -174,6 +174,8 @@ class OAuthTokenView(View):
         }
         if id_token:
             token_information["id_token"] = id_token
+        if token.scoping_organization_id:
+            token_information["organization_id"] = str(token.scoping_organization_id)
         return HttpResponse(
             json.dumps(token_information),
             content_type="application/json",
