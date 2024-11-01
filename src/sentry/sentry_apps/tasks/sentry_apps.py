@@ -157,7 +157,13 @@ def send_alert_event(
     )
 
     if not nodedata:
-        extra = {}
+        extra = {
+            "event_id": instance_id,
+            "occurrence_id": occurrence_id,
+            "rule": rule,
+            "sentry_app": sentry_app.slug,
+            "group_id": group_id,
+        }
         logger.info("send_alert_event.missing_event", extra=extra)
         return
 
@@ -166,7 +172,7 @@ def send_alert_event(
         occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project.id)
 
         if not occurrence:
-            logger.error(
+            logger.info(
                 "send_alert_event.missing_occurrence",
                 extra={"occurrence_id": occurrence_id, "project_id": project.id},
             )
