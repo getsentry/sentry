@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from multiprocessing.context import TimeoutError
 from multiprocessing.pool import Pool
 from uuid import uuid4
@@ -10,7 +10,6 @@ from uuid import uuid4
 import grpc
 import orjson
 from django.conf import settings
-from django.utils import timezone
 from sentry_protos.sentry.v1.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
@@ -44,7 +43,7 @@ class TaskWorker:
         self._build_pool()
 
     def _build_pool(self) -> None:
-        self.__pool = Pool(processes=2)
+        self._pool = Pool(processes=2)
 
     @property
     def namespace(self) -> TaskNamespace:
@@ -94,7 +93,7 @@ class TaskWorker:
         from sentry.taskworker.service.client import task_client
 
         try:
-            response: None = task_client.get_task(topic=self.namespace.topic)
+            response = task_client.get_task(topic=self.namespace.topic)
         except grpc.RpcError:
             logger.info("get_task failed. Retrying in 1 second")
             return (None, None)
@@ -103,11 +102,7 @@ class TaskWorker:
             logger.info("No tasks")
             return (None, None)
 
-        processing_deadline = timezone.now() + timedelta(
-            seconds=self.namespace.default_processing_deadline_duration
-        )
-        if response.HasField("processing_deadline"):
-            processing_deadline = response.processing_deadline.ToDatetime()
+        processing_deadline = response.processing_deadline.ToDatetime()
 
         return (response.task, processing_deadline)
 
@@ -127,7 +122,7 @@ class TaskWorker:
         try:
             task_data_parameters = orjson.loads(activation.parameters)
             processing_timeout = (processing_deadline - datetime.now()).total_seconds()
-            result = self.__pool.apply_async(
+            result = self._pool.apply_async(
                 func=taskworker_process._process_activation,
                 args=(
                     self.options["namespace"],
@@ -136,16 +131,18 @@ class TaskWorker:
                     task_data_parameters["kwargs"],
                 ),
             )
-
             # Will trigger a TimeoutError if the task execution runs long
             result.get(timeout=processing_timeout)
+            taskregistry.get(self.options["namespace"]).get(activation.taskname)(
+                *task_data_parameters["args"], **task_data_parameters["kwargs"]
+            )
 
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
         except TimeoutError:
             logger.info("taskworker.task_execution_timeout")
             # When a task times out we kill the entire pool. This is necessary because
             # stdlib multiprocessing.Pool doesn't expose ways to terminate individual tasks.
-            self.__pool.terminate()
+            self._pool.terminate()
             self._build_pool()
         except Exception as err:
             logger.info(
