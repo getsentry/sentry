@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+from sentry.eventstore.models import Event
+from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
+from sentry.models.project import Project
 
 
 def create_or_update_grouphash_metadata(
+    event: Event,
+    project: Project,
     grouphash: GroupHash,
     created: bool,
     grouping_config: str,
+    variants: dict[str, BaseVariant],
 ) -> None:
     # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
     # we'll have to override the metadata creation date for them.

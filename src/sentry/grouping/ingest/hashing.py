@@ -230,7 +230,9 @@ def get_or_create_grouphashes(
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled") and features.has(
             "organizations:grouphash-metadata-creation", project.organization
         ):
-            create_or_update_grouphash_metadata(grouphash, created, grouping_config)
+            create_or_update_grouphash_metadata(
+                event, project, grouphash, created, grouping_config, variants
+            )
 
         grouphashes.append(grouphash)
 
