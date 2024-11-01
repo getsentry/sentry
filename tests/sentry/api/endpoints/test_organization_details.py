@@ -514,6 +514,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "uptimeAutodetection": False,
             "targetSampleRate": 0.1,
             "samplingMode": "project",
+            "rollbackEnabled": True,
         }
 
         # needed to set require2FA
@@ -554,6 +555,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:uptime_autodetection") is False
         assert options.get("sentry:target_sample_rate") == 0.1
         assert options.get("sentry:sampling_mode") == "project"
+        assert options.get("sentry:rollback_enabled") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
