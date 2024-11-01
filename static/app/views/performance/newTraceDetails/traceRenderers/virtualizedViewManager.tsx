@@ -1550,7 +1550,7 @@ export class VirtualizedViewManager {
       container.style.setProperty(
         '--list-column-width',
         // @ts-expect-error we set number value type on purpose
-        Math.round(options.list_width * 1000) / 1000
+        options.list_width
       );
       this.last_list_column_width = options.list_width;
     }
@@ -1558,7 +1558,7 @@ export class VirtualizedViewManager {
       container.style.setProperty(
         '--span-column-width',
         // @ts-expect-error we set number value type on purpose
-        Math.round(options.span_list_width * 1000) / 1000
+        options.span_list_width
       );
       this.last_span_column_width = options.span_list_width;
     }
