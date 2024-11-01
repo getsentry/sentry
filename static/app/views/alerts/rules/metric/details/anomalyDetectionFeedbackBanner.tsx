@@ -30,12 +30,7 @@ export default function AnomalyDetectionFeedbackBanner({
       trackAnalytics('anomaly_detection.submitted_feedback', {
         choice_selected: isAnomaly,
         organization,
-        alert_rule_id: selectedIncident.alertRule.id,
-        metric: selectedIncident.alertRule.query,
         incident_id: id,
-        sensitivity: selectedIncident.alertRule.sensitivity,
-        direction: selectedIncident.alertRule.thresholdType,
-        time_window: selectedIncident.alertRule.timeWindow,
       });
       feedbackClient.captureEvent({
         request: {
