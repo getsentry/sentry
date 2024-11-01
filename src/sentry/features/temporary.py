@@ -584,3 +584,11 @@ def register_temporary_features(manager: FeatureManager):
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=True,
     )
+
+    # Partner oauth
+    manager.add(
+        "organizations:scoped-partner-oauth",
+        OrganizationFeature,
+        FeatureHandlerStrategy.FLAGPOLE,
+        api_expose=False,
+    )
