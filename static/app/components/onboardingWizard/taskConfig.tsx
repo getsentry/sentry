@@ -29,6 +29,7 @@ import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
@@ -65,14 +66,14 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // but if the user falls into this case for some reason,
   // he needs to select the platform again since it is not available as a parameter here
   if (!projects || !projects.length) {
-    return `/getting-started/:projectId/`;
+    return `/${organization.slug}/:projectId/getting-started/`;
   }
 
   const allProjectsWithoutErrors = projects.every(project => !project.firstEvent);
   // If all created projects don't have any errors,
   // we ask the user to pick a project before navigating to the instructions
   if (allProjectsWithoutErrors) {
-    return `/getting-started/:projectId/`;
+    return `/${organization.slug}/:projectId/getting-started/`;
   }
 
   // Pick the first project without an error
@@ -112,6 +113,8 @@ export function getOnboardingTasks({
   projects,
   onboardingContext,
 }: Options): OnboardingTaskDescriptor[] {
+  const performanceUrl = `${getPerformanceBaseUrl(organization.slug)}/`;
+
   if (isDemoWalkthrough()) {
     return [
       {
@@ -136,7 +139,7 @@ export function getOnboardingTasks({
         skippable: false,
         requisites: [],
         actionType: 'app',
-        location: `/organizations/${organization.slug}/performance/`,
+        location: performanceUrl,
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },
@@ -169,10 +172,12 @@ export function getOnboardingTasks({
   return [
     {
       task: OnboardingTaskKey.FIRST_PROJECT,
-      title: t('Create a project'),
+      title: hasQuickStartUpdatesFeature(organization)
+        ? t('Create your first project')
+        : t('Create a project'),
       description: hasQuickStartUpdatesFeature(organization)
         ? t(
-            "Monitor in seconds by adding a few lines of code to your project. It's as easy as microwaving leftover pizza."
+            'Select your platform and install the Sentry SDK by adding a few lines of code to your application. HINT: Set up a separate project for each part of your application (for example, your API server and frontend client).'
           )
         : t(
             "Monitor in seconds by adding a simple lines of code to your project. It's as easy as microwaving leftover pizza."
@@ -187,9 +192,13 @@ export function getOnboardingTasks({
     {
       task: OnboardingTaskKey.FIRST_EVENT,
       title: t('Capture your first error'),
-      description: t(
-        "Time to test it out. Now that you've created a project, capture your first error. We've got an example you can fiddle with."
-      ),
+      description: hasQuickStartUpdatesFeature(organization)
+        ? t(
+            'Throw an error using our example code to make sure things are working as expected.'
+          )
+        : t(
+            "Time to test it out. Now that you've created a project, capture your first error. We've got an example you can fiddle with."
+          ),
       skippable: false,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
@@ -221,7 +230,7 @@ export function getOnboardingTasks({
             organization={organization}
             project={projects[0]}
             eventType="error"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
             {() => <EventWaitingIndicator text={t('Waiting for error')} />}
           </EventWaiter>
@@ -241,6 +250,9 @@ export function getOnboardingTasks({
       action: () => openInviteMembersModal({source: 'onboarding_widget'}),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
+      pendingTitle: t(
+        'You’ve invited members, and their acceptance is pending. Keep an eye out for updates!'
+      ),
     },
     {
       task: OnboardingTaskKey.FIRST_INTEGRATION,
@@ -256,12 +268,12 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.REAL_TIME_NOTIFICATIONS,
-      title: t('Real-time notifications'),
+      title: t('Get real-time notifications'),
       description: t(
-        'Triage and resolving issues faster by integrating Sentry with messaging platforms like Slack, Discord and MS Teams.'
+        'Triage and resolve issues faster by integrating Sentry with messaging platforms like Slack, Discord, and MS Teams.'
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      requisites: [],
       actionType: 'app',
       location: `/settings/${organization.slug}/integrations/?category=chat`,
       display: hasQuickStartUpdatesFeature(organization),
@@ -270,10 +282,10 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
       title: t('Link Sentry to Source Code'),
       description: t(
-        'Resolve bugs faster with commit data and stack trace linking to your source code in GitHub, Gitlab and more.'
+        'Resolve bugs faster with commit data and stack trace linking to your source code in GitHub, Gitlab, and more.'
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      requisites: [],
       actionType: 'app',
       location: {
         pathname: `/settings/${organization.slug}/integrations/`,
@@ -285,16 +297,21 @@ export function getOnboardingTasks({
     {
       task: OnboardingTaskKey.SECOND_PLATFORM,
       title: hasQuickStartUpdatesFeature(organization)
-        ? t('Set up another project')
+        ? t('Add Sentry to other parts of your app')
         : t('Create another project'),
-      description: t(
-        'Easy, right? Don’t stop at one. Set up another project and send it events to keep things running smoothly in both the frontend and backend.'
-      ),
+      description: hasQuickStartUpdatesFeature(organization)
+        ? t(
+            'Create a new project and install Sentry in other parts of your app—such as the backend, frontend, API server—to quickly see where a problem’s coming from'
+          )
+        : t(
+            'Easy, right? Don’t stop at one. Set up another project and send it events to keep things running smoothly in both the frontend and backend.'
+          ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
       location: `/organizations/${organization.slug}/projects/new/`,
       display: true,
+      pendingTitle: t('Awaiting an error for this project.'),
       SupplementComponent: ({task}: OnboardingSupplementComponentProps) => {
         if (!hasQuickStartUpdatesFeature(organization)) {
           return null;
@@ -312,10 +329,16 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.FIRST_TRANSACTION,
-      title: t('Boost performance'),
-      description: t(
-        "Don't keep users waiting. Trace transactions, investigate spans and cross-reference related issues for those mission-critical endpoints."
-      ),
+      title: hasQuickStartUpdatesFeature(organization)
+        ? t('Set up Tracing')
+        : t('Boost performance'),
+      description: hasQuickStartUpdatesFeature(organization)
+        ? t(
+            'Instrument tracing in your frontend and backend to identify application performance issues and debug errors across your stack.'
+          )
+        : t(
+            "Don't keep users waiting. Trace transactions, investigate spans and cross-reference related issues for those mission-critical endpoints."
+          ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'action',
@@ -332,7 +355,7 @@ export function getOnboardingTasks({
         // TODO: add analytics here for this specific action.
 
         if (!projects) {
-          navigateTo(`/organizations/${organization.slug}/performance/`, router);
+          navigateTo(performanceUrl, router);
           return;
         }
 
@@ -340,20 +363,20 @@ export function getOnboardingTasks({
           filterProjects(projects);
 
         if (projectsWithoutFirstTransactionEvent.length <= 0) {
-          navigateTo(`/organizations/${organization.slug}/performance/`, router);
+          navigateTo(performanceUrl, router);
           return;
         }
 
         if (projectsForOnboarding.length) {
           navigateTo(
-            `/organizations/${organization.slug}/performance/?project=${projectsForOnboarding[0].id}#performance-sidequest`,
+            `${performanceUrl}?project=${projectsForOnboarding[0].id}#performance-sidequest`,
             router
           );
           return;
         }
 
         navigateTo(
-          `/organizations/${organization.slug}/performance/?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
+          `${performanceUrl}?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
           router
         );
       },
@@ -379,7 +402,7 @@ export function getOnboardingTasks({
             organization={organization}
             project={projects[0]}
             eventType="transaction"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
             {() => <EventWaitingIndicator />}
           </EventWaiter>
@@ -401,10 +424,16 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.SESSION_REPLAY,
-      title: t('See a video-like reproduction'),
-      description: t(
-        'Get to the root cause of error or latency issues faster by seeing all the technical details related to those issues in video-like reproductions of your user sessions.'
-      ),
+      title: hasQuickStartUpdatesFeature(organization)
+        ? t('Set up Session Replay')
+        : t('See a video-like reproduction'),
+      description: hasQuickStartUpdatesFeature(organization)
+        ? t(
+            'Get video-like reproductions of user sessions to see what happened before, during, and after an error or performance issue occurred.'
+          )
+        : t(
+            'Get to the root cause of error or latency issues faster by seeing all the technical details related to those issues in video-like reproductions of your user sessions.'
+          ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'action',
@@ -449,7 +478,7 @@ export function getOnboardingTasks({
             organization={organization}
             project={projects[0]}
             eventType="replay"
-            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
             {() => <EventWaitingIndicator text={t('Waiting for user session')} />}
           </EventWaiter>
@@ -475,10 +504,16 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.SOURCEMAPS,
-      title: t('Upload source maps'),
-      description: t(
-        'Deminify Javascript source code to debug with context. Seeing code in its original form will help you debunk the ghosts of errors past.'
-      ),
+      title: hasQuickStartUpdatesFeature(organization)
+        ? t('Unminify your code')
+        : t('Upload source maps'),
+      description: hasQuickStartUpdatesFeature(organization)
+        ? t(
+            'Enable readable stack traces in Sentry errors by uploading your source maps.'
+          )
+        : t(
+            'Deminify Javascript source code to debug with context. Seeing code in its original form will help you debunk the ghosts of errors past.'
+          ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'external',

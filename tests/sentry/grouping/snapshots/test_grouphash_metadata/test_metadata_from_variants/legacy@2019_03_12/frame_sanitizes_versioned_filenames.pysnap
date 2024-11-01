@@ -1,0 +1,18 @@
+---
+created: '2024-10-28T14:02:52.700507+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "00ffe2f3150414a00633fb5671a918f8"
+    component:
+      system*
+        stacktrace*
+          frame*
+            filename* (removed version)
+              "/data/foo/releases/<version>/app/views/foo.html.erb"
+            context-line*
+              "<% if @hotels.size > 0 %>"

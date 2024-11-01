@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import Count from 'sentry/components/count';
 import ErrorLevel from 'sentry/components/events/errorLevel';
@@ -11,7 +10,6 @@ import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadg
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -20,7 +18,6 @@ import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -58,10 +55,6 @@ export default function StreamlinedGroupHeader({
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(groupReprocessingStatus);
-  const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
-    'issue-details-sidebar-open',
-    true
-  );
 
   const statusProps = getBadgeProperties(group.status, group.substatus);
 
@@ -111,9 +104,15 @@ export default function StreamlinedGroupHeader({
               {secondaryTitle ?? t('No error message')}
             </SecondaryTitle>
           </Flex>
-          <StatTitle to={`${baseUrl}events/${location.search}`}>{t('Events')}</StatTitle>
-          <StatTitle to={`${baseUrl}tags/user/${location.search}`}>
-            {t('Users')}
+          <StatTitle>{t('Events')}</StatTitle>
+          <StatTitle>
+            {userCount === 0 ? (
+              t('Users')
+            ) : (
+              <StatLink to={`${baseUrl}tags/user/${location.search}`}>
+                {t('Users')}
+              </StatLink>
+            )}
           </StatTitle>
           <Flex gap={space(1)} align="center" justify="flex-start">
             <ErrorLevel level={group.level} size={'10px'} />
@@ -160,20 +159,6 @@ export default function StreamlinedGroupHeader({
             {t('Assignee')}
             <GroupHeaderAssigneeSelector group={group} project={project} event={event} />
           </Workflow>
-          <SidebarButton
-            icon={
-              sidebarOpen ? (
-                <IconChevron direction="right" color="gray300" />
-              ) : (
-                <IconPanel direction="right" color="gray300" />
-              )
-            }
-            title={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
-            aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
-            size="sm"
-            borderless
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          />
         </WorkflowActions>
       </ActionBar>
     </Fragment>
@@ -208,14 +193,19 @@ const SecondaryTitle = styled(Tooltip)<{isDefault: boolean}>`
   font-style: ${p => (p.isDefault ? 'italic' : 'initial')};
 `;
 
-const StatTitle = styled(Link)`
+const StatTitle = styled('div')`
   display: block;
-  text-decoration: underline;
-  text-decoration-style: dotted;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
   justify-self: flex-end;
+`;
+
+const StatLink = styled(Link)`
+  color: ${p => p.theme.subText};
+  text-decoration: ${p => (p['aria-disabled'] ? 'none' : 'underline')};
+  text-decoration-style: dotted;
 `;
 
 const StatCount = styled(Count)`
@@ -283,10 +273,4 @@ const Workflow = styled('div')`
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
   align-items: center;
-`;
-
-const SidebarButton = styled(Button)`
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    display: none;
-  }
 `;

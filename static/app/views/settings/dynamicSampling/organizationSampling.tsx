@@ -13,55 +13,47 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import OrganizationStore from 'sentry/stores/organizationStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationSampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampleRateField';
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
+import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
 const {useFormState, FormProvider} = organizationSamplingForm;
+const UNSAVED_CHANGES_MESSAGE = t(
+  'You have unsaved changes, are you sure you want to leave?'
+);
 
 export function OrganizationSampling() {
-  const api = useApi();
   const organization = useOrganization();
   const {hasAccess} = useAccess({access: ['org:write']});
-
   const [period, setPeriod] = useState<'24h' | '30d'>('24h');
 
   const formState = useFormState({
     targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toLocaleString(),
   });
 
-  const endpoint = `/organizations/${organization.slug}/`;
-
-  const {mutate: updateOrganization, isPending} = useMutation<Organization>({
-    mutationFn: () => {
-      const {fields} = formState;
-      return api.requestPromise(endpoint, {
-        method: 'PUT',
-        data: {
-          targetSampleRate: Number(fields.targetSampleRate.value) / 100,
-        },
-      });
-    },
-    onSuccess: newOrg => {
-      OrganizationStore.onUpdate(newOrg);
-      addSuccessMessage(t('Changes applied.'));
-      formState.save();
-    },
-    onError: () => {
-      addErrorMessage(t('Unable to save changes. Please try again.'));
-    },
-  });
+  const {mutate: updateOrganization, isPending} = useUpdateOrganization();
 
   const handleSubmit = () => {
-    updateOrganization();
+    updateOrganization(
+      {
+        targetSampleRate: Number(formState.fields.targetSampleRate.value) / 100,
+      },
+      {
+        onSuccess: () => {
+          addSuccessMessage(t('Changes applied.'));
+          formState.save();
+        },
+        onError: () => {
+          addErrorMessage(t('Unable to save changes. Please try again.'));
+        },
+      }
+    );
   };
 
   const handleReset = () => {
@@ -76,7 +68,7 @@ export function OrganizationSampling() {
           <PanelBody>
             <FieldGroup
               label={t('Sampling Mode')}
-              help={t('Changes the level of detail and configuring sample rates.')}
+              help={t('The current configuration mode for dynamic sampling.')}
             >
               <div
                 css={css`
@@ -85,25 +77,32 @@ export function OrganizationSampling() {
                   gap: ${space(1)};
                 `}
               >
-                {t('Automatic Balancing')}{' '}
+                {t('Automatic')}{' '}
                 <QuestionTooltip
                   size="sm"
                   isHoverable
                   title={tct(
-                    'Automatic balancing optimizes the sample rates of your projects based on an overall target for your organization. [link:Learn more]',
+                    'Automatic mode allows you to set a target sample rate for your organization. Sentry automatically adjusts individual project rates to boost small projects and ensure equal visibility. [link:Learn more]',
                     {
-                      // TODO(aknaus): Add link to documentation
-                      link: <ExternalLink href="https://docs.sentry.io/" />,
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                      ),
                     }
                   )}
                 />
               </div>
             </FieldGroup>
-            {/* TODO(aknaus): move into separate component when we make it interactive */}
             <SamplingModeField />
             <OrganizationSampleRateField />
           </PanelBody>
         </Panel>
+        <OnRouteLeave
+          message={UNSAVED_CHANGES_MESSAGE}
+          when={locationChange =>
+            locationChange.currentLocation.pathname !==
+              locationChange.nextLocation.pathname && formState.hasChanged
+          }
+        />
         <FormActions>
           <Button disabled={!formState.hasChanged || isPending} onClick={handleReset}>
             {t('Reset')}
@@ -138,11 +137,17 @@ export function OrganizationSampling() {
           </Tooltip>
         </HeadingRow>
         <p>
-          {t(
-            'The following table gives you a preview of how your projects will be affected by the global sample rate. Depeding on the amount of spans they generate their sample rate will be adjusted. Inactive projects (not listed) will always be sampled at 100% until they generate spans.'
+          {tct(
+            'This table gives you a preview of how your projects will be affected by the global sample rate. The [strong:projected rates are estimates] based on recent span volume.',
+            {
+              strong: <strong />,
+            }
           )}
         </p>
         <ProjectsPreviewTable period={period} />
+        <SubTextParagraph>
+          {t('Inactive projects are not listed and will be sampled at 100% initially.')}
+        </SubTextParagraph>
       </form>
     </FormProvider>
   );
@@ -165,4 +170,9 @@ const HeadingRow = styled('div')`
   & > h4 {
     margin: 0;
   }
+`;
+
+const SubTextParagraph = styled('p')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;

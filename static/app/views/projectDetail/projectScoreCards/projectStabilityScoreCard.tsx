@@ -21,6 +21,8 @@ import {
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
+import {ActionWrapper} from './actionWrapper';
+
 type Props = {
   field:
     | SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS
@@ -135,11 +137,13 @@ function ProjectStabilityScoreCard(props: Props) {
   if (hasSessions === false) {
     return (
       <WidgetFrame title={cardTitle} description={cardHelp}>
-        <MissingReleasesButtons
-          organization={organization}
-          health
-          platform={props.project?.platform}
-        />
+        <ActionWrapper>
+          <MissingReleasesButtons
+            organization={organization}
+            health
+            platform={props.project?.platform}
+          />
+        </ActionWrapper>
       </WidgetFrame>
     );
   }
