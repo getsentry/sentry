@@ -135,10 +135,7 @@ export function initializeSdk(config: Config) {
       if (event.transaction) {
         event.transaction = normalizeUrl(event.transaction, {forceCustomerDomain: true});
 
-        // Due to an unplesant interaction of the React Router 6 integration and our React Router 6 shims, some transaction names get prepended with a double slash. e.g., "//dashboard/:dashboardId/widget/:widgetIndex/edit/" Will hopefully be resolved in an upcoming version of the SDK. For now, manually cover this case by removing the first slash of two.
-        if (event.transaction.startsWith('//')) {
-          event.transaction = event.transaction.substring(1);
-        }
+        event.transaction = stripDoubleLeadingSlash(event.transaction);
       }
 
       return event;
@@ -188,9 +185,7 @@ export function initializeSdk(config: Config) {
       lastEventId = event.event_id || hint.event_id;
 
       if (event.transaction) {
-        if (event.transaction.startsWith('//')) {
-          event.transaction = event.transaction.substring(1);
-        }
+        event.transaction = stripDoubleLeadingSlash(event.transaction);
       }
 
       return event;
@@ -340,4 +335,13 @@ export function addEndpointTagToRequestError(event: Event): void {
   if (messageMatch) {
     event.tags = {...event.tags, endpoint: messageMatch[1]};
   }
+}
+
+/** Due to an unplesant interaction of the React Router 6 integration and our React Router 6 shims, some transaction names get prepended with a double slash. e.g., "//dashboard/:dashboardId/widget/:widgetIndex/edit/" Will hopefully be resolved in an upcoming version of the SDK. For now, manually cover this case by removing the first slash of two. */
+function stripDoubleLeadingSlash(transactionName: string) {
+  if (transactionName.startsWith('//')) {
+    return transactionName.substring(1);
+  }
+
+  return transactionName;
 }
