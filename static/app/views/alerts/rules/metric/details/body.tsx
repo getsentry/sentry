@@ -253,6 +253,7 @@ export default function MetricDetailsBody({
           <MetricChart
             api={api}
             rule={rule}
+            incidents={incidents}
             anomalies={anomalies}
             timePeriod={timePeriod}
             selectedIncident={selectedIncident}

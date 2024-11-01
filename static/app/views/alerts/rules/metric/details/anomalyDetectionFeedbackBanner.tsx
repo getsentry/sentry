@@ -5,7 +5,6 @@ import Alert from 'sentry/components/alert';
 import {useDismissable} from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
 import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -91,16 +90,3 @@ const StyledButton = styled(Button)`
 const StyledAlert = styled(Alert)`
   margin: 0;
 `;
-
-const CloseButton = styled(Button)`
-  cursor: pointer;
-  z-index: 1;
-`;
-
-CloseButton.defaultProps = {
-  icon: <IconClose />,
-  ['aria-label']: t('Close'),
-  priority: 'link',
-  borderless: true,
-  size: 'xs',
-};
