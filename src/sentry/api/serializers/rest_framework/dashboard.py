@@ -585,7 +585,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         self.update_dashboard_filters(self.instance, validated_data)
         if features.has(
-            "organizations:dashboard-permissions",
+            "organizations:dashboards-edit-access",
             self.context["organization"],
             actor=self.context["request"].user,
         ):
@@ -618,7 +618,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         self.update_dashboard_filters(instance, validated_data)
         if features.has(
-            "organizations:dashboard-permissions",
+            "organizations:dashboards-edit-access",
             self.context["organization"],
             actor=self.context["request"].user,
         ):
