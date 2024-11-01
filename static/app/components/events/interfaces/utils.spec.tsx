@@ -272,6 +272,15 @@ describe('components/interfaces/utils', function () {
       expect(result).not.toHaveProperty('name');
       expect(result).not.toHaveProperty('email');
     });
+    it('should remove falsy values', function () {
+      const result = removeFilterMaskedEntries({
+        ...rawData,
+        name: '',
+        email: false,
+      });
+      expect(result).not.toHaveProperty('name');
+      expect(result).not.toHaveProperty('email');
+    });
     it('should preserve unfiltered values', function () {
       const result = removeFilterMaskedEntries(rawData);
       expect(result).toHaveProperty('id');
