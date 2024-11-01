@@ -257,40 +257,39 @@ class SearchResolver:
         attributes (aka. tags), but can also refer to fields like span.description"""
         if column in SPAN_COLUMN_DEFINITIONS:
             column_definition = SPAN_COLUMN_DEFINITIONS[column]
-        else:
-            # If the column isn't predefined handle it as a tag
-            tag_match = qb_constants.TYPED_TAG_KEY_RE.search(column)
-            if tag_match is None:
-                tag_match = qb_constants.TAG_KEY_RE.search(column)
-                field_type = "string"
+
+            if column in VIRTUAL_CONTEXTS:
+                column_context = VIRTUAL_CONTEXTS[column](self.params)
             else:
-                field_type = None
-            field = tag_match.group("tag") if tag_match else None
-            if field is None:
+                column_context = None
+
+            if column_definition:
+                return column_definition, column_context
+            else:
                 raise InvalidSearchQuery(f"Could not parse {column}")
-            # Assume string if a type isn't passed. eg. tags[foo]
-            if field_type is None:
-                field_type = tag_match.group("type") if tag_match else None
 
-            if field_type not in constants.TYPE_MAP:
-                raise InvalidSearchQuery(f"Unsupported type {field_type} in {column}")
-            internal_name = f"attr_str[{field}]" if field_type == "string" else f"attr_num[{field}]"
-            return (
-                ResolvedColumn(
-                    public_alias=column, internal_name=internal_name, search_type=field_type
-                ),
-                None,
-            )
+        if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
+            raise InvalidSearchQuery(f"{column} is too long, can be a maximum of 200 characters")
 
-        if column in VIRTUAL_CONTEXTS:
-            column_context = VIRTUAL_CONTEXTS[column](self.params)
+        tag_match = qb_constants.TYPED_TAG_KEY_RE.search(column)
+        if tag_match is None:
+            tag_match = qb_constants.TAG_KEY_RE.search(column)
+            field_type = "string"
         else:
-            column_context = None
-
-        if column_definition:
-            return column_definition, column_context
-        else:
+            field_type = None
+        field = tag_match.group("tag") if tag_match else column
+        if field is None:
             raise InvalidSearchQuery(f"Could not parse {column}")
+        # Assume string if a type isn't passed. eg. tags[foo]
+        if field_type is None:
+            field_type = tag_match.group("type") if tag_match else None
+
+        if field_type not in constants.TYPE_MAP:
+            raise InvalidSearchQuery(f"Unsupported type {field_type} in {column}")
+        return (
+            ResolvedColumn(public_alias=column, internal_name=field, search_type=field_type),
+            None,
+        )
 
     def resolve_aggregates(
         self, columns: list[str]
