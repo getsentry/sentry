@@ -38,6 +38,7 @@ export function GroupHeaderAssigneeSelector({
   const {data: committersResponse} = useCommitters({
     eventId: event?.id ?? '',
     projectSlug: project.slug,
+    group,
   });
 
   useEffect(() => {
