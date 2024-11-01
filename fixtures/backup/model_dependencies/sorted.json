@@ -220,6 +220,7 @@
   "sentry.groupbookmark",
   "sentry.groupassignee",
   "sentry.dashboardwidgetquery",
+  "sentry.dashboardpermissionsteam",
   "sentry.alertruletrigger",
   "sentry.alertruleprojects",
   "sentry.alertruleexcludedprojects",
