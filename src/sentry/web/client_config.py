@@ -224,7 +224,10 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
-        if features.has("system:scoped-partner-oauth"):
+        # TODO @athena: remove this feature flag after development is done
+        # this is a temporary hack to be able to used flagpole in a case where there's no organization
+        # availble on the frontend
+        if self.last_org and features.has("organizations:scoped-partner-oauth", self.last_org):
             yield "system:scoped-partner-oauth"
 
     @property
