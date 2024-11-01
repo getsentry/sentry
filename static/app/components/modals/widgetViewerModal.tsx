@@ -256,6 +256,16 @@ function WidgetViewerModal(props: Props) {
     decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
   if (selectedQueryIndex > widget.queries.length) {
     selectedQueryIndex = 0;
+    navigate(
+      {
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          [WidgetViewerQueryField.QUERY]: 0,
+        },
+      },
+      {replace: true}
+    );
   }
 
   // Get pagination settings from location
