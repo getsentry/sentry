@@ -14,6 +14,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -196,6 +197,7 @@ function TagTreeColumns({
 }
 
 function EventTagsTree(props: EventTagsTreeProps) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
@@ -204,6 +206,7 @@ function EventTagsTree(props: EventTagsTreeProps) {
         columnCount={columnCount}
         ref={containerRef}
         data-test-id="event-tags-tree"
+        style={hasStreamlinedUI ? {marginTop: 0} : undefined}
       >
         <TagTreeColumns columnCount={columnCount} {...props} />
       </TreeContainer>
