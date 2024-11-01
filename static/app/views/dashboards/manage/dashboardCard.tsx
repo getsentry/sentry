@@ -86,7 +86,6 @@ const StyledDashboardCard = styled(Card)`
   &:hover {
     top: -1px;
   }
-  max-width: 500px;
 `;
 
 const CardHeader = styled('div')`

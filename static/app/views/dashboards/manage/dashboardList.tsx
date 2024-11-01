@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
 
@@ -14,8 +14,6 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
@@ -35,14 +33,14 @@ import GridPreview from './gridPreview';
 
 type Props = {
   api: Client;
+  columns: number;
   dashboards: DashboardListItem[] | undefined;
-  limit: number;
-  loading: boolean;
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
   pageLinks: string;
-  resizing: boolean;
+  rows: number;
+  resizing?: boolean;
 };
 
 function DashboardList({
@@ -52,11 +50,22 @@ function DashboardList({
   dashboards,
   pageLinks,
   onDashboardsChange,
-  limit,
-  loading,
+  rows,
+  columns,
   resizing,
 }: Props) {
   const navigate = useNavigate();
+
+  const [currentDashboards, setCurrentDashboards] = useState<
+    DashboardListItem[] | undefined
+  >(dashboards);
+
+  useEffect(() => {
+    if (dashboards?.length) {
+      setCurrentDashboards(dashboards);
+    }
+  }, [dashboards]);
+
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
       .then(() => {
@@ -147,7 +156,7 @@ function DashboardList({
   };
 
   function renderMiniDashboards() {
-    return dashboards?.slice(0, limit).map((dashboard, index) => {
+    return currentDashboards?.slice(0, rows * columns).map((dashboard, index) => {
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
@@ -169,30 +178,29 @@ function DashboardList({
   }
 
   function renderDashboardGrid() {
-    if (!dashboards?.length) {
+    if (!currentDashboards?.length) {
       return (
         <EmptyStateWarning>
           <p>{t('Sorry, no Dashboards match your filters.')}</p>
         </EmptyStateWarning>
       );
     }
+    const DashboardGrid = styled('div')`
+      display: grid;
+      grid-template-columns: repeat(${columns}, minmax(300px, 1fr));
+      grid-template-rows: repeat(${rows}, max-content);
+      gap: ${space(2)};
+    `;
+
     return (
       <DashboardGrid>
-        {loading && !resizing ? renderLoading() : renderMiniDashboards()}
-        {loading &&
-          limit > dashboards.length &&
-          new Array(limit - dashboards.length)
+        {renderMiniDashboards()}
+        {resizing &&
+          rows * columns > currentDashboards.length &&
+          new Array(rows * columns - currentDashboards.length)
             .fill(0)
             .map((_, index) => <Placeholder key={index} height="270px" />)}
       </DashboardGrid>
-    );
-  }
-
-  function renderLoading() {
-    return (
-      <Layout.Page withPadding>
-        <LoadingIndicator />
-      </Layout.Page>
     );
   }
 
@@ -221,13 +229,6 @@ function DashboardList({
     </Fragment>
   );
 }
-
-const DashboardGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  grid-template-rows: repeat(3, max-content);
-  gap: ${space(2)};
-`;
 
 const PaginationRow = styled(Pagination)`
   margin-bottom: ${space(3)};

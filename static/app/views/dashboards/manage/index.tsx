@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
@@ -60,9 +60,15 @@ function ManageDashboards() {
   const navigate = useNavigate();
   const location = useLocation();
   const api = useApi();
+  const dashboardGridRef = useRef<HTMLDivElement>(null);
 
+  const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
+    SHOW_TEMPLATES_KEY,
+    shouldShowTemplates()
+  );
+  const [_, setGridWidth] = useState(0);
   const [resizing, setResizing] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(0);
+  const [{rows, columns}, setGridSize] = useState({rows: 3, columns: 3});
 
   const {
     data: dashboards,
@@ -78,7 +84,7 @@ function ManageDashboards() {
         query: {
           ...pick(location.query, ['cursor', 'query']),
           sort: getActiveSort().value,
-          per_page: getDashboardsPerPage(),
+          per_page: rows * columns,
         },
       },
     ],
@@ -87,43 +93,75 @@ function ManageDashboards() {
 
   const dashboardsPageLinks = getResponseHeader?.('Link') ?? '';
 
-  const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
-    SHOW_TEMPLATES_KEY,
-    shouldShowTemplates()
-  );
-
-  const debouncedHandleResize = debounce(() => {
-    const currentWidth = window.innerWidth;
-    // Only update state if the width has changed
-    if (currentWidth !== windowWidth) {
-      setWindowWidth(currentWidth);
-      setResizing(true);
-    } else {
-      setResizing(false);
-    }
-    const paginationObject = parseLinkHeader(dashboardsPageLinks);
-    if (
-      dashboards?.length &&
-      paginationObject.next.results &&
-      getDashboardsPerPage() > dashboards.length
-    ) {
-      refetchDashboards();
-    }
-  }, 250);
-
   useEffect(() => {
-    window.addEventListener('resize', debouncedHandleResize);
+    const dashboardGridObserver = new ResizeObserver(
+      debounce(entries => {
+        entries.forEach(entry => {
+          const currentWidth = entry.contentRect.width;
+
+          setGridWidth(prevWidth => {
+            if (currentWidth !== prevWidth && prevWidth !== 0) {
+              setResizing(true);
+              return currentWidth;
+            }
+            return prevWidth;
+          });
+
+          setRowsAndColumns(currentWidth);
+
+          const paginationObject = parseLinkHeader(dashboardsPageLinks);
+          if (
+            dashboards?.length &&
+            paginationObject.next.results &&
+            rows * columns > dashboards.length
+          ) {
+            refetchDashboards();
+          }
+        });
+      }, 10)
+    );
+
+    if (dashboardGridRef.current) {
+      dashboardGridObserver.observe(dashboardGridRef.current);
+    }
 
     return () => {
-      window.removeEventListener('resize', debouncedHandleResize);
+      if (dashboardGridRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        dashboardGridObserver.unobserve(dashboardGridRef.current);
+      }
+      setResizing(false);
     };
-  }, [debouncedHandleResize]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  function getDashboardsPerPage(): number {
-    // min-midth of widget is 300px with additional 16px margin on each side (also accounting for side menu)
-    return Math.floor((window.innerWidth - 100) / (300 + 32)) < 3
-      ? 8
-      : Math.floor((window.innerWidth - 100) / (300 + 32)) * 3;
+  // no longer resizing if loading has stopped
+  useEffect(() => {
+    if (resizing && !isLoading) {
+      setResizing(false);
+    }
+  }, [isLoading, resizing]);
+
+  function setRowsAndColumns(containerWidth: number) {
+    const widgetWidth = 300;
+    const padding = 16;
+    const defaultNumRows = 3;
+    const defaultNumWidgets = 8;
+
+    if (containerWidth === 0) {
+      return;
+    }
+    const numWidgetsFitInRow = Math.floor(containerWidth / (widgetWidth + padding));
+
+    setGridWidth(containerWidth);
+    if (numWidgetsFitInRow >= 3) {
+      setGridSize({rows: defaultNumRows, columns: numWidgetsFitInRow});
+    } else {
+      setGridSize({
+        rows: defaultNumWidgets / numWidgetsFitInRow,
+        columns: numWidgetsFitInRow,
+      });
+    }
   }
 
   function getActiveSort() {
@@ -226,9 +264,9 @@ function ManageDashboards() {
         pageLinks={dashboardsPageLinks}
         location={location}
         onDashboardsChange={() => refetchDashboards()}
-        loading={isLoading}
         resizing={resizing}
-        limit={getDashboardsPerPage()}
+        rows={rows}
+        columns={columns}
       />
     );
   }
@@ -290,93 +328,6 @@ function ManageDashboards() {
     );
   }
 
-  function ManageDashboardsContent() {
-    if (isLoading) {
-      return (
-        <Layout.Page withPadding>
-          <LoadingIndicator />
-        </Layout.Page>
-      );
-    }
-
-    if (isError) {
-      return (
-        <Layout.Page withPadding>
-          <RouteError error={error} />
-        </Layout.Page>
-      );
-    }
-
-    return (
-      <ErrorBoundary>
-        <Layout.Page>
-          <NoProjectMessage organization={organization}>
-            <Layout.Header>
-              <Layout.HeaderContent>
-                <Layout.Title>
-                  {t('Dashboards')}
-                  <PageHeadingQuestionTooltip
-                    docsUrl="https://docs.sentry.io/product/dashboards/"
-                    title={t(
-                      'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects.'
-                    )}
-                  />
-                </Layout.Title>
-              </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <ButtonBar gap={1.5}>
-                  <TemplateSwitch>
-                    {t('Show Templates')}
-                    <Switch isActive={showTemplates} size="lg" toggle={toggleTemplates} />
-                  </TemplateSwitch>
-                  <FeedbackWidgetButton />
-                  <DashboardImportButton />
-                  <Button
-                    data-test-id="dashboard-create"
-                    onClick={event => {
-                      event.preventDefault();
-                      onCreate();
-                    }}
-                    size="sm"
-                    priority="primary"
-                    icon={<IconAdd isCircled />}
-                  >
-                    {t('Create Dashboard')}
-                  </Button>
-                  <Feature features="dashboards-import">
-                    <Button
-                      onClick={() => {
-                        openImportDashboardFromFileModal({
-                          organization,
-                          api,
-                          location,
-                        });
-                      }}
-                      size="sm"
-                      priority="primary"
-                      icon={<IconAdd isCircled />}
-                    >
-                      {t('Import Dashboard from JSON')}
-                    </Button>
-                  </Feature>
-                </ButtonBar>
-              </Layout.HeaderActions>
-            </Layout.Header>
-            <Layout.Body>
-              <Layout.Main fullWidth>
-                <MetricsRemovedAlertsWidgetsAlert organization={organization} />
-
-                {showTemplates && renderTemplates()}
-                {renderActions()}
-                {renderDashboards()}
-              </Layout.Main>
-            </Layout.Body>
-          </NoProjectMessage>
-        </Layout.Page>
-      </ErrorBoundary>
-    );
-  }
-
   return (
     <Feature
       organization={organization}
@@ -384,7 +335,84 @@ function ManageDashboards() {
       renderDisabled={renderNoAccess}
     >
       <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
-        <ManageDashboardsContent />
+        <ErrorBoundary>
+          {isError ? (
+            <Layout.Page withPadding>
+              <RouteError error={error} />
+            </Layout.Page>
+          ) : (
+            <Layout.Page>
+              <NoProjectMessage organization={organization}>
+                <Layout.Header>
+                  <Layout.HeaderContent>
+                    <Layout.Title>
+                      {t('Dashboards')}
+                      <PageHeadingQuestionTooltip
+                        docsUrl="https://docs.sentry.io/product/dashboards/"
+                        title={t(
+                          'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects.'
+                        )}
+                      />
+                    </Layout.Title>
+                  </Layout.HeaderContent>
+                  <Layout.HeaderActions>
+                    <ButtonBar gap={1.5}>
+                      <TemplateSwitch>
+                        {t('Show Templates')}
+                        <Switch
+                          isActive={showTemplates}
+                          size="lg"
+                          toggle={toggleTemplates}
+                        />
+                      </TemplateSwitch>
+                      <FeedbackWidgetButton />
+                      <DashboardImportButton />
+                      <Button
+                        data-test-id="dashboard-create"
+                        onClick={event => {
+                          event.preventDefault();
+                          onCreate();
+                        }}
+                        size="sm"
+                        priority="primary"
+                        icon={<IconAdd isCircled />}
+                      >
+                        {t('Create Dashboard')}
+                      </Button>
+                      <Feature features="dashboards-import">
+                        <Button
+                          onClick={() => {
+                            openImportDashboardFromFileModal({
+                              organization,
+                              api,
+                              location,
+                            });
+                          }}
+                          size="sm"
+                          priority="primary"
+                          icon={<IconAdd isCircled />}
+                        >
+                          {t('Import Dashboard from JSON')}
+                        </Button>
+                      </Feature>
+                    </ButtonBar>
+                  </Layout.HeaderActions>
+                </Layout.Header>
+                <Layout.Body>
+                  <Layout.Main fullWidth>
+                    <MetricsRemovedAlertsWidgetsAlert organization={organization} />
+
+                    {showTemplates && renderTemplates()}
+                    {renderActions()}
+                    <div ref={dashboardGridRef} id="dashboard-list-container">
+                      {isLoading && !resizing ? <LoadingIndicator /> : renderDashboards()}
+                    </div>
+                  </Layout.Main>
+                </Layout.Body>
+              </NoProjectMessage>
+            </Layout.Page>
+          )}
+        </ErrorBoundary>
       </SentryDocumentTitle>
     </Feature>
   );
