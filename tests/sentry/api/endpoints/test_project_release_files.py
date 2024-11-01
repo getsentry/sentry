@@ -422,9 +422,7 @@ class ReleaseFileCreateTest(APITestCase):
     def test_duplicate_file(self):
         project = self.create_project(name="foo")
 
-        release = Release.objects.create(
-            project_id=project.id, organization_id=project.organization_id, version="1"
-        )
+        release = Release.objects.create(organization_id=project.organization_id, version="1")
         release.add_project(project)
 
         url = reverse(
