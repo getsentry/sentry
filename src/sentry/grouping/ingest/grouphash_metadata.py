@@ -57,9 +57,12 @@ def create_or_update_grouphash_metadata(
     # we'll have to override the metadata creation date for them.
 
     if created:
+        hash_basis = _get_hash_basis(event, project, variants)
+
         GroupHashMetadata.objects.create(
             grouphash=grouphash,
             latest_grouping_config=grouping_config,
+            hash_basis=hash_basis,
         )
     elif grouphash.metadata and grouphash.metadata.latest_grouping_config != grouping_config:
         # Keep track of the most recent config which computed this hash, so that once a
