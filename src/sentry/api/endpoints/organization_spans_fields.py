@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1alpha.endpoint_tags_list_pb2 import (
     AttributeValuesRequest,
     AttributeValuesResponse,
@@ -14,7 +15,7 @@ from sentry_protos.snuba.v1alpha.endpoint_tags_list_pb2 import (
     TraceItemAttributesResponse,
 )
 from sentry_protos.snuba.v1alpha.request_common_pb2 import RequestMeta, TraceItemName
-from sentry_protos.snuba.v1alpha.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1alpha.trace_item_attribute_pb2 import AttributeKey as AlphaAttributeKey
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Condition, Op
 
@@ -64,9 +65,9 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
 
     def validate_type(self, value):
         if value == "string":
-            return AttributeKey.Type.TYPE_STRING
+            return AlphaAttributeKey.Type.TYPE_STRING
         if value == "number":
-            return AttributeKey.Type.TYPE_FLOAT
+            return AlphaAttributeKey.Type.TYPE_FLOAT
         raise NotImplementedError
 
     def validate(self, attrs):
@@ -407,14 +408,15 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
         max_span_tag_values: int,
     ):
         super().__init__(organization, snuba_params, key, query, max_span_tag_values)
-        self.internal_name = self.resolve_internal_name(key, snuba_params)
+        self.attribute_key = self.resolve_attribute_key(key, snuba_params)
 
-    def resolve_internal_name(self, key: str, snuba_params: SnubaParams) -> str | None:
+    def resolve_attribute_key(self, key: str, snuba_params: SnubaParams) -> AttributeKey | None:
         resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
         resolved, _ = resolver.resolve_attribute(key)
-        if not isinstance(resolved.internal_name, str):
+        proto = resolved.proto_definition
+        if not isinstance(proto, AttributeKey):
             return None
-        return resolved.internal_name
+        return proto
 
     def execute(self) -> list[TagValue]:
         if self.key in self.PROJECT_ID_KEYS:
@@ -426,7 +428,7 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
         return self.default_autocomplete_function()
 
     def default_autocomplete_function(self) -> list[TagValue]:
-        if self.internal_name is None:
+        if self.attribute_key is None:
             return []
 
         start_timestamp = Timestamp()
@@ -451,7 +453,7 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
                 end_timestamp=end_timestamp,
                 trace_item_name=TraceItemName.TRACE_ITEM_NAME_EAP_SPANS,
             ),
-            name=self.internal_name,
+            name=self.attribute_key.name,
             value_substring_match=query,
             limit=self.max_span_tag_values,
             offset=0,
