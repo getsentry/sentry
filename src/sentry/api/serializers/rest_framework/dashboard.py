@@ -483,6 +483,23 @@ class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
         default=[],
     )
 
+    def validate(self, data):
+        if "teams_with_edit_access" in data:
+            team_ids = data["teams_with_edit_access"]
+            existing_team_ids = set(
+                Team.objects.filter(
+                    id__in=team_ids, organization=self.context["organization"]
+                ).values_list("id", flat=True)
+            )
+            invalid_team_ids = set(team_ids) - existing_team_ids
+            if invalid_team_ids:
+                raise serializers.ValidationError(
+                    {
+                        f"Cannot update dashboard edit permissions. Teams with IDs {invalid_team_ids} do not exist."
+                    }
+                )
+        return data
+
 
 class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
@@ -545,6 +562,14 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 f"Number of widgets must be less than {Dashboard.MAX_WIDGETS}"
             )
 
+        permissions = data.get("permissions")
+        if permissions and self.instance:
+            currentUser = self.context["request"].user
+            if self.instance.created_by_id != currentUser.id:
+                raise serializers.ValidationError(
+                    "Only the Dashboard Creator may modify Dashboard Edit Access"
+                )
+
         return data
 
     def update_dashboard_filters(self, instance, validated_data):
@@ -574,6 +599,25 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             instance.filters = filters
             instance.save()
 
+    def update_permissions(self, instance, validated_data):
+        if "permissions" in validated_data:
+            permissions_data = validated_data["permissions"]
+            permissions = DashboardPermissions.objects.update_or_create(
+                dashboard=instance,
+                defaults={"is_editable_by_everyone": permissions_data["is_editable_by_everyone"]},
+            )[0]
+            if (
+                "teams_with_edit_access" in permissions_data
+                and permissions_data["teams_with_edit_access"] != []
+            ):
+                teams_with_edit_access = Team.objects.filter(
+                    id__in=permissions_data["teams_with_edit_access"]
+                )
+                # check when team not found
+                permissions.teams_with_edit_access.set(teams_with_edit_access)
+
+            instance.permissions = permissions
+
     def create(self, validated_data):
         """
         Create a dashboard, and create any widgets and their queries
@@ -593,10 +637,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             self.update_widgets(self.instance, validated_data["widgets"])
 
         self.update_dashboard_filters(self.instance, validated_data)
-        if "permissions" in validated_data:
-            DashboardPermissions.objects.create(
-                dashboard=self.instance, **validated_data["permissions"]
-            )
+
+        self.update_permissions(self.instance, validated_data)
 
         schedule_update_project_configs(self.instance)
 
@@ -622,26 +664,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         self.update_dashboard_filters(instance, validated_data)
 
-        # make this a helper func
-        if "permissions" in validated_data:
-            permissions = DashboardPermissions.objects.update_or_create(
-                dashboard=instance,
-                defaults={
-                    "is_editable_by_everyone": validated_data["permissions"][
-                        "is_editable_by_everyone"
-                    ]
-                },
-            )
-            if (
-                "teams_with_edit_access" in validated_data["permissions"]
-                and validated_data["permissions"]["teams_with_edit_access"] != []
-            ):
-                teams_with_edit_access = Team.objects.filter(
-                    id__in=validated_data["permissions"]["teams_with_edit_access"]
-                )
-                permissions[0].teams_with_edit_access.set(teams_with_edit_access)
-
-            instance.permissions = permissions[0]
+        self.update_permissions(instance, validated_data)
 
         schedule_update_project_configs(instance)
 
