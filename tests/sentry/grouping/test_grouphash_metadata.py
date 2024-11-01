@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from typing import cast
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.grouping.api import get_default_grouping_config_dict
+from sentry.grouping.component import GroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import _get_hash_basis
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.variants import ComponentVariant
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
@@ -81,6 +85,39 @@ def test_hash_basis_with_current_default_config(
     )
 
     _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "config_name",
+    CONFIGURATIONS.keys(),
+    ids=lambda config_name: config_name.replace("-", "_"),
+)
+def test_unknown_hash_basis(
+    config_name: str,
+    insta_snapshot: InstaSnapshotter,
+    default_project: Project,
+) -> None:
+    grouping_input = GroupingInput(GROUPING_INPUTS_DIR, "empty.json")
+
+    event = grouping_input.create_event(
+        config_name, use_full_ingest_pipeline=True, project=default_project
+    )
+
+    unknown_variants = {
+        "dogs": ComponentVariant(
+            GroupingComponent(
+                id="not_a_known_component_type",
+                contributes=True,
+                values=[GroupingComponent(id="dogs_are_great", contributes=True)],
+            ),
+            get_default_grouping_config_dict(),
+        )
+    }
+    with patch.object(event, "get_grouping_variants", new=MagicMock(return_value=unknown_variants)):
+        # Overrride the input filename since there isn't a real input which will generate the mock
+        # variants above, but we still want the snapshot.
+        _assert_and_snapshot_results(event, config_name, "unknown_variant.json", insta_snapshot)
 
 
 def _assert_and_snapshot_results(
