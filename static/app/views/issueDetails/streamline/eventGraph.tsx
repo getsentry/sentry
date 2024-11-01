@@ -70,6 +70,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     EventGraphSeries.EVENT
   );
   const eventView = useIssueDetailsEventView({group});
+  const hasFeatureFlagFeature = organization.features.includes('feature-flag-ui');
 
   const {
     data: groupStats = {},
@@ -168,20 +169,28 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       seriesData.push(releaseSeries as BarChartSeries);
     }
 
-    if (flagSeries.markLine) {
+    if (flagSeries.markLine && hasFeatureFlagFeature) {
       seriesData.push(flagSeries as BarChartSeries);
     }
 
     return seriesData;
-  }, [visibleSeries, userSeries, eventSeries, releaseSeries, flagSeries, theme]);
+  }, [
+    visibleSeries,
+    userSeries,
+    eventSeries,
+    releaseSeries,
+    flagSeries,
+    theme,
+    hasFeatureFlagFeature,
+  ]);
 
   const bucketSize = eventSeries ? getBucketSize(series) : undefined;
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
     'issue-details-graph-legend',
     {
-      ['Releases']: true,
       ['Feature Flags']: true,
+      ['Releases']: true,
     }
   );
 
@@ -192,7 +201,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     show: true,
     top: 4,
     right: 8,
-    data: ['Releases', 'Feature Flags'],
+    data: hasFeatureFlagFeature ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
   });
