@@ -268,6 +268,9 @@ class SearchResolver:
             else:
                 raise InvalidSearchQuery(f"Could not parse {column}")
 
+        if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
+            raise InvalidSearchQuery(f"{column} is too long, can be a maximum of 200 characters")
+
         tag_match = qb_constants.TYPED_TAG_KEY_RE.search(column)
         if tag_match is None:
             tag_match = qb_constants.TAG_KEY_RE.search(column)
