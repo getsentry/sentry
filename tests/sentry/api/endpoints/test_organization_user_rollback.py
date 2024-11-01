@@ -1,6 +1,7 @@
 from django.urls import reverse
 from rest_framework import status
 
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.rollbackorganization import RollbackOrganization
 from sentry.models.rollbackuser import RollbackUser
 from sentry.testutils.cases import APITestCase
@@ -58,6 +59,32 @@ class OrganizationRollbackUserEndpointTest(APITestCase):
             organization=newOrg,
             data={"animal": "georgie"},
         )
+
+        response = self.get_error_response(self.organization.slug)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @with_feature("organizations:sentry-rollback-2024")
+    def test_user_removed_from_org(self):
+        newUser = self.create_user("other@example.com")
+        OrganizationMember.objects.create(
+            user_id=newUser.id,
+            organization=self.organization,
+        )
+
+        RollbackUser.objects.create(
+            user_id=newUser.id,
+            organization=self.organization,
+            data={"animal": "sea otter"},
+        )
+        RollbackOrganization.objects.create(
+            organization=self.organization,
+            data={"animal": "georgie"},
+        )
+
+        OrganizationMember.objects.filter(
+            user_id=newUser.id,
+            organization=self.organization,
+        ).delete()
 
         response = self.get_error_response(self.organization.slug)
         assert response.status_code == status.HTTP_404_NOT_FOUND
