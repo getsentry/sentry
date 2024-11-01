@@ -24,6 +24,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
+import {PADDING, WIDGET_WIDTH} from 'sentry/views/dashboards/manage/utils';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 import {cloneDashboard} from '../utils';
@@ -185,15 +186,9 @@ function DashboardList({
         </EmptyStateWarning>
       );
     }
-    const DashboardGrid = styled('div')`
-      display: grid;
-      grid-template-columns: repeat(${columns}, minmax(300px, 1fr));
-      grid-template-rows: repeat(${rows}, max-content);
-      gap: ${space(2)};
-    `;
 
     return (
-      <DashboardGrid>
+      <DashboardGrid rows={rows} columns={columns}>
         {renderMiniDashboards()}
         {resizing &&
           rows * columns > currentDashboards.length &&
@@ -229,6 +224,16 @@ function DashboardList({
     </Fragment>
   );
 }
+
+const DashboardGrid = styled('div')<{columns: number; rows: number}>`
+  display: grid;
+  grid-template-columns: repeat(
+    ${props => props.columns},
+    minmax(${WIDGET_WIDTH}px, 1fr)
+  );
+  grid-template-rows: repeat(${props => props.rows}, max-content);
+  gap: ${PADDING}px;
+`;
 
 const PaginationRow = styled(Pagination)`
   margin-bottom: ${space(3)};

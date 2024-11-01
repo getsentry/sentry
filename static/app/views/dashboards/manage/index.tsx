@@ -44,7 +44,14 @@ import type {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
 import TemplateCard from './templateCard';
-import {shouldShowTemplates, SHOW_TEMPLATES_KEY} from './utils';
+import {
+  DEFAULT_NUM_ROWS,
+  DEFAULT_NUM_WIDGETS,
+  PADDING,
+  shouldShowTemplates,
+  SHOW_TEMPLATES_KEY,
+  WIDGET_WIDTH,
+} from './utils';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Dashboards'), value: 'mydashboards'},
@@ -66,7 +73,7 @@ function ManageDashboards() {
     SHOW_TEMPLATES_KEY,
     shouldShowTemplates()
   );
-  const [_, setGridWidth] = useState(0);
+  const [gridWidth, setGridWidth] = useState(0);
   const [resizing, setResizing] = useState(false);
   const [{rows, columns}, setGridSize] = useState({rows: 3, columns: 3});
 
@@ -99,12 +106,12 @@ function ManageDashboards() {
         entries.forEach(entry => {
           const currentWidth = entry.contentRect.width;
 
-          setGridWidth(prevWidth => {
-            if (currentWidth !== prevWidth && prevWidth !== 0) {
+          setGridWidth(() => {
+            if (currentWidth !== gridWidth && gridWidth !== 0) {
               setResizing(true);
               return currentWidth;
             }
-            return prevWidth;
+            return gridWidth;
           });
 
           setRowsAndColumns(currentWidth);
@@ -130,10 +137,15 @@ function ManageDashboards() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
         dashboardGridObserver.unobserve(dashboardGridRef.current);
       }
-      setResizing(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [
+    columns,
+    dashboards?.length,
+    dashboardsPageLinks,
+    gridWidth,
+    refetchDashboards,
+    rows,
+  ]);
 
   // no longer resizing if loading has stopped
   useEffect(() => {
@@ -143,22 +155,17 @@ function ManageDashboards() {
   }, [isLoading, resizing]);
 
   function setRowsAndColumns(containerWidth: number) {
-    const widgetWidth = 300;
-    const padding = 16;
-    const defaultNumRows = 3;
-    const defaultNumWidgets = 8;
-
     if (containerWidth === 0) {
       return;
     }
-    const numWidgetsFitInRow = Math.floor(containerWidth / (widgetWidth + padding));
+    const numWidgetsFitInRow = Math.floor(containerWidth / (WIDGET_WIDTH + PADDING));
 
     setGridWidth(containerWidth);
     if (numWidgetsFitInRow >= 3) {
-      setGridSize({rows: defaultNumRows, columns: numWidgetsFitInRow});
+      setGridSize({rows: DEFAULT_NUM_ROWS, columns: numWidgetsFitInRow});
     } else {
       setGridSize({
-        rows: defaultNumWidgets / numWidgetsFitInRow,
+        rows: DEFAULT_NUM_WIDGETS / numWidgetsFitInRow,
         columns: numWidgetsFitInRow,
       });
     }
