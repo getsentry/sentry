@@ -1,0 +1,22 @@
+---
+created: '2024-10-28T13:58:06.480171+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "87497299851e09febfecf4e84e0d45ba"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "-[UIApplication _run]"
+            frame*
+              function*
+                "objc_release"
+          type*
+            "EXC_BAD_ACCESS"

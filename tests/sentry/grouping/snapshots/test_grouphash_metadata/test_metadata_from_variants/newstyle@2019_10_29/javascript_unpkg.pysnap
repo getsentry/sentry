@@ -1,0 +1,30 @@
+---
+created: '2024-10-28T14:02:35.386458+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "6ab78545e13144405fb21dadb9045b91"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "react-dom@16.13.1/umd/react-dom.production"
+              function*
+                "unpkg"
+            frame*
+              function*
+                "cdnjs"
+            frame*
+              function*
+                "jsdelivr"
+            frame*
+              function* (trimmed javascript function)
+                "run"
+          type*
+            "Error"

@@ -1,0 +1,28 @@
+---
+created: '2024-10-28T14:02:41.095428+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  app*
+    hash: "fca0fd23f09e8da4481304ef2a531100"
+    component:
+      app*
+        chained-exception*
+          exception*
+            type*
+              "MyApp.CoolException"
+            value* (stripped event-specific values)
+              "Test <int>"
+          exception*
+            type*
+              "MyApp.BeansException"
+            value* (stripped event-specific values)
+              "Test <int>"
+          exception*
+            type*
+              "System.AggregateException"
+            value*
+              "One or more errors occurred."

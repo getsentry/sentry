@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:39.734195+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: violation
+---
+contributing variants:
+  default*
+    hash: "223cdacfe5b4b830dc700b5c18cc21b4"
+    component:
+      default*
+        csp*
+          salt* (a static salt)
+            "script-src"
+          uri*
+            "example.com"

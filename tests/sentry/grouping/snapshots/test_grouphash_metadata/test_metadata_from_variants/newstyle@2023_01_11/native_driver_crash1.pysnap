@@ -1,0 +1,23 @@
+---
+created: '2024-10-28T14:01:14.938942+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "2e0d26cae5986fcda5edf66612a78268"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "CUseCountedObject<T>::UCDestroy"
+            frame*
+              function*
+                "destructor'"
+            frame*
+              function*
+                "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"

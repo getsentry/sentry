@@ -1,0 +1,19 @@
+---
+created: '2024-10-28T14:02:34.802156+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  app*
+    hash: "5b5ad5a0fbb4deb5e3fc631ce42681ae"
+    component:
+      app*
+        exception*
+          type*
+            "FailedToFetchError"
+          value*
+            "FailedToFetchError: Charlie didn't bring the ball back!"
+    info: {"client_fingerprint":["{{ default }}","adopt don't shop"]}
+    values: ["{{ default }}","adopt don't shop"]

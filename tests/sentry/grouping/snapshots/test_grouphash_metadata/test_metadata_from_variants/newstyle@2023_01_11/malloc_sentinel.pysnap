@@ -1,0 +1,36 @@
+---
+created: '2024-10-28T14:01:03.880792+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "70b7b816193e06eb5d6649989fbaf605"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              filename*
+                "stripped_application_code"
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "free"
+            frame*
+              function*
+                "malloc_report"
+            frame*
+              function*
+                "abort"
+          type*
+            "SIGABRT"

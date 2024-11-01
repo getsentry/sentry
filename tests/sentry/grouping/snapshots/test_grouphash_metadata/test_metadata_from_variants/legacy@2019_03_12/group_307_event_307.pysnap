@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:53.631928+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  system*
+    hash: "2b6e7c38169cdf8db932529529331be5"
+    component:
+      system*
+        exception*
+          type*
+            "EXC_BAD_ACCESS / EXC_I386_GPFLT"
+          value*
+            "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"

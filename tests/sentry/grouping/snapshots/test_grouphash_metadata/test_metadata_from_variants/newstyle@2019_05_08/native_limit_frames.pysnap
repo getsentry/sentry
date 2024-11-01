@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:46.848515+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "9bb5de55b854491dacc677184c9b019a"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "<lambda>::operator()"

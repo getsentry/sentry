@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:56.361346+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  system*
+    hash: "a433bc7901e2b36f1f85a756f6457620"
+    component:
+      system*
+        exception*
+          type*
+            "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+          value*
+            "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"

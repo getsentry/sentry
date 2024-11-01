@@ -1,0 +1,18 @@
+---
+created: '2024-10-28T13:57:12.321029+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  app*
+    hash: "029f3b967068b1539f96957b7c0451d7"
+    component:
+      app*
+        exception*
+          type*
+            "iOS_Swift.SampleError"
+          ns-error*
+            "iOS_Swift.SampleError"
+            0

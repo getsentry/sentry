@@ -1,0 +1,32 @@
+---
+created: '2024-10-28T13:59:39.352525+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "9c336f632f6764c0f082a6a66edbf22d"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "glDeleteTextures_Exec"
+            frame*
+              function*
+                "gldCreateDevice"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "abort"

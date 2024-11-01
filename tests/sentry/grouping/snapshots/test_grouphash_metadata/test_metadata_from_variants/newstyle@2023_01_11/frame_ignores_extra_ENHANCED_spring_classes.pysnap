@@ -1,0 +1,18 @@
+---
+created: '2024-10-28T13:58:26.887939+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "be15ca3d511b96918e087c4f42503ca2"
+    component:
+      system*
+        stacktrace*
+          frame*
+            module* (removed codegen marker)
+              "invalid.gruml.talkytalkyhub.common.config.JipJipConfig$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>$$FastClassBySpringCGLIB$$<auto>"
+            function*
+              "jipJipManagementApplication"

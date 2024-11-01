@@ -1,0 +1,35 @@
+---
+created: '2024-10-28T13:59:56.128329+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "6148c73af04344a8597354711f5951ea"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "abort"

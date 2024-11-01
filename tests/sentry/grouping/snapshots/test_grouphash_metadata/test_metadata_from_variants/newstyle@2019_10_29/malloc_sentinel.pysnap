@@ -1,0 +1,51 @@
+---
+created: '2024-10-28T14:02:36.664864+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "2f4ae73b88dbbc7e1cee4f86e270c4b4"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "_pthread_start"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              filename*
+                "stripped_application_code"
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "std::__1::basic_string<T>::~basic_string"
+            frame*
+              function*
+                "free"
+            frame*
+              function*
+                "malloc_report"
+            frame*
+              function*
+                "malloc_vreport"
+            frame*
+              function*
+                "abort"
+            frame*
+              function*
+                "pthread_kill"
+            frame*
+              function*
+                "__pthread_kill"
+          type*
+            "SIGABRT"

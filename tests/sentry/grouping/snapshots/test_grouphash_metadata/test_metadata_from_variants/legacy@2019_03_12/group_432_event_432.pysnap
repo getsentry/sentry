@@ -1,0 +1,46 @@
+---
+created: '2024-10-28T14:02:53.965144+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "3ec7691e31dedccb5a0b199b65958d9e"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "function_template.hpp"
+              function*
+                "boost::function0<T>::operator()"
+            frame*
+              filename*
+                "function_template.hpp"
+              function*
+                "boost::function0<T>::operator()"
+            frame*
+              filename*
+                "function_template.hpp"
+              function*
+                "boost::function0<T>::operator()"
+            frame*
+              filename*
+                "function_template.hpp"
+              function*
+                "boost::function0<T>::operator()"
+            frame*
+              filename*
+                "function_template.hpp"
+              function*
+                "boost::function0<T>::operator()"
+            frame*
+              filename*
+                "crashpad_client_win.cc"
+              function*
+                "crashpad::`anonymous namespace'::HandleAbortSignal"
+          type*
+            "0x40000015 / 0x00000001"

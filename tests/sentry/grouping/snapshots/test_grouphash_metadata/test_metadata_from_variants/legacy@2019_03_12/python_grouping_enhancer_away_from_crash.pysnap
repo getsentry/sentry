@@ -1,0 +1,49 @@
+---
+created: '2024-10-28T14:02:56.787243+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  app*
+    hash: "79f7443afa4022bb3e5093e765e755bb"
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry.web.frontend.release_webhook"
+              context-line*
+                "            hook.handle(request)"
+            frame*
+              module*
+                "sentry_plugins.heroku.plugin"
+              context-line*
+                "        email = request.POST['user']"
+          type*
+            "MultiValueDictKeyError"
+  system*
+    hash: "5586fbb54ed18866eea266e91cee7f8b"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry.web.frontend.release_webhook"
+              context-line*
+                "            hook.handle(request)"
+            frame*
+              module*
+                "sentry_plugins.heroku.plugin"
+              context-line*
+                "        email = request.POST['user']"
+            frame*
+              module*
+                "django.utils.datastructures"
+              context-line*
+                "            raise MultiValueDictKeyError(repr(key))"
+          type*
+            "MultiValueDictKeyError"

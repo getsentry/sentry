@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:30.718954+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  app*
+    hash: "a4f16891fa438620699cb2d9af5cc827"
+    component:
+      app*
+        exception*
+          type*
+            "MyApp.Exception"
+          value* (stripped event-specific values)
+            "Test <int>"

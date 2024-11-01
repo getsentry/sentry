@@ -1,0 +1,15 @@
+---
+created: '2024-10-28T14:02:51.044805+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  system*
+    hash: "b0d6c60d82e250da178402493260c2f2"
+    component:
+      system*
+        exception*
+          type*
+            "EXC_BAD_ACCESS"

@@ -1,0 +1,21 @@
+---
+created: '2024-10-28T14:02:50.053150+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "baf0bfa8bb312627cd5ef4171aec9f4e"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "foo/baz.py"
+              lineno*
+                1
+          type*
+            "ValueError"

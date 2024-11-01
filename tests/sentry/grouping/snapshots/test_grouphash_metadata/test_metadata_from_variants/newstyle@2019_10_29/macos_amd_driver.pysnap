@@ -1,0 +1,65 @@
+---
+created: '2024-10-28T14:02:36.545263+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "6188cd480f18f1ce368de0500be00733"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "start"
+            frame*
+              function*
+                "code"
+            frame*
+              function*
+                "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"
+            frame*
+              function*
+                "CFRunLoopRunSpecific"
+            frame*
+              function*
+                "__CFRunLoopRun"
+            frame*
+              function*
+                "__CFRunLoopDoSources0"
+            frame*
+              function*
+                "__CFRunLoopDoSource0"
+            frame*
+              function*
+                "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
+            frame*
+              function*
+                "code"
+            frame*
+              function*
+                "glTexSubImage2D"
+            frame*
+              function*
+                "glTexSubImage2D_Exec"
+            frame*
+              function*
+                "gleTextureImagePut"
+            frame*
+              function*
+                "gpusSubmitDataBuffers"
+            frame*
+              function*
+                "gpusGenerateCrashLog"
+            frame*
+              function*
+                "gpusGenerateCrashLog.cold.1"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "abort"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "__pthread_kill"

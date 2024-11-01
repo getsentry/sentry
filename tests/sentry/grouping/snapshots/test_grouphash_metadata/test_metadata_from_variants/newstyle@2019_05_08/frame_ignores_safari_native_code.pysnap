@@ -1,0 +1,16 @@
+---
+created: '2024-10-28T14:02:42.799715+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "30eb5001914d29dd8461898b5b8094fe"
+    component:
+      system*
+        stacktrace*
+          frame*
+            function*
+              "forEach"

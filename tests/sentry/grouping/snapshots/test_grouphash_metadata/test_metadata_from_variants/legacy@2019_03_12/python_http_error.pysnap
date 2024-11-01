@@ -1,0 +1,49 @@
+---
+created: '2024-10-28T14:02:56.884810+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  app*
+    hash: "55b71821bccfe62d0df089e2f406c651"
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry.utils.safe"
+              context-line*
+                "                result = func(*args, **kwargs)"
+            frame*
+              module*
+                "sentry.integrations.slack.notify_action"
+              context-line*
+                "            resp.raise_for_status()"
+          type*
+            "HTTPError"
+  system*
+    hash: "a140a9ee6bbfb7ca9c21234dc287f2a6"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry.utils.safe"
+              context-line*
+                "                result = func(*args, **kwargs)"
+            frame*
+              module*
+                "sentry.integrations.slack.notify_action"
+              context-line*
+                "            resp.raise_for_status()"
+            frame*
+              module*
+                "requests.models"
+              context-line*
+                "            raise HTTPError(http_error_msg, response=self)"
+          type*
+            "HTTPError"

@@ -1,0 +1,29 @@
+---
+created: '2024-10-28T14:02:45.264092+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "838d9553ed824c45d9125f42ec408472"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "@babel/runtime/helpers/asyncToGenerator"
+            frame*
+              module*
+                "core-js/internals/task"
+              function*
+                "listener"
+            frame*
+              module*
+                "tslib/tslib.es6"
+              function* (trimmed javascript function)
+                "sent"
+          type*
+            "Error"

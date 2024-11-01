@@ -1,0 +1,26 @@
+---
+created: '2024-10-28T14:02:46.744053+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "6fcc3bb4fac6aa6e81bb6d0faf40b0dd"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "CUseCountedObject<T>::UCDestroy"
+            frame*
+              function*
+                "CContext::LUCBeginLayerDestruction"
+            frame*
+              function*
+                "NDXGI::CDevice::DestroyDriverInstance"
+            frame*
+              function*
+                "OpenAdapter10"

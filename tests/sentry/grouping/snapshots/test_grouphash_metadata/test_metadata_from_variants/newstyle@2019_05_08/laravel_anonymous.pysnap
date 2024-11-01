@@ -1,0 +1,46 @@
+---
+created: '2024-10-28T14:02:46.026194+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  app*
+    hash: "a728cdf5d62c8e017c35c3fe04051b6e"
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "server.php"
+              context-line*
+                "require_once __DIR__.'/public/index.php';"
+          type*
+            "Exception"
+  system*
+    hash: "38f89a430b4a251a06a5a15b382638b5"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "server.php"
+              context-line*
+                "require_once __DIR__.'/public/index.php';"
+            frame*
+              filename*
+                "pipeline.php"
+              context-line*
+                "return $callable($passable);"
+            frame*
+              filename*
+                "pipeline.php"
+              function*
+                "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+              context-line*
+                "? $pipe->{$this->method}(...$parameters)"
+          type*
+            "Exception"

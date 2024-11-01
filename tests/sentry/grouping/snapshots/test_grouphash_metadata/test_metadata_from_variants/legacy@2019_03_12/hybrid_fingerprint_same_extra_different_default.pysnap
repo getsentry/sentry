@@ -1,0 +1,19 @@
+---
+created: '2024-10-28T14:02:54.343833+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  system*
+    hash: "c5578778212497f1ff3435405e2a4a98"
+    component:
+      system*
+        exception*
+          type*
+            "FailedToFetchError"
+          value*
+            "FailedToFetchError: Maisey can't see the ball anymore :-("
+    info: {"client_fingerprint":["{{ default }}","dogs are great"]}
+    values: ["{{ default }}","dogs are great"]
