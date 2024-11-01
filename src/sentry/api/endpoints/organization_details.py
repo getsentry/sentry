@@ -59,7 +59,6 @@ from sentry.constants import (
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ROLLBACK_ENABLED_DEFAULT,
-    ROLLBACK_SHARING_ENABLED_DEFAULT,
     SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
@@ -223,12 +222,6 @@ ORG_OPTIONS = (
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
     ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
     ("rollbackEnabled", "sentry:rollback_enabled", bool, ROLLBACK_ENABLED_DEFAULT),
-    (
-        "rollbackSharingEnabled",
-        "sentry:rollback_sharing_enabled",
-        bool,
-        ROLLBACK_SHARING_ENABLED_DEFAULT,
-    ),
 )
 
 DELETION_STATUSES = frozenset(
