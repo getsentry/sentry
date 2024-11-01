@@ -1,3 +1,4 @@
+import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
@@ -28,6 +29,7 @@ import {
   transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
@@ -79,12 +81,12 @@ export const SpansConfig: DatasetConfig<
   getGroupByFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
-    // DisplayType.AREA,
-    // DisplayType.BAR,
-    // DisplayType.BIG_NUMBER,
-    // DisplayType.LINE,
+    DisplayType.AREA,
+    DisplayType.BAR,
+    DisplayType.BIG_NUMBER,
+    DisplayType.LINE,
     DisplayType.TABLE,
-    // DisplayType.TOP_N,
+    DisplayType.TOP_N,
   ],
   getTableRequest: (
     api: Client,
@@ -108,7 +110,7 @@ export const SpansConfig: DatasetConfig<
       referrer
     );
   },
-  // getSeriesRequest: getErrorsSeriesRequest,
+  getSeriesRequest,
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
   filterTableOptions,
@@ -211,4 +213,25 @@ function getEventsRequest(
       },
     }
   );
+}
+
+function getSeriesRequest(
+  api: Client,
+  widget: Widget,
+  queryIndex: number,
+  organization: Organization,
+  pageFilters: PageFilters,
+  _onDemandControlContext?: OnDemandControlContext,
+  referrer?: string,
+  _mepSetting?: MEPState | null
+) {
+  const requestData = getSeriesRequestData(
+    widget,
+    queryIndex,
+    organization,
+    pageFilters,
+    DiscoverDatasets.SPANS_EAP,
+    referrer
+  );
+  return doEventsRequest<true>(api, requestData);
 }
