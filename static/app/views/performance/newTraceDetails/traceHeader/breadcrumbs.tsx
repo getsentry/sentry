@@ -26,6 +26,7 @@ export const enum TraceViewSources {
   TRACES = 'traces',
   METRICS = 'metrics',
   DISCOVER = 'discover',
+  PROFILING_FLAMEGRAPH = 'profiling_flamegraph',
   REQUESTS_MODULE = 'requests_module',
   QUERIES_MODULE = 'queries_module',
   ASSETS_MODULE = 'assets_module',

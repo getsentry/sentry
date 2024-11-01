@@ -1,6 +1,7 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
+import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {
@@ -13,6 +14,7 @@ import type {
 import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
@@ -31,6 +33,7 @@ export function getTraceDetailsUrl({
   source,
   view,
 }: {
+  // @TODO add a type for dateSelection
   dateSelection;
   location: Location;
   organization: Organization;
@@ -45,29 +48,26 @@ export function getTraceDetailsUrl({
   timestamp?: string | number;
   view?: DomainView;
 }): LocationDescriptorObject {
-  const {start, end, statsPeriod} = dateSelection;
-
-  const queryParams = {
-    ...location.query,
-    statsPeriod,
-    [PAGE_URL_PARAM.PAGE_START]: start,
-    [PAGE_URL_PARAM.PAGE_END]: end,
-  };
-
   const performanceBaseUrl = getPerformanceBaseUrl(organization.slug, view);
-
-  const oldTraceUrl = {
-    pathname: normalizeUrl(`${performanceBaseUrl}/trace/${traceSlug}/`),
-    query: queryParams,
-  };
+  const queryParams: Record<string, string | number | undefined | DateString | string[]> =
+    {
+      ...location.query,
+      statsPeriod: dateSelection.statsPeriod,
+      [PAGE_URL_PARAM.PAGE_START]: dateSelection.start,
+      [PAGE_URL_PARAM.PAGE_END]: dateSelection.end,
+    };
 
   if (shouldForceRouteToOldView(organization, timestamp)) {
-    return oldTraceUrl;
+    return {
+      pathname: normalizeUrl(`${performanceBaseUrl}/trace/${traceSlug}/`),
+      query: queryParams,
+    };
   }
 
   if (organization.features.includes('trace-view-v1')) {
     if (spanId) {
-      queryParams.node = [`span-${spanId}`, `txn-${targetId ?? eventId}`];
+      const path: TraceTree.NodePath[] = [`span-${spanId}`, `txn-${targetId ?? eventId}`];
+      queryParams.node = path;
     }
     return {
       pathname: normalizeUrl(`${performanceBaseUrl}/trace/${traceSlug}/`),
@@ -86,7 +86,10 @@ export function getTraceDetailsUrl({
     queryParams.limit = DEFAULT_TRACE_ROWS_LIMIT;
   }
 
-  return oldTraceUrl;
+  return {
+    pathname: normalizeUrl(`${performanceBaseUrl}/trace/${traceSlug}/`),
+    query: queryParams,
+  };
 }
 
 /**
