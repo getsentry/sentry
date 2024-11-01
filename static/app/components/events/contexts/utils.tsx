@@ -11,7 +11,7 @@ import {
   type ContextIconProps,
   getLogoImage,
 } from 'sentry/components/events/contexts/contextIcon';
-import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
+import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
@@ -417,7 +417,7 @@ export function getContextIcon({
       iconName = generateIconName(value?.name, value?.version);
       break;
     case 'user':
-      const user = removeFilterMaskedEntries(value);
+      const user = userContextToActor(value);
       const iconSize = commonTheme.iconNumberSizes[contextIconProps?.size ?? 'xl'];
       return <UserAvatar user={user as AvatarUser} size={iconSize} gravatar={false} />;
     case 'gpu':

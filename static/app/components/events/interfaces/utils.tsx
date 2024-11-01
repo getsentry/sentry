@@ -9,6 +9,7 @@ import type {EntryRequest, EntryThreads, Event, Frame, Thread} from 'sentry/type
 import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -239,15 +240,25 @@ export function objectToSortedTupleArray(obj: Record<string, string | string[]>)
     });
 }
 
-// for context summaries and avatars
-export function removeFilterMaskedEntries<T extends Record<string, any>>(rawData: T): T {
-  const cleanedData: Record<string, any> = {};
-  for (const key of Object.getOwnPropertyNames(rawData)) {
-    if (rawData[key] !== FILTER_MASK) {
-      cleanedData[key] = rawData[key];
+function isValidContextValue(value: unknown): value is string {
+  return typeof value === 'string' && value !== FILTER_MASK;
+}
+
+const userAvatarKeys = ['id', 'ip', 'username', 'ip_address', 'name', 'email'] as const;
+
+/**
+ * Convert a user context object to an actor object for avatar display
+ */
+export function userContextToActor(rawData: Record<string, unknown>): AvatarUser {
+  const result: Partial<AvatarUser> = {};
+
+  for (const key of userAvatarKeys) {
+    if (isValidContextValue(rawData[key])) {
+      result[key] = rawData[key];
     }
   }
-  return cleanedData as T;
+
+  return result as AvatarUser;
 }
 
 export function formatAddress(address: number, imageAddressLength: number | undefined) {
