@@ -1,0 +1,36 @@
+---
+created: '2024-10-28T14:02:53.441496+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "445c51c35600b1cfdc2e5985c5bdd75b"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp"
+              function*
+                "boost::thread::start_thread_noexcept"
+            frame*
+              filename*
+                "artifacts/boost_source_libraries/1.65.1d/boost_libraries/libs/thread/src/pthread/thread.cpp"
+              function*
+                "boost::`anonymous namespace'::thread_proxy"
+            frame*
+              filename*
+                "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
+              function*
+                "boost::function0<T>::operator()"
+            frame*
+              filename*
+                "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
+              function*
+                "boost::function0<T>::operator()"
+          type*
+            "0x00000000 / 0x00000000"

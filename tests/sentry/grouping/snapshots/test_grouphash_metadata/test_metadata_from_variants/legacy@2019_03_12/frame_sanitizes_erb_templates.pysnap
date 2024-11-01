@@ -1,0 +1,18 @@
+---
+created: '2024-10-28T14:02:52.606801+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "140d61119ffa316766cf0f710bf1e7f1"
+    component:
+      system*
+        stacktrace*
+          frame*
+            filename*
+              "foo.html.erb"
+            function* (trimmed integer suffix)
+              "_foo_html_erb__<anon>_<anon>"

@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:01:16.813098+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "c85e23e804b52ea4b9f290ba838e77a0"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "CUseCountedObject<T>::UCDestroy"

@@ -1,0 +1,15 @@
+---
+created: '2024-10-28T14:02:31.223373+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  app*
+    hash: "5eb63bbbe01eeed093cb22bb8f5acdc3"
+    component:
+      app*
+        exception*
+          value*
+            "hello world"

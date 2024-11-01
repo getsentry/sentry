@@ -1,0 +1,23 @@
+---
+created: '2024-10-28T14:02:48.040867+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "c5da56c71b31f34c5880d734cbc8f5bb"
+    component:
+      system*
+        stacktrace*
+          frame*
+            filename*
+              "dojo.js"
+            function*
+              "c"
+          frame*
+            filename*
+              "dojo.js"
+            function* (trimmed javascript function)
+              "_createDocumentViewModel"

@@ -1,0 +1,77 @@
+---
+created: '2024-10-28T14:02:34.509430+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "50325a901e2db771dca1291283d8b54e"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "RtlUserThreadStart"
+            frame*
+              function*
+                "BaseThreadInitThunk"
+            frame*
+              function*
+                "TppWorkerThread"
+            frame*
+              function*
+                "RtlpTpWorkCallback"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              filename*
+                "function_template.hpp"
+              function*
+                "boost::function0<T>::operator()"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              filename*
+                "function_template.hpp"
+              function*
+                "boost::function0<T>::operator()"
+            frame*
+              function*
+                "stripped_application_code"
+            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+              filename*
+                "xtree"
+              function*
+                "std::_Tree<T>::insert<T>"
+            frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+              filename*
+                "xtree"
+              function*
+                "std::_Tree<T>::_Emplace"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              filename*
+                "function_template.hpp"
+              function*
+                "boost::function0<T>::operator()"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "abort"
+            frame*
+              function*
+                "raise"
+            frame*
+              filename*
+                "crashpad_client_win.cc"
+              function*
+                "crashpad::`anonymous namespace'::HandleAbortSignal"

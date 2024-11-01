@@ -1,0 +1,23 @@
+---
+created: '2024-10-28T14:02:39.152687+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "8cce12f1da956a1fd4e7c6078bc311fb"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "bar.bar"
+              function*
+                "main"
+          type*
+            "ChunkLoadError"
+    info: {"client_fingerprint":["{{ default }}","dogs are great"]}
+    values: ["{{ default }}","dogs are great"]

@@ -1,0 +1,32 @@
+---
+created: '2024-10-28T14:02:37.275194+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "69d066e455243e7c5762b7522b430ca9"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "application_frame"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "malloc_zone_malloc"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "nanov2_malloc"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "nanov2_allocate"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "nanov2_allocate_from_block"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "nanov2_allocate_from_block.cold.1"

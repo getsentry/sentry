@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:48.849379+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  system*
+    hash: "8ecc10ce70f427a50370968e7271fa51"
+    component:
+      system*
+        exception*
+          type*
+            "SIGSEGV"
+          value*
+            "Segfault"

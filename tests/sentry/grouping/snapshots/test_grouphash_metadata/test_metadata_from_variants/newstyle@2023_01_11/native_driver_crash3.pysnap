@@ -1,0 +1,23 @@
+---
+created: '2024-10-28T14:01:18.466836+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "784442a33bd16c15013bb8f69f68e7d6"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "CUseCountedObject<T>::UCDestroy"
+            frame*
+              function*
+                "destructor'"
+            frame*
+              function*
+                "NOutermost::CDeviceChild::LUCBeginLayerDestruction"

@@ -1,0 +1,41 @@
+---
+created: '2024-10-28T14:02:56.544765+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "f133068802b8a7f6162e0c7d8fc6b984"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "exe_common.inl"
+              function*
+                "__scrt_common_main_seh"
+            frame*
+              filename*
+                "exe_common.inl"
+              function*
+                "invoke_main"
+            frame*
+              filename*
+                "main.cpp"
+              function*
+                "main"
+            frame*
+              filename*
+                "main.cpp"
+              function*
+                "`anonymous namespace'::start"
+            frame*
+              filename*
+                "main.cpp"
+              function*
+                "?A0xc3a0617d::crash"
+          type*
+            "EXCEPTION_ACCESS_VIOLATION_WRITE"

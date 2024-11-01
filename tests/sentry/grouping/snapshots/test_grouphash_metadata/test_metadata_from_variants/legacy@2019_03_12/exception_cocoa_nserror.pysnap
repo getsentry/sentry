@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:49.964416+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  system*
+    hash: "a4846fd651dcaae1c580fb24af561567"
+    component:
+      system*
+        exception*
+          type*
+            "iOS_Swift.SampleError"
+          value*
+            "Code=0 Description=The operation couldn’t be completed. (iOS_Swift.SampleError error 0.)"

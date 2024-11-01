@@ -1,0 +1,18 @@
+---
+created: '2024-10-28T13:58:15.557431+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "465d672b2d322bf6a1b44499f6dabc1f"
+    component:
+      system*
+        stacktrace*
+          frame*
+            module* (removed codegen marker)
+              "com.example.api.OutboundController$$FastClassByGuice$$<auto>"
+            function*
+              "jipJipManagementApplication"

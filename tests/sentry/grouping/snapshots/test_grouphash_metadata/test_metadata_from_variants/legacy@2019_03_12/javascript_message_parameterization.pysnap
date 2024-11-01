@@ -1,0 +1,14 @@
+---
+created: '2024-10-28T14:02:54.692159+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  default*
+    hash: "bc485e4d2e22a2e4998479e52c370501"
+    component:
+      default*
+        message*
+          "testing testing 1, 2, 3"

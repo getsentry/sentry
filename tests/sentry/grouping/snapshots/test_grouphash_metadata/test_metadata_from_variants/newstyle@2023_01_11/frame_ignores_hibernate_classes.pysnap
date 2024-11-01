@@ -1,0 +1,18 @@
+---
+created: '2024-10-28T13:58:46.364733+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "c32a94349d9e9b72d31a46610c6c9589"
+    component:
+      system*
+        stacktrace*
+          frame*
+            module* (removed codegen marker)
+              "com.example.model.User$HibernateProxy$<auto>"
+            function*
+              "jipJipManagementApplication"

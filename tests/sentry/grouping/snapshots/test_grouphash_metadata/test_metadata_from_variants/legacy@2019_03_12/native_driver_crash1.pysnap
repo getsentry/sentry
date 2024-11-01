@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:56.109097+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  system*
+    hash: "c0efa3bdfea2264ffda696557937ff9f"
+    component:
+      system*
+        exception*
+          type*
+            "EXCEPTION_ACCESS_VIOLATION_READ"
+          value*
+            "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"

@@ -1,0 +1,20 @@
+---
+created: '2024-10-28T14:01:26.193633+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "9b78cced1eefcd0c655a0a3d8ce2cdd2"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
+            frame*
+              function*
+                "Scaleform::GFx::AS3::IMEManager::DispatchEvent"

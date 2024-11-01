@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T13:56:55.411873+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: violation
+---
+contributing variants:
+  default*
+    hash: "4e6f2bce9d121aa89f4dc5e5da08afb5"
+    component:
+      default*
+        csp*
+          salt* (a static salt)
+            "img-src"
+          uri*
+            "data:"

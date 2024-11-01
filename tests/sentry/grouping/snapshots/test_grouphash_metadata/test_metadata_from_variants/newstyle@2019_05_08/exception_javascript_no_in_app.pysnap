@@ -1,0 +1,26 @@
+---
+created: '2024-10-28T14:02:41.254367+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "26552f86ca2368e708afa1df6effc1c5"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "app/components/modals/createTeamModal"
+              context-line*
+                "onError(err);"
+            frame*
+              module*
+                "app/views/settings/components/forms/form"
+              context-line*
+                "this.model.submitError(error);"
+          type*
+            "TypeError"

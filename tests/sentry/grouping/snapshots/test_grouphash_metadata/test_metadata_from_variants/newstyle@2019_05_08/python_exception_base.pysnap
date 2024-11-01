@@ -1,0 +1,44 @@
+---
+created: '2024-10-28T14:02:47.241667+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  app*
+    hash: "c52ebcc2d9d0780a23c7d99831678830"
+    component:
+      app*
+        chained-exception*
+          exception*
+            stacktrace*
+              frame*
+                filename*
+                  "baz.py"
+            type*
+              "ValueError"
+          exception*
+            type*
+              "ValueError"
+            value*
+              "hello world"
+  system*
+    hash: "669cb6664e0f5fed38665da04e464f7e"
+    component:
+      system*
+        chained-exception*
+          exception*
+            stacktrace*
+              frame*
+                filename*
+                  "baz.py"
+            type*
+              "ValueError"
+          exception*
+            stacktrace*
+              frame*
+                filename*
+                  "baz.py"
+            type*
+              "ValueError"

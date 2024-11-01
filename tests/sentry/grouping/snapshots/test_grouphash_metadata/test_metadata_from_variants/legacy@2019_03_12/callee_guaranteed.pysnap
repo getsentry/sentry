@@ -1,0 +1,36 @@
+---
+created: '2024-10-28T14:02:49.008010+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "211e972054c29fae035071309ac474aa"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename* (stripped to basename)
+                "<compiler-generated>"
+              function*
+                "thunk for @escaping @callee_guaranteed () -> ()"
+            frame*
+              filename* (stripped to basename)
+                "<compiler-generated>"
+              function*
+                "partial apply for thunk for @callee_guaranteed () -> ()"
+            frame*
+              filename* (stripped to basename)
+                "<compiler-generated>"
+              function*
+                "thunk for @escaping @callee_guaranteed () -> ()"
+            frame*
+              filename* (stripped to basename)
+                "<compiler-generated>"
+              function*
+                "partial apply for thunk for @escaping @callee_guaranteed (@in_guaranteed stripped_application_code) -> (@out ())"
+          type*
+            "<redacted>"

@@ -1,0 +1,20 @@
+---
+created: '2024-10-28T14:01:22.264312+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "3ff01ce959249abecc6bc8a8f1432b0b"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "application_frame"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "malloc_zone_malloc"

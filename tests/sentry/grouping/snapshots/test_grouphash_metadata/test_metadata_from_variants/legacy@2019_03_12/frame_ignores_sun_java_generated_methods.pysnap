@@ -1,0 +1,23 @@
+---
+created: '2024-10-28T14:02:52.518602+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "9bc326575875422d0d4ced3c35d9f916"
+    component:
+      system*
+        stacktrace*
+          frame*
+            module* (removed reflection marker)
+              "sun.reflect.GeneratedMethodAccessor"
+            function*
+              "invoke"
+          frame*
+            module* (removed reflection marker)
+              "jdk.internal.reflect.GeneratedMethodAccessor"
+            function*
+              "invoke"

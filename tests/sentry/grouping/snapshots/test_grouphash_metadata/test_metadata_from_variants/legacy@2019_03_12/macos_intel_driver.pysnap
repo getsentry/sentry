@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:55.711693+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  system*
+    hash: "a3ce3ffb7077f57549483112e3dcf68c"
+    component:
+      system*
+        exception*
+          type*
+            "0x00000000 / 0x00000000"
+          value*
+            "Fatal Error: 0x00000000 / 0x00000000"

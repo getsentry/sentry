@@ -1,0 +1,33 @@
+---
+created: '2024-10-28T14:02:56.982087+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  app*
+    hash: "84ed5488c9c498282e0f1691b658f17f"
+    component:
+      app*
+        stacktrace*
+          frame*
+            filename* (stripped to basename)
+              "bar.m"
+            lineno*
+              1
+  system*
+    hash: "41156b93307634d3815da88429911825"
+    component:
+      system*
+        stacktrace*
+          frame*
+            filename* (stripped to basename)
+              "bar.m"
+            lineno*
+              1
+          frame*
+            filename* (stripped to basename)
+              "baz.m"
+            lineno*
+              1

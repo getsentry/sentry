@@ -1,0 +1,23 @@
+---
+created: '2024-10-28T14:02:42.127805+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "bd8c868a3914eeb4f48e7ef46f19a0df"
+    component:
+      system*
+        stacktrace*
+          frame*
+            function*
+              "test"
+          frame*
+            filename*
+              "foo.js"
+            function*
+              "test"
+            context-line*
+              "hello world"
