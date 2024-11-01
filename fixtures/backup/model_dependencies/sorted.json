@@ -136,7 +136,6 @@
   "sentry.projectownership",
   "sentry.projectoption",
   "sentry.projectkey",
-  "sentry.projectintegration",
   "sentry.projectdebugfile",
   "sentry.projectcodeowners",
   "sentry.projectbookmark",
