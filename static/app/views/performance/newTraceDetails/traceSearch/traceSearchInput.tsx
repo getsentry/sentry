@@ -169,7 +169,13 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useLayoutEffect(() => {
-    if (inputRef.current) {
+    // Search value can be changed externally, e.g. by actions that trigger a search.
+    // When this happens, sync the input value to the search value and trigger a search.
+    if (
+      inputRef.current &&
+      traceState.search.query &&
+      inputRef.current.value !== traceState.search.query
+    ) {
       inputRef.current.focus();
       inputRef.current.value = traceState.search.query ?? '';
       onChange({target: inputRef.current} as React.ChangeEvent<HTMLInputElement>);
