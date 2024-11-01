@@ -252,8 +252,11 @@ function WidgetViewerModal(props: Props) {
   const [totalResults, setTotalResults] = useState<string | undefined>();
 
   // Get query selection settings from location
-  const selectedQueryIndex =
+  let selectedQueryIndex =
     decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
+  if (selectedQueryIndex > widget.queries.length) {
+    selectedQueryIndex = 0;
+  }
 
   // Get pagination settings from location
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
