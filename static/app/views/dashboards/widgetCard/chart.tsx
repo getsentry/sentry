@@ -207,7 +207,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
     return tableResults.map((result, i) => {
       const tableMeta = {...result.meta};
-      const fields = Object.keys(tableMeta);
+      const fields = Object.keys(tableMeta?.fields ?? {});
 
       let field = fields[0];
       let selectedField = field;
