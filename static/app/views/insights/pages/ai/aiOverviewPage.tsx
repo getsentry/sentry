@@ -29,7 +29,7 @@ import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTren
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {AI_LANDING_TITLE} from 'sentry/views/insights/pages/ai/settings';
-import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/DomainOverviewPageWithProviders';
+import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {generateGenericPerformanceEventView} from 'sentry/views/performance/data';
 import {TripleChartRow} from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
