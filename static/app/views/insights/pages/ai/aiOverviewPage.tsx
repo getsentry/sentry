@@ -15,6 +15,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
+  MEPSettingProvider,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -45,8 +46,8 @@ import {
 
 export const AI_COLUMN_TITLES = [
   'transaction',
-  'project',
   'operation',
+  'project',
   'tpm',
   'p50()',
   'p75()',
@@ -75,8 +76,8 @@ function AiOverviewPage() {
   eventView.fields = [
     {field: 'team_key_transaction'},
     {field: 'transaction'},
-    {field: 'project'},
     {field: 'transaction.op'},
+    {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50(transaction.duration)'},
     {field: 'p75(transaction.duration)'},
@@ -199,11 +200,14 @@ function AiOverviewPage() {
 
 function AiOverviewPageWithProviders() {
   const organization = useOrganization();
+  const location = useLocation();
 
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
-        <AiOverviewPage />
+        <MEPSettingProvider location={location}>
+          <AiOverviewPage />
+        </MEPSettingProvider>
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );

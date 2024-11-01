@@ -2014,6 +2014,11 @@ register(
     default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "backpressure.high_watermarks.processing-store-transactions",
+    default=0.8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
@@ -2841,5 +2846,11 @@ register(
 register(
     "demo-mode.users",
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.collapse-group-stats-in-activity",
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

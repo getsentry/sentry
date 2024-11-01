@@ -33,6 +33,7 @@ import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
@@ -185,7 +186,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     return {
       performance: {
         ...nextLocation,
-        pathname: `/organizations/${organization.slug}/performance/`,
+        pathname: getPerformanceBaseUrl(organization.slug),
       },
       projectDetail: {
         ...nextLocation,

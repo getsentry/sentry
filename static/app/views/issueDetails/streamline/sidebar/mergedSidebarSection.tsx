@@ -16,7 +16,6 @@ export function MergedIssuesSidebarSection() {
     <Flex justify="space-between" align="center">
       <SidebarSectionTitle style={{margin: 0}}>{t('Merged Issues')}</SidebarSectionTitle>
       <SectionButton
-        onClick={() => {}}
         aria-label={t('View Merged Issues')}
         priority="link"
         size="zero"
