@@ -30,7 +30,7 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
+import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -68,7 +68,7 @@ export const SpansConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
-  SearchBar: EventsSearchBar, // TODO: Replace with a custom EAP search bar
+  SearchBar: SpansSearchBar,
   filterSeriesSortOptions: () => () => true,
   filterYAxisAggregateParams: () => () => true,
   filterYAxisOptions: () => () => true,
