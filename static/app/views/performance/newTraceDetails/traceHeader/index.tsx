@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -22,6 +22,7 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {ProjectsRenderer} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import TraceConfigurations from '../traceConfigurations';
@@ -154,6 +155,19 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
 
+  const dispatch = useTraceStateDispatch();
+
+  const onProjectClick = useCallback(
+    (projectSlug: string) => {
+      dispatch({type: 'set query', query: `project:${projectSlug}`});
+    },
+    [dispatch]
+  );
+
+  const projectSlugs = useMemo(() => {
+    return Array.from(props.tree.projects).map(p => p.slug);
+  }, [props.tree]);
+
   if (!hasNewTraceViewUi) {
     return <LegacyTraceMetadataHeader {...props} />;
   }
@@ -195,17 +209,28 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             <StyledWrapper>
               <HighlightsIconSummary event={props.rootEventResults.data} />
             </StyledWrapper>
-            <ProjectsRenderer
-              projectSlugs={Array.from(props.tree.projects).map(({slug}) => slug)}
-              visibleAvatarSize={24}
-              maxVisibleProjects={3}
-            />
+            <ProjectsRendererWrapper>
+              <ProjectsRenderer
+                disableLink
+                onProjectClick={onProjectClick}
+                projectSlugs={projectSlugs}
+                visibleAvatarSize={24}
+                maxVisibleProjects={3}
+              />
+            </ProjectsRendererWrapper>
           </HeaderRow>
         ) : null}
       </HeaderContent>
     </HeaderLayout>
   );
 }
+
+// We cannot change the cursor of the ProjectBadge component so we need to wrap it in a div
+const ProjectsRendererWrapper = styled('div')`
+  img {
+    cursor: pointer;
+  }
+`;
 
 const HeaderLayout = styled(Layout.Header)`
   padding: ${space(2)} ${space(2)} !important;
