@@ -264,21 +264,21 @@ class SearchResolverColumnTest(TestCase):
     def test_simple_tag(self):
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo]")
         assert resolved_column.proto_definition == AttributeKey(
-            name="attr_str[foo]", type=AttributeKey.Type.TYPE_STRING
+            name="foo", type=AttributeKey.Type.TYPE_STRING
         )
         assert virtual_context is None
 
     def test_simple_string_tag(self):
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo, string]")
         assert resolved_column.proto_definition == AttributeKey(
-            name="attr_str[foo]", type=AttributeKey.Type.TYPE_STRING
+            name="foo", type=AttributeKey.Type.TYPE_STRING
         )
         assert virtual_context is None
 
     def test_simple_number_tag(self):
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo, number]")
         assert resolved_column.proto_definition == AttributeKey(
-            name="attr_num[foo]", type=AttributeKey.Type.TYPE_INT
+            name="foo", type=AttributeKey.Type.TYPE_INT
         )
         assert virtual_context is None
 

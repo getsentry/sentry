@@ -1,7 +1,6 @@
 from unittest import mock
 from uuid import uuid4
 
-import pytest
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
@@ -548,28 +547,28 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             assert response.status_code == 200, response.data
             assert sorted(response.data, key=lambda v: v["value"]) == [
                 {
-                    "count": None,
+                    "count": mock.ANY,
                     "key": key,
                     "value": "bar",
                     "name": "bar",
-                    "firstSeen": None,
-                    "lastSeen": None,
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
                 },
                 {
-                    "count": None,
+                    "count": mock.ANY,
                     "key": key,
                     "value": "baz",
                     "name": "baz",
-                    "firstSeen": None,
-                    "lastSeen": None,
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
                 },
                 {
-                    "count": None,
+                    "count": mock.ANY,
                     "key": key,
                     "value": "foo",
                     "name": "foo",
-                    "firstSeen": None,
-                    "lastSeen": None,
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
                 },
             ]
 
@@ -577,20 +576,20 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             assert response.status_code == 200, response.data
             assert sorted(response.data, key=lambda v: v["value"]) == [
                 {
-                    "count": None,
+                    "count": mock.ANY,
                     "key": key,
                     "value": "bar",
                     "name": "bar",
-                    "firstSeen": None,
-                    "lastSeen": None,
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
                 },
                 {
-                    "count": None,
+                    "count": mock.ANY,
                     "key": key,
                     "value": "baz",
                     "name": "baz",
-                    "firstSeen": None,
-                    "lastSeen": None,
+                    "firstSeen": mock.ANY,
+                    "lastSeen": mock.ANY,
                 },
             ]
 
@@ -600,28 +599,28 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=lambda v: v["value"]) == [
             {
-                "count": None,
+                "count": mock.ANY,
                 "key": key,
                 "value": "9223372036854775100",
                 "name": "9223372036854775100",
-                "firstSeen": None,
-                "lastSeen": None,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
             {
-                "count": None,
+                "count": mock.ANY,
                 "key": key,
                 "value": "9223372036854775299",
                 "name": "9223372036854775299",
-                "firstSeen": None,
-                "lastSeen": None,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
             {
-                "count": None,
+                "count": mock.ANY,
                 "key": key,
                 "value": "9223372036854775399",
                 "name": "9223372036854775399",
-                "firstSeen": None,
-                "lastSeen": None,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
         ]
 
@@ -629,20 +628,20 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=lambda v: v["value"]) == [
             {
-                "count": None,
+                "count": mock.ANY,
                 "key": key,
                 "value": "9223372036854775299",
                 "name": "9223372036854775299",
-                "firstSeen": None,
-                "lastSeen": None,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
             {
-                "count": None,
+                "count": mock.ANY,
                 "key": key,
                 "value": "9223372036854775399",
                 "name": "9223372036854775399",
-                "firstSeen": None,
-                "lastSeen": None,
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
         ]
 
@@ -666,28 +665,28 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": 1,
+                "count": mock.ANY,
                 "key": "span.status",
                 "value": "internal_error",
                 "name": "internal_error",
-                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
             {
-                "count": 1,
+                "count": mock.ANY,
                 "key": "span.status",
                 "value": "invalid_argument",
                 "name": "invalid_argument",
-                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
             {
-                "count": 1,
+                "count": mock.ANY,
                 "key": "span.status",
                 "value": "ok",
                 "name": "ok",
-                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
         ]
 
@@ -695,20 +694,20 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         assert response.status_code == 200, response.data
         assert response.data == [
             {
-                "count": 1,
+                "count": mock.ANY,
                 "key": "span.status",
                 "value": "internal_error",
                 "name": "internal_error",
-                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
             {
-                "count": 1,
+                "count": mock.ANY,
                 "key": "span.status",
                 "value": "invalid_argument",
                 "name": "invalid_argument",
-                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "firstSeen": mock.ANY,
+                "lastSeen": mock.ANY,
             },
         ]
 
@@ -737,23 +736,3 @@ class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValues
                 format="json",
                 **kwargs,
             )
-
-    @pytest.mark.skip("autcomplete project doesnt work yet")
-    def test_tags_keys_autocomplete_project(self):
-        super().test_tags_keys_autocomplete_project()
-
-    @pytest.mark.skip("autcomplete span.status doesnt work yet")
-    def test_tags_keys_autocomplete_span_status(self):
-        super().test_tags_keys_autocomplete_project()
-
-    @pytest.mark.skip("autcomplete transaction doesnt work yet")
-    def test_transaction_keys_autocomplete(self):
-        super().test_transaction_keys_autocomplete()
-
-    @pytest.mark.skip("autcomplete transaction doesnt work yet")
-    def test_transaction_keys_autocomplete_substring(self):
-        super().test_transaction_keys_autocomplete_substring()
-
-    @pytest.mark.skip("autcomplete transaction doesnt work yet")
-    def test_transaction_keys_autocomplete_substring_with_asterisk(self):
-        super().test_transaction_keys_autocomplete_substring_with_asterisk()

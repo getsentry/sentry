@@ -100,6 +100,7 @@ WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
     "inp": 0.30,
 }
 
+MAX_TAG_KEY_LENGTH = 200
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
 TYPED_TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*),\s*(?P<type>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay

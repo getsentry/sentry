@@ -198,6 +198,12 @@ SPAN_COLUMN_DEFINITIONS = {
             validator=is_event_id,
         ),
         ResolvedColumn(
+            public_alias="transaction",
+            internal_name="sentry.segment_name",
+            search_type="string",
+            validator=is_event_id,
+        ),
+        ResolvedColumn(
             public_alias="messaging.destination.name",
             internal_name="sentry.messaging.destination.name",
             search_type="string",
