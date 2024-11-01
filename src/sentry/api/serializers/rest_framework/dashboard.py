@@ -590,7 +590,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             actor=self.context["request"].user,
         ):
             if "permissions" in validated_data and validated_data["permissions"] is not None:
-                DashboardPermissions.objects.create(
+                self.instance.permissions, _ = DashboardPermissions.objects.update_or_create(
                     dashboard=self.instance, **validated_data["permissions"]
                 )
 
@@ -623,7 +623,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             actor=self.context["request"].user,
         ):
             if "permissions" in validated_data and validated_data["permissions"] is not None:
-                DashboardPermissions.objects.update_or_create(
+                instance.permissions, _ = DashboardPermissions.objects.update_or_create(
                     dashboard=instance, defaults=validated_data["permissions"]
                 )
 
