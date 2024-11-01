@@ -98,7 +98,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
             </Flex>
           )}
           {environmentTag && (
-            <Flex key="environment" gap={space(1)} align="flex-end" role="presentation">
+            <Flex key="environment" gap={space(1)} align="flex-end">
               <IconWrapper>
                 <IconWindow size="sm" color="subText" />
               </IconWrapper>
