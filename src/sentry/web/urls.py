@@ -455,6 +455,12 @@ urlpatterns += [
         react_page_view,
         name="stories",
     ),
+    # Rollback
+    re_path(
+        r"^rollback/",
+        react_page_view,
+        name="rollback",
+    ),
     # Legacy Redirects
     re_path(
         r"^docs/?$",
