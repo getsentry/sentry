@@ -599,7 +599,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             instance.save()
 
     def update_permissions(self, instance, validated_data):
-        if "permissions" in validated_data:
+        if "permissions" in validated_data and validated_data["permissions"] is not None:
             permissions_data = validated_data["permissions"]
             permissions = DashboardPermissions.objects.update_or_create(
                 dashboard=instance,
@@ -635,7 +635,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         if "widgets" in validated_data:
             self.update_widgets(self.instance, validated_data["widgets"])
 
-        self.update_dashboard_filters(self.instance, validated_data)
+        if features.has(
+            "organizations:dashboards-edit-access",
+            self.context["organization"],
+            actor=self.context["request"].user,
+        ):
+            self.update_dashboard_filters(self.instance, validated_data)
 
         self.update_permissions(self.instance, validated_data)
 
@@ -662,9 +667,13 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             self.update_widgets(instance, validated_data["widgets"])
 
         self.update_dashboard_filters(instance, validated_data)
-        harshi/ref/update-dashboard-perms-with-teams-backend
 
-        self.update_permissions(instance, validated_data)
+        if features.has(
+            "organizations:dashboards-edit-access",
+            self.context["organization"],
+            actor=self.context["request"].user,
+        ):
+            self.update_permissions(instance, validated_data)
 
         schedule_update_project_configs(instance)
 
