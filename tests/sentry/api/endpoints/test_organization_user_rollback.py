@@ -45,6 +45,24 @@ class OrganizationRollbackUserEndpointTest(APITestCase):
         }
 
     @with_feature("organizations:sentry-rollback-2024")
+    def test_user_not_in_org(self):
+        newUser = self.create_user("other@example.com")
+        newOrg = self.create_organization("otherorg")
+
+        RollbackUser.objects.create(
+            user_id=newUser.id,
+            organization=newOrg,
+            data={"animal": "sea otter"},
+        )
+        RollbackOrganization.objects.create(
+            organization=newOrg,
+            data={"animal": "georgie"},
+        )
+
+        response = self.get_error_response(self.organization.slug)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @with_feature("organizations:sentry-rollback-2024")
     def test_rollback_disabled(self):
         self.organization.update_option("sentry:rollback_enabled", False)
         response = self.get_error_response(self.organization.slug)
