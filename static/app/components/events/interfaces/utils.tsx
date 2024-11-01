@@ -243,7 +243,7 @@ export function objectToSortedTupleArray(obj: Record<string, string | string[]>)
 export function removeFilterMaskedEntries<T extends Record<string, any>>(rawData: T): T {
   const cleanedData: Record<string, any> = {};
   for (const key of Object.getOwnPropertyNames(rawData)) {
-    if (rawData[key] !== FILTER_MASK) {
+    if (rawData[key] !== FILTER_MASK && rawData[key]) {
       cleanedData[key] = rawData[key];
     }
   }
