@@ -27,10 +27,15 @@ export default function AnomalyDetectionFeedbackBanner({
 
   const handleClick = useCallback(
     (isAnomaly: boolean) => {
-      trackAnalytics('anomaly_detection.incident_banner_feedback_received', {
-        is_anomaly: isAnomaly,
+      trackAnalytics('anomaly_detection.submitted_feedback', {
+        choice_selected: isAnomaly,
         organization,
+        alert_rule_id: selectedIncident.alertRule.id,
+        metric: selectedIncident.alertRule.query,
         incident_id: id,
+        sensitivity: selectedIncident.alertRule.sensitivity,
+        direction: selectedIncident.alertRule.thresholdType,
+        time_window: selectedIncident.alertRule.timeWindow,
       });
       feedbackClient.captureEvent({
         request: {
@@ -38,17 +43,30 @@ export default function AnomalyDetectionFeedbackBanner({
         },
         tags: {
           featureName: 'anomaly-detection-alerts-feedback',
-          project: selectedIncident.projects[0], // each metric alert is associated with precisely 1 project
-          incident_identifier: selectedIncident.identifier,
-          isAnomaly,
+          choice_selected: isAnomaly,
+          incident_id: id,
+          alert_rule_id: selectedIncident.alertRule.id,
+          metric: selectedIncident.alertRule.query,
+          sensitivity: selectedIncident.alertRule.sensitivity,
+          direction: selectedIncident.alertRule.thresholdType,
+          time_window: selectedIncident.alertRule.timeWindow,
         },
         user: ConfigStore.get('user'),
         level: 'info',
-        message: 'Escalating Issues Banner Feedback',
+        message: 'Anomaly Detection Alerts Banner Feedback',
       });
       submit();
     },
-    [id, organization, selectedIncident.identifier, selectedIncident.projects, submit]
+    [
+      id,
+      organization,
+      selectedIncident.alertRule.id,
+      selectedIncident.alertRule.query,
+      selectedIncident.alertRule.sensitivity,
+      selectedIncident.alertRule.thresholdType,
+      selectedIncident.alertRule.timeWindow,
+      submit,
+    ]
   );
 
   if (isSubmitted) {
@@ -61,7 +79,6 @@ export default function AnomalyDetectionFeedbackBanner({
         <Fragment>
           <StyledButton onClick={() => handleClick(true)}>Yes</StyledButton>
           <StyledButton onClick={() => handleClick(false)}>No</StyledButton>
-          <CloseButton onClick={submit} aria-label={t('Close')} />
         </Fragment>
       }
       showIcon
