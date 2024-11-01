@@ -62,7 +62,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   return items.length ? (
     <Fragment>
       <IconBar>
-        <ScrollCarousel gap={3}>
+        <ScrollCarousel gap={3} aria-label={t('Icon highlights')}>
           {items.map((item, index) => (
             <Flex key={index} gap={space(1)} align="center">
               <IconWrapper>{item.icon}</IconWrapper>
@@ -81,7 +81,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
               <IconWrapper>
                 <IconReleases size="sm" color="subText" />
               </IconWrapper>
-              <IconDescription>
+              <IconDescription aria-label={t('Event release')}>
                 {group && releaseTag && (
                   <VersionHoverCard
                     organization={organization}
@@ -98,11 +98,11 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
             </Flex>
           )}
           {environmentTag && (
-            <Flex key="environment" gap={space(1)} align="flex-end">
+            <Flex key="environment" gap={space(1)} align="flex-end" role="presentation">
               <IconWrapper>
                 <IconWindow size="sm" color="subText" />
               </IconWrapper>
-              <IconDescription>
+              <IconDescription aria-label={t('Event environment')}>
                 <Tooltip title={t('Environment')}>{environmentTag.value}</Tooltip>
               </IconDescription>
             </Flex>

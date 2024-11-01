@@ -42,7 +42,7 @@ export function EventDetailsHeader({
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
-      <FilterContainer>
+      <FilterContainer role="group" aria-description={t('Event filtering controls')}>
         <EnvironmentFilter
           triggerProps={{
             borderless: true,
@@ -74,7 +74,7 @@ export function EventDetailsHeader({
           <ToggleContainer sidebarOpen={sidebarOpen}>
             <ToggleButton
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+              aria-label={sidebarOpen ? t('Close sidebar') : t('Open sidebar')}
             >
               <LeftChevron direction={direction} />
               <RightChevron direction={direction} />
@@ -85,7 +85,7 @@ export function EventDetailsHeader({
           <EventGraph event={event} group={group} style={{flex: 1}} />
           <SectionDivider />
           <IssueTagsButton
-            aria-label={t('View Issue Tags')}
+            aria-label={t('View issue tag distributions')}
             to={{
               pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
               query: location.query,
