@@ -224,6 +224,8 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
+        if features.has("system:scoped-partner-oauth"):
+            yield "system:scoped-partner-oauth"
 
     @property
     def needs_upgrade(self) -> bool:
