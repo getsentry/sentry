@@ -1972,6 +1972,17 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("put", self.url(self.dashboard.id))
         assert response.status_code == 200, response.content
 
+    def test_update_dashboard_permissions_with_none_does_not_create_permissions_object(self):
+        data = {
+            "title": "Dashboard",
+            "permissions": None,
+        }
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["permissions"] is None
+        assert not DashboardPermissions.objects.filter(dashboard=self.dashboard).exists()
+
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
     widget_type = DashboardWidgetTypes.DISCOVER
