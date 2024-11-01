@@ -502,19 +502,21 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults
-            ? timeseriesResults.map((values, i: number) => {
-                let seriesName = '';
-                if (values.seriesName !== undefined) {
-                  seriesName = isEquation(values.seriesName)
-                    ? getEquation(values.seriesName)
-                    : values.seriesName;
-                }
-                return {
-                  ...values,
-                  seriesName,
-                  color: colors[i],
-                };
-              })
+            ? timeseriesResults
+                .map((values, i: number) => {
+                  let seriesName = '';
+                  if (values.seriesName !== undefined) {
+                    seriesName = isEquation(values.seriesName)
+                      ? getEquation(values.seriesName)
+                      : values.seriesName;
+                  }
+                  return {
+                    ...values,
+                    seriesName,
+                    color: colors[i],
+                  };
+                })
+                .filter(Boolean) // NOTE: `timeseriesResults` is a sparse array! We have to filter out the empty slots after the colors are assigned, since the colours are assigned based on sparse array index
             : [];
 
           const seriesStart = series[0]?.data[0]?.name;
