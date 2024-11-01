@@ -77,6 +77,14 @@ describe('GroupDetailsLayout', () => {
       url: '/projects/org-slug/project-slug/events/1/committers/',
       body: {committers: []},
     });
+    MockApiClient.addMockResponse({
+      url: '/issues/1/autofix/setup/',
+      body: {
+        genAIConsent: {ok: false},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: true},
+      },
+    });
   });
 
   it('renders children, can collapse sidebar', async () => {

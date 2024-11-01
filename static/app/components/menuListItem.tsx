@@ -412,7 +412,7 @@ const ContentWrap = styled('div')<{
     `}
 `;
 
-const LeadingItems = styled('div')<{
+export const LeadingItems = styled('div')<{
   disabled: boolean;
   size: Props['size'];
   spanFullHeight: boolean;
