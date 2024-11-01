@@ -216,13 +216,24 @@ Sentry.init({
       tracesSampleRate: 1.0, //  Capture 100% of the transactions\n`
       : ''
   }${
-    params.isProfilingSelected
+    params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode !== 'continuous'
       ? `
     // Set sampling rate for profiling - this is relative to tracesSampleRate
     profilesSampleRate: 1.0,`
       : ''
-  }});
-`;
+  }});${
+    params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode === 'continuous'
+      ? `
+
+// Manually call startProfiling and stopProfiling
+// to profile the code in between
+Sentry.profiler.startProfiling()
+// do some work here
+Sentry.profiler.stopProfiling()`
+      : ''
+  }`;
 
 export function getProductIntegrations({
   productSelection,
