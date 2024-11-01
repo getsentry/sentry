@@ -11,8 +11,6 @@ from rest_framework import serializers
 
 from sentry import features, options
 from sentry.api.issue_search import parse_search_query
-
-# from sentry.api.serializers.models.team import TeamSerializer
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -495,7 +493,7 @@ class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
             if invalid_team_ids:
                 raise serializers.ValidationError(
                     {
-                        f"Cannot update dashboard edit permissions. Teams with IDs {invalid_team_ids} do not exist."
+                        f"Cannot update dashboard edit permissions. Teams with IDs {str(invalid_team_ids)} do not exist."
                     }
                 )
         return data
