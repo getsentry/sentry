@@ -254,7 +254,7 @@ export function userContextToActor(rawData: Record<string, unknown>): AvatarUser
 
   for (const key of userAvatarKeys) {
     if (isValidContextValue(rawData[key])) {
-      result[key] = rawData[key] as string;
+      result[key] = rawData[key];
     }
   }
 
