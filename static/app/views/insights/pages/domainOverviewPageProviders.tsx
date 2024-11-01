@@ -6,7 +6,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 
-export function DomainOverviewPageWithProviders({children}: {children: React.ReactNode}) {
+export function DomainOverviewPageProviders({children}: {children: React.ReactNode}) {
   const organization = useOrganization();
   const location = useLocation();
 

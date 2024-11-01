@@ -29,7 +29,7 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
-import {DomainOverviewPageWithProviders} from 'sentry/views/insights/pages/DomainOverviewPageWithProviders';
+import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/DomainOverviewPageWithProviders';
 import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
@@ -228,9 +228,9 @@ function BackendOverviewPage() {
 
 function BackendOverviewPageWithProviders() {
   return (
-    <DomainOverviewPageWithProviders>
+    <DomainOverviewPageProviders>
       <BackendOverviewPage />
-    </DomainOverviewPageWithProviders>
+    </DomainOverviewPageProviders>
   );
 }
 

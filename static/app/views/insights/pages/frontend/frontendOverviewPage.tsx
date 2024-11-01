@@ -27,7 +27,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {DomainOverviewPageWithProviders} from 'sentry/views/insights/pages/DomainOverviewPageWithProviders';
+import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/DomainOverviewPageWithProviders';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
   FRONTEND_LANDING_TITLE,
@@ -228,9 +228,9 @@ function FrontendOverviewPage() {
 
 function FrontendOverviewPageWithProviders() {
   return (
-    <DomainOverviewPageWithProviders>
+    <DomainOverviewPageProviders>
       <FrontendOverviewPage />
-    </DomainOverviewPageWithProviders>
+    </DomainOverviewPageProviders>
   );
 }
 
