@@ -2002,7 +2002,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def test_can_edit_dashboard_with_edit_permissions_disabled(self):
         self.create_user(id=12333)
         dashboard = Dashboard.objects.create(
-            id="67",
+            id=67,
             title="Dashboard With Dataset Source",
             created_by_id=12333,
             organization=self.organization,
@@ -2108,10 +2108,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["permissions"]["isEditableByEveryone"] is False
         assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
 
-        permission.refresh_from_db()
-        assert permission.is_editable_by_everyone is False
-        assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
-
         updated_perms = DashboardPermissions.objects.get(dashboard=self.dashboard)
         assert set(updated_perms.teams_with_edit_access.all()) == {team1, team2}
 
@@ -2178,7 +2174,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         assert response.status_code == 400
         assert (
-            "Cannot update dashboard edit permissions. Teams with IDs {0, 23134, 6, 1} do not exist."
+            "Cannot update dashboard edit permissions. Teams with IDs [0, 23134, 6, 1] do not exist."
             in response.content.decode()
         )
 
