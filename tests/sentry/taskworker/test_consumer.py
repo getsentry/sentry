@@ -5,7 +5,7 @@ from unittest import mock
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
-from sentry_protos.sentry.v1alpha.taskworker_pb2 import TaskActivation
+from sentry_protos.sentry.v1.taskworker_pb2 import TaskActivation
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.consumers.factory import TaskWorkerStrategyFactory

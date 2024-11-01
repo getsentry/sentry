@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from django.db import models
-from sentry_protos.sentry.v1alpha.taskworker_pb2 import InflightActivation, TaskActivationStatus
+from sentry_protos.sentry.v1.taskworker_pb2 import InflightActivation, TaskActivationStatus
 
 logger = logging.getLogger("sentry.taskworker.consumer")
 

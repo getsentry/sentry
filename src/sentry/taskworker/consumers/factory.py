@@ -15,7 +15,7 @@ from arroyo.processing.strategies import (
 from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.types import BaseValue, Commit, Message, Partition
 from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_protos.sentry.v1alpha.taskworker_pb2 import (
+from sentry_protos.sentry.v1.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_PENDING,
     InflightActivation,
     TaskActivation,
