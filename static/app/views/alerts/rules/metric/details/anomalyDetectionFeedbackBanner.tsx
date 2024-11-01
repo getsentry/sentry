@@ -72,8 +72,8 @@ export default function AnomalyDetectionFeedbackBanner({
       type="info"
       trailingItems={
         <Fragment>
-          <StyledButton onClick={() => handleClick(true)}>Yes</StyledButton>
-          <StyledButton onClick={() => handleClick(false)}>No</StyledButton>
+          <StyledButton onClick={() => handleClick(true)}>{t('Yes')}</StyledButton>
+          <StyledButton onClick={() => handleClick(false)}>{t('No')}</StyledButton>
         </Fragment>
       }
       showIcon
