@@ -99,12 +99,6 @@ const formGroups: JsonFormObject[] = [
           'Allow organization members to invite other members via email without needing org owner or manager approval.'
         ),
         visible: ({features}) => features.has('members-invite-teammates'),
-        disabled: ({features, access}) =>
-          !access.has('org:write') || !features.has('team-roles'),
-        disabledReason: ({features}) =>
-          !features.has('team-roles')
-            ? t('You must be on a business plan to toggle this feature.')
-            : undefined,
       },
       {
         name: 'allowMemberProjectCreation',
