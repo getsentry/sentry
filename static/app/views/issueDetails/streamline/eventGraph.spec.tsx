@@ -103,7 +103,7 @@ describe('EventGraph', () => {
           environment: [],
           field: expect.anything(),
           partial: 1,
-          interval: '12h',
+          interval: '4h',
           per_page: 50,
           project: [project.id],
           query: persistantQuery,

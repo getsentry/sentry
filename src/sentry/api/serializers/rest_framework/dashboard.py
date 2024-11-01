@@ -662,6 +662,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             self.update_widgets(instance, validated_data["widgets"])
 
         self.update_dashboard_filters(instance, validated_data)
+        harshi/ref/update-dashboard-perms-with-teams-backend
 
         self.update_permissions(instance, validated_data)
 
