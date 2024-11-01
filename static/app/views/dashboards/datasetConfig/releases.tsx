@@ -290,6 +290,7 @@ export function transformSessionsResponseToTable(
 
   const singleRow = rows[0];
   const meta = {
+    ...changeObjectValuesToTypes(omit(singleRow, 'id')),
     fields: changeObjectValuesToTypes(omit(singleRow, 'id')),
   };
   return {meta, data: rows};
