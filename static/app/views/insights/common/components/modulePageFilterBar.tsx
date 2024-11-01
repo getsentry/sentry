@@ -37,7 +37,7 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
   const hasDataWithAllProjects = useHasFirstSpan(moduleName, allProjects);
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const getDateRange = memoizedDateDifference();
+  const getDateDifferenceMs = memoizedDateDifference();
 
   const hasDateRangeQueryLimit = organization.features.includes(
     'insights-query-date-range-limit'
@@ -82,8 +82,8 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
       if (value === 'absolute') {
         return false;
       }
-      const dateRange = getDateRange(value);
-      return dateRange > QUERY_DATE_RANGE_LIMIT_MS;
+      const dateDifferenceMs = getDateDifferenceMs(value);
+      return dateDifferenceMs > QUERY_DATE_RANGE_LIMIT_MS;
     };
   }
 
