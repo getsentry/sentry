@@ -28,7 +28,6 @@ import type {
   EChartDataZoomHandler,
   EChartEventHandler,
   ReactEchartsRef,
-  Series,
 } from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -52,6 +51,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
@@ -502,19 +502,21 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
           // Create a list of series based on the order of the fields,
           const series = timeseriesResults
-            ? timeseriesResults.map((values, i: number) => {
-                let seriesName = '';
-                if (values.seriesName !== undefined) {
-                  seriesName = isEquation(values.seriesName)
-                    ? getEquation(values.seriesName)
-                    : values.seriesName;
-                }
-                return {
-                  ...values,
-                  seriesName,
-                  color: colors[i],
-                };
-              })
+            ? timeseriesResults
+                .map((values, i: number) => {
+                  let seriesName = '';
+                  if (values.seriesName !== undefined) {
+                    seriesName = isEquation(values.seriesName)
+                      ? getEquation(values.seriesName)
+                      : values.seriesName;
+                  }
+                  return {
+                    ...values,
+                    seriesName,
+                    color: colors[i],
+                  };
+                })
+                .filter(Boolean) // NOTE: `timeseriesResults` is a sparse array! We have to filter out the empty slots after the colors are assigned, since the colours are assigned based on sparse array index
             : [];
 
           const seriesStart = series[0]?.data[0]?.name;
@@ -607,14 +609,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     );
   }
 }
-
-const getBucketSize = (series: Series[] | undefined) => {
-  if (!series || series.length < 2) {
-    return 0;
-  }
-
-  return Number(series[0].data[1]?.name) - Number(series[0].data[0]?.name);
-};
 
 export default withTheme(WidgetCardChart);
 
