@@ -42,8 +42,18 @@ export function createDashboard(
   newDashboard: DashboardDetails,
   duplicate?: boolean
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end, filters, utc} =
-    newDashboard;
+  const {
+    title,
+    widgets,
+    projects,
+    environment,
+    period,
+    start,
+    end,
+    filters,
+    utc,
+    permissions,
+  } = newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
     `/organizations/${orgSlug}/dashboards/`,
@@ -60,6 +70,7 @@ export function createDashboard(
         end,
         filters,
         utc,
+        permissions,
       },
       query: {
         project: projects,
@@ -127,8 +138,18 @@ export function updateDashboard(
   orgId: string,
   dashboard: DashboardDetails
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end, filters, utc} =
-    dashboard;
+  const {
+    title,
+    widgets,
+    projects,
+    environment,
+    period,
+    start,
+    end,
+    filters,
+    utc,
+    permissions,
+  } = dashboard;
   const data = {
     title,
     widgets: widgets.map(widget => omit(widget, ['tempId'])),
@@ -139,6 +160,7 @@ export function updateDashboard(
     end,
     filters,
     utc,
+    permissions,
   };
 
   const promise: Promise<DashboardDetails> = api.requestPromise(

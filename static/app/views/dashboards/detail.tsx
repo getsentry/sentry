@@ -1,5 +1,6 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
+import type {User} from '@sentry/types';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
@@ -77,6 +78,7 @@ import type {
   DashboardDetails,
   DashboardFilters,
   DashboardListItem,
+  DashboardPermissions,
   Widget,
 } from './types';
 import {
@@ -165,6 +167,23 @@ export function handleUpdateDashboardSplit({
       },
     }));
   }
+}
+
+/* Checks if current user has permissions to edit dashboard */
+export function checkUserHasEditAccess(
+  dashboard: DashboardDetails,
+  currentUser: User,
+  organization: Organization
+): boolean {
+  if (
+    !organization.features.includes('dashboards-edit-access') ||
+    !dashboard.permissions
+  ) {
+    return true;
+  }
+  return dashboard.permissions.isCreatorOnlyEditable
+    ? dashboard.createdBy?.id === currentUser.id
+    : !dashboard.permissions.isCreatorOnlyEditable;
 }
 
 class DashboardDetail extends Component<Props, State> {
@@ -594,6 +613,25 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
+  /* Handles POST request for Edit Access Selector Changes */
+  onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
+    const {dashboard, api, organization} = this.props;
+
+    const dashboardCopy = cloneDashboard(dashboard);
+    dashboardCopy.permissions = newDashboardPermissions;
+
+    updateDashboard(api, organization.slug, dashboardCopy).then(
+      (newDashboard: DashboardDetails) => {
+        addSuccessMessage(t('Dashboard Edit Access updated.'));
+        this.props.onDashboardUpdate?.(newDashboard);
+        this.setState({
+          modifiedDashboard: null,
+        });
+        return newDashboard;
+      }
+    );
+  };
+
   onCommit = () => {
     const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
@@ -757,7 +795,6 @@ class DashboardDetail extends Component<Props, State> {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
-
     return (
       <PageFiltersContainer
         disablePersistence
@@ -785,10 +822,12 @@ class DashboardDetail extends Component<Props, State> {
                   <Controls
                     organization={organization}
                     dashboards={dashboards}
+                    dashboard={dashboard}
                     onEdit={this.onEdit}
                     onCancel={this.onCancel}
                     onCommit={this.onCommit}
                     onAddWidget={this.onAddWidget}
+                    onChangeEditAccess={this.onChangeEditAccess}
                     onDelete={this.onDelete(dashboard)}
                     dashboardState={dashboardState}
                     widgetLimitReached={widgetLimitReached}
@@ -927,12 +966,14 @@ class DashboardDetail extends Component<Props, State> {
                       <Controls
                         organization={organization}
                         dashboards={dashboards}
+                        dashboard={dashboard}
                         hasUnsavedFilters={hasUnsavedFilters}
                         onEdit={this.onEdit}
                         onCancel={this.onCancel}
                         onCommit={this.onCommit}
                         onAddWidget={this.onAddWidget}
                         onDelete={this.onDelete(dashboard)}
+                        onChangeEditAccess={this.onChangeEditAccess}
                         dashboardState={dashboardState}
                         widgetLimitReached={widgetLimitReached}
                       />

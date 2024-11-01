@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -17,10 +18,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
+import ConfigStore from 'sentry/stores/configStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import {handleUpdateDashboardSplit} from 'sentry/views/dashboards/detail';
+import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -224,6 +228,15 @@ describe('Dashboards > Detail', function () {
           location: LocationFixture(),
         },
       });
+      PageFiltersStore.init();
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [],
+          environments: [],
+          datetime: {start: null, end: null, period: '14d', utc: null},
+        },
+        new Set()
+      );
       widgets = [
         WidgetFixture({
           queries: [
@@ -312,6 +325,7 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
           filters: {},
+          createdBy: UserFixture({id: '1'}),
         }),
       });
       mockPut = MockApiClient.addMockResponse({
@@ -590,7 +604,7 @@ describe('Dashboards > Detail', function () {
         {router: initialData.router}
       );
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
-      expect(mockReleases).toHaveBeenCalledTimes(1);
+      expect(mockReleases).toHaveBeenCalledTimes(2); // Called once when PageFiltersStore is initialized
     });
 
     it('hides add widget option', async function () {
@@ -1630,6 +1644,203 @@ describe('Dashboards > Detail', function () {
       // Validate that after search is cleared, search result still appears
       expect(await screen.findByText('Latest Release(s)')).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'search-result'})).toBeInTheDocument();
+    });
+
+    it('renders edit access selector', async function () {
+      render(
+        <EditAccessSelector
+          dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
+          onChangeEditAccess={jest.fn()}
+        />,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access'],
+            ...initialData.organization,
+          },
+        }
+      );
+
+      await userEvent.click(await screen.findByText('Edit Access:'));
+      expect(screen.getByText('Creator')).toBeInTheDocument();
+      expect(screen.getByText('Everyone')).toBeInTheDocument();
+    });
+
+    it('creates and updates new permissions for dashboard with no edit perms initialized', async function () {
+      const mockPUT = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors'}),
+      });
+
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          }}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          },
+        }
+      );
+      await userEvent.click(await screen.findByText('Edit Access:'));
+
+      // deselects 'Everyone' so only creator has edit access
+      expect(await screen.findByText('Everyone')).toBeEnabled();
+      expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Everyone'}));
+      expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+
+      // clicks out of dropdown to trigger onClose()
+      await userEvent.click(await screen.findByText('Edit Access:'));
+
+      await waitFor(() => {
+        expect(mockPUT).toHaveBeenCalledTimes(1);
+        expect(mockPUT).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/',
+          expect.objectContaining({
+            data: expect.objectContaining({
+              permissions: {isCreatorOnlyEditable: true},
+            }),
+          })
+        );
+      });
+    });
+
+    it('creator can update permissions for dashboard', async function () {
+      const mockPUT = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors'}),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          createdBy: UserFixture({id: '781629'}),
+          permissions: {isCreatorOnlyEditable: true},
+        }),
+      });
+
+      const currentUser = UserFixture({id: '781629'});
+      ConfigStore.set('user', currentUser);
+
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          }}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          },
+        }
+      );
+      await userEvent.click(await screen.findByText('Edit Access:'));
+
+      // selects 'Everyone' so everyone has edit access
+      expect(await screen.findByText('Everyone')).toBeEnabled();
+      expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Everyone'}));
+      expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // clicks out of dropdown to trigger onClose()
+      await userEvent.click(await screen.findByText('Edit Access:'));
+
+      await waitFor(() => {
+        expect(mockPUT).toHaveBeenCalledTimes(1);
+        expect(mockPUT).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/',
+          expect.objectContaining({
+            data: expect.objectContaining({
+              permissions: {isCreatorOnlyEditable: false},
+            }),
+          })
+        );
+      });
+    });
+
+    it('disables edit dashboard and add widget button if user cannot edit dashboard', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [
+          DashboardFixture([], {
+            id: '1',
+            title: 'Custom Errors',
+            createdBy: UserFixture({id: '238900'}),
+            permissions: {isCreatorOnlyEditable: true},
+          }),
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          createdBy: UserFixture({id: '238900'}),
+          permissions: {isCreatorOnlyEditable: true},
+        }),
+      });
+
+      const currentUser = UserFixture({id: '781629'});
+      ConfigStore.set('user', currentUser);
+
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          }}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          },
+        }
+      );
+
+      await screen.findByText('Edit Access:');
+      expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
     });
 
     describe('discover split', function () {
