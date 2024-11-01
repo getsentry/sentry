@@ -2662,6 +2662,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
     with metrics.timer("save_transaction_events.eventstream_insert_many"):
         _eventstream_insert_many(jobs)
+    #add_here snuba put
 
     with metrics.timer("save_transaction_events.track_outcome_accepted_many"):
         _track_outcome_accepted_many(jobs)

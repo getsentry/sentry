@@ -91,8 +91,8 @@ def _get_task_kwargs_and_dispatch(
     task_kwargs = _get_task_kwargs(message)
     if not task_kwargs:
         return None
-
     dispatch_post_process_group_task(**task_kwargs, eventstream_type=eventstream_type)
+    #add_here if eventstream_type is trx, ppf topic put
 
 
 class EventPostProcessForwarderStrategyFactory(PostProcessForwarderStrategyFactory):

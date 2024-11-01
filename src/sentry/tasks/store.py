@@ -633,6 +633,7 @@ def save_event_transaction(
     project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
+    #add_here save_trx starts
     _do_save_event(
         cache_key,
         data,
@@ -642,6 +643,7 @@ def save_event_transaction(
         consumer_type=ConsumerType.Transactions,
         **kwargs,
     )
+    #add_here save_trx finishes
 
 
 @instrumented_task(

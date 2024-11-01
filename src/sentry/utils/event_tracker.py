@@ -17,17 +17,11 @@ class EventStageStatus(Enum):
 
     snuba_topic_put
 
-    billing_topic_put
-
-    commit_log_topic_put
-
-    ppf_consumer_started
-
-    ppf_consumer_finished
+    ppf_topic_put
 
     post_process_started
 
-    post_process_finished / is it the same as redis_deleted?
+    post_process_finished / the same as redis_deleted?
     """
 
 class EventTrackerBackend(ABC):

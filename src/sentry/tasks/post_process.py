@@ -534,6 +534,7 @@ def post_process_group(
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
                 processing_store.delete_by_key(cache_key)
+            #add_here if eventstream_type is trx redis_deletes
 
             occurrence = None
             event = process_event(data, group_id)
@@ -612,6 +613,7 @@ def post_process_group(
         # This should eventually be completely removed and transactions
         # will not go through any post processing.
         if is_transaction_event:
+            #add_here pp starts
             record_transaction_name_for_clustering(event.project, event.data)
             with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
                 transaction_processed.send_robust(
@@ -619,6 +621,7 @@ def post_process_group(
                     project=event.project,
                     event=event,
                 )
+            #add_here pp finishes
 
         metric_tags = {}
         if group_id:

@@ -202,6 +202,7 @@ def process_event(
         else:
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
+            #add_here redis_put
             save_attachments(attachments, cache_key)
 
         try:
