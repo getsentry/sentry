@@ -22,7 +22,7 @@ function SpansSearchBar({
       onSearch={onSearch}
       numberTags={numberTags}
       stringTags={stringTags}
-      searchSource="explore"
+      searchSource="dashboards"
       projects={projects}
     />
   );
