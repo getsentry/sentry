@@ -196,6 +196,7 @@ function AssignedTo({
     {
       eventId: event?.id ?? '',
       projectSlug: project.slug,
+      group,
     },
     {
       notifyOnChangeProps: ['data'],

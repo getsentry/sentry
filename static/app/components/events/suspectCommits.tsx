@@ -39,6 +39,7 @@ export function SuspectCommits({
   const {data} = useCommitters({
     eventId,
     projectSlug,
+    group,
   });
   const committers = data?.committers ?? [];
 
