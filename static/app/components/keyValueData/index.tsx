@@ -307,8 +307,10 @@ const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>
 `;
 
 export const KeyValueData = {
+  Title,
   Content,
   Card,
+  CardPanel,
   Container,
 };
 
