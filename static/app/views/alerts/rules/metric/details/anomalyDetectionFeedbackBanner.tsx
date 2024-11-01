@@ -59,17 +59,22 @@ export default function AnomalyDetectionFeedbackBanner({
       type="info"
       trailingItems={
         <Fragment>
-          <Button onClick={() => handleClick(true)}>Yes</Button>
-          <Button onClick={() => handleClick(false)}>No</Button>
+          <StyledButton onClick={() => handleClick(true)}>Yes</StyledButton>
+          <StyledButton onClick={() => handleClick(false)}>No</StyledButton>
           <CloseButton onClick={submit} aria-label={t('Close')} />
         </Fragment>
       }
       showIcon
     >
-      {'Friends, Romans, countrymen, lend me your ears.' + selectedIncident.identifier}
+      {t('Was the anomaly correctly identified?')}
     </StyledAlert>
   );
 }
+
+const StyledButton = styled(Button)`
+  background-color: transparent;
+  border: 1px solid ${p => p.theme.alert.info.border};
+`;
 
 const StyledAlert = styled(Alert)`
   margin: 0;
