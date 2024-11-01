@@ -7,15 +7,12 @@ import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
-  MEPSettingProvider,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -30,12 +27,12 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
   FRONTEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
@@ -230,17 +227,10 @@ function FrontendOverviewPage() {
 }
 
 function FrontendOverviewPageWithProviders() {
-  const organization = useOrganization();
-  const location = useLocation();
-
   return (
-    <PageFiltersContainer>
-      <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
-        <MEPSettingProvider location={location}>
-          <FrontendOverviewPage />
-        </MEPSettingProvider>
-      </SentryDocumentTitle>
-    </PageFiltersContainer>
+    <DomainOverviewPageProviders>
+      <FrontendOverviewPage />
+    </DomainOverviewPageProviders>
   );
 }
 
