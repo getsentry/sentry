@@ -24,7 +24,6 @@ import {
   handleOrderByReset,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
-  getCustomEventsFieldRenderer,
   getTableSortOptions,
   transformEventsResponseToSeries,
   transformEventsResponseToTable,
@@ -63,22 +62,21 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggre
   return acc;
 }, {});
 
+// getTimeseriesSortOptions is undefined because we want to restrict the
+// sort options to the same behaviour as tables. i.e. we are only able
+// to sort by fields that have already been selected
 export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
-  getCustomFieldRenderer: getCustomEventsFieldRenderer,
   SearchBar: SpansSearchBar,
-  filterSeriesSortOptions: () => () => true,
-  filterYAxisAggregateParams: () => () => true,
-  filterYAxisOptions: () => () => true,
-  getTableFieldOptions: getEventsTableFieldOptions,
-  // getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
-  //  getTimeseriesSortOptions(organization, widgetQuery, tags, getEventsTableFieldOptions),
+  filterYAxisAggregateParams: () => filterAggregateParams,
+  filterYAxisOptions,
+  getTableFieldOptions: getPrimaryFieldOptions,
   getTableSortOptions: getTableSortOptions,
-  getGroupByFieldOptions: getEventsTableFieldOptions,
+  getGroupByFieldOptions: getPrimaryFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
     DisplayType.AREA,
@@ -117,7 +115,7 @@ export const SpansConfig: DatasetConfig<
   filterAggregateParams,
 };
 
-function getEventsTableFieldOptions(
+function getPrimaryFieldOptions(
   organization: Organization,
   tags?: TagCollection,
   _customMeasurements?: CustomMeasurementCollection
@@ -170,6 +168,12 @@ function filterAggregateParams(option: FieldValueOption) {
     return option.value.meta.dataType === 'number';
   }
   return true;
+}
+
+function filterYAxisOptions() {
+  return function (option: FieldValueOption) {
+    return option.value.kind === FieldValueKind.FUNCTION;
+  };
 }
 
 function getEventsRequest(
