@@ -1,0 +1,18 @@
+---
+created: '2024-10-28T14:02:52.420619+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "09e0efcab18f545166318118ed4e0292"
+    component:
+      system*
+        stacktrace*
+          frame*
+            module* (removed codegen marker)
+              "sun.reflect.GeneratedConstructorAccessor<auto>"
+            function*
+              "invoke"

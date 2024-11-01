@@ -1,0 +1,12 @@
+---
+created: '2024-10-28T13:56:38.893371+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: fingerprint
+---
+contributing variants:
+  built-in-fingerprint*
+    hash: "5d731dcf8ecc4f042eeacf528d8d8da9"
+    info: {"matched_rule":{"attributes":{},"fingerprint":["chunkloaderror"],"is_builtin":true,"matchers":[["family","javascript"],["type","ChunkLoadError"]],"text":"family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\""}}
+    values: ["chunkloaderror"]
