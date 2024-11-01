@@ -4,21 +4,21 @@ x-sentry-service-config:
   service_name: sentry
   dependencies:
     snuba:
-      description: snuba
+      description: Service that provides fast aggregation and query capabilities on top of Clickhouse
       remote:
         repo_name: snuba
         branch: master
         repo_link: git@github.com:getsentry/snuba.git
         mode: containerized
     relay:
-      description: relay
+      description: Service event forwarding and ingestion service
       remote:
         repo_name: relay
         branch: master
         repo_link: git@github.com:getsentry/relay.git
         mode: containerized
     postgres:
-      description: postgres
+      description: Database used to store Sentry data
   modes:
     default: [snuba, postgres, relay]
 
