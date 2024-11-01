@@ -328,6 +328,12 @@ class SpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletionExe
         ):
             return self.noop_autocomplete_function()
 
+        if self.key in self.PROJECT_ID_KEYS:
+            return self.project_id_autocomplete_function()
+
+        if self.key in self.PROJECT_SLUG_KEYS:
+            return self.project_slug_autocomplete_function()
+
         if self.key in self.SPAN_STATUS_KEYS:
             return self.span_status_autocomplete_function()
 
