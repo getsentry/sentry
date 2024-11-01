@@ -2179,7 +2179,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "Cannot update dashboard edit permissions. Teams with IDs [0, 23134, 6, 1] do not exist."
             in response.content.decode()
         )
-        
+
     def test_update_dashboard_permissions_with_none_does_not_create_permissions_object(self):
         data = {
             "title": "Dashboard",
