@@ -1259,7 +1259,7 @@ describe('trace view', () => {
       userEvent.click(rows[0]);
       await waitFor(() => expect(rows[0]).toHaveFocus());
 
-      userEvent.keyboard('{arrowup}', {delay: null});
+      userEvent.keyboard('{arrowup}');
       await waitFor(() => {
         rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[rows.length - 1]).toHaveFocus();
@@ -1268,7 +1268,7 @@ describe('trace view', () => {
         await within(virtualizedContainer).findByText(/transaction-op-9999/i)
       ).toBeInTheDocument();
 
-      userEvent.keyboard('{arrowdown}', {delay: null});
+      userEvent.keyboard('{arrowdown}');
       await waitFor(() => {
         rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[0]).toHaveFocus();
