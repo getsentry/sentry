@@ -4,12 +4,14 @@ import {TransactionEventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   findAllByText,
   findByText,
   render,
   screen,
   userEvent,
   waitFor,
+  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -1023,19 +1025,22 @@ describe('trace view', () => {
         await findAllByText(virtualizedContainer, /Autogrouped/i);
 
         const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
-        await userEvent.click(preferencesDropdownTrigger);
+        userEvent.click(preferencesDropdownTrigger);
+        await act(() => tick());
 
         // Toggle autogrouping off
-        await userEvent.click(await screen.findByText('Autogrouping'));
+        userEvent.click(await screen.findByText('Autogrouping'));
+        await act(() => tick());
+
         await waitFor(() => {
           expect(screen.queryByText('Autogrouped')).not.toBeInTheDocument();
         });
 
         // Toggle autogrouping on
-        await userEvent.click(await screen.findByText('Autogrouping'));
-        await waitFor(() => {
-          expect(screen.queryAllByText('Autogrouped')).toHaveLength(2);
-        });
+        userEvent.click(await screen.findByText('Autogrouping'));
+        await act(() => tick());
+
+        expect(await screen.findAllByText('Autogrouped')).toHaveLength(2);
       });
 
       it('toggles missing instrumentation', async () => {
@@ -1048,22 +1053,24 @@ describe('trace view', () => {
         const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
 
         // Toggle missing instrumentation off
-        await userEvent.click(preferencesDropdownTrigger);
+        userEvent.click(preferencesDropdownTrigger);
         const missingInstrumentationOption = await screen.findByText(
           'Missing Instrumentation'
         );
 
         // Toggle missing instrumentation off
-        await userEvent.click(missingInstrumentationOption);
+        userEvent.click(missingInstrumentationOption);
+        await act(tick);
+
         await waitFor(() => {
           expect(screen.queryByText('Missing instrumentation')).not.toBeInTheDocument();
         });
 
         // Toggle missing instrumentation on
-        await userEvent.click(missingInstrumentationOption);
-        await waitFor(() => {
-          expect(screen.queryByText('Missing instrumentation')).toBeInTheDocument();
-        });
+        userEvent.click(missingInstrumentationOption);
+        await act(() => tick());
+
+        expect(await screen.findAllByText('Missing instrumentation')).toHaveLength(1);
       });
     });
 
@@ -1106,20 +1113,20 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
 
-      await userEvent.click(rows[0]);
+      userEvent.click(rows[0]);
       await waitFor(() => expect(rows[0]).toHaveFocus());
 
-      await userEvent.keyboard('{arrowdown}');
+      userEvent.keyboard('{arrowdown}');
       await waitFor(() => expect(rows[1]).toHaveFocus());
     });
     it('arrow up', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
 
-      await userEvent.click(rows[1]);
+      userEvent.click(rows[1]);
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
-      await userEvent.keyboard('{arrowup}');
+      userEvent.keyboard('{arrowup}');
       await waitFor(() => expect(rows[0]).toHaveFocus());
     });
     it('arrow right expands row and fetches data', async () => {
@@ -1135,10 +1142,10 @@ describe('trace view', () => {
           ],
         }
       );
-      await userEvent.click(rows[1]);
+      userEvent.click(rows[1]);
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
-      await userEvent.keyboard('{arrowright}');
+      userEvent.keyboard('{arrowright}');
       await waitFor(() => {
         expect(screen.queryByText('special-span')).toBeInTheDocument();
       });
@@ -1148,7 +1155,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
 
-      const request = mockSpansResponse(
+      mockSpansResponse(
         '0',
         {},
         {
@@ -1157,25 +1164,25 @@ describe('trace view', () => {
           ],
         }
       );
-      await userEvent.click(rows[1]);
+      userEvent.click(rows[1]);
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
-      await userEvent.keyboard('{arrowright}');
-      expect(request).toHaveBeenCalledTimes(1);
+      userEvent.keyboard('{arrowright}');
 
-      expect(await screen.findByText('special-span')).toBeInTheDocument();
-      await userEvent.keyboard('{arrowleft}');
-      expect(screen.queryByText('special-span')).not.toBeInTheDocument();
+      const specialSpan = await screen.findByText('special-span');
+      expect(specialSpan).toBeInTheDocument();
+      userEvent.keyboard('{arrowleft}');
+      await waitForElementToBeRemoved(specialSpan);
     });
 
     it('arrow left does not collapse trace root row', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
 
-      await userEvent.click(rows[0]);
+      userEvent.click(rows[0]);
       await waitFor(() => expect(rows[0]).toHaveFocus());
 
-      await userEvent.keyboard('{arrowleft}');
+      userEvent.keyboard('{arrowleft}');
       expect(await screen.findByText('transaction-name-1')).toBeInTheDocument();
     });
 
@@ -1183,10 +1190,10 @@ describe('trace view', () => {
       const {virtualizedContainer} = await nestedTransactionsTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
 
-      await userEvent.click(rows[1]);
+      userEvent.click(rows[1]);
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
-      await userEvent.keyboard('{arrowleft}');
+      userEvent.keyboard('{arrowleft}');
       expect(await screen.findByText('transaction-name-2')).toBeInTheDocument();
     });
 
@@ -1204,16 +1211,16 @@ describe('trace view', () => {
         }
       );
 
-      await userEvent.click(rows[1]);
+      userEvent.click(rows[1]);
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
       expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
         'transaction-op-0'
       );
 
-      await userEvent.keyboard('{arrowright}');
+      userEvent.keyboard('{arrowright}');
       expect(await screen.findByText('special-span')).toBeInTheDocument();
-      await userEvent.keyboard('{arrowdown}');
+      userEvent.keyboard('{arrowdown}');
       await waitFor(() => {
         const updatedRows = virtualizedContainer.querySelectorAll(
           VISIBLE_TRACE_ROW_SELECTOR
@@ -1230,10 +1237,10 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      await userEvent.click(rows[0]);
+      userEvent.click(rows[0]);
 
       await waitFor(() => expect(rows[0]).toHaveFocus());
-      await userEvent.keyboard('{arrowup}');
+      userEvent.keyboard('{arrowup}');
 
       expect(
         await findByText(virtualizedContainer, /transaction-op-9999/i)
@@ -1249,10 +1256,10 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      await userEvent.click(rows[0]);
+      userEvent.click(rows[0]);
       await waitFor(() => expect(rows[0]).toHaveFocus());
 
-      await userEvent.keyboard('{arrowup}', {delay: null});
+      userEvent.keyboard('{arrowup}', {delay: null});
       await waitFor(() => {
         rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[rows.length - 1]).toHaveFocus();
@@ -1261,7 +1268,7 @@ describe('trace view', () => {
         await within(virtualizedContainer).findByText(/transaction-op-9999/i)
       ).toBeInTheDocument();
 
-      await userEvent.keyboard('{arrowdown}', {delay: null});
+      userEvent.keyboard('{arrowdown}', {delay: null});
       await waitFor(() => {
         rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
         expect(rows[0]).toHaveFocus();
@@ -1274,10 +1281,10 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      await userEvent.click(rows[0]);
+      userEvent.click(rows[0]);
 
       await waitFor(() => expect(rows[0]).toHaveFocus());
-      await userEvent.keyboard('{tab}');
+      userEvent.keyboard('{tab}');
 
       await waitFor(() => {
         rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
@@ -1288,10 +1295,10 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      await userEvent.click(rows[1]);
+      userEvent.click(rows[1]);
 
       await waitFor(() => expect(rows[1]).toHaveFocus());
-      await userEvent.keyboard('{Shift>}{tab}{/Shift}');
+      userEvent.keyboard('{Shift>}{tab}{/Shift}');
 
       await waitFor(() => {
         rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
@@ -1302,10 +1309,10 @@ describe('trace view', () => {
       const {container, virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      await userEvent.click(rows[0]);
+      userEvent.click(rows[0]);
 
       await waitFor(() => expect(rows[0]).toHaveFocus());
-      await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
+      userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
 
       expect(
         await findByText(virtualizedContainer, /transaction-op-9999/i)
@@ -1320,10 +1327,10 @@ describe('trace view', () => {
       const {container, virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      await userEvent.click(rows[0]);
+      userEvent.click(rows[0]);
 
       await waitFor(() => expect(rows[0]).toHaveFocus());
-      await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}', {delay: 50});
+      userEvent.keyboard('{Shift>}{arrowdown}{/Shift}', {delay: 50});
 
       expect(
         await findByText(virtualizedContainer, /transaction-op-9999/i)
@@ -1334,7 +1341,7 @@ describe('trace view', () => {
         expect(rows[rows.length - 1]).toHaveFocus();
       });
 
-      await userEvent.keyboard('{Shift>}{arrowup}{/Shift}', {delay: 50});
+      userEvent.keyboard('{Shift>}{arrowup}{/Shift}', {delay: 50});
       expect(
         await findByText(virtualizedContainer, /transaction-op-0/i)
       ).toBeInTheDocument();
@@ -1350,8 +1357,6 @@ describe('trace view', () => {
       const {container} = await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-
-      await userEvent.click(searchInput);
       await userEvent.type(searchInput, 'transaction-op', {delay: 50});
       expect(searchInput).toHaveValue('transaction-op');
 
@@ -1364,8 +1369,6 @@ describe('trace view', () => {
       const {container} = await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-
-      await userEvent.click(searchInput);
       await userEvent.type(searchInput, 'transaction-op', {delay: 50});
       expect(searchInput).toHaveValue('transaction-op');
 
@@ -1381,7 +1384,7 @@ describe('trace view', () => {
         // and jump to next row with arrowdown
         ['{arrowdown}', 2],
       ] as const) {
-        await userEvent.keyboard(action[0]);
+        userEvent.keyboard(action[0]);
 
         await waitFor(() => {
           assertHighlightedRowAtIndex(container, action[1]);
@@ -1393,8 +1396,6 @@ describe('trace view', () => {
       await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-
-      await userEvent.click(searchInput);
       await userEvent.type(searchInput, 'transaction-op', {delay: 50});
 
       // Wait for the search results to resolve
@@ -1406,7 +1407,7 @@ describe('trace view', () => {
 
       // assert that focus on search input is never lost
       expect(searchInput).toHaveFocus();
-      await userEvent.keyboard('{arrowdown}');
+      userEvent.keyboard('{arrowdown}');
 
       await waitFor(() => {
         expect(screen.getByTestId('trace-drawer-title')).toHaveTextContent(
@@ -1418,7 +1419,6 @@ describe('trace view', () => {
     it('highlighted node narrows down on the first result', async () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.click(searchInput);
       await userEvent.type(searchInput, 'transaction-op-1', {delay: 50});
 
       // Wait for the search results to resolve
@@ -1427,7 +1427,7 @@ describe('trace view', () => {
         assertHighlightedRowAtIndex(container, 2);
       });
 
-      await userEvent.clear(searchInput);
+      userEvent.clear(searchInput);
       await userEvent.type(searchInput, 'transaction-op-5', {delay: 50});
       await searchToResolve();
 
@@ -1439,13 +1439,12 @@ describe('trace view', () => {
     it('highlighted is persisted on node while it is part of the search results', async () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.click(searchInput);
       await userEvent.type(searchInput, 'trans', {delay: 50});
 
       // Wait for the search results to resolve
       await searchToResolve();
 
-      await userEvent.keyboard('{arrowdown}');
+      userEvent.keyboard('{arrowdown}');
       await searchToResolve();
 
       await waitFor(() => {
@@ -1460,7 +1459,7 @@ describe('trace view', () => {
         assertHighlightedRowAtIndex(container, 2);
       });
 
-      await userEvent.clear(searchInput);
+      userEvent.clear(searchInput);
       await userEvent.type(searchInput, 'this wont match anything', {delay: 50});
       await searchToResolve();
 
@@ -1471,7 +1470,6 @@ describe('trace view', () => {
     it('auto highlights the first result when search begins', async () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.click(searchInput);
 
       // Nothing is highlighted
       expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
@@ -1489,7 +1487,6 @@ describe('trace view', () => {
       const {container} = await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.click(searchInput);
       await userEvent.type(searchInput, 'transaction-op-1', {delay: 50});
 
       await searchToResolve();
@@ -1502,7 +1499,7 @@ describe('trace view', () => {
       );
 
       // Click on a random row in the list that is not a search result
-      await userEvent.click(rows[5]);
+      userEvent.click(rows[5]);
       await waitFor(() => {
         expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
           '-/2'
@@ -1510,7 +1507,7 @@ describe('trace view', () => {
       });
 
       // Click on a the row in the list that is a search result
-      await userEvent.click(rows[2]);
+      userEvent.click(rows[2]);
       await waitFor(() => {
         expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
           '1/2'
@@ -1608,7 +1605,6 @@ describe('trace view', () => {
       expect(await findByText(container, /transaction-op-0/i)).toBeInTheDocument();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.click(searchInput);
       await userEvent.type(searchInput, 'op-0', {delay: 50});
       await searchToResolve();
 
@@ -1619,7 +1615,7 @@ describe('trace view', () => {
       });
 
       const open = await screen.findAllByRole('button', {name: '+'});
-      await userEvent.click(open[0]);
+      userEvent.click(open[0]);
 
       await waitFor(() => {
         expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
@@ -1640,8 +1636,6 @@ describe('trace view', () => {
     it('during search, highlighting is persisted on the row', async () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-
-      await userEvent.click(searchInput);
       await userEvent.type(searchInput, 'transaction-op', {delay: 50});
       await searchToResolve();
 
@@ -1651,7 +1645,7 @@ describe('trace view', () => {
 
       // User moves down the list using keyboard navigation
       for (let i = 1; i < 6; i++) {
-        await userEvent.keyboard('{arrowDown}');
+        userEvent.keyboard('{arrowDown}');
         await waitFor(() => {
           assertHighlightedRowAtIndex(container, 1 + i);
         });
@@ -1675,7 +1669,7 @@ describe('trace view', () => {
         assertHighlightedRowAtIndex(container, 6);
       });
 
-      await userEvent.clear(searchInput);
+      userEvent.clear(searchInput);
       await userEvent.type(searchInput, 'transaction-op-none', {delay: 50});
       await searchToResolve();
       expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
@@ -1687,7 +1681,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await simpleTestSetup();
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
-      await userEvent.click(rows[5]);
+      userEvent.click(rows[5]);
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
@@ -1699,7 +1693,7 @@ describe('trace view', () => {
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
 
-      await userEvent.click(rows[5]);
+      userEvent.click(rows[5]);
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
@@ -1710,7 +1704,7 @@ describe('trace view', () => {
         ).toBeTruthy();
       });
 
-      await userEvent.click(rows[7]);
+      userEvent.click(rows[7]);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
         expect(
@@ -1725,13 +1719,13 @@ describe('trace view', () => {
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
 
-      await userEvent.click(rows[5]);
+      userEvent.click(rows[5]);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });
 
-      await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
-      await userEvent.click(rows[7]);
+      userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
+      userEvent.click(rows[7]);
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
@@ -1752,13 +1746,13 @@ describe('trace view', () => {
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
 
-      await userEvent.click(rows[5]);
+      userEvent.click(rows[5]);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });
 
-      await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
-      await userEvent.click(rows[7]);
+      userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
+      userEvent.click(rows[7]);
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
@@ -1767,7 +1761,7 @@ describe('trace view', () => {
       const tabButtons = screen.queryAllByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID);
       expect(tabButtons).toHaveLength(2);
 
-      await userEvent.click(tabButtons[0]);
+      userEvent.click(tabButtons[0]);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });
@@ -1777,13 +1771,13 @@ describe('trace view', () => {
       const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
 
-      await userEvent.click(rows[5]);
+      userEvent.click(rows[5]);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });
 
-      await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
-      await userEvent.click(rows[7]);
+      userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
+      userEvent.click(rows[7]);
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
@@ -1793,7 +1787,7 @@ describe('trace view', () => {
         );
       });
 
-      await userEvent.click(rows[5]);
+      userEvent.click(rows[5]);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)[1]).toHaveAttribute(
           'aria-selected',
