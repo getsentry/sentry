@@ -33,7 +33,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
-  const [status, setStatus] = useState<TraceSearchState['status']>();
+  const [status, setStatus] = useState<TraceSearchState['status']>([0, 'success']);
 
   const timeoutRef = useRef<number | undefined>(undefined);
   const statusRef = useRef<TraceSearchState['status']>(status);
@@ -46,6 +46,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   useLayoutEffect(() => {
     if (typeof timeoutRef.current === 'number') {
       window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
     }
 
     // if status is loading, show loading icon immediately
@@ -167,12 +168,15 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   }, [traceDispatch, organization]);
 
   const inputRef = useRef<HTMLInputElement>(null);
-
   useLayoutEffect(() => {
-    if (inputRef.current) {
+    if (
+      inputRef.current &&
+      traceState.search.query &&
+      traceState.search.query !== inputRef.current.value
+    ) {
       inputRef.current.focus();
-      inputRef.current.value = traceState.search.query ?? '';
-      onChange({target: inputRef.current} as React.ChangeEvent<HTMLInputElement>);
+      inputRef.current.value = traceState.search.query;
+      inputRef.current.dispatchEvent(new Event('change', {bubbles: true}));
     }
   }, [traceState.search.query, onChange]);
 
@@ -197,7 +201,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         name="query"
         autoComplete="off"
         placeholder={t('Search in trace')}
-        defaultValue={traceState.search.query}
+        defaultValue={traceState.search.query ?? ''}
         onChange={onChange}
         onKeyDown={onKeyDown}
         onFocus={onSearchFocus}
