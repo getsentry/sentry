@@ -246,7 +246,7 @@ async function keyboardNavigationTestSetup() {
         project_slug: 'project_slug',
       })
     );
-    mockTransactionDetailsResponse(i.toString());
+    mockTransactionDetailsResponse(`${i}`);
   }
   mockTraceResponse({
     body: {
@@ -292,14 +292,17 @@ async function pageloadTestSetup() {
         project_slug: 'project_slug',
       })
     );
-    mockTransactionDetailsResponse(i.toString());
+
+    mockTransactionDetailsResponse(`${i}`);
   }
+
   mockTraceResponse({
     body: {
       transactions: pageloadTransactions,
       orphan_errors: [],
     },
   });
+
   mockTraceMetaResponse({
     body: {
       errors: 0,
@@ -352,7 +355,7 @@ async function nestedTransactionsTestSetup() {
     txn = next;
     transactions.push(next);
 
-    mockTransactionDetailsResponse(i.toString());
+    mockTransactionDetailsResponse(`${i}`);
   }
 
   mockTraceResponse({
@@ -388,7 +391,7 @@ async function searchTestSetup() {
         project_slug: 'project_slug',
       })
     );
-    mockTransactionDetailsResponse(i.toString());
+    mockTransactionDetailsResponse(`${i}`);
   }
   mockTraceResponse({
     body: {
@@ -442,7 +445,7 @@ async function simpleTestSetup() {
       transactions.push(next);
     }
     parent = next;
-    mockTransactionDetailsResponse(i.toString());
+    mockTransactionDetailsResponse(`${i}`);
   }
   mockTraceResponse({
     body: {
@@ -1103,6 +1106,7 @@ describe('trace view', () => {
 
     it('if search on load does not match anything, it does not steal focus or highlight first result', async () => {
       mockQueryString('?search=dead&node=txn-5');
+
       const {container} = await pageloadTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       expect(searchInput).toHaveValue('dead');

@@ -168,7 +168,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   }, [traceDispatch, organization]);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  // useLayoutEffect(() => {
+  // useEffect(() => {
   //   // Search value can be changed externally, e.g. by actions that trigger a search.
   //   // When this happens, sync the input value to the search value and trigger a search.
   //   if (
