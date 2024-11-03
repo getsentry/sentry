@@ -325,7 +325,7 @@ async function pageloadTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  expect((await screen.findAllByText(/transaction-op-/i)).length).toBeGreaterThan(0);
+  await findAllByText(virtualizedContainer, /transaction-op-/i);
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
@@ -1099,6 +1099,7 @@ describe('trace view', () => {
       userEvent.keyboard('{arrowdown}');
       await waitFor(() => expect(rows[1]).toHaveFocus());
     });
+
     it('arrow up', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1109,6 +1110,7 @@ describe('trace view', () => {
       userEvent.keyboard('{arrowup}');
       await waitFor(() => expect(rows[0]).toHaveFocus());
     });
+
     it('arrow right expands row and fetches data', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1257,6 +1259,7 @@ describe('trace view', () => {
         await within(virtualizedContainer).findByText(/transaction-op-0/i)
       ).toBeInTheDocument();
     });
+
     it('tab scrolls to next node', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
@@ -1271,6 +1274,7 @@ describe('trace view', () => {
         expect(rows[1]).toHaveFocus();
       });
     });
+
     it('shift+tab scrolls to previous node', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
@@ -1285,6 +1289,7 @@ describe('trace view', () => {
         expect(rows[0]).toHaveFocus();
       });
     });
+
     it('arrowdown+shift scrolls to the end of the list', async () => {
       const {container, virtualizedContainer} = await keyboardNavigationTestSetup();
 
