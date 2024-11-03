@@ -231,6 +231,10 @@ function getVirtualizedScrollContainer(): HTMLElement {
   return virtualizedScrollContainer;
 }
 
+function getVirtualizedRows(container: HTMLElement) {
+  return Array.from(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
+}
+
 async function keyboardNavigationTestSetup() {
   const keyboard_navigation_transactions: TraceFullDetailed[] = [];
   for (let i = 0; i < 1e4; i++) {
@@ -703,21 +707,25 @@ function printVirtualizedList(container: HTMLElement) {
   const success = screen.queryByTestId('trace-search-success');
 
   stdout.push(
-    'Scroll Container: ' +
-      'top=' +
-      scrollContainer.scrollTop +
-      ' ' +
-      'left=' +
-      scrollContainer.scrollLeft +
-      ' ' +
+    'Debug Information: ' +
+      'Rows=' +
       rows.length +
       ' ' +
-      'Search:' +
-      (searchInput?.value ?? '') +
+      'Search Query:' +
+      (searchInput?.value || '<empty>') +
       ' ' +
-      (searchResultIterator?.textContent ?? '') +
+      (searchResultIterator?.textContent || '<empty>') +
       ' ' +
-      (loading ? 'loading' : success ? 'success' : '')
+      'Search Status:' +
+      (loading ? 'loading' : success ? 'success' : '<empty>') +
+      ' ' +
+      'Scroll=' +
+      'top:' +
+      scrollContainer.scrollTop +
+      ' ' +
+      'left:' +
+      scrollContainer.scrollLeft +
+      ' '
   );
 
   for (const r of [...rows]) {
@@ -840,7 +848,7 @@ describe('trace view', () => {
       mockQueryString('?node=trace-root');
       const {virtualizedContainer} = await completeTestSetup();
       await waitFor(() => {
-        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[0]).toHaveFocus();
       });
     });
@@ -849,7 +857,7 @@ describe('trace view', () => {
       mockQueryString('?node=txn-1');
       const {virtualizedContainer} = await completeTestSetup();
       await waitFor(() => {
-        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[2]).toHaveFocus();
       });
     });
@@ -862,7 +870,7 @@ describe('trace view', () => {
 
       await waitFor(() => {
         // We need to await a tick because the row is not focused until the next tick
-        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[3]).toHaveFocus();
         expect(rows[3].textContent?.includes('http — request')).toBe(true);
       });
@@ -876,7 +884,7 @@ describe('trace view', () => {
 
       await waitFor(() => {
         // We need to await a tick because the row is not focused until the next tick
-        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[4]).toHaveFocus();
         expect(rows[4].textContent?.includes('Autogrouped')).toBe(true);
       });
@@ -889,7 +897,7 @@ describe('trace view', () => {
 
       await waitFor(() => {
         // We need to await a tick because the row is not focused until the next tick
-        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[5]).toHaveFocus();
         expect(rows[5].textContent?.includes('db — redis')).toBe(true);
       });
@@ -902,7 +910,7 @@ describe('trace view', () => {
       await findAllByText(virtualizedContainer, /Autogrouped/i);
       await waitFor(() => {
         // We need to await a tick because the row is not focused until the next tick
-        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[5]).toHaveFocus();
         expect(rows[5].textContent?.includes('5Autogrouped')).toBe(true);
       });
@@ -916,7 +924,7 @@ describe('trace view', () => {
 
       await waitFor(() => {
         // We need to await a tick because the row is not focused until the next tick
-        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[6]).toHaveFocus();
         expect(rows[6].textContent?.includes('http — request')).toBe(true);
       });
@@ -929,7 +937,7 @@ describe('trace view', () => {
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next ticks
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
 
       await waitFor(() => {
         expect(rows[7]).toHaveFocus();
@@ -945,7 +953,7 @@ describe('trace view', () => {
 
       await waitFor(() => {
         // We need to await a tick because the row is not focused until the next ticks
-        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[11]).toHaveFocus();
         expect(rows[11].textContent?.includes('error-title')).toBe(true);
       });
@@ -956,7 +964,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await completeTestSetup();
 
       await waitFor(() => {
-        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[2]).toHaveFocus();
       });
     });
@@ -967,7 +975,7 @@ describe('trace view', () => {
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
       await waitFor(() => {
-        const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[3]).toHaveFocus();
         expect(rows[3].textContent?.includes('http — request')).toBe(true);
       });
@@ -1087,7 +1095,7 @@ describe('trace view', () => {
         );
       });
 
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
       expect(rows[1]).toHaveFocus();
     });
 
@@ -1111,7 +1119,7 @@ describe('trace view', () => {
   describe('keyboard navigation', () => {
     it('arrow down', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
 
       userEvent.click(rows[0]);
       await waitFor(() => expect(rows[0]).toHaveFocus());
@@ -1121,7 +1129,7 @@ describe('trace view', () => {
     });
     it('arrow up', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
 
       userEvent.click(rows[1]);
       await waitFor(() => expect(rows[1]).toHaveFocus());
@@ -1131,7 +1139,7 @@ describe('trace view', () => {
     });
     it('arrow right expands row and fetches data', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
 
       mockSpansResponse(
         '0',
@@ -1153,7 +1161,7 @@ describe('trace view', () => {
 
     it('arrow left collapses row', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
 
       mockSpansResponse(
         '0',
@@ -1177,7 +1185,7 @@ describe('trace view', () => {
 
     it('arrow left does not collapse trace root row', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
 
       userEvent.click(rows[0]);
       await waitFor(() => expect(rows[0]).toHaveFocus());
@@ -1188,7 +1196,7 @@ describe('trace view', () => {
 
     it('arrow left on transaction row still renders transaction children', async () => {
       const {virtualizedContainer} = await nestedTransactionsTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
 
       userEvent.click(rows[1]);
       await waitFor(() => expect(rows[1]).toHaveFocus());
@@ -1199,7 +1207,7 @@ describe('trace view', () => {
 
     it('roving updates the element in the drawer', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
 
       mockSpansResponse(
         '0',
@@ -1236,7 +1244,7 @@ describe('trace view', () => {
     it('arrowup on first node jumps to end', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
-      let rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      let rows = getVirtualizedRows(virtualizedContainer);
       userEvent.click(rows[0]);
 
       await waitFor(() => expect(rows[0]).toHaveFocus());
@@ -1247,7 +1255,7 @@ describe('trace view', () => {
       ).toBeInTheDocument();
 
       await waitFor(() => {
-        rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[rows.length - 1]).toHaveFocus();
       });
     });
@@ -1255,13 +1263,13 @@ describe('trace view', () => {
     it('arrowdown on last node jumps to start', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
-      let rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      let rows = getVirtualizedRows(virtualizedContainer);
       userEvent.click(rows[0]);
       await waitFor(() => expect(rows[0]).toHaveFocus());
 
       userEvent.keyboard('{arrowup}');
       await waitFor(() => {
-        rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[rows.length - 1]).toHaveFocus();
       });
       expect(
@@ -1270,7 +1278,7 @@ describe('trace view', () => {
 
       userEvent.keyboard('{arrowdown}');
       await waitFor(() => {
-        rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[0]).toHaveFocus();
       });
       expect(
@@ -1280,28 +1288,28 @@ describe('trace view', () => {
     it('tab scrolls to next node', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
-      let rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      let rows = getVirtualizedRows(virtualizedContainer);
       userEvent.click(rows[0]);
 
       await waitFor(() => expect(rows[0]).toHaveFocus());
       userEvent.keyboard('{tab}');
 
       await waitFor(() => {
-        rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[1]).toHaveFocus();
       });
     });
     it('shift+tab scrolls to previous node', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
-      let rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      let rows = getVirtualizedRows(virtualizedContainer);
       userEvent.click(rows[1]);
 
       await waitFor(() => expect(rows[1]).toHaveFocus());
       userEvent.keyboard('{Shift>}{tab}{/Shift}');
 
       await waitFor(() => {
-        rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[0]).toHaveFocus();
       });
     });
@@ -1324,29 +1332,31 @@ describe('trace view', () => {
     });
 
     it('arrowup+shift scrolls to the start of the list', async () => {
-      const {container, virtualizedContainer} = await keyboardNavigationTestSetup();
+      const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
-      let rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      userEvent.click(rows[0]);
+      let rows = getVirtualizedRows(virtualizedContainer);
 
-      await waitFor(() => expect(rows[0]).toHaveFocus());
+      userEvent.click(rows[1]);
+      await waitFor(() => expect(rows[1]).toHaveFocus());
+
       userEvent.keyboard('{Shift>}{arrowdown}{/Shift}', {delay: 50});
-
       expect(
         await findByText(virtualizedContainer, /transaction-op-9999/i)
       ).toBeInTheDocument();
 
       await waitFor(() => {
-        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[rows.length - 1]).toHaveFocus();
       });
 
       userEvent.keyboard('{Shift>}{arrowup}{/Shift}', {delay: 50});
+
       expect(
         await findByText(virtualizedContainer, /transaction-op-0/i)
       ).toBeInTheDocument();
+
       await waitFor(() => {
-        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[0]).toHaveFocus();
       });
     });
@@ -1489,7 +1499,7 @@ describe('trace view', () => {
     });
 
     it('clicking a row that is also a search result updates the result index', async () => {
-      const {container} = await searchTestSetup();
+      const {container, virtualizedContainer} = await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.type(searchInput, 'transaction-op-1', {delay: 50});
@@ -1498,7 +1508,7 @@ describe('trace view', () => {
       await searchToResolve();
 
       assertHighlightedRowAtIndex(container, 2);
-      const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
       // By default, we highlight the first result
       expect(await screen.findByTestId('trace-search-result-iterator')).toHaveTextContent(
         '1/2'
@@ -1690,7 +1700,7 @@ describe('trace view', () => {
   describe('tabbing', () => {
     it('clicking on a node spawns a new tab when none is selected', async () => {
       const {virtualizedContainer} = await simpleTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
       userEvent.click(rows[5]);
 
@@ -1701,7 +1711,7 @@ describe('trace view', () => {
 
     it('clicking on a node replaces the previously selected tab', async () => {
       const {virtualizedContainer} = await simpleTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
 
       userEvent.click(rows[5]);
@@ -1727,7 +1737,7 @@ describe('trace view', () => {
     });
     it('pinning a tab and clicking on a new node spawns a new tab', async () => {
       const {virtualizedContainer} = await simpleTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
 
       userEvent.click(rows[5]);
@@ -1754,7 +1764,7 @@ describe('trace view', () => {
     });
     it('unpinning a tab removes it', async () => {
       const {virtualizedContainer} = await simpleTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
 
       userEvent.click(rows[5]);
@@ -1779,7 +1789,7 @@ describe('trace view', () => {
     });
     it('clicking a node that is already open in a tab switches to that tab and persists the previous node', async () => {
       const {virtualizedContainer} = await simpleTestSetup();
-      const rows = virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      const rows = getVirtualizedRows(virtualizedContainer);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
 
       userEvent.click(rows[5]);
