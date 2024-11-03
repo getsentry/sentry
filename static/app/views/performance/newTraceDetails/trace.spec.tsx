@@ -1086,40 +1086,6 @@ describe('trace view', () => {
         expect(await screen.findAllByText('Missing instrumentation')).toHaveLength(1);
       });
     });
-
-    it('triggers search on load but does not steal focus from node param', async () => {
-      mockQueryString('?search=transaction-op-999&node=txn-0');
-
-      const {virtualizedContainer} = await pageloadTestSetup();
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      expect(searchInput).toHaveValue('transaction-op-999');
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
-          '-/1'
-        );
-      });
-
-      const rows = getVirtualizedRows(virtualizedContainer);
-      expect(rows[1]).toHaveFocus();
-    });
-
-    it('if search on load does not match anything, it does not steal focus or highlight first result', async () => {
-      mockQueryString('?search=dead&node=txn-5');
-
-      const {container} = await pageloadTestSetup();
-      const searchInput = await screen.findByPlaceholderText('Search in trace');
-      expect(searchInput).toHaveValue('dead');
-
-      await waitFor(() => {
-        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
-          'no results'
-        );
-      });
-
-      const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      expect(rows[6]).toHaveFocus();
-    });
   });
 
   describe('keyboard navigation', () => {
@@ -1369,6 +1335,40 @@ describe('trace view', () => {
   });
 
   describe('search', () => {
+    it('triggers search on load but does not steal focus from node param', async () => {
+      mockQueryString('?search=transaction-op-999&node=txn-0');
+
+      const {virtualizedContainer} = await pageloadTestSetup();
+      const searchInput = await screen.findByPlaceholderText('Search in trace');
+      expect(searchInput).toHaveValue('transaction-op-999');
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '-/1'
+        );
+      });
+
+      const rows = getVirtualizedRows(virtualizedContainer);
+      expect(rows[1]).toHaveFocus();
+    });
+
+    it('if search on load does not match anything, it does not steal focus or highlight first result', async () => {
+      mockQueryString('?search=dead&node=txn-5');
+
+      const {container} = await pageloadTestSetup();
+      const searchInput = await screen.findByPlaceholderText('Search in trace');
+      expect(searchInput).toHaveValue('dead');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+          'no results'
+        );
+      });
+
+      const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+      expect(rows[6]).toHaveFocus();
+    });
+
     it('searches in transaction', async () => {
       const {container} = await searchTestSetup();
 
