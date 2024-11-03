@@ -168,19 +168,19 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   }, [traceDispatch, organization]);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  useLayoutEffect(() => {
-    // Search value can be changed externally, e.g. by actions that trigger a search.
-    // When this happens, sync the input value to the search value and trigger a search.
-    if (
-      inputRef.current &&
-      traceState.search.query &&
-      inputRef.current.value !== traceState.search.query
-    ) {
-      inputRef.current.focus();
-      inputRef.current.value = traceState.search.query;
-      inputRef.current.dispatchEvent(new Event('change', {bubbles: true}));
-    }
-  }, [traceState.search.query, onChange]);
+  // useLayoutEffect(() => {
+  //   // Search value can be changed externally, e.g. by actions that trigger a search.
+  //   // When this happens, sync the input value to the search value and trigger a search.
+  //   if (
+  //     inputRef.current &&
+  //     traceState.search.query &&
+  //     inputRef.current.value !== traceState.search.query
+  //   ) {
+  //     inputRef.current.focus();
+  //     inputRef.current.value = traceState.search.query;
+  //     inputRef.current.dispatchEvent(new Event('change', {bubbles: true}));
+  //   }
+  // }, [traceState.search.query, onChange]);
 
   return (
     <StyledSearchBar>
