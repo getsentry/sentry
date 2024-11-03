@@ -4,7 +4,6 @@ import {TransactionEventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  act,
   findAllByText,
   findByText,
   render,
@@ -1034,20 +1033,21 @@ describe('trace view', () => {
 
         const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
         userEvent.click(preferencesDropdownTrigger);
-        await act(() => tick());
-
-        // Toggle autogrouping off
-        userEvent.click(await screen.findByText('Autogrouping'));
-        await act(() => tick());
 
         await waitFor(() => {
-          expect(screen.queryByText('Autogrouped')).not.toBeInTheDocument();
+          expect(screen.getByText('Autogrouping')).toBeInTheDocument();
         });
 
-        // Toggle autogrouping on
-        userEvent.click(await screen.findByText('Autogrouping'));
-        await act(() => tick());
+        // Toggle autogrouping off
+        const autogroupingOption = await screen.findByText('Autogrouping');
+        userEvent.click(autogroupingOption);
 
+        const autogrouped = await screen.findAllByText('Autogrouped');
+
+        await waitForElementToBeRemoved(autogrouped[0]);
+
+        // Toggle autogrouping back on
+        userEvent.click(await screen.findByText('Autogrouping'));
         expect(await screen.findAllByText('Autogrouped')).toHaveLength(2);
       });
 
@@ -1062,13 +1062,17 @@ describe('trace view', () => {
 
         // Toggle missing instrumentation off
         userEvent.click(preferencesDropdownTrigger);
+
+        await waitFor(() => {
+          expect(screen.getByText('Missing Instrumentation')).toBeInTheDocument();
+        });
+
         const missingInstrumentationOption = await screen.findByText(
           'Missing Instrumentation'
         );
 
         // Toggle missing instrumentation off
         userEvent.click(missingInstrumentationOption);
-        await act(tick);
 
         await waitFor(() => {
           expect(screen.queryByText('Missing instrumentation')).not.toBeInTheDocument();
@@ -1076,8 +1080,6 @@ describe('trace view', () => {
 
         // Toggle missing instrumentation on
         userEvent.click(missingInstrumentationOption);
-        await act(() => tick());
-
         expect(await screen.findAllByText('Missing instrumentation')).toHaveLength(1);
       });
     });
@@ -1339,7 +1341,7 @@ describe('trace view', () => {
       userEvent.click(rows[1]);
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
-      userEvent.keyboard('{Shift>}{arrowdown}{/Shift}', {delay: 50});
+      userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
       expect(
         await findByText(virtualizedContainer, /transaction-op-9999/i)
       ).toBeInTheDocument();
@@ -1349,7 +1351,7 @@ describe('trace view', () => {
         expect(rows[rows.length - 1]).toHaveFocus();
       });
 
-      userEvent.keyboard('{Shift>}{arrowup}{/Shift}', {delay: 50});
+      userEvent.keyboard('{Shift>}{arrowup}{/Shift}');
 
       expect(
         await findByText(virtualizedContainer, /transaction-op-0/i)
@@ -1367,7 +1369,7 @@ describe('trace view', () => {
       const {container} = await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op', {delay: 50});
+      await userEvent.type(searchInput, 'transaction-op');
       expect(searchInput).toHaveValue('transaction-op');
 
       await waitFor(() => {
@@ -1379,7 +1381,7 @@ describe('trace view', () => {
       const {container} = await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op', {delay: 50});
+      await userEvent.type(searchInput, 'transaction-op');
       expect(searchInput).toHaveValue('transaction-op');
 
       await searchToResolve();
@@ -1406,7 +1408,7 @@ describe('trace view', () => {
       await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op', {delay: 50});
+      await userEvent.type(searchInput, 'transaction-op');
       expect(searchInput).toHaveValue('transaction-op');
 
       // Wait for the search results to resolve
@@ -1430,7 +1432,7 @@ describe('trace view', () => {
     it('highlighted node narrows down on the first result', async () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op-1', {delay: 50});
+      await userEvent.type(searchInput, 'transaction-op-1');
       expect(searchInput).toHaveValue('transaction-op-1');
       // Wait for the search results to resolve
       await searchToResolve();
@@ -1439,7 +1441,7 @@ describe('trace view', () => {
       });
 
       userEvent.clear(searchInput);
-      await userEvent.type(searchInput, 'transaction-op-5', {delay: 50});
+      await userEvent.type(searchInput, 'transaction-op-5');
       await searchToResolve();
 
       await waitFor(() => {
@@ -1450,7 +1452,7 @@ describe('trace view', () => {
     it('highlighted is persisted on node while it is part of the search results', async () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'trans', {delay: 50});
+      await userEvent.type(searchInput, 'trans');
       expect(searchInput).toHaveValue('trans');
       // Wait for the search results to resolve
       await searchToResolve();
@@ -1462,7 +1464,7 @@ describe('trace view', () => {
         assertHighlightedRowAtIndex(container, 2);
       });
 
-      await userEvent.type(searchInput, 'act', {delay: 50});
+      await userEvent.type(searchInput, 'act');
       expect(searchInput).toHaveValue('transact');
 
       await searchToResolve();
@@ -1473,7 +1475,7 @@ describe('trace view', () => {
       });
 
       userEvent.clear(searchInput);
-      await userEvent.type(searchInput, 'this wont match anything', {delay: 50});
+      await userEvent.type(searchInput, 'this wont match anything');
       expect(searchInput).toHaveValue('this wont match anything');
       await searchToResolve();
 
@@ -1487,7 +1489,7 @@ describe('trace view', () => {
 
       // Nothing is highlighted
       expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
-      await userEvent.type(searchInput, 't', {delay: 50});
+      await userEvent.type(searchInput, 't');
       expect(searchInput).toHaveValue('t');
 
       // Wait for the search results to resolve
@@ -1502,7 +1504,7 @@ describe('trace view', () => {
       const {container, virtualizedContainer} = await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op-1', {delay: 50});
+      await userEvent.type(searchInput, 'transaction-op-1');
       expect(searchInput).toHaveValue('transaction-op-1');
 
       await searchToResolve();
@@ -1621,7 +1623,7 @@ describe('trace view', () => {
       expect(await findByText(container, /transaction-op-0/i)).toBeInTheDocument();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'op-0', {delay: 50});
+      await userEvent.type(searchInput, 'op-0');
       expect(searchInput).toHaveValue('op-0');
 
       await searchToResolve();
@@ -1654,7 +1656,7 @@ describe('trace view', () => {
     it('during search, highlighting is persisted on the row', async () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op', {delay: 50});
+      await userEvent.type(searchInput, 'transaction-op');
       expect(searchInput).toHaveValue('transaction-op');
       await searchToResolve();
 
@@ -1682,7 +1684,7 @@ describe('trace view', () => {
         assertHighlightedRowAtIndex(container, 6);
       });
 
-      await userEvent.type(searchInput, '-5', {delay: 50});
+      await userEvent.type(searchInput, '-5');
       expect(searchInput).toHaveValue('transaction-op-5');
 
       await searchToResolve();
@@ -1691,7 +1693,7 @@ describe('trace view', () => {
       });
 
       userEvent.clear(searchInput);
-      await userEvent.type(searchInput, 'transaction-op-none', {delay: 50});
+      await userEvent.type(searchInput, 'transaction-op-none');
       await searchToResolve();
       expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
     });
