@@ -72,22 +72,31 @@ function TransactionNodeDetailHeader({
   onTabScrollToNode,
   event,
 }: TransactionNodeDetailHeaderProps) {
+  const hasNewTraceUi = useHasTraceNewUi();
+
+  if (!hasNewTraceUi) {
+    return (
+      <LegacyTransactionNodeDetailHeader
+        node={node}
+        organization={organization}
+        project={project}
+        onTabScrollToNode={onTabScrollToNode}
+        event={event}
+      />
+    );
+  }
+
   return (
     <TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.Title>
-        <Tooltip title={node.value.project_slug}>
-          <ProjectBadge
-            project={project ? project : {slug: node.value.project_slug}}
-            avatarSize={30}
-            hideName
+        <TraceDrawerComponents.LegacyTitleText>
+          <TraceDrawerComponents.TitleText>
+            {t('Transaction')}
+          </TraceDrawerComponents.TitleText>
+          <TraceDrawerComponents.SubtitleWithCopyButton
+            text={`ID: ${node.value.event_id}`}
           />
-        </Tooltip>
-        <TraceDrawerComponents.TitleText>
-          <div>{t('transaction')}</div>
-          <TraceDrawerComponents.TitleOp
-            text={node.value['transaction.op'] + ' - ' + node.value.transaction}
-          />
-        </TraceDrawerComponents.TitleText>
+        </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
       <TraceDrawerComponents.NodeActions
         node={node}
@@ -96,6 +105,40 @@ function TransactionNodeDetailHeader({
         eventSize={event?.size}
       />
     </TraceDrawerComponents.HeaderContainer>
+  );
+}
+
+function LegacyTransactionNodeDetailHeader({
+  node,
+  organization,
+  project,
+  onTabScrollToNode,
+  event,
+}: TransactionNodeDetailHeaderProps) {
+  return (
+    <TraceDrawerComponents.LegacyHeaderContainer>
+      <TraceDrawerComponents.Title>
+        <Tooltip title={node.value.project_slug}>
+          <ProjectBadge
+            project={project ? project : {slug: node.value.project_slug}}
+            avatarSize={30}
+            hideName
+          />
+        </Tooltip>
+        <TraceDrawerComponents.LegacyTitleText>
+          <div>{t('transaction')}</div>
+          <TraceDrawerComponents.TitleOp
+            text={node.value['transaction.op'] + ' - ' + node.value.transaction}
+          />
+        </TraceDrawerComponents.LegacyTitleText>
+      </TraceDrawerComponents.Title>
+      <TraceDrawerComponents.NodeActions
+        node={node}
+        organization={organization}
+        onTabScrollToNode={onTabScrollToNode}
+        eventSize={event?.size}
+      />
+    </TraceDrawerComponents.LegacyHeaderContainer>
   );
 }
 

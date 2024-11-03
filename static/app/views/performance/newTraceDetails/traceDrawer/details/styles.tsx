@@ -21,7 +21,14 @@ import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconOpen} from 'sentry/icons';
+import {
+  IconChevron,
+  IconJson,
+  IconOpen,
+  IconPanel,
+  IconProfiling,
+  IconShow,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, EventTransaction} from 'sentry/types/event';
@@ -51,6 +58,7 @@ import type {ParentAutogroupNode} from '../../traceModels/parentAutogroupNode';
 import type {SiblingAutogroupNode} from '../../traceModels/siblingAutogroupNode';
 import {TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
+import {useTraceState, useTraceStateDispatch} from '../../traceState/traceStateProvider';
 import {useHasTraceNewUi} from '../../useHasTraceNewUi';
 
 const DetailContainer = styled('div')<{hasNewTraceUi?: boolean}>`
@@ -84,13 +92,42 @@ const Title = styled(FlexBox)`
   }
 `;
 
-const TitleText = styled('div')`
+const LegacyTitleText = styled('div')`
   ${p => p.theme.overflowEllipsis}
+`;
+
+const TitleText = styled('div')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: bold;
 `;
 
 function TitleWithTestId(props: PropsWithChildren<{}>) {
   return <Title data-test-id="trace-drawer-title">{props.children}</Title>;
 }
+
+function SubtitleWithCopyButton({text}: {text: string}) {
+  return (
+    <SubTitleWrapper>
+      <StyledSubTitleText>{text}</StyledSubTitleText>
+      <CopyToClipboardButton
+        borderless
+        size="zero"
+        iconSize="xs"
+        text={text}
+        tooltipProps={{disabled: true}}
+      />
+    </SubTitleWrapper>
+  );
+}
+
+const SubTitleWrapper = styled(FlexBox)`
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const StyledSubTitleText = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+`;
 
 function TitleOp({text}: {text: string}) {
   return (
@@ -156,7 +193,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
   }
 `;
 
-const HeaderContainer = styled(FlexBox)`
+const LegacyHeaderContainer = styled(FlexBox)`
   justify-content: space-between;
   gap: ${space(3)};
   container-type: inline-size;
@@ -175,6 +212,13 @@ const HeaderContainer = styled(FlexBox)`
       display: none;
     }
   }
+`;
+
+const HeaderContainer = styled(FlexBox)`
+  align-items: baseline;
+  justify-content: space-between;
+  gap: ${space(3)};
+  margin-bottom: ${space(2)};
 `;
 
 const DURATION_COMPARISON_STATUS_COLORS: {
@@ -404,6 +448,71 @@ function TypeSafeBoolean<T>(value: T | null | undefined): value is NonNullable<T
   return value !== null && value !== undefined;
 }
 
+function PanelPositionDropDown({organization}: {organization: Organization}) {
+  const traceState = useTraceState();
+  const traceDispatch = useTraceStateDispatch();
+
+  const options: MenuItemProps[] = [];
+
+  const layoutOptions = traceState.preferences.drawer.layoutOptions;
+  if (layoutOptions.includes('drawer left')) {
+    options.push({
+      key: 'drawer-left',
+      onAction: () => {
+        traceAnalytics.trackLayoutChange('drawer left', organization);
+        traceDispatch({type: 'set layout', payload: 'drawer left'});
+      },
+      leadingItems: <IconPanel direction="left" size="xs" />,
+      label: t('Left'),
+      disabled: traceState.preferences.layout === 'drawer left',
+    });
+  }
+
+  if (layoutOptions.includes('drawer right')) {
+    options.push({
+      key: 'drawer-right',
+      onAction: () => {
+        traceAnalytics.trackLayoutChange('drawer right', organization);
+        traceDispatch({type: 'set layout', payload: 'drawer right'});
+      },
+      leadingItems: <IconPanel direction="right" size="xs" />,
+      label: t('Right'),
+      disabled: traceState.preferences.layout === 'drawer right',
+    });
+  }
+
+  if (layoutOptions.includes('drawer bottom')) {
+    options.push({
+      key: 'drawer-bottom',
+      onAction: () => {
+        traceAnalytics.trackLayoutChange('drawer bottom', organization);
+        traceDispatch({type: 'set layout', payload: 'drawer bottom'});
+      },
+      leadingItems: <IconPanel direction="down" size="xs" />,
+      label: t('Bottom'),
+      disabled: traceState.preferences.layout === 'drawer bottom',
+    });
+  }
+
+  return (
+    <DropdownMenu
+      size="sm"
+      items={options}
+      menuTitle={<div>{t('Position')}</div>}
+      trigger={triggerProps => (
+        <Tooltip title={t('Panel Position')}>
+          <ActionButton
+            {...triggerProps}
+            size="xs"
+            aria-label={t('Panel position')}
+            icon={<IconPanel direction="right" size="xs" />}
+          />
+        </Tooltip>
+      )}
+    />
+  );
+}
+
 function NodeActions(props: {
   node: TraceTreeNode<any>;
   onTabScrollToNode: (
@@ -416,7 +525,7 @@ function NodeActions(props: {
   organization: Organization;
   eventSize?: number | undefined;
 }) {
-  const navigate = useNavigate();
+  const hasNewTraceUi = useHasTraceNewUi();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
@@ -425,7 +534,7 @@ function NodeActions(props: {
     organization,
   });
 
-  const profilerId = useMemo(() => {
+  const profilerId: string = useMemo(() => {
     if (isTransactionNode(props.node)) {
       return props.node.value.profiler_id;
     }
@@ -442,12 +551,101 @@ function NodeActions(props: {
     threadId: getThreadIdFromNode(props.node, transaction),
   });
 
+  if (!hasNewTraceUi) {
+    return (
+      <LegacyNodeActions
+        {...props}
+        profileLink={profileLink}
+        profilerId={profilerId}
+        transaction={transaction}
+      />
+    );
+  }
+
+  return (
+    <ActionWrapper>
+      <Tooltip title={t('Show in view')}>
+        <ActionButton
+          onClick={_e => {
+            traceAnalytics.trackShowInView(props.organization);
+            props.onTabScrollToNode(props.node);
+          }}
+          size="xs"
+          aria-label={t('Show in view')}
+          icon={<IconShow size="xs" />}
+        />
+      </Tooltip>
+      {isTransactionNode(props.node) ? (
+        <Tooltip title={t('JSON')}>
+          <ActionButton
+            onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
+            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
+            size="xs"
+            aria-label={t('JSON')}
+            icon={<IconJson size="xs" />}
+          />
+        </Tooltip>
+      ) : null}
+      {organization.features.includes('continuous-profiling-ui') && !!profileLink ? (
+        <Tooltip title={t('Continuous Profile')}>
+          <ActionButton
+            size="xs"
+            aria-label={t('Continuous Profile')}
+            icon={<IconProfiling size="xs" />}
+          />
+        </Tooltip>
+      ) : null}
+      <PanelPositionDropDown organization={organization} />
+    </ActionWrapper>
+  );
+}
+
+const ActionButton = styled(Button)`
+  border: none;
+  background-color: transparent;
+  box-shadow: none;
+  transition: none !important;
+  opacity: 0.8;
+  height: 24px;
+  max-height: 24px;
+
+  &:hover {
+    border: none;
+    background-color: transparent;
+    box-shadow: none;
+    opacity: 1;
+  }
+`;
+
+const ActionWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
+`;
+
+function LegacyNodeActions(props: {
+  node: TraceTreeNode<any>;
+  onTabScrollToNode: (
+    node:
+      | TraceTreeNode<any>
+      | ParentAutogroupNode
+      | SiblingAutogroupNode
+      | MissingInstrumentationNode
+  ) => void;
+  profileLink: LocationDescriptor | null;
+  profilerId: string;
+  transaction: EventTransaction | undefined;
+  eventSize?: number | undefined;
+}) {
+  const navigate = useNavigate();
+  const organization = useOrganization();
+
   const items = useMemo((): MenuItemProps[] => {
     const showInView: MenuItemProps = {
       key: 'show-in-view',
       label: t('Show in View'),
       onAction: () => {
-        traceAnalytics.trackShowInView(props.organization);
+        traceAnalytics.trackShowInView(organization);
         props.onTabScrollToNode(props.node);
       },
     };
@@ -463,9 +661,9 @@ function NodeActions(props: {
     const jsonDetails: MenuItemProps = {
       key: 'json-details',
       onAction: () => {
-        traceAnalytics.trackViewEventJSON(props.organization);
+        traceAnalytics.trackViewEventJSON(organization);
         window.open(
-          `/api/0/projects/${props.organization.slug}/${projectSlug}/events/${eventId}/json/`,
+          `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/json/`,
           '_blank'
         );
       },
@@ -475,12 +673,12 @@ function NodeActions(props: {
     };
 
     const continuousProfileLink: MenuItemProps | null =
-      organization.features.includes('continuous-profiling-ui') && !!profileLink
+      organization.features.includes('continuous-profiling-ui') && !!props.profileLink
         ? {
             key: 'continuous-profile',
             onAction: () => {
-              traceAnalytics.trackViewContinuousProfile(props.organization);
-              navigate(profileLink!);
+              traceAnalytics.trackViewContinuousProfile(organization);
+              navigate(props.profileLink!);
             },
             label: t('Continuous Profile'),
           }
@@ -506,20 +704,21 @@ function NodeActions(props: {
     }
 
     return [showInView];
-  }, [props, profileLink, navigate, organization.features]);
+  }, [props, navigate, organization]);
 
   return (
     <ActionsContainer>
       <Actions className="Actions">
-        {organization.features.includes('continuous-profiling-ui') && !!profileLink ? (
-          <LinkButton size="xs" to={profileLink}>
+        {organization.features.includes('continuous-profiling-ui') &&
+        !!props.profileLink ? (
+          <LinkButton size="xs" to={props.profileLink}>
             {t('Continuous Profile')}
           </LinkButton>
         ) : null}
         <Button
           size="xs"
           onClick={_e => {
-            traceAnalytics.trackShowInView(props.organization);
+            traceAnalytics.trackShowInView(organization);
             props.onTabScrollToNode(props.node);
           }}
         >
@@ -530,8 +729,8 @@ function NodeActions(props: {
           <LinkButton
             size="xs"
             icon={<IconOpen />}
-            onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
+            onClick={() => traceAnalytics.trackViewEventJSON(organization)}
+            href={`/api/0/projects/${organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
             external
           >
             {t('JSON')} (<FileSize bytes={props.eventSize ?? 0} />)
@@ -721,12 +920,14 @@ const TraceDrawerComponents = {
   Type,
   TitleOp,
   HeaderContainer,
+  LegacyHeaderContainer,
   Actions,
   NodeActions,
   Table,
   IconTitleWrapper,
   IconBorder,
   TitleText,
+  LegacyTitleText,
   Duration,
   TableRow,
   LAZY_RENDER_PROPS,
@@ -736,6 +937,7 @@ const TraceDrawerComponents = {
   SectionCard,
   CopyableCardValueWithLink,
   EventTags,
+  SubtitleWithCopyButton,
   TraceDataSection,
   SectionCardGroup,
   DropdownMenuWithPortal,

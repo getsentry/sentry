@@ -109,7 +109,7 @@ function GeneralInfo(props: GeneralInfoProps) {
   }
 
   return (
-    <InterimSection title={t('General')} initialCollapse type="transaction_general">
+    <InterimSection title={t('General')} initialCollapse type="trace_transaction_general">
       <ContentWrapper>
         {items.map(item => (
           <Content key={item.key} item={item} />
