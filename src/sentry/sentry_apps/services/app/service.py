@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.auth.services.auth import AuthenticationContext
-from sentry.hybridcloud.rpc.caching.service import back_with_silo_cache
+from sentry.hybridcloud.rpc.caching.service import back_with_silo_cache, back_with_silo_cache_many
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.sentry_apps.services.app import (
@@ -66,6 +66,24 @@ class AppService(RpcService):
         self,
         *,
         organization_id: int,
+    ) -> list[RpcSentryAppInstallation]:
+        # Deprecated use get_installations_for_organization instead.
+        pass
+
+    def installations_for_organization(
+        self, *, organization_id: int
+    ) -> list[RpcSentryAppInstallation]:
+        """
+        Get a list of installations for an organization_id
+
+        This is a cached wrapper around get_installations_for_organization
+        """
+        return get_installations_for_organization(ids=[organization_id])
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_installations_for_organization(
+        self, *, organization_id: int
     ) -> list[RpcSentryAppInstallation]:
         pass
 
@@ -197,6 +215,14 @@ class AppService(RpcService):
 @back_with_silo_cache("app_service.get_installation", SiloMode.REGION, RpcSentryAppInstallation)
 def get_installation(id: int) -> RpcSentryAppInstallation | None:
     return app_service.get_installation_by_id(id=id)
+
+
+@back_with_silo_cache_many(
+    "app_service.get_installed_for_organization", SiloMode.REGION, RpcSentryAppInstallation
+)
+def get_installations_for_organization(ids: list[int]) -> list[RpcSentryAppInstallation]:
+    assert len(ids) == 1, "only a single organization is supported at this time"
+    return app_service.get_installations_for_organization(organization_id=ids[0])
 
 
 @back_with_silo_cache("app_service.get_by_application_id", SiloMode.REGION, RpcSentryApp)
