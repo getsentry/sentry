@@ -40,7 +40,10 @@ class OrganizationRollbackUserEndpoint(OrganizationEndpoint):
 
         # Validate that the organization has rollbacks enabled
         if not organization.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT):
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                status=status.HTTP_403_FORBIDDEN,
+                data={"detail": "Rollbacks are disabled for this organization."},
+            )
 
         try:
             rollback_user = RollbackUser.objects.get(
