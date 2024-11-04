@@ -7,7 +7,7 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
-import type {FieldDefinition} from 'sentry/utils/fields';
+import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 
 export interface SearchQueryBuilderContextData {
   disabled: boolean;
@@ -18,7 +18,7 @@ export interface SearchQueryBuilderContextData {
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
-  getFieldDefinition: (key: string) => FieldDefinition | null;
+  getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
   handleSearch: (query: string) => void;
   parsedQuery: ParseResult | null;
