@@ -494,7 +494,8 @@ class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
                 invalid_team_ids_str = ", ".join(str(id) for id in invalid_team_ids)
                 raise serializers.ValidationError(
                     {
-                        f"Cannot update dashboard edit permissions. Teams with IDs [{invalid_team_ids_str}] do not exist."
+                        "Cannot update dashboard edit permissions. Teams with IDs [%s] do not exist."
+                        % invalid_team_ids_str
                     }
                 )
         return data
