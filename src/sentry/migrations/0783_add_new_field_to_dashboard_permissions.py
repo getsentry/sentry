@@ -28,10 +28,25 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="dashboardpermissions",
-            name="is_editable_by_everyone",
-            field=models.BooleanField(default=True),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_dashboardpermissions" ADD COLUMN "is_editable_by_everyone" boolean NOT NULL DEFAULT true;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_dashboardpermissions" DROP COLUMN "is_editable_by_everyone";
+                    """,
+                    hints={"tables": ["sentry_dashboardpermissions"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="dashboardpermissions",
+                    name="is_editable_by_everyone",
+                    field=models.BooleanField(default=True),
+                ),
+            ],
         ),
         migrations.CreateModel(
             name="DashboardPermissionsTeam",

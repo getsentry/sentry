@@ -52,4 +52,4 @@ class DashboardPermissions(Model):
         app_label = "sentry"
         db_table = "sentry_dashboardpermissions"
 
-    __repr__ = sane_repr("is_editable_by_everyone", "teams_with_edit_access")
+    __repr__ = sane_repr("is_editable_by_everyone")
