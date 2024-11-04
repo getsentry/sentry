@@ -592,10 +592,6 @@
     "sentry.file",
     "sentry.project"
   ],
-  "sentry.projectintegration": [
-    "sentry.integration",
-    "sentry.project"
-  ],
   "sentry.projectkey": [
     "sentry.project"
   ],

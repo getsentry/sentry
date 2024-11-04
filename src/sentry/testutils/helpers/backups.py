@@ -59,7 +59,6 @@ from sentry.incidents.models.incident import (
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.models.project_integration import ProjectIntegration
 from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -433,11 +432,6 @@ class ExhaustiveFixtures(Fixtures):
         # Integration*
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
-        # Note: this model is deprecated, and can safely be removed from this test when it is
-        # finally removed. Until then, it is included for completeness.
-        ProjectIntegration.objects.create(
-            project=project, integration_id=integration_id, config='{"hello":"hello"}'
-        )
 
         # Rule*
         rule = self.create_project_rule(project=project, owner_user_id=owner_id)

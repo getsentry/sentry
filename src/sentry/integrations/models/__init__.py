@@ -20,5 +20,4 @@ from .integration import Integration
 from .integration_external_project import IntegrationExternalProject
 from .integration_feature import IntegrationFeature
 from .organization_integration import OrganizationIntegration
-from .project_integration import ProjectIntegration
 from .repository_project_path_config import RepositoryProjectPathConfig
