@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -40,7 +40,7 @@ function OrganizationProjects() {
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
 
-  const time = useRef(new Date().getTime());
+  const [since] = useState(new Date().getTime() / 1000 - 3600 * 24);
   const {
     data: projectList,
     getResponseHeader,
@@ -65,14 +65,17 @@ function OrganizationProjects() {
       `/organizations/${organization.slug}/stats/`,
       {
         query: {
-          since: time.current / 1000 - 3600 * 24,
+          projectID: projectList?.map(p => p.id),
+          since,
           stat: 'generated',
           group: 'project',
-          per_page: ITEMS_PER_PAGE,
         },
       },
     ],
-    {staleTime: 0}
+    {
+      staleTime: 60_000,
+      enabled: !!projectList,
+    }
   );
 
   const projectListPageLinks = getResponseHeader?.('Link');
@@ -84,7 +87,7 @@ function OrganizationProjects() {
         (searchQuery: string) =>
           browserHistory.replace({
             pathname: location.pathname,
-            query: {...location.query, query: searchQuery},
+            query: {...location.query, query: searchQuery, cursor: undefined},
           }),
         DEFAULT_DEBOUNCE_DURATION
       ),
