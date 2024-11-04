@@ -356,7 +356,7 @@ class ResultGrid extends Component<Props, State> {
           />
           {Object.keys(filters ?? {}).map(filterKey => (
             <Filter
-              key={`${filterKey}-${this.state.filters[filterKey]}`}
+              key={filterKey}
               queryKey={filterKey}
               value={this.state.filters[filterKey]}
               path={path ?? ''}
