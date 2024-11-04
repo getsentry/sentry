@@ -13,6 +13,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface Props {
@@ -47,6 +48,8 @@ export function ReplayDiffSection({event, group, replayId}: Props) {
           }
         />
       </ReactLazyLoad>
+      {/* We have to manually add a section divider since LazyLoad puts the section in a wrapper */}
+      <SectionDivider />
     </ErrorBoundary>
   );
 }
