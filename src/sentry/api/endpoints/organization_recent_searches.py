@@ -28,8 +28,8 @@ class OrganizationRecentSearchPermission(OrganizationPermission):
 class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationRecentSearchPermission,)
 
