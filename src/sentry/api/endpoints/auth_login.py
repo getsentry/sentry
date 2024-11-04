@@ -1,3 +1,4 @@
+from django.http import HttpRequest
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -23,7 +24,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     permission_classes = ()
 
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> Response:
         self.determine_active_organization(request)
         return super().dispatch(request, *args, **kwargs)
 
