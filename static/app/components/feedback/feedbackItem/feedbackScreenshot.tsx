@@ -36,7 +36,7 @@ export default function FeedbackScreenshot({
   const img = (
     <StyledImageVisualization
       attachment={screenshot}
-      orgId={organization.slug}
+      orgSlug={organization.slug}
       projectSlug={projectSlug}
       eventId={screenshot.event_id}
       onLoad={() => {
