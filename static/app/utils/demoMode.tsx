@@ -1,6 +1,10 @@
 import ConfigStore from 'sentry/stores/configStore';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 
+import {demoSignupModal} from '../actionCreators/modal';
+
+const SIGN_UP_MODAL_DELAY = 20_000;
+
 export function extraQueryParameter(): URLSearchParams {
   const extraQueryString = window.SandboxData?.extraQueryString || '';
   const extraQuery = new URLSearchParams(extraQueryString);
@@ -24,10 +28,18 @@ export function urlAttachQueryParams(url: string, params: URLSearchParams): stri
   return url;
 }
 
-// For the Sandbox, we are testing a new walkthrough. This affects a few different components of Sentry including the Onboarding Sidebar, Onboarding Tasks, the Demo End Modal, Demo Sign Up Modal, Guides, and more.
-// Outside of the Sandbox, this should have no effect on other elements of Sentry.
-export function isDemoWalkthrough(): boolean {
+export function isDemoModeEnabled(): boolean {
   return ConfigStore.get('demoMode');
+}
+
+export function openDemoSignupModal() {
+  if (!isDemoModeEnabled()) {
+    return;
+  }
+
+  setTimeout(() => {
+    demoSignupModal();
+  }, SIGN_UP_MODAL_DELAY);
 }
 
 // Function to determine which tour has completed depending on the guide that is being passed in.

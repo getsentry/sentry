@@ -43,7 +43,7 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
@@ -111,7 +111,7 @@ function useOpenOnboardingSidebar(organization?: Organization) {
 
   const openOnboardingSidebar = (() => {
     if (location?.hash === '#welcome') {
-      if (organization && !ConfigStore.get('demoMode')) {
+      if (organization && !isDemoModeEnabled()) {
         const tasks = getMergedTasks({
           organization,
           projects: project,
@@ -224,7 +224,7 @@ function Sidebar() {
     return () => bcl.remove('hasNewNav');
   }, [hasNewNav]);
 
-  const sidebarAnchor = isDemoWalkthrough() ? (
+  const sidebarAnchor = isDemoModeEnabled() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
     </GuideAnchor>
@@ -897,7 +897,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
           : 'expandedWidth'
     ]};
   position: fixed;
-  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
+  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
   left: 0;
   bottom: 0;
   justify-content: space-between;

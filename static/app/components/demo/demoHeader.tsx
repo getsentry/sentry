@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
@@ -10,15 +11,25 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
+  isDemoModeEnabled,
+  openDemoSignupModal,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
 
 export default function DemoHeader() {
+  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
+
+  useEffect(() => {
+    openDemoSignupModal();
+  }, []);
+
+  if (!isDemoModeEnabled()) {
+    return null;
+  }
+
   const sandboxData = window.SandboxData;
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const extraSearchParams = extraQueryParameter();
-
-  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
 
   const docsBtn = (
     <DocsDemoBtn
