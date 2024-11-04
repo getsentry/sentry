@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {
   DATA_TYPE,
   SUMMARY_PAGE_TITLE,
@@ -25,15 +26,17 @@ function ScreenRenderingSummary() {
         module={ModuleName.SCREEN_RENDERING}
         breadcrumbs={[{label: SUMMARY_PAGE_TITLE}]}
       />
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ScreenSummaryContent />
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
+      <ModuleBodyUpsellHook moduleName={ModuleName.APP_START}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ModuleLayout.Layout>
+              <ModuleLayout.Full>
+                <ScreenSummaryContent />
+              </ModuleLayout.Full>
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </ModuleBodyUpsellHook>
     </Fragment>
   );
 }
