@@ -1,3 +1,4 @@
+import re
 from typing import Literal
 
 import sentry_sdk
@@ -38,6 +39,8 @@ SCHEDULE_TYPES = {
 IntervalNames = Literal["year", "month", "week", "day", "hour", "minute"]
 
 INTERVAL_NAMES = ("year", "month", "week", "day", "hour", "minute")
+
+CRONTAB_WHITESPACE = re.compile(r"\s+")
 
 # XXX(dcramer): @reboot is not supported (as it cannot be)
 NONSTANDARD_CRONTAB_SCHEDULES = {
@@ -210,7 +213,10 @@ class ConfigValidator(serializers.Serializer):
 
             if not isinstance(schedule, str):
                 raise ValidationError({"schedule": "Invalid schedule for 'crontab' type"})
-            schedule = schedule.strip()
+
+            # normalize whitespace
+            schedule = re.sub(CRONTAB_WHITESPACE, " ", schedule).strip()
+
             if schedule.startswith("@"):
                 try:
                     schedule = NONSTANDARD_CRONTAB_SCHEDULES[schedule]
