@@ -47,6 +47,7 @@ export type BaseEventAnalyticsParams = {
   frames_without_source_maps_percent?: number;
   has_graphql_request?: boolean;
   has_otel?: boolean;
+  is_sample_event?: boolean;
   mobile?: boolean;
   release_user_agent?: string;
   sdk_name?: string;

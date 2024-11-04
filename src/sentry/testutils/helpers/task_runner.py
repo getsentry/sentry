@@ -17,11 +17,12 @@ def TaskRunner() -> Generator[None]:
     prev = settings.CELERY_ALWAYS_EAGER
     settings.CELERY_ALWAYS_EAGER = True
     current_app.conf.CELERY_ALWAYS_EAGER = True
-    try:
-        yield
-    finally:
-        current_app.conf.CELERY_ALWAYS_EAGER = prev
-        settings.CELERY_ALWAYS_EAGER = prev
+    with mock.patch.object(settings, "TASK_WORKER_ALWAYS_EAGER", True):
+        try:
+            yield
+        finally:
+            current_app.conf.CELERY_ALWAYS_EAGER = prev
+            settings.CELERY_ALWAYS_EAGER = prev
 
 
 class BurstTaskRunnerRetryError(Exception):

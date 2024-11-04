@@ -148,6 +148,24 @@ const trackTraceConfigurationsDocsClicked = (organization: Organization, title: 
     title,
   });
 
+const trackAutogroupingPreferenceChange = (
+  organization: Organization,
+  enabled: boolean
+) =>
+  trackAnalytics('trace.preferences.autogrouping_change', {
+    organization,
+    enabled,
+  });
+
+const trackMissingInstrumentationPreferenceChange = (
+  organization: Organization,
+  enabled: boolean
+) =>
+  trackAnalytics('trace.preferences.missing_instrumentation_change', {
+    organization,
+    enabled,
+  });
+
 const traceAnalytics = {
   // Trace shape
   trackTraceMetadata,
@@ -176,6 +194,9 @@ const traceAnalytics = {
   trackQuotaExceededBannerLoaded,
   trackTraceConfigurationsDocsClicked,
   trackMissingSpansDocLinkClicked,
+  // Trace Preferences
+  trackAutogroupingPreferenceChange,
+  trackMissingInstrumentationPreferenceChange,
 };
 
 export {traceAnalytics};

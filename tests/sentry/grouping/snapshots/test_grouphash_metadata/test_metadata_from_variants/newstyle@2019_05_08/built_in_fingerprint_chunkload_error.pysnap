@@ -1,0 +1,21 @@
+---
+created: '2024-10-28T14:02:39.210230+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "925057f3a51f4b7bf154e59a63eb3f86"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "foo.bar"
+              function*
+                "main"
+          type*
+            "ChunkLoadError"

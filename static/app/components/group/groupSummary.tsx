@@ -14,7 +14,6 @@ import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface GroupSummaryProps {
   groupCategory: IssueCategory;
@@ -87,15 +86,13 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
 
   const openForm = useFeedbackForm();
 
-  const isStreamlined = useHasStreamlinedUI();
-
   if (!isSummaryEnabled(hasGenAIConsent, groupCategory)) {
     // TODO: Render a banner for needing genai consent
     return null;
   }
 
   return (
-    <Wrapper isStreamlined={isStreamlined}>
+    <Wrapper>
       <StyledTitleRow onClick={() => setExpanded(!data ? false : !expanded)}>
         <CollapsedRow>
           <IconContainer>
@@ -182,8 +179,8 @@ const SummaryPreview = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
-const Wrapper = styled(Panel)<{isStreamlined: boolean}>`
-  margin-bottom: ${p => (p.isStreamlined ? 0 : space(1))};
+const Wrapper = styled(Panel)`
+  margin-bottom: ${space(1)};
   padding: ${space(0.5)};
 `;
 

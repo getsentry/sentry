@@ -26,6 +26,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
+import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
 
@@ -140,6 +141,9 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
 
   const renderContent = () => {
     if (loadingEvent) {
+      if (hasStreamlinedUI) {
+        return <GroupEventDetailsLoading />;
+      }
       return <LoadingIndicator />;
     }
 
