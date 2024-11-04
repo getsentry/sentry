@@ -948,7 +948,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.create_project(teams=[self.team])
 
         queries = [
-            "viewed_by_me:potato" "duration:a",
+            "viewed_by_me:potato",
+            "duration:a",
             # TODO: remove once we support ms timestamps
             "duration:1004ms",
             "duration:7.3s",
