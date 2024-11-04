@@ -71,7 +71,7 @@ DASHBOARD_OBJECT = {
     "permissions": {
         "is_editable_by_everyone": True,
         "teams_ids_with_edit_access": [],
-        "is_creator_only_editable": True,
+        "is_creator_only_editable": False,
     },
 }
 

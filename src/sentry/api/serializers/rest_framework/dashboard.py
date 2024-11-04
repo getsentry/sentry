@@ -472,7 +472,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
 class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
     is_editable_by_everyone = serializers.BooleanField(
-        help_text="Whether the dashboard is editable only by the creator.",
+        help_text="Whether the dashboard is editable by everyone.",
     )
     teams_with_edit_access = serializers.ListField(
         child=serializers.IntegerField(),
@@ -604,7 +604,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             permissions_data = validated_data["permissions"]
             permissions = DashboardPermissions.objects.update_or_create(
                 dashboard=instance,
-                defaults={"is_editable_by_everyone": permissions_data["is_editable_by_everyone"]},
+                defaults={
+                    "is_editable_by_everyone": permissions_data["is_editable_by_everyone"],
+                },
             )[0]
             if (
                 "teams_with_edit_access" in permissions_data
