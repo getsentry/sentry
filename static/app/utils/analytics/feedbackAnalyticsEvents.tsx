@@ -1,4 +1,8 @@
 export type FeedbackEventParameters = {
+  'feedback.anomaly-detection-feedback-submitted': {
+    choice_selected: boolean;
+    incident_id: string;
+  };
   'feedback.details-integration-issue-clicked': {
     integration_key: string;
   };
@@ -18,6 +22,7 @@ export type FeedbackEventParameters = {
 export type FeedbackEventKey = keyof FeedbackEventParameters;
 
 export const feedbackEventMap: Record<FeedbackEventKey, string | null> = {
+  'feedback.anomaly-detection-feedback-submitted': 'Anomaly Detection Feedback Submitted',
   'feedback.feedback-item-not-found': 'Feedback item not found',
   'feedback.feedback-item-rendered': 'Loaded and rendered a feedback item',
   'feedback.index-setup-viewed': 'Viewed Feedback Onboarding Setup',
