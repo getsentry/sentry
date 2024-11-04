@@ -420,49 +420,57 @@ function DiffHunkContent({
             )}
             {editingGroup === index && (
               <EditOverlay ref={overlayRef}>
-                <OverlayTitle>{t('Editing %s', fileName)}</OverlayTitle>
-                <SectionTitle>{getDeletedLineTitle(index)}</SectionTitle>
-                {linesWithChanges
-                  .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
-                  .filter(l => l.line_type === DiffLineType.REMOVED).length > 0 ? (
-                  <RemovedLines>
-                    {linesWithChanges
-                      .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
-                      .filter(l => l.line_type === DiffLineType.REMOVED)
-                      .map((l, i) => (
-                        <RemovedLine key={i}>{l.value}</RemovedLine>
-                      ))}
-                  </RemovedLines>
-                ) : (
-                  <NoChangesMessage>{t('No lines are being deleted.')}</NoChangesMessage>
-                )}
-                <SectionTitle>{getNewLineTitle(index)}</SectionTitle>
-                <TextAreaWrapper>
-                  <StyledTextArea
-                    value={editedContent}
-                    onChange={handleTextAreaChange}
-                    rows={5}
-                    autosize
-                    placeholder={
-                      editedLines.length === 0 ? t('No lines are being added...') : ''
-                    }
-                  />
-                  <ClearButton
-                    size="xs"
-                    onClick={handleClearChanges}
-                    aria-label={t('Clear changes')}
-                    icon={<IconDelete size="xs" />}
-                    title={t('Clear all new lines')}
-                  />
-                </TextAreaWrapper>
-                <OverlayButtonGroup>
-                  <Button size="xs" onClick={handleCancelEdit}>
-                    {t('Cancel')}
-                  </Button>
-                  <Button size="xs" priority="primary" onClick={handleSaveEdit}>
-                    {t('Save')}
-                  </Button>
-                </OverlayButtonGroup>
+                <OverlayHeader>
+                  <OverlayTitle>{t('Editing %s', fileName)}</OverlayTitle>
+                </OverlayHeader>
+                <OverlayContent>
+                  <SectionTitle>{getDeletedLineTitle(index)}</SectionTitle>
+                  {linesWithChanges
+                    .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
+                    .filter(l => l.line_type === DiffLineType.REMOVED).length > 0 ? (
+                    <RemovedLines>
+                      {linesWithChanges
+                        .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
+                        .filter(l => l.line_type === DiffLineType.REMOVED)
+                        .map((l, i) => (
+                          <RemovedLine key={i}>{l.value}</RemovedLine>
+                        ))}
+                    </RemovedLines>
+                  ) : (
+                    <NoChangesMessage>
+                      {t('No lines are being deleted.')}
+                    </NoChangesMessage>
+                  )}
+                  <SectionTitle>{getNewLineTitle(index)}</SectionTitle>
+                  <TextAreaWrapper>
+                    <StyledTextArea
+                      value={editedContent}
+                      onChange={handleTextAreaChange}
+                      rows={5}
+                      autosize
+                      placeholder={
+                        editedLines.length === 0 ? t('No lines are being added...') : ''
+                      }
+                    />
+                    <ClearButton
+                      size="xs"
+                      onClick={handleClearChanges}
+                      aria-label={t('Clear changes')}
+                      icon={<IconDelete size="xs" />}
+                      title={t('Clear all new lines')}
+                    />
+                  </TextAreaWrapper>
+                </OverlayContent>
+                <OverlayFooter>
+                  <OverlayButtonGroup>
+                    <Button size="xs" onClick={handleCancelEdit}>
+                      {t('Cancel')}
+                    </Button>
+                    <Button size="xs" priority="primary" onClick={handleSaveEdit}>
+                      {t('Save')}
+                    </Button>
+                  </OverlayButtonGroup>
+                </OverlayFooter>
               </EditOverlay>
             )}
           </DiffContent>
@@ -685,22 +693,38 @@ const ActionButton = styled(Button)<{isHovered: boolean}>`
 
 const EditOverlay = styled('div')`
   position: fixed;
-  bottom: 200px;
+  bottom: 11rem;
   right: ${space(2)};
   left: calc(50% + ${space(2)});
   background: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  padding: ${space(2)};
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 18rem);
+`;
+
+const OverlayHeader = styled('div')`
+  padding: ${space(2)} ${space(2)} 0;
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const OverlayContent = styled('div')`
+  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  overflow-y: auto;
+`;
+
+const OverlayFooter = styled('div')`
+  padding: ${space(2)};
+  border-top: 1px solid ${p => p.theme.border};
 `;
 
 const OverlayButtonGroup = styled('div')`
   display: flex;
   justify-content: flex-end;
   gap: ${space(1)};
-  margin-top: ${space(1)};
   font-family: ${p => p.theme.text.family};
 `;
 

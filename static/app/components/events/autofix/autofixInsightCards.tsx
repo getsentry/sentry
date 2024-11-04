@@ -413,6 +413,9 @@ function ChainLink({
     };
   }, [showOverlay]);
 
+  // Determine if this is the first chain link (before first insight)
+  const isFirstLink = insightCardAboveIndex === null || insightCardAboveIndex < 0;
+
   return (
     <ArrowContainer>
       <IconArrow direction={'down'} className="arrow-icon" />
@@ -426,7 +429,7 @@ function ChainLink({
       />
 
       {showOverlay && (
-        <RethinkInput ref={overlayRef}>
+        <RethinkInput $isFirstLink={isFirstLink} ref={overlayRef}>
           <form
             onSubmit={e => {
               e.preventDefault();
@@ -560,11 +563,11 @@ const RethinkButton = styled(Button)`
   font-weight: normal;
   font-size: small;
   border: none;
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.subText};
   transition: color 0.2s ease-in-out;
 `;
 
-const RethinkInput = styled('div')`
+const RethinkInput = styled('div')<{$isFirstLink: boolean}>`
   position: absolute;
   box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.border};
@@ -574,6 +577,7 @@ const RethinkInput = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   margin: 0 ${space(1.5)} 0 ${space(1.5)};
   z-index: 10000;
+  transform: translateY(${p => (p.$isFirstLink ? '25%' : '-25%')});
 
   .row-form {
     display: flex;
