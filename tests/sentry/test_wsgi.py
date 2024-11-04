@@ -11,6 +11,7 @@ assert "sentry.conf.urls" in sys.modules
 import django.urls.resolvers
 resolver = django.urls.resolvers.get_resolver()
 assert resolver._populated is True
+assert 'en' in resolver._reverse_dict
 """
 
 
