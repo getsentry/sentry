@@ -304,6 +304,7 @@ function TaskGroup({
                 task={task}
                 hidePanel={hidePanel}
                 showWaitingIndicator={taskKeyForWaitingIndicator === task.task}
+                status={task.status === 'pending' ? task.status : undefined}
               />
             ))}
             {completedTasks.length > 0 && (
