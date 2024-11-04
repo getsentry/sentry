@@ -635,14 +635,14 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         if "widgets" in validated_data:
             self.update_widgets(self.instance, validated_data["widgets"])
 
+        self.update_dashboard_filters(self.instance, validated_data)
+
         if features.has(
             "organizations:dashboards-edit-access",
             self.context["organization"],
             actor=self.context["request"].user,
         ):
-            self.update_dashboard_filters(self.instance, validated_data)
-
-        self.update_permissions(self.instance, validated_data)
+            self.update_permissions(self.instance, validated_data)
 
         schedule_update_project_configs(self.instance)
 
