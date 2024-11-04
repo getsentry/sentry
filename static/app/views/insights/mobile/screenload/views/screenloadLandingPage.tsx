@@ -13,6 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -80,29 +81,34 @@ export function PageloadModule() {
           />
         )}
 
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <Container>
-              <ModulePageFilterBar
-                moduleName={ModuleName.SCREEN_LOAD}
-                extraFilters={<ReleaseComparisonSelector />}
-              />
-            </Container>
-            <PageAlert />
-            <ErrorBoundary mini>
-              <ModulesOnboarding moduleName={ModuleName.SCREEN_LOAD}>
-                {onboardingProject && (
-                  <OnboardingContainer>
-                    <Onboarding organization={organization} project={onboardingProject} />
-                  </OnboardingContainer>
-                )}
-                {!onboardingProject && (
-                  <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
-                )}
-              </ModulesOnboarding>
-            </ErrorBoundary>
-          </Layout.Main>
-        </Layout.Body>
+        <ModuleBodyUpsellHook moduleName={ModuleName.SCREEN_LOAD}>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <Container>
+                <ModulePageFilterBar
+                  moduleName={ModuleName.SCREEN_LOAD}
+                  extraFilters={<ReleaseComparisonSelector />}
+                />
+              </Container>
+              <PageAlert />
+              <ErrorBoundary mini>
+                <ModulesOnboarding moduleName={ModuleName.SCREEN_LOAD}>
+                  {onboardingProject && (
+                    <OnboardingContainer>
+                      <Onboarding
+                        organization={organization}
+                        project={onboardingProject}
+                      />
+                    </OnboardingContainer>
+                  )}
+                  {!onboardingProject && (
+                    <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
+                  )}
+                </ModulesOnboarding>
+              </ErrorBoundary>
+            </Layout.Main>
+          </Layout.Body>
+        </ModuleBodyUpsellHook>
       </PageAlertProvider>
     </Layout.Page>
   );

@@ -25,6 +25,7 @@ import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -131,63 +132,65 @@ function ResourceSummary() {
         />
       )}
 
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <HeaderContainer>
-                <ToolRibbon>
-                  <PageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter />
-                  </PageFilterBar>
-
-                  <RenderBlockingSelector
-                    value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
-                  />
-                  <SubregionSelector />
-                </ToolRibbon>
-                <ResourceInfo
-                  isLoading={isPending}
-                  avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
-                  avgDecodedContentLength={
-                    spanMetrics[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`]
-                  }
-                  avgTransferSize={spanMetrics[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`]}
-                  avgDuration={spanMetrics[`avg(${SPAN_SELF_TIME})`]}
-                  throughput={spanMetrics['spm()']}
-                  timeSpentTotal={spanMetrics[`sum(${SPAN_SELF_TIME})`]}
-                  timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
-                />
-              </HeaderContainer>
-            </ModuleLayout.Full>
-
-            {isImage && (
+      <ModuleBodyUpsellHook moduleName={ModuleName.RESOURCE}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ModuleLayout.Layout>
               <ModuleLayout.Full>
-                <SampleImages groupId={groupId} projectId={data?.[0]?.['project.id']} />
+                <HeaderContainer>
+                  <ToolRibbon>
+                    <PageFilterBar condensed>
+                      <ProjectPageFilter />
+                      <EnvironmentPageFilter />
+                      <DatePageFilter />
+                    </PageFilterBar>
+
+                    <RenderBlockingSelector
+                      value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
+                    />
+                    <SubregionSelector />
+                  </ToolRibbon>
+                  <ResourceInfo
+                    isLoading={isPending}
+                    avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
+                    avgDecodedContentLength={
+                      spanMetrics[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`]
+                    }
+                    avgTransferSize={spanMetrics[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`]}
+                    avgDuration={spanMetrics[`avg(${SPAN_SELF_TIME})`]}
+                    throughput={spanMetrics['spm()']}
+                    timeSpentTotal={spanMetrics[`sum(${SPAN_SELF_TIME})`]}
+                    timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
+                  />
+                </HeaderContainer>
               </ModuleLayout.Full>
-            )}
 
-            <ResourceSummaryCharts groupId={groupId} />
+              {isImage && (
+                <ModuleLayout.Full>
+                  <SampleImages groupId={groupId} projectId={data?.[0]?.['project.id']} />
+                </ModuleLayout.Full>
+              )}
 
-            <ModuleLayout.Full>
-              <ResourceSummaryTable />
-            </ModuleLayout.Full>
+              <ResourceSummaryCharts groupId={groupId} />
 
-            <ModuleLayout.Full>
-              <SampleList
-                transactionRoute={webVitalsModuleURL}
-                subregions={filters[SpanMetricsField.USER_GEO_SUBREGION]}
-                groupId={groupId}
-                moduleName={ModuleName.RESOURCE}
-                transactionName={transaction as string}
-                referrer={TraceViewSources.ASSETS_MODULE}
-              />
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
+              <ModuleLayout.Full>
+                <ResourceSummaryTable />
+              </ModuleLayout.Full>
+
+              <ModuleLayout.Full>
+                <SampleList
+                  transactionRoute={webVitalsModuleURL}
+                  subregions={filters[SpanMetricsField.USER_GEO_SUBREGION]}
+                  groupId={groupId}
+                  moduleName={ModuleName.RESOURCE}
+                  transactionName={transaction as string}
+                  referrer={TraceViewSources.ASSETS_MODULE}
+                />
+              </ModuleLayout.Full>
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </ModuleBodyUpsellHook>
     </React.Fragment>
   );
 }

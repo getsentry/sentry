@@ -11,6 +11,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {NoAccess} from 'sentry/views/insights/common/components/noAccess';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {INSIGHTS_TITLE} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
@@ -34,27 +35,47 @@ export function ModulePageProviders({
 }: Props) {
   const organization = useOrganization();
   const moduleTitles = useModuleTitles();
+  const {isInDomainView} = useDomainViewFilters();
 
   useHasDataTrackAnalytics(moduleName as ModuleName, analyticEventName);
 
   const moduleTitle = moduleTitles[moduleName];
+  const shouldUseUpsellHook = !isInDomainView;
 
   const fullPageTitle = [pageTitle, moduleTitle, INSIGHTS_TITLE]
     .filter(Boolean)
     .join(' — ');
 
-  const defaultBody = (
-    <Layout.Page>
-      <Feature features={features} organization={organization} renderDisabled={NoAccess}>
-        <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
-      </Feature>
-    </Layout.Page>
-  );
-
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
-        <UpsellPageHook moduleName={moduleName}>{defaultBody}</UpsellPageHook>
+        {shouldUseUpsellHook && (
+          <UpsellPageHook moduleName={moduleName}>
+            <Layout.Page>
+              <Feature
+                features={features}
+                organization={organization}
+                renderDisabled={NoAccess}
+              >
+                <NoProjectMessage organization={organization}>
+                  {children}
+                </NoProjectMessage>
+              </Feature>
+            </Layout.Page>
+          </UpsellPageHook>
+        )}
+
+        {!shouldUseUpsellHook && (
+          <Layout.Page>
+            <Feature
+              features={['insights-entry-points']}
+              organization={organization}
+              renderDisabled={NoAccess}
+            >
+              <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+            </Feature>
+          </Layout.Page>
+        )}
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );
