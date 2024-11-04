@@ -388,11 +388,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Organization does not have the custom dynamic sample rate feature enabled."
             )
 
-        if not is_organization_mode_sampling(organization):
-            raise serializers.ValidationError(
-                "Must be in Automatic Mode to configure the organization sample rate."
-            )
-
         return value
 
     def validate_samplingMode(self, value):
@@ -948,7 +943,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
 
-            if "targetSampleRate" in changed_data:
+            if (
+                "targetSampleRate" in changed_data
+                and organization.get_option("sentry:sampling_mode")
+                == DynamicSamplingMode.PROJECT.value
+            ):
                 boost_low_volume_projects_of_org_with_query.delay(organization.id)
 
             if "samplingMode" in changed_data and request.access.has_scope("org:write"):
@@ -975,7 +974,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     with transaction.atomic(router.db_for_write(ProjectOption)):
                         if "targetSampleRate" in changed_data:
                             organization.update_option(
-                                "sentry:target_sample_rate", changed_data["targetSampleRate"]
+                                "sentry:target_sample_rate", request.data["targetSampleRate"]
                             )
 
                         for project in organization.project_set.all():

@@ -412,8 +412,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert self.organization.get_option("sentry:target_sample_rate") == 0.123456789
 
         # Verify project options were removed
-        assert project1.get_option("sentry:sampling_rate")
-        assert project2.get_option("sentry:sampling_rate")
+        assert not project1.get_option("sentry:sampling_rate")
+        assert not project2.get_option("sentry:sampling_rate")
 
     def test_sampling_mode_org_to_project(self):
         """
