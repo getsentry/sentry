@@ -822,10 +822,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         assert len(response.data) == 1
 
     def test_disallow_archive_release_when_no_open_membership(self):
-        # test legacy status value of None (=open)
-        self.release.status = None
-        self.release.add_project(self.project)
-        self.release.save()
+        release = self.create_release(project=self.project, version="test@1.0")
 
         # disable Open Membership
         self.organization.flags.allow_joinleave = False
@@ -848,7 +845,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
             url,
             format="json",
             data={
-                "version": self.release.version,
+                "version": release.version,
                 "projects": [],
                 "status": "archived",
             },
@@ -860,13 +857,12 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         team1 = self.create_team(organization=self.organization)
         team2 = self.create_team(organization=self.organization)
 
-        project1 = self.create_project(teams=[team1], organization=self.organization)
+        project1 = self.create_project(
+            name="not_yours", teams=[team1], organization=self.organization
+        )
         project2 = self.create_project(teams=[team2], organization=self.organization)
 
-        # test legacy status value of None (=open)
-        self.release.status = None
-        self.release.add_project(project1)
-        self.release.save()
+        release = self.create_release(project=project1, version="test@1.0")
 
         # disable Open Membership
         self.organization.flags.allow_joinleave = False
@@ -889,12 +885,12 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
             url,
             format="json",
             data={
-                "version": self.release.version,
+                "version": release.version,
                 "projects": [project2.slug],
             },
         )
         assert response.status_code == 400
-        assert b"You do not have permission to one of the projects: bar" in response.content
+        assert b"You do not have permission to one of the projects: not_yours" in response.content
 
 
 class OrganizationReleasesStatsTest(APITestCase):
