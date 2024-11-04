@@ -3,7 +3,7 @@ from enum import Enum
 from attr import dataclass
 
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecycleOutcome
+from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
 
 
 class RepositoryIntegrationInteractionType(Enum):
@@ -20,7 +20,7 @@ class RepositoryIntegrationInteractionType(Enum):
 
 
 @dataclass
-class RepositoryIntegrationInteractionEvent(EventLifecycleMetric):
+class RepositoryIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
     """
     An instance to be recorded of a RepositoryIntegration feature call.
     """
@@ -28,10 +28,11 @@ class RepositoryIntegrationInteractionEvent(EventLifecycleMetric):
     interaction_type: RepositoryIntegrationInteractionType
     provider_key: str
 
-    def get_key(self, outcome: EventLifecycleOutcome) -> str:
-        return self.get_standard_key(
-            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            integration_name=self.provider_key,
-            interaction_type=str(self.interaction_type),
-            outcome=outcome,
-        )
+    def get_integration_domain(self) -> IntegrationDomain:
+        return IntegrationDomain.SOURCE_CODE_MANAGEMENT
+
+    def get_integration_name(self) -> str:
+        return self.provider_key
+
+    def get_interaction_type(self) -> str:
+        return str(self.interaction_type)
