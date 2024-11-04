@@ -918,7 +918,7 @@ def test_get_metrics_dsn(default_project):
     assert get_metrics_dsn(default_project.id) == key1.get_dsn(public=True)
 
 
-@patch("sentry.profiles.task._track_outcome")
+@patch("sentry.profiles.task._track_outcome_legacy")
 @patch("sentry.profiles.task._track_duration_outcome")
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._deobfuscate_profile")
@@ -933,7 +933,7 @@ def test_process_profile_task_should_emit_profile_duration_outcome(
     _deobfuscate_profile,
     _symbolicate_profile,
     _track_duration_outcome,
-    _track_outcome,
+    _track_outcome_legacy,
     profile,
     organization,
     project,
@@ -952,13 +952,13 @@ def test_process_profile_task_should_emit_profile_duration_outcome(
     assert _track_duration_outcome.call_count == 1
 
     if "profiler_id" not in profile:
-        assert _track_outcome.call_count == 1
+        assert _track_outcome_legacy.call_count == 1
     else:
-        assert _track_outcome.call_count == 0
+        assert _track_outcome_legacy.call_count == 0
 
 
 @patch("sentry.quotas.backend.should_emit_profile_duration_outcome")
-@patch("sentry.profiles.task._track_outcome")
+@patch("sentry.profiles.task._track_outcome_legacy")
 @patch("sentry.profiles.task._track_duration_outcome")
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._deobfuscate_profile")
@@ -973,7 +973,7 @@ def test_process_profile_task_should_not_emit_profile_duration_outcome(
     _deobfuscate_profile,
     _symbolicate_profile,
     _track_duration_outcome,
-    _track_outcome,
+    _track_outcome_legacy,
     should_emit_profile_duration_outcome,
     profile,
     organization,
@@ -998,6 +998,6 @@ def test_process_profile_task_should_not_emit_profile_duration_outcome(
     )
 
     if "profiler_id" not in profile:
-        assert _track_outcome.call_count == 1
+        assert _track_outcome_legacy.call_count == 1
     else:
-        assert _track_outcome.call_count == 0
+        assert _track_outcome_legacy.call_count == 0
