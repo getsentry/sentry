@@ -27,13 +27,16 @@ def has_dynamic_sampling(organization: Organization | None) -> bool:
     return features.has("organizations:dynamic-sampling", organization)
 
 
-def has_custom_dynamic_sampling(organization: Organization) -> bool:
-    return features.has("organizations:dynamic-sampling-custom", organization)
+def has_custom_dynamic_sampling(organization: Organization | None) -> bool:
+    return organization is not None and features.has(
+        "organizations:dynamic-sampling-custom", organization
+    )
 
 
-def is_project_mode_sampling(organization: Organization) -> bool:
+def is_project_mode_sampling(organization: Organization | None) -> bool:
     return (
-        has_custom_dynamic_sampling(organization)
+        organization is not None
+        and has_custom_dynamic_sampling(organization)
         and organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
         == DynamicSamplingMode.PROJECT
     )

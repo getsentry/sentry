@@ -27,7 +27,7 @@ def get_org_sample_rate(
 
     has_dynamic_sampling_custom = features.has("organizations:dynamic-sampling-custom", org)
     if has_dynamic_sampling_custom:
-        sample_rate = org.get_option("sentry:target_sample_rate")
+        sample_rate = org.get_option("sentry:target_sample_rate") if org else None
         if sample_rate is not None:
             return float(sample_rate), True
         if default_sample_rate is not None:
