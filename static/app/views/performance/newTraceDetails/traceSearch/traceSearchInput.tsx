@@ -60,24 +60,32 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
     // if previous status was loading, show loading icon for at least 500ms
     if (!statusRef.current && traceState.search.status) {
       setStatus([performance.now(), traceState.search.status[1]]);
-      return;
+      return undefined;
     }
+
+    let cancel = false;
 
     const nextStatus = traceState.search.status;
     if (nextStatus) {
       const elapsed = performance.now() - nextStatus[0];
       if (elapsed > MIN_LOADING_TIME || nextStatus[1] === 'loading') {
         setStatus(nextStatus);
-        return;
+        return undefined;
       }
 
       const schedule = nextStatus[0] + MIN_LOADING_TIME - performance.now();
       timeoutRef.current = window.setTimeout(() => {
-        setStatus(nextStatus);
+        if (!cancel) {
+          setStatus(nextStatus);
+        }
       }, schedule);
     } else {
       setStatus(nextStatus);
     }
+
+    return () => {
+      cancel = true;
+    };
   }, [traceState.search.status]);
 
   const onSearchFocus = useCallback(() => {
@@ -175,8 +183,6 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   }, [traceDispatch, organization]);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
 
   useLayoutEffect(() => {
     const beforeTraceNextStateDispatch: DispatchingReducerMiddleware<
@@ -186,14 +192,11 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         action.type === 'set query' &&
         action.source === 'external' &&
         action.query &&
-        inputRef.current &&
-        inputRef.current.value !== action.query
+        inputRef.current
       ) {
-        inputRef.current.focus();
         inputRef.current.value = action.query;
-        onChangeRef.current({
-          target: inputRef.current,
-        } as React.ChangeEvent<HTMLInputElement>);
+        traceDispatch({type: 'clear roving index'});
+        onTraceSearch(action.query, traceStateRef.current.search.node, 'track result');
       }
     };
 
@@ -202,7 +205,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
     return () => {
       traceStateEmitter.off('before next state', beforeTraceNextStateDispatch);
     };
-  }, [traceStateEmitter, onChange]);
+  }, [traceStateEmitter, onTraceSearch, traceDispatch]);
 
   return (
     <StyledSearchBar>

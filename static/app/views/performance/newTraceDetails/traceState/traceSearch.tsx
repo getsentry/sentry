@@ -14,7 +14,6 @@ export type TraceSearchAction =
       resultIteratorIndex: number;
       type: 'set search iterator index';
     }
-  | {type: 'clear'}
   | {type: 'clear search iterator index'}
   | {type: 'clear query'}
   | {
@@ -179,10 +178,6 @@ export function traceSearchReducer(
         resultIndex: null,
         node: null,
       };
-
-    case 'clear': {
-      return {...state, node: null, resultIteratorIndex: null, resultIndex: null};
-    }
 
     default: {
       traceReducerExhaustiveActionCheck(action);
