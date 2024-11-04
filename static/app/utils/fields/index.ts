@@ -820,6 +820,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.MIN,
   AggregationKey.MAX,
   AggregationKey.AVG,
+  AggregationKey.SUM,
   AggregationKey.P50,
   AggregationKey.P75,
   AggregationKey.P90,
