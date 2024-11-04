@@ -178,7 +178,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
     ) {
       inputRef.current.focus();
       inputRef.current.value = traceState.search.query;
-      inputRef.current.dispatchEvent(new Event('change', {bubbles: true}));
+      onChange({target: inputRef.current} as React.ChangeEvent<HTMLInputElement>);
     }
   }, [traceState.search.query, onChange]);
 
