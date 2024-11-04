@@ -237,15 +237,7 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
         run_worker(**options)
 
 
-@click.option(
-    "--namespace",
-    "-N",
-    help=(
-        "The task namespace, or namespaces to consume from. "
-        "Can be a comma separated list, or * "
-        "Example: -N video,image"
-    ),
-)
+@click.option("--rpc-host", help="The hostname for the taskworker-rpc", default="127.0.0.1:50051")
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option(
     "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
@@ -259,10 +251,10 @@ def taskworker(**options: Any) -> None:
 
     with managed_bgtasks(role="taskworker"):
         worker = TaskWorker(
-            namespace=options.get("namespace"), max_task_count=options.get("max_task_count")
+            rpc_host=options.get("rpc_host"), max_task_count=options.get("max_task_count")
         )
         worker.start()
-        # Give consumer time to catch up
+        # Give time for the current task to complete.
         time.sleep(1)
         raise SystemExit(worker.exitcode)
 

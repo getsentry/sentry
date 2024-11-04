@@ -1,8 +1,5 @@
-import datetime
 from unittest import mock
 
-from dateutil.relativedelta import relativedelta
-from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.sentry.v1.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
@@ -33,133 +30,90 @@ def retry_task():
     raise RetryError
 
 
-class MockResponse:
-    """
-    TODO: Temporary class to mock reponses from GRPC server.
-    We can remove this when we actually implement GRPC and the reponse protobuf.
-    """
-
-    def __init__(self, task: TaskActivation, processing_deadline: Timestamp):
-        self.task = task
-        self.processing_deadline = processing_deadline
-
-    def HasField(self, field: str) -> bool:
-        return hasattr(self, field)
+@test_namespace.register(name="test.fail_task")
+def fail_task():
+    raise ValueError("nope")
 
 
-MOCK_SIMPLE_RESPONSE = MockResponse(
-    task=TaskActivation(
-        id="111", taskname="test.simple_task", parameters='{"args": [], "kwargs": {}}'
-    ),
-    processing_deadline=Timestamp(
-        seconds=int((datetime.datetime.now() + relativedelta(months=+1)).timestamp())
-    ),
+SIMPLE_TASK = TaskActivation(
+    id="111",
+    taskname="test.simple_task",
+    namespace="tests",
+    parameters='{"args": [], "kwargs": {}}',
+    processing_deadline_duration=1,
 )
 
-MOCK_RETRY_RESPONSE = MockResponse(
-    task=TaskActivation(
-        id="222", taskname="test.retry_task", parameters='{"args": [], "kwargs": {}}'
-    ),
-    processing_deadline=Timestamp(
-        seconds=int((datetime.datetime.now() + relativedelta(months=+1)).timestamp())
-    ),
+RETRY_TASK = TaskActivation(
+    id="222",
+    taskname="test.retry_task",
+    namespace="tests",
+    parameters='{"args": [], "kwargs": {}}',
+    processing_deadline_duration=1,
 )
 
-MOCK_TIMEOUT_RESPONSE = MockResponse(
-    task=TaskActivation(
-        id="333", taskname="test.retry_task", parameters='{"args": [], "kwargs": {}}'
-    ),
-    processing_deadline=Timestamp(
-        seconds=int((datetime.datetime.now() + relativedelta(seconds=-1)).timestamp())
-    ),
+FAIL_TASK = TaskActivation(
+    id="333",
+    taskname="test.fail_task",
+    namespace="tests",
+    parameters='{"args": [], "kwargs": {}}',
+    processing_deadline_duration=1,
 )
 
 
 class TestTaskWorker(TestCase):
-    @mock.patch(
-        "sentry.taskworker.service.client.task_client.get_task",
-        return_value=MOCK_SIMPLE_RESPONSE,
-    )
-    def test_taskworker_fetch_task(self, task_client: mock.MagicMock) -> None:
-        taskworker = TaskWorker(namespace="tests")
-        task, processing_deadline = taskworker.fetch_task()
+    def test_taskworker_fetch_task(self) -> None:
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
+        with mock.patch.object(taskworker.client, "get_task") as mock_get:
+            mock_get.return_value = SIMPLE_TASK
 
-        task_client.assert_called_once()
-        assert task.id == MOCK_SIMPLE_RESPONSE.task.id
-        assert (
-            int(processing_deadline.timestamp()) == MOCK_SIMPLE_RESPONSE.processing_deadline.seconds
-        )
+            task = taskworker.fetch_task()
+            mock_get.assert_called_once()
 
-        taskworker._pool.terminate()
+        assert task
+        assert task.id == SIMPLE_TASK.id
 
-    @mock.patch(
-        "sentry.taskworker.service.client.task_client.get_task",
-        return_value=None,
-    )
-    def test_taskworker_fetch_no_task(self, task_client: mock.MagicMock) -> None:
-        taskworker = TaskWorker(namespace="tests")
-        task, processing_deadline = taskworker.fetch_task()
+    def test_taskworker_fetch_no_task(self) -> None:
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
+        with mock.patch.object(taskworker.client, "get_task") as mock_get:
+            mock_get.return_value = None
+            task = taskworker.fetch_task()
 
-        task_client.assert_called_once()
+            mock_get.assert_called_once()
         assert task is None
-        assert processing_deadline is None
 
-        taskworker._pool.terminate()
+    def test_taskworker_process_task_complete(self) -> None:
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
+        with mock.patch.object(taskworker.client, "complete_task") as mock_complete:
+            mock_complete.return_value = RETRY_TASK
 
-    @mock.patch(
-        "sentry.taskworker.service.client.task_client.complete_task",
-        return_value=MOCK_SIMPLE_RESPONSE,
-    )
-    def test_taskworker_process_task_complete(self, task_client_complete: mock.MagicMock) -> None:
-        taskworker = TaskWorker(namespace="tests")
-        next_task, next_processing_deadline = taskworker.process_task(
-            MOCK_SIMPLE_RESPONSE.task, MOCK_SIMPLE_RESPONSE.processing_deadline.ToDatetime()
-        )
-        task_client_complete.assert_called_with(task_id=MOCK_SIMPLE_RESPONSE.task.id)
-        assert next_task.id == MOCK_SIMPLE_RESPONSE.task.id
-        assert (
-            int(next_processing_deadline.timestamp())
-            == MOCK_SIMPLE_RESPONSE.processing_deadline.seconds
-        )
+            result = taskworker.process_task(SIMPLE_TASK)
 
-        taskworker._pool.terminate()
+            mock_complete.assert_called_with(task_id=SIMPLE_TASK.id)
 
-    @mock.patch(
-        "sentry.taskworker.service.client.task_client.set_task_status",
-        return_value=MOCK_SIMPLE_RESPONSE,
-    )
-    def test_taskworker_process_task_retry(self, task_client_set: mock.MagicMock) -> None:
-        taskworker = TaskWorker(namespace="tests")
-        next_task, next_processing_deadline = taskworker.process_task(
-            MOCK_RETRY_RESPONSE.task, MOCK_RETRY_RESPONSE.processing_deadline.ToDatetime()
-        )
-        task_client_set.assert_called_with(
-            task_id=MOCK_RETRY_RESPONSE.task.id, task_status=TASK_ACTIVATION_STATUS_RETRY
-        )
-        assert next_task.id == MOCK_SIMPLE_RESPONSE.task.id
-        assert (
-            int(next_processing_deadline.timestamp())
-            == MOCK_SIMPLE_RESPONSE.processing_deadline.seconds
-        )
+            assert result
+            assert result.id == RETRY_TASK.id
 
-        taskworker._pool.terminate()
+    def test_taskworker_process_task_retry(self) -> None:
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
+        with mock.patch.object(taskworker.client, "set_task_status") as mock_set_task_status:
+            mock_set_task_status.return_value = SIMPLE_TASK
+            result = taskworker.process_task(RETRY_TASK)
 
-    @mock.patch(
-        "sentry.taskworker.service.client.task_client.set_task_status",
-        return_value=MOCK_SIMPLE_RESPONSE,
-    )
-    def test_taskworker_process_task_timeout_failure(self, task_client_set: mock.MagicMock) -> None:
-        taskworker = TaskWorker(namespace="tests")
-        next_task, next_processing_deadline = taskworker.process_task(
-            MOCK_TIMEOUT_RESPONSE.task, MOCK_TIMEOUT_RESPONSE.processing_deadline.ToDatetime()
-        )
-        task_client_set.assert_called_with(
-            task_id=MOCK_TIMEOUT_RESPONSE.task.id, task_status=TASK_ACTIVATION_STATUS_FAILURE
-        )
-        assert next_task.id == MOCK_SIMPLE_RESPONSE.task.id
-        assert (
-            int(next_processing_deadline.timestamp())
-            == MOCK_SIMPLE_RESPONSE.processing_deadline.seconds
-        )
+            mock_set_task_status.assert_called_with(
+                task_id=RETRY_TASK.id, task_status=TASK_ACTIVATION_STATUS_RETRY
+            )
 
-        taskworker._pool.terminate()
+            assert result
+            assert result.id == SIMPLE_TASK.id
+
+    def test_taskworker_process_task_failure(self) -> None:
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
+        with mock.patch.object(taskworker.client, "set_task_status") as mock_set_task_status:
+            mock_set_task_status.return_value = SIMPLE_TASK
+            result = taskworker.process_task(FAIL_TASK)
+
+            mock_set_task_status.assert_called_with(
+                task_id=FAIL_TASK.id, task_status=TASK_ACTIVATION_STATUS_FAILURE
+            )
+            assert result
+            assert result.id == SIMPLE_TASK.id
