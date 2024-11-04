@@ -43,8 +43,9 @@ class IntegrationManager:
 
     def register(self, cls: type[IntegrationProvider]) -> None:
         self.__values[cls.key] = cls
-        self.__domain_integrations[cls.domain].append(cls.key)
-        self.__integration_domains[cls.key] = cls.domain
+        if cls.domain:
+            self.__domain_integrations[cls.domain].append(cls.key)
+            self.__integration_domains[cls.key] = cls.domain
 
     def unregister(self, cls: type[IntegrationProvider]) -> None:
         try:
