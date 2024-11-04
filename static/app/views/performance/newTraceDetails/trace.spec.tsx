@@ -275,7 +275,10 @@ async function keyboardNavigationTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findByText(virtualizedContainer, /transaction-op-0/i);
+  await findAllByText(virtualizedContainer, /transaction-op-/i).catch(e => {
+    printVirtualizedList(virtualizedContainer);
+    throw e;
+  });
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
@@ -324,7 +327,10 @@ async function pageloadTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i);
+  await findAllByText(virtualizedContainer, /transaction-op-/i).catch(e => {
+    printVirtualizedList(virtualizedContainer);
+    throw e;
+  });
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
@@ -374,7 +380,10 @@ async function nestedTransactionsTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i);
+  await findAllByText(virtualizedContainer, /transaction-op-/i).catch(e => {
+    printVirtualizedList(virtualizedContainer);
+    throw e;
+  });
 
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
@@ -423,7 +432,10 @@ async function searchTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findByText(virtualizedContainer, /transaction-op-0/i);
+  await findAllByText(virtualizedContainer, /transaction-op-/i).catch(e => {
+    printVirtualizedList(virtualizedContainer);
+    throw e;
+  });
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
@@ -475,7 +487,10 @@ async function simpleTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findByText(value.container, /transaction-op-0/i);
+  await findAllByText(virtualizedContainer, /transaction-op-/i).catch(e => {
+    printVirtualizedList(virtualizedContainer);
+    throw e;
+  });
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
@@ -679,7 +694,10 @@ async function completeTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findByText(virtualizedContainer, /transaction-op-0/i);
+  await findAllByText(virtualizedContainer, /transaction-op-/i).catch(e => {
+    printVirtualizedList(virtualizedContainer);
+    throw e;
+  });
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
@@ -692,8 +710,6 @@ const searchToResolve = async (): Promise<void> => {
   await screen.findByTestId('trace-search-success');
 };
 
-// @ts-expect-error ignore this line
-// eslint-disable-next-line
 function printVirtualizedList(container: HTMLElement) {
   const stdout: string[] = [];
   const scrollContainer = screen.queryByTestId(
