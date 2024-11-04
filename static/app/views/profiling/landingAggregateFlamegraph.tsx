@@ -9,7 +9,6 @@ import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggreg
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
@@ -118,6 +117,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         value={props.frameFilter}
         options={frameSelectOptions}
       />
+      {/*
       <Button
         size="xs"
         onClick={props.onHideRegressionsClick}
@@ -125,6 +125,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
       >
         <IconPanel size="xs" direction="right" />
       </Button>
+      */}
     </AggregateFlamegraphToolbarContainer>
   );
 }
