@@ -246,7 +246,6 @@ module = [
     "sentry.integrations.pipeline",
     "sentry.integrations.slack.actions.form",
     "sentry.integrations.slack.integration",
-    "sentry.integrations.slack.message_builder.notifications.digest",
     "sentry.integrations.slack.message_builder.notifications.issues",
     "sentry.integrations.slack.notifications",
     "sentry.integrations.slack.unfurl.discover",
