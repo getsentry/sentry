@@ -67,8 +67,8 @@ class DashboardWidgetResponse(TypedDict):
 
 
 class DashboardPermissionsResponse(TypedDict):
-    is_editable_by_everyone: bool
-    teams_with_edit_access: list[int]
+    isEditableByEveryone: bool
+    teamsWithEditAccess: list[int]
 
 
 @register(DashboardWidget)
