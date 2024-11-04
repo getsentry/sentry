@@ -7,11 +7,9 @@ import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -31,7 +29,7 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
@@ -47,10 +45,10 @@ import {
 } from 'sentry/views/performance/utils';
 
 export const BACKEND_COLUMN_TITLES = [
-  'transaction',
-  'project',
-  'operation',
   'http method',
+  'transaction',
+  'operation',
+  'project',
   'tpm',
   'p50',
   'p95',
@@ -80,9 +78,9 @@ function BackendOverviewPage() {
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
     {field: 'team_key_transaction'},
+    {field: 'http.method'},
     {field: 'transaction'},
     {field: 'transaction.op'},
-    {field: 'http.method'},
     {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50(transaction.duration)'},
@@ -229,14 +227,10 @@ function BackendOverviewPage() {
 }
 
 function BackendOverviewPageWithProviders() {
-  const organization = useOrganization();
-
   return (
-    <PageFiltersContainer>
-      <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
-        <BackendOverviewPage />
-      </SentryDocumentTitle>
-    </PageFiltersContainer>
+    <DomainOverviewPageProviders>
+      <BackendOverviewPage />
+    </DomainOverviewPageProviders>
   );
 }
 

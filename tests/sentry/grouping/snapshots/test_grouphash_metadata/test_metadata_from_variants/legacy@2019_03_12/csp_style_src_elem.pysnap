@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:49.603735+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: violation
+---
+contributing variants:
+  default*
+    hash: "537a973f594c364842893e9a72af62a5"
+    component:
+      default*
+        csp*
+          salt* (a static salt)
+            "style-src-elem"
+          uri*
+            "use.fontawesome.com"

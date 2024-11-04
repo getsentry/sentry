@@ -24,7 +24,7 @@ from sentry.backup.sanitize import (
     sanitize,
 )
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models.base import DefaultFieldsModelExisting
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.fields.uuid import UUIDField
@@ -55,7 +55,7 @@ FAKE_DATE_ADDED = CURR_DATE - timedelta(days=7)
 FAKE_DATE_UPDATED = CURR_DATE - timedelta(days=6)
 
 
-class FakeSanitizableModel(DefaultFieldsModelExisting):
+class FakeSanitizableModel(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     email = models.EmailField(null=True, max_length=75)
