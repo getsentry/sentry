@@ -24,6 +24,7 @@ import {HeaderContainer} from 'sentry/views/insights/common/components/headerCon
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
@@ -77,35 +78,37 @@ function ResourcesLandingPage() {
             module={ModuleName.RESOURCE}
           />
         )}
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <PageAlert />
-            <StyledHeaderContainer>
-              <ToolRibbon>
-                <ModulePageFilterBar
-                  moduleName={ModuleName.RESOURCE}
-                  extraFilters={
-                    <Fragment>
-                      <DomainSelector
-                        moduleName={ModuleName.RESOURCE}
-                        emptyOptionLocation="top"
-                        value={filters[SPAN_DOMAIN] || ''}
-                        additionalQuery={[
-                          ...DEFAULT_RESOURCE_FILTERS,
-                          `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
-                        ]}
-                      />
-                      <SubregionSelector />
-                    </Fragment>
-                  }
-                />
-              </ToolRibbon>
-            </StyledHeaderContainer>
-            <ModulesOnboarding moduleName={ModuleName.RESOURCE}>
-              <ResourceView />
-            </ModulesOnboarding>
-          </Layout.Main>
-        </Layout.Body>
+        <ModuleBodyUpsellHook moduleName={ModuleName.RESOURCE}>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <PageAlert />
+              <StyledHeaderContainer>
+                <ToolRibbon>
+                  <ModulePageFilterBar
+                    moduleName={ModuleName.RESOURCE}
+                    extraFilters={
+                      <Fragment>
+                        <DomainSelector
+                          moduleName={ModuleName.RESOURCE}
+                          emptyOptionLocation="top"
+                          value={filters[SPAN_DOMAIN] || ''}
+                          additionalQuery={[
+                            ...DEFAULT_RESOURCE_FILTERS,
+                            `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+                          ]}
+                        />
+                        <SubregionSelector />
+                      </Fragment>
+                    }
+                  />
+                </ToolRibbon>
+              </StyledHeaderContainer>
+              <ModulesOnboarding moduleName={ModuleName.RESOURCE}>
+                <ResourceView />
+              </ModulesOnboarding>
+            </Layout.Main>
+          </Layout.Body>
+        </ModuleBodyUpsellHook>
       </PageAlertProvider>
     </React.Fragment>
   );
