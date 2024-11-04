@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location, Query} from 'history';
+import type {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import {
   createDashboard,
@@ -14,7 +15,6 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
@@ -22,7 +22,6 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
 import {PADDING, WIDGET_WIDTH} from 'sentry/views/dashboards/manage/utils';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
@@ -39,9 +38,8 @@ type Props = {
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
-  pageLinks: string;
   rows: number;
-  resizing?: boolean;
+  isLoading?: boolean;
 };
 
 function DashboardList({
@@ -49,14 +47,11 @@ function DashboardList({
   organization,
   location,
   dashboards,
-  pageLinks,
   onDashboardsChange,
   rows,
   columns,
-  resizing,
+  isLoading,
 }: Props) {
-  const navigate = useNavigate();
-
   const [currentDashboards, setCurrentDashboards] = useState<
     DashboardListItem[] | undefined
   >(dashboards);
@@ -157,6 +152,14 @@ function DashboardList({
   };
 
   function renderMiniDashboards() {
+    // on pagination, render no dashboards to show placeholders while loading
+    if (
+      rows * columns === currentDashboards?.length &&
+      !isEqual(currentDashboards, dashboards)
+    ) {
+      return [];
+    }
+
     return currentDashboards?.slice(0, rows * columns).map((dashboard, index) => {
       return (
         <DashboardCard
@@ -179,7 +182,7 @@ function DashboardList({
   }
 
   function renderDashboardGrid() {
-    if (!currentDashboards?.length) {
+    if (!dashboards?.length && !isLoading) {
       return (
         <EmptyStateWarning>
           <p>{t('Sorry, no Dashboards match your filters.')}</p>
@@ -187,42 +190,28 @@ function DashboardList({
       );
     }
 
+    const numDashboards =
+      rows * columns !== currentDashboards?.length
+        ? currentDashboards?.length
+          ? currentDashboards.length
+          : 0
+        : dashboards?.length
+          ? dashboards.length
+          : 0;
+
     return (
       <DashboardGrid rows={rows} columns={columns}>
         {renderMiniDashboards()}
-        {resizing &&
-          rows * columns > currentDashboards.length &&
-          new Array(rows * columns - currentDashboards.length)
+        {isLoading &&
+          rows * columns > numDashboards &&
+          new Array(rows * columns - numDashboards)
             .fill(0)
             .map((_, index) => <Placeholder key={index} height="270px" />)}
       </DashboardGrid>
     );
   }
 
-  return (
-    <Fragment>
-      {renderDashboardGrid()}
-      <PaginationRow
-        pageLinks={pageLinks}
-        onCursor={(cursor, path, query, direction) => {
-          const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
-
-          const newQuery: Query & {cursor?: string} = {...query, cursor};
-          const isPrevious = direction === -1;
-
-          if (offset <= 0 && isPrevious) {
-            delete newQuery.cursor;
-          }
-          trackAnalytics('dashboards_manage.paginate', {organization});
-
-          navigate({
-            pathname: path,
-            query: newQuery,
-          });
-        }}
-      />
-    </Fragment>
-  );
+  return <Fragment>{renderDashboardGrid()}</Fragment>;
 }
 
 const DashboardGrid = styled('div')<{columns: number; rows: number}>`
@@ -233,10 +222,6 @@ const DashboardGrid = styled('div')<{columns: number; rows: number}>`
   );
   grid-template-rows: repeat(${props => props.rows}, max-content);
   gap: ${PADDING}px;
-`;
-
-const PaginationRow = styled(Pagination)`
-  margin-bottom: ${space(3)};
 `;
 
 const DropdownTrigger = styled(Button)`

@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
@@ -14,9 +15,9 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
@@ -73,8 +74,6 @@ function ManageDashboards() {
     SHOW_TEMPLATES_KEY,
     shouldShowTemplates()
   );
-  const [gridWidth, setGridWidth] = useState(0);
-  const [resizing, setResizing] = useState(false);
   const [{rows, columns}, setGridSize] = useState({rows: 3, columns: 3});
 
   const {
@@ -101,18 +100,26 @@ function ManageDashboards() {
   const dashboardsPageLinks = getResponseHeader?.('Link') ?? '';
 
   useEffect(() => {
+    function setRowsAndColumns(containerWidth: number) {
+      if (containerWidth === 0) {
+        return;
+      }
+      const numWidgetsFitInRow = Math.floor(containerWidth / (WIDGET_WIDTH + PADDING));
+
+      if (numWidgetsFitInRow >= 3) {
+        setGridSize({rows: DEFAULT_NUM_ROWS, columns: numWidgetsFitInRow});
+      } else {
+        setGridSize({
+          rows: DEFAULT_NUM_WIDGETS / numWidgetsFitInRow,
+          columns: numWidgetsFitInRow,
+        });
+      }
+    }
+
     const dashboardGridObserver = new ResizeObserver(
       debounce(entries => {
         entries.forEach(entry => {
           const currentWidth = entry.contentRect.width;
-
-          setGridWidth(() => {
-            if (currentWidth !== gridWidth && gridWidth !== 0) {
-              setResizing(true);
-              return currentWidth;
-            }
-            return gridWidth;
-          });
 
           setRowsAndColumns(currentWidth);
 
@@ -138,38 +145,7 @@ function ManageDashboards() {
         dashboardGridObserver.unobserve(dashboardGridRef.current);
       }
     };
-  }, [
-    columns,
-    dashboards?.length,
-    dashboardsPageLinks,
-    gridWidth,
-    refetchDashboards,
-    rows,
-  ]);
-
-  // no longer resizing if loading has stopped
-  useEffect(() => {
-    if (resizing && !isLoading) {
-      setResizing(false);
-    }
-  }, [isLoading, resizing]);
-
-  function setRowsAndColumns(containerWidth: number) {
-    if (containerWidth === 0) {
-      return;
-    }
-    const numWidgetsFitInRow = Math.floor(containerWidth / (WIDGET_WIDTH + PADDING));
-
-    setGridWidth(containerWidth);
-    if (numWidgetsFitInRow >= 3) {
-      setGridSize({rows: DEFAULT_NUM_ROWS, columns: numWidgetsFitInRow});
-    } else {
-      setGridSize({
-        rows: DEFAULT_NUM_WIDGETS / numWidgetsFitInRow,
-        columns: numWidgetsFitInRow,
-      });
-    }
-  }
+  }, [columns, dashboards?.length, dashboardsPageLinks, refetchDashboards, rows]);
 
   function getActiveSort() {
     const urlSort = decodeScalar(location.query.sort, 'mydashboards');
@@ -268,12 +244,36 @@ function ManageDashboards() {
         api={api}
         dashboards={dashboards}
         organization={organization}
-        pageLinks={dashboardsPageLinks}
         location={location}
         onDashboardsChange={() => refetchDashboards()}
-        resizing={resizing}
+        isLoading={isLoading}
         rows={rows}
         columns={columns}
+      />
+    );
+  }
+
+  function renderPagination() {
+    return (
+      <PaginationRow
+        pageLinks={dashboardsPageLinks}
+        onCursor={(cursor, path, query, direction) => {
+          const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
+
+          const newQuery: Query & {cursor?: string} = {...query, cursor};
+          const isPrevious = direction === -1;
+
+          if (offset <= 0 && isPrevious) {
+            delete newQuery.cursor;
+          }
+
+          trackAnalytics('dashboards_manage.paginate', {organization});
+
+          navigate({
+            pathname: path,
+            query: newQuery,
+          });
+        }}
       />
     );
   }
@@ -412,8 +412,9 @@ function ManageDashboards() {
                     {showTemplates && renderTemplates()}
                     {renderActions()}
                     <div ref={dashboardGridRef} id="dashboard-list-container">
-                      {isLoading && !resizing ? <LoadingIndicator /> : renderDashboards()}
+                      {renderDashboards()}
                     </div>
+                    {renderPagination()}
                   </Layout.Main>
                 </Layout.Body>
               </NoProjectMessage>
@@ -458,6 +459,10 @@ const TemplateContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: repeat(4, minmax(200px, 1fr));
   }
+`;
+
+const PaginationRow = styled(Pagination)`
+  margin-bottom: ${space(3)};
 `;
 
 export default ManageDashboards;
