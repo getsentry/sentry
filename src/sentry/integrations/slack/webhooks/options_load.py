@@ -70,6 +70,18 @@ class SlackOptionsLoadEndpoint(Endpoint):
                 all_members,
             )
         )
+        _logger.info(
+            "slack.options_webhook_filter",
+            extra={
+                "substring": substring,
+                "group_id": group.id,
+                "project_id": group.project_id,
+                "teams": len(all_teams),
+                "filtered_teams": len(filtered_teams),
+                "members": len(list(all_members)),
+                "filtered_members": len(filtered_members),
+            },
+        )
 
         option_groups: list[OptionGroup] = []
         if filtered_teams:
