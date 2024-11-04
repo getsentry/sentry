@@ -22,6 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
+import AnomalyDetectionFeedbackBanner from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -235,6 +236,17 @@ export default function MetricDetailsBody({
               </Tooltip>
             )}
           </StyledSubHeader>
+
+          {selectedIncident?.alertRule.detectionType ===
+            AlertRuleComparisonType.DYNAMIC && (
+            <AnomalyDetectionFeedbackBanner
+              // unique key to force re-render when incident changes
+              key={selectedIncident.id}
+              id={selectedIncident.id}
+              organization={organization}
+              selectedIncident={selectedIncident}
+            />
+          )}
 
           <ErrorMigrationWarning project={project} rule={rule} />
 
