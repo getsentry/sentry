@@ -240,6 +240,7 @@ export default function MetricDetailsBody({
           {selectedIncident?.alertRule.detectionType ===
             AlertRuleComparisonType.DYNAMIC && (
             <AnomalyDetectionFeedbackBanner
+              // unique key to force re-render when incident changes
               key={selectedIncident.id}
               id={selectedIncident.id}
               organization={organization}
