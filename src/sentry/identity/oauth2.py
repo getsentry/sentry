@@ -13,6 +13,7 @@ from requests.exceptions import SSLError
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -213,17 +214,14 @@ from rest_framework.request import Request
 
 
 def record_event(event: IntegrationPipelineViewType, provider: str):
-    from sentry.integrations.base import INTEGRATION_PROVIDER_TO_TYPE, IntegrationProviderSlug
+    from sentry.identity import default_manager as identity_manager
 
     try:
-        provider_slug = IntegrationProviderSlug(provider)
-        domain = INTEGRATION_PROVIDER_TO_TYPE[provider_slug]
+        identity_manager.get(provider)
     except ValueError:
-        provider_slug = "unknown"
-        domain = "unknown"
         logger.exception("oauth2.record_event.invalid_provider", extra={"provider": provider})
 
-    return IntegrationPipelineViewEvent(event, domain, provider_slug)
+    return IntegrationPipelineViewEvent(event, domain=IntegrationDomain.IDENTITY, provider=provider)
 
 
 class OAuth2LoginView(PipelineView):
