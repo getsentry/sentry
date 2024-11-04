@@ -61,7 +61,7 @@ function groupTasksByCompletion(tasks: OnboardingTask[]) {
   };
 }
 
-interface TaskProps extends Pick<OnboardingTaskStatus, 'status'> {
+interface TaskProps extends Partial<Pick<OnboardingTaskStatus, 'status'>> {
   hidePanel: () => void;
   task: OnboardingTask;
   completed?: boolean;
@@ -304,7 +304,6 @@ function TaskGroup({
                 task={task}
                 hidePanel={hidePanel}
                 showWaitingIndicator={taskKeyForWaitingIndicator === task.task}
-                status={task.status}
               />
             ))}
             {completedTasks.length > 0 && (
