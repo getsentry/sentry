@@ -10,7 +10,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -778,11 +777,20 @@ function printTabs() {
   console.log(stdout.join(' | '));
 }
 
-function assertHighlightedRowAtIndex(virtualizedContainer: HTMLElement, index: number) {
-  expect(virtualizedContainer.querySelectorAll('.TraceRow.Highlight')).toHaveLength(1);
-  const highlighted_row = virtualizedContainer.querySelector(ACTIVE_SEARCH_HIGHLIGHT_ROW);
-  const r = Array.from(virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
-  expect(r.indexOf(highlighted_row!)).toBe(index);
+async function assertHighlightedRowAtIndex(
+  virtualizedContainer: HTMLElement,
+  index: number
+) {
+  await waitFor(() => {
+    expect(virtualizedContainer.querySelectorAll('.TraceRow.Highlight')).toHaveLength(1);
+    const highlighted_row = virtualizedContainer.querySelector(
+      ACTIVE_SEARCH_HIGHLIGHT_ROW
+    );
+    const r = Array.from(
+      virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR)
+    );
+    expect(r.indexOf(highlighted_row!)).toBe(index);
+  });
 }
 
 describe('trace view', () => {
@@ -1038,17 +1046,15 @@ describe('trace view', () => {
         const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
         await userEvent.click(preferencesDropdownTrigger);
 
-        await waitFor(() => {
-          expect(screen.getByText('Autogrouping')).toBeInTheDocument();
-        });
+        expect(await screen.findByText('Autogrouping')).toBeInTheDocument();
 
         // Toggle autogrouping off
         const autogroupingOption = await screen.findByText('Autogrouping');
         await userEvent.click(autogroupingOption);
 
-        const autogrouped = await screen.findAllByText('Autogrouped');
-
-        await waitForElementToBeRemoved(autogrouped[0]);
+        await waitFor(() => {
+          expect(screen.queryByText('Autogrouped')).not.toBeInTheDocument();
+        });
 
         // Toggle autogrouping back on
         await userEvent.click(await screen.findByText('Autogrouping'));
@@ -1067,23 +1073,17 @@ describe('trace view', () => {
         // Toggle missing instrumentation off
         await userEvent.click(preferencesDropdownTrigger);
 
-        await waitFor(() => {
-          expect(screen.getByText('Missing Instrumentation')).toBeInTheDocument();
-        });
-
-        const missingInstrumentationOption = await screen.findByText(
-          'Missing Instrumentation'
-        );
+        expect(await screen.findByText('Missing Instrumentation')).toBeInTheDocument();
 
         // Toggle missing instrumentation off
-        await userEvent.click(missingInstrumentationOption);
+        await userEvent.click(await screen.findByText('Missing Instrumentation'));
 
         await waitFor(() => {
           expect(screen.queryByText('Missing instrumentation')).not.toBeInTheDocument();
         });
 
         // Toggle missing instrumentation on
-        await userEvent.click(missingInstrumentationOption);
+        await userEvent.click(await screen.findByText('Missing Instrumentation'));
         expect(await screen.findAllByText('Missing instrumentation')).toHaveLength(1);
       });
     });
@@ -1383,10 +1383,9 @@ describe('trace view', () => {
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.type(searchInput, 'transaction-op');
       expect(searchInput).toHaveValue('transaction-op');
+      await searchToResolve();
 
-      await waitFor(() => {
-        assertHighlightedRowAtIndex(container, 1);
-      });
+      await assertHighlightedRowAtIndex(container, 1);
     });
 
     it('supports roving with arrowup and arrowdown', async () => {
@@ -1395,7 +1394,6 @@ describe('trace view', () => {
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.type(searchInput, 'transaction-op');
       expect(searchInput).toHaveValue('transaction-op');
-
       await searchToResolve();
 
       for (const action of [
@@ -1410,9 +1408,7 @@ describe('trace view', () => {
       ] as const) {
         await userEvent.keyboard(action[0]);
 
-        await waitFor(() => {
-          assertHighlightedRowAtIndex(container, action[1]);
-        });
+        await assertHighlightedRowAtIndex(container, action[1]);
       }
     });
 
@@ -1447,20 +1443,15 @@ describe('trace view', () => {
 
       await userEvent.type(searchInput, 'transaction-op-1');
       expect(searchInput).toHaveValue('transaction-op-1');
-      // Wait for the search results to resolve
       await searchToResolve();
 
-      await waitFor(() => {
-        assertHighlightedRowAtIndex(container, 2);
-      });
+      await assertHighlightedRowAtIndex(container, 2);
 
       await userEvent.clear(searchInput);
       await userEvent.type(searchInput, 'transaction-op-5');
       await searchToResolve();
 
-      await waitFor(() => {
-        assertHighlightedRowAtIndex(container, 6);
-      });
+      await assertHighlightedRowAtIndex(container, 6);
     });
 
     it('highlighted is persisted on node while it is part of the search results', async () => {
@@ -1474,19 +1465,14 @@ describe('trace view', () => {
       await userEvent.keyboard('{arrowdown}');
       await searchToResolve();
 
-      await waitFor(() => {
-        assertHighlightedRowAtIndex(container, 2);
-      });
+      await assertHighlightedRowAtIndex(container, 2);
 
       await userEvent.type(searchInput, 'act');
       expect(searchInput).toHaveValue('transact');
-
       await searchToResolve();
 
-      await waitFor(() => {
-        // Highlighting is persisted on the row
-        assertHighlightedRowAtIndex(container, 2);
-      });
+      // Highlighting is persisted on the row
+      await assertHighlightedRowAtIndex(container, 2);
 
       await userEvent.clear(searchInput);
       await userEvent.type(searchInput, 'this wont match anything');
@@ -1509,9 +1495,7 @@ describe('trace view', () => {
       // Wait for the search results to resolve
       await searchToResolve();
 
-      await waitFor(() => {
-        assertHighlightedRowAtIndex(container, 1);
-      });
+      await assertHighlightedRowAtIndex(container, 1);
     });
 
     it('clicking a row that is also a search result updates the result index', async () => {
@@ -1523,7 +1507,7 @@ describe('trace view', () => {
 
       await searchToResolve();
 
-      assertHighlightedRowAtIndex(container, 2);
+      await assertHighlightedRowAtIndex(container, 2);
       const rows = getVirtualizedRows(virtualizedContainer);
       // By default, we highlight the first result
       expect(await screen.findByTestId('trace-search-result-iterator')).toHaveTextContent(
@@ -1674,16 +1658,12 @@ describe('trace view', () => {
       expect(searchInput).toHaveValue('transaction-op');
       await searchToResolve();
 
-      await waitFor(() => {
-        assertHighlightedRowAtIndex(container, 1);
-      });
+      await assertHighlightedRowAtIndex(container, 1);
 
       // User moves down the list using keyboard navigation
       for (let i = 1; i < 6; i++) {
         await userEvent.keyboard('{arrowDown}');
-        await waitFor(() => {
-          assertHighlightedRowAtIndex(container, 1 + i);
-        });
+        await assertHighlightedRowAtIndex(container, 1 + i);
       }
 
       // User clicks on an entry in the list, then proceeds to search
@@ -1694,17 +1674,13 @@ describe('trace view', () => {
       });
       // And then continues the query - the highlighting is preserved as long as the
       // row is part of the search results
-      await waitFor(() => {
-        assertHighlightedRowAtIndex(container, 6);
-      });
+      await assertHighlightedRowAtIndex(container, 6);
 
       await userEvent.type(searchInput, '-5');
       expect(searchInput).toHaveValue('transaction-op-5');
 
       await searchToResolve();
-      await waitFor(() => {
-        assertHighlightedRowAtIndex(container, 6);
-      });
+      await assertHighlightedRowAtIndex(container, 6);
 
       await userEvent.clear(searchInput);
       await userEvent.type(searchInput, 'transaction-op-none');
