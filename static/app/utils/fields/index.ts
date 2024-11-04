@@ -883,6 +883,22 @@ export const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = 
       },
     ],
   },
+  [AggregationKey.SUM]: {
+    ...AGGREGATION_FIELDS[AggregationKey.SUM],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        required: true,
+        defaultValue: 'span.duration',
+      },
+    ],
+  },
   [AggregationKey.AVG]: {
     ...AGGREGATION_FIELDS[AggregationKey.AVG],
     parameters: [

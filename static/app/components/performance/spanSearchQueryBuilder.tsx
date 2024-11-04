@@ -10,6 +10,7 @@ import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group'
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {
+  type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   DEVICE_CLASS_TAG_VALUES,
   FieldKind,
@@ -35,8 +36,12 @@ interface SpanSearchQueryBuilderProps {
   projects?: PageFilters['projects'];
 }
 
-const getFunctionTags = () => {
-  return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, item) => {
+const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
+  if (!supportedAggregates?.length) {
+    return {};
+  }
+
+  return supportedAggregates.reduce((acc, item) => {
     acc[item] = {
       key: item,
       name: item,
@@ -161,7 +166,7 @@ export function EAPSpanSearchQueryBuilder({
   const placeholderText = placeholder ?? t('Search for spans, users, tags, and more');
 
   const functionTags = useMemo(() => {
-    return getFunctionTags();
+    return getFunctionTags(ALLOWED_EXPLORE_VISUALIZE_AGGREGATES);
   }, []);
 
   const tags = useMemo(() => {
