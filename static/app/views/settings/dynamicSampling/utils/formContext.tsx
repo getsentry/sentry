@@ -1,6 +1,9 @@
-import {createContext, useCallback, useContext, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
-interface FormState<FormFields extends Record<string, any>> {
+interface FormState<
+  FormFields extends PlainValue,
+  FieldErrors extends Record<keyof FormFields, any>,
+> {
   /**
    * State for each field in the form.
    */
@@ -8,9 +11,9 @@ interface FormState<FormFields extends Record<string, any>> {
     [K in keyof FormFields]: {
       hasChanged: boolean;
       initialValue: FormFields[K];
-      onChange: (value: FormFields[K]) => void;
+      onChange: (value: React.SetStateAction<FormFields[K]>) => void;
       value: FormFields[K];
-      error?: string;
+      error?: FieldErrors[K];
     };
   };
   /**
@@ -32,8 +35,18 @@ interface FormState<FormFields extends Record<string, any>> {
   save: () => void;
 }
 
-export type FormValidators<FormFields extends Record<string, any>> = {
-  [K in keyof FormFields]?: (value: FormFields[K]) => string | undefined;
+type PlainValue = AtomicValue | PlainArray | PlainObject;
+interface PlainObject {
+  [key: string]: PlainValue;
+}
+interface PlainArray extends Array<PlainValue> {}
+type AtomicValue = string | number | boolean | null | undefined;
+
+export type FormValidators<
+  FormFields extends Record<string, PlainValue>,
+  FieldErrors extends Record<keyof FormFields, any>,
+> = {
+  [K in keyof FormFields]?: (value: FormFields[K]) => FieldErrors[K];
 };
 
 type InitialValues<FormFields extends Record<string, any>> = {
@@ -43,17 +56,24 @@ type InitialValues<FormFields extends Record<string, any>> = {
 /**
  * Creates a form state object with fields and validation for a given set of form fields.
  */
-export const useFormState = <FormFields extends Record<string, any>>(config: {
+export const useFormState = <
+  FormFields extends Record<string, PlainValue>,
+  FieldErrors extends Record<keyof FormFields, any>,
+>(config: {
   initialValues: InitialValues<FormFields>;
-  validators?: FormValidators<FormFields>;
-}): FormState<FormFields> => {
+  validators?: FormValidators<FormFields, FieldErrors>;
+}): FormState<FormFields, FieldErrors> => {
   const [initialValues, setInitialValues] = useState(config.initialValues);
+  const [validators] = useState(config.validators);
   const [values, setValues] = useState(initialValues);
-  const [errors, setErrors] = useState<{[K in keyof FormFields]?: string}>({});
+  const [errors, setErrors] = useState<{[K in keyof FormFields]?: FieldErrors[K]}>({});
 
   const setValue = useCallback(
-    <K extends keyof FormFields>(name: K, value: FormFields[K]) => {
-      setValues(old => ({...old, [name]: value}));
+    <K extends keyof FormFields>(name: K, value: React.SetStateAction<FormFields[K]>) => {
+      setValues(old => ({
+        ...old,
+        [name]: typeof value === 'function' ? value(old[name]) : value,
+      }));
     },
     []
   );
@@ -70,31 +90,55 @@ export const useFormState = <FormFields extends Record<string, any>>(config: {
    */
   const validateField = useCallback(
     <K extends keyof FormFields>(name: K, value: FormFields[K]) => {
-      const validator = config.validators?.[name];
+      const validator = validators?.[name];
       return validator?.(value);
     },
-    [config.validators]
+    [validators]
   );
 
-  const handleFieldChange = <K extends keyof FormFields>(
-    name: K,
-    value: FormFields[K]
-  ) => {
-    setValue(name, value);
-    setError(name, validateField(name, value));
-  };
+  const handleFieldChange = useCallback(
+    <K extends keyof FormFields>(name: K, value: React.SetStateAction<FormFields[K]>) => {
+      setValue(name, old => {
+        const newValue = typeof value === 'function' ? value(old) : value;
+        const error = validateField(name, newValue);
+        setError(name, error);
+        return newValue;
+      });
+    },
+    [setError, setValue, validateField]
+  );
 
-  return {
-    fields: Object.entries(values).reduce((acc, [name, value]) => {
-      acc[name as keyof FormFields] = {
-        value,
-        onChange: inputValue => handleFieldChange(name as keyof FormFields, inputValue),
-        error: errors[name as keyof FormFields],
-        hasChanged: value !== initialValues[name],
+  const changeHandlers = useMemo(() => {
+    const result: {
+      [K in keyof FormFields]: (value: React.SetStateAction<FormFields[K]>) => void;
+    } = {} as any;
+
+    for (const name in initialValues) {
+      result[name] = (value: React.SetStateAction<FormFields[typeof name]>) =>
+        handleFieldChange(name, value);
+    }
+
+    return result;
+  }, [handleFieldChange, initialValues]);
+
+  const fields = useMemo(() => {
+    const result: FormState<FormFields, FieldErrors>['fields'] = {} as any;
+
+    for (const name in initialValues) {
+      result[name] = {
+        value: values[name],
+        onChange: changeHandlers[name],
+        error: errors[name],
+        hasChanged: values[name] !== initialValues[name],
         initialValue: initialValues[name],
       };
-      return acc;
-    }, {} as any),
+    }
+
+    return result;
+  }, [changeHandlers, errors, initialValues, values]);
+
+  return {
+    fields,
     isValid: Object.values(errors).every(error => !error),
     hasChanged: Object.entries(values).some(
       ([name, value]) => value !== initialValues[name]
@@ -112,19 +156,27 @@ export const useFormState = <FormFields extends Record<string, any>>(config: {
 /**
  * Creates a form context and hooks for a form with a given set of fields to enable type-safe form handling.
  */
-export const createForm = <FormFields extends Record<string, any>>({
+export const createForm = <
+  FormFields extends Record<string, PlainValue>,
+  FieldErrors extends Record<keyof FormFields, any> = Record<
+    keyof FormFields,
+    string | undefined
+  >,
+>({
   validators,
 }: {
-  validators?: FormValidators<FormFields>;
+  validators?: FormValidators<FormFields, FieldErrors>;
 }) => {
-  const FormContext = createContext<FormState<FormFields> | undefined>(undefined);
+  const FormContext = createContext<FormState<FormFields, FieldErrors> | undefined>(
+    undefined
+  );
 
   function FormProvider({
     children,
     formState,
   }: {
     children: React.ReactNode;
-    formState: FormState<FormFields>;
+    formState: FormState<FormFields, FieldErrors>;
   }) {
     return <FormContext.Provider value={formState}>{children}</FormContext.Provider>;
   }
@@ -140,7 +192,7 @@ export const createForm = <FormFields extends Record<string, any>>({
 
   return {
     useFormState: (initialValues: InitialValues<FormFields>) =>
-      useFormState<FormFields>({initialValues, validators}),
+      useFormState<FormFields, FieldErrors>({initialValues, validators}),
     FormProvider,
     useFormField,
   };
