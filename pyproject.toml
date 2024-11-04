@@ -126,7 +126,6 @@ module = [
     "sentry.api.endpoints.accept_organization_invite",
     "sentry.api.endpoints.auth_config",
     "sentry.api.endpoints.auth_login",
-    "sentry.api.endpoints.chunk",
     "sentry.api.endpoints.codeowners",
     "sentry.api.endpoints.codeowners.index",
     "sentry.api.endpoints.event_attachments",
