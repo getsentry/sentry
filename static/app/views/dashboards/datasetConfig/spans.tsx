@@ -1,3 +1,5 @@
+import pickBy from 'lodash/pickBy';
+
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
@@ -76,7 +78,7 @@ export const SpansConfig: DatasetConfig<
   filterYAxisOptions,
   getTableFieldOptions: getPrimaryFieldOptions,
   getTableSortOptions: getTableSortOptions,
-  getGroupByFieldOptions: getPrimaryFieldOptions,
+  getGroupByFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
     DisplayType.AREA,
@@ -119,7 +121,7 @@ function getPrimaryFieldOptions(
   organization: Organization,
   tags?: TagCollection,
   _customMeasurements?: CustomMeasurementCollection
-) {
+): Record<string, FieldValueOption> {
   const baseFieldOptions = generateFieldOptions({
     organization,
     tagKeys: [],
@@ -217,6 +219,26 @@ function getEventsRequest(
       },
     }
   );
+}
+
+function getGroupByFieldOptions(
+  organization: Organization,
+  tags?: TagCollection,
+  customMeasurements?: CustomMeasurementCollection
+) {
+  const primaryFieldOptions = getPrimaryFieldOptions(
+    organization,
+    tags,
+    customMeasurements
+  );
+  const yAxisFilter = filterYAxisOptions();
+
+  // The only options that should be returned as valid group by options
+  // are string tags
+  const filterGroupByOptions = (option: FieldValueOption) =>
+    filterTableOptions(option) && !yAxisFilter(option);
+
+  return pickBy(primaryFieldOptions, filterGroupByOptions);
 }
 
 function getSeriesRequest(
