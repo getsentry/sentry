@@ -284,11 +284,13 @@ class DashboardDetail extends Component<Props, State> {
           onEdit: () => {
             const widgetIndex = dashboard.widgets.indexOf(widget);
             if (dashboardId) {
+              const query = omit(location.query, Object.values(WidgetViewerQueryField));
+
               router.push(
                 normalizeUrl({
                   pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
                   query: {
-                    ...location.query,
+                    ...query,
                     source: DashboardWidgetSource.DASHBOARDS,
                   },
                 })
