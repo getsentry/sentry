@@ -70,7 +70,7 @@ DASHBOARD_OBJECT = {
     "period": "7d",
     "permissions": {
         "is_editable_by_everyone": True,
-        "teams_ids_with_edit_access": [],
+        "teams_with_edit_access": [],
         "is_creator_only_editable": False,
     },
 }
