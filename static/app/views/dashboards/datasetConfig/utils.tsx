@@ -9,8 +9,10 @@ import {TOP_N} from 'sentry/utils/discover/types';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import {getNumEquations, getWidgetInterval} from 'sentry/views/dashboards/utils';
 
-// This function is used to generate the request data for timeseries widgets
-// and is intended to be used eventually by doEventsRequest
+/**
+ * This function is used to generate the request data for timeseries widgets
+ * and is intended to be used eventually by doEventsRequest
+ */
 export function getSeriesRequestData(
   widget: Widget,
   queryIndex: number,
