@@ -107,8 +107,8 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={[]}
         location={router.location}
-        columns={3}
-        rows={3}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
@@ -122,8 +122,8 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         location={router.location}
-        columns={3}
-        rows={3}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
@@ -138,8 +138,8 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         location={router.location}
-        columns={3}
-        rows={3}
+        columnCount={3}
+        rowCount={3}
       />,
       {router}
     );
@@ -161,8 +161,8 @@ describe('Dashboards - DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
-        columns={3}
-        rows={3}
+        columnCount={3}
+        rowCount={3}
       />,
       {router}
     );
@@ -180,8 +180,8 @@ describe('Dashboards - DashboardList', function () {
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
-        columns={3}
-        rows={3}
+        columnCount={3}
+        rowCount={3}
       />,
       {router}
     );
@@ -218,8 +218,8 @@ describe('Dashboards - DashboardList', function () {
         dashboards={singleDashboard}
         location={LocationFixture()}
         onDashboardsChange={dashboardUpdateMock}
-        columns={3}
-        rows={3}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
@@ -237,8 +237,8 @@ describe('Dashboards - DashboardList', function () {
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
-        columns={3}
-        rows={3}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
@@ -264,8 +264,8 @@ describe('Dashboards - DashboardList', function () {
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
-        columns={3}
-        rows={3}
+        columnCount={3}
+        rowCount={3}
       />
     );
 

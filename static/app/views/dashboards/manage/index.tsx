@@ -46,12 +46,13 @@ import type {DashboardDetails, DashboardListItem} from '../types';
 import DashboardList from './dashboardList';
 import TemplateCard from './templateCard';
 import {
-  DEFAULT_NUM_ROWS,
-  DEFAULT_NUM_WIDGETS,
-  PADDING,
+  DASHBOARD_CARD_GRID_PADDING,
+  DASHBOARD_GRID_DEFAULT_NUM_CARDS,
+  DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
+  DASHBOARD_GRID_DEFAULT_NUM_ROWS,
+  MINIMUM_DASHBOARD_CARD_WIDTH,
   shouldShowTemplates,
   SHOW_TEMPLATES_KEY,
-  WIDGET_WIDTH,
 } from './utils';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
@@ -74,7 +75,10 @@ function ManageDashboards() {
     SHOW_TEMPLATES_KEY,
     shouldShowTemplates()
   );
-  const [{rows, columns}, setGridSize] = useState({rows: 3, columns: 3});
+  const [{rowCount, columnCount}, setGridSize] = useState({
+    rowCount: DASHBOARD_GRID_DEFAULT_NUM_ROWS,
+    columnCount: DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
+  });
 
   const {
     data: dashboards,
@@ -90,7 +94,7 @@ function ManageDashboards() {
         query: {
           ...pick(location.query, ['cursor', 'query']),
           sort: getActiveSort().value,
-          per_page: rows * columns,
+          per_page: rowCount * columnCount,
         },
       },
     ],
@@ -99,23 +103,33 @@ function ManageDashboards() {
 
   const dashboardsPageLinks = getResponseHeader?.('Link') ?? '';
 
-  useEffect(() => {
-    function setRowsAndColumns(containerWidth: number) {
-      if (containerWidth === 0) {
-        return;
-      }
-      const numWidgetsFitInRow = Math.floor(containerWidth / (WIDGET_WIDTH + PADDING));
-
-      if (numWidgetsFitInRow >= 3) {
-        setGridSize({rows: DEFAULT_NUM_ROWS, columns: numWidgetsFitInRow});
-      } else {
-        setGridSize({
-          rows: DEFAULT_NUM_WIDGETS / numWidgetsFitInRow,
-          columns: numWidgetsFitInRow,
-        });
-      }
+  function setRowsAndColumns(containerWidth: number) {
+    if (containerWidth === 0) {
+      return;
     }
+    const numWidgetsFitInRow = Math.floor(
+      containerWidth / (MINIMUM_DASHBOARD_CARD_WIDTH + DASHBOARD_CARD_GRID_PADDING)
+    );
 
+    if (numWidgetsFitInRow >= 3) {
+      setGridSize({
+        rowCount: DASHBOARD_GRID_DEFAULT_NUM_ROWS,
+        columnCount: numWidgetsFitInRow,
+      });
+    } else if (numWidgetsFitInRow === 0) {
+      setGridSize({
+        rowCount: DASHBOARD_GRID_DEFAULT_NUM_CARDS,
+        columnCount: 1,
+      });
+    } else {
+      setGridSize({
+        rowCount: DASHBOARD_GRID_DEFAULT_NUM_CARDS / numWidgetsFitInRow,
+        columnCount: numWidgetsFitInRow,
+      });
+    }
+  }
+
+  useEffect(() => {
     const dashboardGridObserver = new ResizeObserver(
       debounce(entries => {
         entries.forEach(entry => {
@@ -127,7 +141,7 @@ function ManageDashboards() {
           if (
             dashboards?.length &&
             paginationObject.next.results &&
-            rows * columns > dashboards.length
+            rowCount * columnCount > dashboards.length
           ) {
             refetchDashboards();
           }
@@ -135,17 +149,18 @@ function ManageDashboards() {
       }, 10)
     );
 
-    if (dashboardGridRef.current) {
-      dashboardGridObserver.observe(dashboardGridRef.current);
+    const currentDashboardGrid = dashboardGridRef.current;
+
+    if (currentDashboardGrid) {
+      dashboardGridObserver.observe(currentDashboardGrid);
     }
 
     return () => {
-      if (dashboardGridRef.current) {
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        dashboardGridObserver.unobserve(dashboardGridRef.current);
+      if (currentDashboardGrid) {
+        dashboardGridObserver.unobserve(currentDashboardGrid);
       }
     };
-  }, [columns, dashboards?.length, dashboardsPageLinks, refetchDashboards, rows]);
+  }, [columnCount, dashboards?.length, dashboardsPageLinks, refetchDashboards, rowCount]);
 
   function getActiveSort() {
     const urlSort = decodeScalar(location.query.sort, 'mydashboards');
@@ -247,8 +262,8 @@ function ManageDashboards() {
         location={location}
         onDashboardsChange={() => refetchDashboards()}
         isLoading={isLoading}
-        rows={rows}
-        columns={columns}
+        rowCount={rowCount}
+        columnCount={columnCount}
       />
     );
   }

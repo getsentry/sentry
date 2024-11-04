@@ -23,7 +23,10 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
-import {PADDING, WIDGET_WIDTH} from 'sentry/views/dashboards/manage/utils';
+import {
+  DASHBOARD_CARD_GRID_PADDING,
+  MINIMUM_DASHBOARD_CARD_WIDTH,
+} from 'sentry/views/dashboards/manage/utils';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 import {cloneDashboard} from '../utils';
@@ -33,12 +36,12 @@ import GridPreview from './gridPreview';
 
 type Props = {
   api: Client;
-  columns: number;
+  columnCount: number;
   dashboards: DashboardListItem[] | undefined;
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
-  rows: number;
+  rowCount: number;
   isLoading?: boolean;
 };
 
@@ -48,10 +51,12 @@ function DashboardList({
   location,
   dashboards,
   onDashboardsChange,
-  rows,
-  columns,
+  rowCount,
+  columnCount,
   isLoading,
 }: Props) {
+  // this acts as a cache for the dashboards being passed in. It preserves the previously populated dashboard list
+  // to be able to show the 'previous' dashboards on resize
   const [currentDashboards, setCurrentDashboards] = useState<
     DashboardListItem[] | undefined
   >(dashboards);
@@ -154,13 +159,13 @@ function DashboardList({
   function renderMiniDashboards() {
     // on pagination, render no dashboards to show placeholders while loading
     if (
-      rows * columns === currentDashboards?.length &&
+      rowCount * columnCount === currentDashboards?.length &&
       !isEqual(currentDashboards, dashboards)
     ) {
       return [];
     }
 
-    return currentDashboards?.slice(0, rows * columns).map((dashboard, index) => {
+    return currentDashboards?.slice(0, rowCount * columnCount).map((dashboard, index) => {
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
@@ -190,21 +195,19 @@ function DashboardList({
       );
     }
 
-    const numDashboards =
-      rows * columns !== currentDashboards?.length
-        ? currentDashboards?.length
-          ? currentDashboards.length
-          : 0
-        : dashboards?.length
-          ? dashboards.length
-          : 0;
+    const gridIsBeingResized = rowCount * columnCount !== currentDashboards?.length;
+
+    // finds number of dashboards (cached or not) based on if the screen is being resized or not
+    const numDashboards = gridIsBeingResized
+      ? currentDashboards?.length ?? 0
+      : dashboards?.length ?? 0;
 
     return (
-      <DashboardGrid rows={rows} columns={columns}>
+      <DashboardGrid rows={rowCount} columns={columnCount}>
         {renderMiniDashboards()}
         {isLoading &&
-          rows * columns > numDashboards &&
-          new Array(rows * columns - numDashboards)
+          rowCount * columnCount > numDashboards &&
+          new Array(rowCount * columnCount - numDashboards)
             .fill(0)
             .map((_, index) => <Placeholder key={index} height="270px" />)}
       </DashboardGrid>
@@ -218,10 +221,10 @@ const DashboardGrid = styled('div')<{columns: number; rows: number}>`
   display: grid;
   grid-template-columns: repeat(
     ${props => props.columns},
-    minmax(${WIDGET_WIDTH}px, 1fr)
+    minmax(${MINIMUM_DASHBOARD_CARD_WIDTH}px, 1fr)
   );
   grid-template-rows: repeat(${props => props.rows}, max-content);
-  gap: ${PADDING}px;
+  gap: ${DASHBOARD_CARD_GRID_PADDING}px;
 `;
 
 const DropdownTrigger = styled(Button)`
