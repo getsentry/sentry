@@ -103,7 +103,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
     def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """
         Calls the client's `check_file` method to see if the file exists.
-        Returns the link to the file if it's exists, otherwise return `None`.
+        Returns the link to the file if it exists, otherwise return `None`.
 
         So far only GitHub, GitLab and VSTS have this implemented, all of which give
         use back 404s. If for some reason an integration gives back a different
@@ -113,9 +113,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         filepath: file from the stacktrace (string)
         branch: commitsha or default_branch (string)
         """
-        with self.record_event(
-            RepositoryIntegrationInteractionType.CHECK_FILE
-        ).capture() as lifecycle:
+        with self.record_event(RepositoryIntegrationInteractionType.CHECK_FILE).capture():
             filepath = filepath.lstrip("/")
             try:
                 client = self.get_client()
@@ -127,14 +125,12 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                 if not response:
                     return None
             except IdentityNotValid:
-                lifecycle.record_failure(IdentityNotValid)
                 return None
             except ApiError as e:
                 if e.code != 404:
                     sentry_sdk.capture_exception()
                     raise
 
-                lifecycle.record_failure(ApiError)
                 return None
 
             return self.format_source_url(repo, filepath, branch)
@@ -170,7 +166,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         self, repo: Repository, ref: str | None = None
     ) -> Mapping[str, str] | None:
         """
-        Find and get the contents of a CODEOWNERS file.
+        Find and get the contents of a CODEOWNERS file. Returns the link to the file if it exists, otherwise return `None`.
 
         args:
          * repo - Repository object
@@ -181,9 +177,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
          * filepath - full path of the file i.e. CODEOWNERS, .github/CODEOWNERS, docs/CODEOWNERS
          * raw - the decoded raw contents of the codeowner file
         """
-        with self.record_event(
-            RepositoryIntegrationInteractionType.GET_CODEOWNER_FILE
-        ).capture() as lifecycle:
+        with self.record_event(RepositoryIntegrationInteractionType.GET_CODEOWNER_FILE).capture():
             if self.codeowners_locations is None:
                 raise NotImplementedError("Implement self.codeowners_locations to use this method.")
 
@@ -193,7 +187,6 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                     try:
                         contents = self.get_client().get_file(repo, filepath, ref, codeowners=True)
                     except ApiError:
-                        lifecycle.record_failure(ApiError)
                         continue
                     return {"filepath": filepath, "html_url": html_url, "raw": contents}
             return None

@@ -8,7 +8,7 @@ from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecyc
 
 class RepositoryIntegrationInteractionType(Enum):
     """
-    A specific method used by a RepositoryIntegration (???)
+    A RepositoryIntegration feature.
     """
 
     GET_STACKTRACE_LINK = "GET_STACKTRACE_LINK"
@@ -22,7 +22,7 @@ class RepositoryIntegrationInteractionType(Enum):
 @dataclass
 class RepositoryIntegrationInteractionEvent(EventLifecycleMetric):
     """
-    An instance to be recorded of ... (???)
+    An instance to be recorded of a RepositoryIntegration feature call.
     """
 
     interaction_type: RepositoryIntegrationInteractionType
