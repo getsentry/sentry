@@ -366,12 +366,28 @@ def _deobfuscate_profile(profile: Profile, project: Project) -> bool:
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            _track_outcome_legacy(
-                profile=profile,
-                project=project,
-                outcome=Outcome.INVALID,
-                reason="profiling_failed_deobfuscation",
-            )
+            if options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
+                categories = []
+                if "profiler_id" not in profile:
+                    categories.append(DataCategory.PROFILE)
+                    if profile.get("sampled"):
+                        categories.append(DataCategory.PROFILE_INDEXED)
+                else:
+                    categories.append(DataCategory.PROFILE_CHUNK)
+                _track_outcome(
+                    profile=profile,
+                    project=project,
+                    outcome=Outcome.INVALID,
+                    categories=categories,
+                    reason="profiling_failed_deobfuscation",
+                )
+            else:
+                _track_outcome_legacy(
+                    profile=profile,
+                    project=project,
+                    outcome=Outcome.INVALID,
+                    reason="profiling_failed_deobfuscation",
+                )
             return False
 
 
@@ -386,12 +402,28 @@ def _normalize_profile(profile: Profile, organization: Organization, project: Pr
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            _track_outcome_legacy(
-                profile=profile,
-                project=project,
-                outcome=Outcome.INVALID,
-                reason="profiling_failed_normalization",
-            )
+            if options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
+                categories = []
+                if "profiler_id" not in profile:
+                    categories.append(DataCategory.PROFILE)
+                    if profile.get("sampled"):
+                        categories.append(DataCategory.PROFILE_INDEXED)
+                else:
+                    categories.append(DataCategory.PROFILE_CHUNK)
+                _track_outcome(
+                    profile=profile,
+                    project=project,
+                    outcome=Outcome.INVALID,
+                    categories=categories,
+                    reason="profiling_failed_normalization",
+                )
+            else:
+                _track_outcome_legacy(
+                    profile=profile,
+                    project=project,
+                    outcome=Outcome.INVALID,
+                    reason="profiling_failed_normalization",
+                )
             return False
 
 
