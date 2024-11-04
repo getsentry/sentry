@@ -78,7 +78,7 @@ class SlackOptionsLoadEndpoint(Endpoint):
                 "project_id": group.project_id,
                 "teams": len(all_teams),
                 "filtered_teams": len(filtered_teams),
-                "members": len(all_members),
+                "members": len(list(all_members)),
                 "filtered_members": len(filtered_members),
             },
         )
