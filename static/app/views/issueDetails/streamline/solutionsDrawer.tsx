@@ -13,8 +13,10 @@ import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import marked from 'sentry/utils/marked';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
+import Resources from 'sentry/views/issueDetails/streamline/resources';
 
 interface SolutionsDrawerProps {
   group: Group;
@@ -24,6 +26,7 @@ interface SolutionsDrawerProps {
 
 export function SolutionsDrawer({group, project, event}: SolutionsDrawerProps) {
   const {data, hasGenAIConsent} = useGroupSummary(group.id, group.issueCategory);
+  const config = getConfigForIssueType(group, project);
 
   return (
     <SolutionsDrawerContainer>
@@ -58,6 +61,13 @@ export function SolutionsDrawer({group, project, event}: SolutionsDrawerProps) {
               }}
             />
           </GroupSummaryWrapper>
+        )}
+        {config.resources && (
+          <Resources
+            eventPlatform={event?.platform}
+            group={group}
+            configResources={config.resources}
+          />
         )}
       </Content>
     </SolutionsDrawerContainer>
