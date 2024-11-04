@@ -16,19 +16,21 @@ type Props = {
 };
 
 function Repository({repository, onDelete, onEdit, hasFeature, hasAccess}: Props) {
-  const {id, name, type} = repository;
-
   return (
     <StyledPanelItem>
-      <Name>{name}</Name>
-      <TypeAndStatus>{customRepoTypeLabel[type]}</TypeAndStatus>
-      <CustomRepositoryActions
-        repositoryName={name}
-        hasFeature={hasFeature}
-        hasAccess={hasAccess}
-        onDelete={() => onDelete(id)}
-        onEdit={() => onEdit(id)}
-      />
+      <div>
+        <div>{repository.name}</div>
+        <TypeAndStatus>{customRepoTypeLabel[repository.type]}</TypeAndStatus>
+      </div>
+      <div>
+        <CustomRepositoryActions
+          repositoryName={repository.name}
+          hasFeature={hasFeature}
+          hasAccess={hasAccess}
+          onDelete={() => onDelete(repository.id)}
+          onEdit={() => onEdit(repository.id)}
+        />
+      </div>
     </StyledPanelItem>
   );
 }
@@ -36,24 +38,10 @@ function Repository({repository, onDelete, onEdit, hasFeature, hasAccess}: Props
 export default Repository;
 
 const StyledPanelItem = styled(PanelItem)`
-  display: grid;
-  align-items: flex-start;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: ${space(1)};
-
-  grid-template-columns: max-content 1fr;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: max-content 1fr max-content;
-  }
-`;
-
-const Name = styled('div')`
-  grid-column: 2/2;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: 2/3;
-    grid-row: 1/2;
-  }
 `;
 
 const TypeAndStatus = styled('div')`
@@ -62,13 +50,4 @@ const TypeAndStatus = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-
-  grid-column: 2/2;
-  gap: ${space(1.5)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: 2/3;
-    grid-row: 2/2;
-    gap: ${space(1)};
-  }
 `;

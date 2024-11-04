@@ -26,8 +26,6 @@ import {defined} from 'sentry/utils';
 import Repository from './repository';
 import {dropDownItems, expandKeys, getRequestMessages} from './utils';
 
-const SECTION_TITLE = t('Custom Repositories');
-
 type Props = {
   api: Client;
   customRepositories: CustomRepo[];
@@ -178,7 +176,7 @@ function CustomRepositories({
             return (
               <Panel>
                 <PanelHeader hasButtons>
-                  {SECTION_TITLE}
+                  {t('Custom Repositories')}
                   <Tooltip
                     title={
                       !hasAccess
@@ -223,9 +221,9 @@ function CustomRepositories({
                       <p>{t('No custom repositories configured')}</p>
                     </EmptyStateWarning>
                   ) : (
-                    repositories.map((repository, index) => (
+                    repositories.map(repository => (
                       <Repository
-                        key={index}
+                        key={repository.id}
                         repository={repository}
                         hasFeature={hasFeature}
                         hasAccess={hasAccess}
