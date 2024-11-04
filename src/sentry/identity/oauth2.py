@@ -12,6 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import SSLError
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.exceptions import NotRegistered
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import (
@@ -218,7 +219,7 @@ def record_event(event: IntegrationPipelineViewType, provider: str):
 
     try:
         identity_manager.get(provider)
-    except ValueError:
+    except NotRegistered:
         logger.exception("oauth2.record_event.invalid_provider", extra={"provider": provider})
 
     return IntegrationPipelineViewEvent(
