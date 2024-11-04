@@ -490,6 +490,26 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
+    def test_stacktrace_attributeerror(self):
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "SyntaxError",
+                        "value": "hello world",
+                    }
+                ]
+            }
+        )
+        # hack to trigger attributeerror
+        event.interfaces["exception"]._data["values"][0] = None
+
+        for value in ["example.php", "somecode.php", "othercode.php"]:
+            rule = self.get_rule(
+                data={"match": MatchType.EQUAL, "attribute": "stacktrace.filename", "value": value}
+            )
+            self.assertDoesNotPass(rule, event)
+
     def test_stacktrace_module(self):
         """Stacktrace.module should match frames anywhere in the stack."""
 
