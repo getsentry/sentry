@@ -67,6 +67,7 @@ export function SpansTable({}: SpansTableProps) {
     eventView,
     initialData: [],
     referrer: 'api.explore.spans-samples-table',
+    allowAggregateConditions: false,
   });
 
   const {tableStyles} = useTableStyles({

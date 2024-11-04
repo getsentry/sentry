@@ -116,7 +116,8 @@ function useParameterSuggestions({
               columnTypes({
                 key: col.key,
                 valueType:
-                  getFieldDefinition(col.key)?.valueType ?? FieldValueType.STRING,
+                  getFieldDefinition(col.key, col.kind)?.valueType ??
+                  FieldValueType.STRING,
               })
             )
             .map(col => ({value: col.key, label: col.key}));
