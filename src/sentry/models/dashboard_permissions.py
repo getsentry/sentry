@@ -38,13 +38,13 @@ class DashboardPermissions(Model):
         "sentry.Dashboard", on_delete=models.CASCADE, related_name="permissions"
     )
 
-    def has_edit_permissions(self, userId):
+    def has_edit_permissions(self, user_id):
         if self.is_editable_by_everyone:
             return True
-        if userId == self.dashboard.created_by_id:
+        if user_id == self.dashboard.created_by_id:
             return True  # Dashboard creator will always have edit perms
         for team in self.teams_with_edit_access.all():
-            if userId in team.get_member_user_ids():
+            if user_id in team.get_member_user_ids():
                 return True
         return False
 

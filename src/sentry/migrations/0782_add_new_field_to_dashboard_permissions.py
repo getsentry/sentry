@@ -32,12 +32,12 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_groupedmessage" ADD COLUMN "is_editable_by_everyone" boolean NOT NULL DEFAULT true;
+                    ALTER TABLE "sentry_dashboardpermissions" ADD COLUMN "is_editable_by_everyone" boolean NOT NULL DEFAULT true;
                     """,
                     reverse_sql="""
-                    ALTER TABLE "sentry_groupedmessage" DROP COLUMN "is_editable_by_everyone";
+                    ALTER TABLE "sentry_dashboardpermissions" DROP COLUMN "is_editable_by_everyone";
                     """,
-                    hints={"tables": ["sentry_groupedmessage"]},
+                    hints={"tables": ["sentry_dashboardpermissions"]},
                 ),
             ],
             state_operations=[
