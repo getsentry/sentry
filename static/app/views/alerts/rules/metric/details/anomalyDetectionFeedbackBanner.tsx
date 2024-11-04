@@ -25,9 +25,9 @@ export default function AnomalyDetectionFeedbackBanner({
   const [isSubmitted, submit] = useDismissable(id);
 
   const handleClick = useCallback(
-    (isAnomaly: boolean) => {
+    (anomalyCorrectlyIdentified: boolean) => {
       trackAnalytics('anomaly_detection.submitted_feedback', {
-        choice_selected: isAnomaly,
+        choice_selected: anomalyCorrectlyIdentified,
         organization,
         incident_id: id,
       });
@@ -37,7 +37,7 @@ export default function AnomalyDetectionFeedbackBanner({
         },
         tags: {
           featureName: 'anomaly-detection-alerts-feedback',
-          choice_selected: isAnomaly,
+          choice_selected: anomalyCorrectlyIdentified,
           incident_id: id,
           alert_rule_id: selectedIncident.alertRule.id,
           metric: selectedIncident.alertRule.query,
