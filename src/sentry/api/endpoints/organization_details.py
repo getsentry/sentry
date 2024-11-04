@@ -14,7 +14,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
 from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
-from sentry import audit_log, quotas, roles
+from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -952,10 +952,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 boost_low_volume_projects_of_org_with_query.delay(organization.id)
 
             if "samplingMode" in changed_data and request.access.has_scope("org:write"):
-                # auto -> manual mode
-                if changed_data["samplingMode"] == DynamicSamplingMode.PROJECT.value:
+                if (
+                    organization.get_option("sentry:sampling_mode")
+                    == DynamicSamplingMode.PROJECT.value
+                ):
                     with transaction.atomic(router.db_for_write(ProjectOption)):
-                        for project in organization.projects:
+                        for project in organization.project_set.all():
                             current_rate, is_fallback = get_boost_low_volume_projects_sample_rate(
                                 org_id=organization.id,
                                 project_id=project.id,
@@ -966,22 +968,17 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
                         organization.delete_option("sentry:target_sample_rate")
 
-                if changed_data["samplingMode"] == DynamicSamplingMode.ORGANIZATION.value:
+                if (
+                    organization.get_option("sentry:sampling_mode")
+                    == DynamicSamplingMode.ORGANIZATION.value
+                ):
                     with transaction.atomic(router.db_for_write(ProjectOption)):
                         if "targetSampleRate" in changed_data:
                             organization.update_option(
                                 "sentry:target_sample_rate", changed_data["targetSampleRate"]
                             )
-                        else:
-                            # TODO: is this the right function? can we use this?
-                            if blended_rate := quotas.backend.get_blended_sample_rate(
-                                organization_id=organization.id
-                            ):
-                                organization.update_option(
-                                    "sentry:target_sample_rate", blended_rate
-                                )
 
-                        for project in organization.projects:
+                        for project in organization.project_set.all():
                             project.delete_option("sentry:sampling_rate")
 
                 boost_low_volume_projects_of_org_with_query.delay(organization.id)

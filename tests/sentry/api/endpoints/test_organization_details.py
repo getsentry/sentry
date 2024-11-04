@@ -398,21 +398,18 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         project1.update_option("sentry:sampling_rate", 0.3)
         project2.update_option("sentry:sampling_rate", 0.5)
 
-        with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
-            return_value=0.4,
-        ):
-
+        with self.feature("organizations:dynamic-sampling-custom"):
             response = self.get_response(
                 self.organization.slug,
                 method="put",
                 samplingMode=DynamicSamplingMode.ORGANIZATION.value,
+                targetSampleRate=0.123456789,
             )
 
         assert response.status_code == 200
 
         # Verify org option was set
-        assert self.organization.get_option("sentry:target_sample_rate") == 0.4
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.123456789
 
         # Verify project options were removed
         assert project1.get_option("sentry:sampling_rate")
@@ -436,11 +433,12 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         project1.update_option("sentry:sampling_rate", 0.3)
         project2.update_option("sentry:sampling_rate", 0.5)
 
-        response = self.get_response(
-            self.organization.slug,
-            method="put",
-            samplingMode=DynamicSamplingMode.PROJECT.value,
-        )
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                samplingMode=DynamicSamplingMode.PROJECT.value,
+            )
 
         assert response.status_code == 200
 
@@ -463,11 +461,12 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
         self.login_as(user=self.non_write_user)
 
-        response = self.get_response(
-            self.organization.slug,
-            method="put",
-            data={"samplingMode": DynamicSamplingMode.ORGANIZATION.value},
-        )
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                data={"samplingMode": DynamicSamplingMode.ORGANIZATION.value},
+            )
 
         assert response.status_code == 403
 
