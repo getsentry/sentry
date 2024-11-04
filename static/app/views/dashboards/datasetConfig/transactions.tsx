@@ -24,7 +24,7 @@ import {
   type OnDemandControlContext,
   shouldUseOnDemandMetrics,
 } from 'sentry/utils/performance/contexts/onDemandControl';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils';
+import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {Widget, WidgetQuery} from '../types';

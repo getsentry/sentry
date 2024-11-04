@@ -23,7 +23,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils';
+import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
