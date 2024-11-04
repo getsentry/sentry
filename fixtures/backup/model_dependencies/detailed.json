@@ -1445,7 +1445,7 @@
     },
     "model": "sentry.dashboardpermissionsteam",
     "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
+    "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],

@@ -9,7 +9,7 @@ from sentry.db.models.base import sane_repr
 
 @region_silo_model
 class DashboardPermissionsTeam(Model):
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Organization
 
     team = FlexibleForeignKey("sentry.Team", on_delete=models.CASCADE)
     permissions = FlexibleForeignKey("sentry.DashboardPermissions", on_delete=models.CASCADE)
