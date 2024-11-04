@@ -14,7 +14,7 @@ function dismissBanner(bannerKey: string) {
   localStorage.setItem(makeKey(bannerKey), 'true');
 }
 
-function useDismissable(bannerKey: string) {
+export function useDismissable(bannerKey: string) {
   const key = makeKey(bannerKey);
   const [value, setValue] = useState(localStorage.getItem(key));
 
