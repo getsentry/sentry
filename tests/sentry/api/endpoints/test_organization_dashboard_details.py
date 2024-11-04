@@ -356,7 +356,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             organization=self.organization,
         )
         DashboardPermissions.objects.create(dashboard=dashboard, is_editable_by_everyone=False)
-        response = self.do_request("get", self.url(dashboard.id))
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("get", self.url(dashboard.id))
 
         assert response.status_code == 200, response.content
 
@@ -369,7 +370,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             created_by_id=self.user.id,
             organization=self.organization,
         )
-        response = self.do_request("get", self.url(dashboard.id))
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("get", self.url(dashboard.id))
 
         assert response.status_code == 200, response.content
 
@@ -405,7 +407,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         )
         permissions.teams_with_edit_access.set([team1, team2])
 
-        response = self.do_request("get", self.url(dashboard.id))
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("get", self.url(dashboard.id))
 
         assert response.status_code == 200, response.content
 
@@ -2103,9 +2106,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
-        response = self.do_request(
-            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
-        )
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+            )
         assert response.status_code == 200, response.data
         assert response.data["permissions"]["isEditableByEveryone"] is False
         assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
@@ -2139,9 +2143,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
-        response = self.do_request(
-            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
-        )
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+            )
         assert response.status_code == 200, response.data
         assert response.data["permissions"]["teamsWithEditAccess"] == [
             team1.id,
@@ -2171,9 +2176,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         user = User(id=self.dashboard.created_by_id)
         self.login_as(user=user)
-        response = self.do_request(
-            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
-        )
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+            )
         assert response.status_code == 400
         assert (
             "Cannot update dashboard edit permissions. Teams with IDs [0, 23134, 6, 1] do not exist."
