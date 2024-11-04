@@ -181,7 +181,7 @@ class DashboardPermissionsSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardPermissionsResponse:
         return {
             "isEditableByEveryone": obj.is_editable_by_everyone,
-            "teamsWithEditAccess": [team.id for team in obj.teams_with_edit_access.all()],
+            "teamsWithEditAccess": list(obj.teams_with_edit_access.values_list("id", flat=True)),
         }
 
 

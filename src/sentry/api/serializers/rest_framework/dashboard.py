@@ -39,6 +39,7 @@ from sentry.tasks.on_demand_metrics import (
 )
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.strings import oxfordize_list
 
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
@@ -491,12 +492,9 @@ class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
             )
             invalid_team_ids = set(team_ids) - existing_team_ids
             if invalid_team_ids:
-                invalid_team_ids_str = ", ".join(str(id) for id in invalid_team_ids)
+                invalid_team_ids_str = [str(id) for id in invalid_team_ids]
                 raise serializers.ValidationError(
-                    {
-                        "Cannot update dashboard edit permissions. Teams with IDs [%s] do not exist."
-                        % invalid_team_ids_str
-                    }
+                    f"Cannot update dashboard edit permissions. Teams with IDs {oxfordize_list(invalid_team_ids_str)} do not exist."
                 )
         return data
 
@@ -608,15 +606,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     "is_editable_by_everyone": permissions_data["is_editable_by_everyone"],
                 },
             )[0]
-            if (
-                "teams_with_edit_access" in permissions_data
-                and permissions_data["teams_with_edit_access"] != []
-            ):
-                teams_with_edit_access = Team.objects.filter(
-                    id__in=permissions_data["teams_with_edit_access"]
-                )
-                # check when team not found
-                permissions.teams_with_edit_access.set(teams_with_edit_access)
+            if "teams_with_edit_access" in permissions_data:
+                teams_data = permissions_data["teams_with_edit_access"]
+                if teams_data == [] or permissions_data["is_editable_by_everyone"] is True:
+                    permissions.teams_with_edit_access.clear()
+                else:
+                    permissions.teams_with_edit_access.set(Team.objects.filter(id__in=teams_data))
 
             instance.permissions = permissions
 

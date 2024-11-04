@@ -11,8 +11,8 @@ from sentry.db.models.base import sane_repr
 class DashboardPermissionsTeam(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    team = FlexibleForeignKey("sentry.Team")
-    permissions = FlexibleForeignKey("sentry.DashboardPermissions")
+    team = FlexibleForeignKey("sentry.Team", on_delete=models.CASCADE)
+    permissions = FlexibleForeignKey("sentry.DashboardPermissions", on_delete=models.CASCADE)
 
     class Meta:
         app_label = "sentry"
@@ -52,4 +52,4 @@ class DashboardPermissions(Model):
         app_label = "sentry"
         db_table = "sentry_dashboardpermissions"
 
-    __repr__ = sane_repr("is_editable_by_everyone")
+    __repr__ = sane_repr("is_editable_by_everyone", "teams_with_edit_access")
