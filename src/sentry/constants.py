@@ -75,6 +75,8 @@ ENVIRONMENT_NAME_MAX_LENGTH = 64
 
 SENTRY_APP_SLUG_MAX_LENGTH = 64
 
+PROJECT_SLUG_MAX_LENGTH = 100
+
 # Maximum number of results we are willing to fetch when calculating rollup
 # Clients should adapt the interval width based on their display width.
 MAX_ROLLUP_POINTS = 10000
