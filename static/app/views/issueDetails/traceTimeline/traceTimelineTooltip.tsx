@@ -57,7 +57,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
           <Link
             to={generateTraceTarget(event, organization, location)}
             onClick={() => {
-              if (surface.includes('issue_details')) {
+              if (surface.startsWith('issue_details')) {
                 // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
                 trackAnalytics(
                   'issue_details.issue_tab.trace_timeline_more_events_clicked',

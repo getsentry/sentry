@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import SurfaceProvider from 'sentry/components/surfaceProvider';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -212,7 +213,13 @@ describe('TraceDataSection', () => {
       body: [],
     });
 
-    render(<TraceDataSection event={event} />, {organization});
+    // Use SurfaceProvider to test the old analytics event is still emitted
+    render(
+      <SurfaceProvider suffix="issue_details">
+        <TraceDataSection event={event} />
+      </SurfaceProvider>,
+      {organization}
+    );
 
     // Instead of a timeline, we should see the other related issue
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument(); // The title
@@ -230,7 +237,7 @@ describe('TraceDataSection', () => {
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       has_related_trace_issue: true,
     });
-    expect(trackAnalytics).toHaveBeenCalledTimes(1);
+    expect(trackAnalytics).toHaveBeenCalledTimes(2);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'issue_details.related_trace_issue.trace_issue_clicked',
       {
@@ -238,6 +245,11 @@ describe('TraceDataSection', () => {
         organization: organization,
       }
     );
+    expect(trackAnalytics).toHaveBeenCalledWith('one_other_related_trace_issue.clicked', {
+      group_id: issuePlatformBody.data[0]['issue.id'],
+      organization: organization,
+      surface: 'issue_details',
+    });
   });
 
   it('skips the timeline and shows NO related issues (only 1 issue)', async () => {
