@@ -221,7 +221,9 @@ def record_event(event: IntegrationPipelineViewType, provider: str):
     except ValueError:
         logger.exception("oauth2.record_event.invalid_provider", extra={"provider": provider})
 
-    return IntegrationPipelineViewEvent(event, domain=IntegrationDomain.IDENTITY, provider=provider)
+    return IntegrationPipelineViewEvent(
+        event, domain=IntegrationDomain.IDENTITY, provider_key=provider
+    )
 
 
 class OAuth2LoginView(PipelineView):
