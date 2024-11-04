@@ -1,5 +1,4 @@
-import ConfigStore from 'sentry/stores/configStore';
-import useOrganization from 'sentry/utils/useOrganization';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 
 type Props = {
   /**
@@ -16,15 +15,13 @@ type Props = {
  * Component to handle demo mode switches
  */
 function DemoModeGate({children, demoComponent}: Props) {
-  const organization = useOrganization({allowNull: true});
-
-  if (organization?.orgRole === 'member' && ConfigStore.get('demoMode')) {
-    if (typeof demoComponent === 'function') {
-      return demoComponent({children});
-    }
-    return demoComponent ?? null;
+  if (!isDemoModeEnabled()) {
+    return children;
   }
-  return children;
+  if (typeof demoComponent === 'function') {
+    return demoComponent({children});
+  }
+  return demoComponent ?? null;
 }
 
 export default DemoModeGate;

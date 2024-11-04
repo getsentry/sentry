@@ -6,7 +6,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getTourTask, isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {getTourTask, isDemoModeEnabled} from 'sentry/utils/demoMode';
 
 import {demoEndModal} from './modal';
 import {updateOnboardingTask} from './onboardingTasks';
@@ -69,7 +69,7 @@ export function recordFinish(
 
   const tourTask = getTourTask(guide);
 
-  if (isDemoWalkthrough() && tourTask && org) {
+  if (isDemoModeEnabled() && tourTask && org) {
     const {tour, task} = tourTask;
     updateOnboardingTask(api, org, {task, status: 'complete', completionSeen: true});
     fetchOrganizationDetails(api, org.slug, true, false);

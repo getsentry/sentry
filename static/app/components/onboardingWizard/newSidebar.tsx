@@ -28,7 +28,7 @@ import {
   type OnboardingTaskStatus,
 } from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -85,7 +85,7 @@ function Task({task, status, hidePanel, showWaitingIndicator}: TaskProps) {
 
       e.stopPropagation();
 
-      if (isDemoWalkthrough()) {
+      if (isDemoModeEnabled()) {
         DemoWalkthroughStore.activateGuideAnchor(task.task);
       }
 
@@ -343,7 +343,7 @@ export function NewOnboardingSidebar({
   gettingStartedTasks,
   beyondBasicsTasks,
 }: NewSidebarProps) {
-  const walkthrough = isDemoWalkthrough();
+  const walkthrough = isDemoModeEnabled();
 
   const sortedGettingStartedTasks = gettingStartedTasks.sort(
     (a, b) =>
