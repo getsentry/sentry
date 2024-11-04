@@ -24,7 +24,7 @@ export function useIssueDetailsEventView({
   const {selection: pageFilters} = usePageFilters();
   const searchQuery = useEventQuery({group});
   const periodQuery = getPeriod(pageFilters.datetime);
-  const interval = getInterval(pageFilters.datetime, 'metrics');
+  const interval = getInterval(pageFilters.datetime, 'issues');
   const config = getConfigForIssueType(group, group.project);
 
   const query = [`issue:${group.shortId}`, searchQuery]
