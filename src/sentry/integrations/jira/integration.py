@@ -16,6 +16,7 @@ from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -995,6 +996,7 @@ class JiraIntegration(IssueSyncIntegration):
 class JiraIntegrationProvider(IntegrationProvider):
     key = "jira"
     name = "Jira"
+    domain = IntegrationDomain.PROJECT_MANAGEMENT
     metadata = metadata
     integration_cls = JiraIntegration
 

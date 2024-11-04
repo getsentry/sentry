@@ -330,6 +330,7 @@ class BitbucketServerIntegration(RepositoryIntegration):
 class BitbucketServerIntegrationProvider(IntegrationProvider):
     key = "bitbucket_server"
     name = "Bitbucket Server"
+    domain = IntegrationDomain.SOURCE_CODE_MANAGEMENT
     metadata = metadata
     integration_cls = BitbucketServerIntegration
     needs_default_identity = True

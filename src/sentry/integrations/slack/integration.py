@@ -13,6 +13,7 @@ from slack_sdk.errors import SlackApiError
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -88,6 +89,7 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
 class SlackIntegrationProvider(IntegrationProvider):
     key = "slack"
     name = "Slack"
+    domain = IntegrationDomain.MESSAGING
     metadata = metadata
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
     integration_cls = SlackIntegration

@@ -135,49 +135,6 @@ class IntegrationDomain(StrEnum):
     IDENTITY = "identity"  # for identity pipelines
 
 
-class IntegrationProviderSlug(StrEnum):
-    SLACK = "slack"
-    DISCORD = "discord"
-    MSTeams = "msteams"
-    JIRA = "jira"
-    JIRA_SERVER = "jira_server"
-    AZURE_DEVOPS = "vsts"
-    GITHUB = "github"
-    GITHUB_ENTERPRISE = "github_enterprise"
-    GITLAB = "gitlab"
-    BITBUCKET = "bitbucket"
-    PAGERDUTY = "pagerduty"
-    OPSGENIE = "opsgenie"
-
-
-INTEGRATION_TYPE_TO_PROVIDER = {
-    IntegrationDomain.MESSAGING: [
-        IntegrationProviderSlug.SLACK,
-        IntegrationProviderSlug.DISCORD,
-        IntegrationProviderSlug.MSTeams,
-    ],
-    IntegrationDomain.PROJECT_MANAGEMENT: [
-        IntegrationProviderSlug.JIRA,
-        IntegrationProviderSlug.JIRA_SERVER,
-        IntegrationProviderSlug.GITHUB,
-        IntegrationProviderSlug.GITHUB_ENTERPRISE,
-        IntegrationProviderSlug.GITLAB,
-        IntegrationProviderSlug.AZURE_DEVOPS,
-    ],
-    IntegrationDomain.SOURCE_CODE_MANAGEMENT: [
-        IntegrationProviderSlug.GITHUB,
-        IntegrationProviderSlug.GITHUB_ENTERPRISE,
-        IntegrationProviderSlug.GITLAB,
-        IntegrationProviderSlug.BITBUCKET,
-        IntegrationProviderSlug.AZURE_DEVOPS,
-    ],
-    IntegrationDomain.ON_CALL_SCHEDULING: [
-        IntegrationProviderSlug.PAGERDUTY,
-        IntegrationProviderSlug.OPSGENIE,
-    ],
-}
-
-
 class IntegrationProvider(PipelineProvider, abc.ABC):
     """
     An integration provider describes a third party that can be registered within Sentry.
@@ -244,6 +201,8 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
 
     requires_feature_flag = False
     """if this is hidden without the feature flag"""
+
+    domain: IntegrationDomain | None = None
 
     @classmethod
     def get_installation(
@@ -593,8 +552,10 @@ def disable_integration(
 
 
 def get_integration_types(provider: str):
+    from sentry.integrations.manager import default_manager as integrations
+
     types = []
-    for integration_type, providers in INTEGRATION_TYPE_TO_PROVIDER.items():
+    for integration_type, providers in integrations.get_integrations_by_domain().items():
         if provider in providers:
             types.append(integration_type)
     return types

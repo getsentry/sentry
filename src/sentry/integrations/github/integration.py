@@ -311,6 +311,7 @@ class GitHubIntegration(RepositoryIntegration, GitHubIssuesSpec, CommitContextIn
 class GitHubIntegrationProvider(IntegrationProvider):
     key = "github"
     name = "GitHub"
+    domain = IntegrationDomain.SOURCE_CODE_MANAGEMENT
     metadata = metadata
     integration_cls = GitHubIntegration
     features = frozenset(

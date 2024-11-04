@@ -12,6 +12,7 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -166,6 +167,7 @@ class PagerDutyIntegration(IntegrationInstallation):
 class PagerDutyIntegrationProvider(IntegrationProvider):
     key = "pagerduty"
     name = "PagerDuty"
+    domain = IntegrationDomain.ON_CALL_SCHEDULING
     metadata = metadata
     features = frozenset([IntegrationFeatures.ALERT_RULE, IntegrationFeatures.INCIDENT_MANAGEMENT])
     integration_cls = PagerDutyIntegration

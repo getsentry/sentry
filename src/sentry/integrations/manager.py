@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Iterable, Iterator
 from typing import Any
 
 from sentry.exceptions import NotRegistered
-from sentry.integrations.base import IntegrationProvider
+from sentry.integrations.base import IntegrationDomain, IntegrationProvider
 
 __all__ = ["IntegrationManager"]
 
@@ -14,6 +15,12 @@ __all__ = ["IntegrationManager"]
 class IntegrationManager:
     def __init__(self) -> None:
         self.__values: dict[str, type[IntegrationProvider]] = {}
+        self.__domain_integrations: dict[IntegrationDomain, list[str]] = defaultdict(
+            list
+        )  # integrations by domain
+        self.__integration_domains: dict[str, IntegrationDomain] = (
+            {}
+        )  # map of integration to domain
 
     def __iter__(self) -> Iterator[IntegrationProvider]:
         return iter(self.all())
@@ -36,6 +43,8 @@ class IntegrationManager:
 
     def register(self, cls: type[IntegrationProvider]) -> None:
         self.__values[cls.key] = cls
+        self.__domain_integrations[cls.domain].append(cls.key)
+        self.__integration_domains[cls.key] = cls.domain
 
     def unregister(self, cls: type[IntegrationProvider]) -> None:
         try:
@@ -46,6 +55,19 @@ class IntegrationManager:
             # we gracefully handle a missing provider
             return
         del self.__values[cls.key]
+
+    def get_integrations_for_domain(self, domain: IntegrationDomain) -> list[str]:
+        if domain not in self.__domain_integrations:
+            return []
+        return self.__domain_integrations[domain]
+
+    def get_integrations_by_domain(self) -> dict[IntegrationDomain, list[str]]:
+        return self.__domain_integrations
+
+    def get_integration_domain(self, key: str) -> IntegrationDomain:
+        if key not in self.__integration_domains:
+            raise NotRegistered(key)
+        return self.__integration_domains[key]
 
 
 default_manager = IntegrationManager()

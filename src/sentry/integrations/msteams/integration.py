@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -79,6 +80,7 @@ class MsTeamsIntegration(IntegrationInstallation):
 class MsTeamsIntegrationProvider(IntegrationProvider):
     key = "msteams"
     name = "Microsoft Teams"
+    domain = IntegrationDomain.MESSAGING
     can_add = False
     metadata = metadata
     integration_cls = MsTeamsIntegration

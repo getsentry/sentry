@@ -13,6 +13,7 @@ from sentry.identity.gitlab.provider import GitlabIdentityProvider
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -313,6 +314,7 @@ class InstallationGuideView(PipelineView):
 class GitlabIntegrationProvider(IntegrationProvider):
     key = "gitlab"
     name = "GitLab"
+    domain = IntegrationDomain.SOURCE_CODE_MANAGEMENT
     metadata = metadata
     integration_cls = GitlabIntegration
 
