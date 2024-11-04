@@ -4,8 +4,7 @@ import type {TraceSearchResult} from '../traceSearch/traceSearchEvaluator';
 import {traceReducerExhaustiveActionCheck} from '../traceState';
 
 export type TraceSearchAction =
-  | {query: string; type: 'set query'}
-  | {query: string; type: 'trigger external query'}
+  | {query: string; type: 'set query'; source?: 'external'}
   | {type: 'go to first match'}
   | {type: 'go to last match'}
   | {type: 'go to next match'}
@@ -161,13 +160,6 @@ export function traceSearchReducer(
         ...state,
         status: [performance.now(), 'loading'],
         query: action.query,
-      };
-    }
-
-    case 'trigger external query': {
-      return {
-        ...state,
-        status: [performance.now(), 'loading'],
       };
     }
 

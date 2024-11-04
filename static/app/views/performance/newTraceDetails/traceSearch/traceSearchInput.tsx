@@ -175,20 +175,25 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   }, [traceDispatch, organization]);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useLayoutEffect(() => {
     const beforeTraceNextStateDispatch: DispatchingReducerMiddleware<
       typeof TraceReducer
     >['before next state'] = (_prevState, _nextState, action) => {
       if (
-        action.type === 'trigger external query' &&
+        action.type === 'set query' &&
+        action.source === 'external' &&
         action.query &&
         inputRef.current &&
         inputRef.current.value !== action.query
       ) {
         inputRef.current.focus();
         inputRef.current.value = action.query;
-        onChange({target: inputRef.current} as React.ChangeEvent<HTMLInputElement>);
+        onChangeRef.current({
+          target: inputRef.current,
+        } as React.ChangeEvent<HTMLInputElement>);
       }
     };
 
