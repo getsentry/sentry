@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import logging
 from collections.abc import Callable
 from functools import cached_property
@@ -30,7 +31,7 @@ class TaskNamespace:
         topic: str,
         deadletter_topic: str,
         retry: Retry | None,
-        expires: int = 10 * 60,
+        expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int = 30,
     ):
         self.name = name
@@ -64,10 +65,9 @@ class TaskNamespace:
         self,
         *,
         name: str,
-        idempotent: bool = False,
         retry: Retry | None = None,
-        expires: int | None = None,
-        processing_deadline_duration: int | None = None,
+        expires: int | datetime.timedelta | None = None,
+        processing_deadline_duration: int | datetime.timedelta | None = None,
     ) -> Callable[[Callable[P, R]], Task[P, R]]:
         """register a task, used as a decorator"""
 
@@ -76,11 +76,11 @@ class TaskNamespace:
                 name=name,
                 func=func,
                 namespace=self,
-                idempotent=idempotent,
                 retry=retry or self.default_retry,
                 expires=expires or self.default_expires,
-                processing_deadline_duration=processing_deadline_duration
-                or self.default_processing_deadline_duration,
+                processing_deadline_duration=(
+                    processing_deadline_duration or self.default_processing_deadline_duration
+                ),
             )
             # TODO(taskworker) tasks should be registered into the registry
             # so that we can ensure task names are globally unique

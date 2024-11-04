@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from collections.abc import Callable
 from functools import update_wrapper
 from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
@@ -16,6 +17,7 @@ from sentry.taskworker.retry import Retry
 if TYPE_CHECKING:
     from sentry.taskworker.registry import TaskNamespace
 
+FALLBACK_PROCESSING_DEADLINE = 3
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -27,10 +29,9 @@ class Task(Generic[P, R]):
         name: str,
         func: Callable[P, R],
         namespace: TaskNamespace,
-        retry: Retry | None,
-        expires: int,
-        processing_deadline_duration: int,
-        idempotent: bool = False,
+        retry: Retry | None = None,
+        expires: int | datetime.timedelta | None = None,
+        processing_deadline_duration: int | datetime.timedelta | None = None,
     ):
         # TODO(taskworker) Implement task execution deadlines
         self.name = name
@@ -38,17 +39,14 @@ class Task(Generic[P, R]):
         self._namespace = namespace
         self._retry = retry
         self._expires = expires
-        self._processing_deadline_duration = processing_deadline_duration
-        self._idempotent = idempotent
+        self._processing_deadline_duration = (
+            processing_deadline_duration or FALLBACK_PROCESSING_DEADLINE
+        )
         update_wrapper(self, func)
 
     @property
     def retry(self) -> Retry | None:
         return self._retry
-
-    @property
-    def idempotent(self) -> bool:
-        return self._idempotent
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
         return self._func(*args, **kwargs)
@@ -66,6 +64,14 @@ class Task(Generic[P, R]):
         received_at = Timestamp()
         received_at.FromDatetime(timezone.now())
 
+        processing_deadline = self._processing_deadline_duration
+        if isinstance(processing_deadline, datetime.timedelta):
+            processing_deadline = int(processing_deadline.total_seconds())
+
+        expires = self._expires
+        if isinstance(expires, datetime.timedelta):
+            expires = int(expires.total_seconds())
+
         return TaskActivation(
             id=uuid4().hex,
             namespace=self._namespace.name,
@@ -73,7 +79,8 @@ class Task(Generic[P, R]):
             parameters=orjson.dumps({"args": args, "kwargs": kwargs}).decode("utf8"),
             retry_state=self._create_retry_state(),
             received_at=received_at,
-            processing_deadline_duration=self._processing_deadline_duration,
+            processing_deadline_duration=processing_deadline,
+            expires=expires,
         )
 
     def _create_retry_state(self) -> RetryState:
