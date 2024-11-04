@@ -3,6 +3,7 @@ import os.path
 import sys
 
 from django.urls import reverse
+from django.utils.translation import activate, get_supported_language_variant
 
 # Add the project to the python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
@@ -19,6 +20,12 @@ from django.core.handlers.wsgi import WSGIHandler
 
 # Run WSGI handler for the application
 application = WSGIHandler()
+
+# our settings.LANGUAGE_CODE is 'en-us', but during requests it always
+# resolves to 'en', as 'en-us' is not a by default supported language.
+# activate the supported language variant, so the resolver warms up for
+# what serves most requests
+activate(get_supported_language_variant(settings.LANGUAGE_CODE))
 
 # trigger a warmup of the application
 application(
