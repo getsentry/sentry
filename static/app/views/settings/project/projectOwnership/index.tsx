@@ -1,5 +1,6 @@
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
+import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -37,21 +38,21 @@ export default function ProjectOwnership({project}: {project: Project}) {
   const ownershipQueryKey: ApiQueryKey = [
     `/projects/${organization.slug}/${project.slug}/ownership/`,
   ];
-  const {data: ownership, isLoading: isOwnershipLoading} = useApiQuery<IssueOwnership>(
-    ownershipQueryKey,
-    {staleTime: Infinity}
-  );
+  const {
+    data: ownership,
+    isLoading: isOwnershipLoading,
+    isError: isOwnershipError,
+  } = useApiQuery<IssueOwnership>(ownershipQueryKey, {staleTime: Infinity});
 
   const codeownersQueryKey: ApiQueryKey = [
     `/projects/${organization.slug}/${project.slug}/codeowners/`,
     {query: {expand: ['codeMapping', 'ownershipSyntax']}},
   ];
-  const {data: codeowners = [], isLoading: isCodeownersLoading} = useApiQuery<
-    CodeOwner[]
-  >(codeownersQueryKey, {
-    staleTime: Infinity,
-    enabled: organization.features.includes('integrations-codeowners'),
-  });
+  const {
+    data: codeowners = [],
+    isLoading: isCodeownersLoading,
+    error: codeownersRequestError,
+  } = useApiQuery<CodeOwner[]>(codeownersQueryKey, {staleTime: Infinity});
 
   const handleOwnershipSave = (newOwnership: IssueOwnership) => {
     setApiQueryData<IssueOwnership>(queryClient, ownershipQueryKey, data =>
@@ -157,12 +158,17 @@ export default function ProjectOwnership({project}: {project: Project}) {
           }
         )}
       </TextBlock>
-
       <PermissionAlert
         access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
         project={project}
       />
-
+      {codeownersRequestError && (
+        <Alert type="error">
+          {t(
+            "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
+          )}
+        </Alert>
+      )}
       <CodeOwnerErrors
         orgSlug={organization.slug}
         projectSlug={project.slug}
@@ -186,7 +192,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
           disabled={disabled}
         />
       )}
-      {ownership && (
+      {ownership && !isOwnershipError ? (
         <Form
           apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}
           apiMethod="PUT"
@@ -234,6 +240,8 @@ export default function ProjectOwnership({project}: {project: Project}) {
             ]}
           />
         </Form>
+      ) : (
+        <Alert type="error">{t('There was an error issue owner settings.')}</Alert>
       )}
     </SentryDocumentTitle>
   );
