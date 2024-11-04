@@ -25,7 +25,7 @@ import type {
 import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -115,7 +115,7 @@ export function getOnboardingTasks({
 }: Options): OnboardingTaskDescriptor[] {
   const performanceUrl = `${getPerformanceBaseUrl(organization.slug)}/`;
 
-  if (isDemoWalkthrough()) {
+  if (isDemoModeEnabled()) {
     return [
       {
         task: OnboardingTaskKey.ISSUE_GUIDE,
@@ -250,6 +250,9 @@ export function getOnboardingTasks({
       action: () => openInviteMembersModal({source: 'onboarding_widget'}),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
+      pendingTitle: t(
+        'You’ve invited members, and their acceptance is pending. Keep an eye out for updates!'
+      ),
     },
     {
       task: OnboardingTaskKey.FIRST_INTEGRATION,
@@ -270,7 +273,7 @@ export function getOnboardingTasks({
         'Triage and resolve issues faster by integrating Sentry with messaging platforms like Slack, Discord, and MS Teams.'
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      requisites: [],
       actionType: 'app',
       location: `/settings/${organization.slug}/integrations/?category=chat`,
       display: hasQuickStartUpdatesFeature(organization),
@@ -282,7 +285,7 @@ export function getOnboardingTasks({
         'Resolve bugs faster with commit data and stack trace linking to your source code in GitHub, Gitlab, and more.'
       ),
       skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      requisites: [],
       actionType: 'app',
       location: {
         pathname: `/settings/${organization.slug}/integrations/`,
@@ -308,6 +311,7 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: `/organizations/${organization.slug}/projects/new/`,
       display: true,
+      pendingTitle: t('Awaiting an error for this project.'),
       SupplementComponent: ({task}: OnboardingSupplementComponentProps) => {
         if (!hasQuickStartUpdatesFeature(organization)) {
           return null;

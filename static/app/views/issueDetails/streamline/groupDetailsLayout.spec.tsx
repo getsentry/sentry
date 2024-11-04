@@ -22,6 +22,11 @@ describe('GroupDetailsLayout', () => {
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      method: 'GET',
+      body: group,
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
@@ -71,6 +76,14 @@ describe('GroupDetailsLayout', () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/1/committers/',
       body: {committers: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/issues/1/autofix/setup/',
+      body: {
+        genAIConsent: {ok: false},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: true},
+      },
     });
   });
 

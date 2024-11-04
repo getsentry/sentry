@@ -22,11 +22,10 @@ export function OrganizationSampleRateField({}) {
       help={t(
         'Sentry automatically adapts the sample rates of your projects based on this organization-wide target.'
       )}
-      error={field.error}
     >
       <InputWrapper
         css={css`
-          width: 150px;
+          width: 160px;
         `}
       >
         <Tooltip
@@ -48,7 +47,9 @@ export function OrganizationSampleRateField({}) {
             </InputGroup.TrailingItems>
           </InputGroup>
         </Tooltip>
-        {field.hasChanged ? (
+        {field.error ? (
+          <ErrorMessage>{field.error}</ErrorMessage>
+        ) : field.hasChanged ? (
           <PreviousValue>{t('previous: %f%%', field.initialValue)}</PreviousValue>
         ) : null}
       </InputWrapper>
@@ -59,6 +60,11 @@ export function OrganizationSampleRateField({}) {
 const PreviousValue = styled('span')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.subText};
+`;
+
+const ErrorMessage = styled('span')`
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.error};
 `;
 
 const InputWrapper = styled('div')`
