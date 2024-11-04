@@ -25,6 +25,7 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {Divider} from 'sentry/views/issueDetails/divider';
+import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {
   type SectionConfig,
   SectionKey,
@@ -160,6 +161,8 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
               />
             </EventIdInfo>
             <StyledTimeSince
+              tooltipBody={<EventCreatedTooltip event={event} />}
+              tooltipProps={{overlayStyle: {maxWidth: 300}}}
               date={event.dateCreated ?? event.dateReceived}
               css={grayText}
             />
