@@ -51,7 +51,7 @@ def is_recently_added(model: Model) -> bool:
 def get_guarded_project_sample_rate(organization: Organization, project: Project) -> float:
     # Early exit in project-mode, since we don't need to calculate the sample rate.
     if is_project_mode_sampling(organization):
-        return float(project.get_option("sentry:sample_rates", TARGET_SAMPLE_RATE_DEFAULT))
+        return float(project.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT))
 
     if has_custom_dynamic_sampling(organization):
         sample_rate = organization.get_option("sentry:target_sample_rate")
