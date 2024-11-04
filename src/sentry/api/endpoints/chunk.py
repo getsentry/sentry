@@ -134,9 +134,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         logger.info("chunkupload.start")
 
         files = []
-        if request.data:
-            files = request.data.getlist("file")
-            files += [GzipChunk(chunk) for chunk in request.data.getlist("file_gzip")]
+        if request.FILES:
+            files = request.FILES.getlist("file")
+            files += [GzipChunk(chunk) for chunk in request.FILES.getlist("file_gzip")]
 
         if len(files) == 0:
             # No files uploaded is ok
