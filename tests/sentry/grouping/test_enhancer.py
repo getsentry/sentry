@@ -5,7 +5,12 @@ from unittest import mock
 
 import pytest
 
-from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.enhancer import (
+    Enhancements,
+    is_valid_profiling_action,
+    is_valid_profiling_matcher,
+    keep_profiling_rules,
+)
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.enhancer.matchers import _cached, create_match_frame
 
@@ -494,3 +499,67 @@ def test_cached_with_kwargs():
     # Call with different kwargs order - call_count is still one:
     _cached(cache, foo, kw2=2, kw1=1)
     assert foo.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        (["stack.abs_path:**/project/**.c"], True),
+        (["stack.module:test_module"], True),
+        (["stack.function:myproject_*"], True),
+        (["stack.package:**/libcurl.dylib"], True),
+        (["family:javascript,native"], False),
+        (["app:yes"], False),
+        (["category:telemetry"], False),
+        (
+            ["stack.module:test_module", "|", "[", "stack.package:**/libcurl.dylib", "]"],
+            False,
+        ),  # we don't allow siblings matchers
+    ],
+)
+def test_valid_profiling_matchers(test_input, expected):
+    assert is_valid_profiling_matcher(test_input) == expected
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        ("+app", True),
+        ("-app", True),
+        ("+group", False),
+        ("-group", False),
+        ("^app", False),
+        ("vapp", False),
+    ],
+)
+def test_valid_profiling_action(test_input, expected):
+    assert is_valid_profiling_action(test_input) == expected
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        (
+            """
+stack.package:**/libcurl.dylib -group
+stack.package:**/libcurl.dylib -app
+stack.function:myproject_* +app
+stack.function:myproject_* ^app
+stack.function:myproject_* vapp
+""",
+            """stack.package:**/libcurl.dylib -app
+stack.function:myproject_* +app""",
+        ),
+        ("", ""),
+        (
+            """
+category:telemetry -group
+family:javascript,native -group
+[ stack.function:myproject_* ] | stack.function:utils_* -app
+""",
+            "",
+        ),
+    ],
+)
+def test_keep_profiling_rules(test_input, expected):
+    assert keep_profiling_rules(test_input) == expected
