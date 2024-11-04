@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -13,7 +13,7 @@ import {Chevron} from 'sentry/components/chevron';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import SkipConfirm from 'sentry/components/onboardingWizard/skipConfirm';
 import type {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {findCompleteTasks} from 'sentry/components/onboardingWizard/utils';
+import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -30,6 +30,7 @@ import {
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -39,8 +40,8 @@ const orderedGettingStartedTasks = [
   OnboardingTaskKey.INVITE_MEMBER,
   OnboardingTaskKey.ALERT_RULE,
   OnboardingTaskKey.SOURCEMAPS,
-  OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
   OnboardingTaskKey.RELEASE_TRACKING,
+  OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
 ];
 
 const orderedBeyondBasicsTasks = [
@@ -60,25 +61,14 @@ function groupTasksByCompletion(tasks: OnboardingTask[]) {
   };
 }
 
-function getPanelDescription(walkthrough: boolean) {
-  if (walkthrough) {
-    return {
-      title: t('Guided Tours'),
-      description: t('Take a guided tour to see what Sentry can do for you'),
-    };
-  }
-  return {
-    title: t('Quick Start'),
-    description: t('Walk through this guide to get the most out of Sentry right away.'),
-  };
-}
-
 interface TaskProps extends Pick<OnboardingTaskStatus, 'status'> {
   hidePanel: () => void;
   task: OnboardingTask;
+  completed?: boolean;
+  showWaitingIndicator?: boolean;
 }
 
-function Task({task, status, hidePanel}: TaskProps) {
+function Task({task, status, hidePanel, showWaitingIndicator}: TaskProps) {
   const api = useApi();
   const organization = useOrganization();
   const router = useRouter();
@@ -119,17 +109,6 @@ function Task({task, status, hidePanel}: TaskProps) {
       hidePanel();
     },
     [task, organization, router, hidePanel]
-  );
-
-  const handleMarkComplete = useCallback(
-    (taskKey: OnboardingTaskKey) => {
-      updateOnboardingTask(api, organization, {
-        task: taskKey,
-        status: 'complete',
-        completionSeen: true,
-      });
-    },
-    [api, organization]
   );
 
   const handleMarkSkipped = useCallback(
@@ -200,17 +179,12 @@ function Task({task, status, hidePanel}: TaskProps) {
               )}
             </SkipConfirm>
           )}
-          {task.SupplementComponent && (
-            <task.SupplementComponent
-              task={task}
-              onCompleteTask={() => handleMarkComplete(task.task)}
-            />
+          {task.SupplementComponent && showWaitingIndicator && (
+            <task.SupplementComponent task={task} />
           )}
           {status === 'pending' && (
             <Tooltip
-              title={t(
-                'You’ve invited members, and their acceptance is pending. Keep an eye out for updates!'
-              )}
+              title={task.pendingTitle ?? t('Task in progress\u2026')}
               containerDisplayMode="flex"
               css={css`
                 justify-content: center;
@@ -228,7 +202,12 @@ function Task({task, status, hidePanel}: TaskProps) {
 
 interface TaskGroupProps {
   description: string;
+  /**
+   * Used for analytics
+   */
+  group: 'getting_started' | 'beyond_basics';
   hidePanel: () => void;
+  taskKeyForWaitingIndicator: OnboardingTaskKey | undefined;
   tasks: OnboardingTask[];
   title: string;
   expanded?: boolean;
@@ -241,14 +220,41 @@ function TaskGroup({
   tasks,
   expanded,
   hidePanel,
+  taskKeyForWaitingIndicator,
   toggleable = true,
+  group,
 }: TaskGroupProps) {
+  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(expanded);
   const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
+  const [taskGroupComplete, setTaskGroupComplete] = useLocalStorageState(
+    `quick-start:${organization.slug}:${group}-completed`,
+    false
+  );
 
   useEffect(() => {
     setIsExpanded(expanded);
   }, [expanded]);
+
+  useEffect(() => {
+    if (completedTasks.length !== tasks.length || taskGroupComplete) {
+      return;
+    }
+
+    trackAnalytics('quick_start.task_group_completed', {
+      organization,
+      group,
+    });
+
+    setTaskGroupComplete(true);
+  }, [
+    group,
+    organization,
+    completedTasks,
+    tasks,
+    setTaskGroupComplete,
+    taskGroupComplete,
+  ]);
 
   return (
     <TaskGroupWrapper>
@@ -297,6 +303,7 @@ function TaskGroup({
                 key={task.task}
                 task={task}
                 hidePanel={hidePanel}
+                showWaitingIndicator={taskKeyForWaitingIndicator === task.task}
                 status={task.status}
               />
             ))}
@@ -337,7 +344,6 @@ export function NewOnboardingSidebar({
   beyondBasicsTasks,
 }: NewSidebarProps) {
   const walkthrough = isDemoWalkthrough();
-  const {title, description} = getPanelDescription(walkthrough);
 
   const sortedGettingStartedTasks = gettingStartedTasks.sort(
     (a, b) =>
@@ -350,38 +356,49 @@ export function NewOnboardingSidebar({
       orderedBeyondBasicsTasks.indexOf(a.task) - orderedBeyondBasicsTasks.indexOf(b.task)
   );
 
+  const taskKeyForWaitingIndicator = useMemo(() => {
+    return [...sortedGettingStartedTasks, ...sortedBeyondBasicsTasks].find(
+      task => !taskIsDone(task) && !!task.SupplementComponent
+    )?.task;
+  }, [sortedGettingStartedTasks, sortedBeyondBasicsTasks]);
+
   return (
     <Wrapper
       collapsed={collapsed}
       hidePanel={onClose}
       orientation={orientation}
-      title={title}
+      title={walkthrough ? t('Guided Tour') : t('Quick Setup')}
     >
       <Content>
-        <p>{description}</p>
         <TaskGroup
           title={t('Getting Started')}
           description={t(
-            'Learn the essentials to set up monitoring, capture errors, and track releases.'
+            'Complete these essential setups to capture your first errors, add commit and release information and get alerted when something’s wrong.'
           )}
           tasks={sortedGettingStartedTasks}
           hidePanel={onClose}
           expanded={
-            groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length > 0
+            groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
           }
           toggleable={sortedBeyondBasicsTasks.length > 0}
+          taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
+          group="getting_started"
         />
         {sortedBeyondBasicsTasks.length > 0 && (
           <TaskGroup
             title={t('Beyond the Basics')}
             description={t(
-              'Explore advanced features like release tracking, performance alerts and more to enhance your monitoring.'
+              'Ready to level-up? Get even more value out of Sentry by enabling advanced features and fine-tuning your workflow.'
             )}
             tasks={sortedBeyondBasicsTasks}
             hidePanel={onClose}
             expanded={
-              groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
+              groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks
+                .length === 0 &&
+              groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
             }
+            taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
+            group="beyond_basics"
           />
         )}
       </Content>

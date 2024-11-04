@@ -71,8 +71,14 @@ import {
   MOBILE_LANDING_SUB_PATH,
   MOBILE_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {
+  DOMAIN_VIEW_BASE_TITLE,
+  DOMAIN_VIEW_BASE_URL,
+  DOMAIN_VIEW_RELEASE_LEVEL,
+} from 'sentry/views/insights/pages/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {ProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
@@ -440,7 +446,7 @@ function Sidebar() {
     </Feature>
   );
 
-  const performance = hasOrganization && !hasPerfDomainViews && (
+  const performance = hasOrganization && (
     <Feature
       hookName="feature-disabled:performance-sidebar-item"
       features="performance-view"
@@ -454,7 +460,7 @@ function Sidebar() {
             {hasNewNav ? 'Perf.' : t('Performance')}
           </GuideAnchor>
         }
-        to={`/organizations/${organization.slug}/performance/`}
+        to={`${getPerformanceBaseUrl(organization.slug)}/`}
         id="performance"
       />
     </Feature>
@@ -613,36 +619,38 @@ function Sidebar() {
       <SidebarAccordion
         {...sidebarItemProps}
         icon={<IconGraph />}
-        label={t('Performance')}
-        id="performance-domains"
+        label={DOMAIN_VIEW_BASE_TITLE}
+        id="insights-domains"
         initiallyExpanded={false}
         exact={!shouldAccordionFloat}
+        isAlpha={DOMAIN_VIEW_RELEASE_LEVEL === 'alpha'}
+        isBeta={DOMAIN_VIEW_RELEASE_LEVEL === 'beta'}
       >
         <SidebarItem
           {...sidebarItemProps}
           label={FRONTEND_SIDEBAR_LABEL}
-          to={`/organizations/${organization.slug}/performance/${FRONTEND_LANDING_SUB_PATH}/`}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}/`}
           id="performance-domains-web"
           icon={<SubitemDot collapsed />}
         />
         <SidebarItem
           {...sidebarItemProps}
           label={BACKEND_SIDEBAR_LABEL}
-          to={`/organizations/${organization.slug}/performance/${BACKEND_LANDING_SUB_PATH}/`}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${BACKEND_LANDING_SUB_PATH}/`}
           id="performance-domains-platform"
           icon={<SubitemDot collapsed />}
         />
         <SidebarItem
           {...sidebarItemProps}
           label={MOBILE_SIDEBAR_LABEL}
-          to={`/organizations/${organization.slug}/performance/${MOBILE_LANDING_SUB_PATH}/`}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}/`}
           id="performance-domains-mobile"
           icon={<SubitemDot collapsed />}
         />
         <SidebarItem
           {...sidebarItemProps}
           label={AI_SIDEBAR_LABEL}
-          to={`/organizations/${organization.slug}/performance/${AI_LANDING_SUB_PATH}/`}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/`}
           id="performance-domains-ai"
           icon={<SubitemDot collapsed />}
         />

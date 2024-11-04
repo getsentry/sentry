@@ -87,6 +87,10 @@ function mockRequests(orgSlug: Organization['slug']) {
     method: 'GET',
     body: [],
   });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/spans/fields/`,
+    body: [],
+  });
 
   return {eventsMock};
 }

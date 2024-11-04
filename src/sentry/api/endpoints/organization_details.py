@@ -45,7 +45,6 @@ from sentry.constants import (
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
-    DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -59,6 +58,7 @@ from sentry.constants import (
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
+    ROLLBACK_ENABLED_DEFAULT,
     SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
@@ -194,8 +194,6 @@ ORG_OPTIONS = (
         bool,
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
-    ("aggregatedDataConsent", "sentry:aggregated_data_consent", bool, DATA_CONSENT_DEFAULT),
-    ("genAIConsent", "sentry:gen_ai_consent", bool, DATA_CONSENT_DEFAULT),
     (
         "issueAlertsThreadFlag",
         "sentry:issue_alerts_thread_flag",
@@ -223,6 +221,7 @@ ORG_OPTIONS = (
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
     ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
+    ("rollbackEnabled", "sentry:rollback_enabled", bool, ROLLBACK_ENABLED_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
@@ -276,8 +275,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
     metricsActivatePercentiles = serializers.BooleanField(required=False)
     metricsActivateLastForGauges = serializers.BooleanField(required=False)
-    aggregatedDataConsent = serializers.BooleanField(required=False)
-    genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
@@ -286,6 +283,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     uptimeAutodetection = serializers.BooleanField(required=False)
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     samplingMode = serializers.ChoiceField(choices=DynamicSamplingMode.choices, required=False)
+    rollbackEnabled = serializers.BooleanField(required=False)
+    rollbackSharingEnabled = serializers.BooleanField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -816,12 +815,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         required=False,
     )
 
-    # legal and compliance
-    aggregatedDataConsent = serializers.BooleanField(
-        help_text="Specify `true` to let Sentry use your error messages, stack traces, spans, and DOM interactions data for issue workflow and other product improvements.",
-        required=False,
-    )
-
     # restore org
     cancelDeletion = serializers.BooleanField(
         help_text="Specify `true` to restore an organization that is pending deletion.",
@@ -839,7 +832,6 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     apdexThreshold = serializers.IntegerField(required=False)
 
     # TODO: publish when GA'd
-    genAIConsent = serializers.BooleanField(required=False)
     metricsActivatePercentiles = serializers.BooleanField(required=False)
     metricsActivateLastForGauges = serializers.BooleanField(required=False)
 

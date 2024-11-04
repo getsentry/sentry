@@ -14,6 +14,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationSampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampleRateField';
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
@@ -23,11 +24,13 @@ import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
 const {useFormState, FormProvider} = organizationSamplingForm;
+const UNSAVED_CHANGES_MESSAGE = t(
+  'You have unsaved changes, are you sure you want to leave?'
+);
 
 export function OrganizationSampling() {
   const organization = useOrganization();
   const {hasAccess} = useAccess({access: ['org:write']});
-
   const [period, setPeriod] = useState<'24h' | '30d'>('24h');
 
   const formState = useFormState({
@@ -65,7 +68,7 @@ export function OrganizationSampling() {
           <PanelBody>
             <FieldGroup
               label={t('Sampling Mode')}
-              help={t('Changes the level of detail and configuring sample rates.')}
+              help={t('The current configuration mode for dynamic sampling.')}
             >
               <div
                 css={css`
@@ -74,15 +77,16 @@ export function OrganizationSampling() {
                   gap: ${space(1)};
                 `}
               >
-                {t('Automatic Balancing')}{' '}
+                {t('Automatic')}{' '}
                 <QuestionTooltip
                   size="sm"
                   isHoverable
                   title={tct(
-                    'Automatic balancing optimizes the sample rates of your projects based on an overall target for your organization. [link:Learn more]',
+                    'Automatic mode allows you to set a target sample rate for your organization. Sentry automatically adjusts individual project rates to boost small projects and ensure equal visibility. [link:Learn more]',
                     {
-                      // TODO(aknaus): Add link to documentation
-                      link: <ExternalLink href="https://docs.sentry.io/" />,
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                      ),
                     }
                   )}
                 />
@@ -92,6 +96,13 @@ export function OrganizationSampling() {
             <OrganizationSampleRateField />
           </PanelBody>
         </Panel>
+        <OnRouteLeave
+          message={UNSAVED_CHANGES_MESSAGE}
+          when={locationChange =>
+            locationChange.currentLocation.pathname !==
+              locationChange.nextLocation.pathname && formState.hasChanged
+          }
+        />
         <FormActions>
           <Button disabled={!formState.hasChanged || isPending} onClick={handleReset}>
             {t('Reset')}
@@ -126,11 +137,17 @@ export function OrganizationSampling() {
           </Tooltip>
         </HeadingRow>
         <p>
-          {t(
-            'The following table gives you a preview of how your projects will be affected by the global sample rate. Depeding on the amount of spans they generate their sample rate will be adjusted. Inactive projects (not listed) will always be sampled at 100% until they generate spans.'
+          {tct(
+            'This table gives you a preview of how your projects will be affected by the global sample rate. The [strong:projected rates are estimates] based on recent span volume.',
+            {
+              strong: <strong />,
+            }
           )}
         </p>
         <ProjectsPreviewTable period={period} />
+        <SubTextParagraph>
+          {t('Inactive projects are not listed and will be sampled at 100% initially.')}
+        </SubTextParagraph>
       </form>
     </FormProvider>
   );
@@ -153,4 +170,9 @@ const HeadingRow = styled('div')`
   & > h4 {
     margin: 0;
   }
+`;
+
+const SubTextParagraph = styled('p')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
