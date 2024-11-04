@@ -1342,8 +1342,7 @@ describe('trace view', () => {
     });
   });
 
-  // biome-ignore lint/suspicious/noSkippedTests: <Flaky test>
-  describe.skip('search', () => {
+  describe('search', () => {
     it('triggers search on load but does not steal focus from node param', async () => {
       mockQueryString('?search=transaction-op-999&node=txn-0');
 
@@ -1383,6 +1382,7 @@ describe('trace view', () => {
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.type(searchInput, 'transaction-op');
+
       expect(searchInput).toHaveValue('transaction-op');
       await searchToResolve();
 
