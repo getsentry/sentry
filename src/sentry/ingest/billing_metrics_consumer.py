@@ -105,7 +105,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         items = {data_category: quantity}
 
-        if options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
+        if not options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
             if self._has_profile(generic_metric):
                 # The bucket is tagged with the "has_profile" tag,
                 # so we also count the quantity of this bucket towards profiles.
