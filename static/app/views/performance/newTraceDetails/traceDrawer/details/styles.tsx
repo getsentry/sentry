@@ -498,7 +498,7 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
     <DropdownMenu
       size="sm"
       items={options}
-      menuTitle={<div>{t('Position')}</div>}
+      menuTitle={<div>{t('Panel Position')}</div>}
       trigger={triggerProps => (
         <Tooltip title={t('Panel Position')}>
           <ActionButton
