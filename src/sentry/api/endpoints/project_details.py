@@ -28,7 +28,12 @@ from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.constants import RESERVED_PROJECT_SLUGS, SAMPLING_MODE_DEFAULT, ObjectStatus
+from sentry.constants import (
+    PROJECT_SLUG_MAX_LENGTH,
+    RESERVED_PROJECT_SLUGS,
+    SAMPLING_MODE_DEFAULT,
+    ObjectStatus,
+)
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
@@ -46,7 +51,7 @@ from sentry.lang.native.sources import (
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
 from sentry.models.group import Group, GroupStatus
-from sentry.models.project import PROJECT_SLUG_MAX_LENGTH, Project
+from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
