@@ -200,7 +200,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
         group_similar_endpoint = GroupSimilarIssuesEmbeddingsEndpoint()
         formatted_results = group_similar_endpoint.get_formatted_results(
-            similar_issues_data=[similar_issue_data_1, similar_issue_data_2], user=self.user
+            similar_issues_data=[similar_issue_data_1, similar_issue_data_2],
+            user=self.user,
+            group_id=self.group.id,
         )
         assert formatted_results == self.get_expected_response(
             [
@@ -342,6 +344,33 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             hash=NonNone(self.event.get_primary_hash()),
             count_over_threshold=2,
             user_id=self.user.id,
+        )
+
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_parent_hash_in_group_hashes(self, mock_seer_request):
+        """
+        Test that the request group's hashes are filtered out of the returned similar parent hashes
+        """
+        seer_return_value: Any = {
+            "responses": [
+                # Make the group's own hash the returned parent hash
+                {
+                    "parent_hash": self.event.get_primary_hash(),
+                    "should_group": True,
+                    "stacktrace_distance": 0.01,
+                },
+                {
+                    "parent_hash": self.similar_event.get_primary_hash(),
+                    "should_group": True,
+                    "stacktrace_distance": 0.01,
+                },
+            ]
+        }
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        response = self.client.get(self.path)
+
+        assert response.data == self.get_expected_response(
+            [NonNone(self.similar_event.group_id)], [0.99], ["Yes"]
         )
 
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
