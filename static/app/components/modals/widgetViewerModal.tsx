@@ -251,23 +251,6 @@ function WidgetViewerModal(props: Props) {
 
   const [totalResults, setTotalResults] = useState<string | undefined>();
 
-  // Get query selection settings from location
-  let selectedQueryIndex =
-    decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
-  if (selectedQueryIndex > widget.queries.length) {
-    selectedQueryIndex = 0;
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          [WidgetViewerQueryField.QUERY]: 0,
-        },
-      },
-      {replace: true}
-    );
-  }
-
   // Get pagination settings from location
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const cursor = decodeScalar(location.query[WidgetViewerQueryField.CURSOR]);
@@ -281,6 +264,15 @@ function WidgetViewerModal(props: Props) {
   const sortedQueries = cloneDeep(
     sort ? widget.queries.map(query => ({...query, orderby: sort})) : widget.queries
   );
+
+  // The table under the widget visualization can only show one query, but widgets might have multiple. Choose the query based on a URL parameter.
+  // Note that the URL parameter might be incorrect or invalid, in which case we drop down to the first query
+  let selectedQueryIndex =
+    decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
+
+  if (defined(widget) && !defined(sortedQueries[selectedQueryIndex])) {
+    selectedQueryIndex = 0;
+  }
 
   // Top N widget charts (including widgets with limits) results rely on the sorting of the query
   // Set the orderby of the widget chart to match the location query params
