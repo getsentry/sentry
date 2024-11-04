@@ -121,7 +121,7 @@ def partition_by_measure(org_ids: list[OrganizationId]) -> Mapping[SamplingMeasu
     rates. This is controlled through a feature flag on the organization,
     determined by its plan.
 
-    Only organizations with organiation-mode sampling will be considered. In
+    Only organizations with organization-mode sampling will be considered. In
     project-mode sampling, the sample rate is set per project, so there is no
     need to adjust the sample rates.
     """
