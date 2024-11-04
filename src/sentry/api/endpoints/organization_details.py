@@ -71,6 +71,9 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
 )
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    get_boost_low_volume_projects_sample_rate,
+)
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, is_organization_mode_sampling
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
@@ -82,6 +85,7 @@ from sentry.lang.native.utils import (
 )
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
@@ -948,21 +952,34 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 boost_low_volume_projects_of_org_with_query.delay(organization.id)
 
             if "samplingMode" in changed_data and request.access.has_scope("org:write"):
-                if changed_data["samplingMode"] == DynamicSamplingMode.PROJECT:
-                    with transaction.atomic(router.db_for_write(OrganizationOption)):
+                # auto -> manual mode
+                if changed_data["samplingMode"] == DynamicSamplingMode.PROJECT.value:
+                    with transaction.atomic(router.db_for_write(ProjectOption)):
                         for project in organization.projects:
-                            current_rate = project.get_sampling_rate()
+                            current_rate, is_fallback = get_boost_low_volume_projects_sample_rate(
+                                org_id=organization.id,
+                                project_id=project.id,
+                                error_sample_rate_fallback=None,
+                            )
                             if current_rate:
                                 project.update_option("sentry:sampling_rate", current_rate)
 
-                        organization.update_option("sentry:target_sample_rate", None)
+                        organization.delete_option("sentry:target_sample_rate")
 
-                with transaction.atomic(router.db_for_write(OrganizationOption)):
-                    if changed_data["samplingMode"] == DynamicSamplingMode.ORGANIZATION:
-                        if blended_rate := quotas.backend.get_blended_sample_rate(
-                            organization_id=organization.id
-                        ):
-                            organization.update_option("sentry:target_sample_rate", blended_rate)
+                if changed_data["samplingMode"] == DynamicSamplingMode.ORGANIZATION.value:
+                    with transaction.atomic(router.db_for_write(ProjectOption)):
+                        if "targetSampleRate" in changed_data:
+                            organization.update_option(
+                                "sentry:target_sample_rate", changed_data["targetSampleRate"]
+                            )
+                        else:
+                            # TODO: is this the right function? can we use this?
+                            if blended_rate := quotas.backend.get_blended_sample_rate(
+                                organization_id=organization.id
+                            ):
+                                organization.update_option(
+                                    "sentry:target_sample_rate", blended_rate
+                                )
 
                         for project in organization.projects:
                             project.delete_option("sentry:sampling_rate")
