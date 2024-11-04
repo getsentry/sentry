@@ -255,11 +255,16 @@ class ExceptionAttributeHandler(AttributeHandler):
         if path[1] not in ("type", "value"):
             return []
 
-        return [
-            str(getattr(e, path[1], None))
-            for e in getattr(event.interfaces.get("exception"), "values", [])
-            if e is not None
-        ]
+        values = getattr(event.interfaces.get("exception"), "values", [])
+        result = []
+        for e in values:
+            if e is None:
+                continue
+
+            if hasattr(e, path[1]):
+                result.append(getattr(e, path[1]))
+
+        return result
 
 
 @attribute_registry.register("error")
