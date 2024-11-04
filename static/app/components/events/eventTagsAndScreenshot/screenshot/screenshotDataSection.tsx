@@ -92,8 +92,6 @@ export function ScreenshotDataSection({
       modalProps => (
         <ScreenshotModal
           {...modalProps}
-          event={event}
-          orgSlug={organization.slug}
           projectSlug={projectSlug}
           eventAttachment={eventAttachment}
           downloadUrl={downloadUrl}
@@ -104,7 +102,6 @@ export function ScreenshotDataSection({
             })
           }
           attachments={screenshots}
-          attachmentIndex={screenshotInFocus}
         />
       ),
       {modalCss}
