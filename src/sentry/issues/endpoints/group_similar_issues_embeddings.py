@@ -41,22 +41,21 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get_group_hashes_for_group_id(self, project_id: int, group_id: int) -> set[str]:
-        hashes = GroupHash.objects.filter(project_id=project_id, group_id=group_id)
+    def get_group_hashes_for_group_id(self, group_id: int) -> set[str]:
+        hashes = GroupHash.objects.filter(group_id=group_id)
         return {hash.hash for hash in hashes}
 
     def get_formatted_results(
         self,
         similar_issues_data: Sequence[SeerSimilarIssueData],
         user: User | AnonymousUser,
-        project_id: int,
         group_id: int,
     ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
         """
         Format the responses using to be used by the frontend by changing the  field names and
         changing the cosine distances into cosine similarities.
         """
-        hashes = self.get_group_hashes_for_group_id(project_id, group_id)
+        hashes = self.get_group_hashes_for_group_id(group_id)
         group_data = {}
         for similar_issue_data in similar_issues_data:
             if similar_issue_data.parent_hash not in hashes:
@@ -131,8 +130,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         if not results:
             return Response([])
-        formatted_results = self.get_formatted_results(
-            results, request.user, group.project_id, group.id
-        )
+        formatted_results = self.get_formatted_results(results, request.user, group.id)
 
         return Response(formatted_results)
