@@ -339,11 +339,10 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             selected_aggregate=1,
             order=0,
         )
-        with self.feature({"organizations:dashboards-bignumber-equations": True}):
-            response = self.do_request(
-                "get",
-                self.url(self.dashboard.id),
-            )
+        response = self.do_request(
+            "get",
+            self.url(self.dashboard.id),
+        )
         assert response.status_code == 200, response.content
 
         assert response.data["widgets"][0]["queries"][0]["selectedAggregate"] is None
@@ -754,8 +753,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 },
             ],
         }
-        with self.feature({"organizations:dashboards-bignumber-equations": True}):
-            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
@@ -1871,9 +1869,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "title": "Dashboard",
             "permissions": {"isCreatorOnlyEditable": "False"},
         }
-        response = self.do_request(
-            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
-        )
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+            )
         assert response.status_code == 200, response.data
         assert response.data["permissions"]["isCreatorOnlyEditable"] is False
 
@@ -1884,9 +1883,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "title": "Dashboard",
             "permissions": {"isCreatorOnlyEditable": "true"},
         }
-        response = self.do_request(
-            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
-        )
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+            )
         assert response.status_code == 200, response.data
         assert response.data["permissions"]["isCreatorOnlyEditable"] is True
 
@@ -1902,9 +1902,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
 
         assert permission.is_creator_only_editable is False
-        response = self.do_request(
-            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
-        )
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+            )
         assert response.status_code == 200, response.data
         assert response.data["permissions"]["isCreatorOnlyEditable"] is True
 
@@ -1918,9 +1919,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "title": "Dashboard",
             "permissions": {"isCreatorOnlyEditable": "something-invalid"},
         }
-        response = self.do_request(
-            "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
-        )
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+            )
         assert response.status_code == 400, response.data
         assert "isCreatorOnlyEditable" in response.data["permissions"]
 
@@ -1971,6 +1973,17 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         with self.feature({"organizations:dashboards-edit-access": True}):
             response = self.do_request("put", self.url(self.dashboard.id))
         assert response.status_code == 200, response.content
+
+    def test_update_dashboard_permissions_with_none_does_not_create_permissions_object(self):
+        data = {
+            "title": "Dashboard",
+            "permissions": None,
+        }
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["permissions"] is None
+        assert not DashboardPermissions.objects.filter(dashboard=self.dashboard).exists()
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
