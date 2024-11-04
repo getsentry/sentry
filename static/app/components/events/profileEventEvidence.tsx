@@ -1,5 +1,4 @@
 import {LinkButton} from 'sentry/components/button';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -8,6 +7,8 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type ProfileEvidenceProps = {event: Event; projectSlug: string};
 
@@ -78,8 +79,8 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
   ];
 
   return (
-    <EventDataSection title="Function Evidence" type="evidence">
+    <InterimSection title={t('Function Evidence')} type={SectionKey.EVIDENCE}>
       <KeyValueList data={keyValueListData} shouldSort={false} />
-    </EventDataSection>
+    </InterimSection>
   );
 }
