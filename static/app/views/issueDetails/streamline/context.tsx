@@ -63,6 +63,8 @@ export const enum SectionKey {
   MERGED_ISSUES = 'merged',
   SIMILAR_ISSUES = 'similar',
 
+  FUNCTION_EVIDENCE = 'function-evidence',
+
   REGRESSION_SUMMARY = 'regression-summary',
   REGRESSION_BREAKPOINT_CHART = 'regression-breakpoint-chart',
   REGRESSION_FLAMEGRAPH = 'regression-flamegraph',
