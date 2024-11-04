@@ -16,7 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import BaseOrganizationSerializer
 from sentry.api.serializers.types import OrganizationSerializerResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
@@ -55,7 +55,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
         return value
 
 
-@extend_schema(tags=["Organizations"])
+@extend_schema(tags=["Users"])
 @region_silo_endpoint
 class OrganizationIndexEndpoint(Endpoint):
     publish_status = {
@@ -81,7 +81,7 @@ class OrganizationIndexEndpoint(Endpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=OrganizationExamples.LIST_ORGANIZATIONS,
+        examples=UserExamples.LIST_ORGANIZATIONS,
     )
     def get(self, request: Request) -> Response:
         """
