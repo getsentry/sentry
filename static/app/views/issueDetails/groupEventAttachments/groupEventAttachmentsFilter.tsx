@@ -7,9 +7,6 @@ import {isMobilePlatform} from 'sentry/utils/platform';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-const crashReportTypes = ['event.minidump', 'event.applecrashreport'];
-const SCREENSHOT_TYPE = 'event.screenshot';
-
 export const enum EventAttachmentFilter {
   ALL = 'all',
   CRASH_REPORTS = 'onlyCrash',
@@ -72,5 +69,4 @@ const FilterWrapper = styled('div')`
   justify-content: flex-end;
 `;
 
-export {crashReportTypes, SCREENSHOT_TYPE};
 export default GroupEventAttachmentsFilter;
