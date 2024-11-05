@@ -1340,6 +1340,14 @@ BGTASKS = {
     },
 }
 
+# Taskworker settings #
+# The list of modules that workers will import after starting up
+# Like celery, taskworkers need to import task modules to make tasks
+# accessible to the worker.
+TASKWORKER_IMPORTS: tuple[str, ...] = ()
+TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
+TASKWORKER_ROUTES: dict[str, str] = {}
+
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
 # handler is 'console' and disable propagating upwards.
