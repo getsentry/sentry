@@ -194,7 +194,7 @@ class WidgetLegendSelectionState {
 
   // when a widget has been changed/added/deleted update legend to incorporate that
   setMultipleWidgetSelectionStateURL(newDashboard: DashboardDetails, newWidget?: Widget) {
-    const [location] = [this.location];
+    const location = this.location;
     if (!location.query.unselectedSeries) {
       return location.query.unselectedSeries;
     }
@@ -204,15 +204,17 @@ class WidgetLegendSelectionState {
       const formattedDefaultQuery = this.formatLegendDefaultQuery(newWidget);
 
       const newQuery = Array.isArray(location.query.unselectedSeries)
-        ? location.query.unselectedSeries.map(legend => {
-            if (legend.includes(newWidget.id!)) {
-              return this.formatLegendDefaultQuery(newWidget);
-            }
-            return legend;
-          })
+        ? location.query.unselectedSeries
+            .map(legend => {
+              if (legend.includes(newWidget.id!)) {
+                return this.formatLegendDefaultQuery(newWidget);
+              }
+              return legend;
+            })
+            .filter(Boolean)
         : location.query.unselectedSeries.includes(newWidget.id!)
           ? formattedDefaultQuery
-          : [location.query.unselectedSeries, formattedDefaultQuery];
+          : [location.query.unselectedSeries, formattedDefaultQuery].filter(Boolean);
 
       return newQuery;
     }
@@ -220,32 +222,36 @@ class WidgetLegendSelectionState {
     // if widget was deleted it removes it from the selection query (clean up the url)
     if (newWidget) {
       return Array.isArray(location.query.unselectedSeries)
-        ? location.query.unselectedSeries.map(legend => {
-            if (legend.includes(newWidget.id!)) {
-              return undefined;
-            }
-            return legend;
-          })
+        ? location.query.unselectedSeries
+            .map(legend => {
+              if (legend.includes(newWidget.id!)) {
+                return undefined;
+              }
+              return legend;
+            })
+            .filter(Boolean)
         : location.query.unselectedSeries.includes(newWidget.id!)
           ? []
           : location.query.unselectedSeries;
     }
 
     // widget added (since added widgets don't have an id until submitted), it sets selection state based on all widgets
-    const unselectedSeries = newDashboard.widgets.map(widget => {
-      if (Array.isArray(location.query.unselectedSeries)) {
-        const widgetLegendQuery = location.query.unselectedSeries.find(legend =>
-          legend.includes(widget.id!)
-        );
-        if (!widgetLegendQuery && this.widgetRequiresLegendUnselection(widget)) {
-          return this.formatLegendDefaultQuery(widget);
+    const unselectedSeries = newDashboard.widgets
+      .map(widget => {
+        if (Array.isArray(location.query.unselectedSeries)) {
+          const widgetLegendQuery = location.query.unselectedSeries.find(legend =>
+            legend.includes(widget.id!)
+          );
+          if (!widgetLegendQuery && this.widgetRequiresLegendUnselection(widget)) {
+            return this.formatLegendDefaultQuery(widget);
+          }
+          return widgetLegendQuery;
         }
-        return widgetLegendQuery;
-      }
-      return location.query.unselectedSeries?.includes(widget.id!)
-        ? location.query.unselectedSeries
-        : this.formatLegendDefaultQuery(widget);
-    });
+        return location.query.unselectedSeries?.includes(widget.id!)
+          ? location.query.unselectedSeries
+          : this.formatLegendDefaultQuery(widget);
+      })
+      .filter(Boolean);
     return unselectedSeries;
   }
 }
