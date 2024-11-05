@@ -20,15 +20,15 @@ logger = logging.getLogger(__name__)
 
 
 class SentryAppRefreshAuthorizationSerializer(serializers.Serializer):
-    client_id: str = serializers.CharField(required=True, allow_null=False)
-    refresh_token: str = serializers.CharField(required=True, allow_null=False)
-    grant_type: str = serializers.CharField(required=True, allow_null=False)
+    client_id = serializers.CharField(required=True, allow_null=False)
+    refresh_token = serializers.CharField(required=True, allow_null=False)
+    grant_type = serializers.CharField(required=True, allow_null=False)
 
 
 class SentryAppAuthorizationSerializer(serializers.Serializer):
-    client_id: str = serializers.CharField(required=True, allow_null=False)
-    grant_type: str = serializers.CharField(required=True, allow_null=False)
-    code: str = serializers.CharField(required=True, allow_null=False)
+    client_id = serializers.CharField(required=True, allow_null=False)
+    grant_type = serializers.CharField(required=True, allow_null=False)
+    code = serializers.CharField(required=True, allow_null=False)
 
 
 @control_silo_endpoint
@@ -47,27 +47,29 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
 
         try:
             if request.json_body.get("grant_type") == GrantTypes.AUTHORIZATION:
-                serializer = SentryAppAuthorizationSerializer(data=request.data)
+                auth_serializer: SentryAppAuthorizationSerializer = (
+                    SentryAppAuthorizationSerializer(data=request.data)
+                )
 
-                if not serializer.is_valid():
-                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                if not auth_serializer.is_valid():
+                    return Response(auth_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
                 token = GrantExchanger(
                     install=installation,
-                    code=serializer.validated_data["code"],
-                    client_id=serializer.validated_data["client_id"],
+                    code=auth_serializer.validated_data.get("code"),
+                    client_id=auth_serializer.validated_data.get("client_id"),
                     user=promote_request_api_user(request),
                 ).run()
             elif request.json_body.get("grant_type") == GrantTypes.REFRESH:
-                serializer = SentryAppRefreshAuthorizationSerializer(data=request.data)
+                refresh_serializer = SentryAppRefreshAuthorizationSerializer(data=request.data)
 
-                if not serializer.is_valid():
-                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                if not refresh_serializer.is_valid():
+                    return Response(refresh_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
                 token = Refresher(
                     install=installation,
-                    refresh_token=serializer.validated_data["refresh_token"],
-                    client_id=serializer.validated_data["client_id"],
+                    refresh_token=refresh_serializer.validated_data["refresh_token"],
+                    client_id=refresh_serializer.validated_data["client_id"],
                     user=promote_request_api_user(request),
                 ).run()
             else:
