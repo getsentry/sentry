@@ -218,7 +218,11 @@ export default function MetricDetailsBody({
               relativeOptions={relativeOptions}
               showAbsolute={false}
               disallowArbitraryRelativeRanges
-              triggerLabel={relativeOptions[timePeriod.period ?? '']}
+              triggerLabel={
+                timePeriod.custom
+                  ? timePeriod.label
+                  : relativeOptions[timePeriod.period ?? '']
+              }
             />
             {selectedIncident && (
               <Tooltip
