@@ -20,7 +20,7 @@ export default function FeedbackContainer({children}: Props) {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <SurfaceProvider suffix="feedback">
+      <SurfaceProvider value="feedback">
         <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
       </SurfaceProvider>
     </Feature>

@@ -215,7 +215,7 @@ describe('TraceDataSection', () => {
 
     // Use SurfaceProvider to test the old analytics event is still emitted
     render(
-      <SurfaceProvider suffix="issue_details">
+      <SurfaceProvider value="issue_details">
         <TraceDataSection event={event} />
       </SurfaceProvider>,
       {organization}

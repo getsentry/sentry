@@ -164,7 +164,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const MainLayoutComponent = hasStreamlinedUI ? 'div' : StyledLayoutMain;
 
   return (
-    <SurfaceProvider suffix="issue_details">
+    <SurfaceProvider value="issue_details">
       <TransactionProfileIdProvider
         projectId={event?.projectID}
         transactionId={event?.type === 'transaction' ? event.id : undefined}

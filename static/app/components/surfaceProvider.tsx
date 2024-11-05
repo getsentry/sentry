@@ -4,13 +4,15 @@ export const SurfaceContext = createContext<string>('');
 
 export default function SurfaceProvider({
   children,
-  suffix,
+  value,
+  overrideParent = false,
 }: {
   children: ReactNode;
-  suffix: string;
+  value: string;
+  overrideParent?: boolean;
 }) {
-  const parent = useContext(SurfaceContext);
-  const surface = parent ? `${parent}.${suffix}` : suffix;
+  const parentSurface = useContext(SurfaceContext);
+  const surface = overrideParent || !parentSurface ? value : `${parentSurface}.${value}`;
 
   return <SurfaceContext.Provider value={surface}>{children}</SurfaceContext.Provider>;
 }

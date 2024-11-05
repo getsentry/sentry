@@ -55,7 +55,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   return (
     <Fragment>
-      <SurfaceProvider suffix="details">
+      <SurfaceProvider value="details">
         <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
         <OverflowPanelItem ref={overflowRef}>
           <Section>
