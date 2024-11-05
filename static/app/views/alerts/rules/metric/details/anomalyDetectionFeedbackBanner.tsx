@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Incident} from 'sentry/views/alerts/types';
@@ -71,8 +72,12 @@ export default function AnomalyDetectionFeedbackBanner({
       type="info"
       trailingItems={
         <Fragment>
-          <StyledButton onClick={() => handleClick(true)}>{t('Yes')}</StyledButton>
-          <StyledButton onClick={() => handleClick(false)}>{t('No')}</StyledButton>
+          <StyledButton borderless onClick={() => handleClick(true)}>
+            {t('Yes')}
+          </StyledButton>
+          <StyledButton borderless onClick={() => handleClick(false)}>
+            {t('No')}
+          </StyledButton>
         </Fragment>
       }
       showIcon
@@ -84,9 +89,19 @@ export default function AnomalyDetectionFeedbackBanner({
 
 const StyledButton = styled(Button)`
   background-color: transparent;
+  color: ${p => p.theme.alert.info.color};
   border: 1px solid ${p => p.theme.alert.info.border};
+
+  &:hover,
+  &:focus,
+  &:active {
+    color: ${p => p.theme.alert.info.color};
+    border-color: ${p => p.theme.alert.info.borderHover};
+  }
 `;
 
 const StyledAlert = styled(Alert)`
   margin: 0;
+  padding-top: ${space(3)};
+  padding-bottom: ${space(3)};
 `;
