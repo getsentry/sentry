@@ -64,7 +64,7 @@ function StreamlinedNoteInput({
 
   const [memberMentions, setMemberMentions] = useState<Mentioned[]>([]);
   const [teamMentions, setTeamMentions] = useState<Mentioned[]>([]);
-  const [isSubmitHidden, setIsSubmitHidden] = useState(true);
+  const [isSubmitVisible, setIsSubmitVisible] = useState(false);
 
   const canSubmit = value.trim() !== '';
 
@@ -88,7 +88,7 @@ function StreamlinedNoteInput({
   );
 
   const displaySubmitButton = useCallback(() => {
-    setIsSubmitHidden(false);
+    setIsSubmitVisible(true);
   }, []);
 
   const handleSubmit = useCallback(
@@ -172,7 +172,7 @@ function StreamlinedNoteInput({
           appendSpaceOnAdd
         />
       </MentionsInput>
-      {!isSubmitHidden && (
+      {isSubmitVisible && (
         <Button
           priority="primary"
           size="xs"
