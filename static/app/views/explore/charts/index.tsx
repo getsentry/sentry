@@ -2,9 +2,9 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {LinkButton} from 'sentry/components/button';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph, IconSubscribed} from 'sentry/icons';
@@ -137,24 +137,6 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     EXPLORE_CHART_GROUP
   );
 
-  const project =
-    projects.length === 1
-      ? projects[0]
-      : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
-  const singleProject =
-    (pageFilters.selection.projects.length === 1 || projects.length === 1) && project;
-  const alertsUrl = singleProject
-    ? getAlertsUrl({
-        project,
-        query,
-        pageFilters: pageFilters.selection,
-        aggregate: visualizes[0].yAxes[0],
-        orgSlug: organization.slug,
-        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-        interval,
-      })
-    : undefined;
-
   return (
     <Fragment>
       {visualizes.map((visualize, index) => {
@@ -167,13 +149,36 @@ export function ExploreCharts({query}: ExploreChartsProps) {
           })
           .filter(Boolean);
 
-        const {chartType} = visualize;
+        const {chartType, yAxes: visualizeYAxes} = visualize;
         const chartIcon =
           chartType === ChartType.LINE
             ? 'line'
             : chartType === ChartType.AREA
               ? 'area'
               : 'bar';
+
+        const project =
+          projects.length === 1
+            ? projects[0]
+            : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
+        const singleProject =
+          (pageFilters.selection.projects.length === 1 || projects.length === 1) &&
+          project;
+        const alertsUrls = singleProject
+          ? visualizeYAxes.map(yAxis => ({
+              key: yAxis,
+              label: yAxis,
+              to: getAlertsUrl({
+                project,
+                query,
+                pageFilters: pageFilters.selection,
+                aggregate: yAxis,
+                orgSlug: organization.slug,
+                dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                interval,
+              }),
+            }))
+          : undefined;
 
         return (
           <ChartContainer key={index}>
@@ -225,13 +230,18 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                             )
                       }
                     >
-                      <LinkButton
-                        to={alertsUrl ?? ''}
-                        size="sm"
-                        icon={<IconSubscribed />}
-                        aria-label="Create Alert"
-                        borderless
-                        disabled={!alertsUrl}
+                      <DropdownMenu
+                        triggerProps={{
+                          'aria-label': t('Chart Actions'),
+                          size: 'sm',
+                          borderless: true,
+                          showChevron: false,
+                          icon: <IconSubscribed />,
+                        }}
+                        position="bottom-end"
+                        items={alertsUrls ?? []}
+                        menuTitle={t('Create an alert for')}
+                        isDisabled={!alertsUrls || alertsUrls.length === 0}
                       />
                     </Tooltip>
                   </Feature>
