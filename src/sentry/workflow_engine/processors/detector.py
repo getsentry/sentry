@@ -291,7 +291,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             event_data = None
             result = None
             if new_status == DetectorPriorityLevel.OK:
-                # If we've determined that we're now ok, we just want to result the issue
+                # If we've determined that we're now ok, we just want to resolve the issue
                 result = StatusChangeMessage(
                     fingerprint=self.build_fingerprint(group_key),
                     project_id=self.detector.project_id,
