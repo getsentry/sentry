@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import logging
 from typing import TYPE_CHECKING
 
@@ -55,7 +56,7 @@ class Detector(DefaultFieldsModel, OwnerModel):
         return 1
 
     @property
-    def group_type(self) -> type[GroupType] | None:
+    def group_type(self) -> builtins.type[GroupType] | None:
         return grouptype.registry.get_by_slug(self.type)
 
     @property
