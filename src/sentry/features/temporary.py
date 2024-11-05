@@ -77,7 +77,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable continuous profiling
     manager.add("organizations:continuous-profiling", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 # Enable continuous profiling
-    manager.add("organizations:continuous-profiling-beta-org", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:continuous-profiling-allowed-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable continuous profiling ui
     manager.add("organizations:continuous-profiling-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display profile durations on the stats page
