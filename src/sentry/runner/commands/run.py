@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import signal
+import time
 from multiprocessing import cpu_count
 from typing import Any
 
@@ -244,15 +245,12 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
 )
 @log_options()
 @configuration
-def taskworker(**options: Any) -> None:
-    import time
+def taskworker(rpc_host: str, max_task_count: int, **options: Any) -> None:
 
     from sentry.taskworker.taskworker import TaskWorker
 
     with managed_bgtasks(role="taskworker"):
-        worker = TaskWorker(
-            rpc_host=options.get("rpc_host"), max_task_count=options.get("max_task_count")
-        )
+        worker = TaskWorker(rpc_host=rpc_host, max_task_count=max_task_count, **options)
         exitcode = worker.start()
         # Give time for the current task to complete.
         time.sleep(1)
