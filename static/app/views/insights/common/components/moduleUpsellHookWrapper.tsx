@@ -21,7 +21,7 @@ export function ModuleBodyUpsellHook({
 
   if (shouldDisplayUpsell) {
     return (
-      <UpsellPageHook moduleName={moduleName}>
+      <UpsellPageHook moduleName={moduleName} fullPage={false}>
         <Feature
           features={MODULE_FEATURE_MAP[moduleName]}
           organization={organization}
