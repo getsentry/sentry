@@ -56,8 +56,11 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
     has_dynamic_sampling,
+    is_project_mode_sampling,
     sample_function,
 )
+from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
@@ -112,31 +115,40 @@ def boost_low_volume_projects(context: TaskContext) -> None:
                 boost_low_volume_projects_of_org.delay(org_id, projects)
 
 
+@metrics.wraps("dynamic_sampling.partition_by_measure")
 def partition_by_measure(org_ids: list[OrganizationId]) -> Mapping[SamplingMeasure, list[int]]:
     """
     Partitions the orgs by the measure that will be used to adjust the sample
     rates. This is controlled through a feature flag on the organization,
     determined by its plan.
+
+    Only organizations with organization-mode sampling will be considered. In
+    project-mode sampling, the sample rate is set per project, so there is no
+    need to adjust the sample rates.
     """
+
+    original_orgs = Organization.objects.get_many_from_cache(org_ids)
+    modes = OrganizationOption.objects.get_value_bulk(original_orgs, "sentry:sampling_mode")
+
+    # Exclude orgs with project-mode sampling from the start. We know the
+    # default is DynamicSamplingMode.ORGANIZATION.
+    orgs = [org for org, mode in modes.items() if mode != DynamicSamplingMode.PROJECT]
+
+    if not options.get("dynamic-sampling.check_span_feature_flag"):
+        return {SamplingMeasure.TRANSACTIONS: [org.id for org in orgs]}
 
     spans = []
     transactions = []
 
-    if not options.get("dynamic-sampling.check_span_feature_flag"):
-        return {SamplingMeasure.TRANSACTIONS: org_ids}
-
-    with metrics.timer("dynamic_sampling.partition_by_measure"):
-        orgs = Organization.objects.get_many_from_cache(org_ids)
-
-        for org in orgs:
-            # This is an N+1 query that fetches getsentry database models
-            # internally, but we cannot abstract over batches of feature flag
-            # handlers yet. Hence, we must fetch organizations and do individual
-            # feature checks per org.
-            if features.has("organizations:dynamic-sampling-spans", org):
-                spans.append(org.id)
-            else:
-                transactions.append(org.id)
+    for org in orgs:
+        # This is an N+1 query that fetches getsentry database models
+        # internally, but we cannot abstract over batches of feature flag
+        # handlers yet. Hence, we must fetch organizations and do individual
+        # feature checks per org.
+        if features.has("organizations:dynamic-sampling-spans", org):
+            spans.append(org.id)
+        else:
+            transactions.append(org.id)
 
     return {SamplingMeasure.SPANS: spans, SamplingMeasure.TRANSACTIONS: transactions}
 
@@ -164,11 +176,15 @@ def boost_low_volume_projects_of_org_with_query(
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
     )
 
+    org = Organization.objects.get_from_cache(id=org_id)
+    if is_project_mode_sampling(org):
+        return
+
     measure = SamplingMeasure.TRANSACTIONS
-    if options.get("dynamic-sampling.check_span_feature_flag"):
-        org = Organization.objects.get_from_cache(id=org_id)
-        if features.has("organizations:dynamic-sampling-spans", org):
-            measure = SamplingMeasure.SPANS
+    if options.get("dynamic-sampling.check_span_feature_flag") and features.has(
+        "organizations:dynamic-sampling-spans", org
+    ):
+        measure = SamplingMeasure.SPANS
 
     projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
         context, org_ids=[org_id], measure=measure
