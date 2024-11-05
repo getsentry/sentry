@@ -367,6 +367,8 @@ def get_data_group_conditions_and_group(
 ) -> tuple[DataConditionGroup | None, list[DataCondition]]:
     try:
         group = DataConditionGroup.objects.get(id=data_condition_group_id)
+        conditions = list(group.datacondition_set.all())
     except DataConditionGroup.DoesNotExist:
         group = None
-    return group, list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
+        conditions = []
+    return group, conditions
