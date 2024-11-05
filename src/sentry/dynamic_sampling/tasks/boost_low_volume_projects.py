@@ -112,7 +112,13 @@ def boost_low_volume_projects(context: TaskContext) -> None:
             for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
                 context, org_ids=orgs, measure=measure
             ).items():
-                boost_low_volume_projects_of_org.delay(org_id, projects)
+                boost_low_volume_projects_of_org.apply_async(
+                    kwargs={
+                        "org_id": org_id,
+                        "projects_with_tx_count_and_rates": projects,
+                    },
+                    headers={"sentry-propagate-traces": False},
+                )
 
 
 @metrics.wraps("dynamic_sampling.partition_by_measure")
