@@ -412,8 +412,12 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
 
       // Remove the second and third widgets
-      await userEvent.click(screen.getAllByRole('button', {name: 'Delete Widget'})[1]);
-      await userEvent.click(screen.getAllByRole('button', {name: 'Delete Widget'})[1]);
+      await userEvent.click(
+        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]
+      );
+      await userEvent.click(
+        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]
+      );
 
       // Save changes
       await userEvent.click(screen.getByRole('button', {name: 'Save and Finish'}));
@@ -776,9 +780,9 @@ describe('Dashboards > Detail', function () {
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
-      const widget = screen
-        .getByText('First Widget')
-        .closest('.react-grid-item') as HTMLElement;
+      const widget = (await screen.findByText('First Widget')).closest(
+        '.react-grid-item'
+      ) as HTMLElement;
       const resizeHandle = within(widget).getByTestId('custom-resize-handle');
 
       expect(resizeHandle).toBeVisible();
