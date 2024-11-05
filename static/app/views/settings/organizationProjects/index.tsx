@@ -65,14 +65,17 @@ function OrganizationProjects() {
       `/organizations/${organization.slug}/stats/`,
       {
         query: {
+          projectID: projectList?.map(p => p.id),
           since: time.current / 1000 - 3600 * 24,
           stat: 'generated',
           group: 'project',
-          per_page: ITEMS_PER_PAGE,
         },
       },
     ],
-    {staleTime: 0}
+    {
+      staleTime: 60_000,
+      enabled: !!projectList,
+    }
   );
 
   const projectListPageLinks = getResponseHeader?.('Link');
@@ -84,7 +87,7 @@ function OrganizationProjects() {
         (searchQuery: string) =>
           browserHistory.replace({
             pathname: location.pathname,
-            query: {...location.query, query: searchQuery},
+            query: {...location.query, query: searchQuery, cursor: undefined},
           }),
         DEFAULT_DEBOUNCE_DURATION
       ),
