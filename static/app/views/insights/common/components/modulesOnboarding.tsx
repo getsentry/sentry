@@ -11,6 +11,7 @@ import queriesPreviewImg from 'sentry-images/insights/module-upsells/insights-qu
 import queuesPreviewImg from 'sentry-images/insights/module-upsells/insights-queues-module-charts.svg';
 import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-requests-module-charts.svg';
 import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-loads-module-charts.svg';
+import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
@@ -464,7 +465,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       'Screen Rendering identifies slow and frozen interactions, helping you find and fix problems that might cause users to complain, or uninstall.'
     ),
     heading: t('Fast-loading apps can still be janky'),
-    imageSrc: screenLoadsPreviewImg, // TODO - replace with actual image
+    imageSrc: screenRenderingPreviewImg,
     valuePropDescription: tct('With [moduleTitle]:', {
       moduleTitle: MODULE_TITLES[ModuleName.SCREEN_RENDERING],
     }),
