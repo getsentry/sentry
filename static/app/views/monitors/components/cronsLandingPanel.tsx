@@ -1,8 +1,7 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
@@ -125,11 +124,6 @@ export function CronsLandingPanel() {
   const platform = decodeScalar(location.query?.platform) ?? null;
   const guide = decodeScalar(location.query?.guide);
 
-  const OnboardingPanelHook = HookOrDefault({
-    hookName: 'component:crons-onboarding-panel',
-    defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-  });
-
   useEffect(() => {
     if (!platform || !guide) {
       return;
@@ -164,11 +158,7 @@ export function CronsLandingPanel() {
   };
 
   if (!isValidPlatform(platform) || !isValidGuide(guide)) {
-    return (
-      <OnboardingPanelHook>
-        <PlatformPickerPanel onSelect={navigateToPlatformGuide} />
-      </OnboardingPanelHook>
-    );
+    return <PlatformPickerPanel onSelect={navigateToPlatformGuide} />;
   }
 
   const platformText = CRON_SDK_PLATFORMS.find(
@@ -178,49 +168,47 @@ export function CronsLandingPanel() {
   const guides = platformGuides[platform];
 
   return (
-    <OnboardingPanelHook>
-      <Panel>
-        <BackButton
-          icon={<IconChevron direction="left" />}
-          onClick={() => navigateToPlatformGuide(null)}
-          borderless
+    <Panel>
+      <BackButton
+        icon={<IconChevron direction="left" />}
+        onClick={() => navigateToPlatformGuide(null)}
+        borderless
+      >
+        {t('Back to Platforms')}
+      </BackButton>
+      <PanelBody withPadding>
+        <h3>{t('Get Started with %s', platformText)}</h3>
+        <Tabs
+          onChange={guideKey => navigateToPlatformGuide(platform, guideKey)}
+          value={guide}
         >
-          {t('Back to Platforms')}
-        </BackButton>
-        <PanelBody withPadding>
-          <h3>{t('Get Started with %s', platformText)}</h3>
-          <Tabs
-            onChange={guideKey => navigateToPlatformGuide(platform, guideKey)}
-            value={guide}
-          >
-            <TabList>
-              {[
-                ...guides.map(({key, title}) => (
-                  <TabList.Item key={key}>{title}</TabList.Item>
-                )),
-                <TabList.Item key={GuideKey.MANUAL}>{t('Manual')}</TabList.Item>,
-              ]}
-            </TabList>
-            <TabPanels>
-              {[
-                ...guides.map(({key, Guide}) => (
-                  <TabPanels.Item key={key}>
-                    <GuideContainer>
-                      <Guide />
-                    </GuideContainer>
-                  </TabPanels.Item>
-                )),
-                <TabPanels.Item key={GuideKey.MANUAL}>
+          <TabList>
+            {[
+              ...guides.map(({key, title}) => (
+                <TabList.Item key={key}>{title}</TabList.Item>
+              )),
+              <TabList.Item key={GuideKey.MANUAL}>{t('Manual')}</TabList.Item>,
+            ]}
+          </TabList>
+          <TabPanels>
+            {[
+              ...guides.map(({key, Guide}) => (
+                <TabPanels.Item key={key}>
                   <GuideContainer>
-                    <MonitorCreateForm />
+                    <Guide />
                   </GuideContainer>
-                </TabPanels.Item>,
-              ]}
-            </TabPanels>
-          </Tabs>
-        </PanelBody>
-      </Panel>
-    </OnboardingPanelHook>
+                </TabPanels.Item>
+              )),
+              <TabPanels.Item key={GuideKey.MANUAL}>
+                <GuideContainer>
+                  <MonitorCreateForm />
+                </GuideContainer>
+              </TabPanels.Item>,
+            ]}
+          </TabPanels>
+        </Tabs>
+      </PanelBody>
+    </Panel>
   );
 }
 
