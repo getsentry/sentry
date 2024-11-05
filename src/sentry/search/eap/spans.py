@@ -332,12 +332,7 @@ class SearchResolver:
             column_context = None
             column_definition = SPAN_COLUMN_DEFINITIONS[column]
         else:
-            if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
-                raise InvalidSearchQuery(
-                    f"{column} is too long, can be a maximum of 200 characters"
-                )
-
-            tag_match = qb_constants.TYPED_TAG_KEY_RE.search(column)
+            tag_match = qb_constants.match_typed_tag(column)
             if tag_match is None:
                 tag_match = qb_constants.TAG_KEY_RE.search(column)
                 field_type = "string"
