@@ -6151,8 +6151,6 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
         transaction_all_examples = [
             {"profile_id": stored_1["transaction"]["contexts"]["profile"]["profile_id"]},
             {"profile_id": stored_2["transaction"]["contexts"]["profile"]["profile_id"]},
-            # {"profiler_id": stored_3["profiler_id"]},
-            # {"profiler_id": stored_4["profiler_id"]},
         ]
         transaction_all_examples.sort(key=all_examples_sort_key)
 
