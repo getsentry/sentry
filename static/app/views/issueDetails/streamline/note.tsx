@@ -64,6 +64,7 @@ function StreamlinedNoteInput({
 
   const [memberMentions, setMemberMentions] = useState<Mentioned[]>([]);
   const [teamMentions, setTeamMentions] = useState<Mentioned[]>([]);
+  const [isSubmitVisible, setIsSubmitVisible] = useState(false);
 
   const canSubmit = value.trim() !== '';
 
@@ -86,8 +87,17 @@ function StreamlinedNoteInput({
     [existingItem, onUpdate, cleanMarkdown, finalizedMentions, onCreate]
   );
 
+  const displaySubmitButton = useCallback(() => {
+    setIsSubmitVisible(true);
+  }, []);
+
   const handleSubmit = useCallback(
-    (e: React.MouseEvent<HTMLFormElement>) => {
+    (
+      e:
+        | React.FormEvent<HTMLFormElement>
+        | React.KeyboardEvent<HTMLTextAreaElement>
+        | React.KeyboardEvent<HTMLInputElement>
+    ) => {
       e.preventDefault();
       submitForm();
     },
@@ -106,7 +116,7 @@ function StreamlinedNoteInput({
     []
   );
 
-  const handleChange: MentionsInputProps['onChange'] = useCallback(
+  const handleChange = useCallback<NonNullable<MentionsInputProps['onChange']>>(
     e => {
       setValue(e.target.value);
       onChange?.(e, {updating: existingItem});
@@ -114,7 +124,7 @@ function StreamlinedNoteInput({
     [existingItem, onChange]
   );
 
-  const handleKeyDown: MentionsInputProps['onKeyDown'] = useCallback(
+  const handleKeyDown = useCallback<NonNullable<MentionsInputProps['onKeyDown']>>(
     e => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canSubmit) {
         handleSubmit(e);
@@ -142,6 +152,7 @@ function StreamlinedNoteInput({
         placeholder={placeholder}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        onFocus={displaySubmitButton}
         value={value}
         required
       >
@@ -161,15 +172,17 @@ function StreamlinedNoteInput({
           appendSpaceOnAdd
         />
       </MentionsInput>
-      <Button
-        priority="primary"
-        size="xs"
-        disabled={!canSubmit}
-        aria-label={t('Submit comment')}
-        type="submit"
-      >
-        {t('Comment')}
-      </Button>
+      {isSubmitVisible && (
+        <Button
+          priority="primary"
+          size="xs"
+          disabled={!canSubmit}
+          aria-label={t('Submit comment')}
+          type="submit"
+        >
+          {t('Comment')}
+        </Button>
+      )}
     </NoteInputForm>
   );
 }

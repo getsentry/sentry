@@ -65,7 +65,14 @@ describe('StreamlinedActivitySection', function () {
 
     const commentInput = screen.getByRole('textbox', {name: 'Add a comment'});
     expect(commentInput).toBeInTheDocument();
-    const submitButton = screen.getByRole('button', {name: 'Submit comment'});
+    expect(
+      screen.queryByRole('button', {name: 'Submit comment'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(commentInput);
+
+    // Button appears after input is focused
+    const submitButton = await screen.findByRole('button', {name: 'Submit comment'});
     expect(submitButton).toBeInTheDocument();
 
     expect(submitButton).toBeDisabled();
