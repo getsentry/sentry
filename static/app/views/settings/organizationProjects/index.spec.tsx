@@ -1,6 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
@@ -39,6 +39,18 @@ describe('OrganizationProjects', function () {
 
     expect(projectsGetMock).toHaveBeenCalledTimes(1);
     expect(statsGetMock).toHaveBeenCalledTimes(1);
+    expect(statsGetMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/stats/',
+      expect.objectContaining({
+        query: {
+          group: 'project',
+          projectID: [project.id],
+          // Time is frozen in tests
+          since: 1508121680,
+          stat: 'generated',
+        },
+      })
+    );
     expect(projectsPutMock).toHaveBeenCalledTimes(0);
 
     await userEvent.click(await screen.findByRole('button', {name: 'Bookmark Project'}));
@@ -50,21 +62,18 @@ describe('OrganizationProjects', function () {
   });
 
   it('should search organization projects', async function () {
-    jest.useFakeTimers();
     render(<OrganizationProjectsContainer />);
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 
     const searchBox = await screen.findByRole('textbox');
-    await userEvent.type(searchBox, 'random', {
-      advanceTimers: jest.advanceTimersByTime,
-    });
+    await userEvent.type(searchBox, 'random');
 
-    jest.runAllTimers();
-
-    expect(browserHistory.replace).toHaveBeenLastCalledWith({
-      pathname: '/mock-pathname/',
-      query: {query: 'random'},
+    await waitFor(() => {
+      expect(browserHistory.replace).toHaveBeenLastCalledWith({
+        pathname: '/mock-pathname/',
+        query: {query: 'random'},
+      });
     });
   });
 });
