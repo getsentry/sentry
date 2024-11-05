@@ -60,16 +60,16 @@ export const groupActivityTypeIconMapping: Record<
     Component: IconAdd,
     componentFunction: data => {
       const provider = data.provider;
-      switch (provider.toLowerCase()) {
-        case 'github':
+      switch (provider) {
+        case 'GitHub':
           return IconGithub;
-        case 'gitlab':
+        case 'GitLab':
           return IconGitlab;
-        case 'bitbucket':
+        case 'Bitbucket':
           return IconBitbucket;
-        case 'jira ':
+        case 'Jira':
           return IconJira;
-        case 'asana':
+        case 'Asana':
           return IconAsana;
         default:
           return IconAdd;
