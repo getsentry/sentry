@@ -656,6 +656,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         ).count()
 
         is_dynamically_sampled = False
+        sample_rate = None
         if has_dynamic_sampling(obj):
             if (
                 obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
