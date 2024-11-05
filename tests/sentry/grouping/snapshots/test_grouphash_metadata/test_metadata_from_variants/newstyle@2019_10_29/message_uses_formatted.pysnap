@@ -1,0 +1,14 @@
+---
+created: '2024-10-28T14:02:36.780567+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  default*
+    hash: "d3f5e52d24e9c1eae5abe6c866cced63"
+    component:
+      default*
+        message*
+          "Hello there Peter!"

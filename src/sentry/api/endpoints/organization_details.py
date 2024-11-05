@@ -58,6 +58,7 @@ from sentry.constants import (
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
+    ROLLBACK_ENABLED_DEFAULT,
     SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
@@ -71,6 +72,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -220,6 +222,7 @@ ORG_OPTIONS = (
     ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
     ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
     ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
+    ("rollbackEnabled", "sentry:rollback_enabled", bool, ROLLBACK_ENABLED_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
@@ -281,6 +284,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     uptimeAutodetection = serializers.BooleanField(required=False)
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     samplingMode = serializers.ChoiceField(choices=DynamicSamplingMode.choices, required=False)
+    rollbackEnabled = serializers.BooleanField(required=False)
+    rollbackSharingEnabled = serializers.BooleanField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -371,13 +376,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_targetSampleRate(self, value):
-        from sentry import features
-
         organization = self.context["organization"]
         request = self.context["request"]
-        has_dynamic_sampling_custom = features.has(
-            "organizations:dynamic-sampling-custom", organization, actor=request.user
-        )
+        has_dynamic_sampling_custom = has_custom_dynamic_sampling(organization, actor=request.user)
         if not has_dynamic_sampling_custom:
             raise serializers.ValidationError(
                 "Organization does not have the custom dynamic sample rate feature enabled."
@@ -394,13 +395,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_samplingMode(self, value):
-        from sentry import features
-
         organization = self.context["organization"]
         request = self.context["request"]
-        has_dynamic_sampling_custom = features.has(
-            "organizations:dynamic-sampling-custom", organization, actor=request.user
-        )
+        has_dynamic_sampling_custom = has_custom_dynamic_sampling(organization, actor=request.user)
         if not has_dynamic_sampling_custom:
             raise serializers.ValidationError(
                 "Organization does not have the custom dynamic sample rate feature enabled."

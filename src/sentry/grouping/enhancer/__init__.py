@@ -33,6 +33,14 @@ RUST_CACHE = RustCache(1_000)
 VERSIONS = [2]
 LATEST_VERSION = VERSIONS[-1]
 
+VALID_PROFILING_MATCHER_PREFIXES = (
+    "stack.abs_path",
+    "stack.module",
+    "stack.function",
+    "stack.package",
+)
+VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
+
 
 def merge_rust_enhancements(
     bases: list[str], rust_enhancements: RustEnhancements
@@ -86,6 +94,30 @@ def make_rust_exception_data(
         if isinstance(value, str):
             e[key] = value.encode("utf-8")
     return e
+
+
+def is_valid_profiling_matcher(matchers: list[str]) -> bool:
+    for matcher in matchers:
+        if not matcher.startswith(VALID_PROFILING_MATCHER_PREFIXES):
+            return False
+    return True
+
+
+def is_valid_profiling_action(action: str) -> bool:
+    return action in VALID_PROFILING_ACTIONS_SET
+
+
+def keep_profiling_rules(config: str) -> str:
+    filtered_rules = []
+    if config is None or config == "":
+        return ""
+    for rule in config.splitlines():
+        if rule == "" or rule.startswith("#"):  # ignore comment lines
+            continue
+        *matchers, action = rule.split()
+        if is_valid_profiling_matcher(matchers) and is_valid_profiling_action(action):
+            filtered_rules.append(rule)
+    return "\n".join(filtered_rules)
 
 
 class Enhancements:

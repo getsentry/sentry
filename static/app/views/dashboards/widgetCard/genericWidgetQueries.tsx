@@ -324,7 +324,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       })
     );
     const rawResultsClone = cloneDeep(this.state.rawResults) ?? [];
-    const transformedTimeseriesResults: Series[] = [];
+    const transformedTimeseriesResults: Series[] = []; // Watch out, this is a sparse array. `map` and `forEach` will skip the empty slots. Spreading the array with `...` will create an `undefined` for each slot.
     responses.forEach(([data], requestIndex) => {
       afterFetchSeriesData?.(data);
       rawResultsClone[requestIndex] = data;

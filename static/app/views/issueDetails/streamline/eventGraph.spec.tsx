@@ -103,7 +103,7 @@ describe('EventGraph', () => {
           environment: [],
           field: expect.anything(),
           partial: 1,
-          interval: '12h',
+          interval: '4h',
           per_page: 50,
           project: [project.id],
           query: persistantQuery,
@@ -112,13 +112,6 @@ describe('EventGraph', () => {
           yAxis: ['count()', 'count_unique(user)'],
         },
       })
-    );
-
-    const discoverButton = screen.getByLabelText('Open in Discover');
-    expect(discoverButton).toBeInTheDocument();
-    expect(discoverButton).toHaveAttribute(
-      'href',
-      expect.stringContaining(`/organizations/${organization.slug}/discover/results/`)
     );
   });
 

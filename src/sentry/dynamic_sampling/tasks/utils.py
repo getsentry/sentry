@@ -3,9 +3,7 @@ from functools import wraps
 from random import random
 from typing import Concatenate, ParamSpec
 
-from sentry import features
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.models.organization import Organization
 from sentry.utils import metrics
 
 
@@ -15,14 +13,6 @@ def sample_function(function, _sample_rate: float = 1.0, **kwargs):
     """
     if _sample_rate >= 1.0 or 0.0 <= random() <= _sample_rate:
         function(**kwargs)
-
-
-def has_dynamic_sampling(organization: Organization | None) -> bool:
-    # If an organization can't be fetched, we will assume it has no dynamic sampling.
-    if organization is None:
-        return False
-
-    return features.has("organizations:dynamic-sampling", organization, actor=None)
 
 
 def _compute_task_name(function_name: str) -> str:
