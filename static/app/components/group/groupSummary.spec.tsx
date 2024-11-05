@@ -20,8 +20,9 @@ describe('GroupSummary', function () {
       method: 'POST',
       body: {
         groupId,
-        summary: 'Test summary',
-        impact: 'Test impact',
+        whatsWrong: 'Test whats wrong',
+        trace: 'Test trace',
+        possibleCause: 'Test possible cause',
         headline: 'Test headline',
       },
     });
@@ -47,10 +48,11 @@ describe('GroupSummary', function () {
 
     render(<GroupSummary groupId={groupId} groupCategory={IssueCategory.ERROR} />);
 
-    // Verify the summary loads and renders the collapsed view
-    expect(await screen.findByText('Test headline')).toBeInTheDocument();
-    expect(screen.getByText('Details: Test summary')).toBeInTheDocument();
-    expect(screen.queryByText('Impact: Test impact')).not.toBeInTheDocument();
+    // Verify the summary loads and renders the collapsed view with TL;DR prefix
+    expect(await screen.findByText('TL;DR: Test headline')).toBeInTheDocument();
+    expect(
+      screen.getByText('Details: Test whats wrong Test trace Test possible cause')
+    ).toBeInTheDocument();
   });
 
   it('expands the summary when clicked', async function () {
@@ -62,8 +64,9 @@ describe('GroupSummary', function () {
       method: 'POST',
       body: {
         groupId,
-        summary: 'Test summary',
-        impact: 'Test impact',
+        whatsWrong: 'Test whats wrong',
+        trace: 'Test trace',
+        possibleCause: 'Test possible cause',
         headline: 'Test headline',
       },
     });
@@ -88,10 +91,17 @@ describe('GroupSummary', function () {
     });
 
     render(<GroupSummary groupId={groupId} groupCategory={IssueCategory.ERROR} />);
-    expect(await screen.findByText('Test headline')).toBeInTheDocument();
+    expect(await screen.findByText('TL;DR: Test headline')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('Test headline'));
-    expect(screen.getByText('Test summary')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('TL;DR: Test headline'));
+
+    // Verify expanded view shows the individual sections
+    expect(screen.getByText("What's wrong?")).toBeInTheDocument();
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.getByText('Trace')).toBeInTheDocument();
+    expect(screen.getByText('Test trace')).toBeInTheDocument();
+    expect(screen.getByText('Possible cause')).toBeInTheDocument();
+    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
   it('does not render the summary if no consent', async function () {
@@ -103,8 +113,9 @@ describe('GroupSummary', function () {
       method: 'POST',
       body: {
         groupId,
-        summary: 'Test summary',
-        impact: 'Test impact',
+        whatsWrong: 'Test whats wrong',
+        trace: 'Test trace',
+        possibleCause: 'Test possible cause',
         headline: 'Test headline',
       },
     });
@@ -134,8 +145,10 @@ describe('GroupSummary', function () {
       expect(setupCall).toHaveBeenCalled();
     });
 
-    expect(screen.queryByText('Test headline')).not.toBeInTheDocument();
-    expect(screen.queryByText('Test summary')).not.toBeInTheDocument();
+    expect(screen.queryByText('TL;DR: Test headline')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Details: Test whats wrong Test trace Test possible cause')
+    ).not.toBeInTheDocument();
   });
 
   it('does not render the summary if the issue is not in the error category', function () {
@@ -147,8 +160,9 @@ describe('GroupSummary', function () {
       method: 'POST',
       body: {
         groupId,
-        summary: 'Test summary',
-        impact: 'Test impact',
+        whatsWrong: 'Test whats wrong',
+        trace: 'Test trace',
+        possibleCause: 'Test possible cause',
         headline: 'Test headline',
       },
     });
@@ -174,7 +188,9 @@ describe('GroupSummary', function () {
 
     render(<GroupSummary groupId={groupId} groupCategory={IssueCategory.PERFORMANCE} />);
 
-    expect(screen.queryByText('Test headline')).not.toBeInTheDocument();
-    expect(screen.queryByText('Test summary')).not.toBeInTheDocument();
+    expect(screen.queryByText('TL;DR: Test headline')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Details: Test whats wrong Test trace Test possible cause')
+    ).not.toBeInTheDocument();
   });
 });

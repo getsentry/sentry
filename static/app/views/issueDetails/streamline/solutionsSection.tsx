@@ -63,7 +63,14 @@ export default function SolutionsSection({
         <Placeholder height="19px" width="95%" style={{marginBottom: space(1)}} />
       )}
       {isSummaryEnabled(hasGenAIConsent, group.issueCategory) && data && (
-        <Summary>{data.headline}</Summary>
+        <Summary>
+          <HeadlineText>TL;DR: {data.headline}.</HeadlineText>
+          {data.whatsWrong && (
+            <SummaryDetails>
+              What's wrong? {data.whatsWrong.replaceAll('**', '').slice(0, 15)}...
+            </SummaryDetails>
+          )}
+        </Summary>
       )}
       <StyledButton ref={openButtonRef} onClick={() => openSolutionsDrawer()}>
         {t('See More')}
@@ -73,7 +80,16 @@ export default function SolutionsSection({
 }
 
 const Summary = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
+`;
+
+const HeadlineText = styled('span')`
+  margin-right: ${space(0.5)};
+`;
+
+const SummaryDetails = styled('span')`
+  color: ${p => p.theme.subText};
+  text-overflow: ellipsis;
 `;
 
 const StyledButton = styled(Button)`
