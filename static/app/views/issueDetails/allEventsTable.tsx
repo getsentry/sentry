@@ -151,31 +151,31 @@ export const useEventColumns = (group: Group, organization: Organization): Colum
 
     const fields: string[] = [
       'id',
-      'transaction',
-      'title',
-      'trace',
       'timestamp',
+      'title',
+      'transaction',
       'release',
       'environment',
       'user.display',
       'device',
       'os',
       ...platformSpecificFields,
+      'trace',
       ...(isPerfIssue ? ['transaction.duration'] : []),
     ];
 
     const columnTitles: string[] = [
       t('Event ID'),
-      t('Transaction'),
-      t('Title'),
-      t('Trace'),
       t('Timestamp'),
+      t('Title'),
+      t('Transaction'),
       t('Release'),
       t('Environment'),
       t('User'),
       t('Device'),
       t('OS'),
       ...platformSpecificColumnTitles,
+      t('Trace'),
       ...(isPerfIssue ? [t('Total Duration')] : []),
       t('Minidump'),
     ];

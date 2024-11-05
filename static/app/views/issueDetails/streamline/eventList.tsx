@@ -39,7 +39,33 @@ export function EventList({group}: EventListProps) {
   const routes = useRoutes();
   const [_error, setError] = useState('');
   const {fields, columnTitles} = useEventColumns(group, organization);
-  const eventView = useIssueDetailsEventView({group, queryProps: {fields}});
+  const eventView = useIssueDetailsEventView({
+    group,
+    queryProps: {
+      fields,
+      widths: fields.map(field => {
+        switch (field) {
+          case 'id':
+          case 'trace':
+          case 'replayId':
+            // Id columns can be smaller
+            return '100';
+          case 'environment':
+            // Big enough to fit "Environment"
+            return '115';
+          case 'timestamp':
+            return '220';
+          case 'url':
+            return '300';
+          case 'title':
+          case 'transaction':
+            return '200';
+          default:
+            return '150';
+        }
+      }),
+    },
+  });
 
   const grayText = css`
     color: ${theme.subText};
