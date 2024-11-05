@@ -52,6 +52,7 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
     "organizations:continuous-profiling-beta",
+    "organizations:continuous-profiling-beta-ingest",
     "organizations:custom-metrics",
     "organizations:device-class-synthesis",
     "organizations:performance-queries-mongodb-extraction",
