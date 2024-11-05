@@ -413,6 +413,23 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
+
+        organization = self.context["organization"]
+        sampling_mode = organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
+        request_sampling_mode = attrs.get("samplingMode")
+        request_target_sample_rate = attrs.get("targetSampleRate")
+
+        if (
+            request_sampling_mode == DynamicSamplingMode.PROJECT.value
+            or (
+                sampling_mode == DynamicSamplingMode.PROJECT.value
+                or request_sampling_mode != DynamicSamplingMode.ORGANIZATION.value
+            )
+        ) and request_target_sample_rate is not None:
+            raise serializers.ValidationError(
+                "Must be in Automatic Mode to configure the organization sample rate."
+            )
+
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):

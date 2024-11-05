@@ -418,6 +418,42 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert not project2.get_option("sentry:sampling_rate")
 
     @django_db_all
+    def test_sampling_mode_retains_target_sample_rate(self):
+        """
+        Test that changing sampling mode while not providing a new targetSampleRate
+        retains the previous targetSampleRate value
+        """
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        self.organization.update_option("sentry:target_sample_rate", 0.4)
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                samplingMode=DynamicSamplingMode.ORGANIZATION.value,
+            )
+
+        assert response.status_code == 200
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.4
+
+    @django_db_all
+    def test_cannot_set_target_sample_rate_in_project_mode(self):
+        """
+        Test that setting targetSampleRate while in project sampling mode raises an error
+        """
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(self.organization.slug, method="put", targetSampleRate=0.5)
+
+        assert response.status_code == 400
+        assert response.data == {
+            "non_field_errors": [
+                "Must be in Automatic Mode to configure the organization sample rate."
+            ]
+        }
+
+    @django_db_all
     def test_sampling_mode_org_to_project(self):
         """
         Test changing sampling mode from organization-level to project-level:
