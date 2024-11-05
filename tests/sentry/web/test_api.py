@@ -8,6 +8,7 @@ from django.urls import reverse
 from sentry import options
 from sentry.api.utils import generate_region_url
 from sentry.auth import superuser
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_deletion
 from sentry.models.apitoken import ApiToken
@@ -81,6 +82,24 @@ class RobotsTxtTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp["Content-Type"] == "text/plain"
+        assert (
+            resp.content
+            == b"""User-agent: *
+Disallow: /
+"""
+        )
+
+    def test_robots_saas(self):
+        with override_settings(SENTRY_MODE=SentryMode.SAAS):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "text/plain"
+            assert (
+                resp.content
+                == b"""User-agent: *
+Disallow: /
+"""
+            )
 
 
 @region_silo_test(regions=create_test_regions("us", "eu"), include_monolith_run=True)

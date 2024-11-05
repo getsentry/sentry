@@ -25,6 +25,7 @@ from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter, make_split_task_queues
 from sentry.utils.types import Type, type_from_value
@@ -1474,6 +1475,7 @@ if os.environ.get("OPENAPIGENERATE", False):
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
+
 # Sentry and internal client configuration
 
 SENTRY_EARLY_FEATURES = {
@@ -2490,7 +2492,13 @@ SENTRY_MAX_AVATAR_SIZE = 5000000
 STATUS_PAGE_ID: str | None = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
-SENTRY_SELF_HOSTED = True
+# This supersedes SENTRY_SINGLE_TENANT and SENTRY_SELF_HOSTED.
+# An enum is better because there shouldn't be multiple "modes".
+SENTRY_MODE = SentryMode.SELF_HOSTED
+
+# For compatibility only. Prefer using SENTRY_MODE.
+SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
+
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
