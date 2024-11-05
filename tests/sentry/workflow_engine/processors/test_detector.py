@@ -207,7 +207,12 @@ class StatefulDetectorHandlerTestMixin(TestCase):
             detector = self.create_detector(
                 workflow_condition_group=self.create_data_condition_group()
             )
-            self.create_data_condition(condition_group=detector.workflow_condition_group)
+            self.create_data_condition(
+                condition="gt",
+                comparison=5,
+                condition_result=DetectorPriorityLevel.HIGH,
+                condition_group=detector.workflow_condition_group,
+            )
         return MockDetectorStateHandler(detector)
 
     def assert_updates(self, handler, group_key, dedupe_value, counter_updates, active, priority):
@@ -324,7 +329,7 @@ class TestEvaluate(StatefulDetectorHandlerTestMixin):
     def test(self):
         handler = self.build_handler()
         assert handler.evaluate(DataPacket("1", {"dedupe": 1})) == []
-        assert handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 0}})) == [
+        assert handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}})) == [
             DetectorEvaluationResult(
                 group_key="val1",
                 is_active=True,
@@ -332,6 +337,28 @@ class TestEvaluate(StatefulDetectorHandlerTestMixin):
             )
         ]
         self.assert_updates(handler, "val1", 2, {}, True, DetectorPriorityLevel.HIGH)
+
+    def test_above_below_threshold(self):
+        handler = self.build_handler()
+        assert handler.evaluate(DataPacket("1", {"dedupe": 1, "group_vals": {"val1": 0}})) == []
+        handler.commit_state_updates()
+        assert handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}})) == [
+            DetectorEvaluationResult(
+                group_key="val1",
+                is_active=True,
+                priority=DetectorPriorityLevel.HIGH,
+            )
+        ]
+        handler.commit_state_updates()
+        assert handler.evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 6}})) == []
+        handler.commit_state_updates()
+        assert handler.evaluate(DataPacket("1", {"dedupe": 4, "group_vals": {"val1": 0}})) == [
+            DetectorEvaluationResult(
+                group_key="val1",
+                is_active=False,
+                priority=DetectorPriorityLevel.OK,
+            )
+        ]
 
     def test_no_condition_group(self):
         detector = self.create_detector()
@@ -362,7 +389,7 @@ class TestEvaluate(StatefulDetectorHandlerTestMixin):
 
     def test_dedupe(self):
         handler = self.build_handler()
-        result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 0}}))
+        result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 8}}))
         assert result == [
             DetectorEvaluationResult(
                 group_key="val1",
@@ -392,7 +419,7 @@ class TestEvaluateGroupKeyValue(StatefulDetectorHandlerTestMixin):
             assert (
                 handler.evaluate_group_key_value(
                     expected_result.group_key,
-                    1,
+                    10,
                     DetectorStateData(
                         "group_key",
                         False,
