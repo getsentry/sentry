@@ -1192,7 +1192,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         />
       );
     }
-    const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
+    const isOnDemand =
+      organization.features.includes('on-demand-metrics-ui') &&
+      isOnDemandMetricAlert(dataset, aggregate, query);
 
     let formattedAggregate = aggregate;
     if (alertType === 'custom_metrics') {
