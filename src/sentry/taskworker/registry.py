@@ -118,7 +118,7 @@ class TaskRegistry:
 
     def create_namespace(
         self, name: str, topic: str, deadletter_topic: str, retry: Retry | None = None
-    ):
+    ) -> TaskNamespace:
         """
         Create a namespaces.
         Namespaces can define default retry policies, deadlines.
