@@ -49,6 +49,11 @@ class Detector(DefaultFieldsModel, OwnerModel):
         ]
 
     @property
+    def project_id(self):
+        # XXX: Temporary property until we add `project_id` to the model.
+        return 1
+
+    @property
     def detector_handler(self) -> DetectorHandler | None:
         group_type = grouptype.registry.get_by_slug(self.type)
         if not group_type:

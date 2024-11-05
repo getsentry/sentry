@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 
 from sentry.issues.grouptype import GroupCategory, GroupType
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
@@ -199,8 +200,30 @@ class TestKeyBuilders(unittest.TestCase):
         )
 
 
+def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessage):
+
+    return (
+        isinstance(other, StatusChangeMessage)
+        and self.fingerprint == other.fingerprint
+        and self.project_id == other.project_id
+        and self.new_status == other.new_status
+        and self.new_substatus == other.new_substatus
+    )
+
+
 class StatefulDetectorHandlerTestMixin(TestCase):
     __test__ = Abstract(__module__, __qualname__)
+
+    def setUp(self):
+        super().setUp()
+        self.sm_comp_patcher = mock.patch.object(
+            StatusChangeMessage, "__eq__", status_change_comparator
+        )
+        self.sm_comp_patcher.__enter__()
+
+    def tearDown(self):
+        super().tearDown()
+        self.sm_comp_patcher.__exit__(None, None, None)
 
     def build_handler(self, detector: Detector | None = None) -> MockDetectorStateHandler:
         if detector is None:
@@ -356,6 +379,12 @@ class TestEvaluate(StatefulDetectorHandlerTestMixin):
             DetectorEvaluationResult(
                 group_key="val1",
                 is_active=False,
+                result=StatusChangeMessage(
+                    fingerprint=[f"{handler.detector.id}:val1"],
+                    project_id=1,
+                    new_status=1,
+                    new_substatus=None,
+                ),
                 priority=DetectorPriorityLevel.OK,
             )
         ]
@@ -450,3 +479,43 @@ class TestEvaluateGroupKeyValue(StatefulDetectorHandlerTestMixin):
             mock_metrics.incr.assert_called_once_with(
                 "workflow_engine.detector.skipping_already_processed_update"
             )
+
+    def test_status_change(self):
+        handler = self.build_handler()
+        assert (
+            handler.evaluate_group_key_value(
+                "group_key",
+                0,
+                DetectorStateData(
+                    "group_key",
+                    False,
+                    DetectorPriorityLevel.OK,
+                    1,
+                    {},
+                ),
+                dedupe_value=2,
+            )
+            is None
+        )
+        assert handler.evaluate_group_key_value(
+            "group_key",
+            0,
+            DetectorStateData(
+                "group_key",
+                True,
+                DetectorPriorityLevel.HIGH,
+                1,
+                {},
+            ),
+            dedupe_value=2,
+        ) == DetectorEvaluationResult(
+            "group_key",
+            False,
+            DetectorPriorityLevel.OK,
+            result=StatusChangeMessage(
+                fingerprint=[f"{handler.detector.id}:group_key"],
+                project_id=1,
+                new_status=1,
+                new_substatus=None,
+            ),
+        )
