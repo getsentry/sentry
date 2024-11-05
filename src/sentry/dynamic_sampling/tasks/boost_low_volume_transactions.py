@@ -140,7 +140,10 @@ def boost_low_volume_transactions(context: TaskContext) -> None:
         for project_transactions in transactions_zip(
             totals_it, big_transactions_it, small_transactions_it
         ):
-            boost_low_volume_transactions_of_project.delay(project_transactions)
+            boost_low_volume_transactions_of_project.apply_async(
+                kwargs={"project_transactions": project_transactions},
+                headers={"sentry-propagate-traces": False},
+            )
 
 
 @instrumented_task(
