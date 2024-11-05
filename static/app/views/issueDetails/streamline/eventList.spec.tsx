@@ -129,7 +129,7 @@ describe('EventList', () => {
     expect(screen.getByRole('button', {name: 'Next Page'})).toBeInTheDocument();
     expect(
       await screen.findByText(
-        `Showing 0-${MOCK_EVENTS_TABLE_DATA.length} of ${totalCount}`
+        `Showing 1-${MOCK_EVENTS_TABLE_DATA.length} of ${totalCount} matching events`
       )
     ).toBeInTheDocument();
 
