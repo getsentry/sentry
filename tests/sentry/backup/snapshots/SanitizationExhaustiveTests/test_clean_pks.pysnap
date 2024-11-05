@@ -1,6 +1,4 @@
 ---
-created: '2024-10-28T18:43:14.722559+00:00'
-creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
 - model_name: sentry.controloption

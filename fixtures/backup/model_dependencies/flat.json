@@ -668,7 +668,6 @@
   "sentry.relayusage": [],
   "sentry.release": [
     "sentry.organization",
-    "sentry.project",
     "sentry.user"
   ],
   "sentry.releaseactivity": [
