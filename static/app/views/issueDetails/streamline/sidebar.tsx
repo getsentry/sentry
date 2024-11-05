@@ -9,6 +9,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useUser} from 'sentry/utils/useUser';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/firstLastSeenSection';
@@ -39,6 +40,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   }, [group, activeUser.id]);
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   return (
     <Side>
@@ -63,10 +65,18 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           />
         </Fragment>
       )}
-      <StyledBreak />
-      <SimilarIssuesSidebarSection />
-      <StyledBreak />
-      <MergedIssuesSidebarSection />
+      {issueTypeConfig.similarIssues.enabled && (
+        <Fragment>
+          <StyledBreak />
+          <SimilarIssuesSidebarSection />
+        </Fragment>
+      )}
+      {issueTypeConfig.mergedIssues.enabled && (
+        <Fragment>
+          <StyledBreak />
+          <MergedIssuesSidebarSection />
+        </Fragment>
+      )}
     </Side>
   );
 }
