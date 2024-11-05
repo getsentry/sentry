@@ -174,6 +174,7 @@ class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
 class BitbucketIntegrationProvider(IntegrationProvider):
     key = "bitbucket"
     name = "Bitbucket"
+    domain = IntegrationDomain.SOURCE_CODE_MANAGEMENT
     metadata = metadata
     scopes = scopes
     integration_cls = BitbucketIntegration

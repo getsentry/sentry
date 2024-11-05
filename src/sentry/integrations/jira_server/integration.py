@@ -20,6 +20,7 @@ from rest_framework.request import Request
 from sentry import features
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -1167,6 +1168,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 class JiraServerIntegrationProvider(IntegrationProvider):
     key = "jira_server"
     name = "Jira Server"
+    domain = IntegrationDomain.PROJECT_MANAGEMENT
     metadata = metadata
     integration_cls = JiraServerIntegration
 

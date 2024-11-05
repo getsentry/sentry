@@ -20,6 +20,7 @@ from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.vsts.provider import get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -381,6 +382,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 class VstsIntegrationProvider(IntegrationProvider):
     key = "vsts"
     name = "Azure DevOps"
+    domain = IntegrationDomain.SOURCE_CODE_MANAGEMENT
     metadata = metadata
     api_version = "4.1"
     oauth_redirect_url = "/extensions/vsts/setup/"

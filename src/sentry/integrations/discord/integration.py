@@ -10,6 +10,7 @@ from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -114,6 +115,7 @@ class DiscordIntegration(IntegrationInstallation):
 class DiscordIntegrationProvider(IntegrationProvider):
     key = "discord"
     name = "Discord"
+    domain = IntegrationDomain.MESSAGING
     metadata = metadata
     integration_cls = DiscordIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])

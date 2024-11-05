@@ -13,6 +13,7 @@ from rest_framework.serializers import ValidationError
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
@@ -229,6 +230,7 @@ class OpsgenieIntegration(IntegrationInstallation):
 class OpsgenieIntegrationProvider(IntegrationProvider):
     key = "opsgenie"
     name = "Opsgenie"
+    domain = IntegrationDomain.ON_CALL_SCHEDULING
     metadata = metadata
     integration_cls = OpsgenieIntegration
     features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])

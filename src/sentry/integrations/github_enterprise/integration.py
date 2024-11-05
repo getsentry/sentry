@@ -13,6 +13,7 @@ from sentry.identity.github_enterprise import get_user_info
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
     IntegrationMetadata,
@@ -318,6 +319,7 @@ class InstallationConfigView(PipelineView):
 class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     key = "github_enterprise"
     name = "GitHub Enterprise"
+    domain = IntegrationDomain.SOURCE_CODE_MANAGEMENT
     metadata = metadata
     integration_cls = GitHubEnterpriseIntegration
     features = frozenset(
