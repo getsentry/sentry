@@ -7,17 +7,26 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
+from sentry.search.eap.columns import ResolvedColumn
+from sentry.search.eap.constants import FLOAT, INT, STRING
 from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.utils import snuba_rpc
 
 
+def categorize_column(column: ResolvedColumn) -> Column:
+    if column.is_aggregate:
+        return Column(aggregation=column.proto_definition, label=column.public_alias)
+    else:
+        return Column(key=column.proto_definition, label=column.public_alias)
+
+
 def run_table_query(
     params: SnubaParams,
     query_string: str,
     selected_columns: list[str],  # Aggregations & Fields?
-    orderby: list[str],
+    orderby: list[str] | None,
     offset: int,
     limit: int,
     referrer: str,
@@ -25,37 +34,64 @@ def run_table_query(
 ) -> Any:
     """Make the query"""
     resolver = SearchResolver(params=params, config=config)
-    meta = resolver.resolve_meta(referrer="test")
-    columns, contexts = resolver.resolve_columns(selected_columns)
-    final_columns = []
-    for col in columns:
-        if col.is_aggregate:
-            final_columns.append(Column(aggregation=col.proto_definition, label=col.public_alias))
-        else:
-            final_columns.append(Column(key=col.proto_definition, label=col.public_alias))
+    meta = resolver.resolve_meta(referrer=referrer)
     query = resolver.resolve_query(query_string)
-    contexts = list(set(contexts))
+    columns, contexts = resolver.resolve_columns(selected_columns)
+    # Orderby is only applicable to TraceItemTableRequest
+    resolved_orderby = (
+        [
+            TraceItemTableRequest.OrderBy(
+                column=categorize_column(resolver.resolve_column(orderby_column.lstrip("-"))[0]),
+                descending=orderby_column.startswith("-"),
+            )
+            for orderby_column in orderby
+        ]
+        if orderby
+        else []
+    )
+    labeled_columns = [categorize_column(col) for col in columns]
 
     """Run the query"""
     rpc_request = TraceItemTableRequest(
         meta=meta,
         filter=query,
-        columns=final_columns,
+        columns=labeled_columns,
         group_by=[
             col.proto_definition
             for col in columns
             if isinstance(col.proto_definition, AttributeKey)
         ],
+        order_by=resolved_orderby,
         virtual_column_contexts=[context for context in contexts if context is not None],
     )
     rpc_response = snuba_rpc.rpc(rpc_request, TraceItemTableResponse)
 
     """Process the results"""
-    return rpc_response
-    # for row in result:
-    #     for column in columns:
-    #         column.process(row)
-    # return result
+    final_data = []
+    final_meta = {"fields": {}, "units": {}}
+    # Mapping from public alias to resolved column so we know type etc.
+    columns_by_name = {col.public_alias: col for col in columns}
+
+    for column_value in rpc_response.column_values:
+        attribute = column_value.attribute_name
+        if attribute not in columns_by_name:
+            raise Exception(f"{attribute} returned by the database but not a known column")
+        resolved_column = columns_by_name[attribute]
+        final_meta["fields"][attribute] = resolved_column.meta_type
+
+        while len(final_data) < len(column_value.results):
+            final_data.append({})
+
+        for index, result in enumerate(column_value.results):
+            if resolved_column.rpc_type == STRING:
+                result_value = result.val_str
+            elif resolved_column.rpc_type == INT:
+                result_value = result.val_int
+            elif resolved_column.rpc_type == FLOAT:
+                result_value = result.val_float
+            final_data[index][attribute] = resolved_column.process_column(result_value)
+
+    return {"data": final_data, "meta": final_meta}
 
 
 def run_timeseries_query(

@@ -7,6 +7,7 @@ from tests.snuba.api.endpoints.test_organization_events import OrganizationEvent
 
 class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBase):
     is_eap = False
+    is_rpc = False
     """Test the indexed spans dataset.
 
     To run this locally you may need to set the ENABLE_SPANS_CONSUMER flag to True in Snuba.
@@ -22,7 +23,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
 
     @property
     def dataset(self):
-        if self.is_eap:
+        if self.is_eap or self.is_rpc:
             return "spans"
         else:
             return "spansIndexed"
@@ -46,7 +47,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     start_ts=self.ten_mins_ago,
                 ),
             ],
-            is_eap=self.is_eap,
+            is_eap=self.is_eap or self.is_rpc,
         )
         response = self.do_request(
             {
@@ -55,6 +56,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -97,6 +99,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "orderby": "id",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -124,6 +127,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -150,6 +154,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -187,6 +192,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "query": "span.module:cache",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -212,6 +218,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -251,6 +258,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "query": "span.module:http span.status_code:200",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -291,6 +299,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "query": "span.module:other span.status_code:200",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -326,6 +335,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -348,6 +358,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -365,6 +376,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -399,6 +411,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -450,6 +463,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "orderby": "count()",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -493,6 +507,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     "query": query,
                     "project": self.project.id,
                     "dataset": self.dataset,
+                    "spans_rpc": "1" if self.is_rpc else "0",
                 }
             )
             assert response.status_code == 200, response.content
@@ -519,6 +534,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "query": 'foo:""',
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
         assert response.status_code == 200, response.content
@@ -552,7 +568,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
-                "spans_rpc": 1,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -562,17 +578,16 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         assert len(data) == 2
         assert data == [
             {
-                "span.status": "invalid_argument",
                 "description": "bar",
                 "count()": 1,
             },
             {
-                "span.status": "success",
                 "description": "foo",
                 "count()": 1,
             },
         ]
         assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {"description": "string", "count()": "integer"}
 
     @pytest.mark.xfail(reason="event_id isn't being written to the new table")
     def test_id_filtering(self):
@@ -597,6 +612,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -676,6 +692,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -724,6 +741,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -757,6 +775,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -795,6 +814,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -812,6 +832,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -859,6 +880,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "orderby": ["tags[foo,number]"],
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -920,6 +942,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -987,6 +1010,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "query": "description:foo",
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
         assert response.status_code == 200, response.content
@@ -1024,6 +1048,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "allowAggregateConditions": "0",
+                "spans_rpc": "1" if self.is_rpc else "0",
             }
         )
 
@@ -1038,4 +1063,87 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                 "id": span_1["span_id"],
             },
         ]
+        assert meta["dataset"] == self.dataset
+
+
+class OrganizationEventsEAPWithRpcSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
+    is_eap = True
+    is_rpc = True
+
+    @pytest.mark.xfail(reason="Going to implement extrapolation later")
+    def test_aggregate_numeric_attr_weighted(self):
+        super().test_aggregate_numeric_attr_weighted()
+
+    @pytest.mark.xfail(reason="Going to reconsider if we need module in eap")
+    def test_module_alias(self):
+        super().test_module_alias()
+
+    def test_tag_wildcards(self):
+        """Looks like wildcards and search don't match in functionality, direct search is case sensitive and wildcard
+        isn't. for EAP going to align these two so they're both case sensitive for now"""
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "tags": {"foo": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qux", "tags": {"foo": "qux"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        for query in [
+            "foo:b*",
+            "foo:*r",
+            "foo:*a*",
+            "foo:b*r",
+        ]:
+            response = self.do_request(
+                {
+                    "field": ["foo", "count()"],
+                    "query": query,
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                    "spans_rpc": "1" if self.is_rpc else "0",
+                }
+            )
+            assert response.status_code == 200, response.content
+            assert response.data["data"] == [{"foo": "bar", "count()": 1}]
+
+    def test_span_op_casing(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "replay_id": "abc123",
+                            "browser.name": "Chrome",
+                            "transaction": "/pageloads/",
+                            "op": "this is a transaction",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.op", "count()"],
+                "query": 'span.op:"ThIs Is a TraNSActiON"',
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "spans_rpc": "1" if self.is_rpc else "0",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["span.op"] == "this is a transaction"
         assert meta["dataset"] == self.dataset

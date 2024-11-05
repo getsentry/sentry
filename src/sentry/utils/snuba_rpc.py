@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Protocol, TypeVar
 
 import sentry_protos.snuba.v1alpha.request_common_pb2
@@ -11,6 +12,8 @@ from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry.utils.snuba import SnubaError, _snuba_pool
 
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
+
+SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
 
 
 class SnubaRPCError(SnubaError):
@@ -57,6 +60,10 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
     aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
     """
     referrer = req.meta.referrer
+    if SNUBA_INFO:
+        from google.protobuf.json_format import MessageToDict
+
+        print(f"{referrer}.body:\n{MessageToDict(req)}")  # NOQA
     with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
         span.set_tag("snuba.referrer", referrer)
 
@@ -79,6 +86,8 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
         if http_resp.status != 200:
             error = ErrorProto()
             error.ParseFromString(http_resp.data)
+            if SNUBA_INFO:
+                print(f"{referrer}.error:\n {error}")  # NOQA
             raise SnubaRPCError(error)
 
         resp = resp_type()

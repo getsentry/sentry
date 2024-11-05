@@ -402,7 +402,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
-        use_rpc = request.GET.get("spans_rpc")
+        use_rpc = request.GET.get("spans_rpc") == "1"
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
@@ -429,7 +429,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     offset=offset,
                     limit=limit,
                     referrer=referrer,
-                    config=SearchResolverConfig(),
+                    config=SearchResolverConfig(auto_fields=True),
                 )
             return scoped_dataset.query(
                 selected_columns=self.get_field_list(organization, request),
