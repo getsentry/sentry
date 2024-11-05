@@ -629,3 +629,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/data_secrecy/                                             @getsentry/core-product-foundations
 /tests/sentry/data_secrecy/                                           @getsentry/core-product-foundations
 ## End of Core Product Foundations
+
+# Taskworkers
+/src/sentry/taskworker/                                       @getsentry/taskworker
+/tests/sentry/taskworker/                                     @getsentry/taskworker

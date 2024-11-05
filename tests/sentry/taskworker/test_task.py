@@ -2,6 +2,7 @@ import logging
 
 import pytest
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import LastAction, Retry, RetryError
 from sentry.taskworker.task import Task
@@ -15,9 +16,7 @@ def do_things() -> None:
 
 @pytest.fixture
 def task_namespace() -> TaskNamespace:
-    return TaskNamespace(
-        name="tests", topic="task-worker", deadletter_topic="task-worker-dlq", retry=None
-    )
+    return TaskNamespace(name="tests", topic=Topic.TASK_WORKER, retry=None)
 
 
 def test_define_task_defaults(task_namespace: TaskNamespace) -> None:
