@@ -461,18 +461,18 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
   },
   'screen-rendering': {
     description: t(
-      'Screen Rendering shows you views within your application that are presenting slow or frozen interactions and how frequently these hiccups are occurring.'
+      'Screen Rendering identifies slow and frozen interactions, helping you find and fix problems that might cause users to complain, or uninstall.'
     ),
-    heading: t('An app that loads quickly can still be terrible'),
+    heading: t('Fast-loading apps can still be janky'),
     imageSrc: screenLoadsPreviewImg, // TODO - replace with actual image
     valuePropDescription: tct('With [moduleTitle]:', {
       moduleTitle: MODULE_TITLES[ModuleName.SCREEN_RENDERING],
     }),
     valuePropPoints: [
-      tct('Compare [dataType] performance between releases.', {
+      tct('Find and debug slow rendering interactions.', {
         dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
       }),
-      t('Drill down to specific suspect operations.'),
+      t('Compare render performance between releases.'),
       tct('Correlate [dataType] performance with real-user metrics.', {
         dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
       }),
