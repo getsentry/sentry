@@ -1,5 +1,7 @@
 import {
   IconAdd,
+  IconAsana,
+  IconBitbucket,
   IconChat,
   IconCheckmark,
   IconClose,
@@ -7,7 +9,10 @@ import {
   IconDelete,
   IconFire,
   IconFlag,
+  IconGithub,
+  IconGitlab,
   IconGraph,
+  IconJira,
   IconLock,
   IconMute,
   IconNext,
@@ -23,6 +28,7 @@ import {GroupActivityType} from 'sentry/types/group';
 interface IconWithDefaultProps {
   Component: React.ComponentType<any> | null;
   defaultProps: {locked?: boolean; type?: string};
+  componentFunction?: (props: any) => React.ComponentType<any>;
   propsFunction?: (props: any) => any;
 }
 
@@ -50,7 +56,27 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.SET_PUBLIC]: {Component: IconLock, defaultProps: {}},
   [GroupActivityType.SET_PRIVATE]: {Component: IconLock, defaultProps: {locked: true}},
   [GroupActivityType.SET_REGRESSION]: {Component: IconFire, defaultProps: {}},
-  [GroupActivityType.CREATE_ISSUE]: {Component: IconAdd, defaultProps: {}},
+  [GroupActivityType.CREATE_ISSUE]: {
+    Component: IconAdd,
+    componentFunction: data => {
+      const provider = data.provider;
+      switch (provider) {
+        case 'GitHub':
+          return IconGithub;
+        case 'GitLab':
+          return IconGitlab;
+        case 'Bitbucket':
+          return IconBitbucket;
+        case 'Jira':
+          return IconJira;
+        case 'Asana':
+          return IconAsana;
+        default:
+          return IconAdd;
+      }
+    },
+    defaultProps: {},
+  },
   [GroupActivityType.UNMERGE_SOURCE]: {Component: IconPrevious, defaultProps: {}},
   [GroupActivityType.UNMERGE_DESTINATION]: {Component: IconPrevious, defaultProps: {}},
   [GroupActivityType.FIRST_SEEN]: {Component: IconFlag, defaultProps: {}},
