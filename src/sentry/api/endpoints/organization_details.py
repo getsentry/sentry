@@ -943,13 +943,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
 
-            if (
-                "targetSampleRate" in changed_data
-                and organization.get_option("sentry:sampling_mode")
-                == DynamicSamplingMode.PROJECT.value
-            ):
-                boost_low_volume_projects_of_org_with_query.delay(organization.id)
-
             if "samplingMode" in changed_data and request.access.has_scope("org:write"):
                 if (
                     organization.get_option("sentry:sampling_mode")

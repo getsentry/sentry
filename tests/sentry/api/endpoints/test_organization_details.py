@@ -646,7 +646,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "metricsActivateLastForGauges": True,
             "uptimeAutodetection": False,
             "targetSampleRate": 0.1,
-            "samplingMode": "project",
+            "samplingMode": "organization",
             "rollbackEnabled": True,
         }
 
@@ -687,7 +687,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:metrics_activate_last_for_gauges") is True
         assert options.get("sentry:uptime_autodetection") is False
         assert options.get("sentry:target_sample_rate") == 0.1
-        assert options.get("sentry:sampling_mode") == "project"
+        assert options.get("sentry:sampling_mode") == "organization"
         assert options.get("sentry:rollback_enabled") is True
 
         # log created
