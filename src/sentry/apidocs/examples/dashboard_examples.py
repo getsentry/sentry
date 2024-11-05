@@ -69,7 +69,7 @@ DASHBOARD_OBJECT = {
     "filters": {},
     "period": "7d",
     "permissions": {
-        "isDditableByEveryone": True,
+        "isEditableByEveryone": True,
         "teamsWithEditAccess": [],
     },
 }
