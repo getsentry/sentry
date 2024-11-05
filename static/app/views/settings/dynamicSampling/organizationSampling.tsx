@@ -34,7 +34,9 @@ export function OrganizationSampling() {
   const [period, setPeriod] = useState<'24h' | '30d'>('24h');
 
   const formState = useFormState({
-    targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toLocaleString(),
+    initialValues: {
+      targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toLocaleString(),
+    },
   });
 
   const {mutate: updateOrganization, isPending} = useUpdateOrganization();
