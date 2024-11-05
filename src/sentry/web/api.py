@@ -1,9 +1,9 @@
+from django.conf import settings
 from django.http import HttpResponse
 from django.views.decorators.cache import cache_control
 from django.views.generic.base import View as BaseView
 from rest_framework.request import Request
 
-from sentry.conf.server import SENTRY_MODE
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -38,10 +38,9 @@ class ClientConfigView(BaseView):
 
 @cache_control(max_age=3600, public=True)
 def robots_txt(request):
-    breakpoint()
     if (
-        SENTRY_MODE == SentryMode.SELF_HOSTED
-        or SENTRY_MODE == SentryMode.SINGLE_TENANT
+        settings.SENTRY_MODE == SentryMode.SELF_HOSTED
+        or settings.SENTRY_MODE == SentryMode.SINGLE_TENANT
         or request.subdomain
     ):
         return HttpResponse(ROBOTS_DISALLOW_ALL, content_type="text/plain")
