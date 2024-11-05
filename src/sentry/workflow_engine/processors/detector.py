@@ -69,22 +69,7 @@ def process_detectors(
                 continue
 
             if result.result is not None:
-                occurrence, status_change = None, None
-                if isinstance(result.result, IssueOccurrence):
-                    occurrence = (
-                        result.result if isinstance(result.result, IssueOccurrence) else None
-                    )
-                    payload_type = PayloadType.OCCURRENCE
-                else:
-                    status_change = result.result
-                    payload_type = PayloadType.STATUS_CHANGE
-
-                produce_occurrence_to_kafka(
-                    payload_type=payload_type,
-                    occurrence=occurrence,
-                    status_change=status_change,
-                    event_data=result.event_data,
-                )
+                create_issue_occurrence_from_result(result)
 
             detector_group_keys.add(result.group_key)
 
@@ -95,6 +80,23 @@ def process_detectors(
         handler.commit_state_updates()
 
     return results
+
+
+def create_issue_occurrence_from_result(result: DetectorEvaluationResult):
+    occurrence, status_change = None, None
+    if isinstance(result.result, IssueOccurrence):
+        occurrence = result.result
+        payload_type = PayloadType.OCCURRENCE
+    else:
+        status_change = result.result
+        payload_type = PayloadType.STATUS_CHANGE
+
+    produce_occurrence_to_kafka(
+        payload_type=payload_type,
+        occurrence=occurrence,
+        status_change=status_change,
+        event_data=result.event_data,
+    )
 
 
 def get_redis_client() -> RetryingRedisCluster:
