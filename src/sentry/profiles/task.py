@@ -15,12 +15,10 @@ from django.conf import settings
 
 from sentry import options, quotas
 from sentry.constants import DataCategory
-from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.lang.native.utils import native_images_from_data
-from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -854,111 +852,18 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 m["signature"] = format_signature(types)
         return
 
-    # We re-use this option as a deny list before we remove it completely.
-    if project.id not in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
-        try:
-            with sentry_sdk.start_span(op="deobfuscate_with_symbolicator"):
-                success = _deobfuscate_using_symbolicator(
-                    project=project,
-                    profile=profile,
-                    debug_file_id=debug_file_id,
-                )
-                sentry_sdk.set_tag("deobfuscated_with_symbolicator_with_success", success)
-                if success:
-                    return
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-    else:
-        _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
-
-
-@metrics.wraps("process_profile.deobfuscate.locally")
-def _deobfuscate_locally(profile: Profile, project: Project, debug_file_id: str) -> None:
-    with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
-        dif_paths = ProjectDebugFile.difcache.fetch_difs(
-            project, [debug_file_id], features=["mapping"]
-        )
-        debug_file_path = dif_paths.get(debug_file_id)
-        if debug_file_path is None:
-            return
-
-    mapper = open_proguard_mapper(debug_file_path, initialize_param_mapping=True)
-    if not mapper.has_line_info:
-        return
-
-    with sentry_sdk.start_span(op="proguard.remap"):
-        for method in profile["profile"]["methods"]:
-            method.setdefault("data", {})
-            types = None
-            if method.get("signature"):
-                types = deobfuscate_signature(method["signature"], mapper)
-                method["signature"] = format_signature(types)
-
-            # in case we don't have line numbers but we do have the signature,
-            # we do a best-effort deobfuscation exploiting function parameters
-            if (
-                method.get("source_line") is None
-                and method.get("signature") is not None
-                and types is not None
-            ):
-                param_type, _ = types
-                params = ",".join(param_type)
-                mapped = mapper.remap_frame(method["class_name"], method["name"], 0, params)
-            else:
-                mapped = mapper.remap_frame(
-                    method["class_name"], method["name"], method["source_line"] or 0
-                )
-
-            if len(mapped) >= 1:
-                new_frame = mapped[-1]
-                method["class_name"] = new_frame.class_name
-                method["name"] = new_frame.method
-                method["data"] = {
-                    "deobfuscation_status": (
-                        "deobfuscated" if method.get("signature", None) else "partial"
-                    )
-                }
-
-                if new_frame.file:
-                    method["source_file"] = new_frame.file
-
-                if new_frame.line:
-                    method["source_line"] = new_frame.line
-
-                bottom_class = mapped[-1].class_name
-
-                if method.get("source_line") is None and method.get("signature") is not None:
-                    # if we used parameters-based deobfuscation we won't have to deal with
-                    # inlines so we can just skip
-                    continue
-
-                method["inline_frames"] = [
-                    {
-                        "class_name": new_frame.class_name,
-                        "data": {"deobfuscation_status": "deobfuscated"},
-                        "name": new_frame.method,
-                        "source_file": (
-                            method["source_file"] if bottom_class == new_frame.class_name else ""
-                        ),
-                        "source_line": new_frame.line,
-                    }
-                    for new_frame in reversed(mapped)
-                ]
-
-                # vroom will only take into account frames in this list
-                # if it exists. since symbolic does not return a signature for
-                # the frame we deobfuscated, we update it to set
-                # the deobfuscated signature.
-                if len(method["inline_frames"]) > 0:
-                    method["inline_frames"][0]["data"] = method["data"]
-                    method["inline_frames"][0]["signature"] = method.get("signature", "")
-            else:
-                mapped_class = mapper.remap_class(method["class_name"])
-                if mapped_class:
-                    method["class_name"] = mapped_class
-                    method["data"]["deobfuscation_status"] = "partial"
-                else:
-                    method["data"]["deobfuscation_status"] = "missing"
+    try:
+        with sentry_sdk.start_span(op="deobfuscate_with_symbolicator"):
+            success = _deobfuscate_using_symbolicator(
+                project=project,
+                profile=profile,
+                debug_file_id=debug_file_id,
+            )
+            sentry_sdk.set_tag("deobfuscated_with_symbolicator_with_success", success)
+            if success:
+                return
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 def get_event_id(profile: Profile) -> str:
