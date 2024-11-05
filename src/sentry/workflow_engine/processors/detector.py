@@ -13,6 +13,7 @@ from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.utils import metrics, redis
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.iterators import chunked
@@ -173,6 +174,12 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         """
         pass
 
+    def build_fingerprint(self, group_key) -> list[str]:
+        """
+        Builds a fingerprint to uniquely identify a detected issue
+        """
+        return [f"{self.detector.id}{':' + group_key if group_key is not None else ''}"]
+
     def get_state_data(
         self, group_keys: list[DetectorGroupKey]
     ) -> dict[DetectorGroupKey, DetectorStateData]:
@@ -264,7 +271,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
             return None
 
-        status = DetectorPriorityLevel.OK
+        new_status = DetectorPriorityLevel.OK
 
         for condition in self.conditions:
             # TODO: We need to handle tracking consecutive evaluations before emitting a result here. We're able to
@@ -273,20 +280,32 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             # level, but usually we want to set this at a higher level.
             evaluation = condition.evaluate_value(value)
             if evaluation is not None:
-                status = max(status, evaluation)
-
-        is_active = status != DetectorPriorityLevel.OK
+                new_status = max(new_status, evaluation)
 
         # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
         self.enqueue_counter_update(group_key, {})
 
-        if state_data.active != is_active or state_data.status != status:
-            self.enqueue_state_update(group_key, is_active, status)
-            # TODO: Add hook here for generating occurrence or status update
+        if state_data.status != new_status:
+            is_active = new_status != DetectorPriorityLevel.OK
+            self.enqueue_state_update(group_key, is_active, new_status)
+            event_data = None
+            result = None
+            if new_status == DetectorPriorityLevel.OK:
+                # If we've determined that we're now ok, we just want to resolve the issue
+                result = StatusChangeMessage(
+                    fingerprint=self.build_fingerprint(group_key),
+                    project_id=self.detector.project_id,
+                    new_status=GroupStatus.RESOLVED,
+                    new_substatus=None,
+                )
+
+            # TODO: Add hook here for generating occurrence
             return DetectorEvaluationResult(
-                group_key,
-                is_active,
-                status,
+                group_key=group_key,
+                is_active=is_active,
+                priority=new_status,
+                result=result,
+                event_data=event_data,
             )
         return None
 
