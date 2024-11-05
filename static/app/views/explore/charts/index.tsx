@@ -1,11 +1,13 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
+import {LinkButton} from 'sentry/components/button';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconClock, IconGraph} from 'sentry/icons';
+import {IconClock, IconGraph, IconSubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -15,8 +17,11 @@ import {
   parseFunction,
 } from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
@@ -26,6 +31,7 @@ import Chart, {
 } from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 import {useGroupBys} from '../hooks/useGroupBys';
@@ -58,6 +64,8 @@ export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
+  const organization = useOrganization();
+  const {projects} = useProjects();
 
   const [dataset] = useDataset();
   const [visualizes, setVisualizes] = useVisualizes();
@@ -129,6 +137,24 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     EXPLORE_CHART_GROUP
   );
 
+  const project =
+    projects.length === 1
+      ? projects[0]
+      : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
+  const singleProject =
+    (pageFilters.selection.projects.length === 1 || projects.length === 1) && project;
+  const alertsUrl = singleProject
+    ? getAlertsUrl({
+        project,
+        query,
+        pageFilters: pageFilters.selection,
+        aggregate: visualizes[0].yAxes[0],
+        orgSlug: organization.slug,
+        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+        interval,
+      })
+    : undefined;
+
   return (
     <Fragment>
       {visualizes.map((visualize, index) => {
@@ -189,6 +215,26 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                       options={intervalOptions}
                     />
                   </Tooltip>
+                  <Feature features="organizations:alerts-eap">
+                    <Tooltip
+                      title={
+                        singleProject
+                          ? t('Create an alert for this chart')
+                          : t(
+                              'Cannot create an alert when multiple projects are selected'
+                            )
+                      }
+                    >
+                      <LinkButton
+                        to={alertsUrl ?? ''}
+                        size="sm"
+                        icon={<IconSubscribed />}
+                        aria-label="Create Alert"
+                        borderless
+                        disabled={!alertsUrl}
+                      />
+                    </Tooltip>
+                  </Feature>
                 </ChartSettingsContainer>
               </ChartHeader>
               <Chart
