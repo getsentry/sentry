@@ -6,7 +6,14 @@ import {Button} from 'sentry/components/button';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron, IconFocus, IconMegaphone} from 'sentry/icons';
+import {
+  IconChevron,
+  IconFatal,
+  IconFocus,
+  IconLightning,
+  IconMegaphone,
+  IconSpan,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {IssueCategory} from 'sentry/types/group';
@@ -22,9 +29,10 @@ interface GroupSummaryProps {
 
 interface GroupSummaryData {
   groupId: string;
-  impact: string;
-  summary: string;
-  headline?: string;
+  headline: string;
+  possibleCause?: string | null;
+  trace?: string | null;
+  whatsWrong?: string | null;
 }
 
 const isSummaryEnabled = (hasGenAIConsent: boolean, groupCategory: IssueCategory) => {
@@ -87,9 +95,29 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
   const openForm = useFeedbackForm();
 
   if (!isSummaryEnabled(hasGenAIConsent, groupCategory)) {
-    // TODO: Render a banner for needing genai consent
     return null;
   }
+
+  const insightCards = [
+    {
+      id: 'whats_wrong',
+      title: t("What's wrong?"),
+      insight: data?.whatsWrong,
+      icon: <IconFatal size="sm" />,
+    },
+    {
+      id: 'trace',
+      title: t('Trace'),
+      insight: data?.trace,
+      icon: <IconSpan size="sm" />,
+    },
+    {
+      id: 'possible_cause',
+      title: t('Possible cause'),
+      insight: data?.possibleCause,
+      icon: <IconLightning size="sm" />,
+    },
+  ].filter(card => card.insight);
 
   return (
     <Wrapper>
@@ -102,17 +130,27 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
           {isError ? <div>{t('Error loading summary')}</div> : null}
           {data && !expanded && (
             <Fragment>
-              <HeadlinePreview>{data.headline}</HeadlinePreview>
+              <HeadlinePreview
+                dangerouslySetInnerHTML={{
+                  __html: singleLineRenderer(`TL;DR: ${data.headline ?? ''}`),
+                }}
+              />
               <SummaryPreview
                 dangerouslySetInnerHTML={{
                   __html: singleLineRenderer(
-                    `Details: ${data.summary.replaceAll('\n', ' ').replaceAll('-', '')}`
+                    `Details: ${[data.whatsWrong, data.trace, data.possibleCause].filter(Boolean).join(' ').replaceAll('\n', ' ').replaceAll('-', '')}`
                   ),
                 }}
               />
             </Fragment>
           )}
-          {data && expanded && <HeadlineContent>{data.headline}</HeadlineContent>}
+          {data && expanded && (
+            <HeadlineContent
+              dangerouslySetInnerHTML={{
+                __html: singleLineRenderer(`TL;DR: ${data.headline ?? ''}`),
+              }}
+            />
+          )}
         </CollapsedRow>
         <IconContainerRight>
           <IconChevron direction={expanded ? 'up' : 'down'} />
@@ -123,11 +161,23 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
           {isError ? <div>{t('Error loading summary')}</div> : null}
           {data && (
             <Content>
-              <SummaryContent
-                dangerouslySetInnerHTML={{
-                  __html: marked(data.summary),
-                }}
-              />
+              <InsightGrid>
+                {insightCards.map(card => (
+                  <InsightCard key={card.id}>
+                    <CardTitle>
+                      <CardTitleWrapper>
+                        <CardTitleIcon>{card.icon}</CardTitleIcon>
+                        <CardTitleText>{card.title}</CardTitleText>
+                      </CardTitleWrapper>
+                    </CardTitle>
+                    <CardContent
+                      dangerouslySetInnerHTML={{
+                        __html: marked(card.insight ?? ''),
+                      }}
+                    />
+                  </InsightCard>
+                ))}
+              </InsightGrid>
             </Content>
           )}
           {openForm && !isPending && (
@@ -159,7 +209,7 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
 }
 
 const Body = styled('div')`
-  padding: 0 ${space(4)} ${space(1.5)} ${space(4)};
+  padding: 0 ${space(2)} ${space(1.5)} ${space(2)};
 `;
 
 const HeadlinePreview = styled('span')`
@@ -169,14 +219,6 @@ const HeadlinePreview = styled('span')`
   margin-right: ${space(0.5)};
   flex-shrink: 0;
   max-width: 92%;
-`;
-
-const SummaryPreview = styled('span')`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-grow: 1;
-  color: ${p => p.theme.subText};
 `;
 
 const Wrapper = styled(Panel)`
@@ -189,6 +231,7 @@ const StyledTitleRow = styled('div')`
   align-items: flex-start;
   justify-content: space-between;
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
 
   &:hover {
     cursor: pointer;
@@ -216,16 +259,6 @@ const HeadlineContent = styled('span')`
   width: 100%;
 `;
 
-const SummaryContent = styled('div')`
-  overflow-wrap: break-word;
-  p {
-    margin: 0;
-  }
-  code {
-    word-break: break-all;
-  }
-`;
-
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
@@ -235,6 +268,7 @@ const Content = styled('div')`
 const ButtonContainer = styled('div')`
   align-items: center;
   display: flex;
+  margin-top: ${space(1)};
 `;
 
 const IconContainer = styled('div')`
@@ -249,4 +283,74 @@ const IconContainerRight = styled('div')`
   margin-left: ${space(1)};
   margin-top: ${space(0.25)};
   max-height: ${space(2)};
+`;
+const InsightCard = styled('div')`
+  display: flex;
+  flex-direction: column;
+  padding: ${space(2)};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.background};
+  width: 100%;
+`;
+
+const CardTitle = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const CardTitleText = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const CardContent = styled('div')`
+  overflow-wrap: break-word;
+  word-break: break-word;
+  margin-top: ${space(1)};
+  p {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+  code {
+    word-break: break-all;
+  }
+`;
+
+const InsightGrid = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(1)};
+  margin-top: ${space(1)};
+
+  /* Make cards take full width in narrow containers, creating a column layout */
+  ${InsightCard} {
+    flex: 1 1 15rem;
+    /* Remove height: 100% since we're using flex to control height */
+    min-height: 0;
+  }
+`;
+
+const SummaryPreview = styled('span')`
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+  color: ${p => p.theme.subText};
+`;
+
+const CardTitleWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const CardTitleIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.subText};
 `;
