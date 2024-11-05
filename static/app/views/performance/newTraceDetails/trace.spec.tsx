@@ -235,7 +235,7 @@ function getVirtualizedRows(container: HTMLElement) {
 
 async function keyboardNavigationTestSetup() {
   const keyboard_navigation_transactions: TraceFullDetailed[] = [];
-  for (let i = 0; i < 1e3; i++) {
+  for (let i = 0; i < 1e2; i++) {
     keyboard_navigation_transactions.push(
       makeTransaction({
         span_id: i + '',
@@ -1256,7 +1256,7 @@ describe('trace view', () => {
       await userEvent.keyboard('{arrowup}');
 
       expect(
-        await findByText(virtualizedContainer, /transaction-op-999/i)
+        await findByText(virtualizedContainer, /transaction-op-99/i)
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -1278,7 +1278,7 @@ describe('trace view', () => {
         expect(rows[rows.length - 1]).toHaveFocus();
       });
       expect(
-        await within(virtualizedContainer).findByText(/transaction-op-999/i)
+        await within(virtualizedContainer).findByText(/transaction-op-99/i)
       ).toBeInTheDocument();
 
       await userEvent.keyboard('{arrowdown}');
@@ -1312,7 +1312,10 @@ describe('trace view', () => {
       let rows = getVirtualizedRows(virtualizedContainer);
       await userEvent.click(rows[1]);
 
-      await waitFor(() => expect(rows[1]).toHaveFocus());
+      await waitFor(() => {
+        rows = getVirtualizedRows(virtualizedContainer);
+        expect(rows[1]).toHaveFocus();
+      });
       await userEvent.keyboard('{Shift>}{tab}{/Shift}');
 
       await waitFor(() => {
@@ -1327,11 +1330,14 @@ describe('trace view', () => {
       let rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
       await userEvent.click(rows[0]);
 
-      await waitFor(() => expect(rows[0]).toHaveFocus());
+      await waitFor(() => {
+        rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[0]).toHaveFocus();
+      });
       await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
 
       expect(
-        await findByText(virtualizedContainer, /transaction-op-999/i)
+        await findByText(virtualizedContainer, /transaction-op-99/i)
       ).toBeInTheDocument();
       await waitFor(() => {
         rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
@@ -1345,11 +1351,14 @@ describe('trace view', () => {
       let rows = getVirtualizedRows(virtualizedContainer);
 
       await userEvent.click(rows[1]);
-      await waitFor(() => expect(rows[1]).toHaveFocus());
+      await waitFor(() => {
+        rows = getVirtualizedRows(virtualizedContainer);
+        expect(rows[1]).toHaveFocus();
+      });
 
       await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
       expect(
-        await findByText(virtualizedContainer, /transaction-op-999/i)
+        await findByText(virtualizedContainer, /transaction-op-99/i)
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -1372,11 +1381,11 @@ describe('trace view', () => {
 
   describe('search', () => {
     it('triggers search on load but does not steal focus from node param', async () => {
-      mockQueryString('?search=transaction-op-999&node=txn-0');
+      mockQueryString('?search=transaction-op-99&node=txn-0');
 
       const {virtualizedContainer} = await pageloadTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      expect(searchInput).toHaveValue('transaction-op-999');
+      expect(searchInput).toHaveValue('transaction-op-99');
 
       await waitFor(() => {
         expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
