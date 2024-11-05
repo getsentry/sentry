@@ -36,6 +36,7 @@ function SpanDuration({node}: {node: TraceTreeNode<TraceTree.Span>}) {
       baseDescription={t(
         'Average total time for this span group across the project associated with its parent transaction, over the last 24 hours'
       )}
+      node={node}
     />
   );
 }
@@ -56,6 +57,7 @@ function SpanSelfTime({node}: {node: TraceTreeNode<TraceTree.Span>}) {
       baseDescription={t(
         'Average self time for this span group across the project associated with its parent transaction, over the last 24 hours'
       )}
+      node={node}
     />
   ) : null;
 }

@@ -8,11 +8,14 @@ from typing import Any
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic as ArroyoTopic
+from django.conf import settings
 from sentry_protos.sentry.v1.taskworker_pb2 import TaskActivation
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.retry import Retry
+from sentry.taskworker.router import TaskRouter
 from sentry.taskworker.task import P, R, Task
+from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -28,15 +31,13 @@ class TaskNamespace:
     def __init__(
         self,
         name: str,
-        topic: str,
-        deadletter_topic: str,
+        topic: Topic,
         retry: Retry | None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int = 30,
     ):
         self.name = name
         self.topic = topic
-        self.deadletter_topic = deadletter_topic
         self.default_retry = retry
         self.default_expires = expires  # seconds
         self.default_processing_deadline_duration = processing_deadline_duration  # seconds
@@ -47,7 +48,7 @@ class TaskNamespace:
     def producer(self) -> KafkaProducer:
         if self._producer:
             return self._producer
-        cluster_name = get_topic_definition(Topic.TASK_WORKER)["cluster"]
+        cluster_name = get_topic_definition(self.topic)["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
         self._producer = KafkaProducer(producer_config)
 
@@ -92,19 +93,30 @@ class TaskNamespace:
     def send_task(self, activation: TaskActivation) -> None:
         # TODO(taskworker) producer callback handling
         self.producer.produce(
-            ArroyoTopic(name=self.topic),
+            ArroyoTopic(name=self.topic.value),
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
 
 
-# TODO(taskworker) Import TaskRegistrys
 class TaskRegistry:
     """
-    Dummy TaskRegistry. TODO: Port over TaskRegistry
+    Registry of all namespaces.
+
+    The TaskRegistry is responsible for handling namespace -> topic resolution
+    during startup.
     """
 
     def __init__(self) -> None:
         self._namespaces: dict[str, TaskNamespace] = {}
+        self._router = self._build_router()
+
+    def _build_router(self) -> TaskRouter:
+        router_name: str = settings.TASKWORKER_ROUTER
+        router_class = import_string(router_name)
+        router = router_class()
+        assert hasattr(router, "route_namespace")
+
+        return router
 
     def get(self, name: str) -> TaskNamespace:
         """Fetch a namespace by name."""
@@ -116,18 +128,23 @@ class TaskRegistry:
         """Fetch a task by namespace and name."""
         return self.get(namespace).get(task)
 
-    def create_namespace(
-        self, name: str, topic: str, deadletter_topic: str, retry: Retry | None = None
-    ) -> TaskNamespace:
+    def import_tasks(self) -> None:
+        """Import all the modules listed in settings.TASKWORKER_IMPORTS"""
+        imports = settings.TASKWORKER_IMPORTS
+        for module in imports:
+            __import__(module)
+
+    def create_namespace(self, name: str, retry: Retry | None = None) -> TaskNamespace:
         """
         Create a namespaces.
+
         Namespaces can define default retry policies, deadlines.
+
         Namespaces are mapped onto topics with a router allowing
         infrastructure to be scaled based on a region's requirements.
         """
-        namespace = TaskNamespace(
-            name=name, topic=topic, deadletter_topic=deadletter_topic, retry=retry
-        )
+        topic = self._router.route_namespace(name)
+        namespace = TaskNamespace(name=name, topic=topic, retry=retry)
         self._namespaces[name] = namespace
 
         return namespace

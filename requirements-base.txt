@@ -89,7 +89,7 @@ urllib3[brotli]>=2.2.2
 pyuwsgi==2.0.28.post1
 zstandard>=0.18.0
 sentry-usage-accountant==0.0.10
-orjson>=3.10.3
+orjson>=3.10.10
 
 msgpack>=1.1
 cryptography>=38.0.3

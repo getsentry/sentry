@@ -70,6 +70,7 @@ function GeneralInfo({
           duration={durationInSeconds}
           baseline={avgDurationInSeconds}
           baseDescription={'Average duration for this transaction over the last 24 hours'}
+          node={node}
         />
       ),
     },

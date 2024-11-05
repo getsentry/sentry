@@ -51,7 +51,9 @@ function TimelineItem({
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const Icon = iconMapping?.Component ?? null;
+  const Icon = iconMapping?.componentFunction
+    ? iconMapping.componentFunction(item.data)
+    : iconMapping?.Component ?? null;
 
   return (
     <ActivityTimelineItem
