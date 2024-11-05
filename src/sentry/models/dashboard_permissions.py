@@ -43,10 +43,9 @@ class DashboardPermissions(Model):
             return True
         if user_id == self.dashboard.created_by_id:
             return True  # Dashboard creator will always have edit perms
-        for team in self.teams_with_edit_access.all():
-            if user_id in team.get_member_user_ids():
-                return True
-        return False
+        return self.teams_with_edit_access.filter(
+            organizationmemberteam__organizationmember__user_id=user_id
+        ).exists()
 
     class Meta:
         app_label = "sentry"

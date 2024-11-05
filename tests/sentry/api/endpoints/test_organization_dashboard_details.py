@@ -2067,6 +2067,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["title"] == "New Dashboard 9"
 
     def test_user_in_team_with_access_can_edit_dashboard(self):
+        self.create_user(id=11452)
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
             created_by_id=11452,
@@ -2086,10 +2087,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.login_as(user)
 
         with self.feature({"organizations:dashboards-edit-access": True}):
-            response = self.do_request("put", self.url(dashboard.id))
+            response = self.do_request(
+                "put", self.url(dashboard.id), data={"title": "New Dashboard 9"}
+            )
         assert response.status_code == 200, response.content
 
     def test_user_in_team_without_access_cannot_edit_dashboard(self):
+        self.create_user(id=11452)
         dashboard = Dashboard.objects.create(
             title="Dashboard With Dataset Source",
             created_by_id=11452,
@@ -2108,7 +2112,9 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.login_as(user)
 
         with self.feature({"organizations:dashboards-edit-access": True}):
-            response = self.do_request("put", self.url(dashboard.id))
+            response = self.do_request(
+                "put", self.url(dashboard.id), data={"title": "New Dashboard 9"}
+            )
         assert response.status_code == 403
 
     def test_user_tries_to_update_dashboard_edit_perms(self):
@@ -2226,6 +2232,35 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400
         assert (
             "Cannot update dashboard edit permissions. Teams with IDs 0, 23134, 6, and 1 do not exist."
+            in response.content.decode()
+        )
+
+    def test_update_dashboard_permissions_with_teams_from_different_org(self):
+        mock_project = self.create_project()
+
+        test_org = self.create_organization(name="TOrg", owner=self.user)
+        team_1 = self.create_team(organization=self.organization)
+        team_test_org = self.create_team(organization=test_org)
+        data = {
+            "title": "Dashboard",
+            "permissions": {
+                "isEditableByEveryone": "false",
+                "teamsWithEditAccess": [str(team_1.id), str(team_test_org.id)],
+            },
+        }
+
+        self.create_environment(project=mock_project, name="mock_env")
+
+        user = User(id=self.dashboard.created_by_id)
+        self.login_as(user=user)
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
+            )
+
+        assert response.status_code == 400
+        assert (
+            f"Cannot update dashboard edit permissions. Teams with IDs {team_test_org.id} do not exist."
             in response.content.decode()
         )
 

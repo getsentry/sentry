@@ -611,7 +611,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 if teams_data == [] or permissions_data["is_editable_by_everyone"] is True:
                     permissions.teams_with_edit_access.clear()
                 else:
-                    permissions.teams_with_edit_access.set(Team.objects.filter(id__in=teams_data))
+                    permissions.teams_with_edit_access.set(
+                        Team.objects.filter(
+                            id__in=teams_data, organization=self.context["organization"]
+                        )
+                    )
 
             instance.permissions = permissions
 
