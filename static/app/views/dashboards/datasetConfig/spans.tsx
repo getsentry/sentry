@@ -12,6 +12,7 @@ import type {
 import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   type DiscoverQueryExtras,
   type DiscoverQueryRequestParams,
@@ -115,6 +116,9 @@ export const SpansConfig: DatasetConfig<
   transformSeries: transformEventsResponseToSeries,
   filterTableOptions,
   filterAggregateParams,
+  getCustomFieldRenderer: (field, meta, _organization) => {
+    return getFieldRenderer(field, meta, false);
+  },
 };
 
 function getPrimaryFieldOptions(
