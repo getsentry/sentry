@@ -77,7 +77,7 @@ export function EventList({group}: EventListProps) {
           const previousDisabled = links.previous?.results === false;
           const nextDisabled = links.next?.results === false;
           const currentCursor = parseCursor(location.query?.cursor);
-          const start = currentCursor?.offset ?? 0;
+          const start = Math.max(currentCursor?.offset ?? 1, 1);
 
           return (
             <EventListHeader>
@@ -85,9 +85,11 @@ export function EventList({group}: EventListProps) {
               <EventListHeaderItem>
                 {isPending
                   ? null
-                  : tct('Showing [start]-[end] of [count]', {
+                  : tct('Showing [start]-[end] of [count] matching events', {
                       start: start.toLocaleString(),
-                      end: (start + pageEventsCount).toLocaleString(),
+                      end: (
+                        (currentCursor?.offset ?? 0) + pageEventsCount
+                      ).toLocaleString(),
                       count: (totalEventsCount ?? 0).toLocaleString(),
                     })}
               </EventListHeaderItem>
