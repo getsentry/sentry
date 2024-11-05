@@ -242,6 +242,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/search/test_backend.py                                         @getsentry/visibility
 
 /src/sentry/search/events/                                                  @getsentry/visibility
+/src/sentry/search/eap/                                                  @getsentry/visibility
 
 /src/sentry/utils/performance_issues/                                       @getsentry/performance
 
