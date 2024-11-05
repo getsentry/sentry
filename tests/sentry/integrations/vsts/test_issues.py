@@ -21,6 +21,7 @@ from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
@@ -167,7 +168,8 @@ class VstsIssueSyncTest(VstsIssueBase):
         responses.reset()
 
     @responses.activate
-    def test_create_issue(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_create_issue(self, mock_record):
         responses.add(
             responses.PATCH,
             "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task",
@@ -197,6 +199,29 @@ class VstsIssueSyncTest(VstsIssueBase):
             {"op": "add", "path": "/fields/System.Description", "value": "<p>Fix this.</p>\n"},
             {"op": "add", "path": "/fields/System.History", "value": "<p>Fix this.</p>\n"},
         ]
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_create_issue_failure(self, mock_record):
+        """
+        Test that metrics are being correctly emitted on failure.
+        """
+        form_data = {
+            "title": "rip",
+            "description": "Goodnight, sweet prince",
+        }
+
+        with pytest.raises(ValueError):
+            self.integration.create_issue(form_data)
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.FAILURE
 
     @responses.activate
     def test_get_issue(self):
@@ -217,7 +242,8 @@ class VstsIssueSyncTest(VstsIssueBase):
 
     @responses.activate
     @patch("sentry.integrations.vsts.client.VstsApiClient._use_proxy_url_for_tests")
-    def test_sync_assignee_outbound(self, use_proxy_url_for_tests):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sync_assignee_outbound(self, mock_record, use_proxy_url_for_tests):
         use_proxy_url_for_tests.return_value = True
         vsts_work_item_id = 5
         generate_mock_response(
@@ -262,6 +288,11 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert request_body[0]["value"] == "ftotten@vscsi.us"
         assert request_body[0]["op"] == "replace"
         assert responses.calls[1].response.status_code == 200
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @patch("sentry.integrations.vsts.client.VstsApiClient._use_proxy_url_for_tests")
@@ -327,7 +358,8 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert responses.calls[2].response.status_code == 200
 
     @responses.activate
-    def test_sync_status_outbound(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sync_status_outbound(self, mock_record):
         vsts_work_item_id = 5
         responses.add(
             responses.PATCH,
@@ -380,6 +412,11 @@ class VstsIssueSyncTest(VstsIssueBase):
             {"path": "/fields/System.State", "value": "Resolved", "op": "replace"}
         ]
         assert responses.calls[2].response.status_code == 200
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
 
     def test_get_issue_url(self):
         work_id = 345

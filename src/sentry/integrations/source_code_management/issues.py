@@ -18,7 +18,7 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
     def record_event(self, event: SourceCodeIssueIntegrationInteractionType):
         return SourceCodeIssueIntegrationInteractionEvent(
             interaction_type=event,
-            provider_key=self.integration_name,
+            provider_key=self.model.provider,
             organization=self.organization,
             org_integration=self.org_integration,
         )
