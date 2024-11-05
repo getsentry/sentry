@@ -24,7 +24,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
     def tearDown(self):
         super().tearDown()
         # Clear the cache after each test
-        cache.delete(f"ai-group-summary:{self.group.id}")
+        cache.delete(f"ai-group-summary-v2:{self.group.id}")
 
     def _get_url(self, group_id: int):
         return f"/api/0/issues/{group_id}/summarize/"
@@ -40,7 +40,9 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         }
 
         # Set the cache with the existing summary
-        cache.set(f"ai-group-summary:{self.group.id}", existing_summary, timeout=60 * 60 * 24 * 7)
+        cache.set(
+            f"ai-group-summary-v2:{self.group.id}", existing_summary, timeout=60 * 60 * 24 * 7
+        )
 
         response = self.client.post(self.url, format="json")
 
@@ -56,7 +58,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400
         assert response.data == {"detail": "Could not find an event for the issue"}
-        assert cache.get(f"ai-group-summary:{self.group.id}") is None
+        assert cache.get(f"ai-group-summary-v2:{self.group.id}") is None
 
     @patch(
         "sentry.api.endpoints.group_ai_summary.GroupAiSummaryEndpoint._get_trace_connected_issues"
@@ -98,7 +100,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         )
 
         # Check if the cache was set correctly
-        cached_summary = cache.get(f"ai-group-summary:{self.group.id}")
+        cached_summary = cache.get(f"ai-group-summary-v2:{self.group.id}")
         assert cached_summary == mock_summary.dict()
 
     @patch("sentry.api.endpoints.group_ai_summary.requests.post")
@@ -130,7 +132,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         )
         mock_post.assert_called_once()
 
-        assert cache.get(f"ai-group-summary:{self.group.id}") == mock_response.json.return_value
+        assert cache.get(f"ai-group-summary-v2:{self.group.id}") == mock_response.json.return_value
 
     def test_ai_summary_cache_write_read(self):
         # First request to populate the cache
