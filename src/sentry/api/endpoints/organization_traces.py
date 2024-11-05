@@ -448,8 +448,46 @@ class TracesExecutor:
                 traces_breakdown_projects_results=traces_breakdown_projects_results,
             )
 
+        # We now sort the traces in the order we expect from the initial query.
+        # This is because the queries to populate the trace metadata does not
+        # guarantee any kind of ordering.
         ordering = {trace_id: i for i, trace_id in enumerate(trace_ids)}
         data.sort(key=lambda trace: ordering[trace["trace"]])
+
+        if self.dataset == Dataset.EventsAnalyticsPlatform and self.sort in {
+            "timestamp",
+            "-timestamp",
+        }:
+            # Due to pagination, we try to fetch 1 additional trace. So if the
+            # number of traces matches the limit, then this means 1 of the traces
+            # is there to indicate there is a next page. This last item is not
+            # actually returned.
+            #
+            # To correctly sort the traces, we must preserve the position of this
+            # last trace and sort the rest.
+            preserve_last_item_index = len(data) >= self.limit
+
+            # The traces returned are sorted by the timestamps of the matching span.
+            # This results in a list that's approximately sorted by most recent but
+            # some items may be out of order due to the trace's timestamp being different.
+            #
+            # To create the illusion that traces are sorted by most recent, apply
+            # an additional sort here so the traces are sorted by most recent.
+            if self.sort == "timestamp":
+
+                def data_key(trace: TraceResult) -> tuple[int, int]:
+                    if preserve_last_item_index and trace["trace"] == trace_ids[-1]:
+                        return 1, 0
+                    return 0, trace["start"]
+
+            else:
+
+                def data_key(trace: TraceResult) -> tuple[int, int]:
+                    if preserve_last_item_index and trace["trace"] == trace_ids[-1]:
+                        return 1, 0
+                    return 0, -trace["start"]
+
+            data.sort(key=data_key)
 
         return data
 
