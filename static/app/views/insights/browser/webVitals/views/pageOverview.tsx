@@ -36,6 +36,7 @@ import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webV
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -228,64 +229,66 @@ export function PageOverview() {
             module={ModuleName.VITAL}
           />
         )}
-        {tab === LandingDisplayField.SPANS ? (
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              {defined(transaction) && <AggregateSpans transaction={transaction} />}
-            </Layout.Main>
-          </Layout.Body>
-        ) : (
-          <Layout.Body>
-            <Layout.Main>
-              <TopMenuContainer>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
-                <BrowserTypeSelector />
-              </TopMenuContainer>
-              <Flex>
-                <PerformanceScoreBreakdownChart
+        <ModuleBodyUpsellHook moduleName={ModuleName.VITAL}>
+          {tab === LandingDisplayField.SPANS ? (
+            <Layout.Body>
+              <Layout.Main fullWidth>
+                {defined(transaction) && <AggregateSpans transaction={transaction} />}
+              </Layout.Main>
+            </Layout.Body>
+          ) : (
+            <Layout.Body>
+              <Layout.Main>
+                <TopMenuContainer>
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
+                  <BrowserTypeSelector />
+                </TopMenuContainer>
+                <Flex>
+                  <PerformanceScoreBreakdownChart
+                    transaction={transaction}
+                    browserTypes={browserTypes}
+                    subregions={subregions}
+                  />
+                </Flex>
+                <WebVitalMetersContainer>
+                  <WebVitalMeters
+                    projectData={pageData}
+                    projectScore={projectScore}
+                    onClick={webVital => {
+                      router.replace({
+                        pathname: location.pathname,
+                        query: {...location.query, webVital},
+                      });
+                      setState({...state, webVital});
+                    }}
+                    transaction={transaction}
+                    showTooltip={false}
+                  />
+                </WebVitalMetersContainer>
+                <PageSamplePerformanceTableContainer>
+                  <PageSamplePerformanceTable
+                    transaction={transaction}
+                    limit={15}
+                    search={query}
+                  />
+                </PageSamplePerformanceTableContainer>
+              </Layout.Main>
+              <Layout.Side>
+                <PageOverviewSidebar
+                  projectScore={projectScore}
                   transaction={transaction}
+                  projectScoreIsLoading={isPending}
                   browserTypes={browserTypes}
                   subregions={subregions}
                 />
-              </Flex>
-              <WebVitalMetersContainer>
-                <WebVitalMeters
-                  projectData={pageData}
-                  projectScore={projectScore}
-                  onClick={webVital => {
-                    router.replace({
-                      pathname: location.pathname,
-                      query: {...location.query, webVital},
-                    });
-                    setState({...state, webVital});
-                  }}
-                  transaction={transaction}
-                  showTooltip={false}
-                />
-              </WebVitalMetersContainer>
-              <PageSamplePerformanceTableContainer>
-                <PageSamplePerformanceTable
-                  transaction={transaction}
-                  limit={15}
-                  search={query}
-                />
-              </PageSamplePerformanceTableContainer>
-            </Layout.Main>
-            <Layout.Side>
-              <PageOverviewSidebar
-                projectScore={projectScore}
-                transaction={transaction}
-                projectScoreIsLoading={isPending}
-                browserTypes={browserTypes}
-                subregions={subregions}
-              />
-            </Layout.Side>
-          </Layout.Body>
-        )}
+              </Layout.Side>
+            </Layout.Body>
+          )}
+        </ModuleBodyUpsellHook>
         <PageOverviewWebVitalsDetailPanel
           webVital={state.webVital}
           onClose={() => {
