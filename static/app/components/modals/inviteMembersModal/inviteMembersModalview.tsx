@@ -177,7 +177,11 @@ export default function InviteMembersModalView({
                   size="sm"
                   data-test-id="send-invites"
                   priority="primary"
-                  disabled={!canSend || !isValidInvites || disableInputs}
+                  disabled={
+                    isOverMemberLimit
+                      ? false
+                      : !canSend || !isValidInvites || disableInputs
+                  }
                   onClick={sendInvites}
                 />
               </Fragment>
