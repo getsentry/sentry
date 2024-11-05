@@ -200,6 +200,7 @@ const MIN_PCT_DURATION_DIFFERENCE = 10;
 type DurationProps = {
   baseline: number | undefined;
   duration: number;
+  node: TraceTreeNode<TraceTree.NodeValue>;
   baseDescription?: string;
   ratio?: number;
 };
@@ -209,8 +210,14 @@ function Duration(props: DurationProps) {
     return <DurationContainer>{t('unknown')}</DurationContainer>;
   }
 
+  // Since transactions have ms precision, we show 2 decimal places only if the duration is greater than 1 second.
+  const precision = isTransactionNode(props.node) ? (props.duration > 1 ? 2 : 0) : 2;
   if (props.baseline === undefined || props.baseline === 0) {
-    return <DurationContainer>{getDuration(props.duration, 2, true)}</DurationContainer>;
+    return (
+      <DurationContainer>
+        {getDuration(props.duration, precision, true)}
+      </DurationContainer>
+    );
   }
 
   const delta = props.duration - props.baseline;
@@ -245,7 +252,7 @@ function Duration(props: DurationProps) {
   return (
     <Fragment>
       <DurationContainer>
-        {getDuration(props.duration, 2, true)}{' '}
+        {getDuration(props.duration, precision, true)}{' '}
         {props.ratio ? `(${(props.ratio * 100).toFixed()}%)` : null}
       </DurationContainer>
       {deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
