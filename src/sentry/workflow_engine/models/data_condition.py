@@ -3,6 +3,7 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 
+from ..types import DetectorPriorityLevel
 from .data_condition_group import DataConditionGroup
 
 
@@ -31,3 +32,8 @@ class DataCondition(DefaultFieldsModel):
         DataConditionGroup,
         on_delete=models.CASCADE,
     )
+
+    def evaluate_value(self, value: int) -> DetectorPriorityLevel | None:
+        # Note: We'll have other types other than int/DetectorPriorityLevel here, keeping it simple for now
+        # TODO: Actually fetch condition, comparison value and compare
+        return DetectorPriorityLevel.HIGH

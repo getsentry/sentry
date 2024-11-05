@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import Callable
 from datetime import timedelta
@@ -13,6 +14,7 @@ from django.db.models.signals import post_delete, post_save
 
 from sentry.utils.hashlib import md5_text
 
+logger = logging.getLogger(__name__)
 Ts = TypeVarTuple("Ts")
 R = TypeVar("R")
 S = TypeVar("S", bound=models.Model)
@@ -46,7 +48,13 @@ def clear_cache_for_cached_func(
     func_args = arg_getter(instance)
     cache_key = cache_key_for_cached_func(cached_func, *func_args)
     if recalculate:
-        cache.set(cache_key, cached_func(*func_args))
+        try:
+            value = cached_func(*func_args)
+        except Exception:
+            logger.exception("Failed to recalculate cached value")
+            cache.delete(cache_key)
+        else:
+            cache.set(cache_key, value)
     else:
         cache.delete(cache_key)
 
