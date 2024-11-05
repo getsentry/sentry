@@ -5,7 +5,7 @@ from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.models.detector import DetectorEvaluationResult, DetectorHandler
+from sentry.workflow_engine.processors.detector import DetectorEvaluationResult, DetectorHandler
 
 
 # TODO: This will be a stateful detector when we build that abstraction
