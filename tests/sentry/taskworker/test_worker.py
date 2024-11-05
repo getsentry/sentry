@@ -1,5 +1,6 @@
 from unittest import mock
 
+from django.test import override_settings
 from sentry_protos.sentry.v1.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
@@ -61,6 +62,7 @@ FAIL_TASK = TaskActivation(
 )
 
 
+@override_settings(TASKWORKER_IMPORTS=("tests.sentry.taskworker.test_worker",))
 class TestTaskWorker(TestCase):
     def test_taskworker_fetch_task(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)

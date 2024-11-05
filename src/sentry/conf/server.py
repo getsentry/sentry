@@ -1298,7 +1298,7 @@ for queue in CELERY_QUEUES:
 CELERY_TASK_SOFT_TIME_LIMIT = int(timedelta(hours=3).total_seconds())
 CELERY_TASK_TIME_LIMIT = int(timedelta(hours=3, seconds=15).total_seconds())
 
-TASKWORKER_IMPORTS = ("tests.sentry.taskworker.test_taskworker",)
+TASKWORKER_IMPORTS = ()
 
 # Queues that belong to the processing pipeline and need to be monitored
 # for backpressure management
