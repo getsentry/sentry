@@ -454,6 +454,22 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         }
 
     @django_db_all
+    def test_sampling_mode_default_when_not_set(self):
+        """
+        Test that when sentry:sampling_mode is not set, it uses SAMPLING_MODE_DEFAULT
+        when validating targetSampleRate
+        """
+        # Ensure no sampling mode is set
+        self.organization.delete_option("sentry:sampling_mode")
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            # Since SAMPLING_MODE_DEFAULT is ORGANIZATION, this should succeed
+            response = self.get_response(self.organization.slug, method="put", targetSampleRate=0.5)
+
+        assert response.status_code == 200
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.5
+
+    @django_db_all
     def test_sampling_mode_org_to_project(self):
         """
         Test changing sampling mode from organization-level to project-level:

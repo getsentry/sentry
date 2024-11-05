@@ -423,7 +423,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             request_sampling_mode == DynamicSamplingMode.PROJECT.value
             or (
                 sampling_mode == DynamicSamplingMode.PROJECT.value
-                or request_sampling_mode != DynamicSamplingMode.ORGANIZATION.value
+                and request_sampling_mode != DynamicSamplingMode.ORGANIZATION.value
             )
         ) and request_target_sample_rate is not None:
             raise serializers.ValidationError(
@@ -960,23 +960,20 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
 
-            if (
-                organization.get_option("sentry:sampling_mode")
-                == DynamicSamplingMode.ORGANIZATION.value
-            ) and "targetSampleRate" in changed_data:
-                with transaction.atomic(router.db_for_write(ProjectOption)):
-                    organization.update_option(
-                        "sentry:target_sample_rate", request.data["targetSampleRate"]
-                    )
+            sampling_mode = organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
+            is_org_mode = sampling_mode == DynamicSamplingMode.ORGANIZATION.value
+            is_project_mode = sampling_mode == DynamicSamplingMode.PROJECT.value
+
+            if is_org_mode and "targetSampleRate" in changed_data:
+                organization.update_option(
+                    "sentry:target_sample_rate", serializer.validated_data["targetSampleRate"]
+                )
 
             if "samplingMode" in changed_data and request.access.has_scope("org:write"):
-                if (
-                    organization.get_option("sentry:sampling_mode")
-                    == DynamicSamplingMode.PROJECT.value
-                ):
-                    with transaction.atomic(router.db_for_write(ProjectOption)):
+                with transaction.atomic(router.db_for_write(ProjectOption)):
+                    if is_project_mode:
                         for project in organization.project_set.all():
-                            current_rate, is_fallback = get_boost_low_volume_projects_sample_rate(
+                            current_rate, _ = get_boost_low_volume_projects_sample_rate(
                                 org_id=organization.id,
                                 project_id=project.id,
                                 error_sample_rate_fallback=None,
@@ -986,14 +983,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
                         organization.delete_option("sentry:target_sample_rate")
 
-                if (
-                    organization.get_option("sentry:sampling_mode")
-                    == DynamicSamplingMode.ORGANIZATION.value
-                ):
-                    with transaction.atomic(router.db_for_write(ProjectOption)):
+                    elif is_org_mode:
                         if "targetSampleRate" in changed_data:
                             organization.update_option(
-                                "sentry:target_sample_rate", request.data["targetSampleRate"]
+                                "sentry:target_sample_rate",
+                                serializer.validated_data["targetSampleRate"],
                             )
 
                         for project in organization.project_set.all():
