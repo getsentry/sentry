@@ -55,6 +55,7 @@ class InternalProjectOptions(Enum):
 
 class ConfigurableThresholds(Enum):
     N_PLUS_ONE_DB_DURATION = "n_plus_one_db_duration_threshold"
+    N_PLUS_ONE_DB_COUNT = "n_plus_one_db_count"
     UNCOMPRESSED_ASSET_DURATION = "uncompressed_asset_duration_threshold"
     UNCOMPRESSED_ASSET_SIZE = "uncompressed_asset_size_threshold"
     LARGE_HTTP_PAYLOAD_SIZE = "large_http_payload_size_threshold"
@@ -86,6 +87,7 @@ internal_only_project_settings_to_group_map: dict[str, type[GroupType]] = {
 
 configurable_thresholds_to_internal_settings_map: dict[str, str] = {
     ConfigurableThresholds.N_PLUS_ONE_DB_DURATION.value: InternalProjectOptions.N_PLUS_ONE_DB.value,
+    ConfigurableThresholds.N_PLUS_ONE_DB_COUNT.value: InternalProjectOptions.N_PLUS_ONE_DB.value,
     ConfigurableThresholds.UNCOMPRESSED_ASSET_DURATION.value: InternalProjectOptions.UNCOMPRESSED_ASSET.value,
     ConfigurableThresholds.UNCOMPRESSED_ASSET_SIZE.value: InternalProjectOptions.UNCOMPRESSED_ASSET.value,
     ConfigurableThresholds.LARGE_HTTP_PAYLOAD_SIZE.value: InternalProjectOptions.LARGE_HTTP_PAYLOAD.value,
@@ -104,6 +106,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     n_plus_one_db_duration_threshold = serializers.IntegerField(
         required=False, min_value=50, max_value=TEN_SECONDS
     )
+    n_plus_one_db_count = serializers.IntegerField(required=False, min_value=5, max_value=100)
     slow_db_query_duration_threshold = serializers.IntegerField(
         required=False, min_value=100, max_value=TEN_SECONDS
     )
