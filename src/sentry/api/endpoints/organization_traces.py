@@ -466,6 +466,7 @@ class TracesExecutor:
             # To correctly sort the traces, we must preserve the position of this
             # last trace and sort the rest.
             preserve_last_item_index = len(data) >= self.limit
+            last_item = data.pop() if preserve_last_item_index else None
 
             # The traces returned are sorted by the timestamps of the matching span.
             # This results in a list that's approximately sorted by most recent but
@@ -473,21 +474,13 @@ class TracesExecutor:
             #
             # To create the illusion that traces are sorted by most recent, apply
             # an additional sort here so the traces are sorted by most recent.
-            if self.sort == "timestamp":
+            def data_key(trace: TraceResult) -> tuple[int, int]:
+                return 0, trace["start"]
 
-                def data_key(trace: TraceResult) -> tuple[int, int]:
-                    if preserve_last_item_index and trace["trace"] == trace_ids[-1]:
-                        return 1, 0
-                    return 0, trace["start"]
+            data.sort(key=lambda trace: trace["start"], reverse=self.sort == "-timestamp")
 
-            else:
-
-                def data_key(trace: TraceResult) -> tuple[int, int]:
-                    if preserve_last_item_index and trace["trace"] == trace_ids[-1]:
-                        return 1, 0
-                    return 0, -trace["start"]
-
-            data.sort(key=data_key)
+            if last_item is not None:
+                data.append(last_item)
 
         return data
 
