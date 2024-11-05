@@ -1,4 +1,4 @@
-import typing
+from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
 from sentry.constants import SAMPLING_MODE_DEFAULT
@@ -6,9 +6,6 @@ from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.organization import Organization
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-
-if typing.TYPE_CHECKING:
-    from django.contrib.auth.models import AnonymousUser
 
 
 def has_dynamic_sampling(
