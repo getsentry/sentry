@@ -6018,29 +6018,58 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
     OrganizationEventsEndpointTestBase, ProfilesSnubaTestCase
 ):
     def test_functions_dataset_simple(self):
-        self.store_functions(
+        one_hour_ago = before_now(hours=1)
+        three_hours_ago = before_now(hours=3)
+
+        stored_1 = self.store_functions(
             [
                 {
-                    "self_times_ns": [100 for _ in range(100)],
+                    "self_times_ns": [100_000_000 for _ in range(100)],
                     "package": "foo",
-                    "function": "bar",
+                    "function": "foo",
                     "in_app": True,
                 },
             ],
             project=self.project,
-            timestamp=before_now(hours=3),
+            timestamp=three_hours_ago,
         )
-        self.store_functions(
+        stored_2 = self.store_functions(
             [
                 {
-                    "self_times_ns": [150 for _ in range(100)],
+                    "self_times_ns": [150_000_000 for _ in range(100)],
                     "package": "foo",
-                    "function": "bar",
+                    "function": "foo",
                     "in_app": True,
                 },
             ],
             project=self.project,
-            timestamp=before_now(hours=1),
+            timestamp=one_hour_ago,
+        )
+        stored_3 = self.store_functions_chunk(
+            [
+                {
+                    "self_times_ns": [200_000_000 for _ in range(100)],
+                    "package": "bar",
+                    "function": "bar",
+                    "thread_id": "1",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=three_hours_ago,
+        )
+        stored_4 = self.store_functions_chunk(
+            [
+                {
+                    "self_times_ns": [250_000_000 for _ in range(100)],
+                    "package": "bar",
+                    "function": "bar",
+                    "thread_id": "1",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=one_hour_ago,
         )
 
         mid = before_now(hours=2)
@@ -6056,6 +6085,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             "release",
             "count()",
             "examples()",
+            "all_examples()",
             "p50()",
             "p75()",
             "p95()",
@@ -6071,6 +6101,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
                 "statsPeriod": "4h",
                 "project": [self.project.id],
                 "dataset": "profileFunctions",
+                "orderby": "transaction",
             },
             features={"organizations:profiling": True},
         )
@@ -6094,6 +6125,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             "release": None,
             "count()": None,
             "examples()": None,
+            "all_examples()": None,
             "p50()": "nanosecond",
             "p75()": "nanosecond",
             "p95()": "nanosecond",
@@ -6102,6 +6134,87 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             "sum()": "nanosecond",
             f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": None,
         }
+
+        def all_examples_sort_key(example):
+            return example.get("profile_id") or example.get("profiler_id")
+
+        for row in response.data["data"]:
+            row["examples()"].sort()
+            row["all_examples()"].sort(key=all_examples_sort_key)
+
+        transaction_examples = [
+            stored_1["transaction"]["contexts"]["profile"]["profile_id"],
+            stored_2["transaction"]["contexts"]["profile"]["profile_id"],
+        ]
+        transaction_examples.sort()
+
+        transaction_all_examples = [
+            {"profile_id": stored_1["transaction"]["contexts"]["profile"]["profile_id"]},
+            {"profile_id": stored_2["transaction"]["contexts"]["profile"]["profile_id"]},
+        ]
+        transaction_all_examples.sort(key=all_examples_sort_key)
+
+        continuous_examples = [stored_3["profiler_id"], stored_4["profiler_id"]]
+        continuous_examples.sort()
+
+        continuous_all_examples = [
+            {
+                "profiler_id": stored_3["profiler_id"],
+                "thread_id": "1",
+                "start": three_hours_ago.timestamp(),
+                "end": (three_hours_ago + timedelta(microseconds=200_000)).timestamp(),
+            },
+            {
+                "profiler_id": stored_4["profiler_id"],
+                "thread_id": "1",
+                "start": one_hour_ago.timestamp(),
+                "end": (one_hour_ago + timedelta(microseconds=250_000)).timestamp(),
+            },
+        ]
+        continuous_all_examples.sort(key=all_examples_sort_key)
+
+        assert response.data["data"] == [
+            {
+                "transaction": "",
+                "project": self.project.slug,
+                "function": "bar",
+                "package": "bar",
+                "is_application": 1,
+                "platform.name": "",
+                "environment": None,
+                "release": None,
+                "count()": 200,
+                "examples()": continuous_examples,
+                "all_examples()": continuous_all_examples,
+                "p50()": 225_000_000.0,
+                "p75()": 250_000_000.0,
+                "p95()": 250_000_000.0,
+                "p99()": 250_000_000.0,
+                "avg()": 225_000_000.0,
+                "sum()": 45_000_000_000.0,
+                f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": mock.ANY,
+            },
+            {
+                "transaction": "/country_by_code/",
+                "project": self.project.slug,
+                "function": "foo",
+                "package": "foo",
+                "is_application": 1,
+                "platform.name": "transaction",
+                "environment": None,
+                "release": None,
+                "count()": 200,
+                "examples()": transaction_examples,
+                "all_examples()": transaction_all_examples,
+                "p50()": 125_000_000.0,
+                "p75()": 150_000_000.0,
+                "p95()": 150_000_000.0,
+                "p99()": 150_000_000.0,
+                "avg()": 125_000_000.0,
+                "sum()": 25_000_000_000.0,
+                f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": mock.ANY,
+            },
+        ]
 
 
 class OrganizationEventsIssuePlatformDatasetEndpointTest(
