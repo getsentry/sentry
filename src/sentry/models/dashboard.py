@@ -77,6 +77,10 @@ class Dashboard(Model):
             return all_prebuilt_dashboards[dashboard_id]
         return None
 
+    @staticmethod
+    def incremental_name(organization, name):
+        return name
+
 
 @region_silo_model
 class DashboardTombstone(Model):
