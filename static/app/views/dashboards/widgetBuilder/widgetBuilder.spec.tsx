@@ -1,4 +1,6 @@
 import {urlEncode} from '@sentry/utils';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
@@ -28,6 +30,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -80,6 +84,13 @@ function renderTestComponent({
 
   ProjectsStore.loadInitialData(projects);
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
+    organization,
+    router,
+  });
+
   render(
     <WidgetBuilder
       route={{}}
@@ -104,6 +115,7 @@ function renderTestComponent({
         ...params,
       }}
       updateDashboardSplitDecision={updateDashboardSplitDecision}
+      widgetLegendState={widgetLegendState}
     />,
     {
       router,
@@ -251,6 +263,10 @@ describe('WidgetBuilder', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/spans/fields/`,
       body: [],
     });
 
@@ -2582,6 +2598,82 @@ describe('WidgetBuilder', function () {
           }),
         })
       );
+    });
+  });
+
+  describe('Spans Dataset', () => {
+    it('queries for span tags and returns the correct data', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/spans/fields/`,
+        body: [
+          {
+            key: 'plan',
+            name: 'Plan',
+          },
+        ],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.query.type === 'string';
+          },
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/spans/fields/`,
+        body: [
+          {
+            key: 'lcp.size',
+            name: 'Lcp.Size',
+          },
+          {
+            key: 'something.else',
+            name: 'Something.Else',
+          },
+        ],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.query.type === 'number';
+          },
+        ],
+      });
+
+      const dashboard = mockDashboard({
+        widgets: [
+          WidgetFixture({
+            widgetType: WidgetType.SPANS,
+            displayType: DisplayType.TABLE,
+            queries: [
+              {
+                name: 'Test Widget',
+                fields: ['count(tags[lcp.size,number])'],
+                columns: [],
+                aggregates: ['count(tags[lcp.size,number])'],
+                conditions: '',
+                orderby: '',
+              },
+            ],
+          }),
+        ],
+      });
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      // Click the argument to the count() function
+      expect(await screen.findByText('lcp.size')).toBeInTheDocument();
+      await userEvent.click(screen.getByText('lcp.size'));
+
+      // The option now appears in the aggregate property dropdown
+      expect(screen.queryAllByText('lcp.size')).toHaveLength(2);
+      expect(screen.getByText('something.else')).toBeInTheDocument();
+
+      // Click count() to verify the string tag is in the dropdown
+      expect(screen.queryByText('plan')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByText(`count(…)`));
+      expect(screen.getByText('plan')).toBeInTheDocument();
     });
   });
 });

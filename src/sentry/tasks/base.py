@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import resource
 from collections.abc import Callable, Iterable
 from contextlib import contextmanager
@@ -8,6 +9,7 @@ from functools import wraps
 from typing import Any, TypeVar
 
 from celery import current_task
+from django.conf import settings
 from django.db.models import Model
 
 from sentry.celery import app
@@ -16,6 +18,8 @@ from sentry.utils import metrics
 from sentry.utils.sdk import Scope, capture_exception
 
 ModelT = TypeVar("ModelT", bound=Model)
+
+logger = logging.getLogger(__name__)
 
 
 class TaskSiloLimit(SiloLimit):
@@ -128,6 +132,12 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
                 result = func(*args, **kwargs)
 
             return result
+
+        # If the split task router is configured for the task, always use queues defined
+        # in the split task configuration
+        if name in settings.CELERY_SPLIT_QUEUE_TASK_ROUTES and "queue" in kwargs:
+            q = kwargs.pop("queue")
+            logger.warning("ignoring queue: %s, using value from CELERY_SPLIT_QUEUE_TASK_ROUTES", q)
 
         # We never use result backends in Celery. Leaving `trail=True` means that if we schedule
         # many tasks from a parent task, each task leaks memory. This can lead to the scheduler

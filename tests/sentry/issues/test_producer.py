@@ -105,7 +105,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         mock_produce.assert_called_once_with(
             ArroyoTopic(name="ingest-occurrences"),
             KafkaPayload(
-                occurrence.fingerprint[0].encode(),
+                f"{occurrence.fingerprint[0]}-{occurrence.project_id}".encode(),
                 json.dumps({"mock_data": "great"}).encode("utf-8"),
                 [],
             ),
@@ -156,7 +156,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": datetime.now().timestamp(),
+                "timestamp": datetime.now().isoformat(),
                 "fingerprint": self.fingerprint,
             },
             project_id=self.project.id,
@@ -337,7 +337,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": datetime.now().timestamp(),
+                "timestamp": datetime.now().isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -402,7 +402,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         mock_produce.assert_called_once_with(
             ArroyoTopic(name="ingest-occurrences"),
             KafkaPayload(
-                status_change.fingerprint[0].encode(),
+                f"{status_change.fingerprint[0]}-{status_change.project_id}".encode(),
                 json.dumps({"mock_data": "great"}).encode("utf-8"),
                 [],
             ),

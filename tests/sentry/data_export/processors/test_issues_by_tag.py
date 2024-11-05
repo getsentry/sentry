@@ -35,7 +35,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
         self.event = self.store_event(
             data={
                 "fingerprint": ["group-1"],
-                "timestamp": before_now(seconds=3).timestamp(),
+                "timestamp": before_now(seconds=3).isoformat(),
                 "user": {"email": self.user.email},
             },
             project_id=self.project.id,

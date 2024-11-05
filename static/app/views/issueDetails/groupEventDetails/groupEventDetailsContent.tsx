@@ -31,10 +31,9 @@ import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreen
 import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
-import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
+import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
-import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
@@ -59,7 +58,6 @@ import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import LazyLoad from 'sentry/components/lazyLoad';
 import Placeholder from 'sentry/components/placeholder';
-import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -102,7 +100,6 @@ export function EventDetailsContent({
 }: Required<EventDetailsContentProps>) {
   const organization = useOrganization();
   const location = useLocation();
-  const hasNewTimelineUI = useHasNewTimelineUI();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
@@ -146,7 +143,7 @@ export function EventDetailsContent({
 
   return (
     <Fragment>
-      {hasStreamlinedUI && <HighlightsIconSummary event={event} />}
+      {hasStreamlinedUI && <HighlightsIconSummary event={event} group={group} />}
       {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
@@ -235,7 +232,9 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      {!hasStreamlinedUI && (
+        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      )}
       {showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
@@ -280,6 +279,9 @@ export function EventDetailsContent({
             group={group}
           />
         </EntryErrorBoundary>
+      )}
+      {hasStreamlinedUI && (
+        <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
       {isANR && (
         <QuickTraceQuery
@@ -344,17 +346,7 @@ export function EventDetailsContent({
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
       )}
-      {hasNewTimelineUI ? (
-        <BreadcrumbsDataSection event={event} group={group} project={project} />
-      ) : defined(eventEntries[EntryType.BREADCRUMBS]) ? (
-        <EntryErrorBoundary type={EntryType.BREADCRUMBS}>
-          <Breadcrumbs
-            data={eventEntries[EntryType.BREADCRUMBS].data}
-            organization={organization}
-            event={event}
-          />
-        </EntryErrorBoundary>
-      ) : null}
+      <BreadcrumbsDataSection event={event} group={group} project={project} />
       {hasStreamlinedUI && (
         <EventTraceView group={group} event={event} organization={organization} />
       )}
@@ -381,7 +373,10 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       {hasStreamlinedUI ? (
-        <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
+        <Fragment>
+          <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+          <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
+        </Fragment>
       ) : (
         <div ref={tagsRef}>
           <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
@@ -395,16 +390,13 @@ export function EventDetailsContent({
       <EventPackageData event={event} />
       <EventDevice event={event} />
       <EventViewHierarchy event={event} project={project} />
-      {hasStreamlinedUI && (
-        <ScreenshotDataSection event={event} projectSlug={project.slug} />
-      )}
       <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {hasStreamlinedUI && (
         <EventProcessingErrors event={event} project={project} isShare={false} />
       )}
       {event.groupID && (
-        <EventGroupingInfo
+        <EventGroupingInfoSection
           projectSlug={project.slug}
           event={event}
           showGroupingConfig={

@@ -1,0 +1,29 @@
+---
+created: '2024-10-28T14:00:59.849036+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "b8baf791d22ac902d5f59a7eedd844fd"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "code"
+            frame*
+              function*
+                "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"
+            frame*
+              function*
+                "code"
+            frame*
+              function*
+                "glTexSubImage2D"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "abort"

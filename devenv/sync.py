@@ -81,20 +81,22 @@ def check_minimum_version(minimum_version: str):
     if parsed_version < parsed_minimum_version:
         raise SystemExit(
             f"""
-Your devenv version ({version}) doesn't meet the
-minimum version ({minimum_version}) defined in the repo config.
+Hi! To reduce potential breakage we've defined a minimum
+devenv version ({minimum_version}) to run sync.
 
-Run the following to update your global devenv to the minimum,
-and use it to run this repo's sync.
+Please run the following to update your global devenv to the minimum:
 
-{constants.root}/bin/devenv update {minimum_version}
+{constants.root}/venv/bin/pip install -U 'sentry-devenv=={minimum_version}'
+
+Then, use it to run sync this one time.
+
 {constants.root}/bin/devenv sync
 """
         )
 
 
 def main(context: dict[str, str]) -> int:
-    check_minimum_version("1.11.0")
+    check_minimum_version("1.13.0")
 
     repo = context["repo"]
     reporoot = context["reporoot"]

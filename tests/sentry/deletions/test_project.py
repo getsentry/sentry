@@ -169,7 +169,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
         project = self.create_project(name="test")
         event = self.store_event(
             data={
-                "timestamp": before_now(minutes=1).timestamp(),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "oh no",
             },
             project_id=project.id,

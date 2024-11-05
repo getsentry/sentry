@@ -347,8 +347,16 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 ## End of Feedback v2
 
 
+## DevToolbar
+/src/sentry/templates/sentry/toolbar/  @getsentry/replay
+/src/sentry/toolbar/                   @getsentry/replay
+/tests/sentry/toolbar/                 @getsentry/replay
+## End of DevToolbar
+
+
 ## Integrations
-/src/sentry/api/endpoints/sentry_app/                                @getsentry/product-owners-settings-integrations
+/src/sentry/sentry_apps/                                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem
+/tests/sentry/sentry_apps                                            @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 /src/sentry/api/endpoints/project_rule*.py                           @getsentry/alerts-notifications
 /src/sentry/api/serializers/models/rule.py                           @getsentry/alerts-notifications
 
@@ -374,8 +382,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 # To find matching files -> find . -name "*sentry_app*.py"
-*sentry_app*.py                                                      @getsentry/product-owners-settings-integrations
-*sentryapp*.py                                                       @getsentry/product-owners-settings-integrations
+*sentry_app*.py                                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem
+*sentryapp*.py                                                       @getsentry/product-owners-settings-integrations @getsentry/ecosystem
 *doc_integration*.py                                                 @getsentry/ecosystem
 *docintegration*.py                                                  @getsentry/ecosystem
 
@@ -561,6 +569,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/tasks/test_auto_ongoing_issues.py             @getsentry/issues
 /tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issues
 /tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issues
+/tests/sentry/tasks/test_backfill_seer_grouping_records.py  @getsentry/issues
 /tests/sentry/tasks/test_check_new_issue_threshold_met.py   @getsentry/issues
 /tests/sentry/tasks/test_clear_expired_resolutions.py       @getsentry/issues
 /tests/sentry/tasks/test_clear_expired_rulesnoozes.py       @getsentry/issues
@@ -613,10 +622,14 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/api/endpoints/organization_missing_org_members.py           @getsentry/ecosystem
 /src/sentry/tasks/invite_missing_org_members.py                         @getsentry/ecosystem
 /static/app/components/modals/inviteMissingMembersModal/                @getsentry/ecosystem
-/src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/ecosystem
+/src/sentry/integrations/github/tasks/pr_comment.py                     @getsentry/ecosystem
 ## End of Ecosystem
 
 ## Core Product Foundations
 /src/sentry/data_secrecy/                                             @getsentry/core-product-foundations
 /tests/sentry/data_secrecy/                                           @getsentry/core-product-foundations
 ## End of Core Product Foundations
+
+# Taskworkers
+/src/sentry/taskworker/                                       @getsentry/taskworker
+/tests/sentry/taskworker/                                     @getsentry/taskworker

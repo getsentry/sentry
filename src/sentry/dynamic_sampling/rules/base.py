@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import sentry_sdk
 
 from sentry import quotas
+from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
@@ -12,6 +13,7 @@ from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_e
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
+from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, is_project_mode_sampling
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
@@ -43,14 +45,21 @@ def is_recently_added(model: Model) -> bool:
     return False
 
 
-def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
-    sample_rate = quotas.backend.get_blended_sample_rate(
-        organization_id=organization.id, project=project
-    )
+def get_guarded_project_sample_rate(organization: Organization, project: Project) -> float:
+    # Early exit in project-mode, since we don't need to calculate the sample rate.
+    if is_project_mode_sampling(organization):
+        return float(project.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT))
+
+    if has_custom_dynamic_sampling(organization):
+        sample_rate = organization.get_option("sentry:target_sample_rate")
+    else:
+        sample_rate = quotas.backend.get_blended_sample_rate(
+            organization_id=organization.id, project=project
+        )
 
     # get_blended_sample_rate returns None if the organization doesn't have dynamic sampling
     if sample_rate is None:
-        return 1.0
+        sample_rate = TARGET_SAMPLE_RATE_DEFAULT
 
     # If the sample rate is 100%, we don't want to use any special dynamic sample rate, we will just sample at 100%.
     if sample_rate == 1.0:
@@ -102,7 +111,7 @@ def generate_rules(project: Project) -> list[PolymorphicRule]:
     try:
         rules = _get_rules_of_enabled_biases(
             project,
-            get_guarded_blended_sample_rate(organization, project),
+            get_guarded_project_sample_rate(organization, project),
             get_enabled_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
             get_relay_biases_combinator(organization).get_combined_biases(),
         )

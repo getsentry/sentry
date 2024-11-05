@@ -19,6 +19,8 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.on_call.metrics import OnCallInteractionType
+from sentry.integrations.pagerduty.metrics import record_event
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -179,22 +181,23 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         organization: RpcOrganizationSummary,
         extra: Any | None = None,
     ) -> None:
-        services = integration.metadata["services"]
-        try:
-            org_integration = OrganizationIntegration.objects.get(
-                integration=integration, organization_id=organization.id
-            )
-        except OrganizationIntegration.DoesNotExist:
-            logger.exception("The PagerDuty post_install step failed.")
-            return
-
-        with transaction.atomic(router.db_for_write(OrganizationIntegration)):
-            for service in services:
-                add_service(
-                    org_integration,
-                    integration_key=service["integration_key"],
-                    service_name=service["name"],
+        with record_event(OnCallInteractionType.POST_INSTALL).capture():
+            services = integration.metadata["services"]
+            try:
+                org_integration = OrganizationIntegration.objects.get(
+                    integration=integration, organization_id=organization.id
                 )
+            except OrganizationIntegration.DoesNotExist:
+                logger.exception("The PagerDuty post_install step failed.")
+                return
+
+            with transaction.atomic(router.db_for_write(OrganizationIntegration)):
+                for service in services:
+                    add_service(
+                        org_integration,
+                        integration_key=service["integration_key"],
+                        service_name=service["name"],
+                    )
 
     def build_integration(self, state):
         config = orjson.loads(state.get("config"))

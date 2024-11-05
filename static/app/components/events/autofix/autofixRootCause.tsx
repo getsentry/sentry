@@ -25,7 +25,7 @@ import {
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCode, IconInfo} from 'sentry/icons';
+import {IconCode, IconFocus, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFileExtension} from 'sentry/utils/fileExtension';
@@ -42,6 +42,7 @@ type AutofixRootCauseProps = {
   repos: AutofixRepository[];
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
+  terminationReason?: string;
 };
 
 const contentAnimationProps: AnimationProps = {
@@ -194,7 +195,7 @@ function RootCauseContext({
     <RootCauseContextContainer>
       {(cause.reproduction || cause.unit_test) && (
         <ExpandableInsightContext
-          icon={<IconInfo size="sm" color="subText" />}
+          icon={<IconRefresh size="sm" color="subText" />}
           title={'How to reproduce'}
           rounded
         >
@@ -223,13 +224,15 @@ function RootCauseContext({
           )}
         </ExpandableInsightContext>
       )}
-      <ExpandableInsightContext
-        icon={<IconCode size="sm" color="subText" />}
-        title={'Relevant code'}
-        rounded
-      >
-        <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
-      </ExpandableInsightContext>
+      {cause.code_context.length > 0 && (
+        <ExpandableInsightContext
+          icon={<IconCode size="sm" color="subText" />}
+          title={'Relevant code'}
+          rounded
+        >
+          <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
+        </ExpandableInsightContext>
+      )}
     </RootCauseContextContainer>
   );
 }
@@ -322,13 +325,17 @@ function CauseOption({
     <RootCauseOption selected={selected} onClick={() => setSelectedId(cause.id)}>
       {!selected && <InteractionStateLayer />}
       <RootCauseOptionHeader>
-        <Title
-          dangerouslySetInnerHTML={{
-            __html: singleLineRenderer(`Potential Root Cause: ${cause.title}`),
-          }}
-        />
+        <TitleWrapper>
+          <IconFocus size="sm" />
+          <Title>{t('Potential Root Cause')}</Title>
+        </TitleWrapper>
       </RootCauseOptionHeader>
       <RootCauseContent selected={selected}>
+        <CauseTitle
+          dangerouslySetInnerHTML={{
+            __html: singleLineRenderer(cause.title),
+          }}
+        />
         <RootCauseDescription cause={cause} />
         <RootCauseContext cause={cause} repos={repos} />
       </RootCauseContent>
@@ -346,9 +353,15 @@ function SelectedRootCauseOption({
 }) {
   return (
     <RootCauseOption selected>
-      <HeaderText
+      <RootCauseOptionHeader>
+        <TitleWrapper>
+          <IconFocus size="sm" />
+          <HeaderText>{t('Root Cause')}</HeaderText>
+        </TitleWrapper>
+      </RootCauseOptionHeader>
+      <CauseTitle
         dangerouslySetInnerHTML={{
-          __html: singleLineRenderer(t('Root Cause: %s', selectedCause.title)),
+          __html: singleLineRenderer(selectedCause.title),
         }}
       />
       <RootCauseDescription cause={selectedCause} />
@@ -458,11 +471,15 @@ const cardAnimationProps: AnimationProps = {
 export function AutofixRootCause(props: AutofixRootCauseProps) {
   if (props.causes.length === 0) {
     return (
-      <NoCausesPadding>
-        <Alert type="warning">
-          {t('Autofix was not able to find a root cause. Maybe try again?')}
-        </Alert>
-      </NoCausesPadding>
+      <AnimatePresence initial>
+        <AnimationWrapper key="card" {...cardAnimationProps}>
+          <NoCausesPadding>
+            <Alert type="warning">
+              {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
+            </Alert>
+          </NoCausesPadding>
+        </AnimationWrapper>
+      </AnimatePresence>
     );
   }
 
@@ -512,14 +529,14 @@ const NoCausesPadding = styled('div')`
 `;
 
 const CausesContainer = styled('div')`
-  border: 1px solid ${p => p.theme.innerBorder};
+  border: 2px solid ${p => p.theme.alert.success.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
 const PotentialCausesContainer = styled(CausesContainer)`
-  border: 1px solid ${p => p.theme.alert.info.background};
+  border: 2px solid ${p => p.theme.alert.info.border};
 `;
 
 const OptionsPadding = styled('div')`
@@ -549,9 +566,22 @@ const RootCauseOptionHeader = styled('div')`
   gap: ${space(1)};
 `;
 
+const TitleWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
 const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const CauseTitle = styled('div')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
 `;
 
 const CauseDescription = styled('div')`
@@ -637,5 +667,5 @@ const CodeSnippetWrapper = styled('div')`
 
 const HeaderText = styled('div')`
   font-weight: bold;
-  font-size: 1.2em;
+  font-size: ${p => p.theme.fontSizeLarge};
 `;

@@ -24,6 +24,20 @@ import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 
+const EVENT_TYPES_WITH_LOG_LEVEL = new Set([
+  EventOrGroupType.ERROR,
+  EventOrGroupType.CSP,
+  EventOrGroupType.EXPECTCT,
+  EventOrGroupType.DEFAULT,
+  EventOrGroupType.EXPECTSTAPLE,
+  EventOrGroupType.HPKP,
+  EventOrGroupType.NEL,
+]);
+
+export function eventTypeHasLogLevel(type: EventOrGroupType) {
+  return EVENT_TYPES_WITH_LOG_LEVEL.has(type);
+}
+
 export function isTombstone(
   maybe: BaseGroup | Event | GroupTombstoneHelper
 ): maybe is GroupTombstoneHelper {
@@ -399,6 +413,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     has_otel: event?.contexts?.otel !== undefined,
     event_mechanism:
       event?.tags?.find(tag => tag.key === 'mechanism')?.value || undefined,
+    is_sample_event: event ? event.tags?.some(tag => tag.key === 'sample_event') : false,
   };
 }
 

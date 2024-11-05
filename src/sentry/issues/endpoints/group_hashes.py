@@ -18,7 +18,7 @@ from sentry.utils.snuba import raw_query
 @region_silo_endpoint
 class GroupHashesEndpoint(GroupEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
     }
 
@@ -55,8 +55,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
-    # TODO: Shouldn't this be a PUT rather than a DELETE?
-    def delete(self, request: Request, group) -> Response:
+    def put(self, request: Request, group) -> Response:
         """
         Perform an unmerge by reassigning events with hash values corresponding to the given
         grouphash ids from being part of the given group to being part of a new group.

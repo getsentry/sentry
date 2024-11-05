@@ -21,9 +21,9 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.ingest.config import is_in_transition
+from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
@@ -209,7 +209,11 @@ def find_grouphash_with_group(
 
 
 def get_or_create_grouphashes(
-    project: Project, hashes: Sequence[str], grouping_config: str
+    event: Event,
+    project: Project,
+    variants: dict[str, BaseVariant],
+    hashes: Sequence[str],
+    grouping_config: str,
 ) -> list[GroupHash]:
     is_secondary = grouping_config != project.get_option("sentry:grouping_config")
     grouphashes: list[GroupHash] = []
@@ -223,23 +227,12 @@ def get_or_create_grouphashes(
     for hash_value in hashes:
         grouphash, created = GroupHash.objects.get_or_create(project=project, hash=hash_value)
 
-        # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
-        # we'll have to override the metadata creation date for them.
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled") and features.has(
             "organizations:grouphash-metadata-creation", project.organization
         ):
-            if created:
-                GroupHashMetadata.objects.create(
-                    grouphash=grouphash,
-                    latest_grouping_config=grouping_config,
-                )
-            elif (
-                grouphash.metadata and grouphash.metadata.latest_grouping_config != grouping_config
-            ):
-                # Keep track of the most recent config which computed this hash, so that once a
-                # config is deprecated, we can clear out the GroupHash records which are no longer
-                # being produced
-                grouphash.metadata.update(latest_grouping_config=grouping_config)
+            create_or_update_grouphash_metadata(
+                event, project, grouphash, created, grouping_config, variants
+            )
 
         grouphashes.append(grouphash)
 

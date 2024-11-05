@@ -17,7 +17,7 @@ import type {TableData} from 'sentry/views/dashboards/widgets/common/types';
 
 import {DEFAULT_FIELD} from '../common/settings';
 
-interface Props {
+interface DifferenceToPreviousPeriodValueProps {
   previousPeriodValue: number;
   renderer: (datum: TableData[number]) => React.ReactNode;
   value: number;
@@ -31,7 +31,7 @@ export function DifferenceToPreviousPeriodValue({
   preferredPolarity = '',
   field = DEFAULT_FIELD,
   renderer,
-}: Props) {
+}: DifferenceToPreviousPeriodValueProps) {
   if (!isNumber(currentValue) || !isNumber(previousValue)) {
     return <Deemphasize>{LOADING_PLACEHOLDER}</Deemphasize>;
   }

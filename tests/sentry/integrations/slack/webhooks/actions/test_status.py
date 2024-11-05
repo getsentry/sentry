@@ -728,8 +728,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
 
         event_data_2 = load_data("transaction-n-plus-one", fingerprint=[group_fingerprint])
-        event_data_2["timestamp"] = before_now(seconds=20).timestamp()
-        event_data_2["start_timestamp"] = before_now(seconds=21).timestamp()
+        event_data_2["timestamp"] = before_now(seconds=20).isoformat()
+        event_data_2["start_timestamp"] = before_now(seconds=21).isoformat()
         event_data_2["event_id"] = "f" * 32
 
         perf_issue = self.create_performance_issue(

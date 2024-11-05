@@ -14,11 +14,14 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
-import type {ModuleName} from 'sentry/views/insights/types';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName} from 'sentry/views/insights/types';
 
 type ScreensTemplateProps = {
   content: ReactNode;
@@ -39,6 +42,7 @@ export default function ScreensTemplate({
 }: ScreensTemplateProps) {
   const location = useLocation();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
+  const {isInDomainView} = useDomainViewFilters();
 
   const handleProjectChange = useCallback(() => {
     browserHistory.replace({
@@ -54,45 +58,65 @@ export default function ScreensTemplate({
   return (
     <Layout.Page>
       <PageAlertProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
-            <Layout.Title>
-              {title}
-              <PageHeadingQuestionTooltip
-                docsUrl={moduleDocLink}
-                title={moduleDescription}
-              />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              {isProjectCrossPlatform && <PlatformSelector />}
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
+        {!isInDomainView && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs crumbs={crumbs} />
+              <Layout.Title>
+                {title}
+                <PageHeadingQuestionTooltip
+                  docsUrl={moduleDocLink}
+                  title={moduleDescription}
+                />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                {isProjectCrossPlatform && <PlatformSelector />}
+                <FeedbackWidgetButton />
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+        )}
 
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <Container>
-              <ModulePageFilterBar
-                moduleName={moduleName}
-                onProjectChange={handleProjectChange}
-                extraFilters={
-                  <Fragment>
-                    <ReleaseComparisonSelector />
-                    {additionalSelectors}
-                  </Fragment>
-                }
-              />
-            </Container>
-            <PageAlert />
-            <ErrorBoundary mini>
-              <ModulesOnboarding moduleName={moduleName}>{content}</ModulesOnboarding>
-            </ErrorBoundary>
-          </Layout.Main>
-        </Layout.Body>
+        {isInDomainView && (
+          <MobileHeader
+            headerTitle={
+              <Fragment>
+                {title}
+                <PageHeadingQuestionTooltip
+                  docsUrl={moduleDocLink}
+                  title={moduleDescription}
+                />
+              </Fragment>
+            }
+            module={ModuleName.APP_START}
+            headerActions={isProjectCrossPlatform && <PlatformSelector />}
+          />
+        )}
+
+        <ModuleBodyUpsellHook moduleName={moduleName}>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <Container>
+                <ModulePageFilterBar
+                  moduleName={moduleName}
+                  onProjectChange={handleProjectChange}
+                  extraFilters={
+                    <Fragment>
+                      <ReleaseComparisonSelector />
+                      {additionalSelectors}
+                    </Fragment>
+                  }
+                />
+              </Container>
+              <PageAlert />
+              <ErrorBoundary mini>
+                <ModulesOnboarding moduleName={moduleName}>{content}</ModulesOnboarding>
+              </ErrorBoundary>
+            </Layout.Main>
+          </Layout.Body>
+        </ModuleBodyUpsellHook>
       </PageAlertProvider>
     </Layout.Page>
   );

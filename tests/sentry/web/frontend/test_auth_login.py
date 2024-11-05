@@ -176,6 +176,25 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             (f"http://{org.slug}.testserver/issues/", 302),
         ]
 
+    @with_feature("system:multi-region")
+    def test_redirect_to_login_with_org_and_customer_domains(self):
+        org = self.create_organization(owner=self.user)
+        self.create_project(organization=org, name="project")
+        # load it once for test cookie
+        self.client.get(self.path)
+
+        project_path = reverse("project-details", kwargs={"project_slug": "project"})
+        resp = self.client.get(project_path, HTTP_HOST=f"{org.slug}.testserver")
+
+        assert resp.status_code == 302
+        # redirect to auth org login page by parsing customer domain
+        redirect_url = getattr(resp, "url", None)
+        assert redirect_url == reverse("sentry-auth-organization", args=[org.slug])
+
+        # get redirect
+        resp = self.client.get(redirect_url, HTTP_HOST=f"{org.slug}.testserver")
+        assert resp.status_code == 200
+
     def test_registration_disabled(self):
         with self.feature({"auth:register": False}), self.allow_registration():
             resp = self.client.get(self.path)
@@ -561,7 +580,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             resp = self.client.post(
                 self.path,
                 {"username": self.user.username, "password": "admin", "op": "login"},
-                SERVER_NAME="albertos-apples.testserver",
+                HTTP_HOST="albertos-apples.testserver",
                 follow=True,
             )
 
@@ -599,9 +618,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             resp = self.client.post(
                 self.path,
                 {"username": self.user.username, "password": "admin", "op": "login"},
-                # This should preferably be HTTP_HOST.
-                # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
-                SERVER_NAME="invalid.testserver",
+                HTTP_POST="invalid.testserver",
                 follow=True,
             )
 
@@ -623,9 +640,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             resp = self.client.post(
                 self.path,
                 {"username": non_staff_user.username, "password": "admin", "op": "login"},
-                # This should preferably be HTTP_HOST.
-                # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
-                SERVER_NAME="albertos-apples.testserver",
+                HTTP_HOST="albertos-apples.testserver",
                 follow=True,
             )
             assert resp.status_code == 200
@@ -668,7 +683,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             resp = self.client.post(
                 self.path,
                 {"username": user.username, "password": "admin", "op": "login"},
-                SERVER_NAME="albertos-apples.testserver",
+                HTTP_HOST="albertos-apples.testserver",
                 follow=True,
             )
 
@@ -687,7 +702,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             resp = self.client.post(
                 self.path,
                 {"username": user.username, "password": "admin", "op": "login"},
-                SERVER_NAME="albertos-apples.testserver",
+                HTTP_HOST="albertos-apples.testserver",
                 follow=True,
             )
 
@@ -712,7 +727,7 @@ class AuthLoginCustomerDomainTest(TestCase):
                     "op": "sso",
                     "organization": "foobar",
                 },
-                SERVER_NAME="albertos-apples.testserver",
+                HTTP_HOST="albertos-apples.testserver",
                 follow=True,
             )
             assert resp.status_code == 200
@@ -734,7 +749,7 @@ class AuthLoginCustomerDomainTest(TestCase):
                     "op": "sso",
                     "organization": "albertos-apples",
                 },
-                SERVER_NAME="albertos-apples.testserver",
+                HTTP_HOST="albertos-apples.testserver",
                 follow=True,
             )
             assert resp.status_code == 200
@@ -759,7 +774,7 @@ class AuthLoginCustomerDomainTest(TestCase):
                     "op": "sso",
                     "organization": "albertos-apples",
                 },
-                SERVER_NAME="albertos-apples.testserver",
+                HTTP_HOST="albertos-apples.testserver",
                 follow=True,
             )
             assert resp.status_code == 200

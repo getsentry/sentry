@@ -1,0 +1,38 @@
+---
+created: '2024-10-28T14:02:47.554057+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "9bdadae4fa003cef6cf460ff1325e54b"
+    component:
+      system*
+        stacktrace*
+          frame*
+            module*
+              "com.example.Application"
+            function*
+              "main"
+          frame*
+            module*
+              "com.example.Application"
+            function*
+              "normalFunc"
+          frame*
+            module*
+              "com.example.Application"
+            function*
+              "recurFunc"
+          frame*
+            module*
+              "com.example.Application"
+            function*
+              "recurFunc"
+          frame*
+            module*
+              "com.example.Application"
+            function*
+              "throwError"

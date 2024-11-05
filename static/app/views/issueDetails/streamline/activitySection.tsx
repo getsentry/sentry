@@ -4,16 +4,21 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
+import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
-import {IconFlag} from 'sentry/icons/iconFlag';
-import {t} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconEllipsis} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import textStyles from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
+import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -22,10 +27,70 @@ import {useUser} from 'sentry/utils/useUser';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
 
-function StreamlinedActivitySection({group}: {group: Group}) {
+function TimelineItem({
+  item,
+  handleDelete,
+  group,
+  teams,
+}: {
+  group: Group;
+  handleDelete: (item: GroupActivity) => void;
+  item: GroupActivity;
+  teams: Team[];
+}) {
+  const organization = useOrganization();
+  const authorName = item.user ? item.user.name : 'Sentry';
+  const {title, message} = getGroupActivityItem(
+    item,
+    organization,
+    group.project.id,
+    <strong>{authorName}</strong>,
+    teams
+  );
+
+  const iconMapping = groupActivityTypeIconMapping[item.type];
+  const Icon = iconMapping?.Component ?? null;
+
+  return (
+    <ActivityTimelineItem
+      title={
+        <Flex gap={space(0.5)} align="center" justify="flex-start">
+          <TitleTooltip title={title} showOnlyOnOverflow skipWrapper>
+            {title}
+          </TitleTooltip>
+          {item.type === GroupActivityType.NOTE && (
+            <TitleDropdown onDelete={() => handleDelete(item)} user={item.user} />
+          )}
+        </Flex>
+      }
+      timestamp={<Timestamp date={item.dateCreated} tooltipProps={{skipWrapper: true}} />}
+      icon={
+        Icon && (
+          <Icon
+            {...iconMapping.defaultProps}
+            {...iconMapping.propsFunction?.(item.data)}
+            size="xs"
+          />
+        )
+      }
+    >
+      {typeof message === 'string' ? (
+        <NoteWrapper>
+          <NoteBody text={message} />
+        </NoteWrapper>
+      ) : (
+        message
+      )}
+    </ActivityTimelineItem>
+  );
+}
+
+export default function StreamlinedActivitySection({group}: {group: Group}) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
+  const [showAll, setShowAll] = useState(false);
 
   const [inputId, setInputId] = useState(uniqueId());
 
@@ -71,8 +136,11 @@ function StreamlinedActivitySection({group}: {group: Group}) {
   const handleCreate = useCallback(
     (n: NoteType, _me: User) => {
       mutators.handleCreate(n, group.activity, {
-        onError: () => {
-          addErrorMessage(t('Unable to post comment'));
+        onError: err => {
+          const errMessage = err.responseJSON?.detail
+            ? tct('Error: [msg]', {msg: err.responseJSON?.detail as string})
+            : t('Unable to post comment');
+          addErrorMessage(errMessage);
         },
         onSuccess: data => {
           GroupStore.addActivity(group.id, data);
@@ -84,7 +152,15 @@ function StreamlinedActivitySection({group}: {group: Group}) {
   );
 
   return (
-    <Fragment>
+    <div>
+      <Flex justify="space-between" align="center">
+        <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
+        {showAll && (
+          <TextButton borderless size="zero" onClick={() => setShowAll(false)}>
+            {t('Collapse')}
+          </TextButton>
+        )}
+      </Flex>
       <Timeline.Container>
         <NoteInputWithStorage
           key={inputId}
@@ -97,78 +173,89 @@ function StreamlinedActivitySection({group}: {group: Group}) {
           source="issue-details"
           {...noteProps}
         />
-        <ActivityTimelineItem
-          title={t('Last Seen')}
-          icon={<IconFlag size="xs" />}
-          timestamp={<SmallTimestamp date={group.lastSeen} />}
-        />
-        {group.activity.map(item => {
-          const authorName = item.user ? item.user.name : 'Sentry';
-          const {title, message} = getGroupActivityItem(
-            item,
-            organization,
-            group.project.id,
-            <Author>{authorName}</Author>,
-            teams
-          );
-
-          const Icon = groupActivityTypeIconMapping[item.type]?.Component ?? null;
-
-          return (
+        {(group.activity.length < 5 || showAll) &&
+          group.activity.map(item => {
+            return (
+              <TimelineItem
+                item={item}
+                handleDelete={handleDelete}
+                group={group}
+                teams={teams}
+                key={item.id}
+              />
+            );
+          })}
+        {!showAll && group.activity.length >= 5 && (
+          <Fragment>
+            {group.activity.slice(0, 2).map(item => {
+              return (
+                <TimelineItem
+                  item={item}
+                  handleDelete={handleDelete}
+                  group={group}
+                  teams={teams}
+                  key={item.id}
+                />
+              );
+            })}
             <ActivityTimelineItem
               title={
-                <TitleWrapper>
-                  {title}
-                  <NoteDropdownWrapper>
-                    {item.type === GroupActivityType.NOTE && (
-                      <NoteDropdown
-                        onDelete={() => handleDelete(item)}
-                        user={item.user}
-                      />
-                    )}
-                  </NoteDropdownWrapper>
-                </TitleWrapper>
+                <TextButton
+                  aria-label={t('Show all activity')}
+                  onClick={() => setShowAll(true)}
+                  borderless
+                  size="zero"
+                >
+                  {t('%s activities hidden', group.activity.length - 3)}
+                </TextButton>
               }
-              timestamp={<SmallTimestamp date={item.dateCreated} />}
-              icon={
-                Icon && (
-                  <Icon
-                    {...groupActivityTypeIconMapping[item.type].defaultProps}
-                    size="xs"
-                  />
-                )
-              }
-              key={item.id}
-            >
-              {typeof message === 'string' ? <NoteBody text={message} /> : message}
-            </ActivityTimelineItem>
-          );
-        })}
+              icon={<RotatedEllipsisIcon direction={'up'} />}
+            />
+            <TimelineItem
+              item={group.activity[group.activity.length - 1]}
+              handleDelete={handleDelete}
+              group={group}
+              teams={teams}
+              key={group.activity[group.activity.length - 1].id}
+            />
+          </Fragment>
+        )}
       </Timeline.Container>
-    </Fragment>
+    </div>
   );
 }
 
-const Author = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+const TitleTooltip = styled(Tooltip)`
+  justify-self: start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
-const NoteDropdownWrapper = styled('span')`
+const TitleDropdown = styled(NoteDropdown)`
   font-weight: normal;
-`;
-
-const TitleWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
 `;
 
 const ActivityTimelineItem = styled(Timeline.Item)`
   align-items: center;
+  grid-template-columns: 22px minmax(50px, 1fr) auto;
 `;
 
-const SmallTimestamp = styled(TimeSince)`
+const Timestamp = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeSmall};
+  white-space: nowrap;
 `;
 
-export default StreamlinedActivitySection;
+const TextButton = styled(Button)`
+  font-weight: ${p => p.theme.fontWeightNormal};
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+`;
+
+const RotatedEllipsisIcon = styled(IconEllipsis)`
+  transform: rotate(90deg) translateY(1px);
+`;
+
+const NoteWrapper = styled('div')`
+  ${textStyles}
+`;

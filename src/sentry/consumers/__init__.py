@@ -23,6 +23,7 @@ from sentry.conf.types.kafka_definition import (
     validate_consumer_definition,
 )
 from sentry.consumers.validate_schema import ValidateSchema
+from sentry.eventstream.types import EventStreamEventType
 from sentry.ingest.types import ConsumerType
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -157,6 +158,19 @@ def ingest_events_options() -> list[click.Option]:
             ["--stop-at-timestamp", "stop_at_timestamp"],
             type=int,
             help="Unix timestamp after which to stop processing messages",
+        )
+    )
+    return options
+
+
+def ingest_transactions_options() -> list[click.Option]:
+    options = ingest_events_options()
+    options.append(
+        click.Option(
+            ["--no-celery-mode", "no_celery_mode"],
+            default=False,
+            is_flag=True,
+            help="Save event directly in consumer without celery",
         )
     )
     return options
@@ -312,11 +326,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "ingest-transactions": {
         "topic": Topic.INGEST_TRANSACTIONS,
-        "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
-        "click_options": ingest_events_options(),
-        "static_args": {
-            "consumer_type": ConsumerType.Transactions,
-        },
+        "strategy_factory": "sentry.ingest.consumer.factory.IngestTransactionsStrategyFactory",
+        "click_options": ingest_transactions_options(),
         "dlq_topic": Topic.INGEST_TRANSACTIONS_DLQ,
     },
     "ingest-metrics": {
@@ -363,6 +374,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_log_topic_default": "snuba-generic-events-commit-log",
         "synchronize_commit_group_default": "generic_events_group",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
+        "static_args": {
+            "eventstream_type": EventStreamEventType.Generic.value,
+        },
     },
     "post-process-forwarder-transactions": {
         "topic": Topic.TRANSACTIONS,
@@ -370,6 +384,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_log_topic_default": "snuba-transactions-commit-log",
         "synchronize_commit_group_default": "transactions_group",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
+        "static_args": {
+            "eventstream_type": EventStreamEventType.Transaction.value,
+        },
     },
     "post-process-forwarder-errors": {
         "topic": Topic.EVENTS,
@@ -377,6 +394,9 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_log_topic_default": "snuba-commit-log",
         "synchronize_commit_group_default": "snuba-consumers",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
+        "static_args": {
+            "eventstream_type": EventStreamEventType.Error.value,
+        },
     },
     "process-spans": {
         "topic": Topic.SNUBA_SPANS,

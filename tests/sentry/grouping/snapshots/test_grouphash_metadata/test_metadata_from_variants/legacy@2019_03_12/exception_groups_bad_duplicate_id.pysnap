@@ -1,0 +1,28 @@
+---
+created: '2024-10-28T14:02:50.199099+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  system*
+    hash: "4e10ac3b57fc5fc8bd77a31e5888f117"
+    component:
+      system*
+        chained-exception*
+          exception*
+            type*
+              "System.Exception"
+            value*
+              "Some Inner Exception"
+          exception*
+            type*
+              "MyApp.Exception"
+            value*
+              "Test 1"
+          exception*
+            type*
+              "System.AggregateException"
+            value*
+              "One or more errors occurred."

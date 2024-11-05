@@ -120,7 +120,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         :param string comments: comments supplied by user
         """
         if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
-            return self.respond(status=400)
+            return self.respond(status=401)
 
         serializer = UserReportSerializer(data=request.data)
         if not serializer.is_valid():

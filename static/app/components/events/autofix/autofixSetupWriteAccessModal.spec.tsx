@@ -52,10 +52,7 @@ describe('AutofixSetupWriteAccessModal', function () {
 
     expect(
       screen.getByRole('button', {name: 'Install the Autofix GitHub App'})
-    ).toHaveAttribute(
-      'href',
-      'https://github.com/apps/sentry-autofix-experimental/installations/new'
-    );
+    ).toHaveAttribute('href', 'https://github.com/apps/sentry-autofix/installations/new');
   });
 
   it('displays success text when installed repos for github app text', async function () {

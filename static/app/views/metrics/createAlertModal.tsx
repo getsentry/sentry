@@ -37,10 +37,10 @@ import {
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 import {AVAILABLE_TIME_PERIODS} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {
   Dataset,
@@ -122,7 +122,7 @@ export function CreateAlertModal({
   Footer,
   metricsQuery,
 }: Props & ModalRenderProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {resolveVirtualMRI, getExtractionRule} = useVirtualMetricsContext();
   const {projects} = useProjects();
@@ -259,7 +259,7 @@ export function CreateAlertModal({
   );
 
   const handleSubmit = useCallback(() => {
-    router.push(
+    navigate(
       `/organizations/${organization.slug}/alerts/new/metric/?${qs.stringify({
         aggregate,
         query: `${metricsQuery.query} event.type:transaction`.trim(),
@@ -275,7 +275,7 @@ export function CreateAlertModal({
       })}`
     );
   }, [
-    router,
+    navigate,
     aggregate,
     metricsQuery.query,
     organization.slug,

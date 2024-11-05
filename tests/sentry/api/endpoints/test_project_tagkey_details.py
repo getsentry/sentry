@@ -19,7 +19,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
             self.store_event(
                 data={
                     "tags": {"foo": f"val{i}"},
-                    "timestamp": before_now(seconds=1).timestamp(),
+                    "timestamp": before_now(seconds=1).isoformat(),
                 },
                 project_id=project.id,
             )
@@ -52,7 +52,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
 
         project = self.create_project()
         self.store_event(
-            data={"tags": {key: val}, "timestamp": before_now(seconds=1).timestamp()},
+            data={"tags": {key: val}, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
 
@@ -80,7 +80,7 @@ class ProjectTagKeyDeleteTest(APITestCase):
     def test_protected(self):
         project = self.create_project()
         self.store_event(
-            data={"environment": "prod", "timestamp": before_now(seconds=1).timestamp()},
+            data={"environment": "prod", "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
 

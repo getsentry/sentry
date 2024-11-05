@@ -13,6 +13,7 @@ from requests.exceptions import Timeout
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
+from sentry.eventstream.types import EventStreamEventType
 from sentry.integrations.models.utils import get_redis_key
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
@@ -241,6 +242,7 @@ class TestProcessResourceChange(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         ((args, kwargs),) = safe_urlopen.call_args_list
@@ -292,7 +294,7 @@ class TestProcessResourceChange(TestCase):
             organization=self.project.organization, slug=sentry_app.slug
         )
 
-        one_min_ago = before_now(minutes=1).timestamp()
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "Foo bar",
@@ -312,6 +314,7 @@ class TestProcessResourceChange(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         ((args, kwargs),) = safe_urlopen.call_args_list
@@ -359,6 +362,7 @@ class TestProcessResourceChange(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert not safe_urlopen.called
@@ -388,7 +392,7 @@ class TestSendResourceChangeWebhook(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
     @with_feature("organizations:integrations-event-hooks")
     def test_sends_webhooks_to_all_installs(self, safe_urlopen):
-        one_min_ago = before_now(minutes=1).timestamp()
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "Foo bar",
@@ -408,6 +412,7 @@ class TestSendResourceChangeWebhook(TestCase):
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
                 project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert len(safe_urlopen.mock_calls) == 2

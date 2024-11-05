@@ -762,7 +762,7 @@ def build_span_query(trace_id: str, spans_params: SnubaParams, query_spans: list
     sentry_sdk.set_measurement("trace_view.spans.span_minimum", span_minimum)
     sentry_sdk.set_tag("trace_view.split_by_char.optimization", len(query_spans) > span_minimum)
     if len(query_spans) > span_minimum:
-        # TODO because we're not doing an IN on a list of literals, snuba will not optimize the query with the HexInt
+        # TODO: because we're not doing an IN on a list of literals, snuba will not optimize the query with the HexInt
         # column processor which means we won't be taking advantage of the span_id index but if we only do this when we
         # have a lot of query_spans we should have a great performance improvement still once we do that we can simplify
         # this code and always apply this optimization

@@ -11,6 +11,7 @@ import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {
   type AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   DEVICE_CLASS_TAG_VALUES,
   FieldKind,
   getFieldDefinition,
@@ -33,10 +34,9 @@ interface SpanSearchQueryBuilderProps {
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
-  supportedAggregates?: AggregationKey[];
 }
 
-const getFunctionTags = (supportedAggregates: AggregationKey[] | undefined) => {
+const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {
     return {};
   }
@@ -51,8 +51,8 @@ const getFunctionTags = (supportedAggregates: AggregationKey[] | undefined) => {
   }, {});
 };
 
-const getSpanFieldDefinition = (key: string) => {
-  return getFieldDefinition(key, 'span');
+const getSpanFieldDefinition = (key: string, kind?: FieldKind) => {
+  return getFieldDefinition(key, 'span', kind);
 };
 
 export function SpanSearchQueryBuilder({
@@ -62,15 +62,14 @@ export function SpanSearchQueryBuilder({
   onSearch,
   placeholder,
   projects,
-  supportedAggregates,
 }: SpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const functionTags = useMemo(() => {
-    return getFunctionTags(supportedAggregates);
-  }, [supportedAggregates]);
+    return getFunctionTags();
+  }, []);
 
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for spans, users, tags, and more');
@@ -134,6 +133,90 @@ export function SpanSearchQueryBuilder({
     <SearchQueryBuilder
       placeholder={placeholderText}
       filterKeys={filterTags}
+      initialQuery={initialQuery}
+      fieldDefinitionGetter={getSpanFieldDefinition}
+      onSearch={onSearch}
+      searchSource={searchSource}
+      filterKeySections={filterKeySections}
+      getTagValues={getSpanFilterTagValues}
+      disallowUnsupportedFilters
+      recentSearches={SavedSearchType.SPAN}
+      showUnsubmittedIndicator
+    />
+  );
+}
+
+interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+}
+
+export function EAPSpanSearchQueryBuilder({
+  initialQuery,
+  placeholder,
+  onSearch,
+  searchSource,
+  numberTags,
+  stringTags,
+}: EAPSpanSearchQueryBuilderProps) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const placeholderText = placeholder ?? t('Search for spans, users, tags, and more');
+
+  const functionTags = useMemo(() => {
+    return getFunctionTags(ALLOWED_EXPLORE_VISUALIZE_AGGREGATES);
+  }, []);
+
+  const tags = useMemo(() => {
+    return {...functionTags, ...numberTags, ...stringTags};
+  }, [numberTags, stringTags, functionTags]);
+
+  const filterKeySections = useMemo(() => {
+    const predefined = new Set(
+      SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children)
+    );
+    return [
+      ...SPANS_FILTER_KEY_SECTIONS,
+      {
+        value: 'custom_fields',
+        label: 'Custom Tags',
+        children: Object.keys(stringTags).filter(key => !predefined.has(key)),
+      },
+    ];
+  }, [stringTags]);
+
+  const getSpanFilterTagValues = useCallback(
+    async (tag: Tag, queryString: string) => {
+      if (isAggregateField(tag.key) || numberTags.hasOwnProperty(tag.key)) {
+        // We can't really auto suggest values for aggregate fields
+        // or measurements, so we simply don't
+        return Promise.resolve([]);
+      }
+
+      try {
+        const results = await fetchSpanFieldValues({
+          api,
+          orgSlug: organization.slug,
+          fieldKey: tag.key,
+          search: queryString,
+          projectIds: selection.projects.map(String),
+          endpointParams: normalizeDateTimeParams(selection.datetime),
+          dataset: 'spans',
+        });
+        return results.filter(({name}) => defined(name)).map(({name}) => name);
+      } catch (e) {
+        throw new Error(`Unable to fetch event field values: ${e}`);
+      }
+    },
+    [api, organization.slug, selection.projects, selection.datetime, numberTags]
+  );
+
+  return (
+    <SearchQueryBuilder
+      placeholder={placeholderText}
+      filterKeys={tags}
       initialQuery={initialQuery}
       fieldDefinitionGetter={getSpanFieldDefinition}
       onSearch={onSearch}

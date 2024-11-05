@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -12,6 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -24,6 +26,8 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screenload/settings';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 import Onboarding from 'sentry/views/performance/onboarding';
 
@@ -31,56 +35,80 @@ export function PageloadModule() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
+  const {isInDomainView} = useDomainViewFilters();
 
   const crumbs = useModuleBreadcrumbs('screen_load');
 
   return (
     <Layout.Page>
       <PageAlertProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
-            <HeaderWrapper>
-              <Layout.Title>
+        {!isInDomainView && (
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Breadcrumbs crumbs={crumbs} />
+              <HeaderWrapper>
+                <Layout.Title>
+                  {MODULE_TITLE}
+                  <PageHeadingQuestionTooltip
+                    docsUrl={MODULE_DOC_LINK}
+                    title={MODULE_DESCRIPTION}
+                  />
+                </Layout.Title>
+              </HeaderWrapper>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                {isProjectCrossPlatform && <PlatformSelector />}
+                <FeedbackWidgetButton />
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+        )}
+
+        {isInDomainView && (
+          <MobileHeader
+            module={ModuleName.SCREEN_LOAD}
+            headerTitle={
+              <Fragment>
                 {MODULE_TITLE}
                 <PageHeadingQuestionTooltip
                   docsUrl={MODULE_DOC_LINK}
                   title={MODULE_DESCRIPTION}
                 />
-              </Layout.Title>
-            </HeaderWrapper>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              {isProjectCrossPlatform && <PlatformSelector />}
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
+              </Fragment>
+            }
+            headerActions={isProjectCrossPlatform && <PlatformSelector />}
+          />
+        )}
 
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <Container>
-              <ModulePageFilterBar
-                moduleName={ModuleName.SCREEN_LOAD}
-                extraFilters={<ReleaseComparisonSelector />}
-              />
-            </Container>
-            <PageAlert />
-            <ErrorBoundary mini>
-              <ModulesOnboarding moduleName={ModuleName.SCREEN_LOAD}>
-                {onboardingProject && (
-                  <OnboardingContainer>
-                    <Onboarding organization={organization} project={onboardingProject} />
-                  </OnboardingContainer>
-                )}
-                {!onboardingProject && (
-                  <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
-                )}
-              </ModulesOnboarding>
-            </ErrorBoundary>
-          </Layout.Main>
-        </Layout.Body>
+        <ModuleBodyUpsellHook moduleName={ModuleName.SCREEN_LOAD}>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <Container>
+                <ModulePageFilterBar
+                  moduleName={ModuleName.SCREEN_LOAD}
+                  extraFilters={<ReleaseComparisonSelector />}
+                />
+              </Container>
+              <PageAlert />
+              <ErrorBoundary mini>
+                <ModulesOnboarding moduleName={ModuleName.SCREEN_LOAD}>
+                  {onboardingProject && (
+                    <OnboardingContainer>
+                      <Onboarding
+                        organization={organization}
+                        project={onboardingProject}
+                      />
+                    </OnboardingContainer>
+                  )}
+                  {!onboardingProject && (
+                    <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
+                  )}
+                </ModulesOnboarding>
+              </ErrorBoundary>
+            </Layout.Main>
+          </Layout.Body>
+        </ModuleBodyUpsellHook>
       </PageAlertProvider>
     </Layout.Page>
   );

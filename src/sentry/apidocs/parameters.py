@@ -20,6 +20,13 @@ def build_typed_list(type: Any):
 
 
 class GlobalParams:
+    USER_ID = OpenApiParameter(
+        name="user_id",
+        description="The ID of the user the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
     ORG_ID_OR_SLUG = OpenApiParameter(
         name="organization_id_or_slug",
         description="The ID or slug of the organization the resource belongs to.",
@@ -178,6 +185,14 @@ Valid fields include:
         required=True,
         type=int,
         description="The ID of the external user object. This is returned when creating an external user.",
+    )
+
+    EXTERNAL_TEAM_ID = OpenApiParameter(
+        name="external_team_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the external team object. This is returned when creating an external team.",
     )
 
 

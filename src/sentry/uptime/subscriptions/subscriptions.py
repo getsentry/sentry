@@ -28,8 +28,6 @@ logger = logging.getLogger(__name__)
 UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
 MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
-# Default timeout for all subscriptions
-DEFAULT_SUBSCRIPTION_TIMEOUT_MS = 10000
 
 
 class MaxManualUptimeSubscriptionsReached(ValueError):
@@ -39,6 +37,7 @@ class MaxManualUptimeSubscriptionsReached(ValueError):
 def retrieve_uptime_subscription(
     url: str,
     interval_seconds: int,
+    timeout_ms: int,
     method: str,
     headers: Sequence[tuple[str, str]],
     body: str | None,
@@ -46,7 +45,10 @@ def retrieve_uptime_subscription(
     try:
         subscription = (
             UptimeSubscription.objects.filter(
-                url=url, interval_seconds=interval_seconds, method=method
+                url=url,
+                interval_seconds=interval_seconds,
+                timeout_ms=timeout_ms,
+                method=method,
             )
             .annotate(
                 headers_md5=MD5("headers", output_field=TextField()),
@@ -66,7 +68,7 @@ def retrieve_uptime_subscription(
 def get_or_create_uptime_subscription(
     url: str,
     interval_seconds: int,
-    timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
+    timeout_ms: int,
     method: str = "GET",
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
@@ -81,7 +83,9 @@ def get_or_create_uptime_subscription(
     # domain.
     result = extract_domain_parts(url)
 
-    subscription = retrieve_uptime_subscription(url, interval_seconds, method, headers, body)
+    subscription = retrieve_uptime_subscription(
+        url, interval_seconds, timeout_ms, method, headers, body
+    )
     created = False
 
     if subscription is None:
@@ -102,7 +106,7 @@ def get_or_create_uptime_subscription(
         except IntegrityError:
             # Handle race condition where we tried to retrieve an existing subscription while it was being created
             subscription = retrieve_uptime_subscription(
-                url, interval_seconds, method, headers, body
+                url, interval_seconds, timeout_ms, method, headers, body
             )
 
     if subscription is None:
@@ -146,7 +150,7 @@ def get_or_create_project_uptime_subscription(
     environment: Environment | None,
     url: str,
     interval_seconds: int,
-    timeout_ms: int = DEFAULT_SUBSCRIPTION_TIMEOUT_MS,
+    timeout_ms: int,
     method: str = "GET",
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
@@ -190,6 +194,7 @@ def update_project_uptime_subscription(
     environment: Environment | None,
     url: str,
     interval_seconds: int,
+    timeout_ms: int,
     method: str,
     headers: Sequence[tuple[str, str]],
     body: str | None,
@@ -201,7 +206,7 @@ def update_project_uptime_subscription(
     """
     cur_uptime_subscription = uptime_monitor.uptime_subscription
     new_uptime_subscription = get_or_create_uptime_subscription(
-        url, interval_seconds, cur_uptime_subscription.timeout_ms, method, headers, body
+        url, interval_seconds, timeout_ms, method, headers, body
     )
     updated_subscription = cur_uptime_subscription.id != new_uptime_subscription.id
 

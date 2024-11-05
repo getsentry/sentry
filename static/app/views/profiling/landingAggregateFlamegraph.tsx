@@ -9,7 +9,6 @@ import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggreg
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
@@ -118,6 +117,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         value={props.frameFilter}
         options={frameSelectOptions}
       />
+      {/*
       <Button
         size="xs"
         onClick={props.onHideRegressionsClick}
@@ -125,6 +125,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
       >
         <IconPanel size="xs" direction="right" />
       </Button>
+      */}
     </AggregateFlamegraphToolbarContainer>
   );
 }
@@ -132,7 +133,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
 export function LandingAggregateFlamegraph(): React.ReactNode {
   const location = useLocation();
 
-  const {data, isPending, isError} = useAggregateFlamegraphQuery({
+  const {data, status} = useAggregateFlamegraphQuery({
     dataSource: 'profiles',
   });
 
@@ -161,6 +162,10 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
     },
     [setFrameFilter]
   );
+
+  const onResetFrameFilter = useCallback(() => {
+    setFrameFilter('all');
+  }, [setFrameFilter]);
 
   const flamegraphFrameFilter: ((frame: Frame) => boolean) | undefined = useMemo(() => {
     if (frameFilter === 'all') {
@@ -212,17 +217,20 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
                 setHideSystemFrames={noop}
                 onHideRegressionsClick={onHideRegressionsClick}
               />
-              {isPending ? (
+              {status === 'pending' ? (
                 <RequestStateMessageContainer>
                   <LoadingIndicator />
                 </RequestStateMessageContainer>
-              ) : isError ? (
+              ) : status === 'error' ? (
                 <RequestStateMessageContainer>
                   {t('There was an error loading the flamegraph.')}
                 </RequestStateMessageContainer>
               ) : null}
               {visualization === 'flamegraph' ? (
                 <AggregateFlamegraph
+                  filter={frameFilter}
+                  status={status}
+                  onResetFilter={onResetFrameFilter}
                   canvasPoolManager={canvasPoolManager}
                   scheduler={scheduler}
                 />

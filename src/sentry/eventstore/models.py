@@ -305,12 +305,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return get_interfaces(self.data)
 
     @overload
-    def get_interface(self, name: Literal["user"]) -> User:
-        ...
+    def get_interface(self, name: Literal["user"]) -> User: ...
 
     @overload
-    def get_interface(self, name: str) -> Interface | None:
-        ...
+    def get_interface(self, name: str) -> Interface | None: ...
 
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
@@ -602,7 +600,7 @@ class Event(BaseEvent):
     def group_id(self, value: int | None) -> None:
         self._group_id = value
 
-    # TODO We need a better way to cache these properties. functools
+    # TODO: We need a better way to cache these properties. functools
     # doesn't quite do the trick as there is a reference bug with unsaved
     # models. But the current _group_cache thing is also clunky because these
     # properties need to be stripped out in __getstate__.

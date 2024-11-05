@@ -347,12 +347,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 }
             ],
         }
-        with self.feature({"organizations:dashboards-bignumber-equations": True}):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 200, response.data
 
     def test_project_search_condition(self):
@@ -397,7 +396,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": before_now(minutes=2).timestamp(),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group_1"],
             },
             project_id=self.project.id,
@@ -1066,7 +1065,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": before_now(minutes=2).timestamp(),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"sometag": "foo"},
             },
             project_id=self.project.id,
@@ -1105,3 +1104,26 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert "columns" in warnings
         assert len(warnings["columns"]) == 1
         assert warnings["columns"]["sometag"] == "disabled:high-cardinality"
+
+    def test_widget_type_spans(self):
+        data = {
+            "title": "Test Query",
+            "widgetType": "spans",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["span.op", "count()"],
+                    "columns": ["span.op"],
+                    "aggregates": ["count()"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
