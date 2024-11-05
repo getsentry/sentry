@@ -477,6 +477,7 @@ class TriggersChart extends PureComponent<Props, State> {
         query,
         queryExtras,
         sampleRate,
+        period,
         environment: environment ? [environment] : undefined,
         project: projects.map(({id}) => Number(id)),
         interval: `${timeWindow}m`,
@@ -485,8 +486,6 @@ class TriggersChart extends PureComponent<Props, State> {
         includePrevious: false,
         currentSeriesNames: [formattedAggregate || aggregate],
         partial: false,
-        includeTimeAggregation: false,
-        includeTransformedData: false,
         limit: 15,
         children: noop,
       };
@@ -497,15 +496,10 @@ class TriggersChart extends PureComponent<Props, State> {
             <OnDemandMetricRequest
               {...baseProps}
               api={this.historicalAPI}
-              period={period}
               dataLoadedCallback={onHistoricalDataLoaded}
             />
           ) : null}
-          <OnDemandMetricRequest
-            {...baseProps}
-            period={period}
-            dataLoadedCallback={onDataLoaded}
-          >
+          <OnDemandMetricRequest {...baseProps} dataLoadedCallback={onDataLoaded}>
             {({
               loading,
               errored,
