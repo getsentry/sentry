@@ -80,25 +80,27 @@ class Dashboard(Model):
 
     @classmethod
     def incremental_title(cls, organization, name):
-        """Given a dashboard name that already exists, returns a new unique name that does not exist, by appending the word "Copy" and an integer."""
+        """Given a dashboard name that already exists, returns a new unique name that does not exist, by appending the word "copy" and an integer if necessary. If the name doesn't require an increment return it."""
+
+        base_name = re.sub(r" ?copy ?(\d+)?$", "", name)
         matching_dashboards = cls.objects.filter(
-            organization=organization, title__regex=rf"^{re.escape(name)} ?(copy)? ?(\d+)?$"
+            organization=organization, title__regex=rf"^{re.escape(base_name)} ?(copy)? ?(\d+)?$"
         )
 
         if not matching_dashboards:
             return name
 
-        next_copy_number = 1
+        next_copy_number = 0
         for dashboard in matching_dashboards:
             match = re.search(r" copy ?(\d+)?", dashboard.title)
             if match:
-                copy_number = int(match.group(1) or 1)
+                copy_number = int(match.group(1) or 0)
                 next_copy_number = max(next_copy_number, copy_number + 1)
 
-        if next_copy_number == 1:
-            return f"{name} copy"
+        if next_copy_number == 0:
+            return f"{base_name} copy"
 
-        return f"{name} copy {next_copy_number}"
+        return f"{base_name} copy {next_copy_number}"
 
 
 @region_silo_model

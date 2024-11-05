@@ -15,7 +15,7 @@ class IncrementalNameTest(TestCase):
         self.create_dashboard(title="Stats", organization=self.organization)
         self.create_dashboard(title="Stats copy", organization=self.organization)
 
-        assert Dashboard.incremental_title(self.organization, "Stats") == "Stats copy 2"
+        assert Dashboard.incremental_title(self.organization, "Stats") == "Stats copy 1"
 
     def test_two_preexisting_non_starting(self):
         self.create_dashboard(title="Stats copy 4", organization=self.organization)
@@ -28,6 +28,14 @@ class IncrementalNameTest(TestCase):
         self.create_dashboard(title="Stats copy 17", organization=self.organization)
 
         assert Dashboard.incremental_title(self.organization, "Stats") == "Stats copy 18"
+
+    def test_copy_of_copy(self):
+        self.create_dashboard(title="Stats copy 4", organization=self.organization)
+
+        assert Dashboard.incremental_title(self.organization, "Stats copy 4") == "Stats copy 4"
+
+    def test_name_with_copy_in_it(self):
+        assert Dashboard.incremental_title(self.organization, "Stats copy 4") == "Stats copy 5"
 
     def test_similar_names(self):
         self.create_dashboard(title="Stats", organization=self.organization)
@@ -46,7 +54,7 @@ class IncrementalNameTest(TestCase):
 
         self.create_dashboard(title="My Stuff", organization=first_organization)
         self.create_dashboard(title="My Stuff copy", organization=first_organization)
-        self.create_dashboard(title="My Stuff copy 2", organization=first_organization)
+        self.create_dashboard(title="My Stuff copy 1", organization=first_organization)
 
-        assert Dashboard.incremental_title(first_organization, "My Stuff") == "My Stuff copy 3"
+        assert Dashboard.incremental_title(first_organization, "My Stuff") == "My Stuff copy 2"
         assert Dashboard.incremental_title(second_organization, "My Stuff") == "My Stuff"
