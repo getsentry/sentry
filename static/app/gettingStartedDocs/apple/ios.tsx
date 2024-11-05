@@ -96,7 +96,10 @@ func application(_ application: UIApplication,
     // Manually call startProfiler and stopProfiler
     // to profile the code in between
     SentrySDK.startProfiler()
-    // do some work here
+    // this code will be profiled
+    //
+    // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
+    // your application until the process exits or stopProfiling is called.
     SentrySDK.stopProfiler()`
         : ''
     }
@@ -135,10 +138,13 @@ struct SwiftUIApp: App {
           params.profilingOptions?.defaultProfilingMode === 'continuous'
             ? `
 
-        // Manually call start_profiler and stop_profiler
+        // Manually call startProfiler and stopProfiler
         // to profile the code in between
         SentrySDK.startProfiler()
-        // do some work here
+        // this code will be profiled
+        //
+        // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
+        // your application until the process exits or stopProfiling is called.
         SentrySDK.stopProfiler()`
             : ''
         }

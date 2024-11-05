@@ -56,7 +56,10 @@ func applicationDidFinishLaunching(_ aNotification: Notification) {
     // Manually call startProfiler and stopProfiler
     // to profile the code in between
     SentrySDK.startProfiler()
-    // do some work here
+    // this code will be profiled
+    //
+    // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
+    // your application until the process exits or stopProfiling is called.
     SentrySDK.stopProfiler()`
         : ''
     }
