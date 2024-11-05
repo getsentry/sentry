@@ -2,7 +2,6 @@ import re
 from typing import Literal
 
 import sentry_sdk
-from croniter import CroniterBadCronError, CroniterBadDateError
 from cronsim import CronSimError
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -224,14 +223,16 @@ class ConfigValidator(serializers.Serializer):
                 except KeyError:
                     raise ValidationError({"schedule": "Schedule was not parseable"})
 
-            # XXX(epurkhiser): Make sure we can traverse forward and back in
-            # the schedule. croniter is good, but there are some very edge case
-            # schedules that give it trouble
+            # Do not support 6 or 7 field crontabs
+            if len(schedule.split()) > 5:
+                raise ValidationError({"schedule": "Only 5 field crontab syntax is supported"})
+
+            # Validate the expression and ensure we can traverse forward / back
             now = timezone.now()
             try:
                 get_next_schedule(now, CrontabSchedule(schedule))
                 get_prev_schedule(now, now, CrontabSchedule(schedule))
-            except (CroniterBadCronError, CroniterBadDateError, CronSimError):
+            except CronSimError:
                 raise ValidationError({"schedule": "Schedule is invalid"})
 
             # Do not support 6 or 7 field crontabs
