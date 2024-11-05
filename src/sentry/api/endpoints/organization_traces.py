@@ -474,9 +474,6 @@ class TracesExecutor:
             #
             # To create the illusion that traces are sorted by most recent, apply
             # an additional sort here so the traces are sorted by most recent.
-            def data_key(trace: TraceResult) -> tuple[int, int]:
-                return 0, trace["start"]
-
             data.sort(key=lambda trace: trace["start"], reverse=self.sort == "-timestamp")
 
             if last_item is not None:
