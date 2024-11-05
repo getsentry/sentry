@@ -170,7 +170,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         stats_period_start=None,
         stats_period_end=None,
     ):
-        super().__init__(environment_func)
+        super().__init__(environment_func=environment_func)
 
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES or stats_period == "auto"

@@ -18,7 +18,7 @@ import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -49,7 +49,7 @@ export function NewOnboardingStatus({
   );
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
-  const walkthrough = isDemoWalkthrough();
+  const walkthrough = isDemoModeEnabled();
 
   const supportedTasks = getMergedTasks({
     organization,

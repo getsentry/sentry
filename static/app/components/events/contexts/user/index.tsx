@@ -2,7 +2,7 @@ import UserAvatar from 'sentry/components/avatar/userAvatar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
+import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import type {Event} from 'sentry/types/event';
 import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
@@ -76,7 +76,7 @@ export function UserEventContext({data, event, meta: propsMeta}: Props) {
   return (
     <div className="user-widget">
       <div className="pull-left">
-        <UserAvatar user={removeFilterMaskedEntries(data)} size={48} gravatar={false} />
+        <UserAvatar user={userContextToActor(data)} size={48} gravatar={false} />
       </div>
       <ContextBlock data={knownStructuredData} />
       <ContextBlock data={unknownData} />

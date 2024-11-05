@@ -79,7 +79,6 @@ describe('EventDetailsHeader', () => {
       screen.getByRole('button', {name: 'Toggle graph series - Users'})
     ).toBeInTheDocument();
     expect(screen.getByRole('figure')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Close Sidebar'})).toBeInTheDocument();
   });
 

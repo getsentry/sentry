@@ -1,0 +1,18 @@
+---
+created: '2024-10-28T14:02:42.604675+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "dc3d511120ce04996b1eef3496516e5c"
+    component:
+      system*
+        stacktrace*
+          frame*
+            filename* (cleaned javassist parts)
+              "entriesresource_$$_javassist<auto>.java"
+            function*
+              "fn"

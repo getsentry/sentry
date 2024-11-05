@@ -70,10 +70,10 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
 
     def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         # try the typed regex first
-        if len(raw_field) <= 200:
-            tag_match = constants.TYPED_TAG_KEY_RE.search(raw_field)
-        else:
+        if len(raw_field) > constants.MAX_TAG_KEY_LENGTH:
             raise InvalidSearchQuery(f"{raw_field} is too long, can be a maximum of 200 characters")
+
+        tag_match = constants.TYPED_TAG_KEY_RE.search(raw_field)
         field = tag_match.group("tag") if tag_match else None
         field_type = tag_match.group("type") if tag_match else None
         if (
