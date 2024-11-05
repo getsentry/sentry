@@ -44,6 +44,20 @@ describe('StreamlinedSidebar', function () {
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      method: 'GET',
+      body: group,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/issues/1/autofix/setup/',
+      body: {
+        genAIConsent: {ok: false},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: true},
+      },
+    });
 
     mockFirstLastRelease = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
@@ -78,6 +92,9 @@ describe('StreamlinedSidebar', function () {
     render(<StreamlinedSidebar group={group} project={project} event={event} />, {
       organization,
     });
+
+    expect(await screen.findByText('Solutions & Resources')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'See More'})).toBeInTheDocument();
 
     expect(await screen.findByText('First seen')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();

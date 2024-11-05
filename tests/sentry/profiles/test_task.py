@@ -21,7 +21,6 @@ from sentry.profiles.task import (
     Profile,
     _calculate_profile_duration_ms,
     _deobfuscate,
-    _deobfuscate_locally,
     _deobfuscate_using_symbolicator,
     _normalize,
     _process_symbolicator_results_for_sample,
@@ -318,128 +317,6 @@ def test_normalize_android_profile(organization, android_profile):
         assert k in android_profile
 
     assert isinstance(android_profile["android_api_level"], int)
-
-
-@django_db_all
-def test_basic_deobfuscation(project, proguard_file_basic, android_profile):
-    android_profile.update(
-        {
-            "build_id": PROGUARD_UUID,
-            "project_id": project.id,
-            "profile": {
-                "methods": [
-                    {
-                        "abs_path": None,
-                        "class_name": "org.a.b.g$a",
-                        "name": "a",
-                        "signature": "()V",
-                        "source_file": None,
-                        "source_line": 67,
-                    },
-                    {
-                        "abs_path": None,
-                        "class_name": "org.a.b.g$a",
-                        "name": "a",
-                        "signature": "()V",
-                        "source_file": None,
-                        "source_line": 69,
-                    },
-                ],
-            },
-        }
-    )
-    _deobfuscate_locally(android_profile, project, PROGUARD_UUID)
-    frames = android_profile["profile"]["methods"]
-
-    assert frames[0]["name"] == "getClassContext"
-    assert frames[0]["class_name"] == "org.slf4j.helpers.Util$ClassContextSecurityManager"
-    assert frames[1]["name"] == "getExtraClassContext"
-    assert frames[1]["class_name"] == "org.slf4j.helpers.Util$ClassContextSecurityManager"
-
-
-@django_db_all
-def test_inline_deobfuscation(project, proguard_file_inline, android_profile):
-    android_profile.update(
-        {
-            "build_id": PROGUARD_INLINE_UUID,
-            "project_id": project.id,
-            "profile": {
-                "methods": [
-                    {
-                        "abs_path": None,
-                        "class_name": "e.a.c.a",
-                        "name": "onClick",
-                        "signature": "()V",
-                        "source_file": None,
-                        "source_line": 2,
-                    },
-                    {
-                        "abs_path": None,
-                        "class_name": "io.sentry.sample.MainActivity",
-                        "name": "t",
-                        "signature": "()V",
-                        "source_file": "MainActivity.java",
-                        "source_line": 1,
-                    },
-                ],
-            },
-        }
-    )
-
-    project = Project.objects.get_from_cache(id=android_profile["project_id"])
-    _deobfuscate_locally(android_profile, project, PROGUARD_INLINE_UUID)
-    frames = android_profile["profile"]["methods"]
-
-    assert sum(len(f.get("inline_frames", [])) for f in frames) == 3
-
-    assert frames[0]["name"] == "onClick"
-    assert frames[0]["class_name"] == "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4"
-
-    assert frames[1]["inline_frames"][0]["name"] == "onClickHandler"
-    assert frames[1]["inline_frames"][0]["source_line"] == 40
-    assert frames[1]["inline_frames"][0]["source_file"] == "MainActivity.java"
-    assert frames[1]["inline_frames"][0]["class_name"] == "io.sentry.sample.MainActivity"
-    assert frames[1]["inline_frames"][0]["signature"] == "()"
-    assert frames[1]["inline_frames"][1]["name"] == "foo"
-    assert frames[1]["inline_frames"][1]["source_line"] == 44
-    assert frames[1]["inline_frames"][2]["source_file"] == "MainActivity.java"
-    assert frames[1]["inline_frames"][2]["class_name"] == "io.sentry.sample.MainActivity"
-    assert frames[1]["inline_frames"][2]["name"] == "bar"
-    assert frames[1]["inline_frames"][2]["source_line"] == 54
-
-
-@django_db_all
-def test_error_on_resolving(project, proguard_file_bug, android_profile):
-    android_profile.update(
-        {
-            "build_id": PROGUARD_BUG_UUID,
-            "project_id": project.id,
-            "profile": {
-                "methods": [
-                    {
-                        "name": "a",
-                        "abs_path": None,
-                        "class_name": "org.a.b.g$a",
-                        "source_file": None,
-                        "source_line": 67,
-                    },
-                    {
-                        "name": "a",
-                        "abs_path": None,
-                        "class_name": "org.a.b.g$a",
-                        "source_file": None,
-                        "source_line": 69,
-                    },
-                ],
-            },
-        }
-    )
-
-    project = Project.objects.get_from_cache(id=android_profile["project_id"])
-    obfuscated_frames = android_profile["profile"]["methods"].copy()
-    _deobfuscate(android_profile, project)
-
-    assert android_profile["profile"]["methods"] == obfuscated_frames
 
 
 def test_process_symbolicator_results_for_sample():
@@ -837,6 +714,42 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 "source_line": 40,
             },
         ]
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_error_on_resolving(self):
+        self.upload_proguard_mapping(PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
+        android_profile = load_profile("valid_android_profile.json")
+        android_profile.update(
+            {
+                "build_id": PROGUARD_BUG_UUID,
+                "project_id": self.project.id,
+                "profile": {
+                    "methods": [
+                        {
+                            "name": "a",
+                            "abs_path": None,
+                            "class_name": "org.a.b.g$a",
+                            "source_file": None,
+                            "source_line": 67,
+                        },
+                        {
+                            "name": "a",
+                            "abs_path": None,
+                            "class_name": "org.a.b.g$a",
+                            "source_file": None,
+                            "source_line": 69,
+                        },
+                    ],
+                },
+            }
+        )
+
+        project = Project.objects.get_from_cache(id=android_profile["project_id"])
+        obfuscated_frames = android_profile["profile"]["methods"].copy()
+        _deobfuscate(android_profile, project)
+
+        assert android_profile["profile"]["methods"] == obfuscated_frames
 
     @requires_symbolicator
     @pytest.mark.symbolicator

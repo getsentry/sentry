@@ -455,6 +455,12 @@ urlpatterns += [
         react_page_view,
         name="stories",
     ),
+    # Rollback
+    re_path(
+        r"^rollback/",
+        react_page_view,
+        name="rollback",
+    ),
     # Legacy Redirects
     re_path(
         r"^docs/?$",
@@ -671,6 +677,11 @@ urlpatterns += [
                     r"^legal/",
                     react_page_view,
                     name="sentry-customer-domain-legal-settings",
+                ),
+                re_path(
+                    r"^dynamic-sampling/",
+                    react_page_view,
+                    name="sentry-customer-domain-dynamic-sampling-settings",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/$",

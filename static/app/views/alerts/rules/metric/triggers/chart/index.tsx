@@ -91,7 +91,9 @@ type Props = {
   showTotalCount?: boolean;
 };
 
-const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
+type TimePeriodMap = Omit<Record<TimePeriod, string>, TimePeriod.TWENTY_EIGHT_DAYS>;
+
+const TIME_PERIOD_MAP: TimePeriodMap = {
   [TimePeriod.SIX_HOURS]: t('Last 6 hours'),
   [TimePeriod.ONE_DAY]: t('Last 24 hours'),
   [TimePeriod.THREE_DAYS]: t('Last 3 days'),
@@ -147,7 +149,7 @@ const SESSION_AGGREGATE_TO_HEADING = {
   [SessionsAggregate.CRASH_FREE_USERS]: t('Total Users'),
 };
 
-const HISTORICAL_TIME_PERIOD_MAP: Record<TimePeriod, string> = {
+const HISTORICAL_TIME_PERIOD_MAP: TimePeriodMap = {
   [TimePeriod.SIX_HOURS]: '678h',
   [TimePeriod.ONE_DAY]: '29d',
   [TimePeriod.THREE_DAYS]: '31d',

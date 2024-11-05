@@ -7,6 +7,7 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
@@ -28,22 +29,24 @@ export function ScreenRenderingModule() {
           headerActions={isProjectCrossPlatform && <PlatformSelector />}
         />
 
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <Container>
-              <ModulePageFilterBar
-                moduleName={ModuleName.SCREEN_LOAD}
-                extraFilters={<ReleaseComparisonSelector />}
-              />
-            </Container>
-            <PageAlert />
-            <ErrorBoundary mini>
-              <ModulesOnboarding moduleName={ModuleName.SCREEN_RENDERING}>
-                <ScreenRenderingContent />
-              </ModulesOnboarding>
-            </ErrorBoundary>
-          </Layout.Main>
-        </Layout.Body>
+        <ModuleBodyUpsellHook moduleName={ModuleName.APP_START}>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <Container>
+                <ModulePageFilterBar
+                  moduleName={ModuleName.SCREEN_LOAD}
+                  extraFilters={<ReleaseComparisonSelector />}
+                />
+              </Container>
+              <PageAlert />
+              <ErrorBoundary mini>
+                <ModulesOnboarding moduleName={ModuleName.SCREEN_RENDERING}>
+                  <ScreenRenderingContent />
+                </ModulesOnboarding>
+              </ErrorBoundary>
+            </Layout.Main>
+          </Layout.Body>
+        </ModuleBodyUpsellHook>
       </PageAlertProvider>
     </Layout.Page>
   );

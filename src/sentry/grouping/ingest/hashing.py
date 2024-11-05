@@ -209,7 +209,11 @@ def find_grouphash_with_group(
 
 
 def get_or_create_grouphashes(
-    project: Project, hashes: Sequence[str], grouping_config: str
+    event: Event,
+    project: Project,
+    variants: dict[str, BaseVariant],
+    hashes: Sequence[str],
+    grouping_config: str,
 ) -> list[GroupHash]:
     is_secondary = grouping_config != project.get_option("sentry:grouping_config")
     grouphashes: list[GroupHash] = []
@@ -226,7 +230,9 @@ def get_or_create_grouphashes(
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled") and features.has(
             "organizations:grouphash-metadata-creation", project.organization
         ):
-            create_or_update_grouphash_metadata(grouphash, created, grouping_config)
+            create_or_update_grouphash_metadata(
+                event, project, grouphash, created, grouping_config, variants
+            )
 
         grouphashes.append(grouphash)
 

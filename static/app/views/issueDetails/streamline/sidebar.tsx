@@ -15,6 +15,7 @@ import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/firstLast
 import PeopleSection from 'sentry/views/issueDetails/streamline/peopleSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
+import SolutionsSection from 'sentry/views/issueDetails/streamline/solutionsSection';
 
 type Props = {
   group: Group;
@@ -41,6 +42,8 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   return (
     <Side>
+      <SolutionsSection group={group} project={project} event={event} />
+      <StyledBreak />
       <FirstLastSeenSection group={group} />
       <StyledBreak />
       {event && (

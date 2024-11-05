@@ -11,9 +11,10 @@ import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import textStyles from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -75,7 +76,13 @@ function TimelineItem({
         )
       }
     >
-      {typeof message === 'string' ? <NoteBody text={message} /> : message}
+      {typeof message === 'string' ? (
+        <NoteWrapper>
+          <NoteBody text={message} />
+        </NoteWrapper>
+      ) : (
+        message
+      )}
     </ActivityTimelineItem>
   );
 }
@@ -129,8 +136,11 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
   const handleCreate = useCallback(
     (n: NoteType, _me: User) => {
       mutators.handleCreate(n, group.activity, {
-        onError: () => {
-          addErrorMessage(t('Unable to post comment'));
+        onError: err => {
+          const errMessage = err.responseJSON?.detail
+            ? tct('Error: [msg]', {msg: err.responseJSON?.detail as string})
+            : t('Unable to post comment');
+          addErrorMessage(errMessage);
         },
         onSuccess: data => {
           GroupStore.addActivity(group.id, data);
@@ -244,4 +254,8 @@ const TextButton = styled(Button)`
 
 const RotatedEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg) translateY(1px);
+`;
+
+const NoteWrapper = styled('div')`
+  ${textStyles}
 `;
