@@ -38,10 +38,6 @@ def _init_worker() -> None:
         __import__(module)
 
 
-class WorkerCompleteException(Exception):
-    pass
-
-
 class TaskWorker:
     """
     A TaskWorker fetches tasks from a task queue (inflight activation store) and handles executing them.
@@ -52,11 +48,11 @@ class TaskWorker:
         self, rpc_host: str, max_task_count: int | None = None, **options: dict[str, Any]
     ) -> None:
         self.options = options
-        self.exitcode: int | None = None
         self._execution_count = 0
         self._worker_id = uuid4().hex
         self._max_task_count = max_task_count
         self.client = TaskClient(rpc_host)
+        self._pool: Pool | None = None
         self._build_pool()
 
     def __del__(self) -> None:
@@ -64,6 +60,8 @@ class TaskWorker:
             self._pool.terminate()
 
     def _build_pool(self) -> None:
+        if self._pool:
+            self._pool.terminate()
         self._pool = Pool(processes=2, initializer=_init_worker)
 
     def do_imports(self) -> None:
@@ -71,7 +69,7 @@ class TaskWorker:
             __import__(module)
         self._build_pool()
 
-    def start(self) -> None:
+    def start(self) -> int:
         self.do_imports()
         next_task: TaskActivation | None = None
         task: TaskActivation | None = None
@@ -92,16 +90,14 @@ class TaskWorker:
                     self._max_task_count is not None
                     and self._max_task_count <= self._execution_count
                 ):
-                    self.exitcode = 1
-                    raise WorkerCompleteException("Max task exeuction count reached")
+                    logger.info("Max task execution count reached. Terminating")
+                    return 0
 
         except KeyboardInterrupt:
-            self.exitcode = 1
-        except WorkerCompleteException as err:
-            self.exitcode = 0
-            logger.warning(str(err))
+            return 1
         except Exception:
             logger.exception("Worker process crashed")
+            return 2
 
     def fetch_task(self) -> TaskActivation | None:
         try:
@@ -111,7 +107,7 @@ class TaskWorker:
             return None
 
         if not activation:
-            logger.info("No tasks")
+            logger.info("No task fetched")
             return None
 
         return activation
@@ -155,7 +151,6 @@ class TaskWorker:
             )
             # When a task times out we kill the entire pool. This is necessary because
             # stdlib multiprocessing.Pool doesn't expose ways to terminate individual tasks.
-            self._pool.terminate()
             self._build_pool()
         except Exception as err:
             # TODO(taskworker) handle explicit retries better.

@@ -253,10 +253,10 @@ def taskworker(**options: Any) -> None:
         worker = TaskWorker(
             rpc_host=options.get("rpc_host"), max_task_count=options.get("max_task_count")
         )
-        worker.start()
+        exitcode = worker.start()
         # Give time for the current task to complete.
         time.sleep(1)
-        raise SystemExit(worker.exitcode)
+        raise SystemExit(exitcode)
 
 
 @run.command()
