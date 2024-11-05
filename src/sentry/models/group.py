@@ -433,7 +433,6 @@ class GroupManager(BaseManager["Group"]):
         from_substatus: int | None = None,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
-        from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
         from sentry.models.activity import Activity
 
         modified_groups_list = []
@@ -468,9 +467,6 @@ class GroupManager(BaseManager["Group"]):
                 send_notification=send_activity_notification,
             )
             record_group_history_from_activity_type(group, activity_type.value)
-            kick_off_status_syncs.apply_async(
-                kwargs={"project_id": group.project_id, "group_id": group.id}
-            )
 
             if group.id in updated_priority:
                 new_priority = updated_priority[group.id]
