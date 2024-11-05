@@ -23,7 +23,6 @@ class SeerEventManagerGroupingTest(TestCase):
             parent_hash=NonNone(existing_event.get_primary_hash()),
             parent_group_id=NonNone(existing_event.group_id),
             stacktrace_distance=0.01,
-            message_distance=0.05,
             should_group=True,
         )
 
@@ -158,7 +157,6 @@ class SeerEventManagerGroupingTest(TestCase):
             parent_hash=existing_event.get_primary_hash(),
             parent_group_id=NonNone(existing_event.group_id),
             stacktrace_distance=0.01,
-            message_distance=0.05,
             should_group=True,
         )
 
@@ -211,7 +209,6 @@ class SeerEventManagerGroupingTest(TestCase):
             parent_hash=NonNone(existing_event.get_primary_hash()),
             parent_group_id=NonNone(existing_event.group_id),
             stacktrace_distance=0.01,
-            message_distance=0.05,
             should_group=True,
         )
 
