@@ -57,11 +57,13 @@ from sentry.constants import (
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.dynamic_sampling.tasks.common import get_organization_volume
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
@@ -653,10 +655,29 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             team__organization=obj
         ).count()
 
-        sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
-        context["isDynamicallySampled"] = (
-            has_dynamic_sampling(obj) and sample_rate is not None and sample_rate < 1.0
-        )
+        is_dynamically_sampled = False
+        if has_dynamic_sampling(obj):
+            if (
+                obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
+                == DynamicSamplingMode.ORGANIZATION
+            ):
+                sample_rate = obj.get_option(
+                    "sentry:target_sample_rate",
+                    quotas.backend.get_blended_sample_rate(organization_id=obj.id),
+                )
+                is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
+            else:
+                # check all projects, if any is sampled, we say the organization as
+                # a whole is dynamically sampled.
+                # values are pickled, so we have to pull each to Python to evaluate
+                is_dynamically_sampled = any(
+                    option.value is not None and option.value < 1.0
+                    for option in ProjectOption.objects.filter(
+                        project__organization=obj, key="sentry:target_sample_rate"
+                    )
+                )
+
+        context["isDynamicallySampled"] = is_dynamically_sampled
 
         org_volume = get_organization_volume(obj.id, timedelta(hours=24))
         if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
