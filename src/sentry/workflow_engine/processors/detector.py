@@ -20,17 +20,16 @@ def process_detectors(
         detector_group_keys = set()
 
         for result in detector_results:
-            if result.state_update_data:
-                if result.state_update_data.group_key in detector_group_keys:
-                    # This shouldn't happen - log an error and continue on, but we should investigate this.
-                    logger.error(
-                        "Duplicate detector state group keys found",
-                        extra={
-                            "detector_id": detector.id,
-                            "group_key": result.state_update_data.group_key,
-                        },
-                    )
-                detector_group_keys.add(result.state_update_data.group_key)
+            if result.group_key in detector_group_keys:
+                # This shouldn't happen - log an error and continue on, but we should investigate this.
+                logger.error(
+                    "Duplicate detector state group keys found",
+                    extra={
+                        "detector_id": detector.id,
+                        "group_key": result.group_key,
+                    },
+                )
+            detector_group_keys.add(result.group_key)
 
         if detector_results:
             results.append((detector, detector_results))

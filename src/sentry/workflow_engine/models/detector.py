@@ -20,7 +20,7 @@ from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.iterators import chunked
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataPacket
 from sentry.workflow_engine.models.detector_state import DetectorState
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ class Detector(DefaultFieldsModel, OwnerModel):
 
 @dataclasses.dataclass(frozen=True)
 class DetectorStateData:
-    group_key: str | None
+    group_key: DetectorGroupKey
     active: bool
     status: DetectorPriorityLevel
     # Stateful detectors always process data packets in order. Once we confirm that a data packet has been fully
@@ -109,10 +109,10 @@ class DetectorStateData:
 
 @dataclasses.dataclass(frozen=True)
 class DetectorEvaluationResult:
+    group_key: DetectorGroupKey
     is_active: bool
     priority: DetectorPriorityLevel
     data: Any
-    state_update_data: DetectorStateData | None = None
 
 
 T = TypeVar("T")
@@ -135,6 +135,12 @@ class DetectorHandler(abc.ABC, Generic[T]):
 
 
 class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
+    def __init__(self, detector: Detector):
+        super().__init__(detector)
+        self.dedupe_updates: dict[DetectorGroupKey, int] = {}
+        self.counter_updates: dict[DetectorGroupKey, dict[str, int | None]] = {}
+        self.state_updates: dict[DetectorGroupKey, tuple[bool, DetectorPriorityLevel]] = {}
+
     @property
     @abc.abstractmethod
     def counter_names(self) -> list[str]:
@@ -159,7 +165,9 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         """
         pass
 
-    def get_state_data(self, group_keys: list[str | None]) -> dict[str | None, DetectorStateData]:
+    def get_state_data(
+        self, group_keys: list[DetectorGroupKey]
+    ) -> dict[DetectorGroupKey, DetectorStateData]:
         """
         Fetches state data associated with this detector for the associated `group_keys`.
         Returns a dict keyed by each group_key with the fetched `DetectorStateData`.
@@ -224,7 +232,11 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         return results
 
     def evaluate_group_key_value(
-        self, group_key: str | None, value: int, state_data: DetectorStateData, dedupe_value: int
+        self,
+        group_key: DetectorGroupKey,
+        value: int,
+        state_data: DetectorStateData,
+        dedupe_value: int,
     ) -> DetectorEvaluationResult | None:
         """
         Evaluates a value associated with a given `group_key` and returns a `DetectorEvaluationResult` with the results
@@ -237,6 +249,8 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             # key level?
             metrics.incr("workflow_engine.detector.skipping_already_processed_update")
             return None
+
+        self.enqueue_dedupe_update(group_key, dedupe_value)
 
         if not self.condition_group:
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
@@ -255,37 +269,45 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
 
         is_active = status != DetectorPriorityLevel.OK
 
+        # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
+        self.enqueue_counter_update(group_key, {})
+
         if state_data.active != is_active or state_data.status != status:
+            self.enqueue_state_update(group_key, is_active, status)
             return DetectorEvaluationResult(
+                group_key,
                 is_active,
                 status,
                 {},
-                # TODO: We actually always need to be able to commit this. I'll move this out of the result
-                DetectorStateData(
-                    group_key=group_key,
-                    active=is_active,
-                    status=status,
-                    dedupe_value=dedupe_value,
-                    # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
-                    # so we no-op
-                    counter_updates={},
-                ),
             )
         return None
 
-    def build_dedupe_value_key(self, group_key: str | None) -> str:
+    def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int):
+        self.dedupe_updates[group_key] = dedupe_value
+
+    def enqueue_counter_update(
+        self, group_key: DetectorGroupKey, counter_updates: dict[str, int | None]
+    ):
+        self.counter_updates[group_key] = counter_updates
+
+    def enqueue_state_update(
+        self, group_key: DetectorGroupKey, is_active: bool, priority: DetectorPriorityLevel
+    ):
+        self.state_updates[group_key] = (is_active, priority)
+
+    def build_dedupe_value_key(self, group_key: DetectorGroupKey) -> str:
         if group_key is None:
             group_key = ""
         return f"{self.detector.id}:{group_key}:dedupe_value"
 
-    def build_counter_value_key(self, group_key: str | None, counter_name: str) -> str:
+    def build_counter_value_key(self, group_key: DetectorGroupKey, counter_name: str) -> str:
         if group_key is None:
             group_key = ""
         return f"{self.detector.id}:{group_key}:{counter_name}"
 
     def bulk_get_detector_state(
-        self, group_keys: list[str | None]
-    ) -> dict[str | None, DetectorState]:
+        self, group_keys: list[DetectorGroupKey]
+    ) -> dict[DetectorGroupKey, DetectorState]:
         """
         Bulk fetches detector state for the passed `group_keys`. Returns a dict keyed by each
         `group_key` with the fetched `DetectorStateData`.
@@ -305,24 +327,18 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             for detector_state in self.detector.detectorstate_set.filter(query_filter)
         }
 
-    def commit_state_update_data(self, state_updates: list[DetectorStateData]):
-        self._bulk_commit_detector_state(state_updates)
-        self._bulk_commit_redis_state(state_updates)
+    def commit_state_updates(self):
+        self._bulk_commit_detector_state()
+        self._bulk_commit_redis_state()
 
-    def _bulk_commit_redis_state(self, state_updates: list[DetectorStateData]):
-        dedupe_values = []
-        group_counter_updates = {}
-        for state_update in state_updates:
-            dedupe_values.append((state_update.group_key, state_update.dedupe_value))
-            group_counter_updates[state_update.group_key] = state_update.counter_updates
-
+    def _bulk_commit_redis_state(self):
         pipeline = get_redis_client().pipeline()
-        if dedupe_values:
-            for group_key, dedupe_value in dedupe_values:
+        if self.dedupe_updates:
+            for group_key, dedupe_value in self.dedupe_updates.items():
                 pipeline.set(self.build_dedupe_value_key(group_key), dedupe_value, ex=REDIS_TTL)
 
-        if group_counter_updates:
-            for group_key, counter_updates in group_counter_updates.items():
+        if self.counter_updates:
+            for group_key, counter_updates in self.counter_updates.items():
                 for counter_name, counter_value in counter_updates.items():
                     key_name = self.build_counter_value_key(group_key, counter_name)
                     if counter_value is None:
@@ -331,30 +347,30 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
                         pipeline.set(key_name, counter_value, ex=REDIS_TTL)
 
         pipeline.execute()
+        self.dedupe_updates.clear()
+        self.counter_updates.clear()
 
-    def _bulk_commit_detector_state(self, state_updates: list[DetectorStateData]):
+    def _bulk_commit_detector_state(self):
+        # TODO: We should already have these loaded from earlier, figure out how to cache and reuse
         detector_state_lookup = self.bulk_get_detector_state(
-            [update.group_key for update in state_updates]
+            [update for update in self.state_updates.keys()]
         )
         created_detector_states = []
         updated_detector_states = []
-        for state_update in state_updates:
-            detector_state = detector_state_lookup.get(state_update.group_key)
+        for group_key, (active, priority) in self.state_updates.items():
+            detector_state = detector_state_lookup.get(group_key)
             if not detector_state:
                 created_detector_states.append(
                     DetectorState(
-                        detector_group_key=state_update.group_key,
+                        detector_group_key=group_key,
                         detector=self.detector,
-                        active=state_update.active,
-                        state=state_update.status,
+                        active=active,
+                        state=priority,
                     )
                 )
-            elif (
-                state_update.active != detector_state.active
-                or state_update.status != detector_state.state
-            ):
-                detector_state.active = state_update.active
-                detector_state.state = state_update.status
+            elif active != detector_state.active or priority != detector_state.state:
+                detector_state.active = active
+                detector_state.state = priority
                 updated_detector_states.append(detector_state)
 
         if created_detector_states:
@@ -362,6 +378,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
 
         if updated_detector_states:
             DetectorState.objects.bulk_update(updated_detector_states, ["active", "state"])
+        self.state_updates.clear()
 
 
 @cache_func_for_models(
@@ -378,6 +395,8 @@ def get_data_group_conditions_and_group(
 ) -> tuple[DataConditionGroup | None, list[DataCondition]]:
     try:
         group = DataConditionGroup.objects.get(id=data_condition_group_id)
+        conditions = list(group.datacondition_set.all())
     except DataConditionGroup.DoesNotExist:
         group = None
-    return group, list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
+        conditions = []
+    return group, conditions
