@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconWarning} from 'sentry/icons';
+import {IconChevron, IconOpen, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
@@ -127,10 +127,9 @@ export function SlowestFunctionsTable({userQuery}: {userQuery?: string}) {
   const hasFunctions = query.data?.metrics && query.data.metrics.length > 0;
 
   const columns = [
-    {label: '', value: '', width: 62},
     {label: t('Function'), value: 'function'},
-    {label: t('Project'), value: 'project'},
     {label: t('Package'), value: 'package'},
+    {label: t('Project'), value: 'project'},
     {label: t('p75()'), value: 'p75', width: 'min-content' as const},
     {label: t('p95()'), value: 'p95', width: 'min-content' as const},
     {label: t('p99()'), value: 'p99', width: 'min-content' as const},
@@ -226,7 +225,7 @@ function SlowestFunction(props: SlowestFunctionProps) {
     <Fragment>
       <TableRow>
         <TableBodyCell>
-          <div>
+          <TableButtonWrapper>
             <Button
               icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
               aria-label={t('View Function Metrics')}
@@ -234,26 +233,18 @@ function SlowestFunction(props: SlowestFunctionProps) {
               size="xs"
               borderless
             />
-          </div>
-        </TableBodyCell>
-        <TableBodyCell>
-          <Tooltip title={props.function.name}>
-            <TextOverflow>
-              {exampleLink ? (
-                <Link to={exampleLink}>
-                  {props.function.name || t('<unknown function>')}
-                </Link>
-              ) : (
-                props.function.name || t('<unknown function>')
-              )}
-            </TextOverflow>
-          </Tooltip>
-        </TableBodyCell>
-        <TableBodyCell>
-          <SlowestFunctionsProjectBadge
-            examples={props.function.examples}
-            projectsLookupTable={props.projectsLookupTable}
-          />{' '}
+            <Tooltip title={props.function.name}>
+              <TextOverflow>
+                {exampleLink ? (
+                  <Link to={exampleLink}>
+                    {props.function.name || t('<unknown function>')}
+                  </Link>
+                ) : (
+                  props.function.name || t('<unknown function>')
+                )}
+              </TextOverflow>
+            </Tooltip>
+          </TableButtonWrapper>
         </TableBodyCell>
         <TableBodyCell>
           <TextOverflow>
@@ -261,6 +252,12 @@ function SlowestFunction(props: SlowestFunctionProps) {
               {props.function.package}
             </Tooltip>
           </TextOverflow>
+        </TableBodyCell>
+        <TableBodyCell>
+          <SlowestFunctionsProjectBadge
+            examples={props.function.examples}
+            projectsLookupTable={props.projectsLookupTable}
+          />{' '}
         </TableBodyCell>
         <TableBodyCell>{getPerformanceDuration(props.function.p75 / 1e6)}</TableBodyCell>
         <TableBodyCell>{getPerformanceDuration(props.function.p95 / 1e6)}</TableBodyCell>
@@ -394,7 +391,6 @@ function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
     <TableRow>
       <SlowestFunctionsTimeSeriesContainer>
         <SlowestFunctionsHeader>
-          <SlowestFunctionsHeaderCell />
           <SlowestFunctionsHeaderCell>{t('Examples')}</SlowestFunctionsHeaderCell>
           <SlowestFunctionsHeaderCell>{t('Occurrences')}</SlowestFunctionsHeaderCell>
         </SlowestFunctionsHeader>
@@ -414,7 +410,9 @@ function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
               <SlowestFunctionsExamplesContainerRow key={i}>
                 <SlowestFunctionsExamplesContainerRowInner>
                   {defined(exampleLink) && defined(eventId) && (
-                    <Link to={exampleLink}>{getShortEventId(eventId)}</Link>
+                    <SlowestFunctionExampleLink to={exampleLink}>
+                      <IconOpen size="xs" /> {getShortEventId(eventId)}
+                    </SlowestFunctionExampleLink>
                   )}
                 </SlowestFunctionsExamplesContainerRowInner>
               </SlowestFunctionsExamplesContainerRow>
@@ -448,10 +446,6 @@ function SlowestFunctionTimeSeries(props: SlowestFunctionTimeSeriesProps) {
             />
           ) : null}
         </SlowestFunctionsChartContainer>
-        <SlowestFunctionsRowSpacer>
-          <SlowestFunctionsRowSpacerCell />
-          <SlowestFunctionsRowSpacerCell />
-        </SlowestFunctionsRowSpacer>
       </SlowestFunctionsTimeSeriesContainer>
     </TableRow>
   );
@@ -464,6 +458,13 @@ const TableStatusContainer = styled('div')`
   text-align: center;
   height: 100px;
   grid-column: 1 / -1;
+`;
+
+const TableButtonWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  min-width: 0;
 `;
 
 const SlowestFunctionsHeader = styled('div')`
@@ -495,35 +496,27 @@ const SlowestFunctionsHeaderCell = styled('div')`
   }
 `;
 
-const SlowestFunctionsRowSpacer = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-top: 1px solid ${p => p.theme.border};
-`;
-
-const SlowestFunctionsRowSpacerCell = styled('div')`
-  height: ${space(2)};
-`;
-
 const SlowestFunctionsTimeSeriesContainer = styled(TableBodyCell)`
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-  border-top: 1px solid ${p => p.theme.border};
-
+  grid-template-columns: 160px 1fr;
   padding: 0 !important;
 `;
 
+const SlowestFunctionExampleLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
 const SlowestFunctionsChartContainer = styled('div')`
-  grid-column: 3 / -1;
+  grid-column: 2 / -1;
   padding: ${space(3)} ${space(2)} ${space(1)} ${space(2)};
   height: 214px;
 `;
 
 const SlowestFunctionsExamplesContainer = styled('div')`
-  grid-column: 1 / 3;
+  grid-column: 1;
   border-right: 1px solid ${p => p.theme.border};
 
   display: grid;
@@ -533,7 +526,6 @@ const SlowestFunctionsExamplesContainer = styled('div')`
 const SlowestFunctionsExamplesContainerRowInner = styled('div')`
   grid-column: 2 / 3;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
 `;
