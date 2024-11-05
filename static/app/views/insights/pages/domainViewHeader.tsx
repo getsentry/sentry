@@ -146,8 +146,8 @@ export function DomainViewHeader({
 function TabLabel({moduleName}: {moduleName: ModuleName}) {
   const moduleTitles = useModuleTitles();
   const organization = useOrganization();
-  const showBuisnessIcon = !isModuleEnabled(moduleName, organization);
-  if (showBuisnessIcon) {
+  const showBusinessIcon = !isModuleEnabled(moduleName, organization);
+  if (showBusinessIcon) {
     return (
       <TabWithIconContainer>
         {moduleTitles[moduleName]}
