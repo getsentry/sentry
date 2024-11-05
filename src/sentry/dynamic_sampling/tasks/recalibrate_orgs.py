@@ -21,9 +21,9 @@ from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
-    has_dynamic_sampling,
     sample_function,
 )
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task

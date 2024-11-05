@@ -72,6 +72,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -375,13 +376,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_targetSampleRate(self, value):
-        from sentry import features
-
         organization = self.context["organization"]
         request = self.context["request"]
-        has_dynamic_sampling_custom = features.has(
-            "organizations:dynamic-sampling-custom", organization, actor=request.user
-        )
+        has_dynamic_sampling_custom = has_custom_dynamic_sampling(organization, actor=request.user)
         if not has_dynamic_sampling_custom:
             raise serializers.ValidationError(
                 "Organization does not have the custom dynamic sample rate feature enabled."
@@ -398,13 +395,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_samplingMode(self, value):
-        from sentry import features
-
         organization = self.context["organization"]
         request = self.context["request"]
-        has_dynamic_sampling_custom = features.has(
-            "organizations:dynamic-sampling-custom", organization, actor=request.user
-        )
+        has_dynamic_sampling_custom = has_custom_dynamic_sampling(organization, actor=request.user)
         if not has_dynamic_sampling_custom:
             raise serializers.ValidationError(
                 "Organization does not have the custom dynamic sample rate feature enabled."

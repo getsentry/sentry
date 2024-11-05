@@ -13,10 +13,7 @@ from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_e
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
-from sentry.dynamic_sampling.tasks.utils import (
-    has_custom_dynamic_sampling,
-    is_project_mode_sampling,
-)
+from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, is_project_mode_sampling
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
