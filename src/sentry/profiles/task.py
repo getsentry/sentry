@@ -1031,7 +1031,7 @@ def _track_outcome(
         )
 
 
-def _track_failed_outcome(profile: Profile, project: Project, reason: str):
+def _track_failed_outcome(profile: Profile, project: Project, reason: str) -> None:
     if options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
         categories = []
         if "profiler_id" not in profile:
