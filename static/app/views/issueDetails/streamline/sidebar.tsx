@@ -8,6 +8,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useUser} from 'sentry/utils/useUser';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
@@ -63,10 +64,14 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           />
         </Fragment>
       )}
-      <StyledBreak />
-      <SimilarIssuesSidebarSection />
-      <StyledBreak />
-      <MergedIssuesSidebarSection />
+      {group.issueCategory === IssueCategory.ERROR && (
+        <Fragment>
+          <StyledBreak />
+          <SimilarIssuesSidebarSection />
+          <StyledBreak />
+          <MergedIssuesSidebarSection />
+        </Fragment>
+      )}
     </Side>
   );
 }
