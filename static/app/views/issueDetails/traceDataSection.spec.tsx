@@ -213,7 +213,9 @@ describe('TraceDataSection', () => {
       body: [],
     });
 
-    // Use SurfaceProvider to test the old analytics event is still emitted
+    // Wrapping with the issue_details surface so we can test both the new and
+    // old (pre-Nov 2024) analytics are emitted. In the source code, this
+    // surface is located in GroupEventDetails.
     render(
       <SurfaceProvider value="issue_details">
         <TraceDataSection event={event} />

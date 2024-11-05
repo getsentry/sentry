@@ -286,7 +286,7 @@ export type IssueEventParameters = {
     tab?: string;
   };
   'one_other_related_trace_issue.clicked': {
-    // Equivalent to 'issue_details.related_trace_issue.trace_issue_clicked', but surface is dynamic.
+    // Equivalent to 'issue_details.related_trace_issue.trace_issue_clicked', but includes a dynamic `surface`.
     group_id: number;
     surface: string;
   };

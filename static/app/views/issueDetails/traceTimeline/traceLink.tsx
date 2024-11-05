@@ -35,7 +35,8 @@ export function TraceLink({event}: TraceLinkProps) {
     surface.startsWith('feedback')
       ? TraceViewSources.FEEDBACK_DETAILS
       : TraceViewSources.ISSUE_DETAILS
-    // TODO: leverage surface for other view sources. Right now these are the only 2 that use a TraceLink.
+    // Surface can be leveraged for other TraceViewSources, but right now these
+    // are the only 2 that use a TraceLink.
   );
 
   if (!event.contexts?.trace?.trace_id) {
@@ -57,16 +58,10 @@ export function TraceLink({event}: TraceLinkProps) {
     <StyledLink
       to={traceTarget}
       onClick={() => {
-        if (surface.includes('issue_details')) {
-          // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
-          trackAnalytics('quick_trace.trace_id.clicked', {
-            organization,
-            source: 'issues',
-          });
-        }
+        // Source used to be hard-coded here, we keep the old value of issue details for backwards compatibility.
         trackAnalytics('quick_trace.trace_id.clicked', {
           organization,
-          source: surface,
+          source: surface.includes('issue_details') ? 'issues' : surface,
         });
       }}
     >

@@ -23,8 +23,13 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   const issueId = event['issue.id'];
   const {title, subtitle, message} = getTitleSubtitleMessage(event);
   const avatarSize = parseInt(space(4), 10);
-
   const surface = useContext(SurfaceContext);
+
+  // Referrer used to be hard-coded for this component. It's used for analytics
+  // only. We'll still use the old referrer for backwards compatibility.
+  const queryReferrer = surface.includes('issue_details')
+    ? 'issue_details.related_trace_issue'
+    : surface;
 
   return (
     <Fragment>
@@ -32,9 +37,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         to={{
           pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${event.id}/`,
           query: {
-            referrer: surface.includes('issue_details')
-              ? 'issue_details.related_trace_issue' // TODO: remove this condition after queries are migrated
-              : surface,
+            referrer: queryReferrer,
           },
         }}
         onClick={() => {
