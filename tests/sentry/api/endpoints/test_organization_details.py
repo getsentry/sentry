@@ -39,6 +39,7 @@ from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.authenticator import Authenticator
@@ -384,6 +385,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             response = self.get_success_response(self.organization.slug)
             assert "samplingMode" not in response.data
 
+    @django_db_all
     def test_sampling_mode_project_to_org(self):
         """
         Test changing sampling mode from project-level to organization-level:
@@ -415,6 +417,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert not project1.get_option("sentry:sampling_rate")
         assert not project2.get_option("sentry:sampling_rate")
 
+    @django_db_all
     def test_sampling_mode_org_to_project(self):
         """
         Test changing sampling mode from organization-level to project-level:
@@ -449,6 +452,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         # Verify org target rate was removed
         assert not self.organization.get_option("sentry:target_sample_rate")
 
+    @django_db_all
     def test_sampling_mode_change_requires_write_scope(self):
         """
         Test that changing sampling mode requires org:write scope
