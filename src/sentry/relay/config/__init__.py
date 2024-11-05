@@ -51,7 +51,7 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT
 # NOTE: These features must be sorted or the tests will fail!
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
-    "organizations:continuous-profiling-allowed-ingest",
+    "organizations:continuous-profiling-beta",
     "organizations:custom-metrics",
     "organizations:device-class-synthesis",
     "organizations:performance-queries-mongodb-extraction",
