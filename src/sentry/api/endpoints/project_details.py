@@ -38,6 +38,7 @@ from sentry.datascrubbing import validate_pii_config_update, validate_pii_select
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
@@ -432,11 +433,9 @@ E.g. `['release', 'environment']`""",
         return validate_pii_selectors(value)
 
     def validate_targetSampleRate(self, value):
-        from sentry import features
-
         organization = self.context["project"].organization
         actor = self.context["request"].user
-        if not features.has("organizations:dynamic-sampling-custom", organization, actor=actor):
+        if not has_custom_dynamic_sampling(organization, actor=actor):
             raise serializers.ValidationError(
                 "Organization does not have the custom dynamic sample rate feature enabled."
             )
@@ -514,7 +513,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
         # Dynamic Sampling Logic
-        if features.has("organizations:dynamic-sampling", project.organization):
+        if has_dynamic_sampling(project.organization):
             ds_bias_serializer = DynamicSamplingBiasSerializer(
                 data=get_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
                 many=True,
@@ -571,9 +570,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        if result.get("dynamicSamplingBiases") and not (
-            features.has("organizations:dynamic-sampling", project.organization)
-        ):
+        if result.get("dynamicSamplingBiases") and not (has_dynamic_sampling(project.organization)):
             return Response(
                 {"detail": "dynamicSamplingBiases is not a valid field"},
                 status=403,
@@ -927,7 +924,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if not (features.has("organizations:dynamic-sampling", project.organization)):
+        if not has_dynamic_sampling(project.organization):
             data["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
         # out both keys actually

@@ -16,8 +16,9 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.issues import grouptype
 from sentry.models.owner_base import OwnerModel
 from sentry.utils import metrics, redis
+from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.iterators import chunked
-from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataPacket
 from sentry.workflow_engine.models.detector_state import DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -120,6 +121,13 @@ T = TypeVar("T")
 class DetectorHandler(abc.ABC, Generic[T]):
     def __init__(self, detector: Detector):
         self.detector = detector
+        if detector.workflow_condition_group_id is not None:
+            results = get_data_group_conditions_and_group(detector.workflow_condition_group_id)
+            self.condition_group: DataConditionGroup | None = results[0]
+            self.conditions: list[DataCondition] = results[1]
+        else:
+            self.condition_group = None
+            self.conditions = []
 
     @abc.abstractmethod
     def evaluate(self, data_packet: DataPacket[T]) -> list[DetectorEvaluationResult]:
@@ -230,20 +238,40 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             metrics.incr("workflow_engine.detector.skipping_already_processed_update")
             return None
 
-        return DetectorEvaluationResult(
-            False,
-            DetectorPriorityLevel.OK,
-            {},
-            DetectorStateData(
-                group_key=group_key,
-                active=False,
-                status=DetectorPriorityLevel.OK,
-                dedupe_value=dedupe_value,
-                # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
-                # so we no-op
-                counter_updates={},
-            ),
-        )
+        if not self.condition_group:
+            metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
+            return None
+
+        status = DetectorPriorityLevel.OK
+
+        for condition in self.conditions:
+            # TODO: We need to handle tracking consecutive evaluations before emitting a result here. We're able to
+            # store these in `DetectorStateData.counter_updates`, but we don't have anywhere to set the required
+            # thresholds at the moment. Probably should be a field on the Detector? Could also be on the condition
+            # level, but usually we want to set this at a higher level.
+            evaluation = condition.evaluate_value(value)
+            if evaluation is not None:
+                status = max(status, evaluation)
+
+        is_active = status != DetectorPriorityLevel.OK
+
+        if state_data.active != is_active or state_data.status != status:
+            return DetectorEvaluationResult(
+                is_active,
+                status,
+                {},
+                # TODO: We actually always need to be able to commit this. I'll move this out of the result
+                DetectorStateData(
+                    group_key=group_key,
+                    active=is_active,
+                    status=status,
+                    dedupe_value=dedupe_value,
+                    # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
+                    # so we no-op
+                    counter_updates={},
+                ),
+            )
+        return None
 
     def build_dedupe_value_key(self, group_key: str | None) -> str:
         if group_key is None:
@@ -334,3 +362,22 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
 
         if updated_detector_states:
             DetectorState.objects.bulk_update(updated_detector_states, ["active", "state"])
+
+
+@cache_func_for_models(
+    [
+        (DataConditionGroup, lambda group: (group.id,)),
+        (DataCondition, lambda condition: (condition.condition_group_id,)),
+    ],
+    # There shouldn't be stampedes to fetch this data, and we might update multiple `DataConditionGroup`s at the same
+    # time, so we'd prefer to avoid re-fetching this many times. Just bust the cache and re-fetch lazily.
+    recalculate=False,
+)
+def get_data_group_conditions_and_group(
+    data_condition_group_id: int,
+) -> tuple[DataConditionGroup | None, list[DataCondition]]:
+    try:
+        group = DataConditionGroup.objects.get(id=data_condition_group_id)
+    except DataConditionGroup.DoesNotExist:
+        group = None
+    return group, list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
