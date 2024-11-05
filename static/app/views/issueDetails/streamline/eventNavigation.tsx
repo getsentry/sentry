@@ -344,7 +344,10 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 {t('Discover')}
               </LinkButton>
               <LinkButton
-                to={{pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`}}
+                to={{
+                  pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+                  query: {...location.query, cursor: undefined},
+                }}
                 aria-label={t('Return to event details')}
                 size="xs"
               >
