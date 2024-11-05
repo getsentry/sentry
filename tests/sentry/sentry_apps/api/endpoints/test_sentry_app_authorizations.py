@@ -69,6 +69,16 @@ class TestSentryAppAuthorizations(APITestCase):
 
         assert expires_at == expected_expires_at
 
+    def test_exchange_for_token_missing_data(self):
+        response = self.get_error_response(code=None)
+
+        assert response.status_code == 400
+
+        # This is rejected by the base `SentryAppAuthorizationBaseEndpoint`
+        # class's authentication, so expect an unauthorized error.
+        response = self.get_error_response(client_id=None)
+        assert response.status_code == 401
+
     def test_incorrect_grant_type(self):
         self.get_error_response(grant_type="notit", status_code=403)
 
@@ -136,3 +146,23 @@ class TestSentryAppAuthorizations(APITestCase):
 
         new_token = ApiToken.objects.filter(refresh_token=response.data["refreshToken"])
         assert new_token.exists()
+
+    def test_refresh_token_exchange_with_missing_data(self):
+        response = self.get_success_response()
+
+        refresh_token = response.data["refreshToken"]
+
+        assert response.data["refreshToken"] is not None
+
+        response = self.get_error_response(
+            code=None, refresh_token=None, grant_type="refresh_token"
+        )
+
+        assert response.status_code == 400
+
+        # This is rejected by the base `SentryAppAuthorizationBaseEndpoint`
+        # class's authentication, so expect an unauthorized error.
+        response = self.get_error_response(
+            code=None, refresh_token=refresh_token, grant_type="refresh_token", client_id=None
+        )
+        assert response.status_code == 401
