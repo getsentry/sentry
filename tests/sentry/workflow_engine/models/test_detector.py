@@ -67,7 +67,10 @@ class StatefulDetectorHandlerTestMixin(TestCase):
 
     def build_handler(self, detector: Detector | None = None) -> MockDetectorStateHandler:
         if detector is None:
-            detector = self.create_detector()
+            detector = self.create_detector(
+                workflow_condition_group=self.create_data_condition_group()
+            )
+            self.create_data_condition(condition_group=detector.workflow_condition_group)
         return MockDetectorStateHandler(detector)
 
 
@@ -180,31 +183,64 @@ class TestEvaluate(StatefulDetectorHandlerTestMixin):
         assert handler.evaluate(DataPacket("1", {"dedupe": 1})) == []
         assert handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 0}})) == [
             DetectorEvaluationResult(
-                is_active=False,
-                priority=DetectorPriorityLevel.OK,
+                is_active=True,
+                priority=DetectorPriorityLevel.HIGH,
                 data={},
                 state_update_data=DetectorStateData(
                     group_key="val1",
-                    active=False,
-                    status=DetectorPriorityLevel.OK,
+                    active=True,
+                    status=DetectorPriorityLevel.HIGH,
                     dedupe_value=2,
                     counter_updates={},
                 ),
             )
         ]
 
+    def test_no_condition_group(self):
+        detector = self.create_detector()
+        handler = MockDetectorStateHandler(detector)
+        with mock.patch("sentry.workflow_engine.models.detector.metrics") as mock_metrics:
+            assert (
+                handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}})) == []
+            )
+            mock_metrics.incr.assert_called_once_with(
+                "workflow_engine.detector.skipping_invalid_condition_group"
+            )
+
+    def test_results_on_change(self):
+        handler = self.build_handler()
+        result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}}))
+        assert result == [
+            DetectorEvaluationResult(
+                is_active=True,
+                priority=DetectorPriorityLevel.HIGH,
+                data={},
+                state_update_data=DetectorStateData(
+                    group_key="val1",
+                    active=True,
+                    status=DetectorPriorityLevel.HIGH,
+                    dedupe_value=2,
+                    counter_updates={},
+                ),
+            )
+        ]
+        assert result[0].state_update_data
+        handler.commit_state_update_data([result[0].state_update_data])
+        # This detector is already active, so no status change occurred. Should be no result
+        assert handler.evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 200}})) == []
+
     def test_dedupe(self):
         handler = self.build_handler()
         result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 0}}))
         assert result == [
             DetectorEvaluationResult(
-                is_active=False,
-                priority=DetectorPriorityLevel.OK,
+                is_active=True,
+                priority=DetectorPriorityLevel.HIGH,
                 data={},
                 state_update_data=DetectorStateData(
                     group_key="val1",
-                    active=False,
-                    status=DetectorPriorityLevel.OK,
+                    active=True,
+                    status=DetectorPriorityLevel.HIGH,
                     dedupe_value=2,
                     counter_updates={},
                 ),
@@ -225,13 +261,13 @@ class TestEvaluateGroupKeyValue(StatefulDetectorHandlerTestMixin):
         handler = self.build_handler()
         with mock.patch("sentry.workflow_engine.models.detector.metrics") as mock_metrics:
             expected_result = DetectorEvaluationResult(
-                False,
-                DetectorPriorityLevel.OK,
+                True,
+                DetectorPriorityLevel.HIGH,
                 {},
                 DetectorStateData(
                     "group_key",
-                    False,
-                    DetectorPriorityLevel.OK,
+                    True,
+                    DetectorPriorityLevel.HIGH,
                     100,
                     {},
                 ),
