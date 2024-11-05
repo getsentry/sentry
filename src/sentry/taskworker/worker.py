@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import multiprocessing
 import time
 from multiprocessing.context import TimeoutError
 from multiprocessing.pool import Pool
@@ -22,26 +23,26 @@ from sentry.taskworker.service.client import TaskClient
 
 logger = logging.getLogger("sentry.taskworker.worker")
 
+# Use forking processes so that django is initialized
+mp_context = multiprocessing.get_context("fork")
 
-def _process_activation(namespace: str, task_name: str, args: Any, kwargs: Any) -> None:
+
+def _process_activation(
+    namespace: str, task_name: str, args: list[Any], kwargs: dict[str, Any]
+) -> None:
     """multiprocess worker method"""
     taskregistry.get(namespace).get(task_name)(*args, **kwargs)
 
 
-def _init_worker() -> None:
-    """Initializer for multiprocess worker"""
-    from sentry.runner import configure
-
-    configure()
-
-    for module in settings.TASKWORKER_IMPORTS:
-        __import__(module)
-
-
 class TaskWorker:
     """
-    A TaskWorker fetches tasks from a task queue (inflight activation store) and handles executing them.
-    As a tasks are executed, the worker will update the task status in the task queue.
+    A TaskWorker fetches tasks from a taskworker RPC host and handles executing task activations.
+
+    Tasks are executed in a forked process so that processing timeouts can be enforced.
+    As tasks are completed status changes will be sent back to the RPC host and new tasks
+    will be fetched.
+
+    Taskworkers can be run with `sentry run taskworker`
     """
 
     def __init__(
@@ -62,7 +63,7 @@ class TaskWorker:
     def _build_pool(self) -> None:
         if self._pool:
             self._pool.terminate()
-        self._pool = Pool(processes=2, initializer=_init_worker)
+        self._pool = mp_context.Pool(processes=1)
 
     def do_imports(self) -> None:
         for module in settings.TASKWORKER_IMPORTS:
@@ -120,13 +121,13 @@ class TaskWorker:
             logger.error("Could not resolve task with name %s", activation.taskname)
             return None
 
-        # TODO(taskworker): Add at_most_once checks.
+        # TODO(taskworker): Add at_most_once checks
+        processing_timeout = activation.processing_deadline_duration
         next_state = TASK_ACTIVATION_STATUS_FAILURE
         result = None
         execution_start_time = 0.0
         try:
             task_data_parameters = orjson.loads(activation.parameters)
-            processing_timeout = activation.processing_deadline_duration
             execution_start_time = time.time()
 
             result = self._pool.apply_async(
@@ -138,29 +139,31 @@ class TaskWorker:
                     task_data_parameters["kwargs"],
                 ),
             )
-            # TODO(mark) Figure out why this is required to get successful results.
-            time.sleep(5)
-
             # Will trigger a TimeoutError if the task execution runs long
             result.get(timeout=processing_timeout)
 
             next_state = TASK_ACTIVATION_STATUS_COMPLETE
         except TimeoutError:
             logger.info(
-                "taskworker.task_execution_timeout", extra={"taskname": activation.taskname}
+                "taskworker.task_execution_timeout",
+                extra={
+                    "taskname": activation.taskname,
+                    "processing_deadline": processing_timeout,
+                },
             )
             # When a task times out we kill the entire pool. This is necessary because
             # stdlib multiprocessing.Pool doesn't expose ways to terminate individual tasks.
             self._build_pool()
         except Exception as err:
-            # TODO(taskworker) handle explicit retries better.
-            logger.info(
-                "taskworker.task_errored", extra={"type": str(err.__class__), "error": str(err)}
-            )
             # TODO(taskworker) check retry policy
             if namespace.get(activation.taskname).should_retry(activation.retry_state, err):
                 logger.info("taskworker.task.retry", extra={"task": activation.taskname})
                 next_state = TASK_ACTIVATION_STATUS_RETRY
+
+            if next_state != TASK_ACTIVATION_STATUS_RETRY:
+                logger.info(
+                    "taskworker.task_errored", extra={"type": str(err.__class__), "error": str(err)}
+                )
 
         execution_complete_time = time.time()
         self._execution_count += 1
@@ -170,26 +173,12 @@ class TaskWorker:
             "taskworker.task_execution",
             extra={
                 "taskname": activation.taskname,
-                "execution_time": execution_complete_time - execution_start_time,
-                "execution_lag": execution_complete_time - task_added_time,
+                "execution_duration": execution_complete_time - execution_start_time,
+                "execution_latency": execution_complete_time - task_added_time,
+                "status": next_state,
             },
         )
-
-        if next_state == TASK_ACTIVATION_STATUS_COMPLETE:
-            logger.info(
-                "taskworker.task.complete", extra={"task": activation.taskname, "id": activation.id}
-            )
-            next_task = self.client.complete_task(task_id=activation.id)
-        else:
-            logger.info(
-                "taskworker.task.change_status",
-                extra={"task": activation.taskname, "state": next_state},
-            )
-            next_task = self.client.set_task_status(
-                task_id=activation.id,
-                task_status=next_state,
-            )
-
-        if next_task:
-            return next_task
-        return None
+        return self.client.update_task(
+            task_id=activation.id,
+            status=next_state,
+        )

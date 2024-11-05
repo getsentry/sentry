@@ -1,6 +1,7 @@
 from unittest import mock
 
 from sentry_protos.sentry.v1.taskworker_pb2 import (
+    TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
     TaskActivation,
@@ -9,7 +10,7 @@ from sentry_protos.sentry.v1.taskworker_pb2 import (
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.registry import taskregistry
 from sentry.taskworker.retry import Retry, RetryError
-from sentry.taskworker.taskworker import TaskWorker
+from sentry.taskworker.worker import TaskWorker
 from sentry.testutils.cases import TestCase
 
 test_namespace = taskregistry.create_namespace(
@@ -83,24 +84,26 @@ class TestTaskWorker(TestCase):
 
     def test_taskworker_process_task_complete(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
-        with mock.patch.object(taskworker.client, "complete_task") as mock_complete:
-            mock_complete.return_value = RETRY_TASK
+        with mock.patch.object(taskworker.client, "update_task") as mock_update:
+            mock_update.return_value = RETRY_TASK
 
             result = taskworker.process_task(SIMPLE_TASK)
 
-            mock_complete.assert_called_with(task_id=SIMPLE_TASK.id)
+            mock_update.assert_called_with(
+                task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE
+            )
 
             assert result
             assert result.id == RETRY_TASK.id
 
     def test_taskworker_process_task_retry(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
-        with mock.patch.object(taskworker.client, "set_task_status") as mock_set_task_status:
-            mock_set_task_status.return_value = SIMPLE_TASK
+        with mock.patch.object(taskworker.client, "update_task") as mock_update:
+            mock_update.return_value = SIMPLE_TASK
             result = taskworker.process_task(RETRY_TASK)
 
-            mock_set_task_status.assert_called_with(
-                task_id=RETRY_TASK.id, task_status=TASK_ACTIVATION_STATUS_RETRY
+            mock_update.assert_called_with(
+                task_id=RETRY_TASK.id, status=TASK_ACTIVATION_STATUS_RETRY
             )
 
             assert result
@@ -108,12 +111,12 @@ class TestTaskWorker(TestCase):
 
     def test_taskworker_process_task_failure(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
-        with mock.patch.object(taskworker.client, "set_task_status") as mock_set_task_status:
-            mock_set_task_status.return_value = SIMPLE_TASK
+        with mock.patch.object(taskworker.client, "update_task") as mock_update_task:
+            mock_update_task.return_value = SIMPLE_TASK
             result = taskworker.process_task(FAIL_TASK)
 
-            mock_set_task_status.assert_called_with(
-                task_id=FAIL_TASK.id, task_status=TASK_ACTIVATION_STATUS_FAILURE
+            mock_update_task.assert_called_with(
+                task_id=FAIL_TASK.id, status=TASK_ACTIVATION_STATUS_FAILURE
             )
             assert result
             assert result.id == SIMPLE_TASK.id
@@ -122,21 +125,22 @@ class TestTaskWorker(TestCase):
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=1)
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
-            mock_client.complete_task.return_value = None
+            mock_client.update_task.return_value = None
 
             result = taskworker.start()
 
             # start should exit after completing the one task
             assert result == 0
             assert mock_client.get_task.called
-            mock_client.complete_task.assert_called_with(task_id=SIMPLE_TASK.id)
+            mock_client.update_task.assert_called_with(
+                task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE
+            )
 
     def test_taskworker_start_loop(self):
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=2)
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
-            mock_client.complete_task.return_value = RETRY_TASK
-            mock_client.set_task_status.return_value = None
+            mock_client.update_task.side_effect = [RETRY_TASK, None]
 
             # Because complete_task is returning another task, we should get
             # two executions. One successful and one retry
@@ -145,10 +149,11 @@ class TestTaskWorker(TestCase):
             # start should exit after completing the both task
             assert result == 0
             assert mock_client.get_task.call_count == 1
-            assert mock_client.complete_task.call_count == 1
-            assert mock_client.set_task_status.call_count == 1
+            assert mock_client.update_task.call_count == 2
 
-            mock_client.complete_task.assert_called_with(task_id=SIMPLE_TASK.id)
-            mock_client.set_task_status.assert_called_with(
-                task_id=RETRY_TASK.id, task_status=TASK_ACTIVATION_STATUS_RETRY
+            mock_client.update_task.assert_any_call(
+                task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE
+            )
+            mock_client.update_task.assert_any_call(
+                task_id=RETRY_TASK.id, status=TASK_ACTIVATION_STATUS_RETRY
             )

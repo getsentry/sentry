@@ -18,15 +18,12 @@ class TaskClient:
     def get_task(self) -> TaskActivation | None:
         return None
 
-    def set_task_status(
-        self, task_id: str, task_status: TaskActivationStatus.ValueType
+    def update_task(
+        self, task_id: str, status: TaskActivationStatus.ValueType
     ) -> TaskActivation | None:
         """
         Update the status for a given task activation.
 
         The return value is the next task that should be executed.
         """
-        return None
-
-    def complete_task(self, task_id: str) -> TaskActivation | None:
         return None
