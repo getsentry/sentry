@@ -173,7 +173,7 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         if not features.has("organizations:ai-summary", group.organization, actor=request.user):
             return Response({"detail": "Feature flag not enabled"}, status=400)
 
-        cache_key = "ai-group-summary:" + str(group.id)
+        cache_key = "ai-group-summary-v2:" + str(group.id)
         if cached_summary := cache.get(cache_key):
             return Response(convert_dict_key_case(cached_summary, snake_to_camel_case), status=200)
 
