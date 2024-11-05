@@ -10,3 +10,9 @@ class DetectorPriorityLevel(IntEnum):
     LOW = PriorityLevel.LOW
     MEDIUM = PriorityLevel.MEDIUM
     HIGH = PriorityLevel.HIGH
+
+
+# The unique key used to identify a group within a DataPacket result.
+# For DataPackets that don't contain multiple values the key is just None.
+# This is stored in 'DetectorState.detector_group_key'
+DetectorGroupKey = str | None
