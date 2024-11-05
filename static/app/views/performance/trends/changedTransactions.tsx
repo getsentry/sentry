@@ -483,7 +483,7 @@ function TrendsListItem(props: TrendsListItemProps) {
         <DropdownMenu
           triggerProps={{
             size: 'xs',
-            icon: <IconEllipsis data-test-id="trends-item-action" />,
+            icon: <IconEllipsis />,
             'aria-label': t('Actions'),
             showChevron: false,
           }}
