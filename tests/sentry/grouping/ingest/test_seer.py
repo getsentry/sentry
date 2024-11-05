@@ -231,7 +231,6 @@ class GetSeerSimilarIssuesTest(TestCase):
             parent_hash=NonNone(self.existing_event.get_primary_hash()),
             parent_group_id=NonNone(self.existing_event.group_id),
             stacktrace_distance=0.01,
-            message_distance=0.05,
             should_group=True,
         )
         expected_metadata = {
