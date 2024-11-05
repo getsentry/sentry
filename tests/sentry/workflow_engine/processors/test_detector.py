@@ -29,9 +29,7 @@ class TestProcessDetectors(BaseGroupTypeTest):
 
         class MockDetectorHandler(DetectorHandler[dict]):
             def evaluate(self, data_packet: DataPacket[dict]) -> list[DetectorEvaluationResult]:
-                return [
-                    DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH, data_packet)
-                ]
+                return [DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)]
 
         class HandlerGroupType(GroupType):
             type_id = 2
@@ -48,7 +46,6 @@ class TestProcessDetectors(BaseGroupTypeTest):
                         group_key,
                         True,
                         DetectorPriorityLevel.HIGH,
-                        data_packet,
                     )
                     for group_key in group_keys
                 ]
@@ -75,7 +72,7 @@ class TestProcessDetectors(BaseGroupTypeTest):
         assert results == [
             (
                 detector,
-                [DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH, data_packet)],
+                [DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)],
             )
         ]
 
@@ -87,7 +84,6 @@ class TestProcessDetectors(BaseGroupTypeTest):
             None,
             True,
             DetectorPriorityLevel.HIGH,
-            data_packet,
         )
         assert results == [
             (
@@ -104,13 +100,11 @@ class TestProcessDetectors(BaseGroupTypeTest):
             "group_1",
             True,
             DetectorPriorityLevel.HIGH,
-            data_packet,
         )
         result_2 = DetectorEvaluationResult(
             "group_2",
             True,
             DetectorPriorityLevel.HIGH,
-            data_packet,
         )
         assert results == [
             (
@@ -129,7 +123,6 @@ class TestProcessDetectors(BaseGroupTypeTest):
             "dupe",
             True,
             DetectorPriorityLevel.HIGH,
-            data_packet,
         )
         assert results == [
             (
@@ -336,7 +329,6 @@ class TestEvaluate(StatefulDetectorHandlerTestMixin):
                 group_key="val1",
                 is_active=True,
                 priority=DetectorPriorityLevel.HIGH,
-                data={},
             )
         ]
         self.assert_updates(handler, "val1", 2, {}, True, DetectorPriorityLevel.HIGH)
@@ -361,7 +353,6 @@ class TestEvaluate(StatefulDetectorHandlerTestMixin):
                 group_key="val1",
                 is_active=True,
                 priority=DetectorPriorityLevel.HIGH,
-                data={},
             )
         ]
         self.assert_updates(handler, "val1", 2, {}, True, DetectorPriorityLevel.HIGH)
@@ -377,7 +368,6 @@ class TestEvaluate(StatefulDetectorHandlerTestMixin):
                 group_key="val1",
                 is_active=True,
                 priority=DetectorPriorityLevel.HIGH,
-                data={},
             )
         ]
         self.assert_updates(handler, "val1", 2, {}, True, DetectorPriorityLevel.HIGH)
@@ -398,7 +388,6 @@ class TestEvaluateGroupKeyValue(StatefulDetectorHandlerTestMixin):
                 "group_key",
                 True,
                 DetectorPriorityLevel.HIGH,
-                {},
             )
             assert (
                 handler.evaluate_group_key_value(
