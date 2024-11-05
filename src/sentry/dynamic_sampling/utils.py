@@ -1,20 +1,30 @@
+import typing
+
 from sentry import features
 from sentry.constants import SAMPLING_MODE_DEFAULT
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.organization import Organization
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+
+if typing.TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
 
 
-def has_dynamic_sampling(organization: Organization | None) -> bool:
+def has_dynamic_sampling(
+    organization: Organization | None, actor: User | RpcUser | AnonymousUser | None = None
+) -> bool:
     # If an organization can't be fetched, we will assume it has no dynamic sampling.
-    if organization is None:
-        return False
-
-    return features.has("organizations:dynamic-sampling", organization)
-
-
-def has_custom_dynamic_sampling(organization: Organization | None, **kwargs) -> bool:
     return organization is not None and features.has(
-        "organizations:dynamic-sampling-custom", organization, **kwargs
+        "organizations:dynamic-sampling", organization, actor=actor
+    )
+
+
+def has_custom_dynamic_sampling(
+    organization: Organization | None, actor: User | RpcUser | AnonymousUser | None = None
+) -> bool:
+    return organization is not None and features.has(
+        "organizations:dynamic-sampling-custom", organization, actor=actor
     )
 
 
