@@ -1,6 +1,7 @@
 import logging
 
 import sentry_sdk
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,6 +17,18 @@ from sentry.sentry_apps.token_exchange.refresher import Refresher
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 
 logger = logging.getLogger(__name__)
+
+
+class SentryAppRefreshAuthorizationSerializer(serializers.Serializer):
+    client_id: str = serializers.CharField(required=True, allow_null=False)
+    refresh_token: str = serializers.CharField(required=True, allow_null=False)
+    grant_type: str = serializers.CharField(required=True, allow_null=False)
+
+
+class SentryAppAuthorizationSerializer(serializers.Serializer):
+    client_id: str = serializers.CharField(required=True, allow_null=False)
+    grant_type: str = serializers.CharField(required=True, allow_null=False)
+    code: str = serializers.CharField(required=True, allow_null=False)
 
 
 @control_silo_endpoint
@@ -34,17 +47,27 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
 
         try:
             if request.json_body.get("grant_type") == GrantTypes.AUTHORIZATION:
+                serializer = SentryAppAuthorizationSerializer(data=request.data)
+
+                if not serializer.is_valid():
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
                 token = GrantExchanger(
                     install=installation,
-                    code=request.json_body.get("code"),
-                    client_id=request.json_body.get("client_id"),
+                    code=serializer.validated_data["code"],
+                    client_id=serializer.validated_data["client_id"],
                     user=promote_request_api_user(request),
                 ).run()
             elif request.json_body.get("grant_type") == GrantTypes.REFRESH:
+                serializer = SentryAppRefreshAuthorizationSerializer(data=request.data)
+
+                if not serializer.is_valid():
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
                 token = Refresher(
                     install=installation,
-                    refresh_token=request.json_body.get("refresh_token"),
-                    client_id=request.json_body.get("client_id"),
+                    refresh_token=serializer.validated_data["refresh_token"],
+                    client_id=serializer.validated_data["client_id"],
                     user=promote_request_api_user(request),
                 ).run()
             else:
