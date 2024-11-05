@@ -43,8 +43,10 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
     has_dynamic_sampling,
+    is_project_mode_sampling,
     sample_function,
 )
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -170,33 +172,30 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
     if not has_dynamic_sampling(organization):
         return
 
-    # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
-    # resort to the blended sample rate of the org.
-    sample_rate, success = get_boost_low_volume_projects_sample_rate(
+    if is_project_mode_sampling(organization):
+        sample_rate = ProjectOption.objects.get_value(project_id, "sentry:target_sample_rate")
+        source = "project_setting"
+    else:
+        # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
+        # resort to the blended sample rate of the org.
+        sample_rate, success = get_boost_low_volume_projects_sample_rate(
+            org_id=org_id,
+            project_id=project_id,
+            error_sample_rate_fallback=quotas.backend.get_blended_sample_rate(
+                organization_id=org_id
+            ),
+        )
+        source = "boost_low_volume_projects" if success else "blended_sample_rate"
+
+    sample_function(
+        function=log_sample_rate_source,
+        _sample_rate=0.1,
         org_id=org_id,
         project_id=project_id,
-        error_sample_rate_fallback=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+        used_for="boost_low_volume_transactions",
+        source=source,
+        sample_rate=sample_rate,
     )
-    if success:
-        sample_function(
-            function=log_sample_rate_source,
-            _sample_rate=0.1,
-            org_id=org_id,
-            project_id=project_id,
-            used_for="boost_low_volume_transactions",
-            source="boost_low_volume_projects",
-            sample_rate=sample_rate,
-        )
-    else:
-        sample_function(
-            function=log_sample_rate_source,
-            _sample_rate=0.1,
-            org_id=org_id,
-            project_id=project_id,
-            used_for="boost_low_volume_transactions",
-            source="blended_sample_rate",
-            sample_rate=sample_rate,
-        )
 
     if sample_rate is None:
         sentry_sdk.capture_message(
