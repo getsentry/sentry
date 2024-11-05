@@ -33,9 +33,10 @@ from rest_framework.request import Request
 
 class SummarizeIssueResponse(BaseModel):
     group_id: str
-    summary: str
-    impact: str
     headline: str
+    whats_wrong: str | None = None
+    trace: str | None = None
+    possible_cause: str | None = None
 
 
 @region_silo_endpoint

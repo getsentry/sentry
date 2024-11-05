@@ -33,9 +33,10 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
     def test_ai_summary_get_endpoint_with_existing_summary(self, mock_call_seer):
         existing_summary = {
             "group_id": str(self.group.id),
-            "summary": "Existing summary",
-            "impact": "Existing impact",
             "headline": "Existing headline",
+            "whats_wrong": "Existing whats wrong",
+            "trace": "Existing trace",
+            "possible_cause": "Existing possible cause",
         }
 
         # Set the cache with the existing summary
@@ -75,9 +76,10 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         mock_get_event.return_value = [serialized_event, event]
         mock_summary = SummarizeIssueResponse(
             group_id=str(self.group.id),
-            summary="Test summary",
-            impact="Test impact",
             headline="Test headline",
+            whats_wrong="Test whats wrong",
+            trace="Test trace",
+            possible_cause="Test possible cause",
         )
         mock_call_seer.return_value = mock_summary
         mock_get_connected_issues.return_value = [self.group, self.group]
@@ -113,8 +115,9 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         mock_response = Mock()
         mock_response.json.return_value = {
             "group_id": str(self.group.id),
-            "summary": "Test summary",
-            "impact": "Test impact",
+            "whats_wrong": "Test whats wrong",
+            "trace": "Test trace",
+            "possible_cause": "Test possible cause",
             "headline": "Test headline",
         }
         mock_post.return_value = mock_response
@@ -150,8 +153,9 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
 
             mock_summary = SummarizeIssueResponse(
                 group_id=str(self.group.id),
-                summary="Test summary",
-                impact="Test impact",
+                whats_wrong="Test whats wrong",
+                trace="Test trace",
+                possible_cause="Test possible cause",
                 headline="Test headline",
             )
             mock_call_seer.return_value = mock_summary
@@ -205,8 +209,9 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             mock_sign.return_value = {"Authorization": "Bearer test_token"}
             mock_post.return_value.json.return_value = {
                 "group_id": str(self.group.id),
-                "summary": "Test summary",
-                "impact": "Test impact",
+                "whats_wrong": "Test whats wrong",
+                "trace": "Test trace",
+                "possible_cause": "Test possible cause",
                 "headline": "Test headline",
             }
 
