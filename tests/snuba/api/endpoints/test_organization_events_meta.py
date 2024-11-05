@@ -5,14 +5,10 @@ from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.testutils.cases import (
-    APITestCase,
-    MetricsEnhancedPerformanceTestCase,
-    SnubaTestCase,
-    load_data,
-)
+from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics

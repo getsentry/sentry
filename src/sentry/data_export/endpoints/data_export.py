@@ -1,5 +1,3 @@
-from collections.abc import Mapping
-
 import sentry_sdk
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
@@ -140,7 +138,7 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
     }
     permission_classes = (OrganizationDataExportPermission,)
 
-    def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
+    def get_features(self, organization: Organization, request: Request) -> dict[str, bool | None]:
         feature_names = [
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
