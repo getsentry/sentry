@@ -2558,13 +2558,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deobfuscate profiles using Symbolicator
-register(
-    "profiling.deobfuscate-using-symbolicator.enable-for-project",
-    type=Sequence,
-    default=[],
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "traces.sample-list.sample-rate",
     type=Float,
@@ -2846,11 +2839,5 @@ register(
 register(
     "demo-mode.users",
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.collapse-group-stats-in-activity",
-    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

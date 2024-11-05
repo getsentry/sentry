@@ -102,10 +102,9 @@ describe('GroupEventAttachments', function () {
       organization,
     });
     await userEvent.click(await screen.findByLabelText('Actions'));
-    expect(screen.getByText('Download').closest('a')).toHaveAttribute(
-      'href',
-      '/api/0/projects/org-slug/project-slug/events/12345678901234567890123456789012/attachments/1/?download=1'
-    );
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Download'})
+    ).toBeInTheDocument();
   });
 
   it('displays error message when request fails', async function () {

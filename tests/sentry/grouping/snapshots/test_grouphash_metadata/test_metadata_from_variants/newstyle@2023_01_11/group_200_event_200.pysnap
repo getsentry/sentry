@@ -1,0 +1,29 @@
+---
+created: '2024-10-28T13:59:35.650566+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "ca733a48a19d237df8577d09449095d9"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "HTTP_THREAD_POOL::_StaticWorkItemCallback"
+            frame*
+              function*
+                "destructor'"
+            frame*
+              function*
+                "destructor'"
+            frame*
+              function*
+                "RtlFreeHeap"
+            frame*
+              function*
+                "RtlFreeHeap"
