@@ -26,10 +26,8 @@ from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.factory import model_factory
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.rules.utils import (
-    DecisionDropCount,
-    DecisionKeepCount,
     OrganizationId,
-    ProjectId,
+    ProjectWithTotalRootTransactionCountAndRates,
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.tasks.common import (
@@ -204,9 +202,7 @@ def boost_low_volume_projects_of_org_with_query(
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(
     org_id: OrganizationId,
-    projects_with_tx_count_and_rates: Sequence[
-        tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
-    ],
+    projects_with_tx_count_and_rates: Sequence[ProjectWithTotalRootTransactionCountAndRates],
 ) -> None:
     """
     Task to adjust the sample rates of the projects of a single organization specified by an
@@ -225,7 +221,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     measure: SamplingMeasure,
     granularity: Granularity | None = None,
     query_interval: timedelta | None = None,
-) -> Mapping[OrganizationId, Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
+) -> Mapping[OrganizationId, Sequence[ProjectWithTotalRootTransactionCountAndRates]]:
     """
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
@@ -322,7 +318,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 
             for row in data:
                 aggregated_projects[row["org_id"]].append(
-                    (
+                    ProjectWithTotalRootTransactionCountAndRates(
                         row["project_id"],
                         row["root_count_value"],
                         row["keep_count"],
@@ -348,7 +344,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 
 def adjust_sample_rates_of_projects(
     org_id: int,
-    projects_with_tx_count: Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
+    projects_with_tx_count: Sequence[ProjectWithTotalRootTransactionCountAndRates],
 ) -> None:
     """
     Adjusts the sample rates of projects belonging to a specific org.

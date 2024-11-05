@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Literal, NotRequired, TypedDict, Union
+from typing import Literal, NamedTuple, NotRequired, TypedDict, Union
 
 import orjson
 from django.conf import settings
@@ -21,6 +21,13 @@ DecisionDropCount = int
 DecisionKeepCount = int
 OrganizationId = int
 TransactionName = str
+
+
+class ProjectWithTotalRootTransactionCountAndRates(NamedTuple):
+    project_id: ProjectId
+    root_count_value: int
+    keep_count: DecisionKeepCount
+    drop_count: DecisionDropCount
 
 
 class ActivatableBias(TypedDict):
