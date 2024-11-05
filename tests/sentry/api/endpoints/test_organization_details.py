@@ -453,6 +453,34 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert not self.organization.get_option("sentry:target_sample_rate")
 
     @django_db_all
+    def test_change_just_org_target_sample_rate(self):
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.organization.update_option("sentry:target_sample_rate", 0.4)
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.4
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                targetSampleRate=0.1,
+            )
+
+        assert response.status_code == 200
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.1
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                unrelatedData="hello",
+            )
+
+        assert response.status_code == 200
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.1
+
+    @django_db_all
     def test_sampling_mode_change_requires_write_scope(self):
         """
         Test that changing sampling mode requires org:write scope
