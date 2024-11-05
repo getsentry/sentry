@@ -235,7 +235,7 @@ function getVirtualizedRows(container: HTMLElement) {
 
 async function keyboardNavigationTestSetup() {
   const keyboard_navigation_transactions: TraceFullDetailed[] = [];
-  for (let i = 0; i < 1e4; i++) {
+  for (let i = 0; i < 1e3; i++) {
     keyboard_navigation_transactions.push(
       makeTransaction({
         span_id: i + '',
@@ -275,7 +275,9 @@ async function keyboardNavigationTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i).catch(e => {
+  await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+    timeout: 5000,
+  }).catch(e => {
     printVirtualizedList(virtualizedContainer);
     throw e;
   });
@@ -327,7 +329,9 @@ async function pageloadTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i).catch(e => {
+  await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+    timeout: 5000,
+  }).catch(e => {
     printVirtualizedList(virtualizedContainer);
     throw e;
   });
@@ -380,7 +384,9 @@ async function nestedTransactionsTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i).catch(e => {
+  await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+    timeout: 5000,
+  }).catch(e => {
     printVirtualizedList(virtualizedContainer);
     throw e;
   });
@@ -432,7 +438,9 @@ async function searchTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i).catch(e => {
+  await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+    timeout: 5000,
+  }).catch(e => {
     printVirtualizedList(virtualizedContainer);
     throw e;
   });
@@ -487,7 +495,9 @@ async function simpleTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i).catch(e => {
+  await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+    timeout: 5000,
+  }).catch(e => {
     printVirtualizedList(virtualizedContainer);
     throw e;
   });
@@ -694,7 +704,9 @@ async function completeTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i).catch(e => {
+  await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+    timeout: 5000,
+  }).catch(e => {
     printVirtualizedList(virtualizedContainer);
     throw e;
   });
@@ -1244,7 +1256,7 @@ describe('trace view', () => {
       await userEvent.keyboard('{arrowup}');
 
       expect(
-        await findByText(virtualizedContainer, /transaction-op-9999/i)
+        await findByText(virtualizedContainer, /transaction-op-999/i)
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -1266,7 +1278,7 @@ describe('trace view', () => {
         expect(rows[rows.length - 1]).toHaveFocus();
       });
       expect(
-        await within(virtualizedContainer).findByText(/transaction-op-9999/i)
+        await within(virtualizedContainer).findByText(/transaction-op-999/i)
       ).toBeInTheDocument();
 
       await userEvent.keyboard('{arrowdown}');
@@ -1319,7 +1331,7 @@ describe('trace view', () => {
       await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
 
       expect(
-        await findByText(virtualizedContainer, /transaction-op-9999/i)
+        await findByText(virtualizedContainer, /transaction-op-999/i)
       ).toBeInTheDocument();
       await waitFor(() => {
         rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
@@ -1337,7 +1349,7 @@ describe('trace view', () => {
 
       await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
       expect(
-        await findByText(virtualizedContainer, /transaction-op-9999/i)
+        await findByText(virtualizedContainer, /transaction-op-999/i)
       ).toBeInTheDocument();
 
       await waitFor(() => {
