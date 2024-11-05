@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location, Query} from 'history';
+import type {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import {
   createDashboard,
@@ -14,15 +15,18 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Pagination from 'sentry/components/pagination';
+import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
+import {
+  DASHBOARD_CARD_GRID_PADDING,
+  MINIMUM_DASHBOARD_CARD_WIDTH,
+} from 'sentry/views/dashboards/manage/utils';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 import {cloneDashboard} from '../utils';
@@ -32,11 +36,13 @@ import GridPreview from './gridPreview';
 
 type Props = {
   api: Client;
+  columnCount: number;
   dashboards: DashboardListItem[] | undefined;
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
-  pageLinks: string;
+  rowCount: number;
+  isLoading?: boolean;
 };
 
 function DashboardList({
@@ -44,10 +50,23 @@ function DashboardList({
   organization,
   location,
   dashboards,
-  pageLinks,
   onDashboardsChange,
+  rowCount,
+  columnCount,
+  isLoading,
 }: Props) {
-  const navigate = useNavigate();
+  // this acts as a cache for the dashboards being passed in. It preserves the previously populated dashboard list
+  // to be able to show the 'previous' dashboards on resize
+  const [currentDashboards, setCurrentDashboards] = useState<
+    DashboardListItem[] | undefined
+  >(dashboards);
+
+  useEffect(() => {
+    if (dashboards?.length) {
+      setCurrentDashboards(dashboards);
+    }
+  }, [dashboards]);
+
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
       .then(() => {
@@ -138,7 +157,15 @@ function DashboardList({
   };
 
   function renderMiniDashboards() {
-    return dashboards?.map((dashboard, index) => {
+    // on pagination, render no dashboards to show placeholders while loading
+    if (
+      rowCount * columnCount === currentDashboards?.length &&
+      !isEqual(currentDashboards, dashboards)
+    ) {
+      return [];
+    }
+
+    return currentDashboards?.slice(0, rowCount * columnCount).map((dashboard, index) => {
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
@@ -160,59 +187,44 @@ function DashboardList({
   }
 
   function renderDashboardGrid() {
-    if (!dashboards?.length) {
+    if (!dashboards?.length && !isLoading) {
       return (
         <EmptyStateWarning>
           <p>{t('Sorry, no Dashboards match your filters.')}</p>
         </EmptyStateWarning>
       );
     }
-    return <DashboardGrid>{renderMiniDashboards()}</DashboardGrid>;
+
+    const gridIsBeingResized = rowCount * columnCount !== currentDashboards?.length;
+
+    // finds number of dashboards (cached or not) based on if the screen is being resized or not
+    const numDashboards = gridIsBeingResized
+      ? currentDashboards?.length ?? 0
+      : dashboards?.length ?? 0;
+
+    return (
+      <DashboardGrid rows={rowCount} columns={columnCount}>
+        {renderMiniDashboards()}
+        {isLoading &&
+          rowCount * columnCount > numDashboards &&
+          new Array(rowCount * columnCount - numDashboards)
+            .fill(0)
+            .map((_, index) => <Placeholder key={index} height="270px" />)}
+      </DashboardGrid>
+    );
   }
 
-  return (
-    <Fragment>
-      {renderDashboardGrid()}
-      <PaginationRow
-        pageLinks={pageLinks}
-        onCursor={(cursor, path, query, direction) => {
-          const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
-
-          const newQuery: Query & {cursor?: string} = {...query, cursor};
-          const isPrevious = direction === -1;
-
-          if (offset <= 0 && isPrevious) {
-            delete newQuery.cursor;
-          }
-          trackAnalytics('dashboards_manage.paginate', {organization});
-
-          navigate({
-            pathname: path,
-            query: newQuery,
-          });
-        }}
-      />
-    </Fragment>
-  );
+  return <Fragment>{renderDashboardGrid()}</Fragment>;
 }
 
-const DashboardGrid = styled('div')`
+const DashboardGrid = styled('div')<{columns: number; rows: number}>`
   display: grid;
-  grid-template-columns: minmax(100px, 1fr);
-  grid-template-rows: repeat(3, max-content);
-  gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
-`;
-
-const PaginationRow = styled(Pagination)`
-  margin-bottom: ${space(3)};
+  grid-template-columns: repeat(
+    ${props => props.columns},
+    minmax(${MINIMUM_DASHBOARD_CARD_WIDTH}px, 1fr)
+  );
+  grid-template-rows: repeat(${props => props.rows}, max-content);
+  gap: ${DASHBOARD_CARD_GRID_PADDING}px;
 `;
 
 const DropdownTrigger = styled(Button)`
