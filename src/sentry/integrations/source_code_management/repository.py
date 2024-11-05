@@ -98,7 +98,12 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         return []
 
     def record_event(self, event: RepositoryIntegrationInteractionType):
-        return RepositoryIntegrationInteractionEvent(event, self.integration_name)
+        return RepositoryIntegrationInteractionEvent(
+            interaction_type=event,
+            provider_key=self.integration_name,
+            organization=self.organization,
+            org_integration=self.org_integration,
+        )
 
     def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """

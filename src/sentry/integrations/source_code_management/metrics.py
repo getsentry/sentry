@@ -1,9 +1,15 @@
+from collections.abc import Mapping
 from enum import Enum
+from typing import Any
 
 from attr import dataclass
 
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import RpcOrganizationIntegration
 from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcOrganization
 
 
 class RepositoryIntegrationInteractionType(Enum):
@@ -28,6 +34,10 @@ class RepositoryIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
     interaction_type: RepositoryIntegrationInteractionType
     provider_key: str
 
+    # Optional attributes to populate extras
+    organization: Organization | RpcOrganization | None = None
+    org_integration: OrganizationIntegration | RpcOrganizationIntegration | None = None
+
     def get_integration_domain(self) -> IntegrationDomain:
         return IntegrationDomain.SOURCE_CODE_MANAGEMENT
 
@@ -36,3 +46,9 @@ class RepositoryIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
 
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
+
+    def get_extras(self) -> Mapping[str, Any]:
+        return {
+            "organization_id": (self.organization.id if self.organization else None),
+            "org_integration_id": (self.org_integration.id if self.org_integration else None),
+        }
