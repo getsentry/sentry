@@ -21,12 +21,12 @@ type Props = {
   onClick?: (e: React.MouseEvent) => void;
 };
 
-function SettingsNavItem({badge, label, index, id, to, ...props}: Props) {
-  const LabelHook = HookOrDefault({
-    hookName: 'sidebar:item-label',
-    defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-  });
+const LabelHook = HookOrDefault({
+  hookName: 'sidebar:item-label',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
 
+function SettingsNavItem({badge, label, index, id, to, ...props}: Props) {
   let renderedBadge: React.ReactNode;
 
   if (badge === 'new') {

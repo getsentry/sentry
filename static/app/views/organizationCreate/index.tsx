@@ -29,6 +29,11 @@ function removeDataStorageLocationFromFormData(
   return shallowFormDataClone;
 }
 
+const DataConsentCheck = HookOrDefault({
+  hookName: 'component:data-consent-org-creation-checkbox',
+  defaultComponent: null,
+});
+
 function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
@@ -36,11 +41,6 @@ function OrganizationCreate() {
   const relocationUrl = normalizeUrl(`/relocation/`);
   const regionChoices = getRegionChoices();
   const client = useApi();
-
-  const DataConsentCheck = HookOrDefault({
-    hookName: 'component:data-consent-org-creation-checkbox',
-    defaultComponent: null,
-  });
 
   const hasDataConsent =
     HookStore.get('component:data-consent-org-creation-checkbox').length !== 0;
