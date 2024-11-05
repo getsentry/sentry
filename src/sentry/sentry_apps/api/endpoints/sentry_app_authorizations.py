@@ -68,8 +68,8 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
 
                 token = Refresher(
                     install=installation,
-                    refresh_token=refresh_serializer.validated_data["refresh_token"],
-                    client_id=refresh_serializer.validated_data["client_id"],
+                    refresh_token=refresh_serializer.validated_data.get("refresh_token"),
+                    client_id=refresh_serializer.validated_data.get("client_id"),
                     user=promote_request_api_user(request),
                 ).run()
             else:
