@@ -4,17 +4,15 @@ import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
-import DropdownLink from 'sentry/components/dropdownLink';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import MenuItem from 'sentry/components/menuItem';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
@@ -482,57 +480,54 @@ function TrendsListItem(props: TrendsListItemProps) {
             </Fragment>
           </Tooltip>
         </ItemTransactionPercentage>
-        <DropdownLink
-          caret={false}
-          anchorRight
-          title={
-            <StyledButton
-              size="xs"
-              icon={<IconEllipsis data-test-id="trends-item-action" />}
-              aria-label={t('Actions')}
-            />
-          }
-        >
-          {!organization.features.includes('performance-new-trends') && (
-            <Fragment>
-              <MenuItem
-                onClick={() =>
-                  handleFilterDuration(
-                    location,
-                    organization,
-                    longestPeriodValue,
-                    FilterSymbols.LESS_THAN_EQUALS,
-                    trendChangeType,
-                    projects,
-                    trendView.project
-                  )
-                }
-              >
-                <MenuAction>{t('Show \u2264 %s', longestDuration)}</MenuAction>
-              </MenuItem>
-              <MenuItem
-                onClick={() =>
-                  handleFilterDuration(
-                    location,
-                    organization,
-                    longestPeriodValue,
-                    FilterSymbols.GREATER_THAN_EQUALS,
-                    trendChangeType,
-                    projects,
-                    trendView.project
-                  )
-                }
-              >
-                <MenuAction>{t('Show \u2265 %s', longestDuration)}</MenuAction>
-              </MenuItem>
-            </Fragment>
-          )}
-          <MenuItem
-            onClick={() => handleFilterTransaction(location, transaction.transaction)}
-          >
-            <MenuAction>{t('Hide from list')}</MenuAction>
-          </MenuItem>
-        </DropdownLink>
+        <DropdownMenu
+          triggerProps={{
+            size: 'xs',
+            icon: <IconEllipsis />,
+            'aria-label': t('Actions'),
+            showChevron: false,
+          }}
+          items={[
+            ...(organization.features.includes('performance-new-trends')
+              ? []
+              : [
+                  {
+                    key: 'shortestDuration',
+                    label: t('Show \u2264 %s', longestDuration),
+                    onAction: () =>
+                      handleFilterDuration(
+                        location,
+                        organization,
+                        longestPeriodValue,
+                        FilterSymbols.LESS_THAN_EQUALS,
+                        trendChangeType,
+                        projects,
+                        trendView.project
+                      ),
+                  },
+                  {
+                    key: 'longestDuration',
+                    label: t('Show \u2265 %s', longestDuration),
+                    onAction: () =>
+                      handleFilterDuration(
+                        location,
+                        organization,
+                        longestPeriodValue,
+                        FilterSymbols.GREATER_THAN_EQUALS,
+                        trendChangeType,
+                        projects,
+                        trendView.project
+                      ),
+                  },
+                ]),
+            {
+              key: 'hide',
+              label: t('Hide from list'),
+              onAction: () => handleFilterTransaction(location, transaction.transaction),
+            },
+          ]}
+          position="bottom-end"
+        />
         <ItemTransactionDurationChange>
           {project && (
             <Tooltip title={transaction.project}>
@@ -672,10 +667,6 @@ const ChartContainer = styled('div')`
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   border-radius: ${p => p.theme.borderRadius};
   margin: ${space(2)} ${space(3)};
-`;
-
-const StyledButton = styled(Button)`
-  vertical-align: middle;
 `;
 
 const MenuAction = styled('div')<{['data-test-id']?: string}>`

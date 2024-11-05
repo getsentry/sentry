@@ -421,10 +421,15 @@ describe('Performance > Trends', function () {
     expect(transactions).toHaveLength(2);
     const firstTransaction = transactions[0];
 
-    const menuActions = within(firstTransaction).getAllByTestId('menu-action');
-    expect(menuActions).toHaveLength(3);
+    await userEvent.click(
+      within(firstTransaction).getByRole('button', {name: 'Actions'})
+    );
+    await waitFor(() => {
+      const menuActions = within(firstTransaction).getAllByRole('menuitemradio');
+      expect(menuActions).toHaveLength(3);
+    });
 
-    const menuAction = menuActions[2];
+    const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[2];
     await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -480,10 +485,15 @@ describe('Performance > Trends', function () {
     expect(transactions).toHaveLength(2);
     const firstTransaction = transactions[0];
 
-    const menuActions = within(firstTransaction).getAllByTestId('menu-action');
-    expect(menuActions).toHaveLength(3);
+    await userEvent.click(
+      within(firstTransaction).getByRole('button', {name: 'Actions'})
+    );
+    await waitFor(() => {
+      const menuActions = within(firstTransaction).getAllByRole('menuitemradio');
+      expect(menuActions).toHaveLength(3);
+    });
 
-    const menuAction = menuActions[0];
+    const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[0];
     await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -511,10 +521,15 @@ describe('Performance > Trends', function () {
     expect(transactions).toHaveLength(2);
     const firstTransaction = transactions[0];
 
-    const menuActions = within(firstTransaction).getAllByTestId('menu-action');
-    expect(menuActions).toHaveLength(3);
+    await userEvent.click(
+      within(firstTransaction).getByRole('button', {name: 'Actions'})
+    );
+    await waitFor(() => {
+      const menuActions = within(firstTransaction).getAllByRole('menuitemradio');
+      expect(menuActions).toHaveLength(3);
+    });
 
-    const menuAction = menuActions[1];
+    const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[1];
     await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
