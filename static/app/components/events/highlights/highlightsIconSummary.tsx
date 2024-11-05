@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
@@ -64,7 +63,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
       <IconBar>
         <ScrollCarousel gap={3}>
           {items.map((item, index) => (
-            <Flex key={index} gap={space(1)} align="center">
+            <IconContainer key={index}>
               <IconWrapper>{item.icon}</IconWrapper>
               <IconDescription>
                 <div>{item.title}</div>
@@ -74,10 +73,10 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
                   </IconSubtitle>
                 )}
               </IconDescription>
-            </Flex>
+            </IconContainer>
           ))}
           {releaseTag && (
-            <Flex key="release" gap={space(1)} align="flex-end">
+            <IconContainer key="release">
               <IconWrapper>
                 <IconReleases size="sm" color="subText" />
               </IconWrapper>
@@ -95,17 +94,17 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
                   </VersionHoverCard>
                 )}
               </IconDescription>
-            </Flex>
+            </IconContainer>
           )}
           {environmentTag && (
-            <Flex key="environment" gap={space(1)} align="flex-end">
+            <IconContainer key="environment">
               <IconWrapper>
                 <IconWindow size="sm" color="subText" />
               </IconWrapper>
               <IconDescription>
                 <Tooltip title={t('Environment')}>{environmentTag.value}</Tooltip>
               </IconDescription>
-            </Flex>
+            </IconContainer>
           )}
         </ScrollCarousel>
       </IconBar>
@@ -117,6 +116,13 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
 const IconBar = styled('div')`
   position: relative;
   padding: ${space(0.5)} ${space(0.5)};
+`;
+
+const IconContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  flex-shrink: 0;
 `;
 
 const IconDescription = styled('div')`
