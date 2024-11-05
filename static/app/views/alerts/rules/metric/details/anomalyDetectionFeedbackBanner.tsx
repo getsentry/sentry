@@ -26,7 +26,7 @@ export default function AnomalyDetectionFeedbackBanner({
 
   const handleClick = useCallback(
     (anomalyCorrectlyIdentified: boolean) => {
-      trackAnalytics('feedback.anomaly-detection-feedback-submitted', {
+      trackAnalytics('anomaly-detection.feedback-submitted', {
         choice_selected: anomalyCorrectlyIdentified,
         organization,
         incident_id: id,
