@@ -8,7 +8,6 @@ from sentry_protos.sentry.v1.taskworker_pb2 import (
     TaskActivation,
 )
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.registry import taskregistry
 from sentry.taskworker.retry import Retry, RetryError
 from sentry.taskworker.worker import TaskWorker
@@ -16,8 +15,6 @@ from sentry.testutils.cases import TestCase
 
 test_namespace = taskregistry.create_namespace(
     name="tests",
-    topic=Topic.TASK_WORKER.value,
-    deadletter_topic=Topic.TASK_WORKER_DLQ.value,
     retry=Retry(times=2),
 )
 

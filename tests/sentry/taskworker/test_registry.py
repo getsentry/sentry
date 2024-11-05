@@ -61,8 +61,7 @@ def test_namespace_register_inherits_default_retry() -> None:
 def test_register_inherits_default_expires_processing_deadline() -> None:
     namespace = TaskNamespace(
         name="tests",
-        topic="tests",
-        deadletter_topic="tests-dlq",
+        topic=Topic.TASK_WORKER,
         retry=None,
         expires=10 * 60,
         processing_deadline_duration=5,
@@ -213,10 +212,21 @@ def test_registry_get_task() -> None:
 
 def test_registry_create_namespace_simple() -> None:
     registry = TaskRegistry()
-    retry = Retry(times=3)
-    ns = registry.create_namespace(name="tests", retry=retry)
-    assert ns.default_retry == retry
+    ns = registry.create_namespace(name="tests")
+    assert ns.default_retry is None
+    assert ns.default_expires is None
+    assert ns.default_processing_deadline_duration == 30
     assert ns.name == "tests"
+    assert ns.topic == Topic.TASK_WORKER
+
+    retry = Retry(times=3)
+    ns = registry.create_namespace(
+        "test-two", retry=retry, expires=60 * 10, processing_deadline_duration=60
+    )
+    assert ns.default_retry == retry
+    assert ns.default_processing_deadline_duration == 60
+    assert ns.default_expires == 60 * 10
+    assert ns.name == "test-two"
     assert ns.topic == Topic.TASK_WORKER
 
 

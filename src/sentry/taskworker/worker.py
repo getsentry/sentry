@@ -71,6 +71,12 @@ class TaskWorker:
         self._build_pool()
 
     def start(self) -> int:
+        """
+        Run the worker main loop
+
+        Once started a Worker will loop until it is killed, or
+        completes its max_task_count when it shuts down.
+        """
         self.do_imports()
         next_task: TaskActivation | None = None
         task: TaskActivation | None = None

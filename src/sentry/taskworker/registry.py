@@ -20,6 +20,8 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_PROCESSING_DEADLINE = 30
+
 
 class TaskNamespace:
     """
@@ -34,7 +36,7 @@ class TaskNamespace:
         topic: Topic,
         retry: Retry | None,
         expires: int | datetime.timedelta | None = None,
-        processing_deadline_duration: int = 30,
+        processing_deadline_duration: int = DEFAULT_PROCESSING_DEADLINE,
     ):
         self.name = name
         self.topic = topic
@@ -128,23 +130,30 @@ class TaskRegistry:
         """Fetch a task by namespace and name."""
         return self.get(namespace).get(task)
 
-    def import_tasks(self) -> None:
-        """Import all the modules listed in settings.TASKWORKER_IMPORTS"""
-        imports = settings.TASKWORKER_IMPORTS
-        for module in imports:
-            __import__(module)
-
-    def create_namespace(self, name: str, retry: Retry | None = None) -> TaskNamespace:
+    def create_namespace(
+        self,
+        name: str,
+        *,
+        retry: Retry | None = None,
+        expires: int | datetime.timedelta | None = None,
+        processing_deadline_duration: int = DEFAULT_PROCESSING_DEADLINE,
+    ) -> TaskNamespace:
         """
         Create a namespaces.
 
-        Namespaces can define default retry policies, deadlines.
-
-        Namespaces are mapped onto topics with a router allowing
+        Namespaces are mapped onto topics through the configured router allowing
         infrastructure to be scaled based on a region's requirements.
+
+        Namespaces can define default behavior for tasks defined within a namespace.
         """
         topic = self._router.route_namespace(name)
-        namespace = TaskNamespace(name=name, topic=topic, retry=retry)
+        namespace = TaskNamespace(
+            name=name,
+            topic=topic,
+            retry=retry,
+            expires=expires,
+            processing_deadline_duration=processing_deadline_duration,
+        )
         self._namespaces[name] = namespace
 
         return namespace
