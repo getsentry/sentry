@@ -29,7 +29,7 @@ export function ScreenRenderingModule() {
           headerActions={isProjectCrossPlatform && <PlatformSelector />}
         />
 
-        <ModuleBodyUpsellHook moduleName={ModuleName.APP_START}>
+        <ModuleBodyUpsellHook moduleName={ModuleName.SCREEN_RENDERING}>
           <Layout.Body>
             <Layout.Main fullWidth>
               <Container>

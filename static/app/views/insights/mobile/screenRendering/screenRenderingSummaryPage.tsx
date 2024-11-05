@@ -26,7 +26,7 @@ function ScreenRenderingSummary() {
         module={ModuleName.SCREEN_RENDERING}
         breadcrumbs={[{label: SUMMARY_PAGE_TITLE}]}
       />
-      <ModuleBodyUpsellHook moduleName={ModuleName.APP_START}>
+      <ModuleBodyUpsellHook moduleName={ModuleName.SCREEN_RENDERING}>
         <Layout.Body>
           <Layout.Main fullWidth>
             <ModuleLayout.Layout>
