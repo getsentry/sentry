@@ -14,6 +14,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
+from sentry.types.group import PriorityLevel
 from sentry.utils import metrics, redis
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.iterators import chunked
@@ -45,7 +46,7 @@ class DetectorEvaluationResult:
 
 def process_detectors(
     data_packet: DataPacket, detectors: list[Detector]
-) -> list[tuple[Detector, list[DetectorEvaluationResult]]]:
+) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
     results = []
 
     for detector in detectors:
@@ -55,24 +56,10 @@ def process_detectors(
             continue
 
         detector_results = handler.evaluate(data_packet)
-        detector_group_keys = set()
 
-        for result in detector_results:
-            if result.group_key in detector_group_keys:
-                # This shouldn't happen - log an error and continue on, but we should investigate this.
-                logger.error(
-                    "Duplicate detector state group keys found",
-                    extra={
-                        "detector_id": detector.id,
-                        "group_key": result.group_key,
-                    },
-                )
-                continue
-
+        for result in detector_results.values():
             if result.result is not None:
                 create_issue_occurrence_from_result(result)
-
-            detector_group_keys.add(result.group_key)
 
         if detector_results:
             results.append((detector, detector_results))
@@ -136,7 +123,9 @@ class DetectorHandler(abc.ABC, Generic[T]):
             self.conditions = []
 
     @abc.abstractmethod
-    def evaluate(self, data_packet: DataPacket[T]) -> list[DetectorEvaluationResult]:
+    def evaluate(
+        self, data_packet: DataPacket[T]
+    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         pass
 
     def commit_state_updates(self):
@@ -172,6 +161,12 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         Extracts the values for all the group keys that exist in the given data packet,
         and returns then as a dict keyed by group_key.
         """
+        pass
+
+    @abc.abstractmethod
+    def build_occurrence_and_event_data(
+        self, group_key: DetectorGroupKey, value: int, new_status: PriorityLevel
+    ) -> tuple[IssueOccurrence, dict[str, Any]]:
         pass
 
     def build_fingerprint(self, group_key) -> list[str]:
@@ -228,7 +223,9 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             )
         return results
 
-    def evaluate(self, data_packet: DataPacket[T]) -> list[DetectorEvaluationResult]:
+    def evaluate(
+        self, data_packet: DataPacket[T]
+    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         """
         Evaluates a given data packet and returns a list of `DetectorEvaluationResult`.
         There will be one result for each group key result in the packet, unless the
@@ -237,13 +234,13 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         dedupe_value = self.get_dedupe_value(data_packet)
         group_values = self.get_group_key_values(data_packet)
         all_state_data = self.get_state_data(list(group_values.keys()))
-        results = []
+        results = {}
         for group_key, group_value in group_values.items():
             result = self.evaluate_group_key_value(
                 group_key, group_value, all_state_data[group_key], dedupe_value
             )
             if result:
-                results.append(result)
+                results[result.group_key] = result
         return results
 
     def evaluate_group_key_value(
@@ -289,7 +286,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             is_active = new_status != DetectorPriorityLevel.OK
             self.enqueue_state_update(group_key, is_active, new_status)
             event_data = None
-            result = None
+            result: StatusChangeMessage | IssueOccurrence
             if new_status == DetectorPriorityLevel.OK:
                 # If we've determined that we're now ok, we just want to resolve the issue
                 result = StatusChangeMessage(
@@ -298,8 +295,10 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
                     new_status=GroupStatus.RESOLVED,
                     new_substatus=None,
                 )
-
-            # TODO: Add hook here for generating occurrence
+            else:
+                result, event_data = self.build_occurrence_and_event_data(
+                    group_key, value, PriorityLevel(new_status)
+                )
             return DetectorEvaluationResult(
                 group_key=group_key,
                 is_active=is_active,

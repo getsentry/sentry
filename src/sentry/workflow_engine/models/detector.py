@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import logging
 from typing import TYPE_CHECKING
 
@@ -9,6 +10,7 @@ from django.db.models import UniqueConstraint
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.issues import grouptype
+from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
 
 if TYPE_CHECKING:
@@ -54,8 +56,12 @@ class Detector(DefaultFieldsModel, OwnerModel):
         return 1
 
     @property
+    def group_type(self) -> builtins.type[GroupType] | None:
+        return grouptype.registry.get_by_slug(self.type)
+
+    @property
     def detector_handler(self) -> DetectorHandler | None:
-        group_type = grouptype.registry.get_by_slug(self.type)
+        group_type = self.group_type
         if not group_type:
             logger.error(
                 "No registered grouptype for detector",
