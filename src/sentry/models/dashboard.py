@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from django.db import models
@@ -77,9 +78,27 @@ class Dashboard(Model):
             return all_prebuilt_dashboards[dashboard_id]
         return None
 
-    @staticmethod
-    def incremental_name(organization, name):
-        return name
+    @classmethod
+    def incremental_name(cls, organization, name):
+        """Given a dashboard name that already exists, returns a new unique name that does not exist, by appending the word "Copy" and an integer."""
+        matching_dashboards = cls.objects.filter(
+            organization=organization, title__regex=rf"^{re.escape(name)} ?(Copy)? ?(\d+)?$"
+        )
+
+        if not matching_dashboards:
+            return name
+
+        next_copy_number = 1
+        for dashboard in matching_dashboards:
+            match = re.search(r" Copy ?(\d+)?", dashboard.title)
+            if match:
+                copy_number = int(match.group(1) or 1)
+                next_copy_number = max(next_copy_number, copy_number + 1)
+
+        if next_copy_number == 1:
+            return f"{name} Copy"
+
+        return f"{name} Copy {next_copy_number}"
 
 
 @region_silo_model
