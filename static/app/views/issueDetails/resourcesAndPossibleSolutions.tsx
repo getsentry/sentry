@@ -18,7 +18,7 @@ import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
+import {useHasStreamlinedUI, useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   event: Event;
@@ -51,6 +51,7 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const config = getConfigForIssueType(group, project);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const isSampleError = useIsSampleEvent();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const displayAiAutofix =
     ((organization.features.includes('autofix') &&
@@ -78,12 +79,12 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
 
   return (
     <Wrapper
-      title={t('Resources and Possible Solutions')}
+      title={hasStreamlinedUI ? t('Autofix') : t('Resources and Possible Solutions')}
       configResources={!!config.resources}
       type={SectionKey.RESOURCES}
     >
       <Content>
-        {config.resources && (
+        {config.resources && !hasStreamlinedUI && (
           <Resources
             eventPlatform={event.platform}
             groupId={group.id}
