@@ -1,6 +1,4 @@
 ---
-created: '2024-10-30T19:48:46.854616+00:00'
-creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
 - comparators:
@@ -1242,7 +1240,6 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - organization
     - owner_id
-    - project_id
   model_name: sentry.release
 - comparators:
   - class: ForeignKeyComparator

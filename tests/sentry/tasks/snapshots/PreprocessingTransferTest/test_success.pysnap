@@ -1,6 +1,4 @@
 ---
-created: '2024-10-21T17:30:30.165363+00:00'
-creator: sentry
 source: tests/sentry/tasks/test_relocation.py
 ---
 artifacts:
