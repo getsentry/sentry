@@ -5,14 +5,15 @@ import orjson
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.models.environment import Environment
+from sentry.models.rule import Rule
 from sentry.rules import rules
-
-ValidationError = serializers.ValidationError
+from sentry.rules.actions.sentry_apps.notify_event import NotifyEventSentryAppAction
 
 
 @extend_schema_field(field=OpenApiTypes.OBJECT)
@@ -46,12 +47,16 @@ class RuleNodeField(serializers.Field):
             msg = "Invalid node. Could not find '%s'"
             raise ValidationError(msg % data["id"])
 
+        # instance of a RuleBase class
         node = cls(project=self.context["project"], data=data)
 
         # Nodes with user-declared fields will manage their own validation
         if node.id in SENTRY_APP_ACTIONS:
             if not data.get("hasSchemaFormConfig"):
                 raise ValidationError("Please configure your integration settings.")
+            assert isinstance(
+                node, NotifyEventSentryAppAction
+            ), "node must be an instance of NotifyEventSentryAppAction to use self_validate"
             node.self_validate()
             return data
 
@@ -67,7 +72,7 @@ class RuleNodeField(serializers.Field):
             first_error = next(iter(form.errors.values()))[0]
 
             if first_error != "This field is required.":
-                raise ValidationError(first_error)
+                raise ValidationError(first_error) if isinstance(first_error, str) else first_error
 
             raise ValidationError("Ensure all required fields are filled in.")
 
@@ -168,7 +173,9 @@ class RuleSerializer(RuleSetSerializer):
     def validate(self, attrs):
         return super().validate(validate_actions(attrs))
 
-    def save(self, rule):
+    def save(self, **kwargs: Any) -> Rule:
+        rule = kwargs.get("rule")
+        assert isinstance(rule, Rule), "Rule must exist to modify instance"
         rule.project = self.context["project"]
         if "environment" in self.validated_data:
             environment = self.validated_data["environment"]
@@ -187,7 +194,7 @@ class RuleSerializer(RuleSetSerializer):
             rule.data["frequency"] = self.validated_data["frequency"]
         if self.validated_data.get("owner"):
             actor = self.validated_data["owner"].resolve_to_actor()
-            rule.owner_id = actor.id
+            rule.owner = actor
             rule.owner_user_id = actor.user_id
             rule.owner_team_id = actor.team_id
         rule.save()

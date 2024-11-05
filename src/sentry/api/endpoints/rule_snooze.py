@@ -1,5 +1,5 @@
 import datetime
-from typing import Literal
+from typing import Generic, Literal, TypeVar
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers, status
@@ -15,6 +15,7 @@ from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import BadRequest
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.db.models.base import Model
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -73,10 +74,13 @@ class RuleSnoozeSerializer(Serializer):
         return result
 
 
+T = TypeVar("T", bound=Model)
+
+
 @region_silo_endpoint
-class BaseRuleSnoozeEndpoint(ProjectEndpoint):
+class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
     permission_classes = (ProjectAlertRulePermission,)
-    rule_model = type[Rule] | type[AlertRule]
+    rule_model: type[T]
     rule_field = Literal["rule", "alert_rule"]
 
     def convert_args(self, request: Request, rule_id: int, *args, **kwargs):
@@ -104,7 +108,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
         if not can_edit_alert_rule(project.organization, request):
             raise PermissionDenied(
-                detail="Requesting user cannot mute this rule.", code=status.HTTP_403_FORBIDDEN
+                detail="Requesting user cannot mute this rule.", code=str(status.HTTP_403_FORBIDDEN)
             )
 
         kwargs = {self.rule_field: rule}
@@ -207,7 +211,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
 
 @region_silo_endpoint
-class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
+class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
     owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
@@ -218,11 +222,14 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
 
 
 @region_silo_endpoint
-class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
+class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
     owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    rule_model = AlertRule
     rule_field = "alert_rule"
+    rule_model = AlertRule
+
+    def test(self):
+        self.rule_model
