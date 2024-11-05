@@ -79,7 +79,7 @@ class Dashboard(Model):
         return None
 
     @classmethod
-    def incremental_name(cls, organization, name):
+    def incremental_title(cls, organization, name):
         """Given a dashboard name that already exists, returns a new unique name that does not exist, by appending the word "Copy" and an integer."""
         matching_dashboards = cls.objects.filter(
             organization=organization, title__regex=rf"^{re.escape(name)} ?(Copy)? ?(\d+)?$"
