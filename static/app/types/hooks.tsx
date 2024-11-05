@@ -666,6 +666,7 @@ type SidebarNavigationItemHook = () => React.ComponentType<{
 type InsightsUpsellHook = {
   children: React.ReactNode;
   moduleName: TitleableModuleNames;
+  fullPage?: boolean;
 };
 
 /**
