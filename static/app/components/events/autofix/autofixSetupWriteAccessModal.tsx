@@ -53,7 +53,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
             {
               link: (
                 <ExternalLink
-                  href={`https://github.com/apps/sentry-autofix-experimental/installations/new`}
+                  href={`https://github.com/apps/sentry-autofix/installations/new`}
                 />
               ),
             }
@@ -76,7 +76,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
           {
             link: (
               <ExternalLink
-                href={`https://github.com/apps/sentry-autofix-experimental/installations/new`}
+                href={`https://github.com/apps/sentry-autofix/installations/new`}
               />
             ),
           }
@@ -108,7 +108,7 @@ export function AutofixSetupWriteAccessModal({
           <ButtonBar gap={1}>
             <Button onClick={closeModal}>{t('Later')}</Button>
             <LinkButton
-              href="https://github.com/apps/sentry-autofix-experimental/installations/new"
+              href="https://github.com/apps/sentry-autofix/installations/new"
               external
               priority="primary"
             >

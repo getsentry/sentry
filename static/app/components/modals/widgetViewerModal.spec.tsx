@@ -376,6 +376,17 @@ describe('Modals -> WidgetViewerModal', function () {
         expect(screen.getByText('Another Query Name')).toBeInTheDocument();
       });
 
+      it('renders the first query if the query index is invalid', async function () {
+        mockEvents();
+        initialData.router.location.query = {query: ['7']};
+
+        await renderModal({initialData, widget: mockWidget});
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+          'href',
+          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
+        );
+      });
+
       it('renders the correct discover query link when there are multiple queries in a widget', async function () {
         mockEvents();
         initialData.router.location.query = {query: ['1']};

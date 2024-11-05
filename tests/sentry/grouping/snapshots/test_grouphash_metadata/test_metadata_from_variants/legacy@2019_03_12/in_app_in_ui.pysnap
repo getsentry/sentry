@@ -1,0 +1,91 @@
+---
+created: '2024-10-28T14:02:54.399665+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "c506663b9a1495d301bff1e82149d55e"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename* (stripped to basename)
+                "main.m"
+              function*
+                "main"
+            frame*
+              filename* (stripped to basename)
+                "<compiler-generated>"
+              function*
+                "@objc TableView.layoutSubviews()"
+            frame*
+              filename* (stripped to basename)
+                "<compiler-generated>"
+              function*
+                "@objc AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)"
+            frame*
+              filename* (stripped to basename)
+                "AnyTableViewController.swift"
+              function*
+                "specialized AnyTableViewController.tableView(_: UITableView, cellForRowAt: IndexPath)"
+            frame*
+              filename* (stripped to basename)
+                "<compiler-generated>"
+              function*
+                "thunk for closure"
+            frame*
+              filename* (stripped to basename)
+                "DailyDigestTableViewSection.swift"
+              function*
+                "DailyDigestTableViewSection.photoCell(at: IndexPath, in: AnyTableViewController)"
+            frame*
+              filename* (stripped to basename)
+                "<compiler-generated>"
+              function*
+                "static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)"
+            frame*
+              filename* (stripped to basename)
+                "MediaSlideshow+Extensions.swift"
+              function*
+                "specialized static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)"
+            frame*
+              filename* (stripped to basename)
+                "<compiler-generated>"
+              function*
+                "specialized Sequence.compactMap<A>((A.Element))"
+            frame*
+              filename* (stripped to basename)
+                "<compiler-generated>"
+              function*
+                "thunk for closure"
+            frame*
+              filename* (stripped to basename)
+                "MediaSlideshow+Extensions.swift"
+              function*
+                "closure #1 (FileAttachment) in static MediaSlideshow.toSources(_: [FileAttachment], trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)"
+            frame*
+              filename* (stripped to basename)
+                "MediaSlideshow+Extensions.swift"
+              function*
+                "static MediaSlideshow.toSource(_: FileAttachment, trackingContent: VideoTracker.Content, trackingScope: VideoTracker.Scope)"
+            frame*
+              filename* (stripped to basename)
+                "<compiler-generated>"
+              function*
+                "@objc CurrentUserProfile.isVideoAutoplay.getter"
+            frame*
+              filename* (stripped to basename)
+                "CurrentUserProfile.swift"
+              function*
+                "CurrentUserProfile.isVideoAutoplay.getter"
+            frame*
+              filename* (stripped to basename)
+                "CurrentUserProfile.swift"
+              function*
+                "Swift runtime failure: Unexpectedly found nil while implicitly unwrapping an Optional value"
+          type*
+            "EXC_BREAKPOINT"

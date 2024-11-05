@@ -194,8 +194,14 @@ export function initializeSdk(config: Config) {
   });
 
   if (process.env.NODE_ENV !== 'production') {
-    if (sentryConfig.environment === 'development' && process.env.NO_SPOTLIGHT !== '1') {
+    if (
+      sentryConfig.environment === 'development' &&
+      process.env.SENTRY_SPOTLIGHT &&
+      !['false', 'f', 'n', 'no', 'off', '0'].includes(process.env.SENTRY_SPOTLIGHT)
+    ) {
       import('@spotlightjs/spotlight').then(Spotlight => {
+        // TODO: use the value of `process.env.SENTRY_SPOTLIGHT` for the `sidecarUrl` below when it is not "truthy"
+        //       Truthy is defined in https://github.com/getsentry/sentry-javascript/pull/13325/files#diff-a139d0f6c10ca33f2b0264da406662f90061cd7e8f707c197a02460a7f666e87R2
         /* #__PURE__ */ Spotlight.init();
       });
     }

@@ -42,8 +42,8 @@ export enum OnboardingTaskKey {
 }
 
 export type OnboardingSupplementComponentProps = {
-  onCompleteTask: () => void;
   task: OnboardingTask;
+  onCompleteTask?: () => void;
 };
 
 export type OnboardingCustomComponentProps = {
@@ -78,6 +78,7 @@ interface OnboardingTaskDescriptorBase {
    * The group that this task belongs to, e.g. basic and level up
    */
   group?: OnboardingTaskGroup;
+  pendingTitle?: string;
   /**
    * Joins with this task id for server-side onboarding state.
    * This allows you to create alias for exising onboarding tasks or create multiple

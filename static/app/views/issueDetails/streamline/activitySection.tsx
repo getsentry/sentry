@@ -11,7 +11,7 @@ import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
@@ -136,8 +136,11 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
   const handleCreate = useCallback(
     (n: NoteType, _me: User) => {
       mutators.handleCreate(n, group.activity, {
-        onError: () => {
-          addErrorMessage(t('Unable to post comment'));
+        onError: err => {
+          const errMessage = err.responseJSON?.detail
+            ? tct('Error: [msg]', {msg: err.responseJSON?.detail as string})
+            : t('Unable to post comment');
+          addErrorMessage(errMessage);
         },
         onSuccess: data => {
           GroupStore.addActivity(group.id, data);
