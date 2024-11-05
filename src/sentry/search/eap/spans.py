@@ -48,6 +48,8 @@ class SearchResolver:
     resolved_columns: dict[str, ResolvedColumn] = field(default_factory=dict)
 
     def resolve_meta(self, referrer: str) -> RequestMeta:
+        if self.params.organization_id is None:
+            raise Exception("An organization is required to resolve queries")
         return RequestMeta(
             organization_id=self.params.organization_id,
             referrer=referrer,
@@ -155,6 +157,7 @@ class SearchResolver:
         for item in terms:
             if isinstance(item, event_search.SearchFilter):
                 resolved_column, context = self.resolve_column(item.key.name)
+                raw_value = item.value.raw_value
                 if item.value.is_wildcard():
                     if item.operator == "=":
                         operator = ComparisonFilter.OP_LIKE
@@ -175,7 +178,6 @@ class SearchResolver:
                     )
                 elif item.operator in constants.OPERATOR_MAP:
                     operator = constants.OPERATOR_MAP[item.operator]
-                    raw_value = item.value.raw_value
                 else:
                     raise InvalidSearchQuery(f"Unknown operator: {item.operator}")
                 if isinstance(resolved_column.proto_definition, AttributeKey):
