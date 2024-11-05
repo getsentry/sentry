@@ -104,9 +104,6 @@ function ManageDashboards() {
   const dashboardsPageLinks = getResponseHeader?.('Link') ?? '';
 
   function setRowsAndColumns(containerWidth: number) {
-    if (containerWidth === 0) {
-      return;
-    }
     const numWidgetsFitInRow = Math.floor(
       containerWidth / (MINIMUM_DASHBOARD_CARD_WIDTH + DASHBOARD_CARD_GRID_PADDING)
     );
