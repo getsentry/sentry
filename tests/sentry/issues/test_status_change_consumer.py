@@ -76,7 +76,8 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             assert not GroupInbox.objects.filter(group=self.group).exists()
 
     @django_db_all
-    def test_valid_payload_resolved(self) -> None:
+    @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
+    def test_valid_payload_resolved(self, mock_kick_off_status_syncs: MagicMock) -> None:
         message = get_test_message_status_change(self.project.id, fingerprint=["touch-id"])
         result = _process_message(message)
         assert result is not None
@@ -93,7 +94,12 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             group_inbox_reason=None,
         )
 
-    def test_valid_payload_archived_forever(self) -> None:
+        mock_kick_off_status_syncs.apply_async.assert_called_once_with(
+            kwargs={"project_id": self.project.id, "group_id": self.group.id}
+        )
+
+    @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
+    def test_valid_payload_archived_forever(self, mock_kick_off_status_syncs: MagicMock) -> None:
         message = get_test_message_status_change(
             self.project.id,
             fingerprint=self.fingerprint,
@@ -115,7 +121,14 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             group_inbox_reason=None,
         )
 
-    def test_valid_payload_unresolved_escalating(self) -> None:
+        mock_kick_off_status_syncs.apply_async.assert_called_once_with(
+            kwargs={"project_id": self.project.id, "group_id": self.group.id}
+        )
+
+    @patch("sentry.integrations.tasks.kick_off_status_syncs.kick_off_status_syncs")
+    def test_valid_payload_unresolved_escalating(
+        self, mock_kick_off_status_syncs: MagicMock
+    ) -> None:
         self.group.update(
             status=GroupStatus.IGNORED,
             substatus=GroupSubStatus.UNTIL_ESCALATING,
@@ -141,6 +154,10 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             ActivityType.SET_ESCALATING,
             PriorityLevel.HIGH,
             group_inbox_reason=GroupInboxReason.ESCALATING,
+        )
+
+        mock_kick_off_status_syncs.apply_async.assert_called_once_with(
+            kwargs={"project_id": self.project.id, "group_id": self.group.id}
         )
 
     def test_valid_payload_auto_ongoing(self) -> None:
