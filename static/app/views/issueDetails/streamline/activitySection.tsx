@@ -102,7 +102,7 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
     minHeight: 140,
     group,
     projectSlugs,
-    placeholder: t('Add a comment...'),
+    placeholder: t('Add a comment\u2026'),
   };
 
   const mutators = useMutateActivity({
