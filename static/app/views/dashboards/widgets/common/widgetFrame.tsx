@@ -90,7 +90,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
                   aria-label={t('Widget description')}
                   borderless
                   size="xs"
-                  icon={<IconInfo />}
+                  icon={<IconInfo size="sm" />}
                 />
               </Tooltip>
             )}
@@ -253,6 +253,8 @@ const WidgetTooltipDescription = styled('div')`
 // We're using a button here to preserve tab accessibility
 const WidgetTooltipButton = styled(Button)`
   pointer-events: none;
+  padding-top: 0;
+  padding-bottom: 0;
 `;
 
 const VisualizationWrapper = styled('div')`
