@@ -540,7 +540,6 @@ class TriggersChart extends PureComponent<Props, State> {
               });
             }}
           </OnDemandMetricRequest>
-          );
         </Fragment>
       );
     }
