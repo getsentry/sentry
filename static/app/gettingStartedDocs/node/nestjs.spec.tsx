@@ -89,9 +89,7 @@ describe('Nest.js onboarding docs', function () {
 
     renderWithOnboardingLayout(
       docs,
-      {
-        selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
-      },
+      {},
       {
         organization,
       }
