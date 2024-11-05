@@ -1,4 +1,4 @@
-import type {JsonFormObject} from 'sentry/components/forms/types';
+import type {Field, JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -84,7 +84,6 @@ const formGroups: JsonFormObject[] = [
         choices: ({initialData} = {}) =>
           initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
         help: t('The default role new members will receive'),
-        disabled: ({access}) => !access.has('org:admin'),
       },
       {
         name: 'openMembership',
@@ -153,5 +152,24 @@ const formGroups: JsonFormObject[] = [
     ],
   },
 ];
+
+const disabled = ({features, access}) =>
+  !access.has('org:write') || !features.has('invite-members');
+
+const disabledReason = ({features}) =>
+  !features.has('invite-members')
+    ? t('You must be on a paid plan to invite additional members.')
+    : undefined;
+
+formGroups.forEach(group => {
+  if (group.title === 'Membership') {
+    group.fields.forEach(field => {
+      if ((field as Field).name) {
+        field.disabled = field.disabled ?? disabled;
+        field.disabledReason = field.disabledReason ?? disabledReason;
+      }
+    });
+  }
+});
 
 export default formGroups;
