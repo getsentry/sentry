@@ -6,7 +6,6 @@ import isEqual from 'lodash/isEqual';
 import ArchivedBox from 'sentry/components/archivedBox';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
@@ -37,10 +36,6 @@ import {
   useEnvironmentsFromUrl,
   useHasStreamlinedUI,
 } from '../utils';
-
-const EscalatingIssuesFeedback = HookOrDefault({
-  hookName: 'component:escalating-issues-banner-feedback',
-});
 
 export interface GroupEventDetailsProps
   extends RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}> {
@@ -188,7 +183,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
             <Fragment>
               <MainLayoutComponent>
                 {!hasStreamlinedUI && renderGroupStatusBanner()}
-                <EscalatingIssuesFeedback organization={organization} group={group} />
                 {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
                   <GroupEventHeader
                     group={group}
