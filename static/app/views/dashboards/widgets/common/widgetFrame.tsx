@@ -90,7 +90,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
                   aria-label={t('Widget description')}
                   borderless
                   size="xs"
-                  icon={<IconInfo />}
+                  icon={<IconInfo size="sm" />}
                 />
               </Tooltip>
             )}
