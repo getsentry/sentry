@@ -25,6 +25,9 @@ const ALIASED_RELEASES = [
   {
     label: t('Latest Release(s)'),
     value: 'latest',
+    tooltip: t(
+      'The highest version number for Semantic Versioning or the most recent release for commit SHA.'
+    ),
   },
 ];
 
