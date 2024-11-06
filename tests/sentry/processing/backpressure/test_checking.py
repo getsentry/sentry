@@ -32,7 +32,7 @@ EVENTS_MSG = json.dumps(
         "backpressure.status_ttl": 60,
     }
 )
-def test_backpressure_unhealthy():
+def test_backpressure_unhealthy_profiles():
     record_consumer_health(
         {
             "celery": Exception("Couldn't check celery"),
@@ -83,6 +83,29 @@ def test_backpressure_healthy_profiles(process_profile_task):
     process_one_message(consumer_type="profiles", topic="profiles", payload=PROFILES_MSG)
 
     process_profile_task.assert_called_once()
+
+
+@override_options(
+    {
+        "backpressure.checking.enabled": True,
+        "backpressure.checking.interval": 5,
+        "backpressure.monitoring.enabled": True,
+        "backpressure.status_ttl": 60,
+    }
+)
+def test_backpressure_unhealthy_events():
+    record_consumer_health(
+        {
+            "celery": Exception("Couldn't check celery"),
+            "attachments-store": [],
+            "processing-store": [],
+            "processing-store-transactions": [],
+            "processing-locks": [],
+            "post-process-locks": [],
+        }
+    )
+    with raises(MessageRejected):
+        process_one_message(consumer_type="ingest", topic="ingest-events", payload=EVENTS_MSG)
 
 
 @patch("sentry.ingest.consumer.factory.maybe_multiprocess_step")
