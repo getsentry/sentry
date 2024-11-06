@@ -10,8 +10,10 @@ import {
   type MenuItemProps,
 } from 'sentry/components/dropdownMenu';
 import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import KeyValueData, {
   CardPanel,
   type KeyValueDataContentProps,
@@ -19,24 +21,30 @@ import KeyValueData, {
 } from 'sentry/components/keyValueData';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
+  IconCircleFill,
+  IconFocus,
   IconJson,
   IconOpen,
   IconPanel,
   IconProfiling,
-  IconShow,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {ColorOrAlias} from 'sentry/utils/theme';
+import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -242,6 +250,53 @@ const DURATION_COMPARISON_STATUS_COLORS: {
 
 const MIN_PCT_DURATION_DIFFERENCE = 10;
 
+type DurationComparison = {
+  deltaPct: number;
+  deltaText: JSX.Element;
+  status: 'faster' | 'slower' | 'equal';
+} | null;
+
+const getDurationComparison = (
+  baseline: number | undefined,
+  duration: number,
+  baseDescription?: string
+): DurationComparison => {
+  if (!baseline) {
+    return null;
+  }
+
+  const delta = duration - baseline;
+  const deltaPct = Math.round(Math.abs((delta / baseline) * 100));
+  const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
+
+  const formattedBaseDuration = (
+    <Tooltip
+      title={baseDescription}
+      showUnderline
+      underlineColor={DURATION_COMPARISON_STATUS_COLORS[status].normal}
+    >
+      {getDuration(baseline, 2, true)}
+    </Tooltip>
+  );
+
+  const deltaText =
+    status === 'equal'
+      ? tct(`equal to avg [formattedBaseDuration]`, {
+          formattedBaseDuration,
+        })
+      : status === 'faster'
+        ? tct(`[deltaPct] faster than avg [formattedBaseDuration]`, {
+            formattedBaseDuration,
+            deltaPct: `${deltaPct}%`,
+          })
+        : tct(`[deltaPct] slower than avg [formattedBaseDuration]`, {
+            formattedBaseDuration,
+            deltaPct: `${deltaPct}%`,
+          });
+
+  return {deltaPct, status, deltaText};
+};
+
 type DurationProps = {
   baseline: number | undefined;
   duration: number;
@@ -258,34 +313,11 @@ function Duration(props: DurationProps) {
     return <DurationContainer>{getDuration(props.duration, 2, true)}</DurationContainer>;
   }
 
-  const delta = props.duration - props.baseline;
-  const deltaPct = Math.round(Math.abs((delta / props.baseline) * 100));
-  const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
-
-  const formattedBaseDuration = (
-    <Tooltip
-      title={props.baseDescription}
-      showUnderline
-      underlineColor={DURATION_COMPARISON_STATUS_COLORS[status].normal}
-    >
-      {getDuration(props.baseline, 2, true)}
-    </Tooltip>
+  const comparison = getDurationComparison(
+    props.baseline,
+    props.duration,
+    props.baseDescription
   );
-
-  const deltaText =
-    status === 'equal'
-      ? tct(`equal to the avg of [formattedBaseDuration]`, {
-          formattedBaseDuration,
-        })
-      : status === 'faster'
-        ? tct(`[deltaPct] faster than the avg of [formattedBaseDuration]`, {
-            formattedBaseDuration,
-            deltaPct: `${deltaPct}%`,
-          })
-        : tct(`[deltaPct] slower than the avg of [formattedBaseDuration]`, {
-            formattedBaseDuration,
-            deltaPct: `${deltaPct}%`,
-          });
 
   return (
     <Fragment>
@@ -293,8 +325,8 @@ function Duration(props: DurationProps) {
         {getDuration(props.duration, 2, true)}{' '}
         {props.ratio ? `(${(props.ratio * 100).toFixed()}%)` : null}
       </DurationContainer>
-      {deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
-        <Comparison status={status}>{deltaText}</Comparison>
+      {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
+        <Comparison status={comparison.status}>{comparison.deltaText}</Comparison>
       ) : null}
     </Fragment>
   );
@@ -339,6 +371,210 @@ function TableRow({
     </tr>
   );
 }
+
+type HighlightProps = {
+  avgDuration: number | undefined;
+  bodyContent: React.ReactNode;
+  headerContent: React.ReactNode;
+  node: TraceTreeNode<TraceTree.NodeValue>;
+  project: Project | undefined;
+  transaction: EventTransaction | undefined;
+};
+
+function Highlights({
+  node,
+  transaction: event,
+  avgDuration,
+  project,
+  headerContent,
+  bodyContent,
+}: HighlightProps) {
+  if (!isTransactionNode(node)) {
+    return null;
+  }
+
+  const startTimestamp = node.space[0];
+  const endTimestamp = node.space[0] + node.space[1];
+  const durationInSeconds = (endTimestamp - startTimestamp) / 1e3;
+
+  const comparison = getDurationComparison(
+    avgDuration,
+    durationInSeconds,
+    t('Average duration for this transaction over the last 24 hours')
+  );
+
+  return (
+    <Fragment>
+      <HighlightsWrapper>
+        <HighlightsLeftColumn>
+          <Tooltip title={node.value.project_slug}>
+            <ProjectBadge
+              project={project ? project : {slug: node.value.project_slug}}
+              avatarSize={18}
+              hideName
+            />
+          </Tooltip>
+          <VerticalLine />
+        </HighlightsLeftColumn>
+        <HighlightsRightColumn>
+          <HighlightOp>{node.value['transaction.op']}</HighlightOp>
+          <HighlightsDurationWrapper>
+            <HighlightDuration>
+              {getDuration(durationInSeconds, 2, true)}
+            </HighlightDuration>
+            {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
+              <HiglightsDurationComparison status={comparison.status}>
+                {comparison.deltaText}
+              </HiglightsDurationComparison>
+            ) : null}
+          </HighlightsDurationWrapper>
+          <Panel>
+            <StyledPanelHeader>{headerContent}</StyledPanelHeader>
+            <PanelBody>{bodyContent}</PanelBody>
+          </Panel>
+          {event ? <HighLightsOpsBreakdown event={event} /> : null}
+        </HighlightsRightColumn>
+      </HighlightsWrapper>
+      <SectionDivider />
+    </Fragment>
+  );
+}
+
+function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
+  const breakdown = generateStats(event, {type: 'no_filter'});
+  const spansCount =
+    event.entries?.find(entry => entry.type === 'spans')?.data?.length ?? 0;
+
+  return (
+    <HighlightsOpsBreakdownWrapper>
+      <HighlightsSpanCount>
+        {tct('This transaction contains [spansCount] spans', {
+          spansCount,
+        })}
+      </HighlightsSpanCount>
+      {breakdown.slice(0, 5).map(currOp => {
+        const {name, percentage} = currOp;
+
+        const operationName = typeof name === 'string' ? name : t('Other');
+        const color = pickBarColor(operationName);
+        const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
+
+        return (
+          <HighlightsOpRow key={operationName}>
+            <IconCircleFill size="xs" color={color as Color} />
+            {operationName}
+            <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
+          </HighlightsOpRow>
+        );
+      })}
+      {breakdown.length > 5 ? (
+        <HighlightsOpsBreakdownMoreCount>
+          {tct('+ [moreCount] more', {moreCount: breakdown.length - 5})}
+        </HighlightsOpsBreakdownMoreCount>
+      ) : null}
+    </HighlightsOpsBreakdownWrapper>
+  );
+}
+
+const HighlightsOpsBreakdownMoreCount = styled('div')`
+  font-size: 12px;
+  color: ${p => p.theme.subText};
+`;
+
+const HighlightsOpPct = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: 14px;
+`;
+
+const HighlightsSpanCount = styled('div')`
+  margin-bottom: ${space(0.25)};
+`;
+
+const HighlightsOpRow = styled(FlexBox)`
+  font-size: 13px;
+  gap: ${space(0.5)};
+`;
+
+const HighlightsOpsBreakdownWrapper = styled(FlexBox)`
+  align-items: flex-start;
+  flex-direction: column;
+  gap: ${space(0.25)};
+`;
+
+const HiglightsDurationComparison = styled('div')<{status: string}>`
+  white-space: nowrap;
+  border-radius: 12px;
+  color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].normal]};
+  background-color: ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
+  border: solid 1px ${p => p.theme[DURATION_COMPARISON_STATUS_COLORS[p.status].light]};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  padding: ${space(0.25)} ${space(1)};
+  display: inline-block;
+  height: 21px;
+`;
+
+const HighlightsDurationWrapper = styled(FlexBox)`
+  gap: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const HighlightDuration = styled('div')`
+  font-size: ${p => p.theme.headerFontSize};
+  font-weight: 400;
+`;
+
+const HighlightOp = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: normal;
+`;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  font-weight: normal;
+  padding: 0;
+  line-height: normal;
+  text-transform: none;
+  font-size: ${p => p.theme.fontSizeMedium};
+  overflow: hidden;
+`;
+
+const SectionDivider = styled('hr')`
+  border-color: ${p => p.theme.translucentBorder};
+  margin: ${space(1.5)} 0;
+`;
+
+const VerticalLine = styled('div')`
+  width: 1px;
+  height: 100%;
+  background-color: ${p => p.theme.border};
+  margin-top: ${space(0.5)};
+`;
+
+const HighlightsWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  width: 100%;
+  overflow: hidden;
+  margin: ${space(1)} 0;
+`;
+
+const HighlightsLeftColumn = styled('div')`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+`;
+
+const HighlightsRightColumn = styled('div')`
+  display: flex;
+  flex-direction: column;
+  justify-content: left;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
+`;
 
 function IssuesLink({
   node,
@@ -572,7 +808,7 @@ function NodeActions(props: {
           }}
           size="xs"
           aria-label={t('Show in view')}
-          icon={<IconShow size="xs" />}
+          icon={<IconFocus size="xs" />}
         />
       </Tooltip>
       {isTransactionNode(props.node) ? (
@@ -921,6 +1157,7 @@ const TraceDrawerComponents = {
   TitleOp,
   HeaderContainer,
   LegacyHeaderContainer,
+  Highlights,
   Actions,
   NodeActions,
   Table,

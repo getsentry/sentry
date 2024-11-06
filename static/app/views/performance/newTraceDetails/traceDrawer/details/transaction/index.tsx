@@ -48,6 +48,7 @@ import {BreadCrumbs} from './sections/breadCrumbs';
 import {BuiltIn} from './sections/builtIn';
 import {Entries} from './sections/entries';
 import GeneralInfo from './sections/generalInfo';
+import {TransactionHighlights} from './sections/highlights';
 import {hasMeasurements, Measurements} from './sections/measurements';
 import ReplayPreview from './sections/replayPreview';
 import {Request} from './sections/request';
@@ -211,6 +212,13 @@ export function TransactionNodeDetails({
       />
 
       <IssueList node={node} organization={organization} issues={issues} />
+
+      <TransactionHighlights
+        event={event}
+        node={node}
+        project={project}
+        organization={organization}
+      />
 
       <TransactionSpecificSections
         event={event}
