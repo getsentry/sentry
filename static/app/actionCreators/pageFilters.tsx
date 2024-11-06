@@ -295,25 +295,6 @@ export function initializeUrlState({
     }
   }
 
-  let shouldUseMaxPickableDays = false;
-
-  if (maxPickableDays && pageFilters.datetime) {
-    let {start, end} = pageFilters.datetime;
-
-    if (pageFilters.datetime.period) {
-      const parsedPeriod = parseStatsPeriod(pageFilters.datetime.period);
-      start = parsedPeriod.start;
-      end = parsedPeriod.end;
-    }
-
-    if (start && end) {
-      const difference = new Date(end).getTime() - new Date(start).getTime();
-      if (difference > maxPickableDays * DAY) {
-        shouldUseMaxPickableDays = true;
-      }
-    }
-  }
-
   const {projects, environments: environment, datetime} = pageFilters;
 
   let newProject: number[] | null = null;
@@ -353,6 +334,31 @@ export function initializeUrlState({
     project = newProject;
   }
 
+  let shouldUseMaxPickableDays = false;
+
+  if (maxPickableDays && pageFilters.datetime) {
+    let {start, end} = pageFilters.datetime;
+
+    if (pageFilters.datetime.period) {
+      const parsedPeriod = parseStatsPeriod(pageFilters.datetime.period);
+      start = parsedPeriod.start;
+      end = parsedPeriod.end;
+    }
+
+    if (start && end) {
+      const difference = new Date(end).getTime() - new Date(start).getTime();
+      if (difference > maxPickableDays * DAY) {
+        shouldUseMaxPickableDays = true;
+        pageFilters.datetime = {
+          period: `${maxPickableDays}d`,
+          start: null,
+          end: null,
+          utc: datetime.utc,
+        };
+      }
+    }
+  }
+
   const pinnedFilters = organization.features.includes('new-page-filter')
     ? new Set<PinnedPageFilter>(['projects', 'environments', 'datetime'])
     : storedPageFilters?.pinnedFilters ?? new Set();
@@ -370,7 +376,12 @@ export function initializeUrlState({
   }
 
   const newDatetime = shouldUseMaxPickableDays
-    ? {period: `${maxPickableDays}d`, utc: datetime.utc, start: null, end: null}
+    ? {
+        period: `${maxPickableDays}d`,
+        start: null,
+        end: null,
+        utc: datetime.utc,
+      }
     : {
         ...datetime,
         period:
