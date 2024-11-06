@@ -82,7 +82,7 @@ class MonitorClockTasksMarkUnknownTest(TestCase):
 
         mark_checkin_unknown(checkin.id, ts)
 
-        # Chgeckin is marked as unknown
+        # Checkin is marked as unknown
         assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.UNKNOWN).exists()
 
         # Monitor status does not change
