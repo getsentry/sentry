@@ -12,22 +12,13 @@ import {
 
 import {getOperatingSystemKnownDataDetails} from './getOperatingSystemKnownDataDetails';
 import type {OperatingSystemKnownData} from './types';
-import {OperatingSystemIgnoredDataType, OperatingSystemKnownDataType} from './types';
+import {OperatingSystemKnownDataType} from './types';
 
 type Props = {
   data: OperatingSystemKnownData;
   event: Event;
   meta?: Record<string, any>;
 };
-
-export const operatingSystemKnownDataValues = [
-  OperatingSystemKnownDataType.NAME,
-  OperatingSystemKnownDataType.VERSION,
-  OperatingSystemKnownDataType.KERNEL_VERSION,
-  OperatingSystemKnownDataType.ROOTED,
-];
-
-const operatingSystemIgnoredDataValues = [OperatingSystemIgnoredDataType.BUILD];
 
 export function getKnownOperatingSystemContextData({
   data,
@@ -36,7 +27,7 @@ export function getKnownOperatingSystemContextData({
   return getKnownData<OperatingSystemKnownData, OperatingSystemKnownDataType>({
     data,
     meta,
-    knownDataTypes: operatingSystemKnownDataValues,
+    knownDataTypes: Object.values(OperatingSystemKnownDataType),
     onGetKnownDataDetails: v => getOperatingSystemKnownDataDetails(v),
   });
 }
@@ -47,7 +38,7 @@ export function getUnknownOperatingSystemContextData({
 }: Pick<Props, 'data' | 'meta'>) {
   return getUnknownData({
     allData: data,
-    knownKeys: [...operatingSystemKnownDataValues, ...operatingSystemIgnoredDataValues],
+    knownKeys: Object.values(OperatingSystemKnownDataType),
     meta,
   });
 }
