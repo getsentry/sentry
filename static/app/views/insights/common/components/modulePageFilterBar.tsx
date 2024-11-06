@@ -26,6 +26,7 @@ type Props = {
 };
 
 const CHANGE_PROJECT_TEXT = t('Make sure you have the correct project selected.');
+const DISABLED_OPTIONS = ['14d', '30d', '90d'];
 
 export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}: Props) {
   const {projects: allProjects} = useProjects();
@@ -35,8 +36,9 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
   const hasDataWithAllProjects = useHasFirstSpan(moduleName, allProjects);
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const hasDateRangeQueryLimit =
-    true || organization.features.includes('insights-query-date-range-limit');
+  const hasDateRangeQueryLimit = organization.features.includes(
+    'insights-query-date-range-limit'
+  );
 
   const handleClickAnywhereOnPage = () => {
     setShowTooltip(false);
@@ -78,7 +80,7 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
 
     dateFilterProps.maxPickableDays = QUERY_DATE_RANGE_LIMIT;
     dateFilterProps.isOptionDisabled = ({value}) => {
-      if (!['14d', '30d', '90d'].includes(value)) {
+      if (!DISABLED_OPTIONS.includes(value)) {
         return false;
       }
       return true;
