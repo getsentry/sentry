@@ -6,7 +6,6 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
@@ -302,7 +301,7 @@ function Content({
   const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
 
   return (
-    <Wrapper hideIcon={hideIcon}>
+    <Wrapper>
       {hideIcon ? null : <StacktracePlatformIcon platform={platformIcon} />}
       <StackTraceContentPanel
         className={wrapperClassName}
@@ -319,12 +318,8 @@ function Content({
   );
 }
 
-const Wrapper = styled('div')<{hideIcon?: boolean}>`
+const Wrapper = styled('div')`
   position: relative;
-  margin-left: ${p => (p.hideIcon ? 0 : space(2))};
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    margin-left: 0;
-  }
 `;
 
 export const StackTraceContentPanel = styled(Panel)<{hideIcon?: boolean}>`
