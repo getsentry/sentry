@@ -77,8 +77,8 @@ class RuleSnoozeSerializer(Serializer):
 @region_silo_endpoint
 class BaseRuleSnoozeEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
-    rule_model: type[AlertRule | Rule]
-    rule_field = Literal["rule", "alert_rule"]
+    rule_model: type[AlertRule | Rule]  # abstract, value comes from child class
+    rule_field: Literal["rule", "alert_rule"]  # abstract, value comes from child class
 
     def convert_args(self, request: Request, rule_id: int, *args, **kwargs):
         (args, kwargs) = super().convert_args(request, *args, **kwargs)
@@ -105,9 +105,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
         data = serializer.validated_data
 
         if not can_edit_alert_rule(project.organization, request):
-            raise PermissionDenied(
-                detail="Requesting user cannot mute this rule.", code=str(status.HTTP_403_FORBIDDEN)
-            )
+            raise PermissionDenied(detail="Requesting user cannot mute this rule.")
 
         user_id = request.user.id if data.get("target") == "me" else None
 
