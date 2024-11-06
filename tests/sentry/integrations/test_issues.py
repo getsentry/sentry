@@ -1,5 +1,7 @@
 from unittest import mock
 
+import pytest
+
 from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -10,6 +12,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -422,6 +425,21 @@ class IssueDefaultTest(TestCase):
             default_repo, repo_choice = self.installation.get_repository_choices(self.group, {})
             assert default_repo == ""
             assert repo_choice == []
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_repository_choices_error(self, mock_record):
+        with pytest.raises(IntegrationError):
+            with mock.patch.object(
+                self.installation,
+                "get_repositories",
+                return_value=[],
+                side_effect=ApiError("This sucks!"),
+            ):
+                self.installation.get_repository_choices(self.group, {})
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.FAILURE
 
     def test_get_repository_choices_default_repo(self):
         assert self.installation.org_integration is not None
