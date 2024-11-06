@@ -43,7 +43,11 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
+from sentry.incidents.models.alert_rule import (
+    AlertRuleExcludedProjects,
+    AlertRuleMonitorTypeInt,
+    AlertRuleTriggerExclusion,
+)
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
@@ -477,13 +481,15 @@ class ExhaustiveFixtures(Fixtures):
         alert = self.create_alert_rule(
             organization=org,
             projects=[project],
-            include_all_projects=True,
-            excluded_projects=[other_project],
             user=owner,
         )
+        AlertRuleExcludedProjects.objects.create(alert_rule=alert, project=other_project)
         alert.user_id = owner_id
         alert.save()
-        trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
+        trigger = self.create_alert_rule_trigger(alert_rule=alert)
+        AlertRuleTriggerExclusion.objects.create(
+            alert_rule_trigger=trigger, query_subscription=alert.snuba_query.subscriptions.first()
+        )
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         activated_alert = self.create_alert_rule(
             organization=org,
@@ -538,7 +544,10 @@ class ExhaustiveFixtures(Fixtures):
             created_by_id=owner_id,
             organization=org,
         )
-        DashboardPermissions.objects.create(is_creator_only_editable=False, dashboard=dashboard)
+        permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=True, dashboard=dashboard
+        )
+        permissions.teams_with_edit_access.set([team])
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             order=1,

@@ -38,7 +38,7 @@ class EmailSerializer(serializers.Serializer[UserEmail]):
 @control_silo_endpoint
 class UserEmailsConfirmEndpoint(UserEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     rate_limits = {
         "POST": {

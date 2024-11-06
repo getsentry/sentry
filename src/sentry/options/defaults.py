@@ -2014,6 +2014,11 @@ register(
     default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "backpressure.high_watermarks.processing-store-transactions",
+    default=0.8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
@@ -2553,13 +2558,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deobfuscate profiles using Symbolicator
-register(
-    "profiling.deobfuscate-using-symbolicator.enable-for-project",
-    type=Sequence,
-    default=[],
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "traces.sample-list.sample-rate",
     type=Float,

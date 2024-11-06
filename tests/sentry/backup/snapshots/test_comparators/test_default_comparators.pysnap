@@ -1,5 +1,5 @@
 ---
-created: '2024-10-10T17:26:11.327180+00:00'
+created: '2024-11-06T17:14:37.259441+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -363,6 +363,12 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - dashboard
   model_name: sentry.dashboardpermissions
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - permissions
+    - team
+  model_name: sentry.dashboardpermissionsteam
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -1242,7 +1248,6 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - organization
     - owner_id
-    - project_id
   model_name: sentry.release
 - comparators:
   - class: ForeignKeyComparator
@@ -1342,6 +1347,27 @@ source: tests/sentry/backup/test_comparators.py
     - project
     - repository
   model_name: sentry.repositoryprojectpathconfig
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - organization
+  model_name: sentry.rollbackorganization
+- comparators:
+  - class: UUID4Comparator
+    fields:
+    - share_uuid
+    - uuid
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - organization
+    - user_id
+  model_name: sentry.rollbackuser
 - comparators:
   - class: ForeignKeyComparator
     fields:

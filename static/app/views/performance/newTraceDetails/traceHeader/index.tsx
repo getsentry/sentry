@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -20,6 +20,9 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {ProjectsRenderer} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
+import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import TraceConfigurations from '../traceConfigurations';
@@ -40,13 +43,22 @@ interface TraceMetadataHeaderProps {
 }
 
 function PlaceHolder({organization}: {organization: Organization}) {
+  const {view} = useDomainViewFilters();
+  const moduleURLBuilder = useModuleURLBuilder(true);
   const location = useLocation();
 
   return (
     <Layout.Header>
       <HeaderContent>
         <HeaderRow>
-          <Breadcrumbs crumbs={getTraceViewBreadcrumbs(organization, location)} />
+          <Breadcrumbs
+            crumbs={getTraceViewBreadcrumbs(
+              organization,
+              location,
+              moduleURLBuilder,
+              view
+            )}
+          />
         </HeaderRow>
         <HeaderRow>
           <PlaceHolderTitleWrapper>
@@ -92,6 +104,8 @@ const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>
 
 function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
   const location = useLocation();
+  const {view} = useDomainViewFilters();
+  const moduleURLBuilder = useModuleURLBuilder(true);
 
   const trackOpenInDiscover = useCallback(() => {
     trackAnalytics('performance_views.trace_view.open_in_discover', {
@@ -102,7 +116,14 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <Breadcrumbs crumbs={getTraceViewBreadcrumbs(props.organization, location)} />
+        <Breadcrumbs
+          crumbs={getTraceViewBreadcrumbs(
+            props.organization,
+            location,
+            moduleURLBuilder,
+            view
+          )}
+        />
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
@@ -131,6 +152,21 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const location = useLocation();
   const hasNewTraceViewUi = useHasTraceNewUi();
+  const {view} = useDomainViewFilters();
+  const moduleURLBuilder = useModuleURLBuilder(true);
+
+  const dispatch = useTraceStateDispatch();
+
+  const onProjectClick = useCallback(
+    (projectSlug: string) => {
+      dispatch({type: 'set query', query: `project:${projectSlug}`, source: 'external'});
+    },
+    [dispatch]
+  );
+
+  const projectSlugs = useMemo(() => {
+    return Array.from(props.tree.projects).map(p => p.slug);
+  }, [props.tree]);
 
   if (!hasNewTraceViewUi) {
     return <LegacyTraceMetadataHeader {...props} />;
@@ -146,10 +182,17 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   }
 
   return (
-    <Layout.Header>
+    <HeaderLayout>
       <HeaderContent>
         <HeaderRow>
-          <Breadcrumbs crumbs={getTraceViewBreadcrumbs(props.organization, location)} />
+          <Breadcrumbs
+            crumbs={getTraceViewBreadcrumbs(
+              props.organization,
+              location,
+              moduleURLBuilder,
+              view
+            )}
+          />
         </HeaderRow>
         <HeaderRow>
           <Title traceSlug={props.traceSlug} tree={props.tree} />
@@ -166,17 +209,32 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             <StyledWrapper>
               <HighlightsIconSummary event={props.rootEventResults.data} />
             </StyledWrapper>
-            <ProjectsRenderer
-              projectSlugs={Array.from(props.tree.projects).map(({slug}) => slug)}
-              visibleAvatarSize={24}
-              maxVisibleProjects={3}
-            />
+            <ProjectsRendererWrapper>
+              <ProjectsRenderer
+                disableLink
+                onProjectClick={onProjectClick}
+                projectSlugs={projectSlugs}
+                visibleAvatarSize={24}
+                maxVisibleProjects={3}
+              />
+            </ProjectsRendererWrapper>
           </HeaderRow>
         ) : null}
       </HeaderContent>
-    </Layout.Header>
+    </HeaderLayout>
   );
 }
+
+// We cannot change the cursor of the ProjectBadge component so we need to wrap it in a div
+const ProjectsRendererWrapper = styled('div')`
+  img {
+    cursor: pointer;
+  }
+`;
+
+const HeaderLayout = styled(Layout.Header)`
+  padding: ${space(2)} ${space(2)} !important;
+`;
 
 const HeaderRow = styled('div')`
   display: flex;

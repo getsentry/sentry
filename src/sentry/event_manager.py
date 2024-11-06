@@ -1375,13 +1375,16 @@ def get_hashes_and_grouphashes(
     secondary grouping), this will return an empty list of grouphashes (so iteration won't break)
     and Nones for everything else.
     """
-    project = job["event"].project
+    event = job["event"]
+    project = event.project
 
     # These will come back as Nones if the calculation decides it doesn't need to run
     grouping_config, hashes, variants = hash_calculation_function(project, job, metric_tags)
 
     if hashes:
-        grouphashes = get_or_create_grouphashes(project, hashes, grouping_config["id"])
+        grouphashes = get_or_create_grouphashes(
+            event, project, variants, hashes, grouping_config["id"]
+        )
 
         existing_grouphash = find_grouphash_with_group(grouphashes)
 

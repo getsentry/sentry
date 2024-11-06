@@ -1,11 +1,13 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {t} from 'sentry/locale';
+import {IconBusiness} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
@@ -13,7 +15,11 @@ import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {
+  DOMAIN_VIEW_BASE_TITLE,
+  OVERVIEW_PAGE_TITLE,
+} from 'sentry/views/insights/pages/settings';
+import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -30,7 +36,7 @@ export type Props = {
 
 type Tab = {
   key: string;
-  label: string;
+  label: React.ReactNode;
 };
 
 export function DomainViewHeader({
@@ -51,7 +57,7 @@ export function DomainViewHeader({
 
   const baseCrumbs: Crumb[] = [
     {
-      label: t('Performance'),
+      label: DOMAIN_VIEW_BASE_TITLE,
       to: undefined, // There is no base /performance/ page
       preservePageFilters: true,
     },
@@ -103,7 +109,7 @@ export function DomainViewHeader({
     tabList.push(
       ...modules.map(moduleName => ({
         key: moduleName,
-        label: moduleTitles[moduleName],
+        label: <TabLabel moduleName={moduleName} />,
       }))
     );
   }
@@ -136,3 +142,25 @@ export function DomainViewHeader({
     </Fragment>
   );
 }
+
+function TabLabel({moduleName}: {moduleName: ModuleName}) {
+  const moduleTitles = useModuleTitles();
+  const organization = useOrganization();
+  const showBusinessIcon = !isModuleEnabled(moduleName, organization);
+  if (showBusinessIcon) {
+    return (
+      <TabWithIconContainer>
+        {moduleTitles[moduleName]}
+        <IconBusiness />
+      </TabWithIconContainer>
+    );
+  }
+  return <Fragment>{moduleTitles[moduleName]}</Fragment>;
+}
+
+const TabWithIconContainer = styled('div')`
+  display: inline-flex;
+  align-items: center;
+  text-align: left;
+  gap: ${space(0.5)};
+`;

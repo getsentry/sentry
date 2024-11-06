@@ -1,0 +1,66 @@
+---
+created: '2024-10-28T14:02:55.078531+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "e834aba6bf7b758128da092a68a18e9a"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "test"
+              function*
+                "Anonymous function"
+            frame*
+              module*
+                "test"
+              function*
+                "Foo.prototype.testMethod"
+            frame*
+              module*
+                "test"
+              function*
+                "aha"
+            frame*
+              filename*
+                "eval code"
+              function*
+                "eval code"
+            frame*
+              module*
+                "test"
+              function*
+                "test"
+            frame*
+              module*
+                "test"
+              function*
+                "Array.prototype.map"
+            frame*
+              module*
+                "test"
+              function*
+                "Anonymous function"
+            frame*
+              module*
+                "test"
+              function*
+                "callback"
+            frame*
+              module*
+                "test"
+              function*
+                "callAnotherThing"
+            frame*
+              module*
+                "test"
+              function*
+                "aha"
+          type*
+            "Error"

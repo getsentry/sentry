@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from base64 import b64encode
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -364,6 +364,47 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             == generate_region_url() + "/organization-avatar/abc123/"
         )
 
+    def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self):
+        with self.feature("organizations:onboarding"):
+            old_date = datetime(2023, 12, 31, tzinfo=UTC)
+            old_org = self.create_organization(name="old-org", date_added=old_date, owner=self.user)
+            self.login_as(user=self.user)
+
+            OrganizationOption.objects.create(organization_id=old_org.id, key="foo:bar", value=True)
+
+            response = self.get_success_response(
+                old_org.slug, qs_params={"include_feature_flags": 1}
+            )
+            assert "onboarding" not in response.data["features"]
+
+    def test_new_orgs_with_options_get_onboarding_feature_flag(self):
+        with self.feature("organizations:onboarding"):
+            newer_date = datetime(2024, 12, 31, tzinfo=UTC)
+            new_org = self.create_organization(date_added=newer_date, owner=self.user)
+            self.login_as(user=self.user)
+
+            OrganizationOption.objects.create(organization_id=new_org.id, key="foo:bar", value=True)
+
+            response = self.get_success_response(
+                new_org.slug, qs_params={"include_feature_flags": 1}
+            )
+            assert "onboarding" in response.data["features"]
+
+    def test_new_orgs_with_options_do_not_get_onboarding_feature_flag(self):
+        with self.feature("organizations:onboarding"):
+            newer_date = datetime(2024, 12, 31, tzinfo=UTC)
+            new_org = self.create_organization(date_added=newer_date, owner=self.user)
+            self.login_as(user=self.user)
+
+            OrganizationOption.objects.create(
+                organization_id=new_org.id, key="onboarding:complete", value=True
+            )
+
+            response = self.get_success_response(
+                new_org.slug, qs_params={"include_feature_flags": 1}
+            )
+            assert "onboarding" not in response.data["features"]
+
 
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
@@ -466,8 +507,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
-            "aggregatedDataConsent": True,
-            "genAIConsent": True,
             "issueAlertsThreadFlag": False,
             "metricAlertsThreadFlag": False,
             "metricsActivatePercentiles": False,
@@ -475,6 +514,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "uptimeAutodetection": False,
             "targetSampleRate": 0.1,
             "samplingMode": "project",
+            "rollbackEnabled": True,
         }
 
         # needed to set require2FA
@@ -515,6 +555,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:uptime_autodetection") is False
         assert options.get("sentry:target_sample_rate") == 0.1
         assert options.get("sentry:sampling_mode") == "project"
+        assert options.get("sentry:rollback_enabled") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -547,8 +588,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
-        assert "to {}".format(data["aggregatedDataConsent"]) in log.data["aggregatedDataConsent"]
-        assert "to {}".format(data["genAIConsent"]) in log.data["genAIConsent"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
         assert (
