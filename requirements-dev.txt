@@ -42,7 +42,6 @@ msgpack-types>=0.2.0
 mypy>=1.13
 types-beautifulsoup4
 types-cachetools
-types-croniter
 types-jsonschema
 types-oauthlib
 types-parsimonious
