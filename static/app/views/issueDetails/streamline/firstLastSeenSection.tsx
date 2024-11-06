@@ -1,13 +1,17 @@
 import styled from '@emotion/styled';
 
-import TimeSince from 'sentry/components/timeSince';
+import {Flex} from 'sentry/components/container/flex';
+import SeenInfo from 'sentry/components/group/seenInfo';
 import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
 
 export interface GroupRelease {
   firstRelease: Release;
@@ -16,7 +20,9 @@ export interface GroupRelease {
 
 export default function FirstLastSeenSection({group}: {group: Group}) {
   const organization = useOrganization();
+  const {project} = group;
 
+  const {data: allEnvironments} = useFetchAllEnvsGroupData(organization, group);
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
     [`/organizations/${organization.slug}/issues/${group.id}/first-last-release/`],
     {
@@ -26,60 +32,68 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
   );
 
   return (
-    <FirstLastSeen>
+    <Flex column gap={space(0.75)}>
       <div>
-        <Title>
-          {tct('Last seen [timeSince]', {
-            timeSince: group.lastSeen ? (
-              <StyledTimeSince date={group.lastSeen} />
-            ) : (
-              <NoTimeSince>{t('N/A')}</NoTimeSince>
-            ),
-          })}
-        </Title>
-        {groupReleaseData?.firstRelease && (
-          <SubtitleWrapper>
-            {tct('in release [release]', {
-              release: (
-                <ReleaseWrapper>
-                  <Version
-                    version={groupReleaseData.firstRelease.version}
-                    projectId={group.project.id}
-                    tooltipRawVersion
-                  />
-                </ReleaseWrapper>
-              ),
-            })}
-          </SubtitleWrapper>
-        )}
+        <Flex gap={space(0.5)}>
+          <Title>{t('Last seen')}</Title>
+          {group.lastSeen ? (
+            <SeenInfo
+              date={group.lastSeen}
+              dateGlobal={allEnvironments?.lastSeen ?? group.lastSeen}
+              organization={organization}
+              projectId={project.id}
+              projectSlug={project.slug}
+            />
+          ) : (
+            t('N/A')
+          )}
+        </Flex>
+        <ReleaseText project={group.project} release={groupReleaseData?.lastRelease} />
       </div>
       <div>
-        <Title>
-          {tct('First seen [timeSince]', {
-            timeSince: group.firstSeen ? (
-              <StyledTimeSince date={group.firstSeen} />
-            ) : (
-              <NoTimeSince>{t('N/A')}</NoTimeSince>
-            ),
-          })}
-        </Title>
-        {groupReleaseData?.lastRelease && (
-          <SubtitleWrapper>
-            {tct('in release [release]', {
-              release: (
-                <ReleaseWrapper>
-                  <Version
-                    version={groupReleaseData.lastRelease.version}
-                    projectId={group.project.id}
-                    tooltipRawVersion
-                  />
-                </ReleaseWrapper>
-              ),
-            })}
-          </SubtitleWrapper>
-        )}
+        <Flex gap={space(0.5)}>
+          <Title>{t('First seen')}</Title>
+          {group.firstSeen ? (
+            <SeenInfo
+              date={group.firstSeen}
+              dateGlobal={allEnvironments?.firstSeen ?? group.firstSeen}
+              organization={organization}
+              projectId={project.id}
+              projectSlug={project.slug}
+            />
+          ) : (
+            t('N/A')
+          )}
+        </Flex>
+        <ReleaseText project={group.project} release={groupReleaseData?.firstRelease} />
       </div>
-    </FirstLastSeen>
+    </Flex>
+  );
+}
+
+function ReleaseText({project, release}: {project: Project; release?: Release}) {
+  const organization = useOrganization();
+
+  if (!release) {
+    return null;
+  }
+
+  return (
+    <Subtitle>
+      {tct('in release [release]', {
+        release: (
+          <VersionHoverCard
+            organization={organization}
+            projectSlug={project.slug}
+            releaseVersion={release.version}
+          >
+            <ReleaseWrapper>
+              <Version version={release.version} projectId={project.id} />
+            </ReleaseWrapper>
+          </VersionHoverCard>
+        ),
+      })}
+    </Subtitle>
   );
 }
 
@@ -90,25 +104,12 @@ const ReleaseWrapper = styled('span')`
     text-decoration-style: dotted;
   }
 `;
+
 const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const SubtitleWrapper = styled('div')`
+const Subtitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-`;
-
-const FirstLastSeen = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.75)};
-`;
-
-const StyledTimeSince = styled(TimeSince)`
-  font-weight: normal;
-`;
-
-const NoTimeSince = styled('span')`
-  font-weight: normal;
 `;

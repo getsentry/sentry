@@ -1,0 +1,29 @@
+---
+created: '2024-10-28T14:01:27.983291+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "46b84e4da51648cc9f9741abd2bdad51"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "main.cpp"
+              function*
+                "main"
+            frame*
+              filename*
+                "main.cpp"
+              function*
+                "`anonymous namespace'::start"
+            frame*
+              filename*
+                "main.cpp"
+              function*
+                "`anonymous namespace'::crash"

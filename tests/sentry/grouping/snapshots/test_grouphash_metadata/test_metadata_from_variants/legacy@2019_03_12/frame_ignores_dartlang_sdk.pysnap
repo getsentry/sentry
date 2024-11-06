@@ -1,0 +1,18 @@
+---
+created: '2024-10-28T14:02:51.350087+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "74be9a8bc7117f22ea0a61a9b2f524c5"
+    component:
+      system*
+        stacktrace*
+          frame*
+            filename*
+              "org-dartlang-sdk:///lib/_internal/js_runtime/lib/async_patch.dart"
+            function*
+              "_asyncStartSync"

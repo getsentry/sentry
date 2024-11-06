@@ -448,6 +448,18 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert slug.startswith("1234-")
         assert not slug.isdecimal()
 
+    def test_crontab_whitespace(self):
+        data = {
+            "project": self.project.slug,
+            "name": "1234",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "  *\t* *     * * "},
+        }
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+
+        schedule = response.data["config"]["schedule"]
+        assert schedule == "* * * * *"
+
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_organization_limit(self):
         for i in range(settings.MAX_MONITORS_PER_ORG):

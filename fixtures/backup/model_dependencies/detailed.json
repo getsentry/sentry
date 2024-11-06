@@ -4862,11 +4862,6 @@
         "kind": "HybridCloudForeignKey",
         "model": "sentry.user",
         "nullable": true
-      },
-      "project_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.project",
-        "nullable": true
       }
     },
     "model": "sentry.release",

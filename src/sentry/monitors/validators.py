@@ -1,7 +1,9 @@
+import re
 from typing import Literal
 
 import sentry_sdk
-from croniter import CroniterBadDateError, croniter
+from croniter import CroniterBadCronError, CroniterBadDateError
+from cronsim import CronSimError
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -38,6 +40,8 @@ SCHEDULE_TYPES = {
 IntervalNames = Literal["year", "month", "week", "day", "hour", "minute"]
 
 INTERVAL_NAMES = ("year", "month", "week", "day", "hour", "minute")
+
+CRONTAB_WHITESPACE = re.compile(r"\s+")
 
 # XXX(dcramer): @reboot is not supported (as it cannot be)
 NONSTANDARD_CRONTAB_SCHEDULES = {
@@ -210,15 +214,15 @@ class ConfigValidator(serializers.Serializer):
 
             if not isinstance(schedule, str):
                 raise ValidationError({"schedule": "Invalid schedule for 'crontab' type"})
-            schedule = schedule.strip()
+
+            # normalize whitespace
+            schedule = re.sub(CRONTAB_WHITESPACE, " ", schedule).strip()
+
             if schedule.startswith("@"):
                 try:
                     schedule = NONSTANDARD_CRONTAB_SCHEDULES[schedule]
                 except KeyError:
                     raise ValidationError({"schedule": "Schedule was not parseable"})
-            # crontab schedule must be valid
-            if not croniter.is_valid(schedule):
-                raise ValidationError({"schedule": "Schedule was not parseable"})
 
             # XXX(epurkhiser): Make sure we can traverse forward and back in
             # the schedule. croniter is good, but there are some very edge case
@@ -227,7 +231,7 @@ class ConfigValidator(serializers.Serializer):
             try:
                 get_next_schedule(now, CrontabSchedule(schedule))
                 get_prev_schedule(now, now, CrontabSchedule(schedule))
-            except CroniterBadDateError:
+            except (CroniterBadCronError, CroniterBadDateError, CronSimError):
                 raise ValidationError({"schedule": "Schedule is invalid"})
 
             # Do not support 6 or 7 field crontabs
