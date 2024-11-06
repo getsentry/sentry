@@ -95,7 +95,7 @@ export function PerformanceLanding(props: Props) {
   const {setPageInfo, pageAlert} = usePageAlert();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
   const {slug} = organization;
-  const hasDomainViews = organization.features.includes('insights-domain-vew');
+  const hasDomainViews = organization.features.includes('insights-domain-view');
 
   const performanceMovingAlert = useMemo(() => {
     if (!slug) {
