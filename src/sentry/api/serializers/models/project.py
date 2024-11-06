@@ -21,6 +21,7 @@ from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus, StatsPeriod
 from sentry.digests import backend as digests
+from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
@@ -1047,6 +1048,17 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "symbolSources": serialized_sources,
             }
         )
+
+        is_dynamically_sampled = False
+        if has_dynamic_sampling(obj.organization):
+            if is_project_mode_sampling(obj.organization):
+                is_dynamically_sampled = obj.get_option("sentry:target_sample_rate", 1.0) < 1.0
+            else:
+                is_dynamically_sampled = (
+                    obj.organization.get_option("sentry:target_sample_rate", 1.0) < 1.0
+                )
+
+        data["isDynamicallySampled"] = is_dynamically_sampled
 
         return data
 
