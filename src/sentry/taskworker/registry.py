@@ -12,6 +12,7 @@ from django.conf import settings
 from sentry_protos.sentry.v1.taskworker_pb2 import TaskActivation
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE
 from sentry.taskworker.retry import Retry
 from sentry.taskworker.router import TaskRouter
 from sentry.taskworker.task import P, R, Task
@@ -19,8 +20,6 @@ from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_PROCESSING_DEADLINE = 30
 
 
 class TaskNamespace:

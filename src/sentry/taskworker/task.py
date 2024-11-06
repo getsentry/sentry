@@ -12,12 +12,12 @@ from django.utils import timezone
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.sentry.v1.taskworker_pb2 import RetryState, TaskActivation
 
+from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE
 from sentry.taskworker.retry import Retry
 
 if TYPE_CHECKING:
     from sentry.taskworker.registry import TaskNamespace
 
-FALLBACK_PROCESSING_DEADLINE = 3
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -40,7 +40,7 @@ class Task(Generic[P, R]):
         self._retry = retry
         self._expires = expires
         self._processing_deadline_duration = (
-            processing_deadline_duration or FALLBACK_PROCESSING_DEADLINE
+            processing_deadline_duration or DEFAULT_PROCESSING_DEADLINE
         )
         update_wrapper(self, func)
 
