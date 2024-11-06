@@ -513,6 +513,23 @@ class OrganizationReleasesEndpoint(
                 raise ConflictError(
                     "Could not create the release it conflicts with existing data",
                 )
+
+            # In case of disabled Open Membership, we have to check for project-level
+            # permissions on the existing release.
+            release_projects = ReleaseProject.objects.filter(release=release)
+            existing_projects = [rp.project for rp in release_projects]
+
+            if not request.access.has_projects_access(existing_projects):
+                projects_str = ", ".join([p.slug for p in existing_projects])
+                return Response(
+                    {
+                        "projects": [
+                            f"You do not have permission to one of the projects: {projects_str}"
+                        ]
+                    },
+                    status=400,
+                )
+
             if created:
                 release_created.send_robust(release=release, sender=self.__class__)
 
