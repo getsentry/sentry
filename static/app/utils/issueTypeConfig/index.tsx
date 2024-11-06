@@ -50,6 +50,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   evidence: {title: t('Evidence')},
   resources: null,
   usesIssuePlatform: true,
+  issueSummary: {enabled: false},
 };
 
 const issueTypeConfig: Config = {

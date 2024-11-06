@@ -22,6 +22,7 @@ const uptimeConfig: IssueCategoryConfigMapping = {
     usesIssuePlatform: true,
     stats: {enabled: false},
     tags: {enabled: false},
+    issueSummary: {enabled: false},
   },
 };
 

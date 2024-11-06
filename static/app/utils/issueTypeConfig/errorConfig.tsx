@@ -28,6 +28,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
     similarIssues: {enabled: true},
     userFeedback: {enabled: true},
     usesIssuePlatform: false,
+    issueSummary: {enabled: true},
   },
 };
 
