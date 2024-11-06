@@ -66,7 +66,6 @@ export type TraceTabsReducerAction =
     }
   | {type: 'pin tab'}
   | {payload: number; type: 'unpin tab'}
-  | {type: 'clear'}
   | {type: 'clear clicked tab'};
 
 export function traceTabsReducer(
@@ -179,8 +178,7 @@ export function traceTabsReducer(
       };
     }
 
-    case 'clear clicked tab':
-    case 'clear': {
+    case 'clear clicked tab': {
       const next =
         state.last_clicked_tab === state.current_tab
           ? state.tabs[state.tabs.length - 1]
