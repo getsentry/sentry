@@ -2,6 +2,7 @@ import {type ComponentProps, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   DatePageFilter,
   type DatePageFilterProps,
@@ -85,6 +86,7 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
       const dateDifferenceMs = getDateDifferenceMs(value);
       return dateDifferenceMs > QUERY_DATE_RANGE_LIMIT_MS;
     };
+    dateFilterProps.menuFooter = <UpsellFooterHook />;
   }
 
   return (
@@ -140,3 +142,8 @@ const memoizedDateDifference = () => {
     return difference;
   };
 };
+
+export const UpsellFooterHook = HookOrDefault({
+  hookName: 'component:insights-date-range-query-limit-footer',
+  defaultComponent: ({}) => undefined,
+});
