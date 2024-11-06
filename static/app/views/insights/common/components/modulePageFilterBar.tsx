@@ -35,9 +35,8 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
   const hasDataWithAllProjects = useHasFirstSpan(moduleName, allProjects);
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const hasDateRangeQueryLimit = organization.features.includes(
-    'insights-query-date-range-limit'
-  );
+  const hasDateRangeQueryLimit =
+    true || organization.features.includes('insights-query-date-range-limit');
 
   const handleClickAnywhereOnPage = () => {
     setShowTooltip(false);
@@ -79,7 +78,7 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
 
     dateFilterProps.maxPickableDays = QUERY_DATE_RANGE_LIMIT;
     dateFilterProps.isOptionDisabled = ({value}) => {
-      if (['absolute', '1h', '24h', '7d'].includes(value)) {
+      if (!['14d', '30d', '90d'].includes(value)) {
         return false;
       }
       return true;
