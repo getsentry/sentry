@@ -23,7 +23,12 @@ export function getOperatingSystemKnownDataDetails({
     case OperatingSystemKnownDataType.VERSION:
       return {
         subject: t('Version'),
-        value: `${data.version}${data.build ? `(${data.build})` : ''}`,
+        value: data.version,
+      };
+    case OperatingSystemKnownDataType.BUILD:
+      return {
+        subject: t('Build'),
+        value: data.build,
       };
     case OperatingSystemKnownDataType.KERNEL_VERSION:
       return {
@@ -34,6 +39,23 @@ export function getOperatingSystemKnownDataDetails({
       return {
         subject: t('Rooted'),
         value: defined(data.rooted) ? (data.rooted ? t('yes') : t('no')) : null,
+      };
+    case OperatingSystemKnownDataType.THEME:
+      return {
+        subject: t('Theme'),
+        value: data.theme,
+      };
+    case OperatingSystemKnownDataType.RAW_DESCRIPTION:
+      return {
+        subject: t('Raw Description'),
+        value: data.raw_description,
+      };
+    case OperatingSystemKnownDataType.DISTRIBUTION:
+      return {
+        subject: t('Distro'),
+        value: data.distribution?.pretty_name
+          ? data.distribution?.pretty_name
+          : `${data.distribution?.name}${data.distribution?.version ? `(${data.distribution.version})` : ''}`,
       };
     default:
       return undefined;

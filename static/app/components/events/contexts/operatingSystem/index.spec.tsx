@@ -7,11 +7,18 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {OperatingSystemEventContext} from 'sentry/components/events/contexts/operatingSystem';
 
 export const operatingSystemMockData = {
-  name: 'Mac OS X 10.14.0',
-  version: '',
+  name: 'Linux',
+  version: '6.1.82',
+  build: '20C69',
+  kernel_version: '99.168.amzn2023.x86_64',
+  rooted: true,
+  theme: 'dark',
   raw_description: '',
-  build: '',
-  kernel_version: '',
+  distribution: {
+    name: 'amzn',
+    version: '2023',
+    pretty_name: 'Amazon Linux 2023.4.20240401',
+  },
 };
 
 export const operatingSystemMetaMockData = {
@@ -47,7 +54,7 @@ describe('operating system event context', function () {
       },
     });
 
-    expect(screen.getByText('raw_description')).toBeInTheDocument(); // subject
+    expect(screen.getByText('Raw Description')).toBeInTheDocument(); // subject
     await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
