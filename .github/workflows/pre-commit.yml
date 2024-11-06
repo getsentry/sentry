@@ -28,7 +28,7 @@ env:
 jobs:
   lint:
     name: pre-commit lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - # get a non-default github token so that any changes are verified by CI
