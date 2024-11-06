@@ -125,7 +125,7 @@ function InviteRowControl({
       <RoleSelectControl
         aria-label={t('Role')}
         data-test-id="select-role"
-        disabled={isOverMemberLimit}
+        disabled={isOverMemberLimit ? true : disabled}
         value={isOverMemberLimit ? 'billing' : role}
         roles={roleOptions}
         disableUnallowed={roleDisabledUnallowed}
