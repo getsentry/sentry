@@ -55,7 +55,7 @@ def recalibrate_orgs(context: TaskContext) -> None:
         context,
         GetActiveOrgsVolumes(),
     ):
-        modes = OrganizationOption.get_value_bulk_id(
+        modes = OrganizationOption.objects.get_value_bulk_id(
             [v.org_id for v in org_volumes], "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
         )
 
@@ -169,10 +169,10 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
     silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
-def recalibrate_projects_batch(context: TaskContext, orgs: Sequence[OrganizationId]) -> None:
+def recalibrate_projects_batch(context: TaskContext, orgs: list[OrganizationId]) -> None:
     for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
         context, org_ids=orgs, measure=SamplingMeasure.SPANS
-    ):
+    ).items():
         for project_id, total, keep, _ in projects:
             try:
                 recalibrate_project(org_id, project_id, total, keep)
