@@ -5,15 +5,18 @@ from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTestMixin):
+class OrganizationEventsMetaEndpoint(
+    APITestCase, MetricsEnhancedPerformanceTestCase, SearchIssueTestMixin
+):
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
@@ -67,6 +70,44 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
 
         assert response.status_code == 200, response.content
         assert response.data["count"] == 1
+
+    def test_custom_measurements_query_uses_units(self):
+        self.store_transaction_metric(
+            33,
+            metric="measurements.custom",
+            internal_metric="d:transactions/measurements.custom@second",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        data = load_data("transaction", timestamp=self.min_ago)
+        data["measurements"] = {
+            "custom": {"value": 0.199, "unit": "second"},
+        }
+        self.store_event(data, self.project.id)
+        data = load_data("transaction", timestamp=self.min_ago)
+        data["measurements"] = {
+            "custom": {"value": 0.201, "unit": "second"},
+        }
+        self.store_event(data, self.project.id)
+        url = reverse(
+            "sentry-api-0-organization-events-meta",
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
+        )
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:performance-use-metrics": True,
+        }
+        for dataset in ["discover", "transactions"]:
+            query = {
+                "field": ["measurements.custom"],
+                "query": "measurements.custom:>200",
+                "dataset": dataset,
+            }
+            with self.feature(features):
+                response = self.client.get(url, query, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["count"] == 1
 
     def test_invalid_query(self):
         with self.feature(self.features):
