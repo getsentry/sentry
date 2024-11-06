@@ -1,18 +1,15 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
 type Props = {
   platform: string;
 };
 
 function StacktracePlatformIcon({platform}: Props) {
-  const hasStreamlineUi = useHasStreamlinedUI();
   return (
     <StyledPlatformIcon
       platform={platform}
-      size={hasStreamlineUi ? '16px' : '20px'}
+      size="20px"
       radius={null}
       data-test-id={`platform-icon-${platform}`}
     />
