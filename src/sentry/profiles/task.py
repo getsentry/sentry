@@ -806,7 +806,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 profile=profile,
                 modules=[
                     {
-                        "uuid": UUID(debug_file_id).hex,
+                        "uuid": debug_file_id,
                         "type": "proguard",
                     }
                 ],
