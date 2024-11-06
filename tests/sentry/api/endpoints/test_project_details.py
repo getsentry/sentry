@@ -259,6 +259,59 @@ class ProjectDetailsTest(APITestCase):
         assert resp.data["highlightContext"] == expected_preset["context"]
         assert resp.data["highlightTags"] == expected_preset["tags"]
 
+    def test_is_dynamically_sampled(self):
+        # test with feature flags disabled
+        with self.feature(
+            {
+                "organizations:dynamic-sampling": False,
+                "organizations:dynamic-sampling-custom": False,
+            }
+        ):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert not resp.data["isDynamicallySampled"]
+
+        # test with sampling_mode = organization
+        self.project.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+
+        # test not sampled organization
+        self.project.organization.update_option("sentry:target_sample_rate", 1.0)
+        with self.feature(
+            ["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"]
+        ):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert not resp.data["isDynamicallySampled"]
+
+        # test dynamically sampled organization
+        self.project.organization.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature(
+            ["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"]
+        ):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert resp.data["isDynamicallySampled"]
+
+        # test with sampling_mode = project
+        self.project.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.PROJECT.value
+        )
+
+        # test with not sampled project
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        with self.feature(
+            ["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"]
+        ):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert not resp.data["isDynamicallySampled"]
+
+        # test with sampled project
+        self.project.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature(
+            ["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"]
+        ):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert resp.data["isDynamicallySampled"]
+
 
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
