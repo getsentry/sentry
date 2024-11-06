@@ -24,7 +24,6 @@ class BroadcastSerializer(Serializer):
             "message": obj.message,
             "title": obj.title,
             "link": obj.link,
-            "cta": obj.cta,
             "mediaUrl": obj.media_url,
             "isActive": obj.is_active,
             "dateCreated": obj.date_added,
