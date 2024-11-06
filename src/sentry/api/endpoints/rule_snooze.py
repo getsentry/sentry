@@ -239,8 +239,5 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
         "DELETE": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    rule_field = "alert_rule"
     rule_model = AlertRule
-
-    def test(self):
-        self.rule_model
+    rule_field = "alert_rule"
