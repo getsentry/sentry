@@ -45,7 +45,10 @@ sentry_sdk.init(
 # Manually call start_profiler and stop_profiler
 # to profile the code in between
 sentry_sdk.profiler.start_profiler()
-# do some work here
+# this code will be profiled
+#
+# Calls to stop_pofiler are optional - if you don't stop the profiler, it will keep profiling
+# your application until the process exits or stop_pofiler is called.
 sentry_sdk.profiler.stop_profiler()`
     : ''
 }`;
