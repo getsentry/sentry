@@ -122,7 +122,7 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
         with override_settings(SILO_MODE=silo_mode):
             result = dict(get_client_config(request))
             normalize(result)
-            assert result["sentryMode"] == "SAAS"
+            assert result["sentryMode"] == "SAAS", silo_mode
             assert result == base_line
             cache.clear()
 

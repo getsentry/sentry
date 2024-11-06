@@ -673,6 +673,10 @@ SILO_DEVSERVER = os.environ.get("SENTRY_SILO_DEVSERVER", False)
 # Which silo this instance runs as (CONTROL|REGION|MONOLITH|None) are the expected values
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 
+# This supersedes SENTRY_SINGLE_TENANT and SENTRY_SELF_HOSTED.
+# An enum is better because there shouldn't be multiple "modes".
+SENTRY_MODE = SentryMode.SELF_HOSTED if SILO_MODE is None else SentryMode.SAAS
+
 # If this instance is a region silo, which region is it running in?
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 
@@ -2499,10 +2503,6 @@ SENTRY_MAX_AVATAR_SIZE = 5000000
 # statuspage.io support
 STATUS_PAGE_ID: str | None = None
 STATUS_PAGE_API_HOST = "statuspage.io"
-
-# This supersedes SENTRY_SINGLE_TENANT and SENTRY_SELF_HOSTED.
-# An enum is better because there shouldn't be multiple "modes".
-SENTRY_MODE = SentryMode.SELF_HOSTED
 
 # For compatibility only. Prefer using SENTRY_MODE.
 SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
