@@ -11,7 +11,6 @@ from sentry import features
 from sentry.api.fields.actor import ActorField
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.models.environment import Environment
-from sentry.models.rule import Rule
 from sentry.rules import rules
 from sentry.rules.actions.sentry_apps.notify_event import NotifyEventSentryAppAction
 
@@ -177,33 +176,6 @@ class RuleSerializer(RuleSetSerializer):
 
     def validate(self, attrs):
         return super().validate(validate_actions(attrs))
-
-    def save(self, **kwargs: Any) -> Rule:
-        rule = kwargs.get("rule")
-        assert isinstance(rule, Rule), "Rule must exist to modify instance"
-        rule.project = self.context["project"]
-        if "environment" in self.validated_data:
-            environment = self.validated_data["environment"]
-            rule.environment_id = int(environment) if environment else environment
-        if self.validated_data.get("name"):
-            rule.label = self.validated_data["name"]
-        if self.validated_data.get("actionMatch"):
-            rule.data["action_match"] = self.validated_data["actionMatch"]
-        if self.validated_data.get("filterMatch"):
-            rule.data["filter_match"] = self.validated_data["filterMatch"]
-        if self.validated_data.get("actions") is not None:
-            rule.data["actions"] = self.validated_data["actions"]
-        if self.validated_data.get("conditions") is not None:
-            rule.data["conditions"] = self.validated_data["conditions"]
-        if self.validated_data.get("frequency"):
-            rule.data["frequency"] = self.validated_data["frequency"]
-        if self.validated_data.get("owner"):
-            actor = self.validated_data["owner"].resolve_to_actor()
-            rule.owner = actor
-            rule.owner_user_id = actor.user_id
-            rule.owner_team_id = actor.team_id
-        rule.save()
-        return rule
 
 
 ACTION_UUID_KEY = "uuid"
