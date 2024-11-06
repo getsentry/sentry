@@ -1,6 +1,5 @@
 import BaseChart from 'sentry/components/charts/baseChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
-import {defined} from 'sentry/utils';
 
 import type {Meta, TimeseriesData} from '../common/types';
 
@@ -12,11 +11,16 @@ export interface LineChartWidgetVisualizationProps {
 }
 
 export function LineChartWidgetVisualization(props: LineChartWidgetVisualizationProps) {
-  const {meta} = props;
+  const {timeseries, meta} = props;
+
+  // TODO: Raise error if attempting to plot series of different types or units
+  const firstSeriesField = timeseries[0]?.field;
+  const type = meta?.fields?.[firstSeriesField] ?? 'number';
+  const unit = meta?.units?.[firstSeriesField] ?? undefined;
 
   return (
     <BaseChart
-      series={props.timeseries.map(timeserie => {
+      series={timeseries.map(timeserie => {
         return LineSeries({
           name: timeserie.field,
           data: timeserie.data.map(datum => {
@@ -27,21 +31,17 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       showTimeInTooltip
       isGroupedByDate
       tooltip={{
-        valueFormatter: (value, field) => {
-          if (!defined(field)) {
-            return renderLocaleString(value);
-          }
-
-          const unit = meta?.units?.[field];
-          const type = meta?.fields?.[field] ?? 'number';
-
-          return formatChartValue(value, type, unit ?? undefined);
+        valueFormatter: value => {
+          return formatChartValue(value, type, unit);
+        },
+      }}
+      yAxis={{
+        axisLabel: {
+          formatter(value: number) {
+            return formatChartValue(value, type, unit);
+          },
         },
       }}
     />
   );
-}
-
-function renderLocaleString(value: number) {
-  return value.toLocaleString();
 }
