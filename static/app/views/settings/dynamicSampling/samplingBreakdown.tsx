@@ -13,8 +13,8 @@ import {
 } from 'sentry/utils/formatters';
 import {useProjectSampleCounts} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
-const ITEMS_TO_SHOW = 4;
-const palette = CHART_PALETTE[ITEMS_TO_SHOW];
+const ITEMS_TO_SHOW = 5;
+const palette = CHART_PALETTE[ITEMS_TO_SHOW - 1];
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   period: '24h' | '30d';
@@ -37,7 +37,7 @@ function OthersBadge() {
         `}
         platform="other"
       />
-      {t('others')}
+      {t('other projects')}
     </div>
   );
 }
@@ -55,10 +55,13 @@ export function SamplingBreakdown({period, sampleRates, ...props}: Props) {
     })
     .toSorted((a, b) => b.sampledSpans - a.sampledSpans);
 
-  const topItems = spansWithSampleRates.slice(0, ITEMS_TO_SHOW);
-  const hasOther = spansWithSampleRates.length > ITEMS_TO_SHOW;
+  const hasOthers = spansWithSampleRates.length > ITEMS_TO_SHOW;
+
+  const topItems = hasOthers
+    ? spansWithSampleRates.slice(0, ITEMS_TO_SHOW - 1)
+    : spansWithSampleRates.slice(0, ITEMS_TO_SHOW);
   const otherSpanCount = spansWithSampleRates
-    .slice(ITEMS_TO_SHOW)
+    .slice(ITEMS_TO_SHOW - 1)
     .reduce((acc, item) => acc + item.sampledSpans, 0);
   const total = spansWithSampleRates.reduce((acc, item) => acc + item.sampledSpans, 0);
 
@@ -98,7 +101,7 @@ export function SamplingBreakdown({period, sampleRates, ...props}: Props) {
             </Tooltip>
           );
         })}
-        {hasOther && (
+        {hasOthers && (
           <Tooltip
             overlayStyle={{maxWidth: 'none'}}
             title={
@@ -125,12 +128,12 @@ export function SamplingBreakdown({period, sampleRates, ...props}: Props) {
         {topItems.map(item => {
           return (
             <LegendItem key={item.project.id}>
-              <ProjectBadge disableLink avatarSize={16} project={item.project} />
+              <ProjectBadge avatarSize={16} project={item.project} />
               {`${formatAbbreviatedNumberWithDynamicPrecision(getSpanPercent(item.sampledSpans))}%`}
             </LegendItem>
           );
         })}
-        {hasOther && (
+        {hasOthers && (
           <LegendItem>
             <OthersBadge />
             {`${formatAbbreviatedNumberWithDynamicPrecision(otherPercent)}%`}
