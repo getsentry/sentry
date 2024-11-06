@@ -806,7 +806,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 profile=profile,
                 modules=[
                     {
-                        "uuid": UUID(debug_file_id).hex,
+                        "uuid": debug_file_id,
                         "type": "proguard",
                     }
                 ],
@@ -841,10 +841,22 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
     return False
 
 
+def get_debug_file_id(profile: Profile) -> str | None:
+    debug_file_id = profile.get("build_id")
+
+    if debug_file_id is None or debug_file_id == "":
+        return None
+
+    try:
+        return UUID(debug_file_id).hex
+    except ValueError:
+        return None
+
+
 @metrics.wraps("process_profile.deobfuscate")
 def _deobfuscate(profile: Profile, project: Project) -> None:
-    debug_file_id = profile.get("build_id")
-    if debug_file_id is None or debug_file_id == "":
+    debug_file_id = get_debug_file_id(profile)
+    if debug_file_id is None:
         # we still need to decode signatures
         for m in profile["profile"]["methods"]:
             if m.get("signature"):
