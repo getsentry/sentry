@@ -41,10 +41,8 @@ export function renderWithOnboardingLayout<
     selectedOptions = {},
   } = options;
 
-  const {organization: org} = renderOptions;
-
   const {organization, project, router} = initializeOrg({
-    organization: org,
+    organization: renderOptions.organization,
     router: {
       location: {
         query: selectedOptions,
