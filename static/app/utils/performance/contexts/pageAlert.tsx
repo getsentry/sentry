@@ -11,7 +11,6 @@ type PageAlertType = keyof Theme['alert'];
 export enum DismissId {
   RESOURCE_SIZE_ALERT = 0,
   CACHE_SDK_UPDATE_ALERT = 1,
-  PERFORMANCE_MOVING_ALERT = 2,
 }
 
 export type PageAlertOptions = {
