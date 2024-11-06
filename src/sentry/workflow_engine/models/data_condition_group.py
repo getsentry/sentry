@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -20,3 +22,24 @@ class DataConditionGroup(DefaultFieldsModel):
 
     logic_type = models.CharField(max_length=200, choices=Type.choices, default=Type.ANY)
     organization = models.ForeignKey("sentry.Organization", on_delete=models.CASCADE)
+
+    def evaluate(self, value: Any) -> bool:
+        """
+        TODO @saponifi3d
+            - ensure logic types are correct
+            - add support for all types, not just booleans?
+        """
+
+        results = []
+        for condition in self.conditions.all():
+            evaluation_result = condition.evaluate(value)
+
+            if evaluation_result and self.logic_type == self.Type.ANY:
+                return condition.condition_result
+            else:
+                results.append(evaluation_result)
+
+        if self.logic_all == self.Type.ALL:
+            return all(results)
+
+        return False
