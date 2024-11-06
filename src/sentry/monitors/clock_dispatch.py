@@ -14,6 +14,7 @@ from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.monitors.types import TickVolumeAnomolyResult
 from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -85,7 +86,12 @@ def _dispatch_tick(ts: datetime):
         # XXX(epurkhiser): Unclear what we want to do if we're not using kafka
         return
 
-    message: ClockTick = {"ts": ts.timestamp()}
+    volume_anomaly_result = _safe_evaluate_tick_decision(ts)
+
+    message: ClockTick = {
+        "ts": ts.timestamp(),
+        "volume_anomaly_result": volume_anomaly_result.value,
+    }
     payload = KafkaPayload(None, CLOCK_TICK_CODEC.encode(message), [])
 
     topic = get_topic_definition(Topic.MONITORS_CLOCK_TICK)["real_topic_name"]
@@ -99,7 +105,7 @@ def _make_reference_ts(ts: datetime):
     return int(ts.replace(second=0, microsecond=0).timestamp())
 
 
-def _evaluate_tick_decision(tick: datetime):
+def _evaluate_tick_decision(tick: datetime) -> TickVolumeAnomolyResult:
     """
     When the clock is ticking, we may decide this tick is invalid and should
     result in unknown misses and marking all in-progress check-ins as having an
@@ -112,7 +118,8 @@ def _evaluate_tick_decision(tick: datetime):
     to mark unknowns, instead we are only recording metrics for each clock tick
     """
     if not options.get("crons.tick_volume_anomaly_detection"):
-        return
+        # Detection not enabled. All ticks are considered normal
+        return TickVolumeAnomolyResult.NORMAL
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
@@ -140,11 +147,11 @@ def _evaluate_tick_decision(tick: datetime):
 
     # Can't make any decisions if we didn't have data for the past minute
     if past_minute_volume is None:
-        return
+        return TickVolumeAnomolyResult.NORMAL
 
     # We need AT LEAST two data points to calculate standard deviation
     if len(historic_volume) < 2:
-        return
+        return TickVolumeAnomolyResult.NORMAL
 
     # Record some statistics about the past_minute_volume volume in comparison
     # to the historic_volume data
@@ -189,12 +196,19 @@ def _evaluate_tick_decision(tick: datetime):
         },
     )
 
+    # XXX(epurkhiser): No decision is made yet, all ticks are normal
+    return TickVolumeAnomolyResult.NORMAL
 
-def _safe_evaluate_tick_decision(tick: datetime):
+
+def _safe_evaluate_tick_decision(tick: datetime) -> TickVolumeAnomolyResult:
     try:
-        _evaluate_tick_decision(tick)
+        return _evaluate_tick_decision(tick)
     except Exception:
         logging.exception("monitors.clock_dispatch.evaluate_tick_decision_failed")
+
+    # If there are any problems evaluating the tick volume, fallback to
+    # reporting the tick as NORMAL.
+    return TickVolumeAnomolyResult.NORMAL
 
 
 def update_check_in_volume(ts_list: Sequence[datetime]):
@@ -292,9 +306,7 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
             extra = {"reference_datetime": str(backfill_tick)}
             logger.info("monitors.consumer.clock_tick_backfill", extra=extra)
 
-            _safe_evaluate_tick_decision(backfill_tick)
             _dispatch_tick(backfill_tick)
             backfill_tick = backfill_tick + timedelta(minutes=1)
 
-    _safe_evaluate_tick_decision(tick)
     _dispatch_tick(tick)
