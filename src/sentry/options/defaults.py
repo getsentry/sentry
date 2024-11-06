@@ -2030,13 +2030,6 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable cronsim instead of croniter
-register(
-    "crons.use_cronsim",
-    default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Sets the timeout for webhooks
 register(
     "sentry-apps.webhook.timeout.sec",
