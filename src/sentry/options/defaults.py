@@ -2030,6 +2030,13 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enable cronsim instead of croniter
+register(
+    "crons.use_cronsim",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Sets the timeout for webhooks
 register(
     "sentry-apps.webhook.timeout.sec",
@@ -2558,13 +2565,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deobfuscate profiles using Symbolicator
-register(
-    "profiling.deobfuscate-using-symbolicator.enable-for-project",
-    type=Sequence,
-    default=[],
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "traces.sample-list.sample-rate",
     type=Float,
