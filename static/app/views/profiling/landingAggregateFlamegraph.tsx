@@ -1,10 +1,13 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
@@ -16,14 +19,18 @@ import {
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconCopy, IconGithub, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {DeepPartial} from 'sentry/types/utils';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
@@ -31,6 +38,8 @@ import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useSourceCodeLink} from 'sentry/utils/profiling/hooks/useSourceLink';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -131,15 +140,6 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         value={props.frameFilter}
         options={frameSelectOptions}
       />
-      {/*
-      <Button
-        size="xs"
-        onClick={props.onHideRegressionsClick}
-        title={t('Expand or collapse the view')}
-      >
-        <IconPanel size="xs" direction="right" />
-      </Button>
-      */}
     </AggregateFlamegraphToolbarContainer>
   );
 }
@@ -275,7 +275,6 @@ interface AggregateFlamegraphFunctionBreakdownProps {
 function AggregateFlamegraphFunctionBreakdown(
   props: AggregateFlamegraphFunctionBreakdownProps
 ) {
-  const theme = useTheme();
   const {projects} = useProjects();
   const organization = useOrganization();
   const flamegraph = useFlamegraph();
@@ -299,37 +298,16 @@ function AggregateFlamegraphFunctionBreakdown(
     };
   }, [props.scheduler, setNodes]);
 
-  const project = projects.find(p => p.id === String(profileGroup?.metadata?.projectID));
-
   const example = nodes?.[0];
-  const sourceCodeLink = useSourceCodeLink({
-    project,
-    organization,
-    commitId: profileGroup?.metadata?.release?.lastCommit?.id,
-    platform: profileGroup?.metadata?.platform,
-    frame: {file: example?.frame.file, path: example?.frame.path},
-  });
-
-  // @TODO: this only works for github right now, other providers will not work
-  const onOpenInGithubClick = useCallback(() => {
-    if (!sourceCodeLink.isSuccess) {
-      return;
-    }
-
-    if (
-      !sourceCodeLink.data.sourceUrl ||
-      sourceCodeLink.data.config?.provider?.key !== 'github'
-    ) {
-      return;
-    }
-
-    // make a best effort to link to the exact line if we can
-    const url = example?.frame.line
-      ? `${sourceCodeLink.data.sourceUrl}#L${example.frame.line}`
-      : sourceCodeLink.data.sourceUrl;
-
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }, [example, sourceCodeLink]);
+  const projectsLookupTable = useMemo(() => {
+    return projects.reduce(
+      (acc, project) => {
+        acc[project.id] = project;
+        return acc;
+      },
+      {} as Record<string, Project>
+    );
+  }, [projects]);
 
   const callers = useMemo(() => {
     if (!nodes) {
@@ -367,6 +345,13 @@ function AggregateFlamegraphFunctionBreakdown(
     [props.scheduler]
   );
 
+  const onFrameClick = useCallback(
+    (frame: FlamegraphFrame) => {
+      props.scheduler.dispatch('highlight frame', [frame], 'selected');
+    },
+    [props.scheduler]
+  );
+
   if (!nodes) {
     return null;
   }
@@ -375,9 +360,6 @@ function AggregateFlamegraphFunctionBreakdown(
     return null;
   }
 
-  const functionName = example.frame.name ?? `<unknown>`;
-  const source = example.frame.file ? `${example.frame.getSourceLocation()}` : null;
-
   return (
     <AggregateFlamegraphFunctionBreakdownContainer>
       <AggregateFlamegraphSectionHeader>
@@ -385,19 +367,14 @@ function AggregateFlamegraphFunctionBreakdown(
       </AggregateFlamegraphSectionHeader>
       <AggregateFlamegraphSection>
         <AggregateFlamegraphFunctionBreakdownHeader>
-          <AggregateFlamegraphFunctionName>
-            <Tooltip title={functionName}>
-              <TextOverflow>{functionName}</TextOverflow>
-            </Tooltip>
-          </AggregateFlamegraphFunctionName>
-          <AggregateFlamegraphFunctionSource fontSize={theme.fontSizeMedium}>
-            <TextOverflow>{source ?? '<unknown>'}</TextOverflow>
-          </AggregateFlamegraphFunctionSource>
-          <AggregateFlamegraphFunctionSamples>
-            {PROFILING_SAMPLES_FORMATTER.format(example.frame.totalWeight)}{' '}
-            {t('samples') + ' '}
-            {`(${formatWeightToProfileDuration(example.node, flamegraph)})`}{' '}
-          </AggregateFlamegraphFunctionSamples>
+          <AggregateFlamegraphFunction
+            frame={example}
+            flamegraph={flamegraph}
+            onFrameHover={onFrameHover}
+            onFrameClick={onFrameClick}
+            organization={organization}
+            profileGroup={profileGroup}
+          />
         </AggregateFlamegraphFunctionBreakdownHeader>
       </AggregateFlamegraphSection>
       <AggregateFlamegraphSectionHeader>
@@ -416,17 +393,15 @@ function AggregateFlamegraphFunctionBreakdown(
           </AggregateFlamegraphFunctionBreakdownEmptyState>
         ) : (
           callers.map((caller, c) => (
-            <div key={c} onPointerOver={() => onFrameHover(caller)}>
-              {caller.frame.name}
-              <AggregateFlamegraphFunctionSource fontSize={theme.fontSizeMedium}>
-                <TextOverflow>{source ?? '<unknown>'}</TextOverflow>
-              </AggregateFlamegraphFunctionSource>
-              <AggregateFlamegraphFunctionSamples>
-                {PROFILING_SAMPLES_FORMATTER.format(caller.frame.totalWeight)}{' '}
-                {t('samples') + ' '}
-                {`(${formatWeightToProfileDuration(caller.node, flamegraph)})`}{' '}
-              </AggregateFlamegraphFunctionSamples>
-            </div>
+            <AggregateFlamegraphFunction
+              key={c}
+              frame={caller}
+              flamegraph={flamegraph}
+              onFrameHover={onFrameHover}
+              onFrameClick={onFrameClick}
+              organization={organization}
+              profileGroup={profileGroup}
+            />
           ))
         )}
       </AggregateFlamegraphSection>
@@ -446,34 +421,292 @@ function AggregateFlamegraphFunctionBreakdown(
           </AggregateFlamegraphFunctionBreakdownEmptyState>
         ) : (
           callees.map((callee, c) => (
-            <div key={c} onPointerOver={() => onFrameHover(callee)}>
-              {callee.frame.name}
-              <AggregateFlamegraphFunctionSource fontSize={theme.fontSizeMedium}>
-                <TextOverflow>{source ?? '<unknown>'}</TextOverflow>
-              </AggregateFlamegraphFunctionSource>
-              <AggregateFlamegraphFunctionSamples>
-                {PROFILING_SAMPLES_FORMATTER.format(callee.frame.totalWeight)}{' '}
-                {t('samples') + ' '}
-                {`(${formatWeightToProfileDuration(callee.node, flamegraph)})`}{' '}
-              </AggregateFlamegraphFunctionSamples>
-            </div>
+            <AggregateFlamegraphFunction
+              key={c}
+              frame={callee}
+              flamegraph={flamegraph}
+              onFrameHover={onFrameHover}
+              onFrameClick={onFrameClick}
+              organization={organization}
+              profileGroup={profileGroup}
+            />
           ))
         )}
       </AggregateFlamegraphSection>
       <AggregateFlamegraphSectionHeader>
-        {tct('Profiles ([count])', {count: example.profileIds?.length})}
+        <Tooltip title={t('Example profiles where this function was called.')}>
+          {tct('Profiles ([count])', {count: example.profileIds?.length})}
+        </Tooltip>
       </AggregateFlamegraphSectionHeader>
       <AggregateFlamegraphSection>
-        {example.profileIds?.map((e, i) => {
-          if (typeof e === 'string') {
-            return <div key={i}>{e}</div>;
-          }
-          return <div key={i}>{'profiler_id' in e ? e.profiler_id : e.profile_id}</div>;
-        })}
+        {!example.profileIds?.length ? (
+          <AggregateFlamegraphFunctionBreakdownEmptyState>
+            {t('No profiles detected.')}
+          </AggregateFlamegraphFunctionBreakdownEmptyState>
+        ) : (
+          example.profileIds?.map((e, i) => {
+            return (
+              <AggregateFlamegraphProfileReference
+                key={i}
+                profile={e}
+                frameName={example.frame.name}
+                framePackage={example.frame.package}
+                projectLookupTable={projectsLookupTable}
+              />
+            );
+          })
+        )}
       </AggregateFlamegraphSection>
     </AggregateFlamegraphFunctionBreakdownContainer>
   );
 }
+
+function AggregateFlamegraphFunction(props: {
+  flamegraph: Flamegraph;
+  frame: FlamegraphFrame;
+  onFrameClick: (frame: FlamegraphFrame) => void;
+  onFrameHover: (frame: FlamegraphFrame) => void;
+  organization: Organization;
+  profileGroup: ProfileGroup;
+}) {
+  const source =
+    (props.frame.frame.file ? `${props.frame.frame.getSourceLocation()}` : null) ??
+    '<unknown>';
+
+  return (
+    <AggregateFlamegraphFunctionContainer
+      onPointerOver={() => props.onFrameHover(props.frame)}
+    >
+      <AggregateFlamegraphFunctionNameRow>
+        <AggregateFlamegraphFunctionName onClick={() => props.onFrameClick(props.frame)}>
+          {props.frame.frame.name}
+        </AggregateFlamegraphFunctionName>
+        <AggregateFlamegraphFunctionSource>
+          <TextOverflow>{source}</TextOverflow>
+        </AggregateFlamegraphFunctionSource>
+      </AggregateFlamegraphFunctionNameRow>
+      <AggregateFlamegraphSourceRow>
+        <AggregateFlamegraphFunctionSamples>
+          <div>
+            <AggregateFlamegraphFunctionActionsDropdown
+              frame={props.frame}
+              profileGroup={props.profileGroup}
+              organization={props.organization}
+            />
+          </div>
+          <div>
+            {PROFILING_SAMPLES_FORMATTER.format(props.frame.frame.totalWeight)}{' '}
+            {t('samples') + ' '}
+            {`(${formatWeightToProfileDuration(props.frame.node, props.flamegraph)})`}{' '}
+          </div>
+        </AggregateFlamegraphFunctionSamples>
+      </AggregateFlamegraphSourceRow>
+    </AggregateFlamegraphFunctionContainer>
+  );
+}
+
+function AggregateFlamegraphFunctionActionsDropdown(props: {
+  frame: FlamegraphFrame;
+  organization: Organization;
+  profileGroup: ProfileGroup;
+}) {
+  const {projects} = useProjects();
+  const firstProfileReference = props.frame.profileIds?.[0];
+
+  const projectsLookupTable = useMemo(() => {
+    return projects.reduce(
+      (acc, project) => {
+        acc[parseInt(project.id, 10)] = project;
+        return acc;
+      },
+      {} as Record<number, Project>
+    );
+  }, [projects]);
+
+  const project =
+    firstProfileReference &&
+    typeof firstProfileReference !== 'string' &&
+    'project_id' in firstProfileReference
+      ? projectsLookupTable[firstProfileReference.project_id]
+      : undefined;
+
+  const sourceCodeLink = useSourceCodeLink({
+    project,
+    organization: props.organization,
+    commitId: props.profileGroup?.metadata?.release?.lastCommit?.id,
+    platform: props.profileGroup?.metadata?.platform || project?.platform,
+    frame: {file: props.frame.frame.file, path: props.frame.frame.path},
+  });
+
+  const onOpenInGithubClick = useCallback(() => {
+    if (!sourceCodeLink.isSuccess) {
+      return;
+    }
+
+    if (
+      !sourceCodeLink.data.sourceUrl ||
+      sourceCodeLink.data.config?.provider?.key !== 'github'
+    ) {
+      return;
+    }
+
+    // make a best effort to link to the exact line if we can
+    const url = props.frame.frame.line
+      ? `${sourceCodeLink.data.sourceUrl}#L${props.frame.frame.line}`
+      : sourceCodeLink.data.sourceUrl;
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, [props.frame, sourceCodeLink]);
+
+  const onCopyFunctionName = useCallback(() => {
+    navigator.clipboard
+      .writeText(props.frame.frame.name)
+      .then(() => {
+        addSuccessMessage(t('Copied function name to clipboard'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Failed to copy function name to clipboard'));
+      });
+  }, [props.frame]);
+
+  const onCopyFunctionSource = useCallback(() => {
+    navigator.clipboard
+      .writeText(props.frame.frame.getSourceLocation())
+      .then(() => {
+        addSuccessMessage(t('Copied function source to clipboard'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Failed to copy function source to clipboard'));
+      });
+  }, [props.frame]);
+
+  return (
+    <DropdownMenu
+      trigger={triggerProps => (
+        <AggregateFlamegraphFunctionActionsDropdownButtonWrapper>
+          <Button aria-label={t('Actions')} size="xs" borderless {...triggerProps}>
+            {'\u22EF'}
+          </Button>
+        </AggregateFlamegraphFunctionActionsDropdownButtonWrapper>
+      )}
+      position="bottom-end"
+      items={[
+        {
+          key: 'copy-function-name',
+          leadingItems: <IconCopy />,
+          label: t('Copy Function Name'),
+          disabled: !props.frame.frame.name,
+          onAction: onCopyFunctionName,
+        },
+        {
+          key: 'copy-function-source',
+          leadingItems: <IconCopy />,
+          label: t('Copy Source Location'),
+          disabled: !props.frame.frame.file,
+          onAction: onCopyFunctionSource,
+        },
+        {
+          key: 'open-in-github',
+          leadingItems: sourceCodeLink.isLoading ? (
+            <SmallLoadingIndicator size={10} hideMessage />
+          ) : (
+            <IconGithub />
+          ),
+          label: t('Open in GitHub'),
+          tooltip: sourceCodeLink.isSuccess
+            ? undefined
+            : sourceCodeLink.isError
+              ? t('Failed to resolve source code location in Github')
+              : undefined,
+          disabled: !sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl,
+          onAction: onOpenInGithubClick,
+        },
+      ]}
+    />
+  );
+}
+
+// We need this because the styling is overriden by the dropdown menu
+const AggregateFlamegraphFunctionActionsDropdownButtonWrapper = styled('span')`
+  button {
+    padding: ${space(0.25)} ${space(0.5)} !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+`;
+
+const SmallLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
+  transform: translateX(-2px);
+
+  > div {
+    border: 2px solid ${p => p.theme.gray100} !important;
+    border-left-color: ${p => p.theme.gray200} !important;
+  }
+`;
+
+function AggregateFlamegraphProfileReference(props: {
+  frameName: string;
+  framePackage: string | undefined;
+  profile: Profiling.ProfileReference;
+  projectLookupTable: Record<string, Project>;
+}) {
+  const organization = useOrganization();
+  const project =
+    typeof props.profile !== 'string' && 'project_id' in props.profile
+      ? props.projectLookupTable[props.profile.project_id]
+      : undefined;
+
+  if (!project) {
+    return null;
+  }
+
+  const to = generateProfileRouteFromProfileReference({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+    reference: props.profile,
+    frameName: props.frameName,
+    framePackage: props.framePackage,
+  });
+
+  const reference =
+    typeof props.profile === 'string'
+      ? props.profile
+      : 'profiler_id' in props.profile
+        ? props.profile.profiler_id
+        : props.profile.profile_id;
+
+  return (
+    <AggregateFlamegraphProfileReferenceContainer>
+      <AggregateFlamegraphProfileReferenceProject>
+        <ProjectAvatar project={project} />
+        {project.name || project.slug}
+      </AggregateFlamegraphProfileReferenceProject>
+      <Link to={to}>
+        <TextOverflow>{reference.substring(0, 8)}</TextOverflow>
+        <IconOpen />
+      </Link>
+    </AggregateFlamegraphProfileReferenceContainer>
+  );
+}
+
+const AggregateFlamegraphFunctionContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr min-content;
+  gap: ${space(1)};
+
+  &:not(:last-child) {
+    margin-bottom: ${space(1)};
+  }
+`;
+
+const AggregateFlamegraphFunctionName = styled('button')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+`;
 
 const AggregateFlamegraphFunctionBreakdownContainer = styled('div')`
   flex-direction: column;
@@ -488,10 +721,15 @@ const AggregateFlamegraphFunctionBreakdownHeaderRow = styled('div')<{
   font-size: ${p => p.fontSize ?? p.theme.fontSizeSmall};
 `;
 
-const AggregateFlamegraphFunctionName = styled(
-  AggregateFlamegraphFunctionBreakdownHeaderRow
-)`
-  font-size: ${p => p.theme.fontSizeMedium};
+const AggregateFlamegraphSourceRow = styled('div')``;
+
+const AggregateFlamegraphFunctionNameRow = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  justify-content: space-between;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const AggregateFlamegraphFunctionSource = styled(
@@ -500,13 +738,49 @@ const AggregateFlamegraphFunctionSource = styled(
   color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
   font-size: ${p => p.theme.fontSizeSmall};
+  min-width: 0;
+  cursor: pointer;
+  width: 100%;
 `;
 
 const AggregateFlamegraphFunctionSamples = styled(
   AggregateFlamegraphFunctionBreakdownHeaderRow
 )`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+  white-space: nowrap;
+  line-height: 1.2;
+`;
+
+const AggregateFlamegraphProfileReferenceContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: ${p => p.theme.text.family};
+  gap: ${space(1)};
+
+  &:not(:last-child) {
+    margin-bottom: ${space(0.5)};
+    padding: ${space(0.25)} 0;
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: ${space(0.5)};
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const AggregateFlamegraphProfileReferenceProject = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const AggregateFlamegraphSectionHeader = styled('div')`
