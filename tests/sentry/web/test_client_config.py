@@ -9,6 +9,7 @@ from django.test import override_settings
 
 from sentry import options
 from sentry.app import env
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
@@ -74,6 +75,17 @@ multiregion_client_config_test = control_silo_test(
 )
 
 
+@no_silo_test
+@django_db_all
+def test_client_config_default():
+    cfg = get_client_config()
+    assert cfg["sentryMode"] == "SELF_HOSTED"
+
+    with override_settings(SENTRY_MODE=SentryMode.SINGLE_TENANT):
+        cfg = get_client_config()
+        assert cfg["sentryMode"] == "SINGLE_TENANT"
+
+
 @multiregion_client_config_test
 @pytest.mark.parametrize(
     "request_factory",
@@ -110,6 +122,7 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
         with override_settings(SILO_MODE=silo_mode):
             result = dict(get_client_config(request))
             normalize(result)
+            assert result["sentryMode"] == "SAAS"
             assert result == base_line
             cache.clear()
 
