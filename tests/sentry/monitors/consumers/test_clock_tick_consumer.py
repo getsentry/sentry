@@ -9,6 +9,7 @@ from arroyo.processing.processor import StreamProcessor
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.test.utils import override_settings
 from django.utils import timezone
+from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.consumers.clock_tasks_consumer import MonitorClockTasksStrategyFactory
@@ -25,6 +26,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.monitors.types import TickVolumeAnomolyResult
 from sentry.testutils.cases import TestCase
 
 partition = Partition(Topic("test"), 0)
@@ -43,8 +45,12 @@ def test_simple(mock_dispatch_check_timeout, mock_dispatch_check_missing):
 
     ts = timezone.now().replace(second=0, microsecond=0)
 
+    message: ClockTick = {
+        "ts": ts.timestamp(),
+        "volume_anomaly_result": TickVolumeAnomolyResult.NORMAL.value,
+    }
     value = BrokerValue(
-        KafkaPayload(b"fake-key", MONITORS_CLOCK_TICK_CODEC.encode({"ts": ts.timestamp()}), []),
+        KafkaPayload(b"fake-key", MONITORS_CLOCK_TICK_CODEC.encode(message), []),
         partition,
         1,
         ts,
@@ -53,6 +59,32 @@ def test_simple(mock_dispatch_check_timeout, mock_dispatch_check_missing):
 
     assert mock_dispatch_check_timeout.call_count == 1
     assert mock_dispatch_check_timeout.mock_calls[0] == mock.call(ts)
+
+    assert mock_dispatch_check_missing.call_count == 1
+    assert mock_dispatch_check_missing.mock_calls[0] == mock.call(ts)
+
+
+@mock.patch("sentry.monitors.consumers.clock_tick_consumer.dispatch_check_missing")
+@mock.patch("sentry.monitors.consumers.clock_tick_consumer.dispatch_mark_unknown")
+def test_simple_abnormal(mock_dispatch_mark_unknown, mock_dispatch_check_missing):
+    consumer = create_consumer()
+
+    ts = timezone.now().replace(second=0, microsecond=0)
+
+    message: ClockTick = {
+        "ts": ts.timestamp(),
+        "volume_anomaly_result": TickVolumeAnomolyResult.ABNORMAL.value,
+    }
+    value = BrokerValue(
+        KafkaPayload(b"fake-key", MONITORS_CLOCK_TICK_CODEC.encode(message), []),
+        partition,
+        1,
+        ts,
+    )
+    consumer.submit(Message(value))
+
+    assert mock_dispatch_mark_unknown.call_count == 1
+    assert mock_dispatch_mark_unknown.mock_calls[0] == mock.call(ts)
 
     assert mock_dispatch_check_missing.call_count == 1
     assert mock_dispatch_check_missing.mock_calls[0] == mock.call(ts)
