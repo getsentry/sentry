@@ -3290,6 +3290,7 @@ SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
     "celery": {"redis": "default"},
     "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
+    "processing-store-transactions": {},
     "processing-locks": {"redis": "default"},
     "post-process-locks": {"redis": "default"},
 }
