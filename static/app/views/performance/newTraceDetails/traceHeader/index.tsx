@@ -159,7 +159,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
 
   const onProjectClick = useCallback(
     (projectSlug: string) => {
-      dispatch({type: 'set query', query: `project:${projectSlug}`});
+      dispatch({type: 'set query', query: `project:${projectSlug}`, source: 'external'});
     },
     [dispatch]
   );

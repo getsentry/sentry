@@ -441,6 +441,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     ) => {
       if (searchingRaf.current?.id) {
         window.cancelAnimationFrame(searchingRaf.current.id);
+        searchingRaf.current = null;
       }
 
       function done([matches, lookup, activeNodeSearchResult]) {
