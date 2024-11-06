@@ -1,5 +1,5 @@
 {
-  "field": "span.duration",
+  "field": "p99(span.duration)",
   "data": [
     {
       "value": 163.26759544018776,

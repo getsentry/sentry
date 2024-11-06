@@ -13,10 +13,11 @@ import sampleThroughputTimeSeries from './sampleThroughputTimeSeries.json';
 
 const sampleDurationTimeSeries2 = {
   ...sampleDurationTimeSeries,
+  field: 'p50(span.duration)',
   data: sampleDurationTimeSeries.data.map(datum => {
     return {
       ...datum,
-      value: datum.value * 0.75 + 20 * Math.random(),
+      value: datum.value * 0.3 + 30 * Math.random(),
     };
   }),
 };
@@ -68,10 +69,12 @@ export default storyBook(LineChartWidget, story => {
               ]}
               meta={{
                 fields: {
-                  'span.duration': 'duration',
+                  'p99(span.duration)': 'duration',
+                  'p50(span.duration)': 'duration',
                 },
                 units: {
-                  'span.duration': 'millisecond',
+                  'p99(span.duration)': 'millisecond',
+                  'p50(span.duration)': 'millisecond',
                 },
               }}
             />
