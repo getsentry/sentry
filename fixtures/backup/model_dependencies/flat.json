@@ -196,6 +196,10 @@
   "sentry.dashboardpermissions": [
     "sentry.dashboard"
   ],
+  "sentry.dashboardpermissionsteam": [
+    "sentry.dashboardpermissions",
+    "sentry.team"
+  ],
   "sentry.dashboardproject": [
     "sentry.dashboard",
     "sentry.project"
@@ -668,7 +672,6 @@
   "sentry.relayusage": [],
   "sentry.release": [
     "sentry.organization",
-    "sentry.project",
     "sentry.user"
   ],
   "sentry.releaseactivity": [
