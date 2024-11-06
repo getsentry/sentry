@@ -9,13 +9,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
 import {SolutionsDrawer} from 'sentry/views/issueDetails/streamline/solutionsDrawer';
 
-const isSummaryEnabled = (hasGenAIConsent: boolean, groupCategory: IssueCategory) => {
-  return hasGenAIConsent && groupCategory === IssueCategory.ERROR;
+const isSummaryEnabled = (hasGenAIConsent: boolean, hasIssueSummary: boolean) => {
+  return hasGenAIConsent && hasIssueSummary;
 };
 
 export default function SolutionsSection({
@@ -54,24 +54,28 @@ export default function SolutionsSection({
     group.issueCategory
   );
 
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
+
   return (
     <div>
       <SidebarSectionTitle style={{marginTop: 0}}>
         {t('Solutions & Resources')}
       </SidebarSectionTitle>
-      {isPending && isSummaryEnabled(hasGenAIConsent, group.issueCategory) && (
-        <Placeholder height="19px" width="95%" style={{marginBottom: space(1)}} />
-      )}
-      {isSummaryEnabled(hasGenAIConsent, group.issueCategory) && data && (
-        <Summary>
-          <HeadlineText>TL;DR: {data.headline}.</HeadlineText>
-          {data.whatsWrong && (
-            <SummaryDetails>
-              What's wrong? {data.whatsWrong.replaceAll('**', '').slice(0, 15)}...
-            </SummaryDetails>
-          )}
-        </Summary>
-      )}
+      {isPending &&
+        isSummaryEnabled(hasGenAIConsent, issueTypeConfig.issueSummary.enabled) && (
+          <Placeholder height="19px" width="95%" style={{marginBottom: space(1)}} />
+        )}
+      {isSummaryEnabled(hasGenAIConsent, issueTypeConfig.issueSummary.enabled) &&
+        data && (
+          <Summary>
+            <HeadlineText>TL;DR: {data.headline}.</HeadlineText>
+            {data.whatsWrong && (
+              <SummaryDetails>
+                What's wrong? {data.whatsWrong.replaceAll('**', '').slice(0, 15)}...
+              </SummaryDetails>
+            )}
+          </Summary>
+        )}
       <StyledButton ref={openButtonRef} onClick={() => openSolutionsDrawer()}>
         {t('See More')}
       </StyledButton>
