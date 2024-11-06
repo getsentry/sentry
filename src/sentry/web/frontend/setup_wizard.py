@@ -10,6 +10,7 @@ from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadReque
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404
 
+from sentry.api.base import allow_cors_options
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import STATUS_LABELS
@@ -57,6 +58,7 @@ class SetupWizardView(BaseView):
             return self.redirect(add_params_to_url(settings.SENTRY_SIGNUP_URL, params))
         return super().handle_auth_required(request, *args, **kwargs)
 
+    @allow_cors_options
     def get(self, request: HttpRequest, wizard_hash) -> HttpResponseBase:
         """
         This opens a page where with an active session fill stuff into the cache
@@ -114,6 +116,7 @@ class SetupWizardView(BaseView):
         context["enableProjectSelection"] = True
         return render_to_response("sentry/setup-wizard.html", context, request)
 
+    @allow_cors_options
     def post(self, request: HttpRequest, wizard_hash=None) -> HttpResponse:
         """
         This updates the cache content for a specific hash
