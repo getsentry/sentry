@@ -17,13 +17,14 @@ import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/p
 import {useProjectSampleCounts} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 interface Props {
+  isLoading: boolean;
   period: '24h' | '30d';
 }
 
 const {useFormField} = projectSamplingForm;
 const EMPTY_ARRAY = [];
 
-export function ProjectsEditTable({period}: Props) {
+export function ProjectsEditTable({isLoading: isLoadingProp, period}: Props) {
   const {projects, fetching} = useProjects();
 
   const {value, initialValue, error, onChange} = useFormField('projectRates');
@@ -97,7 +98,7 @@ export function ProjectsEditTable({period}: Props) {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const isLoading = fetching || isPending;
+  const isLoading = fetching || isPending || isLoadingProp;
 
   return (
     <Fragment>
