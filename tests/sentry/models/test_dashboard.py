@@ -32,10 +32,10 @@ class IncrementalNameTest(TestCase):
     def test_copy_of_copy(self):
         self.create_dashboard(title="Stats copy 4", organization=self.organization)
 
-        assert Dashboard.incremental_title(self.organization, "Stats copy 4") == "Stats copy 4"
+        assert Dashboard.incremental_title(self.organization, "Stats copy 4") == "Stats copy 5"
 
     def test_name_with_copy_in_it(self):
-        assert Dashboard.incremental_title(self.organization, "Stats copy 4") == "Stats copy 5"
+        assert Dashboard.incremental_title(self.organization, "Stats copy 4") == "Stats copy 4"
 
     def test_similar_names(self):
         self.create_dashboard(title="Stats", organization=self.organization)
