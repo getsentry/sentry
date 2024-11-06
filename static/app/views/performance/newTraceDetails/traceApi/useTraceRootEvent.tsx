@@ -21,7 +21,7 @@ export function useTraceRootEvent(trace: TraceSplitResults<TraceFullDetailed> | 
     ],
     {
       staleTime: 0,
-      enabled: !!trace && !!root,
+      enabled: !!trace && !!root?.project_slug && !!root?.event_id,
     }
   );
 }
