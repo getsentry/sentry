@@ -2,9 +2,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {InputGroup} from 'sentry/components/inputGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
@@ -32,20 +32,15 @@ export function OrganizationSampleRateField({}) {
           disabled={hasAccess}
           title={t('You do not have permission to change the sample rate.')}
         >
-          <InputGroup>
-            <InputGroup.Input
-              width={100}
-              type="number"
-              min={0}
-              max={100}
-              disabled={!hasAccess}
-              value={field.value}
-              onChange={event => field.onChange(event.target.value)}
-            />
-            <InputGroup.TrailingItems>
-              <TrailingPercent>%</TrailingPercent>
-            </InputGroup.TrailingItems>
-          </InputGroup>
+          <PercentInput
+            width={100}
+            type="number"
+            min={0}
+            max={100}
+            disabled={!hasAccess}
+            value={field.value}
+            onChange={event => field.onChange(event.target.value)}
+          />
         </Tooltip>
         {field.error ? (
           <ErrorMessage>{field.error}</ErrorMessage>
@@ -73,8 +68,4 @@ const InputWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 4px;
-`;
-
-const TrailingPercent = styled('strong')`
-  padding: 0 2px;
 `;
