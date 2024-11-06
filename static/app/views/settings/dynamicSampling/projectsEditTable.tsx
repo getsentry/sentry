@@ -1,10 +1,18 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import useProjects from 'sentry/utils/useProjects';
+import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
+import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {useProjectSampleCounts} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
@@ -16,7 +24,7 @@ interface Props {
 const {useFormField} = projectSamplingForm;
 const EMPTY_ARRAY = [];
 
-export function ProjectsEditTable({isLoading, period}: Props) {
+export function ProjectsEditTable({isLoading: isLoadingProp, period}: Props) {
   const {projects, fetching} = useProjects();
 
   const {value, initialValue, error, onChange} = useFormField('projectRates');
@@ -64,19 +72,90 @@ export function ProjectsEditTable({isLoading, period}: Props) {
     [onChange]
   );
 
+  // weighted average of all projects' sample rates
+  const totalSpans = items.reduce((acc, item) => acc + item.count, 0);
+  const projectedOrgRate = useMemo(() => {
+    const totalSampledSpans = items.reduce(
+      (acc, item) => acc + item.count * Number(value[item.project.id] ?? 100),
+      0
+    );
+    return totalSampledSpans / totalSpans;
+  }, [items, value, totalSpans]);
+
+  const breakdownSampleRates = useMemo(
+    () =>
+      Object.entries(value).reduce(
+        (acc, [projectId, rate]) => {
+          acc[projectId] = Number(rate) / 100;
+          return acc;
+        },
+        {} as Record<string, number>
+      ),
+    [value]
+  );
+
   if (isError) {
     return <LoadingError onRetry={refetch} />;
   }
 
+  const isLoading = fetching || isPending || isLoadingProp;
+
   return (
-    <ProjectsTable
-      canEdit
-      onChange={handleChange}
-      emptyMessage={t('No active projects found in the selected period.')}
-      isEmpty={!data.length}
-      isLoading={fetching || isPending || isLoading}
-      items={activeItems}
-      inactiveItems={inactiveItems}
-    />
+    <Fragment>
+      <BreakdownPanel>
+        {isLoading ? (
+          <LoadingIndicator
+            css={css`
+              margin: ${space(4)} 0;
+            `}
+          />
+        ) : (
+          <Fragment>
+            <ProjectedOrgRateWrapper>
+              {t('Projected Organization Rate')}
+              <PercentInput
+                type="number"
+                disabled
+                min={0}
+                max={100}
+                size="sm"
+                value={formatNumberWithDynamicDecimalPoints(projectedOrgRate, 2)}
+              />
+            </ProjectedOrgRateWrapper>
+            <Divider />
+            <SamplingBreakdown period={period} sampleRates={breakdownSampleRates} />
+          </Fragment>
+        )}
+      </BreakdownPanel>
+
+      <ProjectsTable
+        canEdit
+        onChange={handleChange}
+        emptyMessage={t('No active projects found in the selected period.')}
+        isEmpty={!data.length}
+        isLoading={isLoading}
+        items={activeItems}
+        inactiveItems={inactiveItems}
+      />
+    </Fragment>
   );
 }
+
+const BreakdownPanel = styled(Panel)`
+  margin-bottom: ${space(3)};
+  padding: ${space(2)};
+`;
+const ProjectedOrgRateWrapper = styled('label')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: ${space(1)};
+  font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
+const Divider = styled('hr')`
+  margin: ${space(2)} -${space(2)};
+  border: none;
+  border-top: 1px solid ${p => p.theme.innerBorder};
+`;
