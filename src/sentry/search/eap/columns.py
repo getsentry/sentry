@@ -365,7 +365,7 @@ SPAN_FUNCTION_DEFINITIONS = {
     ),
     "count_unique": FunctionDefinition(
         internal_function=Function.FUNCTION_UNIQ,
-        search_type="duration",
+        search_type="number",
         arguments=[
             ArgumentDefinition(
                 argument_type="string",

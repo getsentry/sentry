@@ -8,6 +8,7 @@ from parsimonious.exceptions import ParseError
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     AttributeValue,
+    FloatArray,
     IntArray,
     StrArray,
     VirtualColumnContext,
@@ -193,7 +194,7 @@ class SearchResolver:
                 else:
                     return AttributeValue(val_str=str(value))
             elif column_type == constants.INT:
-                # These int casts are only necessary because floats aren't supported in the proto yet
+                # The search parser will always convert a value to a float, so we need to cast back to an int
                 if operator in constants.IN_OPERATORS:
                     if isinstance(value, list):
                         return AttributeValue(
@@ -203,8 +204,20 @@ class SearchResolver:
                         raise InvalidSearchQuery(
                             f"{value} is not a valid value for doing an IN filter"
                         )
-                elif isinstance(value, (int, float)):
+                elif isinstance(value, float):
                     return AttributeValue(val_int=int(value))
+            elif column_type == constants.FLOAT:
+                if operator in constants.IN_OPERATORS:
+                    if isinstance(value, list):
+                        return AttributeValue(
+                            val_float_array=FloatArray(values=[val for val in value])
+                        )
+                    else:
+                        raise InvalidSearchQuery(
+                            f"{value} is not a valid value for doing an IN filter"
+                        )
+                elif isinstance(value, float):
+                    return AttributeValue(val_float=value)
             raise InvalidSearchQuery(
                 f"{value} is not a valid filter value for {column.public_alias}"
             )

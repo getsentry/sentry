@@ -286,7 +286,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("sum(span.self_time)")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_SUM,
-            key=AttributeKey(name="sentry.exclusive_time_ms", type=AttributeKey.Type.TYPE_INT),
+            key=AttributeKey(name="sentry.exclusive_time_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="sum(span.self_time)",
         )
         assert virtual_context is None
@@ -295,7 +295,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("sum()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_SUM,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_INT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="sum()",
         )
         assert virtual_context is None
@@ -304,7 +304,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("sum() as test")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_SUM,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_INT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="test",
         )
         assert virtual_context is None
@@ -313,14 +313,14 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_INT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="count()",
         )
         assert virtual_context is None
         resolved_column, virtual_context = self.resolver.resolve_column("count(span.duration)")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_INT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="count(span.duration)",
         )
         assert virtual_context is None
@@ -329,7 +329,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("p50()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_P50,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_INT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="p50()",
         )
         assert virtual_context is None
