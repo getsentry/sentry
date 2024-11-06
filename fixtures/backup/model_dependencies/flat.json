@@ -196,6 +196,10 @@
   "sentry.dashboardpermissions": [
     "sentry.dashboard"
   ],
+  "sentry.dashboardpermissionsteam": [
+    "sentry.dashboardpermissions",
+    "sentry.team"
+  ],
   "sentry.dashboardproject": [
     "sentry.dashboard",
     "sentry.project"

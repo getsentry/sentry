@@ -971,3 +971,23 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         queries = widgets[0].dashboardwidgetquery_set.all()
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
+
+    def test_create_new_edit_perms_with_teams(self):
+        team1 = self.create_team(organization=self.organization)
+        team2 = self.create_team(organization=self.organization)
+
+        data = {
+            "title": "New Dashboard 7",
+            "permissions": {
+                "isEditableByEveryone": "false",
+                "teamsWithEditAccess": [str(team1.id), str(team2.id)],
+            },
+            "createdBy": {"id": "23516"},
+            "id": "7136",
+        }
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.content
+        assert response.data["permissions"]["isEditableByEveryone"] is False
+        assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]

@@ -1,4 +1,6 @@
 ---
+created: '2024-11-06T18:15:33.745643+00:00'
+creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
 - model_name: sentry.controloption
@@ -789,6 +791,9 @@ source: tests/sentry/backup/test_sanitize.py
   - date_added
   - date_modified
   - name
+- model_name: sentry.dashboardpermissionsteam
+  ordinal: 1
+  sanitized_fields: []
 - model_name: sentry.alertruletrigger
   ordinal: 1
   sanitized_fields:

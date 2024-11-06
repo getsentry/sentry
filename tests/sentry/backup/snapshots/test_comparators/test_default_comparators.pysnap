@@ -1,4 +1,6 @@
 ---
+created: '2024-11-06T17:14:37.259441+00:00'
+creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
 - comparators:
@@ -361,6 +363,12 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - dashboard
   model_name: sentry.dashboardpermissions
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - permissions
+    - team
+  model_name: sentry.dashboardpermissionsteam
 - comparators:
   - class: ForeignKeyComparator
     fields:
