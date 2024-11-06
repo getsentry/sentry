@@ -22,7 +22,12 @@ import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {
+  Tab,
+  tabComponentMap,
+  TabPaths,
+  tagDetailsRoute,
+} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContainer from 'sentry/views/organizationContainer';
@@ -2052,54 +2057,36 @@ function buildRoutes() {
         />
         <Route
           path={TabPaths[Tab.REPLAYS]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupReplays')))}
+          component={hoc(make(tabComponentMap[Tab.REPLAYS]))}
         />
         <Route
           path={TabPaths[Tab.ACTIVITY]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupActivity')))}
+          component={hoc(make(tabComponentMap[Tab.ACTIVITY]))}
         />
         <Route
           path={TabPaths[Tab.EVENTS]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupEvents')))}
+          component={hoc(make(tabComponentMap[Tab.EVENTS]))}
         />
-        <Route
-          path={TabPaths[Tab.TAGS]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))
-          )}
-        />
+        <Route path={TabPaths[Tab.TAGS]} component={hoc(make(tagDetailsRoute))} />
         <Route
           path={`${TabPaths[Tab.TAGS]}:tagKey/`}
-          component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
+          component={hoc(make(tabComponentMap[Tab.TAGS]))}
         />
         <Route
           path={TabPaths[Tab.USER_FEEDBACK]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupUserFeedback'))
-          )}
+          component={hoc(make(tabComponentMap[Tab.USER_FEEDBACK]))}
         />
         <Route
           path={TabPaths[Tab.ATTACHMENTS]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupEventAttachments'))
-          )}
+          component={hoc(make(tabComponentMap[Tab.ATTACHMENTS]))}
         />
         <Route
           path={TabPaths[Tab.SIMILAR_ISSUES]}
-          component={hoc(
-            make(
-              () =>
-                import(
-                  'sentry/views/issueDetails/groupSimilarIssues/groupSimilarIssuesTab'
-                )
-            )
-          )}
+          component={hoc(make(tabComponentMap[Tab.SIMILAR_ISSUES]))}
         />
         <Route
           path={TabPaths[Tab.MERGED]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupMerged/groupMergedTab'))
-          )}
+          component={hoc(make(tabComponentMap[Tab.MERGED]))}
         />
       </Fragment>
     );

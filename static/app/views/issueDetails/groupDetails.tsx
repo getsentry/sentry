@@ -61,7 +61,7 @@ import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/useMergedIssuesDrawer';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/useSimilarIssuesDrawer';
-import {Tab} from 'sentry/views/issueDetails/types';
+import {Tab, tabComponentMap, tagDetailsRoute} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
@@ -99,6 +99,22 @@ type FetchGroupDetailsState = {
 interface GroupDetailsContentProps extends GroupDetailsProps, FetchGroupDetailsState {
   group: Group;
   project: Project;
+}
+
+function usePreloadIssueDetailsRouteChunks() {
+  // Lazy chunks display a spinner while fetching the chunk. We want to avoid that spinner
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  useEffect(() => {
+    async function preload() {
+      await Promise.allSettled([
+        ...Object.values(tabComponentMap).map(chunk => chunk()),
+        tagDetailsRoute(),
+      ]);
+    }
+    if (hasStreamlinedUI) {
+      preload();
+    }
+  }, [hasStreamlinedUI]);
 }
 
 function getFetchDataRequestErrorType(status?: number | null): Error {
@@ -708,6 +724,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     },
     {enabled: !!projectSlug}
   );
+  usePreloadIssueDetailsRouteChunks();
 
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
