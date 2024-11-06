@@ -11,7 +11,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -52,7 +51,7 @@ export function SolutionsDrawer({group, project, event}: SolutionsDrawerProps) {
         <IllustrationContainer>
           <Illustration src={bannerImage} />
         </IllustrationContainer>
-        {hasGenAIConsent && group.issueCategory === IssueCategory.ERROR && data && (
+        {hasGenAIConsent && config.issueSummary.enabled && data && (
           <GroupSummaryWrapper>
             <SummaryHeader>
               <HeaderRow>
