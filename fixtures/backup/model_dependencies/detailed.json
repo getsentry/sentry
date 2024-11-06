@@ -1429,6 +1429,34 @@
       ]
     ]
   },
+  "sentry.dashboardpermissionsteam": {
+    "dangling": false,
+    "foreign_keys": {
+      "permissions": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.dashboardpermissions",
+        "nullable": false
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": false
+      }
+    },
+    "model": "sentry.dashboardpermissionsteam",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_dashboardpermissionsteam",
+    "uniques": [
+      [
+        "permissions",
+        "team"
+      ]
+    ]
+  },
   "sentry.dashboardproject": {
     "dangling": false,
     "foreign_keys": {
