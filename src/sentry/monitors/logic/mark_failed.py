@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 def mark_failed(
     failed_checkin: MonitorCheckIn,
     ts: datetime,
+    is_miss: bool = False,
     received: datetime | None = None,
 ) -> bool:
     """
@@ -55,7 +56,7 @@ def mark_failed(
 
     # When the failed check-in is a synthetic missed check-in we do not move
     # the `last_checkin` timestamp forward.
-    if failed_checkin.status == CheckInStatus.MISSED:
+    if is_miss:
         # When a monitor is MISSED it MUST have already had a `last_checkin`. A
         # monitor cannot be missed without having checked in.
         last_checkin = monitor_env.last_checkin
@@ -110,6 +111,10 @@ def mark_failed_threshold(
     monitor_env = failed_checkin.monitor_environment
 
     if monitor_env is None:
+        return False
+
+    # unknown check-ins never trigger notifications
+    if failed_checkin.status == CheckInStatus.UNKNOWN:
         return False
 
     # check to see if we need to update the status

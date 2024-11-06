@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 from itertools import cycle
 from unittest.mock import patch
 
@@ -169,7 +170,7 @@ class MarkFailedTestCase(TestCase):
             monitor=monitor,
             monitor_environment=monitor_environment,
             project_id=self.project.id,
-            status=CheckInStatus.UNKNOWN,
+            status=CheckInStatus.ERROR,
         )
         assert mark_failed(checkin, ts=checkin.date_added)
 
@@ -208,7 +209,7 @@ class MarkFailedTestCase(TestCase):
             monitor=monitor,
             monitor_environment=monitor_environment,
             project_id=self.project.id,
-            status=CheckInStatus.UNKNOWN,
+            status=CheckInStatus.OK,
         )
         assert mark_failed(checkin, ts=checkin.date_added)
 
@@ -259,7 +260,7 @@ class MarkFailedTestCase(TestCase):
                 project_id=self.project.id,
                 status=status,
             )
-            mark_failed(checkin, ts=checkin.date_added)
+            mark_failed(checkin, ts=checkin.date_added, is_miss=status == CheckInStatus.MISSED)
 
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -471,7 +472,7 @@ class MarkFailedTestCase(TestCase):
                 monitor=monitor,
                 monitor_environment=monitor_environment,
                 project_id=self.project.id,
-                status=CheckInStatus.UNKNOWN,
+                status=CheckInStatus.ERROR,
             )
             mark_failed(checkin, ts=checkin.date_added)
 
@@ -535,3 +536,51 @@ class MarkFailedTestCase(TestCase):
         grouphash = GroupHash.objects.get(hash=issue_platform_hash)
         group_assignee = GroupAssignee.objects.get(group_id=grouphash.group_id)
         assert group_assignee.user_id == monitor.owner_user_id
+
+    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    def test_mark_failed_unknown_miss(self, mock_produce_occurrence_to_kafka):
+        ts = timezone.now().replace(minute=0, second=0, microsecond=0)
+
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "0 * * * *",
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+            owner_user_id=self.user.id,
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+            last_checkin=ts - timedelta(hours=1),
+            next_checkin=ts,
+            next_checkin_latest=ts + timedelta(minutes=1),
+        )
+
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.UNKNOWN,
+            date_added=ts,
+            expected_time=ts,
+        )
+        mark_failed(checkin, ts=checkin.date_added, is_miss=True)
+
+        # Monitor has it's next_checkin{,_latest} updated
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.last_checkin == ts - timedelta(hours=1)
+        assert monitor_environment.next_checkin == ts + timedelta(hours=1)
+        assert monitor_environment.next_checkin_latest == ts + timedelta(hours=1, minutes=1)
+
+        # Status did not change
+        assert monitor_environment.status == MonitorStatus.OK
+
+        # We did NOT produce an issue occurance to kafka
+        assert not mock_produce_occurrence_to_kafka.called
