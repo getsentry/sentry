@@ -187,7 +187,7 @@ export function createDefaultRule(
   };
 }
 
-function getAlertTimeWindow(period: string | undefined): TimeWindow | undefined {
+export function getAlertTimeWindow(period: string | undefined): TimeWindow | undefined {
   if (!period) {
     return undefined;
   }
