@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
+from django.db.models import JSONField
+from django.db.models.functions import Cast
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
@@ -668,14 +670,14 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 )
                 is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
             else:
-                # check all projects, if any is sampled, we say the organization as
-                # a whole is dynamically sampled.
-                # values are pickled, so we have to pull each to Python to evaluate
-                is_dynamically_sampled = any(
-                    option.value is not None and option.value < 1.0
-                    for option in ProjectOption.objects.filter(
-                        project__organization=obj, key="sentry:target_sample_rate"
+                is_dynamically_sampled = (
+                    ProjectOption.objects.filter(
+                        project__organization=obj,
+                        key="sentry:target_sample_rate",
                     )
+                    .annotate(value_as_json=Cast("value", output_field=JSONField(null=True)))
+                    .filter(value_as_json__lt=1.0)
+                    .exists()
                 )
 
         context["isDynamicallySampled"] = is_dynamically_sampled
