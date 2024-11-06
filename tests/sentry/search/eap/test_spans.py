@@ -242,10 +242,10 @@ class SearchResolverColumnTest(TestCase):
     def test_project_field(self):
         resolved_column, virtual_context = self.resolver.resolve_column("project")
         assert resolved_column.proto_definition == AttributeKey(
-            name="sentry.project_id", type=AttributeKey.Type.TYPE_INT
+            name="project", type=AttributeKey.Type.TYPE_STRING
         )
         assert virtual_context == VirtualColumnContext(
-            from_column_name="project_id",
+            from_column_name="sentry.project_id",
             to_column_name="project",
             value_map={str(self.project.id): self.project.slug},
         )
@@ -253,10 +253,10 @@ class SearchResolverColumnTest(TestCase):
     def test_project_slug_field(self):
         resolved_column, virtual_context = self.resolver.resolve_column("project.slug")
         assert resolved_column.proto_definition == AttributeKey(
-            name="sentry.project_id", type=AttributeKey.Type.TYPE_INT
+            name="project.slug", type=AttributeKey.Type.TYPE_STRING
         )
         assert virtual_context == VirtualColumnContext(
-            from_column_name="project_id",
+            from_column_name="sentry.project_id",
             to_column_name="project.slug",
             value_map={str(self.project.id): self.project.slug},
         )

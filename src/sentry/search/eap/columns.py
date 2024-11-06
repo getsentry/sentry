@@ -12,6 +12,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.events.types import SnubaParams
+from sentry.search.utils import DEVICE_CLASS
 from sentry.utils.validators import is_event_id, is_span_id
 
 
@@ -34,9 +35,11 @@ class ResolvedColumn:
     # Validator to check if the value in a query is correct
     validator: Callable[[Any], bool] | None = None
 
-    def process_column(row: Any) -> None:
-        """Pull the column from row, then process it and mutate it"""
-        raise NotImplementedError()
+    def process_column(self, value: Any) -> Any:
+        """Given the value from results, return a processed value if a processor is defined otherwise return it"""
+        if self.processor:
+            return self.processor(value)
+        return value
 
     def validate(self, value: Any) -> None:
         if self.validator is not None:
@@ -44,8 +47,14 @@ class ResolvedColumn:
                 raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
 
     @property
+    def is_aggregate(self) -> bool:
+        """So that callers can easily identify if this resolved column is an aggregate or not"""
+        return isinstance(self.internal_name, Function.ValueType)
+
+    @property
     def proto_definition(self) -> AttributeAggregation | AttributeKey:
         """The definition of this function as needed by the RPC"""
+        # This is identical to is_aggregate, but typing gets mad if you call the property
         if isinstance(self.internal_name, Function.ValueType):
             return AttributeAggregation(
                 aggregate=self.internal_name,
@@ -55,12 +64,26 @@ class ResolvedColumn:
         else:
             return AttributeKey(
                 name=self.internal_name,
-                type=(
-                    self.internal_type
-                    if self.internal_type is not None
-                    else constants.TYPE_MAP[self.search_type]
-                ),
+                type=self.proto_type,
             )
+
+    @property
+    def proto_type(self) -> AttributeKey.Type.ValueType:
+        """The proto's AttributeKey type for this column"""
+        if self.internal_type is not None:
+            return self.internal_type
+        else:
+            return constants.TYPE_MAP[self.search_type]
+
+    @property
+    def meta_type(self) -> str:
+        """This column's type for the meta response from the API"""
+        if self.search_type == "duration":
+            return "duration"
+        elif self.search_type == "number":
+            return "integer"
+        else:
+            return self.search_type
 
 
 @dataclass
@@ -79,21 +102,25 @@ class FunctionDefinition:
     arguments: list[ArgumentDefinition]
     # The public type for this column
     search_type: str
+    # The internal rpc type for this function, optional as it can mostly be inferred from search_type
+    internal_type: AttributeKey.Type.ValueType | None = None
+    # Processor is the function run in the post process step to transform a row into the final result
+    processor: Callable[[Any], Any] | None = None
 
     @property
     def required_arguments(self) -> list[ArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
 
+def simple_sentry_field(field) -> ResolvedColumn:
+    """For a good number of fields, the public alias matches the internal alias
+    This helper functions makes defining them easier"""
+    return ResolvedColumn(field, f"sentry.{field}", "string")
+
+
 SPAN_COLUMN_DEFINITIONS = {
     column.public_alias: column
     for column in [
-        ResolvedColumn(
-            public_alias="id",
-            internal_name="sentry.span_id",
-            search_type="string",
-            validator=is_span_id,
-        ),
         ResolvedColumn(
             public_alias="id",
             internal_name="sentry.span_id",
@@ -112,12 +139,6 @@ SPAN_COLUMN_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedColumn(
-            public_alias="project",
-            internal_name="sentry.project_id",
-            internal_type=constants.INT,
-            search_type="string",
-        ),
-        ResolvedColumn(
             public_alias="project.id",
             internal_name="sentry.project_id",
             internal_type=constants.INT,
@@ -128,12 +149,6 @@ SPAN_COLUMN_DEFINITIONS = {
             internal_name="sentry.project_id",
             internal_type=constants.INT,
             search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="project.slug",
-            internal_name="sentry.project_id",
-            search_type="string",
-            internal_type=constants.INT,
         ),
         ResolvedColumn(
             public_alias="span.action",
@@ -204,21 +219,6 @@ SPAN_COLUMN_DEFINITIONS = {
             validator=is_event_id,
         ),
         ResolvedColumn(
-            public_alias="messaging.destination.name",
-            internal_name="sentry.messaging.destination.name",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="messaging.message.id",
-            internal_name="sentry.messaging.message.id",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="span.status_code",
-            internal_name="sentry.status_code",
-            search_type="string",
-        ),
-        ResolvedColumn(
             public_alias="replay.id",
             internal_name="sentry.replay_id",
             search_type="string",
@@ -226,16 +226,6 @@ SPAN_COLUMN_DEFINITIONS = {
         ResolvedColumn(
             public_alias="span.ai.pipeline.group",
             internal_name="sentry.ai_pipeline_group",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="trace.status",
-            internal_name="sentry.trace.status",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="browser.name",
-            internal_name="sentry.browser.name",
             search_type="string",
         ),
         ResolvedColumn(
@@ -248,51 +238,22 @@ SPAN_COLUMN_DEFINITIONS = {
             internal_name="ai.total_cost",
             search_type="number",
         ),
-        ResolvedColumn(
-            public_alias="sdk.name",
-            internal_name="sentry.sdk.name",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="release",
-            internal_name="sentry.release",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="user",
-            internal_name="sentry.user",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="user.id",
-            internal_name="sentry.user.id",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="user.email",
-            internal_name="sentry.user.email",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="user.username",
-            internal_name="sentry.user.username",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="user.ip",
-            internal_name="sentry.user.ip",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="user.geo.subregion",
-            internal_name="sentry.user.geo.subregion",
-            search_type="string",
-        ),
-        ResolvedColumn(
-            public_alias="user.geo.country_code",
-            internal_name="sentry.user.geo.country_code",
-            search_type="string",
-        ),
+        simple_sentry_field("browser.name"),
+        simple_sentry_field("messaging.destination.name"),
+        simple_sentry_field("messaging.message.id"),
+        simple_sentry_field("release"),
+        simple_sentry_field("sdk.name"),
+        simple_sentry_field("span.status_code"),
+        simple_sentry_field("span_id"),
+        simple_sentry_field("trace.status"),
+        simple_sentry_field("transaction.method"),
+        simple_sentry_field("user"),
+        simple_sentry_field("user.email"),
+        simple_sentry_field("user.geo.country_code"),
+        simple_sentry_field("user.geo.subregion"),
+        simple_sentry_field("user.id"),
+        simple_sentry_field("user.ip"),
+        simple_sentry_field("user.username"),
     ]
 }
 
@@ -300,7 +261,7 @@ SPAN_COLUMN_DEFINITIONS = {
 def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:
     def context_constructor(params: SnubaParams) -> VirtualColumnContext:
         return VirtualColumnContext(
-            from_column_name="project_id",
+            from_column_name="sentry.project_id",
             to_column_name=column_name,
             value_map={
                 str(project_id): project_name
@@ -311,9 +272,24 @@ def project_context_constructor(column_name: str) -> Callable[[SnubaParams], Vir
     return context_constructor
 
 
+def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContext:
+    # EAP defaults to lower case `unknown`, but in querybuilder we used `Unknown`
+    value_map = {"": "Unknown"}
+    for device_class, values in DEVICE_CLASS.items():
+        for value in values:
+            value_map[value] = device_class
+    return VirtualColumnContext(
+        from_column_name="sentry.device.class",
+        to_column_name="device.class",
+        value_map=value_map,
+    )
+
+
 VIRTUAL_CONTEXTS = {
     "project": project_context_constructor("project"),
     "project.slug": project_context_constructor("project.slug"),
+    "project.name": project_context_constructor("project.name"),
+    "device.class": device_class_context_constructor,
 }
 
 
