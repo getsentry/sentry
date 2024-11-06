@@ -44,8 +44,12 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   return (
     <Side>
-      <SolutionsSection group={group} project={project} event={event} />
-      <StyledBreak />
+      {(issueTypeConfig.issueSummary.enabled || issueTypeConfig.resources) && (
+        <Fragment>
+          <SolutionsSection group={group} project={project} event={event} />
+          <StyledBreak />
+        </Fragment>
+      )}
       <FirstLastSeenSection group={group} />
       <StyledBreak />
       {event && (
