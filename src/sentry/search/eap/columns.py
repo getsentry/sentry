@@ -54,7 +54,7 @@ class ResolvedColumn:
     @property
     def proto_definition(self) -> AttributeAggregation | AttributeKey:
         """The definition of this function as needed by the RPC"""
-        # This is identical to is_aggregate, but typingn gets mad if you call the property
+        # This is identical to is_aggregate, but typing gets mad if you call the property
         if isinstance(self.internal_name, Function.ValueType):
             return AttributeAggregation(
                 aggregate=self.internal_name,
