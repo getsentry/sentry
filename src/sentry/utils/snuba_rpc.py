@@ -74,9 +74,9 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
     """
     referrer = req.meta.referrer
     if SNUBA_INFO:
-        from google.protobuf.json_format import MessageToDict
+        from google.protobuf.json_format import MessageToJson
 
-        log_snuba_info(f"{referrer}.body:\n{MessageToDict(req)}")
+        log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
     with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
         span.set_tag("snuba.referrer", referrer)
 
