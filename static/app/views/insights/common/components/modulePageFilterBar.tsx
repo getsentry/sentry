@@ -35,8 +35,9 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
   const hasDataWithAllProjects = useHasFirstSpan(moduleName, allProjects);
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const hasDateRangeQueryLimit =
-    true || organization.features.includes('insights-query-date-range-limit');
+  const hasDateRangeQueryLimit = organization.features.includes(
+    'insights-query-date-range-limit'
+  );
 
   const handleClickAnywhereOnPage = () => {
     setShowTooltip(false);
