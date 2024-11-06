@@ -11,6 +11,16 @@ import {LineChartWidget} from './lineChartWidget';
 import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
 import sampleThroughputTimeSeries from './sampleThroughputTimeSeries.json';
 
+const sampleDurationTimeSeries2 = {
+  ...sampleDurationTimeSeries,
+  data: sampleDurationTimeSeries.data.map(datum => {
+    return {
+      ...datum,
+      value: datum.value * 0.75 + 20 * Math.random(),
+    };
+  }),
+};
+
 export default storyBook(LineChartWidget, story => {
   story('Getting Started', () => {
     return (
@@ -52,7 +62,10 @@ export default storyBook(LineChartWidget, story => {
           <MediumWidget>
             <LineChartWidget
               title="span.duration"
-              timeseries={[sampleDurationTimeSeries as unknown as TimeseriesData]}
+              timeseries={[
+                sampleDurationTimeSeries as unknown as TimeseriesData,
+                sampleDurationTimeSeries2 as unknown as TimeseriesData,
+              ]}
               meta={{
                 fields: {
                   'span.duration': 'duration',
