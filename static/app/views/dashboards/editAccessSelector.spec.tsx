@@ -93,7 +93,7 @@ describe('When EditAccessSelector is rendered', () => {
       id: '1',
       createdBy: UserFixture({id: '1'}),
       title: 'Custom Errors',
-      permissions: {isCreatorOnlyEditable: false}, // set to false
+      permissions: {isCreatorOnlyEditable: false, isEditablebyEveryone: true}, // set to false
     });
     renderTestComponent(initialData, mockDashboard);
     await screen.findByText('Edit Access:');
@@ -105,7 +105,7 @@ describe('When EditAccessSelector is rendered', () => {
       id: '1',
       createdBy: UserFixture({id: '1'}),
       title: 'Custom Errors',
-      permissions: {isCreatorOnlyEditable: true}, // set to false
+      permissions: {isCreatorOnlyEditable: true, isEditablebyEveryone: false}, // set to false
     });
     renderTestComponent(initialData, mockDashboard);
     await userEvent.click(await screen.findByText('Edit Access:'));
@@ -134,7 +134,7 @@ describe('When EditAccessSelector is rendered', () => {
       id: '1',
       createdBy: UserFixture({id: '1', name: 'Lorem Ipsum'}),
       title: 'Custom Errors',
-      permissions: {isCreatorOnlyEditable: true}, // set to true
+      permissions: {isCreatorOnlyEditable: true, isEditablebyEveryone: false}, // set to true
     });
     renderTestComponent(initialData, mockDashboard);
     await screen.findByText('Edit Access:');

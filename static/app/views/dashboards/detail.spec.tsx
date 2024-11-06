@@ -1716,7 +1716,7 @@ describe('Dashboards > Detail', function () {
           '/organizations/org-slug/dashboards/1/',
           expect.objectContaining({
             data: expect.objectContaining({
-              permissions: {isCreatorOnlyEditable: true},
+              permissions: {isEditablebyEveryone: false},
             }),
           })
         );
@@ -1735,7 +1735,7 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
           createdBy: UserFixture({id: '781629'}),
-          permissions: {isCreatorOnlyEditable: true},
+          permissions: {isCreatorOnlyEditable: true, isEditablebyEveryone: false},
         }),
       });
 
@@ -1785,7 +1785,7 @@ describe('Dashboards > Detail', function () {
           '/organizations/org-slug/dashboards/1/',
           expect.objectContaining({
             data: expect.objectContaining({
-              permissions: {isCreatorOnlyEditable: false},
+              permissions: {isEditablebyEveryone: true},
             }),
           })
         );
@@ -1800,7 +1800,7 @@ describe('Dashboards > Detail', function () {
             id: '1',
             title: 'Custom Errors',
             createdBy: UserFixture({id: '238900'}),
-            permissions: {isCreatorOnlyEditable: true},
+            permissions: {isCreatorOnlyEditable: true, isEditablebyEveryone: false},
           }),
         ],
       });
@@ -1810,7 +1810,7 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
           createdBy: UserFixture({id: '238900'}),
-          permissions: {isCreatorOnlyEditable: true},
+          permissions: {isCreatorOnlyEditable: true, isEditablebyEveryone: false},
         }),
       });
 
