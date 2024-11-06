@@ -675,7 +675,7 @@ SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 
 # This supersedes SENTRY_SINGLE_TENANT and SENTRY_SELF_HOSTED.
 # An enum is better because there shouldn't be multiple "modes".
-SENTRY_MODE = SentryMode.SELF_HOSTED if SILO_MODE is None else SentryMode.SAAS
+SENTRY_MODE = SentryMode.SELF_HOSTED
 
 # If this instance is a region silo, which region is it running in?
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
