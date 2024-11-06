@@ -37,7 +37,7 @@ export function LineChartWidget(props: Props) {
       onRetry={props.onRetry}
     >
       <LineChartWrapper>
-        <LineChartWidgetVisualization timeseries={timeseries} />
+        <LineChartWidgetVisualization timeseries={timeseries} meta={props.meta} />
       </LineChartWrapper>
     </WidgetFrame>
   );

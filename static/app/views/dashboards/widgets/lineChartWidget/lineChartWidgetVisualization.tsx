@@ -1,7 +1,10 @@
 import BaseChart from 'sentry/components/charts/baseChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {defined} from 'sentry/utils';
 
 import type {Meta, TimeseriesData} from '../common/types';
+
+import {formatChartValue} from './formatChartValue';
 
 export interface LineChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
@@ -9,6 +12,8 @@ export interface LineChartWidgetVisualizationProps {
 }
 
 export function LineChartWidgetVisualization(props: LineChartWidgetVisualizationProps) {
+  const {meta} = props;
+
   return (
     <BaseChart
       series={props.timeseries.map(timeserie => {
@@ -19,6 +24,23 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
           }),
         });
       })}
+      showTimeInTooltip
+      tooltip={{
+        valueFormatter: (value, field) => {
+          if (!defined(field)) {
+            return renderLocaleString(value);
+          }
+
+          const unit = meta?.units?.[field];
+          const type = meta?.fields?.[field] ?? 'number';
+
+          return formatChartValue(value, type, unit ?? undefined);
+        },
+      }}
     />
   );
+}
+
+function renderLocaleString(value: number) {
+  return value.toLocaleString();
 }
