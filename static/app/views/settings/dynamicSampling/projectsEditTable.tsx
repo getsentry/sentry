@@ -9,13 +9,14 @@ import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/p
 import {useProjectSampleCounts} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 interface Props {
+  isLoading: boolean;
   period: '24h' | '30d';
 }
 
 const {useFormField} = projectSamplingForm;
 const EMPTY_ARRAY = [];
 
-export function ProjectsEditTable({period}: Props) {
+export function ProjectsEditTable({isLoading, period}: Props) {
   const {projects, fetching} = useProjects();
 
   const {value, initialValue, error, onChange} = useFormField('projectRates');
@@ -73,7 +74,7 @@ export function ProjectsEditTable({period}: Props) {
       onChange={handleChange}
       emptyMessage={t('No active projects found in the selected period.')}
       isEmpty={!data.length}
-      isLoading={fetching || isPending}
+      isLoading={fetching || isPending || isLoading}
       items={activeItems}
       inactiveItems={inactiveItems}
     />
