@@ -28,6 +28,10 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
           }),
         });
       })}
+      legend={{
+        top: 0,
+        left: 0,
+      }}
       showTimeInTooltip
       isGroupedByDate
       tooltip={{
