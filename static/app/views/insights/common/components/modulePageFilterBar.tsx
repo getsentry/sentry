@@ -1,6 +1,5 @@
 import {type ComponentProps, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
@@ -10,11 +9,10 @@ import {
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DAY, SECOND} from 'sentry/utils/formatters';
+import {SECOND} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -28,7 +26,7 @@ type Props = {
 };
 
 const CHANGE_PROJECT_TEXT = t('Make sure you have the correct project selected.');
-const QUERY_DATE_RANGE_LIMIT_MS = QUERY_DATE_RANGE_LIMIT * DAY;
+const DISABLED_OPTIONS = ['14d', '30d', '90d'];
 
 export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}: Props) {
   const {projects: allProjects} = useProjects();
@@ -37,8 +35,6 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
   const hasDataWithSelectedProjects = useHasFirstSpan(moduleName);
   const hasDataWithAllProjects = useHasFirstSpan(moduleName, allProjects);
   const [showTooltip, setShowTooltip] = useState(false);
-
-  const getDateDifferenceMs = memoizedDateDifference();
 
   const hasDateRangeQueryLimit = organization.features.includes(
     'insights-query-date-range-limit'
@@ -70,21 +66,24 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
 
   const dateFilterProps: DatePageFilterProps = {};
   if (hasDateRangeQueryLimit) {
-    dateFilterProps.relativeOptions = {
-      '1h': t('Last 1 hour'),
-      '24h': t('Last 24 hours'),
-      '7d': t('Last 7 days'),
-      '14d': <DisabledDateOption value={t('Last 14 days')} />,
-      '30d': <DisabledDateOption value={t('Last 30 days')} />,
-      '90d': <DisabledDateOption value={t('Last 90 days')} />,
+    dateFilterProps.relativeOptions = ({arbitraryOptions}) => {
+      return {
+        ...arbitraryOptions,
+        '1h': t('Last 1 hour'),
+        '24h': t('Last 24 hours'),
+        '7d': t('Last 7 days'),
+        '14d': <DisabledDateOption value={t('Last 14 days')} />,
+        '30d': <DisabledDateOption value={t('Last 30 days')} />,
+        '90d': <DisabledDateOption value={t('Last 90 days')} />,
+      };
     };
+
     dateFilterProps.maxPickableDays = QUERY_DATE_RANGE_LIMIT;
     dateFilterProps.isOptionDisabled = ({value}) => {
-      if (value === 'absolute') {
+      if (!DISABLED_OPTIONS.includes(value)) {
         return false;
       }
-      const dateDifferenceMs = getDateDifferenceMs(value);
-      return dateDifferenceMs > QUERY_DATE_RANGE_LIMIT_MS;
+      return true;
     };
     dateFilterProps.menuFooter = <UpsellFooterHook />;
   }
@@ -128,20 +127,6 @@ const DisabledDateOptionContainer = styled('div')`
 const StyledIconBuisness = styled(IconBusiness)`
   margin-left: auto;
 `;
-
-// There's only a couple options, so might as well memoize this and not repeat it many times
-const memoizedDateDifference = () => {
-  const cache = {};
-  return (value: string) => {
-    if (value in cache) {
-      return cache[value];
-    }
-    const {start, end} = parseStatsPeriod(value);
-    const difference = moment(end).diff(moment(start));
-    cache[value] = difference;
-    return difference;
-  };
-};
 
 export const UpsellFooterHook = HookOrDefault({
   hookName: 'component:insights-date-range-query-limit-footer',
