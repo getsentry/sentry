@@ -9,6 +9,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import StackTraceContent from '../stackTrace/content';
 import {NativeContent} from '../stackTrace/nativeContent';
@@ -44,6 +45,7 @@ function StackTrace({
   frameSourceMapDebuggerData,
   stackType,
 }: Props) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   if (!defined(stacktrace)) {
     return null;
   }
@@ -90,6 +92,7 @@ function StackTrace({
         newestFirst={newestFirst}
         event={event}
         meta={meta}
+        hideIcon={hasStreamlinedUI}
       />
     );
   }
@@ -106,6 +109,7 @@ function StackTrace({
       threadId={threadId}
       frameSourceMapDebuggerData={frameSourceMapDebuggerData}
       hideSourceMapDebugger={stackType === StackType.MINIFIED}
+      hideIcon={hasStreamlinedUI}
     />
   );
 }
