@@ -92,6 +92,7 @@ class SetupWizardView(BaseView):
             org_mappings_map[mapping.organization_id] = serialized_mapping
 
         context["organizations"] = list(org_mappings_map.values())
+        context["enableProjectSelection"] = True
 
         # If org_slug and project_slug are provided, we will use them to select the project
         # If the project is not found or the slugs are not provided, we will show the project selection
@@ -111,9 +112,7 @@ class SetupWizardView(BaseView):
                     default_cache.set(cache_key, cache_data, SETUP_WIZARD_CACHE_TIMEOUT)
 
                     context["enableProjectSelection"] = False
-                    return render_to_response("sentry/setup-wizard.html", context, request)
 
-        context["enableProjectSelection"] = True
         response = render_to_response("sentry/setup-wizard.html", context, request)
         return apply_cors_headers(request, response, allowed_methods=self._allowed_methods())
 

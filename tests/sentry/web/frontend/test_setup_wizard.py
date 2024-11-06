@@ -4,9 +4,7 @@ from django.urls import reverse
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY
 from sentry.cache import default_cache
 from sentry.testutils.cases import PermissionTestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
-from tests.sentry.api.test_base import _dummy_endpoint
 
 
 @control_silo_test
@@ -307,35 +305,3 @@ class SetupWizard(PermissionTestCase):
 
         assert resp.status_code == 302
         assert resp.headers["Location"] == "/auth/login/"
-
-    @override_options({"system.base-hostname": "example.com"})
-    def test_setup_wizard_cors(self):
-        request = self.make_request(method="GET")
-        request.META["HTTP_ORIGIN"] = "http://myslug.example.com"
-
-        response = _dummy_endpoint(request)
-        response.render()
-        assert response.status_code == 200, response.content
-
-        assert response["Access-Control-Allow-Origin"] == "http://myslug.example.com"
-        assert response["Access-Control-Allow-Headers"] == (
-            "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
-            "Content-Type, Authentication, Authorization, Content-Encoding, "
-            "sentry-trace, baggage, X-CSRFToken"
-        )
-        assert response["Access-Control-Expose-Headers"] == (
-            "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
-            "Endpoint, Retry-After, Link"
-        )
-        assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
-        assert "Access-Control-Allow-Credentials" in response
-
-        request = self.make_request(method="GET")
-        request.META["HTTP_ORIGIN"] = "http://myslug.examples.com"
-
-        response = _dummy_endpoint(request)
-        response.render()
-        assert response.status_code == 200, response.content
-
-        assert response["Access-Control-Allow-Origin"] == "http://myslug.examples.com"
-        assert "Access-Control-Allow-Credentials" not in response
