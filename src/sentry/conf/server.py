@@ -2946,9 +2946,7 @@ SYMBOLICATOR_POLL_TIMEOUT = 5
 # The `url` of the different Symbolicator pools.
 # We want to route different workloads to a different set of Symbolicator pools.
 # This can be as fine-grained as using a different pool for normal "native"
-# symbolication, `js` symbolication, `jvm` symbolication,
-# and `lpq` variants`of each of them.
-# (See `SENTRY_LPQ_OPTIONS` and related settings)
+# symbolication, `js` symbolication, and `jvm` symbolication.
 # The keys here should match the `SymbolicatorPools` enum
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
@@ -2960,9 +2958,6 @@ SYMBOLICATOR_POOL_URLS: dict[str, str] = {
     # "default": "...",
     # "js": "...",
     # "jvm": "...",
-    # "lpq": "...",
-    # "lpq_js": "...",
-    # "lpq_jvm": "...",
 }
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
