@@ -12,7 +12,7 @@ import {NoAccess} from 'sentry/views/insights/common/components/noAccess';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {INSIGHTS_TITLE} from 'sentry/views/insights/settings';
+import {INSIGHTS_TITLE, QUERY_DATE_RANGE_LIMIT} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 type ModuleNameStrings = `${ModuleName}`;
@@ -47,7 +47,7 @@ export function ModulePageProviders({
     .join(' — ');
 
   return (
-    <PageFiltersContainer>
+    <PageFiltersContainer maxPickableDays={QUERY_DATE_RANGE_LIMIT}>
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
         {shouldUseUpsellHook && (
           <UpsellPageHook moduleName={moduleName}>

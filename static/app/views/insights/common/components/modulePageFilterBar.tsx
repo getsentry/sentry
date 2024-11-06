@@ -40,9 +40,8 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
 
   const getDateDifferenceMs = memoizedDateDifference();
 
-  const hasDateRangeQueryLimit = organization.features.includes(
-    'insights-query-date-range-limit'
-  );
+  const hasDateRangeQueryLimit =
+    true || organization.features.includes('insights-query-date-range-limit');
 
   const handleClickAnywhereOnPage = () => {
     setShowTooltip(false);
@@ -70,13 +69,16 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
 
   const dateFilterProps: DatePageFilterProps = {};
   if (hasDateRangeQueryLimit) {
-    dateFilterProps.relativeOptions = {
-      '1h': t('Last 1 hour'),
-      '24h': t('Last 24 hours'),
-      '7d': t('Last 7 days'),
-      '14d': <DisabledDateOption value={t('Last 14 days')} />,
-      '30d': <DisabledDateOption value={t('Last 30 days')} />,
-      '90d': <DisabledDateOption value={t('Last 90 days')} />,
+    dateFilterProps.relativeOptions = ({arbitraryOptions}) => {
+      return {
+        ...arbitraryOptions,
+        '1h': t('Last 1 hour'),
+        '24h': t('Last 24 hours'),
+        '7d': t('Last 7 days'),
+        '14d': <DisabledDateOption value={t('Last 14 days')} />,
+        '30d': <DisabledDateOption value={t('Last 30 days')} />,
+        '90d': <DisabledDateOption value={t('Last 90 days')} />,
+      };
     };
     dateFilterProps.maxPickableDays = QUERY_DATE_RANGE_LIMIT;
     dateFilterProps.isOptionDisabled = ({value}) => {
