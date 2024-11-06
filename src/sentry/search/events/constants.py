@@ -1,7 +1,6 @@
 import re
 from typing import TypedDict
 
-from sentry.exceptions import InvalidSearchQuery
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
@@ -104,21 +103,9 @@ WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
 MAX_TAG_KEY_LENGTH = 200
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
 
-# don't use this regex directly, use the match_typed_tag function
-_TYPED_TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*),\s*(?P<type>.*)\]$")
-
-
-def match_typed_tag(string: str) -> re.Match | None:
-    """TYPED_TAG_KEY_RE is expensive cause it has 3 * operators, not a problem when the string is 200 characters, but
-    potentially a security issue if run on a large string
-
-    This helper function simplifies the usage of the regex by checking the length of the string to be matched first.
-    While its a bit gross to have a function in this constants file, its better that we don't readily expose the regex.
-    """
-    if len(string) <= MAX_TAG_KEY_LENGTH:
-        return _TYPED_TAG_KEY_RE.search(string)
-    else:
-        raise InvalidSearchQuery(f"{string} is too long, can be a maximum of 200 characters")
+TYPED_TAG_KEY_RE = re.compile(
+    r"^(sentry_tags|tags)\[(?P<tag>.{0,200}),\s{0,200}(?P<type>.{0,200})\]$"
+)
 
 
 # Based on general/src/protocol/tags.rs in relay

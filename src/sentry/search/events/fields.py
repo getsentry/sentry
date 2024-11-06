@@ -38,9 +38,9 @@ from sentry.search.events.constants import (
     SEARCH_MAP,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TYPED_TAG_KEY_RE,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
-    match_typed_tag,
 )
 from sentry.search.events.types import NormalizedArg, ParamsType
 from sentry.search.utils import InvalidQuery, parse_duration
@@ -1139,7 +1139,7 @@ class NumericColumn(ColumnArg):
             return value
         if not snuba_column and is_mri(value):
             return value
-        match = match_typed_tag(value)
+        match = TYPED_TAG_KEY_RE.search(value)
         if match and match.group("type") == "number":
             return value
         if not snuba_column:
