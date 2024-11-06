@@ -1,5 +1,5 @@
 import datetime
-from typing import Generic, Literal, TypeVar
+from typing import Literal
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers, status
@@ -15,7 +15,7 @@ from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import BadRequest
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.db.models.base import Model
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -74,20 +74,18 @@ class RuleSnoozeSerializer(Serializer):
         return result
 
 
-T = TypeVar("T", bound=Model)
-
-
 @region_silo_endpoint
-class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
+class BaseRuleSnoozeEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
-    rule_model: type[T]
+    rule_model: type[AlertRule | Rule]
     rule_field = Literal["rule", "alert_rule"]
 
     def convert_args(self, request: Request, rule_id: int, *args, **kwargs):
         (args, kwargs) = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
         try:
-            if self.rule_model is AlertRule:
+            queryset: BaseQuerySet[AlertRule | Rule]
+            if issubclass(self.rule_model, AlertRule):
                 queryset = self.rule_model.objects.fetch_for_project(project)
             else:
                 queryset = self.rule_model.objects.filter(project=project)
@@ -111,17 +109,22 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
                 detail="Requesting user cannot mute this rule.", code=str(status.HTTP_403_FORBIDDEN)
             )
 
-        kwargs = {self.rule_field: rule}
-
         user_id = request.user.id if data.get("target") == "me" else None
+
+        # Due to mypy requiring keyword arguments to not be kwargs, we need to check the type of rule and query accordingly
+        # In RuleSnooze, rule and alert_rule are mutually exclusive (cannot both be not null)
+        rule_parameter = rule if isinstance(rule, Rule) else None
+        alert_rule_parameter = None if isinstance(rule, Rule) else rule
+
         rule_snooze, created = RuleSnooze.objects.get_or_create(
             user_id=user_id,
+            rule=rule_parameter,
+            alert_rule=alert_rule_parameter,
             defaults={
                 "owner_id": request.user.id,
                 "until": data.get("until"),
                 "date_added": datetime.datetime.now(datetime.UTC),
             },
-            **kwargs,
         )
         # don't allow editing of a rulesnooze object for a given rule and user (or no user)
         if not created:
@@ -162,9 +165,14 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
         # find if there is a mute for all that I can remove
         shared_snooze = None
         deletion_type = None
-        kwargs = {self.rule_field: rule, "user_id": None}
         try:
-            shared_snooze = RuleSnooze.objects.get(**kwargs)
+            # Due to mypy requiring keyword arguments to not be kwargs, we need to check the type of rule and query accordingly
+            # In RuleSnooze, rule and alert_rule are mutually exclusive (cannot both be not null)
+            rule_parameter = rule if isinstance(rule, Rule) else None
+            alert_rule_parameter = None if isinstance(rule, Rule) else rule
+            shared_snooze = RuleSnooze.objects.get(
+                rule=rule_parameter, alert_rule=alert_rule_parameter, user_id=None
+            )
         except RuleSnooze.DoesNotExist:
             pass
 
@@ -173,11 +181,13 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
             shared_snooze.delete()
             deletion_type = "everyone"
 
-        # next check if there is a mute for me that I can remove
-        kwargs = {self.rule_field: rule, "user_id": request.user.id}
         my_snooze = None
         try:
-            my_snooze = RuleSnooze.objects.get(**kwargs)
+            rule_parameter = rule if isinstance(rule, Rule) else None
+            alert_rule_parameter = None if isinstance(rule, Rule) else rule
+            my_snooze = RuleSnooze.objects.get(
+                rule=rule_parameter, alert_rule=alert_rule_parameter, user_id=request.user.id
+            )
         except RuleSnooze.DoesNotExist:
             pass
         else:
@@ -201,7 +211,8 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
         # didn't find a match but there is a shared snooze
         if shared_snooze:
             raise PermissionDenied(
-                detail="Requesting user cannot unmute this rule.", code=status.HTTP_403_FORBIDDEN
+                detail="Requesting user cannot unmute this rule.",
+                code=str(status.HTTP_403_FORBIDDEN),
             )
         # no snooze at all found
         return Response(
@@ -211,7 +222,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
 
 
 @region_silo_endpoint
-class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
+class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
@@ -222,7 +233,7 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
 
 
 @region_silo_endpoint
-class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
+class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,

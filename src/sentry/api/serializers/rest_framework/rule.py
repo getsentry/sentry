@@ -69,10 +69,15 @@ class RuleNodeField(serializers.Field):
             # XXX(epurkhiser): Very hacky, but we really just want validation
             # errors that are more specific, not just 'this wasn't filled out',
             # give a more generic error for those.
-            first_error = next(iter(form.errors.values()))[0]
+            # Still hacky, but a bit clearer, for each field there can be a list of errors so
+            # we get the first error's message for each field and then get the first error message from that list
+            first_error_message: str = [
+                error_list[0]["message"]
+                for field, error_list in form.errors.get_json_data().items()
+            ][0]
 
-            if first_error != "This field is required.":
-                raise ValidationError(first_error) if isinstance(first_error, str) else first_error
+            if first_error_message != "This field is required.":
+                raise ValidationError(first_error_message)
 
             raise ValidationError("Ensure all required fields are filled in.")
 
