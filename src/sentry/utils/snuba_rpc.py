@@ -12,6 +12,9 @@ from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry.utils.snuba import SnubaError, _snuba_pool
 
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
+ENDPOINT_NAMES = {
+    "TraceItemTableRequest": "EndpointTraceItemTable",
+}
 
 # Show the snuba query params and the corresponding sql or errors in the server logs
 SNUBA_INFO_FILE = os.environ.get("SENTRY_SNUBA_INFO_FILE", "")
@@ -82,11 +85,12 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
 
         cls = req.__class__
         class_name = cls.__name__
+        endpoint_name = ENDPOINT_NAMES.get(class_name, class_name)
         class_version = cls.__module__.split(".", 3)[2]
 
         http_resp = _snuba_pool.urlopen(
             "POST",
-            f"/rpc/{class_name}/{class_version}",
+            f"/rpc/{endpoint_name}/{class_version}",
             body=req.SerializeToString(),
             headers={
                 "referer": referrer,
