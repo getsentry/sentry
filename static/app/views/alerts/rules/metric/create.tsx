@@ -9,6 +9,7 @@ import {
   createDefaultRule,
   createRuleFromEventView,
   createRuleFromWizardTemplate,
+  getAlertTimeWindow,
 } from 'sentry/views/alerts/rules/metric/constants';
 import type {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
@@ -69,6 +70,8 @@ function MetricRulesCreate(props: Props) {
   const defaultOwnerId = userTeamIds.find(id => projectTeamIds.has(id)) ?? null;
   defaultRule.owner = defaultOwnerId && `team:${defaultOwnerId}`;
   const environment = decodeScalar(location?.query?.environment) ?? null;
+  const interval = decodeScalar(location?.query?.interval) ?? undefined;
+  defaultRule.timeWindow = getAlertTimeWindow(interval) ?? defaultRule.timeWindow;
 
   return (
     <RuleForm
