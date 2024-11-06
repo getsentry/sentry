@@ -79,21 +79,22 @@ class RobotsTxtTest(TestCase):
         return reverse("sentry-robots-txt")
 
     def test_robots(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        assert resp["Content-Type"] == "text/plain"
-        assert (
-            resp.content
-            == b"""User-agent: *
+        with override_settings(SENTRY_MODE=SentryMode.SELF_HOSTED):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "text/plain"
+            assert (
+                resp.content
+                == b"""User-agent: *
 Disallow: /
 """
-        )
+            )
 
-    def test_robots_saas(self):
         with override_settings(SENTRY_MODE=SentryMode.SAAS):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "text/plain"
+            # This is sentry.io/robots.txt.
             assert (
                 resp.content
                 == b"""User-agent: *
@@ -102,6 +103,28 @@ Allow: /api/*/store/
 Allow: /
 
 Sitemap: https://sentry.io/sitemap-index.xml
+"""
+            )
+
+            # SaaS customer domains should disallow all.
+            resp = self.client.get(self.path, HTTP_HOST="foo.testserver")
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "text/plain"
+            assert (
+                resp.content
+                == b"""User-agent: *
+Disallow: /
+"""
+            )
+
+        with override_settings(SENTRY_MODE=SentryMode.SINGLE_TENANT):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "text/plain"
+            assert (
+                resp.content
+                == b"""User-agent: *
+Disallow: /
 """
             )
 
