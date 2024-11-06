@@ -221,6 +221,7 @@
   "sentry.monitorenvbrokendetection",
   "sentry.grouphashmetadata",
   "sentry.dashboardwidgetquery",
+  "sentry.dashboardpermissionsteam",
   "sentry.alertruletrigger",
   "sentry.alertruleprojects",
   "sentry.alertruleexcludedprojects",

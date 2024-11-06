@@ -26,6 +26,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
     DatasetSourcesTypes,
 )
+from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import is_function
@@ -38,6 +39,7 @@ from sentry.tasks.on_demand_metrics import (
 )
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.strings import oxfordize_list
 
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
@@ -470,9 +472,31 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
 
 class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
-    is_creator_only_editable = serializers.BooleanField(
-        help_text="Whether the dashboard is editable only by the creator.",
+    is_editable_by_everyone = serializers.BooleanField(
+        help_text="Whether the dashboard is editable by everyone.",
     )
+    teams_with_edit_access = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="List of team IDs that have edit access to a dashboard.",
+        required=False,
+        default=[],
+    )
+
+    def validate(self, data):
+        if "teams_with_edit_access" in data:
+            team_ids = data["teams_with_edit_access"]
+            existing_team_ids = set(
+                Team.objects.filter(
+                    id__in=team_ids, organization=self.context["organization"]
+                ).values_list("id", flat=True)
+            )
+            invalid_team_ids = set(team_ids) - existing_team_ids
+            if invalid_team_ids:
+                invalid_team_ids_str = [str(id) for id in invalid_team_ids]
+                raise serializers.ValidationError(
+                    f"Cannot update dashboard edit permissions. Teams with IDs {oxfordize_list(invalid_team_ids_str)} do not exist."
+                )
+        return data
 
 
 class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
@@ -536,6 +560,19 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 f"Number of widgets must be less than {Dashboard.MAX_WIDGETS}"
             )
 
+        if features.has(
+            "organizations:dashboards-edit-access",
+            self.context["organization"],
+            actor=self.context["request"].user,
+        ):
+            permissions = data.get("permissions")
+            if permissions and self.instance:
+                currentUser = self.context["request"].user
+                if self.instance.created_by_id != currentUser.id:
+                    raise serializers.ValidationError(
+                        "Only the Dashboard Creator may modify Dashboard Edit Access"
+                    )
+
         return data
 
     def update_dashboard_filters(self, instance, validated_data):
@@ -565,6 +602,28 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             instance.filters = filters
             instance.save()
 
+    def update_permissions(self, instance, validated_data):
+        if "permissions" in validated_data and validated_data["permissions"] is not None:
+            permissions_data = validated_data["permissions"]
+            permissions = DashboardPermissions.objects.update_or_create(
+                dashboard=instance,
+                defaults={
+                    "is_editable_by_everyone": permissions_data["is_editable_by_everyone"],
+                },
+            )[0]
+            if "teams_with_edit_access" in permissions_data:
+                teams_data = permissions_data["teams_with_edit_access"]
+                if teams_data == [] or permissions_data["is_editable_by_everyone"] is True:
+                    permissions.teams_with_edit_access.clear()
+                else:
+                    permissions.teams_with_edit_access.set(
+                        Team.objects.filter(
+                            id__in=teams_data, organization=self.context["organization"]
+                        )
+                    )
+
+            instance.permissions = permissions
+
     def create(self, validated_data):
         """
         Create a dashboard, and create any widgets and their queries
@@ -584,15 +643,13 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             self.update_widgets(self.instance, validated_data["widgets"])
 
         self.update_dashboard_filters(self.instance, validated_data)
+
         if features.has(
             "organizations:dashboards-edit-access",
             self.context["organization"],
             actor=self.context["request"].user,
         ):
-            if "permissions" in validated_data and validated_data["permissions"] is not None:
-                self.instance.permissions, _ = DashboardPermissions.objects.update_or_create(
-                    dashboard=self.instance, **validated_data["permissions"]
-                )
+            self.update_permissions(self.instance, validated_data)
 
         schedule_update_project_configs(self.instance)
 
@@ -617,15 +674,13 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             self.update_widgets(instance, validated_data["widgets"])
 
         self.update_dashboard_filters(instance, validated_data)
+
         if features.has(
             "organizations:dashboards-edit-access",
             self.context["organization"],
             actor=self.context["request"].user,
         ):
-            if "permissions" in validated_data and validated_data["permissions"] is not None:
-                instance.permissions, _ = DashboardPermissions.objects.update_or_create(
-                    dashboard=instance, defaults=validated_data["permissions"]
-                )
+            self.update_permissions(instance, validated_data)
 
         schedule_update_project_configs(instance)
 
