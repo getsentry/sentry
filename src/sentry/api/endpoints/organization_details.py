@@ -968,6 +968,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 organization.update_option(
                     "sentry:target_sample_rate", serializer.validated_data["targetSampleRate"]
                 )
+                boost_low_volume_projects_of_org_with_query.delay(organization.id)
 
             if "samplingMode" in changed_data and request.access.has_scope("org:write"):
                 with transaction.atomic(router.db_for_write(ProjectOption)):
