@@ -1410,8 +1410,10 @@ describe('trace view', () => {
         );
       });
 
-      const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      expect(rows[6]).toHaveFocus();
+      await waitFor(() => {
+        const rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
+        expect(rows[6]).toHaveFocus();
+      });
     });
 
     it('searches in transaction', async () => {
