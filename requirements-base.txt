@@ -8,7 +8,6 @@ cachetools>=5
 celery>=5
 click>=8.1
 confluent-kafka>=2.3.0
-croniter>=1.3.10
 cronsim>=2.6
 cssselect>=1.0.3
 datadog>=0.49
