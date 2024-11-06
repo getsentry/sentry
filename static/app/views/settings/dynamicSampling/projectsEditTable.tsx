@@ -1,8 +1,10 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -95,22 +97,34 @@ export function ProjectsEditTable({period}: Props) {
     return <LoadingError onRetry={refetch} />;
   }
 
+  const isLoading = fetching || isPending;
+
   return (
     <Fragment>
       <BreakdownPanel>
-        <ProjectedOrgRateWrapper>
-          {t('Projected Organization Rate')}
-          <PercentInput
-            type="number"
-            disabled
-            min={0}
-            max={100}
-            size="sm"
-            value={formatNumberWithDynamicDecimalPoints(projectedOrgRate, 2)}
+        {isLoading ? (
+          <LoadingIndicator
+            css={css`
+              margin: ${space(4)} 0;
+            `}
           />
-        </ProjectedOrgRateWrapper>
-        <Divider />
-        <SamplingBreakdown period={period} sampleRates={breakdownSampleRates} />
+        ) : (
+          <Fragment>
+            <ProjectedOrgRateWrapper>
+              {t('Projected Organization Rate')}
+              <PercentInput
+                type="number"
+                disabled
+                min={0}
+                max={100}
+                size="sm"
+                value={formatNumberWithDynamicDecimalPoints(projectedOrgRate, 2)}
+              />
+            </ProjectedOrgRateWrapper>
+            <Divider />
+            <SamplingBreakdown period={period} sampleRates={breakdownSampleRates} />
+          </Fragment>
+        )}
       </BreakdownPanel>
 
       <ProjectsTable
@@ -118,7 +132,7 @@ export function ProjectsEditTable({period}: Props) {
         onChange={handleChange}
         emptyMessage={t('No active projects found in the selected period.')}
         isEmpty={!data.length}
-        isLoading={fetching || isPending}
+        isLoading={isLoading}
         items={activeItems}
         inactiveItems={inactiveItems}
       />
