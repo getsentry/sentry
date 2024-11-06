@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import sentry_sdk
 
 from sentry import quotas
-from sentry.constants import SAMPLING_MODE_DEFAULT
+from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT
 from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationId, ProjectId
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
@@ -160,7 +160,7 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
 
 
 @instrumented_task(
-    name="sentry.dynamic_sampling.tasks.recalibrate_orgs_batch",
+    name="sentry.dynamic_sampling.tasks.recalibrate_projects_batch",
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
@@ -170,12 +170,17 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def recalibrate_projects_batch(context: TaskContext, orgs: list[OrganizationId]) -> None:
+
     for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
         context, org_ids=orgs, measure=SamplingMeasure.SPANS
     ).items():
+        sample_rates = ProjectOption.objects.get_value_bulk_id(
+            [t[0] for t in projects], "sentry:target_sample_rate"
+        )
+
         for project_id, total, keep, _ in projects:
             try:
-                recalibrate_project(org_id, project_id, total, keep)
+                recalibrate_project(org_id, project_id, total, keep, sample_rates[project_id])
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 continue
@@ -186,8 +191,10 @@ def recalibrate_project(
     project_id: ProjectId,
     total: int,
     indexed: DecisionKeepCount,
+    target_sample_rate: float | None,
 ) -> None:
-    target_sample_rate = ProjectOption.objects.get_value(project_id, "sentry:target_sample_rate")
+    if target_sample_rate is None:
+        target_sample_rate = TARGET_SAMPLE_RATE_DEFAULT
 
     sample_function(
         function=log_sample_rate_source,
