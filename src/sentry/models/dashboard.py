@@ -20,8 +20,8 @@ from sentry.models.dashboard_widget import DashboardWidgetTypes
 class DashboardProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    project = FlexibleForeignKey("sentry.Project")
-    dashboard = FlexibleForeignKey("sentry.Dashboard")
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
 
     class Meta:
         app_label = "sentry"
