@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 import isodate
-from croniter import croniter
+from cronsim import CronSim
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse
 from rest_framework.response import Response
@@ -18,7 +18,7 @@ from sentry.testutils.silo import no_silo_test
 
 replacement_api = "replacement-api"
 test_date = datetime.fromisoformat("2020-01-01T00:00:00+00:00:00")
-timeiter = croniter("0 12 * * *", test_date)
+timeiter = CronSim("0 12 * * *", test_date)
 default_duration = timedelta(minutes=1)
 
 custom_cron = "30 1 * * *"
@@ -86,7 +86,7 @@ class TestDeprecationDecorator(APITestCase):
             with freeze_time(test_date):
                 self.assert_allowed_request("GET")
 
-            brownout_start = timeiter.get_next(datetime)
+            brownout_start = next(timeiter)
             with freeze_time(brownout_start):
                 self.assert_denied_request("GET")
 
@@ -119,13 +119,13 @@ class TestDeprecationDecorator(APITestCase):
             options.delete("api.deprecation.brownout-cron")
             options.delete("api.deprecation.brownout-duration")
 
-            custom_time_iter = croniter(custom_cron, test_date)
+            custom_time_iter = CronSim(custom_cron, test_date)
             custom_duration_timedelta = isodate.parse_duration(custom_duration)
-            old_brownout_start = timeiter.get_next(datetime)
+            old_brownout_start = next(timeiter)
             with freeze_time(old_brownout_start):
                 self.assert_allowed_request("GET")
 
-            new_brownout_start = custom_time_iter.get_next(datetime)
+            new_brownout_start = next(custom_time_iter)
             with freeze_time(new_brownout_start):
                 self.assert_denied_request("GET")
 
@@ -141,19 +141,19 @@ class TestDeprecationDecorator(APITestCase):
         with self.settings(
             SENTRY_SELF_HOSTED=False,
         ):
-            old_brownout_start = timeiter.get_next(datetime)
+            old_brownout_start = next(timeiter)
             with freeze_time(old_brownout_start):
                 self.assert_denied_request("POST")
 
             register("override-cron", default=custom_cron)
             register("override-duration", default=custom_duration)
-            custom_time_iter = croniter(custom_cron, test_date)
+            custom_time_iter = CronSim(custom_cron, test_date)
             custom_duration_timedelta = isodate.parse_duration(custom_duration)
 
             with freeze_time(old_brownout_start):
                 self.assert_allowed_request("POST")
 
-            new_brownout_start = custom_time_iter.get_next(datetime)
+            new_brownout_start = next(custom_time_iter)
             with freeze_time(new_brownout_start):
                 self.assert_denied_request("POST")
 
@@ -162,7 +162,7 @@ class TestDeprecationDecorator(APITestCase):
                 self.assert_allowed_request("POST")
 
     def test_bad_schedule_format(self):
-        brownout_start = timeiter.get_next(datetime)
+        brownout_start = next(timeiter)
         with freeze_time(brownout_start):
             with (
                 self.settings(SENTRY_SELF_HOSTED=False),
