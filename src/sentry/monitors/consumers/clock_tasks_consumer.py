@@ -14,12 +14,14 @@ from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import (
     MarkMissing,
     MarkTimeout,
+    MarkUnknown,
     MonitorsClockTasks,
 )
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_tasks.check_missed import mark_environment_missing
 from sentry.monitors.clock_tasks.check_timeout import mark_checkin_timeout
+from sentry.monitors.clock_tasks.mark_unknown import mark_checkin_unknown
 
 MONITORS_CLOCK_TASKS_CODEC: Codec[MonitorsClockTasks] = get_topic_codec(Topic.MONITORS_CLOCK_TASKS)
 
@@ -28,6 +30,10 @@ logger = logging.getLogger(__name__)
 
 def is_mark_timeout(wrapper: MonitorsClockTasks) -> TypeGuard[MarkTimeout]:
     return wrapper["type"] == "mark_timeout"
+
+
+def is_mark_unknown(wrapper: MonitorsClockTasks) -> TypeGuard[MarkUnknown]:
+    return wrapper["type"] == "mark_unknown"
 
 
 def is_mark_missing(wrapper: MonitorsClockTasks) -> TypeGuard[MarkMissing]:
@@ -44,6 +50,10 @@ def process_clock_task(message: Message[KafkaPayload | FilteredPayload]):
 
         if is_mark_timeout(wrapper):
             mark_checkin_timeout(int(wrapper["checkin_id"]), ts)
+            return
+
+        if is_mark_unknown(wrapper):
+            mark_checkin_unknown(int(wrapper["checkin_id"]), ts)
             return
 
         if is_mark_missing(wrapper):
