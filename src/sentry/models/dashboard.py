@@ -87,14 +87,14 @@ class Dashboard(Model):
         base_name = re.sub(r" ?copy ?(\d+)?$", "", name)
         matching_dashboards = cls.objects.filter(
             organization=organization, title__regex=rf"^{re.escape(base_name)} ?(copy)? ?(\d+)?$"
-        )
+        ).values("title")
 
         if not matching_dashboards:
             return name
 
         next_copy_number = 0
         for dashboard in matching_dashboards:
-            match = re.search(r" copy ?(\d+)?", dashboard.title)
+            match = re.search(r" copy ?(\d+)?", dashboard["title"])
             if match:
                 copy_number = int(match.group(1) or 0)
                 next_copy_number = max(next_copy_number, copy_number + 1)
