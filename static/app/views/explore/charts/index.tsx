@@ -232,7 +232,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                     >
                       <DropdownMenu
                         triggerProps={{
-                          'aria-label': t('Chart Actions'),
+                          'aria-label': t('Create Alert'),
                           size: 'sm',
                           borderless: true,
                           showChevron: false,
