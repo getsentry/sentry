@@ -170,7 +170,6 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def recalibrate_projects_batch(context: TaskContext, orgs: list[OrganizationId]) -> None:
-
     for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
         context, org_ids=orgs, measure=SamplingMeasure.SPANS
     ).items():
