@@ -560,13 +560,18 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 f"Number of widgets must be less than {Dashboard.MAX_WIDGETS}"
             )
 
-        permissions = data.get("permissions")
-        if permissions and self.instance:
-            currentUser = self.context["request"].user
-            if self.instance.created_by_id != currentUser.id:
-                raise serializers.ValidationError(
-                    "Only the Dashboard Creator may modify Dashboard Edit Access"
-                )
+        if features.has(
+            "organizations:dashboards-edit-access",
+            self.context["organization"],
+            actor=self.context["request"].user,
+        ):
+            permissions = data.get("permissions")
+            if permissions and self.instance:
+                currentUser = self.context["request"].user
+                if self.instance.created_by_id != currentUser.id:
+                    raise serializers.ValidationError(
+                        "Only the Dashboard Creator may modify Dashboard Edit Access"
+                    )
 
         return data
 
