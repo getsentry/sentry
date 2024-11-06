@@ -59,6 +59,8 @@ export const allowedSizeValues: number[] = [
   10000000,
 ]; // 50kb to 10MB in bytes
 
+export const allowedCountValues: number[] = [5, 10, 20, 50, 100];
+
 export const projectDetectorSettingsId = 'detector-threshold-settings';
 
 type ProjectPerformanceSettings = {[key: string]: number | boolean};
@@ -82,6 +84,7 @@ enum DetectorConfigAdmin {
 export enum DetectorConfigCustomer {
   SLOW_DB_DURATION = 'slow_db_query_duration_threshold',
   N_PLUS_DB_DURATION = 'n_plus_one_db_duration_threshold',
+  N_PLUS_DB_COUNT = 'n_plus_one_db_count',
   N_PLUS_API_CALLS_DURATION = 'n_plus_one_api_calls_total_duration_threshold',
   RENDER_BLOCKING_ASSET_RATIO = 'render_blocking_fcp_ratio',
   LARGE_HTT_PAYLOAD_SIZE = 'large_http_payload_size_threshold',
@@ -511,6 +514,10 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
       return fps ? `${Math.floor(fps / 5) * 5}fps` : '';
     };
 
+    const formatCount = (value: number | ''): string => {
+      return '' + value;
+    };
+
     const issueType = safeGetQsParam('issueType');
 
     return [
@@ -532,6 +539,24 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             tickValues: [0, allowedDurationValues.length - 1],
             showTickLabels: true,
             formatLabel: formatDuration,
+            flexibleControlStateSize: true,
+            disabledReason,
+          },
+          {
+            name: DetectorConfigCustomer.N_PLUS_DB_COUNT,
+            type: 'range',
+            label: t('Minimum Query Count'),
+            defaultValue: 5,
+            help: t(
+              'Setting the value to 5 means that an eligible event will be detected as an N+1 DB Query Issue only if the number of repeated queries exceeds 5'
+            ),
+            allowedValues: allowedCountValues,
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
+            ),
+            tickValues: [0, allowedCountValues.length - 1],
+            showTickLabels: true,
+            formatLabel: formatCount,
             flexibleControlStateSize: true,
             disabledReason,
           },
