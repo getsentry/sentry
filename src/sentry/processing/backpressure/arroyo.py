@@ -21,8 +21,6 @@ class HealthChecker:
         now = time.time()
         # Check queue health if it's been more than the interval
         if now - self.last_check >= options.get("backpressure.checking.interval"):
-            # TODO: We would want to at first monitor everything all at once,
-            # and make it more fine-grained later on.
             self.is_queue_healthy = is_consumer_healthy(self.consumer_name)
 
             # We don't count the time it took to check as part of the interval
