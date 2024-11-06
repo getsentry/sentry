@@ -120,6 +120,9 @@ class TaskRegistry:
 
         return router
 
+    def contains(self, name: str) -> bool:
+        return name in self._namespaces
+
     def get(self, name: str) -> TaskNamespace:
         """Fetch a namespace by name."""
         if name not in self._namespaces:

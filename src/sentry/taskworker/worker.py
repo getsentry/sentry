@@ -119,16 +119,35 @@ class TaskWorker:
 
         return activation
 
-    def process_task(self, activation: TaskActivation) -> TaskActivation | None:
-        assert self._pool
+    def _known_task(self, activation: TaskActivation) -> bool:
+        if not taskregistry.contains(activation.namespace):
+            logger.error(
+                "taskworker.invalid_namespace",
+                extra={"namespace": activation.namespace, "taskname": activation.taskname},
+            )
+            return False
 
         namespace = taskregistry.get(activation.namespace)
         if not namespace.contains(activation.taskname):
-            logger.error("Could not resolve task with name %s", activation.taskname)
-            return None
+            logger.error(
+                "taskworker.invalid_taskname",
+                extra={"namespace": activation.namespace, "taskname": activation.taskname},
+            )
+            return False
+        return True
+
+    def process_task(self, activation: TaskActivation) -> TaskActivation | None:
+        assert self._pool
+        if not self._known_task(activation):
+            self._execution_count += 1
+            return self.client.update_task(
+                task_id=activation.id,
+                status=TASK_ACTIVATION_STATUS_FAILURE,
+            )
 
         # TODO(taskworker): Add at_most_once checks
         processing_timeout = activation.processing_deadline_duration
+        namespace = taskregistry.get(activation.namespace)
         next_state = TASK_ACTIVATION_STATUS_FAILURE
         result = None
         execution_start_time = 0.0
@@ -161,7 +180,6 @@ class TaskWorker:
             # stdlib multiprocessing.Pool doesn't expose ways to terminate individual tasks.
             self._build_pool()
         except Exception as err:
-            # TODO(taskworker) check retry policy
             if namespace.get(activation.taskname).should_retry(activation.retry_state, err):
                 logger.info("taskworker.task.retry", extra={"task": activation.taskname})
                 next_state = TASK_ACTIVATION_STATUS_RETRY

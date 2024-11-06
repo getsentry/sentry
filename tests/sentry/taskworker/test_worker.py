@@ -58,10 +58,18 @@ FAIL_TASK = TaskActivation(
     processing_deadline_duration=1,
 )
 
+UNDEFINED_TASK = TaskActivation(
+    id="444",
+    taskname="total.rubbish",
+    namespace="lolnope",
+    parameters='{"args": [], "kwargs": {}}',
+    processing_deadline_duration=1,
+)
+
 
 @override_settings(TASKWORKER_IMPORTS=("tests.sentry.taskworker.test_worker",))
 class TestTaskWorker(TestCase):
-    def test_taskworker_fetch_task(self) -> None:
+    def test_fetch_task(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = SIMPLE_TASK
@@ -72,7 +80,7 @@ class TestTaskWorker(TestCase):
         assert task
         assert task.id == SIMPLE_TASK.id
 
-    def test_taskworker_fetch_no_task(self) -> None:
+    def test_fetch_no_task(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = None
@@ -81,7 +89,7 @@ class TestTaskWorker(TestCase):
             mock_get.assert_called_once()
         assert task is None
 
-    def test_taskworker_process_task_complete(self) -> None:
+    def test_process_task_complete(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
         with mock.patch.object(taskworker.client, "update_task") as mock_update:
             mock_update.return_value = RETRY_TASK
@@ -95,7 +103,7 @@ class TestTaskWorker(TestCase):
             assert result
             assert result.id == RETRY_TASK.id
 
-    def test_taskworker_process_task_retry(self) -> None:
+    def test_process_task_retry(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
         with mock.patch.object(taskworker.client, "update_task") as mock_update:
             mock_update.return_value = SIMPLE_TASK
@@ -108,7 +116,7 @@ class TestTaskWorker(TestCase):
             assert result
             assert result.id == SIMPLE_TASK.id
 
-    def test_taskworker_process_task_failure(self) -> None:
+    def test_process_task_failure(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
         with mock.patch.object(taskworker.client, "update_task") as mock_update_task:
             mock_update_task.return_value = SIMPLE_TASK
@@ -120,7 +128,7 @@ class TestTaskWorker(TestCase):
             assert result
             assert result.id == SIMPLE_TASK.id
 
-    def test_taskworker_start_max_task_count(self):
+    def test_start_max_task_count(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=1)
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
@@ -135,7 +143,7 @@ class TestTaskWorker(TestCase):
                 task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE
             )
 
-    def test_taskworker_start_loop(self):
+    def test_start_loop(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=2)
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
@@ -155,4 +163,23 @@ class TestTaskWorker(TestCase):
             )
             mock_client.update_task.assert_any_call(
                 task_id=RETRY_TASK.id, status=TASK_ACTIVATION_STATUS_RETRY
+            )
+
+    def test_start_keyboard_interrupt(self) -> None:
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=2)
+        with mock.patch.object(taskworker, "client") as mock_client:
+            mock_client.get_task.side_effect = KeyboardInterrupt()
+
+            result = taskworker.start()
+            assert result == 1, "Exit non-zero"
+
+    def test_start_unknown_task(self) -> None:
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=2)
+        with mock.patch.object(taskworker, "client") as mock_client:
+            mock_client.get_task.return_value = UNDEFINED_TASK
+
+            result = taskworker.start()
+            assert result == 0, "Exit zero, all tasks complete"
+            mock_client.update_task.assert_any_call(
+                task_id=UNDEFINED_TASK.id, status=TASK_ACTIVATION_STATUS_FAILURE
             )

@@ -191,6 +191,9 @@ def test_registry_get() -> None:
     with pytest.raises(KeyError):
         registry.get("derp")
 
+    assert registry.contains("derp") is False
+    assert registry.contains("tests")
+
 
 def test_registry_get_task() -> None:
     registry = TaskRegistry()
