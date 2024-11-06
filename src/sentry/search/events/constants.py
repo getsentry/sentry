@@ -102,7 +102,12 @@ WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
 
 MAX_TAG_KEY_LENGTH = 200
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
-TYPED_TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*),\s*(?P<type>.*)\]$")
+
+TYPED_TAG_KEY_RE = re.compile(
+    r"^(sentry_tags|tags)\[(?P<tag>.{0,200}),\s{0,200}(?P<type>.{0,200})\]$"
+)
+
+
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
