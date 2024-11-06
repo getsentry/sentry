@@ -218,7 +218,6 @@ export default function WizardField({
               />
             ) : alertType === 'eap_metrics' ? (
               <EAPField
-                project={project}
                 aggregate={aggregate}
                 onChange={newAggregate => {
                   return onChange(newAggregate, {});

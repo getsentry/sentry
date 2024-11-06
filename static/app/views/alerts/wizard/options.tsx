@@ -17,12 +17,12 @@ import {
 } from 'sentry/utils/fields';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {
+  DEFAULT_EAP_METRICS_ALERT_FIELD,
   DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
   DEFAULT_METRIC_ALERT_FIELD,
 } from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
-import {DEFAULT_EAP_METRICS_ALERT_FIELD} from 'sentry/views/alerts/rules/metric/eapField';
 import {
   Dataset,
   EventTypes,
