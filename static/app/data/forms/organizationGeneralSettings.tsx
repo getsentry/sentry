@@ -85,7 +85,7 @@ const formGroups: JsonFormObject[] = [
           initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
         help: t('The default role new members will receive'),
         disabled: ({features, access}) =>
-          !access.has('org:write') || !features.has('invite-members'),
+          !access.has('org:admin') || !features.has('invite-members'),
         disabledReason: ({features}) =>
           !features.has('invite-members')
             ? t('You must be on a paid plan to invite additional members.')
