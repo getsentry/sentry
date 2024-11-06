@@ -40,8 +40,9 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
 
   const getDateDifferenceMs = memoizedDateDifference();
 
-  const hasDateRangeQueryLimit =
-    true || organization.features.includes('insights-query-date-range-limit');
+  const hasDateRangeQueryLimit = organization.features.includes(
+    'insights-query-date-range-limit'
+  );
 
   const handleClickAnywhereOnPage = () => {
     setShowTooltip(false);

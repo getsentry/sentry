@@ -37,6 +37,10 @@ export function ModulePageProviders({
   const moduleTitles = useModuleTitles();
   const {isInDomainView} = useDomainViewFilters();
 
+  const hasDateRangeQueryLimit = organization.features.includes(
+    'insights-query-date-range-limit'
+  );
+
   useHasDataTrackAnalytics(moduleName as ModuleName, analyticEventName);
 
   const moduleTitle = moduleTitles[moduleName];
@@ -47,7 +51,9 @@ export function ModulePageProviders({
     .join(' — ');
 
   return (
-    <PageFiltersContainer maxPickableDays={QUERY_DATE_RANGE_LIMIT}>
+    <PageFiltersContainer
+      maxPickableDays={hasDateRangeQueryLimit ? QUERY_DATE_RANGE_LIMIT : undefined}
+    >
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
         {shouldUseUpsellHook && (
           <UpsellPageHook moduleName={moduleName}>
