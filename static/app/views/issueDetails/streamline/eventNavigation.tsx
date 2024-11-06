@@ -16,6 +16,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
@@ -74,6 +75,13 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
   const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
   const environments = useEnvironmentsFromUrl();
   const eventView = useIssueDetailsEventView({group});
+
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
+
+  const hideDropdownButton =
+    !issueTypeConfig.attachments.enabled &&
+    !issueTypeConfig.userFeedback.enabled &&
+    !issueTypeConfig.replays.enabled;
 
   const discoverUrl = eventView.getResultsViewUrlTarget(
     organization.slug,
@@ -206,6 +214,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
               },
+              hidden: !issueTypeConfig.replays.enabled,
             },
             {
               key: Tab.ATTACHMENTS,
@@ -222,6 +231,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
               },
+              hidden: !issueTypeConfig.attachments.enabled,
             },
             {
               key: Tab.USER_FEEDBACK,
@@ -235,14 +245,26 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
               },
+              hidden: !issueTypeConfig.userFeedback.enabled,
             },
           ]}
           offset={[-2, 1]}
-          trigger={triggerProps => (
-            <NavigationDropdownButton {...triggerProps} borderless size="sm">
-              {TabName[currentTab] ?? TabName[Tab.DETAILS]}
-            </NavigationDropdownButton>
-          )}
+          trigger={triggerProps =>
+            hideDropdownButton ? (
+              <NavigationLabel>
+                {TabName[currentTab] ?? TabName[Tab.DETAILS]}
+              </NavigationLabel>
+            ) : (
+              <NavigationDropdownButton
+                {...triggerProps}
+                borderless
+                size="sm"
+                disabled={hideDropdownButton}
+              >
+                {TabName[currentTab] ?? TabName[Tab.DETAILS]}
+              </NavigationDropdownButton>
+            )
+          }
         />
         <LargeInThisIssueText>{t('in this issue')}</LargeInThisIssueText>
       </LargeDropdownButtonWrapper>
@@ -371,6 +393,12 @@ const NavigationDropdownButton = styled(DropdownButton)`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   padding-right: ${space(0.5)};
+`;
+
+const NavigationLabel = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  padding-right: ${space(0.25)};
 `;
 
 const LargeInThisIssueText = styled('div')`
