@@ -56,6 +56,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
 import GroupHeader from 'sentry/views/issueDetails//header';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
@@ -616,6 +617,7 @@ function GroupDetailsContent({
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {isDrawerOpen} = useDrawer();
+  const router = useRouter();
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -658,6 +660,13 @@ function GroupDetailsContent({
     baseUrl,
   };
 
+  const isDisplayingEventDetails = [
+    Tab.DETAILS,
+    Tab.TAGS,
+    Tab.SIMILAR_ISSUES,
+    Tab.MERGED,
+  ].includes(currentTab);
+
   return hasStreamlinedUI ? (
     <GroupDetailsLayout
       group={group}
@@ -665,7 +674,24 @@ function GroupDetailsContent({
       project={project}
       groupReprocessingStatus={groupReprocessingStatus}
     >
-      {isValidElement(children) ? cloneElement(children, childProps) : children}
+      {isDisplayingEventDetails ? (
+        // The router displays a loading indicator when switching to any of these tabs
+        // Avoid lazy loading spinner by force rendering the GroupEventDetails component
+        <GroupEventDetails
+          {...childProps}
+          event={event ?? undefined}
+          location={router.location}
+          route={router.routes.at(-1)!}
+          router={router}
+          routes={router.routes}
+          routeParams={router.params}
+          params={router.params}
+        />
+      ) : isValidElement(children) ? (
+        cloneElement(children, childProps)
+      ) : (
+        children
+      )}
     </GroupDetailsLayout>
   ) : (
     <Tabs
