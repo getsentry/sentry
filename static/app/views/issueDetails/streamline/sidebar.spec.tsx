@@ -107,7 +107,7 @@ describe('StreamlinedSidebar', function () {
     expect(mockExternalIssues).toHaveBeenCalled();
 
     expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Add a comment...')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: /Add a comment/})).toBeInTheDocument();
     expect(screen.getByText(activityContent)).toBeInTheDocument();
 
     expect(screen.getByRole('heading', {name: 'Similar Issues'})).toBeInTheDocument();

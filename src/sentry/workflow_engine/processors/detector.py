@@ -10,6 +10,11 @@ from django.conf import settings
 from django.db.models import Q
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
+from sentry.types.group import PriorityLevel
 from sentry.utils import metrics, redis
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.iterators import chunked
@@ -29,14 +34,19 @@ REDIS_TTL = int(timedelta(days=7).total_seconds())
 @dataclasses.dataclass(frozen=True)
 class DetectorEvaluationResult:
     group_key: DetectorGroupKey
+    # TODO: Are these actually necessary? We're going to produce the occurrence in the detector, so we probably don't
+    # need to know the other results externally
     is_active: bool
     priority: DetectorPriorityLevel
-    data: Any
+    # TODO: This is only temporarily optional. We should always have a value here if returning a result
+    result: IssueOccurrence | StatusChangeMessage | None = None
+    # Event data to supplement the `IssueOccurrence`, if passed.
+    event_data: dict[str, Any] | None = None
 
 
 def process_detectors(
     data_packet: DataPacket, detectors: list[Detector]
-) -> list[tuple[Detector, list[DetectorEvaluationResult]]]:
+) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
     results = []
 
     for detector in detectors:
@@ -46,24 +56,35 @@ def process_detectors(
             continue
 
         detector_results = handler.evaluate(data_packet)
-        detector_group_keys = set()
 
-        for result in detector_results:
-            if result.group_key in detector_group_keys:
-                # This shouldn't happen - log an error and continue on, but we should investigate this.
-                logger.error(
-                    "Duplicate detector state group keys found",
-                    extra={
-                        "detector_id": detector.id,
-                        "group_key": result.group_key,
-                    },
-                )
-            detector_group_keys.add(result.group_key)
+        for result in detector_results.values():
+            if result.result is not None:
+                create_issue_occurrence_from_result(result)
 
         if detector_results:
             results.append((detector, detector_results))
 
+        # Now that we've processed all results for this detector, commit any state changes
+        handler.commit_state_updates()
+
     return results
+
+
+def create_issue_occurrence_from_result(result: DetectorEvaluationResult):
+    occurrence, status_change = None, None
+    if isinstance(result.result, IssueOccurrence):
+        occurrence = result.result
+        payload_type = PayloadType.OCCURRENCE
+    else:
+        status_change = result.result
+        payload_type = PayloadType.STATUS_CHANGE
+
+    produce_occurrence_to_kafka(
+        payload_type=payload_type,
+        occurrence=occurrence,
+        status_change=status_change,
+        event_data=result.event_data,
+    )
 
 
 def get_redis_client() -> RetryingRedisCluster:
@@ -102,7 +123,12 @@ class DetectorHandler(abc.ABC, Generic[T]):
             self.conditions = []
 
     @abc.abstractmethod
-    def evaluate(self, data_packet: DataPacket[T]) -> list[DetectorEvaluationResult]:
+    def evaluate(
+        self, data_packet: DataPacket[T]
+    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+        pass
+
+    def commit_state_updates(self):
         pass
 
 
@@ -136,6 +162,18 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         and returns then as a dict keyed by group_key.
         """
         pass
+
+    @abc.abstractmethod
+    def build_occurrence_and_event_data(
+        self, group_key: DetectorGroupKey, value: int, new_status: PriorityLevel
+    ) -> tuple[IssueOccurrence, dict[str, Any]]:
+        pass
+
+    def build_fingerprint(self, group_key) -> list[str]:
+        """
+        Builds a fingerprint to uniquely identify a detected issue
+        """
+        return [f"{self.detector.id}{':' + group_key if group_key is not None else ''}"]
 
     def get_state_data(
         self, group_keys: list[DetectorGroupKey]
@@ -185,7 +223,9 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             )
         return results
 
-    def evaluate(self, data_packet: DataPacket[T]) -> list[DetectorEvaluationResult]:
+    def evaluate(
+        self, data_packet: DataPacket[T]
+    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         """
         Evaluates a given data packet and returns a list of `DetectorEvaluationResult`.
         There will be one result for each group key result in the packet, unless the
@@ -194,13 +234,13 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         dedupe_value = self.get_dedupe_value(data_packet)
         group_values = self.get_group_key_values(data_packet)
         all_state_data = self.get_state_data(list(group_values.keys()))
-        results = []
+        results = {}
         for group_key, group_value in group_values.items():
             result = self.evaluate_group_key_value(
                 group_key, group_value, all_state_data[group_key], dedupe_value
             )
             if result:
-                results.append(result)
+                results[result.group_key] = result
         return results
 
     def evaluate_group_key_value(
@@ -228,7 +268,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
             return None
 
-        status = DetectorPriorityLevel.OK
+        new_status = DetectorPriorityLevel.OK
 
         for condition in self.conditions:
             # TODO: We need to handle tracking consecutive evaluations before emitting a result here. We're able to
@@ -237,20 +277,34 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             # level, but usually we want to set this at a higher level.
             evaluation = condition.evaluate_value(value)
             if evaluation is not None:
-                status = max(status, evaluation)
-
-        is_active = status != DetectorPriorityLevel.OK
+                new_status = max(new_status, evaluation)
 
         # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
         self.enqueue_counter_update(group_key, {})
 
-        if state_data.active != is_active or state_data.status != status:
-            self.enqueue_state_update(group_key, is_active, status)
+        if state_data.status != new_status:
+            is_active = new_status != DetectorPriorityLevel.OK
+            self.enqueue_state_update(group_key, is_active, new_status)
+            event_data = None
+            result: StatusChangeMessage | IssueOccurrence
+            if new_status == DetectorPriorityLevel.OK:
+                # If we've determined that we're now ok, we just want to resolve the issue
+                result = StatusChangeMessage(
+                    fingerprint=self.build_fingerprint(group_key),
+                    project_id=self.detector.project_id,
+                    new_status=GroupStatus.RESOLVED,
+                    new_substatus=None,
+                )
+            else:
+                result, event_data = self.build_occurrence_and_event_data(
+                    group_key, value, PriorityLevel(new_status)
+                )
             return DetectorEvaluationResult(
-                group_key,
-                is_active,
-                status,
-                {},
+                group_key=group_key,
+                is_active=is_active,
+                priority=new_status,
+                result=result,
+                event_data=event_data,
             )
         return None
 
