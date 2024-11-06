@@ -110,6 +110,10 @@ describe('Incident Rules Form', () => {
       url: '/organizations/org-slug/events/anomalies/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
+    });
   });
 
   afterEach(() => {
