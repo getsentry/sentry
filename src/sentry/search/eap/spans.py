@@ -5,6 +5,7 @@ from re import Match
 from typing import cast
 
 from parsimonious.exceptions import ParseError
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     AttributeValue,
@@ -46,6 +47,17 @@ class SearchResolver:
     params: SnubaParams
     config: SearchResolverConfig
     resolved_columns: dict[str, ResolvedColumn] = field(default_factory=dict)
+
+    def resolve_meta(self, referrer: str) -> RequestMeta:
+        if self.params.organization_id is None:
+            raise Exception("An organization is required to resolve queries")
+        return RequestMeta(
+            organization_id=self.params.organization_id,
+            referrer=referrer,
+            project_ids=self.params.project_ids,
+            start_timestamp=self.params.rpc_start_date,
+            end_timestamp=self.params.rpc_end_date,
+        )
 
     def resolve_query(self, querystring: str) -> TraceItemFilter | None:
         """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
@@ -146,7 +158,26 @@ class SearchResolver:
         for item in terms:
             if isinstance(item, event_search.SearchFilter):
                 resolved_column, context = self.resolve_column(item.key.name)
-                if item.operator in constants.OPERATOR_MAP:
+                raw_value = item.value.raw_value
+                if item.value.is_wildcard():
+                    if item.operator == "=":
+                        operator = ComparisonFilter.OP_LIKE
+                    elif item.operator == "!=":
+                        operator = ComparisonFilter.OP_NOT_LIKE
+                    else:
+                        raise InvalidSearchQuery(
+                            f"Cannot use a wildcard with a {item.operator} filter"
+                        )
+                    # Slashes have to be double escaped so they are
+                    # interpreted as a string literal.
+                    raw_value = (
+                        str(item.value.raw_value)
+                        .replace("\\", "\\\\")
+                        .replace("%", "\\%")
+                        .replace("_", "\\_")
+                        .replace("*", "%")
+                    )
+                elif item.operator in constants.OPERATOR_MAP:
                     operator = constants.OPERATOR_MAP[item.operator]
                 else:
                     raise InvalidSearchQuery(f"Unknown operator: {item.operator}")
@@ -157,7 +188,7 @@ class SearchResolver:
                                 key=resolved_column.proto_definition,
                                 op=operator,
                                 value=self._resolve_search_value(
-                                    resolved_column, item.operator, item.value.raw_value
+                                    resolved_column, item.operator, raw_value
                                 ),
                             )
                         )
@@ -224,6 +255,20 @@ class SearchResolver:
         else:
             raise NotImplementedError("Aggregate Queries not implemented yet")
 
+    def clean_contexts(
+        self, resolved_contexts: list[VirtualColumnContext | None]
+    ) -> list[VirtualColumnContext]:
+        """Given a list of contexts that may have None in them, remove the Nones and remove the dupes"""
+        final_contexts = []
+        existing_target_columns = set()
+        for context in resolved_contexts:
+            if context is None or context.to_column_name in existing_target_columns:
+                continue
+            else:
+                existing_target_columns.add(context.to_column_name)
+                final_contexts.append(context)
+        return final_contexts
+
     def resolve_columns(
         self, selected_columns: list[str]
     ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext]]:
@@ -231,12 +276,34 @@ class SearchResolver:
 
         This function will also dedupe the virtual column contexts if necessary
         """
-        raise NotImplementedError()
-        # go from public alias -> rpc
-        # p = Procssors(parsed_column_name)
-        # return [ResolvedColumn()]
+        resolved_columns = []
+        resolved_contexts = []
+        stripped_columns = [column.strip() for column in selected_columns]
+        has_aggregates = False
+        for column in stripped_columns:
+            match = fields.is_function(column)
+            has_aggregates = has_aggregates or match is not None
+            resolved_column, context = self.resolve_column(column, match)
+            resolved_columns.append(resolved_column)
+            resolved_contexts.append(context)
 
-    def resolve_column(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
+        if self.config.auto_fields:
+            # Ensure fields we require to build a functioning interface are present.
+            if not has_aggregates and "id" not in stripped_columns:
+                id_column, id_context = self.resolve_column("id")
+                resolved_columns.append(id_column)
+                resolved_contexts.append(id_context)
+                stripped_columns.append("id")
+            if "id" in stripped_columns and "project.id" not in stripped_columns:
+                project_column, project_context = self.resolve_column("project.name")
+                resolved_columns.append(project_column)
+                resolved_contexts.append(project_context)
+
+        return resolved_columns, self.clean_contexts(resolved_contexts)
+
+    def resolve_column(
+        self, column: str, match: Match | None = None
+    ) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
         resolve function"""
         match = fields.is_function(column)
@@ -268,41 +335,46 @@ class SearchResolver:
     def resolve_attribute(self, column: str) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
         """Attributes are columns that aren't 'functions' or 'aggregates', usually this means string or numeric
         attributes (aka. tags), but can also refer to fields like span.description"""
-        if column in SPAN_COLUMN_DEFINITIONS:
+        # If a virtual context is defined the column definition is always the same
+        if column in VIRTUAL_CONTEXTS:
+            column_context = VIRTUAL_CONTEXTS[column](self.params)
+            column_definition = ResolvedColumn(
+                public_alias=column, internal_name=column, search_type="string"
+            )
+        elif column in SPAN_COLUMN_DEFINITIONS:
+            column_context = None
             column_definition = SPAN_COLUMN_DEFINITIONS[column]
-
-            if column in VIRTUAL_CONTEXTS:
-                column_context = VIRTUAL_CONTEXTS[column](self.params)
-            else:
-                column_context = None
-
-            if column_definition:
-                return column_definition, column_context
-            else:
-                raise InvalidSearchQuery(f"Could not parse {column}")
-
-        if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
-            raise InvalidSearchQuery(f"{column} is too long, can be a maximum of 200 characters")
-
-        tag_match = qb_constants.TYPED_TAG_KEY_RE.search(column)
-        if tag_match is None:
-            tag_match = qb_constants.TAG_KEY_RE.search(column)
-            field_type = "string"
         else:
-            field_type = None
-        field = tag_match.group("tag") if tag_match else column
-        if field is None:
-            raise InvalidSearchQuery(f"Could not parse {column}")
-        # Assume string if a type isn't passed. eg. tags[foo]
-        if field_type is None:
-            field_type = tag_match.group("type") if tag_match else None
+            if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
+                raise InvalidSearchQuery(
+                    f"{column} is too long, can be a maximum of 200 characters"
+                )
 
-        if field_type not in constants.TYPE_MAP:
-            raise InvalidSearchQuery(f"Unsupported type {field_type} in {column}")
-        return (
-            ResolvedColumn(public_alias=column, internal_name=field, search_type=field_type),
-            None,
-        )
+            tag_match = qb_constants.TYPED_TAG_KEY_RE.search(column)
+            if tag_match is None:
+                tag_match = qb_constants.TAG_KEY_RE.search(column)
+                field_type = "string"
+            else:
+                field_type = None
+            field = tag_match.group("tag") if tag_match else column
+            if field is None:
+                raise InvalidSearchQuery(f"Could not parse {column}")
+            # Assume string if a type isn't passed. eg. tags[foo]
+            if field_type is None:
+                field_type = tag_match.group("type") if tag_match else None
+
+            if field_type not in constants.TYPE_MAP:
+                raise InvalidSearchQuery(f"Unsupported type {field_type} in {column}")
+
+            column_definition = ResolvedColumn(
+                public_alias=column, internal_name=field, search_type=field_type
+            )
+            column_context = None
+
+        if column_definition:
+            return column_definition, column_context
+        else:
+            raise InvalidSearchQuery(f"Could not parse {column}")
 
     def resolve_aggregates(
         self, columns: list[str]
@@ -381,6 +453,8 @@ class SearchResolver:
                 public_alias=alias,
                 internal_name=function_definition.internal_function,
                 search_type=function_definition.search_type,
+                internal_type=function_definition.internal_type,
+                processor=function_definition.processor,
                 argument=resolved_argument,
             ),
             None,
