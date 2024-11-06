@@ -25,6 +25,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
         });
       })}
       showTimeInTooltip
+      isGroupedByDate
       tooltip={{
         valueFormatter: (value, field) => {
           if (!defined(field)) {
