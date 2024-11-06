@@ -1,5 +1,5 @@
-import {operatingSystemKnownDataValues} from 'sentry/components/events/contexts/operatingSystem';
 import {getOperatingSystemKnownDataDetails} from 'sentry/components/events/contexts/operatingSystem/getOperatingSystemKnownDataDetails';
+import {OperatingSystemKnownDataType} from 'sentry/components/events/contexts/operatingSystem/types';
 
 import {operatingSystemMockData} from './index.spec';
 
@@ -7,9 +7,9 @@ describe('getOperatingSystemKnownDataDetails', function () {
   it('returns values and according to the parameters', function () {
     const allKnownData: ReturnType<typeof getOperatingSystemKnownDataDetails>[] = [];
 
-    for (const type of Object.keys(operatingSystemKnownDataValues)) {
+    for (const type of Object.keys(OperatingSystemKnownDataType)) {
       const operatingSystemKnownDataDetails = getOperatingSystemKnownDataDetails({
-        type: operatingSystemKnownDataValues[type],
+        type: OperatingSystemKnownDataType[type],
         data: operatingSystemMockData,
       });
 
@@ -21,10 +21,14 @@ describe('getOperatingSystemKnownDataDetails', function () {
     }
 
     expect(allKnownData).toEqual([
-      {subject: 'Name', value: 'Mac OS X 10.14.0'},
-      {subject: 'Version', value: ''},
-      {subject: 'Kernel Version', value: ''},
-      {subject: 'Rooted', value: null},
+      {subject: 'Name', value: 'Linux'},
+      {subject: 'Version', value: '6.1.82'},
+      {subject: 'Build', value: '20C69'},
+      {subject: 'Kernel Version', value: '99.168.amzn2023.x86_64'},
+      {subject: 'Rooted', value: 'yes'},
+      {subject: 'Theme', value: 'dark'},
+      {subject: 'Raw Description', value: ''},
+      {subject: 'Distro', value: 'Amazon Linux 2023.4.20240401'},
     ]);
   });
 });
