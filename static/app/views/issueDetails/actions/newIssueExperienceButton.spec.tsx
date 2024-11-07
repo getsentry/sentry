@@ -139,9 +139,6 @@ describe('NewIssueExperienceButton', function () {
       method: 'PUT',
     });
 
-    // const mockFormCallback = jest.fn();
-    // mockFeedbackForm.mockReturnValue(mockFormCallback);
-
     render(<NewIssueExperienceButton />, {organization});
     await userEvent.click(
       screen.getByRole('button', {
