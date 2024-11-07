@@ -19,13 +19,17 @@ import type {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegra
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 
-const SAMPLES_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
+export const PROFILING_SAMPLES_FORMATTER = Intl.NumberFormat(undefined, {
+  notation: 'compact',
+});
 
 export function formatWeightToProfileDuration(
   frame: CallTreeNode,
   flamegraph: Flamegraph
 ) {
-  return `${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%`;
+  const weight = (frame.totalWeight / flamegraph.profile.duration) * 100;
+
+  return `${Math.round(weight * 100) / 100}%`;
 }
 
 export interface FlamegraphTooltipProps {
@@ -111,7 +115,7 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
         <FlamegraphTooltipColorIndicator
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
-        {SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
+        {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
         {t('samples, ') + formattedChange}{' '}
         {`(${formatWeightToProfileDuration(props.frame.node, flamegraph)})`}{' '}
         {props.frame.frame.name}
@@ -145,7 +149,8 @@ function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
         <FlamegraphTooltipColorIndicator
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
-        {SAMPLES_FORMATTER.format(props.frame.node.totalWeight)} {t('samples') + ' '}
+        {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
+        {t('samples') + ' '}
         {`(${formatWeightToProfileDuration(
           props.frame.node,
           props.flamegraphRenderer.flamegraph
