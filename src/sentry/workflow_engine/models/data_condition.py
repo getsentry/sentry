@@ -30,6 +30,8 @@ condition_ops = {
     Conditions.NOT_EQUAL: operator.ne,
 }
 
+ConditionResult = DetectorPriorityLevel | int | float | bool | None
+
 
 @region_silo_model
 class DataCondition(DefaultFieldsModel):
@@ -57,8 +59,24 @@ class DataCondition(DefaultFieldsModel):
         on_delete=models.CASCADE,
     )
 
-    def evaluate_value(self, value: float | int) -> DetectorPriorityLevel | None:
-        # Note: We'll have other types other than int/DetectorPriorityLevel here, keeping it simple for now
+    def get_condition_result(self) -> ConditionResult:
+        match self.condition_result:
+            case bool():
+                return self.condition_result
+            case DetectorPriorityLevel():
+                return DetectorPriorityLevel(self.condition_result)
+            case int():
+                return self.condition_result
+            case float():
+                return self.condition_result
+            case _:
+                logger.error(
+                    "Invalid condition result",
+                    extra={"condition_result": self.condition_result, "id": self.id},
+                )
+                return None
+
+    def evaluate_value(self, value: float | int) -> ConditionResult:
         # TODO: This logic should be in a condition class that we get from `self.type`
         # TODO: This evaluation logic should probably go into the condition class, and we just produce a condition
         # class from this model
@@ -84,13 +102,6 @@ class DataCondition(DefaultFieldsModel):
             return None
 
         if op(value, comparison):
-            try:
-                return DetectorPriorityLevel(int(self.condition_result))
-            except ValueError:
-                logger.exception(
-                    "Invalid condition result",
-                    extra={"condition": self.condition_result, "id": self.id},
-                )
-                return None
+            return self.get_condition_result()
 
         return None
