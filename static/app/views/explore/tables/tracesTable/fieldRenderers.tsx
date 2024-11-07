@@ -71,6 +71,7 @@ export function ProjectsRenderer({
 }: ProjectsRendererProps) {
   const organization = useOrganization();
   const {projects} = useProjects({slugs: projectSlugs, orgId: organization.slug});
+  // ensure that projectAvatars is in the same order as the projectSlugs prop
   const projectAvatars = projectSlugs.map(slug => {
     return projects.find(project => project.slug === slug) ?? {slug};
   });
