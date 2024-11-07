@@ -22,6 +22,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.monitors.types import TickVolumeAnomolyResult
 from sentry.testutils.cases import TestCase
 
 
@@ -58,12 +59,13 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             status=MonitorStatus.OK,
         )
 
-        dispatch_check_missing(ts)
+        dispatch_check_missing(ts, TickVolumeAnomolyResult.NORMAL)
 
         message: MarkMissing = {
             "type": "mark_missing",
             "ts": ts.timestamp(),
             "monitor_environment_id": monitor_environment.id,
+            "volume_anomaly_result": TickVolumeAnomolyResult.NORMAL.value,
         }
         payload = KafkaPayload(
             str(monitor_environment.id).encode(),
@@ -150,12 +152,15 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         # the upcoming checkin. Testing like this to validate any kind of
         # strange timezone related issues.
         for hour in range(24):
-            dispatch_check_missing(ts - timedelta(days=1) + timedelta(hours=hour + 1))
+            dispatch_check_missing(
+                ts - timedelta(days=1) + timedelta(hours=hour + 1),
+                TickVolumeAnomolyResult.NORMAL,
+            )
 
         assert mock_produce_task.call_count == 0
 
         # Mark check in missed a minute later
-        dispatch_check_missing(ts + timedelta(minutes=1))
+        dispatch_check_missing(ts + timedelta(minutes=1), TickVolumeAnomolyResult.NORMAL)
         assert mock_produce_task.call_count == 1
 
         # Missed check-in correctly updates
@@ -203,7 +208,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         )
 
         # No missed check-in generated as we're still within the check-in margin
-        dispatch_check_missing(ts)
+        dispatch_check_missing(ts, TickVolumeAnomolyResult.NORMAL)
 
         # assert that task is not called for the specific environment
         assert mock_produce_task.call_count == 0
@@ -219,12 +224,13 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         ).exists()
 
         # Missed check-in generated as clock now exceeds expected time plus margin
-        dispatch_check_missing(ts + timedelta(minutes=4))
+        dispatch_check_missing(ts + timedelta(minutes=4), TickVolumeAnomolyResult.NORMAL)
 
         message: MarkMissing = {
             "type": "mark_missing",
             "ts": (ts + timedelta(minutes=4)).timestamp(),
             "monitor_environment_id": monitor_environment.id,
+            "volume_anomaly_result": TickVolumeAnomolyResult.NORMAL.value,
         }
         payload = KafkaPayload(
             str(monitor_environment.id).encode(),
@@ -311,26 +317,27 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         )
 
         # No missed check-in generated as we're still within the check-in margin
-        dispatch_check_missing(ts)
+        dispatch_check_missing(ts, TickVolumeAnomolyResult.NORMAL)
         assert mock_produce_task.call_count == 0
 
         # Missed checkin is STILL not produced 5 minutes in, even though this
         # is when another check-in should be happening.
-        dispatch_check_missing(ts + timedelta(minutes=5))
+        dispatch_check_missing(ts + timedelta(minutes=5), TickVolumeAnomolyResult.NORMAL)
         assert mock_produce_task.call_count == 0
 
         # Still nothing 9 minutes in
-        dispatch_check_missing(ts + timedelta(minutes=9))
+        dispatch_check_missing(ts + timedelta(minutes=9), TickVolumeAnomolyResult.NORMAL)
         assert mock_produce_task.call_count == 0
 
         # We have missed our check-in at 10 minutes
-        dispatch_check_missing(ts + timedelta(minutes=10))
+        dispatch_check_missing(ts + timedelta(minutes=10), TickVolumeAnomolyResult.NORMAL)
         assert mock_produce_task.call_count == 1
 
         message: MarkMissing = {
             "type": "mark_missing",
             "ts": (ts + timedelta(minutes=10)).timestamp(),
             "monitor_environment_id": monitor_environment.id,
+            "volume_anomaly_result": TickVolumeAnomolyResult.NORMAL.value,
         }
         payload = KafkaPayload(
             str(monitor_environment.id).encode(),
@@ -394,11 +401,11 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         )
 
         # Nothing happens first run, we're not at the next_checkin_latest
-        dispatch_check_missing(ts)
+        dispatch_check_missing(ts, TickVolumeAnomolyResult.NORMAL)
         assert mock_produce_task.call_count == 0
 
         # Generate a missed-checkin
-        dispatch_check_missing(ts + timedelta(minutes=1))
+        dispatch_check_missing(ts + timedelta(minutes=1), TickVolumeAnomolyResult.NORMAL)
         assert mock_produce_task.call_count == 1
         mark_environment_missing(
             monitor_environment.id,
@@ -413,7 +420,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         # noop
 
         # Two minutes later we do NOT skip the task
-        dispatch_check_missing(ts + timedelta(minutes=3))
+        dispatch_check_missing(ts + timedelta(minutes=3), TickVolumeAnomolyResult.NORMAL)
         assert mock_produce_task.call_count == 2
         mark_environment_missing(
             monitor_environment.id,
@@ -470,7 +477,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             is_muted=environment_is_muted,
         )
 
-        dispatch_check_missing(ts)
+        dispatch_check_missing(ts, TickVolumeAnomolyResult.NORMAL)
 
         # We do not fire off any tasks
         assert mock_produce_task.call_count == 0
@@ -529,7 +536,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         # Running the task will not mark the monitor as missed, since the next
         # checkin time will be exactly the same as the reference time for the
         # monitor.
-        dispatch_check_missing(ts)
+        dispatch_check_missing(ts, TickVolumeAnomolyResult.NORMAL)
 
         # We do not fire off any tasks
         assert mock_produce_task.call_count == 0
@@ -583,7 +590,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             status=MonitorStatus.OK,
         )
 
-        dispatch_check_missing(ts)
+        dispatch_check_missing(ts, TickVolumeAnomolyResult.NORMAL)
 
         # assert that task is called for the specific environments
         assert mock_produce_task.call_count == 2
@@ -679,17 +686,17 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         )
 
         # Clock tick at 12:00 does not find the monitor as missed
-        dispatch_check_missing(ts)
+        dispatch_check_missing(ts, TickVolumeAnomolyResult.NORMAL)
         assert mock_produce_task.call_count == 0
 
         # Clock tick at 12:01 produces a missed check-in task
-        dispatch_check_missing(ts + timedelta(minutes=1))
+        dispatch_check_missing(ts + timedelta(minutes=1), TickVolumeAnomolyResult.NORMAL)
         assert mock_produce_task.call_count == 1
 
         # Clock tick at 12:02 produces another missed check-in task. This
         # happens because the first task has not yet run to re-compute the
         # next_checkin_latest
-        dispatch_check_missing(ts + timedelta(minutes=2))
+        dispatch_check_missing(ts + timedelta(minutes=2), TickVolumeAnomolyResult.NORMAL)
         assert mock_produce_task.call_count == 2
 
         # Execute the queued mark_missing tasks. This will have moved the

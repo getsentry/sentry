@@ -39,7 +39,7 @@ def process_clock_tick(message: Message[KafkaPayload | FilteredPayload]):
         extra={"reference_datetime": str(ts), "volume_anomaly_result": volume_anomaly_result.value},
     )
 
-    dispatch_check_missing(ts)
+    dispatch_check_missing(ts, volume_anomaly_result)
 
     # When the tick is anomalys we are unable to mark timeouts, since it is
     # possible that a OK check-in was sent completing an earlier in-progress
