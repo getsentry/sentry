@@ -333,7 +333,7 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
-    expect(screen.getByText('Continuous Profiling')).toBeInTheDocument();
+    expect(screen.queryByText('Continuous Profiling')).not.toBeInTheDocument(); // TODO(Continuous Profiling GA): should be in document
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
@@ -383,7 +383,7 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
-    expect(screen.getByText('Continuous Profiling')).toBeInTheDocument();
+    expect(screen.queryByText('Continuous Profiling')).not.toBeInTheDocument(); // TODO(Continuous Profiling GA): should be in document
   });
 
   it('spend notifications on org with am1 org only', async function () {
@@ -399,7 +399,7 @@ describe('NotificationSettingsByType', function () {
     expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
-    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
@@ -423,7 +423,7 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
-    expect(screen.getByText('Continuous Profiling')).toBeInTheDocument();
+    expect(screen.queryByText('Continuous Profiling')).not.toBeInTheDocument(); // TODO(Continuous Profiling GA): should be in document
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({

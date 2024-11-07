@@ -356,7 +356,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Profile Hours'),
     productName: t('Continuous Profiling'),
     uid: 17,
-    isBilledCategory: false,
+    isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 

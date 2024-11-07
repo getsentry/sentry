@@ -175,20 +175,6 @@ export const QUOTA_FIELDS = [
   },
   ...CATEGORY_QUOTA_FIELDS,
   {
-    name: 'quotaProfileDuration',
-    label: t('Continuous Profiling'),
-    help: tct(
-      'Receive notifications about your continuous profiling quota. [learnMore:Learn more]',
-      {
-        learnMore: <ExternalLink href={getDocsLinkForEventType('profileDuration')} />,
-      }
-    ),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
-  {
     name: 'quotaSpendAllocations',
     label: (
       <Fragment>
