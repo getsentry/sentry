@@ -271,6 +271,32 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             assert sub.status == QuerySubscription.Status.ACTIVE.value
             assert sub.subscription_id is not None
 
+    def test_eap_rpc_query_count(self):
+        time_window = 3600
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.op:http.client",
+            aggregate="count(span.duration)",
+            dataset=Dataset.EventsAnalyticsPlatform,
+            time_window=time_window,
+        )
+        with patch("sentry.snuba.tasks._snuba_pool") as pool:
+            resp = Mock()
+            resp.status = 202
+            resp.data = json.dumps({"subscription_id": "123"})
+            pool.urlopen.return_value = resp
+
+            create_subscription_in_snuba(sub.id)
+            request_body = json.loads(pool.urlopen.call_args[1]["body"])
+            # Validate that the spm function uses the correct time window
+            assert (
+                "b'\\x12A\\x12)\\x08\\x03\\x12\\x0f\\x08\\x04\\x12\\x0bduration_ms\\x1a\\x14count(span.duration)\\x1a\\x14count(span.duration)\\x1a%\"#\\n\\x10\\x08\\x01\\x12\\x0cattr_str[op]\\x10\\x05\\x1a\\r\\x12\\x0bhttp.client'"
+                in request_body["trace_item_table_request"]
+            )
+            sub = QuerySubscription.objects.get(id=sub.id)
+            assert sub.status == QuerySubscription.Status.ACTIVE.value
+            assert sub.subscription_id is not None
+
 
 class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.UPDATING
@@ -316,6 +342,27 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_eap_rpc_query_count(self):
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.op:http.client",
+            aggregate="count(span.duration)",
+            dataset=Dataset.EventsAnalyticsPlatform,
+        )
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
+        sub.status = QuerySubscription.Status.UPDATING.value
+        sub.update(
+            status=QuerySubscription.Status.UPDATING.value, subscription_id=sub.subscription_id
+        )
+        update_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.DELETING
@@ -330,6 +377,18 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
     def test_insights_query_spm(self):
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            subscription_id=subscription_id,
+            query="span.module:db",
+            aggregate="spm()",
+            dataset=Dataset.PerformanceMetrics,
+        )
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_eap_rpc_query_count(self):
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING,

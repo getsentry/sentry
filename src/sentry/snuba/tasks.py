@@ -6,6 +6,12 @@ from datetime import timedelta
 import orjson
 import sentry_sdk
 from django.utils import timezone
+from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
+    CreateSubscriptionRequest,
+    CreateSubscriptionResponse,
+)
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemName
 
 from sentry import features
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -17,9 +23,10 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import build_query_strings
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import metrics, snuba_rpc
 from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
 
 logger = logging.getLogger(__name__)
@@ -216,17 +223,31 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             subscription.project.organization_id,
         )
         query_string = build_query_strings(subscription, snuba_query).query_string
-        snql_query = entity_subscription.build_query_builder(
-            query=query_string,
-            project_ids=[subscription.project_id],
-            environment=snuba_query.environment,
-            params={
-                "organization_id": subscription.project.organization_id,
-                "project_id": [subscription.project_id],
-            },
-        ).get_snql_query()
+        if entity_subscription.dataset == Dataset.EventsAnalyticsPlatform:
+            rpc_time_series_request = entity_subscription.build_rpc_request(
+                query=query_string,
+                project_ids=[subscription.project_id],
+                environment=snuba_query.environment,
+                params={
+                    "organization_id": subscription.project.organization_id,
+                    "project_id": [subscription.project_id],
+                },
+            )
+            return _create_rpc_in_snuba(
+                subscription, snuba_query, rpc_time_series_request, entity_subscription
+            )
+        else:
+            snql_query = entity_subscription.build_query_builder(
+                query=query_string,
+                project_ids=[subscription.project_id],
+                environment=snuba_query.environment,
+                params={
+                    "organization_id": subscription.project.organization_id,
+                    "project_id": [subscription.project_id],
+                },
+            ).get_snql_query()
 
-        return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
+            return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
 
 
 # This indirection function only exists such that snql queries can be rewritten
@@ -254,6 +275,28 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
         f"/{snuba_query.dataset}/{entity_key.value}/subscriptions",
         body=post_body,
     )
+    if response.status != 202:
+        metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
+        raise SnubaError("HTTP %s response from Snuba!" % response.status)
+
+    return orjson.loads(response.data)["subscription_id"]
+
+
+def _create_rpc_in_snuba(
+    subscription, snuba_query, rpc_time_series_request: TimeSeriesRequest, entity_subscription
+):
+    subscription_request = CreateSubscriptionRequest(
+        time_series_request=rpc_time_series_request,
+        time_window_secs=snuba_query.time_window,
+        resolution_secs=snuba_query.resolution,
+    )
+
+    response = snuba_rpc.rpc(
+        subscription_request,
+        CreateSubscriptionResponse,
+        Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+    )
+
     if response.status != 202:
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
         raise SnubaError("HTTP %s response from Snuba!" % response.status)

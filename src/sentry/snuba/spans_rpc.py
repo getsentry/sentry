@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     Column,
     TraceItemTableRequest,
@@ -24,6 +25,48 @@ def categorize_column(column: ResolvedColumn) -> Column:
         return Column(aggregation=proto_definition, label=column.public_alias)
     else:
         return Column(key=proto_definition, label=column.public_alias)
+
+
+def get_table_query(
+    params: SnubaParams,
+    query_string: str,
+    selected_columns: list[str],
+    orderby: list[str] | None,
+    referrer: str,
+    config: SearchResolverConfig,
+) -> TraceItemTableRequest:
+    """Make the query"""
+    resolver = SearchResolver(params=params, config=config)
+    meta = resolver.resolve_meta(referrer=referrer)
+    query = resolver.resolve_query(query_string)
+    columns, contexts = resolver.resolve_columns(selected_columns)
+    # Orderby is only applicable to TraceItemTableRequest
+    resolved_orderby = (
+        [
+            TraceItemTableRequest.OrderBy(
+                column=categorize_column(resolver.resolve_column(orderby_column.lstrip("-"))[0]),
+                descending=orderby_column.startswith("-"),
+            )
+            for orderby_column in orderby
+        ]
+        if orderby
+        else []
+    )
+    labeled_columns = [categorize_column(col) for col in columns]
+
+    rpc_request = TraceItemTableRequest(
+        meta=meta,
+        filter=query,
+        columns=labeled_columns,
+        group_by=[
+            col.proto_definition
+            for col in columns
+            if isinstance(col.proto_definition, AttributeKey)
+        ],
+        order_by=resolved_orderby,
+        virtual_column_contexts=[context for context in contexts if context is not None],
+    )
+    return rpc_request
 
 
 def run_table_query(
@@ -101,6 +144,30 @@ def run_table_query(
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
     return {"data": final_data, "meta": final_meta}
+
+
+def get_timeseries_query(
+    params: SnubaParams,
+    query_string: str,
+    y_axes: list[str],
+    groupby: list[str],
+    referrer: str,
+    config: SearchResolverConfig,
+    granularity_secs: int,
+) -> TimeSeriesRequest:
+    resolver = SearchResolver(params=params, config=config)
+    meta = resolver.resolve_meta(referrer=referrer)
+    query = resolver.resolve_query(query_string)
+    (aggregations, _) = resolver.resolve_aggregates(y_axes)
+    (groupbys, _) = resolver.resolve_columns(groupby)
+
+    return TimeSeriesRequest(
+        meta=meta,
+        filter=query,
+        aggregations=[agg.proto_definition for agg in aggregations],
+        group_by=[groupby.proto_definition for groupby in groupbys],
+        granularity_secs=granularity_secs,
+    )
 
 
 def run_timeseries_query(

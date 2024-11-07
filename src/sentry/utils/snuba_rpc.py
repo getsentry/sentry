@@ -48,7 +48,9 @@ class SnubaRPCRequest(Protocol):
     ): ...
 
 
-def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseType:
+def rpc(
+    req: SnubaRPCRequest, resp_type: type[RPCResponseType], referrer: str | None = None
+) -> RPCResponseType:
     """
     You want to call a snuba RPC. Here's how you do it:
 
@@ -80,7 +82,7 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
     )
     aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
     """
-    referrer = req.meta.referrer
+    referrer = referrer if referrer else req.meta.referrer
     if SNUBA_INFO:
         from google.protobuf.json_format import MessageToJson
 
