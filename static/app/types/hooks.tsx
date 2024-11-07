@@ -17,7 +17,6 @@ import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProv
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
-import type {Group} from './group';
 import type {Integration, IntegrationProvider} from './integrations';
 import type {
   Route,
@@ -147,11 +146,6 @@ type CodecovLinkProps = {
   organization: Organization;
 };
 
-type QualitativeIssueFeedbackProps = {
-  group: Group;
-  organization: Organization;
-};
-
 // on-create-project-product-selection
 type CreateProjectProductSelectionChangedCallback = (options: {
   defaultProducts: ProductSolution[];
@@ -194,11 +188,11 @@ export type ComponentHooks = {
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
-  'component:escalating-issues-banner-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
+  'component:insights-date-range-query-limit-footer': () => React.ComponentType<{}>;
   'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;

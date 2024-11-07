@@ -39,7 +39,33 @@ export function EventList({group}: EventListProps) {
   const routes = useRoutes();
   const [_error, setError] = useState('');
   const {fields, columnTitles} = useEventColumns(group, organization);
-  const eventView = useIssueDetailsEventView({group, queryProps: {fields}});
+  const eventView = useIssueDetailsEventView({
+    group,
+    queryProps: {
+      fields,
+      widths: fields.map(field => {
+        switch (field) {
+          case 'id':
+          case 'trace':
+          case 'replayId':
+            // Id columns can be smaller
+            return '100';
+          case 'environment':
+            // Big enough to fit "Environment"
+            return '115';
+          case 'timestamp':
+            return '220';
+          case 'url':
+            return '300';
+          case 'title':
+          case 'transaction':
+            return '200';
+          default:
+            return '150';
+        }
+      }),
+    },
+  });
 
   const grayText = css`
     color: ${theme.subText};
@@ -77,7 +103,7 @@ export function EventList({group}: EventListProps) {
           const previousDisabled = links.previous?.results === false;
           const nextDisabled = links.next?.results === false;
           const currentCursor = parseCursor(location.query?.cursor);
-          const start = currentCursor?.offset ?? 0;
+          const start = Math.max(currentCursor?.offset ?? 1, 1);
 
           return (
             <EventListHeader>
@@ -85,9 +111,11 @@ export function EventList({group}: EventListProps) {
               <EventListHeaderItem>
                 {isPending
                   ? null
-                  : tct('Showing [start]-[end] of [count]', {
+                  : tct('Showing [start]-[end] of [count] matching events', {
                       start: start.toLocaleString(),
-                      end: (start + pageEventsCount).toLocaleString(),
+                      end: (
+                        (currentCursor?.offset ?? 0) + pageEventsCount
+                      ).toLocaleString(),
                       count: (totalEventsCount ?? 0).toLocaleString(),
                     })}
               </EventListHeaderItem>

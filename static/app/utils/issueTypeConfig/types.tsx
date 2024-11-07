@@ -52,6 +52,10 @@ export type IssueTypeConfig = {
     helpText?: string;
   } | null;
   /**
+   * Is the Issue Summary available for this issue
+   */
+  issueSummary: DisabledWithReasonConfig;
+  /**
    * Is the Merged Issues tab shown for this issue
    */
   mergedIssues: DisabledWithReasonConfig;

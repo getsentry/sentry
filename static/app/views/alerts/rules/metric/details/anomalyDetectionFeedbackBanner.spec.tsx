@@ -38,7 +38,7 @@ describe('AnomalyDetectionFeedbackBanner', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Yes'}));
 
     expect(analyticsSpy).toHaveBeenCalledWith(
-      'anomaly_detection.submitted_feedback',
+      'anomaly-detection.feedback-submitted',
       expect.objectContaining({
         choice_selected: true,
         organization,
@@ -79,7 +79,7 @@ describe('AnomalyDetectionFeedbackBanner', () => {
     await userEvent.click(screen.getByRole('button', {name: 'No'}));
 
     expect(analyticsSpy).toHaveBeenCalledWith(
-      'anomaly_detection.submitted_feedback',
+      'anomaly-detection.feedback-submitted',
       expect.objectContaining({
         choice_selected: false,
         organization,
