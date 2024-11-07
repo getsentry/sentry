@@ -13,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
+import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 import {
   useGetSamplingProjectRates,
   useUpdateSamplingProjectRates,
@@ -23,7 +24,7 @@ const {useFormState, FormProvider} = projectSamplingForm;
 
 export function ProjectSampling() {
   const {hasAccess} = useAccess({access: ['org:write']});
-  const [period, setPeriod] = useState<'24h' | '30d'>('24h');
+  const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
   const {data, isPending} = useGetSamplingProjectRates();
 
   const updateSamplingProjectRates = useUpdateSamplingProjectRates();

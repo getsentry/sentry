@@ -16,6 +16,7 @@ import {OrganizationSampleRateField} from 'sentry/views/settings/dynamicSampling
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
+import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
@@ -27,7 +28,7 @@ const UNSAVED_CHANGES_MESSAGE = t(
 export function OrganizationSampling() {
   const organization = useOrganization();
   const {hasAccess} = useAccess({access: ['org:write']});
-  const [period, setPeriod] = useState<'24h' | '30d'>('24h');
+  const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
 
   const formState = useFormState({
     initialValues: {
