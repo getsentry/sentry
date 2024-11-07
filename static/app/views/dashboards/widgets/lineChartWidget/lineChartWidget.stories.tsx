@@ -28,8 +28,8 @@ export default storyBook(LineChartWidget, story => {
       <Fragment>
         <p>
           <JSXNode name="LineChartWidget" /> is a Dashboard Widget Component. It displays
-          a timeseries chart with more than one timeseries. Used to visualize data that
-          changes over time in Project Details, Dashboards, Performance, and other UIs
+          a timeseries chart with one or more timeseries. Used to visualize data that
+          changes over time in Project Details, Dashboards, Performance, and other UIs.
         </p>
       </Fragment>
     );

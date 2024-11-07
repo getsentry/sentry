@@ -9,6 +9,7 @@ describe('LineChartWidget', () => {
         <LineChartWidget
           title="eps()"
           description="Number of events per second"
+          timeseries={[]}
           meta={{
             fields: {
               'eps()': 'rate',

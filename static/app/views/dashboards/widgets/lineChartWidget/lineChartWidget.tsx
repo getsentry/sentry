@@ -20,14 +20,6 @@ interface Props
 export function LineChartWidget(props: Props) {
   const {timeseries} = props;
 
-  if (props.isLoading) {
-    return (
-      <WidgetFrame title={props.title} description={props.description}>
-        LOADING
-      </WidgetFrame>
-    );
-  }
-
   return (
     <WidgetFrame
       title={props.title}
