@@ -6,7 +6,6 @@ from django.utils import timezone
 from sentry.dynamic_sampling.rules.base import get_guarded_project_sample_rate
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
-    SamplingMeasure,
     boost_low_volume_projects,
     boost_low_volume_projects_of_org_with_query,
     fetch_projects_with_total_root_transaction_count_and_rates,
@@ -18,7 +17,7 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     generate_sliding_window_org_cache_key,
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
-from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
