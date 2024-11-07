@@ -1,10 +1,10 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
 
+import {AnalyticsAreaContext} from 'sentry/components/analyticsAreaProvider';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {SurfaceContext} from 'sentry/components/surfaceProvider';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,7 +21,7 @@ interface TraceLinkProps {
 export function TraceLink({event}: TraceLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const surface = useContext(SurfaceContext);
+  const surface = useContext(AnalyticsAreaContext);
   const traceTarget = generateTraceTarget(
     event,
     organization,

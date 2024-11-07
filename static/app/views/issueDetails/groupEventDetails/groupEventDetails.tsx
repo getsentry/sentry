@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import AnalyticsAreaProvider from 'sentry/components/analyticsAreaProvider';
 import ArchivedBox from 'sentry/components/archivedBox';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
@@ -10,7 +11,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
-import SurfaceProvider from 'sentry/components/surfaceProvider';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -159,7 +159,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const MainLayoutComponent = hasStreamlinedUI ? 'div' : StyledLayoutMain;
 
   return (
-    <SurfaceProvider value="issue_details">
+    <AnalyticsAreaProvider name="issue_details">
       <TransactionProfileIdProvider
         projectId={event?.projectID}
         transactionId={event?.type === 'transaction' ? event.id : undefined}
@@ -213,7 +213,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
           </LayoutBody>
         </VisuallyCompleteWithData>
       </TransactionProfileIdProvider>
-    </SurfaceProvider>
+    </AnalyticsAreaProvider>
   );
 }
 
