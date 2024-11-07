@@ -31,6 +31,7 @@ from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.options import ControlOption
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
@@ -397,8 +398,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
 
-        project1.update_option("sentry:sampling_rate", 0.3)
-        project2.update_option("sentry:sampling_rate", 0.5)
+        project1.update_option("sentry:target_sample_rate", 0.3)
+        project2.update_option("sentry:target_sample_rate", 0.5)
 
         with self.feature("organizations:dynamic-sampling-custom"):
             response = self.get_response(
@@ -414,8 +415,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert self.organization.get_option("sentry:target_sample_rate") == 0.123456789
 
         # Verify project options were removed
-        assert not project1.get_option("sentry:sampling_rate")
-        assert not project2.get_option("sentry:sampling_rate")
+
+        assert not ProjectOption.objects.filter(
+            project__organization_id=self.organization.id, key="sentry:target_sample_rate"
+        )
 
     @django_db_all
     def test_sampling_mode_retains_target_sample_rate(self):
@@ -485,8 +488,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         project2 = self.create_project(organization=self.organization)
 
         # Set some existing sampling rates
-        project1.update_option("sentry:sampling_rate", 0.3)
-        project2.update_option("sentry:sampling_rate", 0.5)
+        project1.update_option("sentry:target_sample_rate", 0.3)
+        project2.update_option("sentry:target_sample_rate", 0.5)
 
         with self.feature("organizations:dynamic-sampling-custom"):
             response = self.get_response(
@@ -498,8 +501,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.status_code == 200
 
         # Verify project rates were preserved
-        assert project1.get_option("sentry:sampling_rate") == 0.3
-        assert project2.get_option("sentry:sampling_rate") == 0.5
+        assert project1.get_option("sentry:target_sample_rate") == 0.3
+        assert project2.get_option("sentry:target_sample_rate") == 0.5
 
         # Verify org target rate was removed
         assert not self.organization.get_option("sentry:target_sample_rate")

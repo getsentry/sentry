@@ -980,7 +980,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                                 error_sample_rate_fallback=None,
                             )
                             if current_rate:
-                                project.update_option("sentry:sampling_rate", current_rate)
+                                project.update_option("sentry:target_sample_rate", current_rate)
 
                         organization.delete_option("sentry:target_sample_rate")
 
@@ -991,8 +991,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                                 serializer.validated_data["targetSampleRate"],
                             )
 
-                        for project in organization.project_set.all():
-                            project.delete_option("sentry:sampling_rate")
+                        ProjectOption.objects.filter(
+                            project__organization_id=organization.id,
+                            key="sentry:target_sample_rate",
+                        ).delete()
 
                 boost_low_volume_projects_of_org_with_query.delay(organization.id)
 
