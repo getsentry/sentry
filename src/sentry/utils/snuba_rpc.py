@@ -40,7 +40,12 @@ class SnubaRPCRequest(Protocol):
     def SerializeToString(self, deterministic: bool = ...) -> bytes: ...
 
     @property
-    def meta(self) -> sentry_protos.snuba.v1alpha.request_common_pb2.RequestMeta: ...
+    def meta(
+        self,
+    ) -> (
+        sentry_protos.snuba.v1alpha.request_common_pb2.RequestMeta
+        | sentry_protos.snuba.v1.request_common_pb2.RequestMeta
+    ): ...
 
 
 def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseType:

@@ -6,23 +6,24 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 
 from sentry.search.eap.columns import ResolvedColumn
 from sentry.search.eap.constants import FLOAT, INT, STRING
 from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import EventsMeta, EventsResponse, SnubaData, SnubaParams
 from sentry.utils import snuba_rpc
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
 def categorize_column(column: ResolvedColumn) -> Column:
-    if column.is_aggregate:
-        return Column(aggregation=column.proto_definition, label=column.public_alias)
+    proto_definition = column.proto_definition
+    if isinstance(proto_definition, AttributeAggregation):
+        return Column(aggregation=proto_definition, label=column.public_alias)
     else:
-        return Column(key=column.proto_definition, label=column.public_alias)
+        return Column(key=proto_definition, label=column.public_alias)
 
 
 def run_table_query(
@@ -34,7 +35,7 @@ def run_table_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
-) -> Any:
+) -> EventsResponse:
     """Make the query"""
     resolver = SearchResolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
@@ -70,8 +71,8 @@ def run_table_query(
     rpc_response = snuba_rpc.rpc(rpc_request, TraceItemTableResponse)
 
     """Process the results"""
-    final_data = []
-    final_meta = {"fields": {}, "units": {}}
+    final_data: SnubaData = []
+    final_meta: EventsMeta = EventsMeta(fields={})
     # Mapping from public alias to resolved column so we know type etc.
     columns_by_name = {col.public_alias: col for col in columns}
 
@@ -90,6 +91,7 @@ def run_table_query(
             final_data.append({})
 
         for index, result in enumerate(column_value.results):
+            result_value: str | int | float
             if resolved_column.proto_type == STRING:
                 result_value = result.val_str
             elif resolved_column.proto_type == INT:
