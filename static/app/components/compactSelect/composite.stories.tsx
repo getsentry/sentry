@@ -4,7 +4,7 @@ import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {Flex} from 'sentry/components/container/flex';
-import {IconCalendar, IconSentry, IconStar} from 'sentry/icons';
+import {IconSentry, IconStar} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
@@ -84,7 +84,7 @@ export default storyBook(CompositeSelect, story => {
               {...triggerProps}
               aria-label={'Select an Option'}
               size="sm"
-              icon={<IconCalendar />}
+              icon={<IconSentry />}
             >
               Select an Option
             </Button>
@@ -107,16 +107,10 @@ export default storyBook(CompositeSelect, story => {
             aria-label={'Cool'}
             multiple
             value={adjectives}
-            onChange={selection => {
-              setAdjectives(selection.map(s => s.value));
-            }}
+            onChange={selection => setAdjectives(selection.map(s => s.value))}
             options={ADJ_OPTIONS}
           />
         </CompositeSelect>
-        <br />
-        <br />
-        <br />
-        <br />
       </Fragment>
     );
   });
@@ -125,6 +119,7 @@ export default storyBook(CompositeSelect, story => {
     const [main, setMain] = useState<string>('pasta');
     const [side, setSide] = useState<string>('salad');
     const [drink, setDrink] = useState<string>('matcha');
+    const [drinks, setDrinks] = useState<string[]>(['matcha', 'tea']);
 
     return (
       <Fragment>
@@ -142,7 +137,7 @@ export default storyBook(CompositeSelect, story => {
                 size="sm"
                 icon={<IconSentry />}
               >
-                Composite Select Menu
+                Composite Select Single Select
               </Button>
             )}
           >
@@ -168,11 +163,31 @@ export default storyBook(CompositeSelect, story => {
                 size="sm"
                 icon={<IconStar />}
               >
-                Compact Select Menu
+                Compact Select Single Select
               </Button>
             )}
             value={drink}
             onChange={selection => setDrink(selection.value)}
+            options={[
+              {key: 'dairy', label: 'Dairy', options: DAIRY_OPTIONS},
+              {key: 'nondairy', label: 'Dairy Free Options', options: DAIRY_FREE_OPTIONS},
+            ]}
+          />
+
+          <CompactSelect
+            multiple
+            trigger={triggerProps => (
+              <Button
+                {...triggerProps}
+                aria-label={'Compact Select'}
+                size="sm"
+                icon={<IconStar />}
+              >
+                Compact Select Multiple Select
+              </Button>
+            )}
+            value={drinks}
+            onChange={selection => setDrinks(selection.map(s => s.value))}
             options={[
               {key: 'dairy', label: 'Dairy', options: DAIRY_OPTIONS},
               {key: 'nondairy', label: 'Dairy Free Options', options: DAIRY_FREE_OPTIONS},
