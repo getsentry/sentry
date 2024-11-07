@@ -183,15 +183,12 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         event_from_second_similar_group = save_new_event(
             {"message": "Adopt don't shop"}, self.project
         )
-        # test including message_distance
         similar_issue_data_1 = SeerSimilarIssueData(
-            message_distance=0.05,
             parent_group_id=NonNone(self.similar_event.group_id),
             parent_hash=NonNone(self.similar_event.get_primary_hash()),
             should_group=True,
             stacktrace_distance=0.00001,
         )
-        # test without including message_distance
         similar_issue_data_2 = SeerSimilarIssueData(
             parent_group_id=NonNone(event_from_second_similar_group.group_id),
             parent_hash=NonNone(event_from_second_similar_group.get_primary_hash()),
@@ -200,7 +197,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
         group_similar_endpoint = GroupSimilarIssuesEmbeddingsEndpoint()
         formatted_results = group_similar_endpoint.get_formatted_results(
-            similar_issues_data=[similar_issue_data_1, similar_issue_data_2], user=self.user
+            similar_issues_data=[similar_issue_data_1, similar_issue_data_2],
+            user=self.user,
+            group_id=self.group.id,
         )
         assert formatted_results == self.get_expected_response(
             [
@@ -218,7 +217,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
-                    "message_distance": 0.05,
                     "parent_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
@@ -298,14 +296,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
-                    # test with message_distance
-                    "message_distance": 0.05,
                     "parent_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.002,  # Over threshold
                 },
                 {
-                    # test without message_distance
                     "parent_hash": NonNone(over_threshold_group_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.002,  # Over threshold
@@ -344,6 +339,33 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             user_id=self.user.id,
         )
 
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_parent_hash_in_group_hashes(self, mock_seer_request):
+        """
+        Test that the request group's hashes are filtered out of the returned similar parent hashes
+        """
+        seer_return_value: Any = {
+            "responses": [
+                # Make the group's own hash the returned parent hash
+                {
+                    "parent_hash": self.event.get_primary_hash(),
+                    "should_group": True,
+                    "stacktrace_distance": 0.01,
+                },
+                {
+                    "parent_hash": self.similar_event.get_primary_hash(),
+                    "should_group": True,
+                    "stacktrace_distance": 0.01,
+                },
+            ]
+        }
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        response = self.client.get(self.path)
+
+        assert response.data == self.get_expected_response(
+            [NonNone(self.similar_event.group_id)], [0.99], ["Yes"]
+        )
+
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
@@ -353,13 +375,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         seer_return_value: Any = {
             "responses": [
                 {
-                    "message_distance": 0.05,
                     "parent_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
                 {
-                    "message_distance": 0.05,
                     # missing parent hash
                     "should_group": True,
                     "stacktrace_distance": 0.01,
@@ -383,7 +403,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "use_reranking": True,
                 },
                 "raw_similar_issue_data": {
-                    "message_distance": 0.05,
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
@@ -424,13 +443,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             # We should log the second and return the first.
             "responses": [
                 {
-                    "message_distance": 0.05,
                     "parent_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.01,
                 },
                 {
-                    "message_distance": 0.05,
                     "parent_hash": "not a real hash",
                     "should_group": True,
                     "stacktrace_distance": 0.01,
@@ -487,7 +504,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
-                    "message_distance": 0.05,
                     "parent_hash": "dogs are great",
                     "should_group": True,
                     "stacktrace_distance": 0.01,
@@ -619,7 +635,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
-                    "message_distance": 0.05,
                     "parent_hash": NonNone(self.similar_event.get_primary_hash()),
                     "should_group": True,
                     "stacktrace_distance": 0.01,

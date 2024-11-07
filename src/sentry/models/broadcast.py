@@ -31,7 +31,6 @@ class Broadcast(Model):
     is_active = models.BooleanField(default=True, db_index=True)
     date_expires = models.DateTimeField(default=default_expiration, null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now)
-    cta = models.CharField(max_length=256, null=True, blank=True)
     media_url = models.URLField(null=True, blank=True)
     category = models.CharField(choices=BROADCAST_CATEGORIES, max_length=32, null=True, blank=True)
     created_by_id = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from base64 import b64encode
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -24,6 +24,7 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
@@ -323,6 +324,48 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
                 assert not response.data["isDynamicallySampled"]
                 assert "planSampleRate" not in response.data
 
+    def test_is_dynamically_sampled_no_org_option(self):
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ):
+                response = self.get_success_response(self.organization.slug)
+                assert response.data["isDynamicallySampled"]
+
+    def test_is_dynamically_sampled_org_option(self):
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.organization.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data["isDynamicallySampled"]
+
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.organization.update_option("sentry:target_sample_rate", 1.0)
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert not response.data["isDynamicallySampled"]
+
+    def test_is_dynamically_sampled_proj_option(self):
+        proj_1 = self.create_project(organization=self.organization)
+        proj_2 = self.create_project(organization=self.organization)
+
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        proj_1.update_option("sentry:target_sample_rate", 1.0)
+        # proj_2 remains unset
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert not response.data["isDynamicallySampled"]
+
+        proj_2.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data["isDynamicallySampled"]
+
     def test_dynamic_sampling_custom_target_sample_rate(self):
         with self.feature({"organizations:dynamic-sampling-custom": True}):
             response = self.get_success_response(self.organization.slug)
@@ -363,6 +406,47 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             resp.data["avatar"]["avatarUrl"]
             == generate_region_url() + "/organization-avatar/abc123/"
         )
+
+    def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self):
+        with self.feature("organizations:onboarding"):
+            old_date = datetime(2023, 12, 31, tzinfo=UTC)
+            old_org = self.create_organization(name="old-org", date_added=old_date, owner=self.user)
+            self.login_as(user=self.user)
+
+            OrganizationOption.objects.create(organization_id=old_org.id, key="foo:bar", value=True)
+
+            response = self.get_success_response(
+                old_org.slug, qs_params={"include_feature_flags": 1}
+            )
+            assert "onboarding" not in response.data["features"]
+
+    def test_new_orgs_with_options_get_onboarding_feature_flag(self):
+        with self.feature("organizations:onboarding"):
+            newer_date = datetime(2024, 12, 31, tzinfo=UTC)
+            new_org = self.create_organization(date_added=newer_date, owner=self.user)
+            self.login_as(user=self.user)
+
+            OrganizationOption.objects.create(organization_id=new_org.id, key="foo:bar", value=True)
+
+            response = self.get_success_response(
+                new_org.slug, qs_params={"include_feature_flags": 1}
+            )
+            assert "onboarding" in response.data["features"]
+
+    def test_new_orgs_with_options_do_not_get_onboarding_feature_flag(self):
+        with self.feature("organizations:onboarding"):
+            newer_date = datetime(2024, 12, 31, tzinfo=UTC)
+            new_org = self.create_organization(date_added=newer_date, owner=self.user)
+            self.login_as(user=self.user)
+
+            OrganizationOption.objects.create(
+                organization_id=new_org.id, key="onboarding:complete", value=True
+            )
+
+            response = self.get_success_response(
+                new_org.slug, qs_params={"include_feature_flags": 1}
+            )
+            assert "onboarding" not in response.data["features"]
 
 
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
@@ -473,6 +557,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "uptimeAutodetection": False,
             "targetSampleRate": 0.1,
             "samplingMode": "project",
+            "rollbackEnabled": True,
         }
 
         # needed to set require2FA
@@ -513,6 +598,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:uptime_autodetection") is False
         assert options.get("sentry:target_sample_rate") == 0.1
         assert options.get("sentry:sampling_mode") == "project"
+        assert options.get("sentry:rollback_enabled") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):

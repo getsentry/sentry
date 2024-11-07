@@ -441,6 +441,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     ) => {
       if (searchingRaf.current?.id) {
         window.cancelAnimationFrame(searchingRaf.current.id);
+        searchingRaf.current = null;
       }
 
       function done([matches, lookup, activeNodeSearchResult]) {
@@ -946,12 +947,13 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       );
     }
 
+    traceAnalytics.trackAutogroupingPreferenceChange(props.organization, value);
     props.tree.rebuild();
     traceDispatch({
       type: 'set autogrouping',
       payload: value,
     });
-  }, [traceDispatch, traceState.preferences.autogroup, props.tree]);
+  }, [traceDispatch, traceState.preferences.autogroup, props.tree, props.organization]);
 
   const onMissingInstrumentationChange = useCallback(() => {
     const value = !traceState.preferences.missing_instrumentation;
@@ -983,12 +985,18 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       );
     }
 
+    traceAnalytics.trackMissingInstrumentationPreferenceChange(props.organization, value);
     props.tree.rebuild();
     traceDispatch({
       type: 'set missing instrumentation',
       payload: value,
     });
-  }, [traceDispatch, traceState.preferences.missing_instrumentation, props.tree]);
+  }, [
+    traceDispatch,
+    traceState.preferences.missing_instrumentation,
+    props.tree,
+    props.organization,
+  ]);
 
   return (
     <Fragment>

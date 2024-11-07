@@ -1,15 +1,12 @@
 import {useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
@@ -20,6 +17,10 @@ import {OrganizationSampleRateField} from 'sentry/views/settings/dynamicSampling
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
+import {
+  type ProjectionSamplePeriod,
+  useProjectSampleCounts,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
@@ -31,12 +32,15 @@ const UNSAVED_CHANGES_MESSAGE = t(
 export function OrganizationSampling() {
   const organization = useOrganization();
   const {hasAccess} = useAccess({access: ['org:write']});
-
-  const [period, setPeriod] = useState<'24h' | '30d'>('24h');
+  const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
 
   const formState = useFormState({
-    targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toLocaleString(),
+    initialValues: {
+      targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toLocaleString(),
+    },
   });
+
+  const sampleCountsQuery = useProjectSampleCounts({period});
 
   const {mutate: updateOrganization, isPending} = useUpdateOrganization();
 
@@ -67,31 +71,6 @@ export function OrganizationSampling() {
         <Panel>
           <PanelHeader>{t('Automatic Sampling')}</PanelHeader>
           <PanelBody>
-            <FieldGroup
-              label={t('Sampling Mode')}
-              help={t('Changes the level of detail and configuring sample rates.')}
-            >
-              <div
-                css={css`
-                  display: flex;
-                  align-items: center;
-                  gap: ${space(1)};
-                `}
-              >
-                {t('Automatic Balancing')}{' '}
-                <QuestionTooltip
-                  size="sm"
-                  isHoverable
-                  title={tct(
-                    'Automatic balancing optimizes the sample rates of your projects based on an overall target for your organization. [link:Learn more]',
-                    {
-                      // TODO(aknaus): Add link to documentation
-                      link: <ExternalLink href="https://docs.sentry.io/" />,
-                    }
-                  )}
-                />
-              </div>
-            </FieldGroup>
             <SamplingModeField />
             <OrganizationSampleRateField />
           </PanelBody>
@@ -137,11 +116,24 @@ export function OrganizationSampling() {
           </Tooltip>
         </HeadingRow>
         <p>
-          {t(
-            'The following table gives you a preview of how your projects will be affected by the global sample rate. Depeding on the amount of spans they generate their sample rate will be adjusted. Inactive projects (not listed) will always be sampled at 100% until they generate spans.'
+          {tct(
+            'This table gives you a preview of how your projects will be affected by the global sample rate. The [strong:projected rates are estimates] based on recent span volume.',
+            {
+              strong: <strong />,
+            }
           )}
         </p>
-        <ProjectsPreviewTable period={period} />
+        {sampleCountsQuery.isError ? (
+          <LoadingError onRetry={sampleCountsQuery.refetch} />
+        ) : (
+          <ProjectsPreviewTable
+            sampleCounts={sampleCountsQuery.data}
+            isLoading={sampleCountsQuery.isPending}
+          />
+        )}
+        <SubTextParagraph>
+          {t('Inactive projects are not listed and will be sampled at 100% initially.')}
+        </SubTextParagraph>
       </form>
     </FormProvider>
   );
@@ -164,4 +156,9 @@ const HeadingRow = styled('div')`
   & > h4 {
     margin: 0;
   }
+`;
+
+const SubTextParagraph = styled('p')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
