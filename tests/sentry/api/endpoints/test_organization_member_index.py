@@ -550,12 +550,12 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
     def test_member_invites(self):
         self.invite_all_helper("member")
 
-    def test_ignores_feature_flag(self):
+    def test_respects_feature_flag(self):
         user = self.create_user("baz@example.com")
 
         with Feature({"organizations:invite-members": False}):
             data = {"email": user.email, "role": "member", "teams": [self.team.slug]}
-            self.get_success_response(self.organization.slug, **data, status_code=201)
+            self.get_error_response(self.organization.slug, **data, status_code=403)
 
     def test_no_team_invites(self):
         data = {"email": "eric@localhost", "role": "owner", "teams": []}
