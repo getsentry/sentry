@@ -81,7 +81,7 @@ describe('EventFeatureFlagList', function () {
     expect(drawerControl).toHaveFocus();
   });
 
-  it('renders a sort group dropdown with Evaluation Order as the default', async function () {
+  it('renders a sort dropdown with Evaluation Order as the default', async function () {
     render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS} />);
 
     const control = screen.getByRole('button', {name: 'Sort Flags'});
