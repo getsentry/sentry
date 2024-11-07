@@ -6345,7 +6345,13 @@
   },
   "workflow_engine.action": {
     "dangling": false,
-    "foreign_keys": {},
+    "foreign_keys": {
+      "integration_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.integration",
+        "nullable": true
+      }
+    },
     "model": "workflow_engine.action",
     "relocation_dependencies": [],
     "relocation_scope": "Excluded",
