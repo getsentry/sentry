@@ -2558,13 +2558,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deobfuscate profiles using Symbolicator
-register(
-    "profiling.deobfuscate-using-symbolicator.enable-for-project",
-    type=Sequence,
-    default=[],
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "traces.sample-list.sample-rate",
     type=Float,
@@ -2849,8 +2842,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# killswitch for profile consumers outcome emission.
+# If false, processed outcomes for profiles will keep
+# being emitted in the billing metrics consumer.
+#
+# If true, we'll stop emitting processed outcomes for
+# profiles in the billing metrics consumer and we'll
+# start emitting them in the profiling consumers
 register(
-    "issues.collapse-group-stats-in-activity",
-    default=True,
+    "profiling.emit_outcomes_in_profiling_consumer.enabled",
+    default=False,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

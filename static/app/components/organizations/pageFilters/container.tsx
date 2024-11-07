@@ -57,6 +57,7 @@ interface Props extends InitializeUrlStateProps {
 function PageFiltersContainer({
   skipLoadLastUsed,
   skipLoadLastUsedEnvironment,
+  maxPickableDays,
   children,
   ...props
 }: Props) {
@@ -99,6 +100,7 @@ function PageFiltersContainer({
       router,
       skipLoadLastUsed,
       skipLoadLastUsedEnvironment,
+      maxPickableDays,
       memberProjects,
       nonMemberProjects,
       defaultSelection,

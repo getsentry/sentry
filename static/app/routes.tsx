@@ -21,6 +21,7 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
+import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
@@ -49,14 +50,21 @@ const SafeLazyLoad = errorHandler(LazyLoad) as unknown as React.ComponentType<
  * _with_ the required props.
  */
 export function makeLazyloadComponent<C extends React.ComponentType<any>>(
-  resolve: () => Promise<{default: C}>
+  resolve: () => Promise<{default: C}>,
+  loadingFallback?: React.ReactNode
 ) {
   const LazyComponent = lazy<C>(() => retryableImport(resolve));
   // XXX: Assign the component to a variable so it has a displayname
   function RouteLazyLoad(props: React.ComponentProps<C>) {
     // we can use this hook to set the organization as it's
     // a child of the organization context
-    return <SafeLazyLoad {...props} LazyComponent={LazyComponent} />;
+    return (
+      <SafeLazyLoad
+        {...props}
+        LazyComponent={LazyComponent}
+        loadingFallback={loadingFallback}
+      />
+    );
   }
 
   return RouteLazyLoad;
@@ -1701,6 +1709,10 @@ function buildRoutes() {
           path="trace/:traceSlug/"
           component={make(() => import('sentry/views/performance/traceDetails'))}
         />
+        <Route
+          path="trends/"
+          component={make(() => import('sentry/views/performance/trends'))}
+        />
         <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
           <IndexRoute
             component={make(
@@ -1761,6 +1773,10 @@ function buildRoutes() {
           path="trace/:traceSlug/"
           component={make(() => import('sentry/views/performance/traceDetails'))}
         />
+        <Route
+          path="trends/"
+          component={make(() => import('sentry/views/performance/trends'))}
+        />
         <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
           <IndexRoute
             component={make(
@@ -1818,6 +1834,10 @@ function buildRoutes() {
         <Route
           path="trace/:traceSlug/"
           component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
+        <Route
+          path="trends/"
+          component={make(() => import('sentry/views/performance/trends'))}
         />
         <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
           <IndexRoute
@@ -1910,6 +1930,10 @@ function buildRoutes() {
         <Route
           path="trace/:traceSlug/"
           component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
+        <Route
+          path="trends/"
+          component={make(() => import('sentry/views/performance/trends'))}
         />
         <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
           <IndexRoute
@@ -2021,7 +2045,8 @@ function buildRoutes() {
           component={hoc(
             make(
               () =>
-                import('sentry/views/issueDetails/groupEventDetails/groupEventDetails')
+                import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
+              <GroupEventDetailsLoading />
             )
           )}
         />

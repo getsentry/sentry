@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -13,13 +13,14 @@ import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
-
-import {EventGraph} from './eventGraph';
 
 export function EventDetailsHeader({
   group,
@@ -32,6 +33,7 @@ export function EventDetailsHeader({
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({group});
+  const {baseUrl} = useGroupDetailsRoute();
   const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
     'issue-details-sidebar-open',
     true
@@ -79,7 +81,20 @@ export function EventDetailsHeader({
             </ToggleButton>
           </ToggleContainer>
         </Flex>
-        <Graph event={event} group={group} />
+        <GraphSection>
+          <EventGraph event={event} group={group} style={{flex: 1}} />
+          <SectionDivider />
+          <IssueTagsButton
+            aria-label={t('View Issue Tags')}
+            to={{
+              pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+              query: location.query,
+              replace: true,
+            }}
+          >
+            {t('Issue Tags')}
+          </IssueTagsButton>
+        </GraphSection>
       </FilterContainer>
     </PageErrorBoundary>
   );
@@ -164,9 +179,29 @@ const RightChevron = styled(LeftChevron)`
   left: ${space(1.5)};
 `;
 
-const Graph = styled(EventGraph)`
-  border-top: 1px solid ${p => p.theme.translucentBorder};
+const GraphSection = styled('div')`
   grid-area: graph;
+  display: flex;
+  border-top: 1px solid ${p => p.theme.translucentBorder};
+`;
+
+const IssueTagsButton = styled(LinkButton)`
+  display: block;
+  flex: 0;
+  height: unset;
+  margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
+  padding: ${space(1)} ${space(1.5)};
+  text-align: center;
+  span {
+    white-space: unset;
+  }
+`;
+
+const SectionDivider = styled('div')`
+  border-left: 1px solid ${p => p.theme.translucentBorder};
+  display: flex;
+  align-items: center;
+  margin: ${space(1)};
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`

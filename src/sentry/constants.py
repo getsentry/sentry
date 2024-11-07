@@ -75,6 +75,8 @@ ENVIRONMENT_NAME_MAX_LENGTH = 64
 
 SENTRY_APP_SLUG_MAX_LENGTH = 64
 
+PROJECT_SLUG_MAX_LENGTH = 100
+
 # Maximum number of results we are willing to fetch when calculating rollup
 # Clients should adapt the interval width based on their display width.
 MAX_ROLLUP_POINTS = 10000
@@ -714,6 +716,7 @@ DATA_CONSENT_DEFAULT = False
 UPTIME_AUTODETECTION = True
 TARGET_SAMPLE_RATE_DEFAULT = 1.0
 SAMPLING_MODE_DEFAULT = "organization"
+ROLLBACK_ENABLED_DEFAULT = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

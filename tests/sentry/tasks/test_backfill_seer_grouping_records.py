@@ -962,7 +962,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             parent_group_hash = GroupHash.objects.get(group_id=parent_group.id)
             groups_with_neighbor[str(event.group.id)] = RawSeerSimilarIssueData(
                 stacktrace_distance=0.01,
-                message_distance=0.01,
                 should_group=True,
                 parent_hash=parent_group_hash.hash,
             )
@@ -991,7 +990,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "results": [
                         {
                             "stacktrace_distance": 0.01,
-                            "message_distance": 0.01,
                             "should_group": True,
                             "parent_hash": groups_with_neighbor[str(group.id)]["parent_hash"],
                             "parent_group_id": parent_group_id,
@@ -1025,7 +1023,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         # Make the similar group a hash that does not exist
         group_with_neighbor[str(event.group.id)] = RawSeerSimilarIssueData(
             stacktrace_distance=0.01,
-            message_distance=0.01,
             should_group=True,
             parent_hash="00000000000000000000000000000000",
         )
@@ -2158,7 +2155,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         project_same_cohort_not_eligible = self.create_project(
             organization=self.organization, id=self.project.id + thread_number
         )
-        project_same_cohort_not_eligible.platform = "java"
+        project_same_cohort_not_eligible.platform = "not_eligible_platform"
         project_same_cohort_not_eligible.save()
         event_same_cohort = self.store_event(
             data={

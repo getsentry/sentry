@@ -8,7 +8,7 @@ import type {
   OnboardingTaskDescriptor,
   OnboardingTaskStatus,
 } from 'sentry/types/onboarding';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 
 type Props = {
   allTasks: OnboardingTaskDescriptor[];
@@ -19,7 +19,7 @@ function ProgressHeader({allTasks, completedTasks}: Props) {
   const theme = useTheme();
 
   let title: string, description: string;
-  if (isDemoWalkthrough()) {
+  if (isDemoModeEnabled()) {
     title = t('Guided Tours');
     description = t('Take a guided tour to see what Sentry can do for you');
   } else {

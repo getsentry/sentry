@@ -107,8 +107,6 @@ def main(context: dict[str, str]) -> int:
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
 
-    # repo-local devenv needs to update itself first with a successful sync
-    # so it'll take 2 syncs to get onto devenv-managed node, it is what it is
     from devenv.lib import node
 
     node.install(
