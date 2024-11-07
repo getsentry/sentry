@@ -61,7 +61,10 @@ def test_simple(mock_dispatch_check_timeout, mock_dispatch_check_missing):
     assert mock_dispatch_check_timeout.mock_calls[0] == mock.call(ts)
 
     assert mock_dispatch_check_missing.call_count == 1
-    assert mock_dispatch_check_missing.mock_calls[0] == mock.call(ts)
+    assert mock_dispatch_check_missing.mock_calls[0] == mock.call(
+        ts,
+        TickVolumeAnomolyResult.NORMAL,
+    )
 
 
 @mock.patch("sentry.monitors.consumers.clock_tick_consumer.dispatch_check_missing")
@@ -87,7 +90,10 @@ def test_simple_abnormal(mock_dispatch_mark_unknown, mock_dispatch_check_missing
     assert mock_dispatch_mark_unknown.mock_calls[0] == mock.call(ts)
 
     assert mock_dispatch_check_missing.call_count == 1
-    assert mock_dispatch_check_missing.mock_calls[0] == mock.call(ts)
+    assert mock_dispatch_check_missing.mock_calls[0] == mock.call(
+        ts,
+        TickVolumeAnomolyResult.ABNORMAL,
+    )
 
 
 class MonitorsClockTickEndToEndTest(TestCase):
