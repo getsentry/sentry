@@ -147,7 +147,7 @@ class SetupWizardView(BaseView):
 
     @allow_cors_options
     def options(self, request, *args, **kwargs):
-        return super().options()
+        return super().options(request, *args, **kwargs)
 
 
 def serialize_org_mapping(mapping: OrganizationMapping):
