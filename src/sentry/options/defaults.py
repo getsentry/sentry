@@ -2856,6 +2856,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",
     default=1_000_000,
