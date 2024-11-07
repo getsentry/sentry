@@ -11,6 +11,7 @@ from sentry.monitors.consumers.clock_tasks_consumer import (
     MONITORS_CLOCK_TASKS_CODEC,
     MonitorClockTasksStrategyFactory,
 )
+from sentry.monitors.types import TickVolumeAnomolyResult
 
 partition = Partition(Topic("test"), 0)
 
@@ -43,11 +44,18 @@ def test_dispatch_mark_missing(mock_mark_environment_missing):
     send_task(
         consumer,
         ts,
-        {"type": "mark_missing", "ts": ts.timestamp(), "monitor_environment_id": 1},
+        {
+            "type": "mark_missing",
+            "ts": ts.timestamp(),
+            "monitor_environment_id": 1,
+            "volume_anomaly_result": TickVolumeAnomolyResult.NORMAL.value,
+        },
     )
 
     assert mock_mark_environment_missing.call_count == 1
-    assert mock_mark_environment_missing.mock_calls[0] == mock.call(1, ts)
+    assert mock_mark_environment_missing.mock_calls[0] == mock.call(
+        1, ts, TickVolumeAnomolyResult.NORMAL
+    )
 
 
 @mock.patch("sentry.monitors.consumers.clock_tasks_consumer.mark_checkin_timeout")

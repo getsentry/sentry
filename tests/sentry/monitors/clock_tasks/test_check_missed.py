@@ -77,7 +77,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert mock_produce_task.call_count == 1
         assert mock_produce_task.mock_calls[0] == mock.call(payload)
 
-        mark_environment_missing(monitor_environment.id, ts)
+        mark_environment_missing(monitor_environment.id, ts, TickVolumeAnomolyResult.NORMAL)
 
         # Monitor status is updated
         monitor_environment = MonitorEnvironment.objects.get(
@@ -164,7 +164,11 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert mock_produce_task.call_count == 1
 
         # Missed check-in correctly updates
-        mark_environment_missing(monitor_environment.id, ts + timedelta(minutes=1))
+        mark_environment_missing(
+            monitor_environment.id,
+            ts + timedelta(minutes=1),
+            TickVolumeAnomolyResult.NORMAL,
+        )
         monitor_environment.refresh_from_db()
 
         assert MonitorCheckIn.objects.filter(
@@ -245,6 +249,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         mark_environment_missing(
             monitor_environment.id,
             ts + timedelta(minutes=4),
+            TickVolumeAnomolyResult.NORMAL,
         )
 
         monitor_environment = MonitorEnvironment.objects.get(
@@ -349,6 +354,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         mark_environment_missing(
             monitor_environment.id,
             ts + timedelta(minutes=10),
+            TickVolumeAnomolyResult.NORMAL,
         )
 
         # The missed checkin is created when it was supposed to happen
@@ -410,6 +416,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         mark_environment_missing(
             monitor_environment.id,
             ts + timedelta(minutes=1),
+            TickVolumeAnomolyResult.NORMAL,
         )
 
         # MonitorEnvironment is correctly updated with the next checkin time
@@ -425,6 +432,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         mark_environment_missing(
             monitor_environment.id,
             ts + timedelta(minutes=3),
+            TickVolumeAnomolyResult.NORMAL,
         )
 
         # MonitorEnvironment is updated with the next_checkin correctly being
@@ -597,10 +605,18 @@ class MonitorClockTasksCheckMissingTest(TestCase):
 
         # assert failing monitor raises an error
         with pytest.raises(ValueError):
-            mark_environment_missing(failing_monitor_environment.id, ts)
+            mark_environment_missing(
+                failing_monitor_environment.id,
+                ts,
+                TickVolumeAnomolyResult.NORMAL,
+            )
 
         # assert regular monitor works
-        mark_environment_missing(successful_monitor_environment.id, ts)
+        mark_environment_missing(
+            successful_monitor_environment.id,
+            ts,
+            TickVolumeAnomolyResult.NORMAL,
+        )
 
         # We still put the monitor in an error state
         assert MonitorEnvironment.objects.filter(
@@ -702,7 +718,11 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         # Execute the queued mark_missing tasks. This will have moved the
         # next_checkin_latest forward, meaning the next tick should NOT create
         # a missed check-in.
-        mark_environment_missing(monitor_environment.id, ts + timedelta(minutes=1))
+        mark_environment_missing(
+            monitor_environment.id,
+            ts + timedelta(minutes=1),
+            TickVolumeAnomolyResult.NORMAL,
+        )
 
         # We have created a missed check-in
         missed_checkin = MonitorCheckIn.objects.get(
@@ -713,7 +733,11 @@ class MonitorClockTasksCheckMissingTest(TestCase):
 
         # Execute the second task. This should detect that we've already moved
         # past the next_checkin_latest and NOT create a new missed
-        mark_environment_missing(monitor_environment.id, ts + timedelta(minutes=2))
+        mark_environment_missing(
+            monitor_environment.id,
+            ts + timedelta(minutes=2),
+            TickVolumeAnomolyResult.NORMAL,
+        )
 
         missed_count = MonitorCheckIn.objects.filter(
             monitor_environment=monitor_environment.id, status=CheckInStatus.MISSED
@@ -752,7 +776,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             status=MonitorStatus.DISABLED,
         )
 
-        mark_environment_missing(monitor_environment.id, ts)
+        mark_environment_missing(monitor_environment.id, ts, TickVolumeAnomolyResult.NORMAL)
 
         # Do NOT generate a missed check-in
         assert not MonitorCheckIn.objects.filter(

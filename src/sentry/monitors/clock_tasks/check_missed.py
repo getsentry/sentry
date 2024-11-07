@@ -93,7 +93,11 @@ def dispatch_check_missing(ts: datetime, volume_anomaly_result: TickVolumeAnomol
         produce_task(payload)
 
 
-def mark_environment_missing(monitor_environment_id: int, ts: datetime):
+def mark_environment_missing(
+    monitor_environment_id: int,
+    ts: datetime,
+    volume_anomaly_result: TickVolumeAnomolyResult,
+):
     logger.info("mark_missing", extra={"monitor_environment_id": monitor_environment_id})
 
     try:
@@ -118,6 +122,14 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
     assert monitor_environment.next_checkin is not None
     expected_time = monitor_environment.next_checkin
 
+    # If this tick had an abnormal volume of processed check-ins, mark it as
+    # UNKNOWN to avoid false-positive monitor incidents (and notifications).
+    match volume_anomaly_result:
+        case TickVolumeAnomolyResult.NORMAL:
+            status = CheckInStatus.MISSED
+        case TickVolumeAnomolyResult.ABNORMAL:
+            status = CheckInStatus.UNKNOWN
+
     # add missed checkin.
     #
     # XXX(epurkhiser): The date_added is backdated so that this missed
@@ -127,7 +139,7 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
         project_id=monitor_environment.monitor.project_id,
         monitor=monitor_environment.monitor,
         monitor_environment=monitor_environment,
-        status=CheckInStatus.MISSED,
+        status=status,
         date_added=expected_time,
         expected_time=expected_time,
         monitor_config=monitor.get_validated_config(),

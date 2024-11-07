@@ -22,6 +22,7 @@ from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_tasks.check_missed import mark_environment_missing
 from sentry.monitors.clock_tasks.check_timeout import mark_checkin_timeout
 from sentry.monitors.clock_tasks.mark_unknown import mark_checkin_unknown
+from sentry.monitors.types import TickVolumeAnomolyResult
 
 MONITORS_CLOCK_TASKS_CODEC: Codec[MonitorsClockTasks] = get_topic_codec(Topic.MONITORS_CLOCK_TASKS)
 
@@ -57,7 +58,12 @@ def process_clock_task(message: Message[KafkaPayload | FilteredPayload]):
             return
 
         if is_mark_missing(wrapper):
-            mark_environment_missing(int(wrapper["monitor_environment_id"]), ts)
+            volume_anomaly_result = TickVolumeAnomolyResult.from_str(
+                wrapper.get("volume_anomaly_result", "normal")
+            )
+            mark_environment_missing(
+                int(wrapper["monitor_environment_id"]), ts, volume_anomaly_result
+            )
             return
 
         logger.error("Unsupported clock-tick task type: %s", wrapper["type"])
