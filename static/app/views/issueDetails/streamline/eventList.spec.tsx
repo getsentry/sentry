@@ -120,6 +120,7 @@ describe('EventList', () => {
           query: persistantQuery,
           referrer: 'issue_details.streamline_list',
           statsPeriod: '14d',
+          sort: '-timestamp',
         },
       })
     );
