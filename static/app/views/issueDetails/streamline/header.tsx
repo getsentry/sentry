@@ -104,7 +104,9 @@ export default function StreamlinedGroupHeader({
               {secondaryTitle ?? t('No error message')}
             </SecondaryTitle>
           </Flex>
-          <StatTitle>{t('Events')}</StatTitle>
+          <StatTitle>
+            <StatLink to={`${baseUrl}events/${location.search}`}>{t('Events')}</StatLink>
+          </StatTitle>
           <StatTitle>
             {userCount === 0 ? (
               t('Users')
