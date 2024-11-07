@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
+import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -13,7 +14,10 @@ import {space} from 'sentry/styles/space';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
-import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import {
+  type ProjectionSamplePeriod,
+  useProjectSampleCounts,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 import {
   useGetSamplingProjectRates,
   useUpdateSamplingProjectRates,
@@ -25,20 +29,21 @@ const {useFormState, FormProvider} = projectSamplingForm;
 export function ProjectSampling() {
   const {hasAccess} = useAccess({access: ['org:write']});
   const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
-  const {data, isPending} = useGetSamplingProjectRates();
 
+  const sampleRatesQuery = useGetSamplingProjectRates();
+  const sampleCountsQuery = useProjectSampleCounts({period});
   const updateSamplingProjectRates = useUpdateSamplingProjectRates();
 
   const projectRates = useMemo(
     () =>
-      (data || []).reduce(
+      (sampleRatesQuery.data || []).reduce(
         (acc, item) => {
           acc[item.id.toString()] = (item.sampleRate * 100).toString();
           return acc;
         },
         {} as Record<string, string>
       ),
-    [data]
+    [sampleRatesQuery.data]
   );
 
   const initialValues = useMemo(() => ({projectRates}), [projectRates]);
@@ -69,7 +74,7 @@ export function ProjectSampling() {
 
   const isFormActionDisabled =
     !hasAccess ||
-    isPending ||
+    sampleRatesQuery.isPending ||
     updateSamplingProjectRates.isPending ||
     !formState.hasChanged;
 
@@ -101,7 +106,14 @@ export function ProjectSampling() {
           </Tooltip>
         </HeadingRow>
         <p>{t('Set custom rates for traces starting at each of your projects.')}</p>
-        <ProjectsEditTable isLoading={isPending} period={period} />
+        {sampleCountsQuery.isError ? (
+          <LoadingError onRetry={sampleCountsQuery.refetch} />
+        ) : (
+          <ProjectsEditTable
+            isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
+            sampleCounts={sampleCountsQuery.data}
+          />
+        )}
         <FormActions>
           <Button disabled={isFormActionDisabled} onClick={formState.reset}>
             {t('Reset')}

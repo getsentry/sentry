@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
+import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -16,7 +17,10 @@ import {OrganizationSampleRateField} from 'sentry/views/settings/dynamicSampling
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
-import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import {
+  type ProjectionSamplePeriod,
+  useProjectSampleCounts,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
@@ -35,6 +39,8 @@ export function OrganizationSampling() {
       targetSampleRate: ((organization.targetSampleRate ?? 1) * 100)?.toLocaleString(),
     },
   });
+
+  const sampleCountsQuery = useProjectSampleCounts({period});
 
   const {mutate: updateOrganization, isPending} = useUpdateOrganization();
 
@@ -117,7 +123,14 @@ export function OrganizationSampling() {
             }
           )}
         </p>
-        <ProjectsPreviewTable period={period} />
+        {sampleCountsQuery.isError ? (
+          <LoadingError onRetry={sampleCountsQuery.refetch} />
+        ) : (
+          <ProjectsPreviewTable
+            sampleCounts={sampleCountsQuery.data}
+            isLoading={sampleCountsQuery.isPending}
+          />
+        )}
         <SubTextParagraph>
           {t('Inactive projects are not listed and will be sampled at 100% initially.')}
         </SubTextParagraph>
