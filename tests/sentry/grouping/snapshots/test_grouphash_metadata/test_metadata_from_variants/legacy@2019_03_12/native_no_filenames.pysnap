@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:56.405030+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  system*
+    hash: "3e0ae2ce25cce2fca3390f3416e6a82a"
+    component:
+      system*
+        exception*
+          type*
+            "log_demo"
+          value*
+            "Holy shit everything is on fire!"

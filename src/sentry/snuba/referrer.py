@@ -437,6 +437,9 @@ class Referrer(Enum):
     API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE = (
         "api.profiling.functions.statistical-detector.example"
     )
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS = (
+        "api.profiling.functions.statistical-detector.chunks"
+    )
     API_PROFILING_FUNCTIONS_REGRESSION_EXAMPLES = "api.profiling.functions.regression.examples"
     API_PROFILING_FUNCTIONS_REGRESSION_LIST = "api.profiling.functions.regression.list"
     API_PROFILING_FUNCTIONS_REGRESSION_STATS = "api.profiling.functions.regression.stats"
@@ -946,6 +949,9 @@ class Referrer(Enum):
     # Referrers used in the migration script for alerts
     ALERTS_MIGRATION_SCRIPT = "alerts.migration_script"
     ALERTS_MIGRATION_SCRIPT_METRICS_ENHANCED = "alerts.migration_script.metrics-enhanced"
+
+    # Getsentry scripts
+    DELETE_EVENTS_FROM_FILE = "delete-events-from-file"
 
     # Referrers in tests
     TESTING_GET_FACETS_TEST = "testing.get-facets-test"

@@ -1,0 +1,54 @@
+---
+created: '2024-10-28T13:56:40.740213+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  app*
+    hash: "4ef1fb44d656c3be2a146971f2a222dc"
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+          type*
+            "<redacted>"
+          ns-error*
+            "<redacted>"
+            2
+  system*
+    hash: "47481871aa8d5ab5729cf2db78ce3032"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "-[UIApplication _run]"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "stripped_application_code"
+          type*
+            "<redacted>"
+          ns-error*
+            "<redacted>"
+            2

@@ -126,11 +126,12 @@ export function useDispatchingReducer<R extends React.Reducer<any, any>>(
       // we are likely going to have to rethrow async and lose stack traces...
       actionQueue.current.push(a);
 
-      if (updatesRef.current !== null) {
+      if (updatesRef.current) {
         window.cancelAnimationFrame(updatesRef.current);
+        updatesRef.current = null;
       }
 
-      window.requestAnimationFrame(() => {
+      updatesRef.current = window.requestAnimationFrame(() => {
         setState(s => {
           const next = update(s, actionQueue.current, reducerRef.current, emitter);
           stateRef.current = next;

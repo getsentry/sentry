@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:45.006089+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: message
+---
+contributing variants:
+  app*
+    hash: "b8e2a347e75266ca7bb565e2b3c0722e"
+    component:
+      app*
+        exception*
+          type*
+            "Error"
+          value* (stripped event-specific values)
+            "<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>) at offset <hex>"

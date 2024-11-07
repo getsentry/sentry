@@ -1429,6 +1429,34 @@
       ]
     ]
   },
+  "sentry.dashboardpermissionsteam": {
+    "dangling": false,
+    "foreign_keys": {
+      "permissions": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.dashboardpermissions",
+        "nullable": false
+      },
+      "team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": false
+      }
+    },
+    "model": "sentry.dashboardpermissionsteam",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_dashboardpermissionsteam",
+    "uniques": [
+      [
+        "permissions",
+        "team"
+      ]
+    ]
+  },
   "sentry.dashboardproject": {
     "dangling": false,
     "foreign_keys": {
@@ -4862,11 +4890,6 @@
         "kind": "HybridCloudForeignKey",
         "model": "sentry.user",
         "nullable": true
-      },
-      "project_id": {
-        "kind": "ImplicitForeignKey",
-        "model": "sentry.project",
-        "nullable": true
       }
     },
     "model": "sentry.release",
@@ -5330,6 +5353,58 @@
       [
         "project",
         "stack_root"
+      ]
+    ]
+  },
+  "sentry.rollbackorganization": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      }
+    },
+    "model": "sentry.rollbackorganization",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_rollbackorganization",
+    "uniques": []
+  },
+  "sentry.rollbackuser": {
+    "dangling": false,
+    "foreign_keys": {
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      },
+      "user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": false
+      }
+    },
+    "model": "sentry.rollbackuser",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_rollbackuser",
+    "uniques": [
+      [
+        "organization_id",
+        "user_id"
+      ],
+      [
+        "share_uuid"
+      ],
+      [
+        "uuid"
       ]
     ]
   },
@@ -6270,7 +6345,13 @@
   },
   "workflow_engine.action": {
     "dangling": false,
-    "foreign_keys": {},
+    "foreign_keys": {
+      "integration_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.integration",
+        "nullable": true
+      }
+    },
     "model": "workflow_engine.action",
     "relocation_dependencies": [],
     "relocation_scope": "Excluded",

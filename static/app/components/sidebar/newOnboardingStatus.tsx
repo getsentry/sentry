@@ -18,9 +18,10 @@ import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -42,9 +43,13 @@ export function NewOnboardingStatus({
   const {projects} = useProjects();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const hasMarkedUnseenTasksAsComplete = useRef(false);
+  const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
+    `quick-start:${organization.slug}:completed`,
+    false
+  );
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
-  const walkthrough = isDemoWalkthrough();
+  const walkthrough = isDemoModeEnabled();
 
   const supportedTasks = getMergedTasks({
     organization,
@@ -52,18 +57,28 @@ export function NewOnboardingStatus({
     onboardingContext,
   }).filter(task => task.display);
 
-  const {allTasks, gettingStartedTasks, beyondBasicsTasks, doneTasks, completeTasks} =
-    useOnboardingTasks({
-      supportedTasks,
-      enabled:
-        !!organization.features?.includes('onboarding') &&
-        !supportedTasks.every(findCompleteTasks),
-      refetchInterval: isActive ? '1s' : '10s',
-    });
+  const {
+    allTasks,
+    gettingStartedTasks,
+    beyondBasicsTasks,
+    doneTasks,
+    completeTasks,
+    refetch,
+  } = useOnboardingTasks({
+    supportedTasks,
+    enabled:
+      !!organization.features?.includes('onboarding') &&
+      !supportedTasks.every(findCompleteTasks) &&
+      isActive,
+  });
 
   const label = walkthrough ? t('Guided Tours') : t('Onboarding');
   const totalRemainingTasks = allTasks.length - doneTasks.length;
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
+
+  const skipQuickStart =
+    !organization.features?.includes('onboarding') ||
+    (completeTasks.length === allTasks.length && !isActive);
 
   const unseenDoneTasks = useMemo(
     () =>
@@ -96,7 +111,7 @@ export function NewOnboardingStatus({
   }, [onShowPanel, isActive, walkthrough, markDoneTaskAsComplete, organization]);
 
   useEffect(() => {
-    if (totalRemainingTasks !== 0 || isActive) {
+    if (totalRemainingTasks !== 0 || skipQuickStart || quickStartCompleted) {
       return;
     }
 
@@ -105,7 +120,15 @@ export function NewOnboardingStatus({
       referrer: 'onboarding_sidebar',
       new_experience: true,
     });
-  }, [isActive, totalRemainingTasks, organization]);
+
+    setQuickStartCompleted(true);
+  }, [
+    totalRemainingTasks,
+    organization,
+    skipQuickStart,
+    quickStartCompleted,
+    setQuickStartCompleted,
+  ]);
 
   useEffect(() => {
     if (pendingCompletionSeen && isActive && !hasMarkedUnseenTasksAsComplete.current) {
@@ -118,10 +141,7 @@ export function NewOnboardingStatus({
     }
   }, [isActive, pendingCompletionSeen, markDoneTaskAsComplete]);
 
-  if (
-    !organization.features?.includes('onboarding') ||
-    (totalRemainingTasks === 0 && !isActive)
-  ) {
+  if (skipQuickStart) {
     return null;
   }
 
@@ -132,6 +152,9 @@ export function NewOnboardingStatus({
         aria-label={label}
         onClick={handleShowPanel}
         isActive={isActive}
+        onMouseEnter={() => {
+          refetch();
+        }}
       >
         <ProgressRing
           animateText
