@@ -3,23 +3,21 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   CardContainer,
   FeatureFlagDrawer,
+} from 'sentry/components/events/featureFlags/featureFlagDrawer';
+import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
+import {
   FlagControlOptions,
-  getDefaultOrderBy,
-  getSelectionType,
-  ORDER_BY_OPTIONS,
   OrderBy,
-  SORT_BY_OPTIONS,
   SortBy,
   sortedFlags,
-} from 'sentry/components/events/featureFlags/featureFlagDrawer';
+} from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
-import {IconMegaphone, IconSearch, IconSort} from 'sentry/icons';
+import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -177,43 +175,12 @@ export function EventFeatureFlagList({
         title={t('Open Search')}
         onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
       />
-      <CompositeSelect
-        trigger={triggerProps => (
-          <Button
-            {...triggerProps}
-            aria-label={t('Sort Flags')}
-            size="xs"
-            icon={<IconSort />}
-          />
-        )}
-      >
-        <CompositeSelect.Region
-          label={t('Sort By')}
-          value={sortBy}
-          onChange={selection => {
-            if (selection.value !== sortBy) {
-              setOrderBy(getDefaultOrderBy(selection.value));
-            }
-            setSortBy(selection.value);
-          }}
-          options={SORT_BY_OPTIONS}
-        />
-        <CompositeSelect.Region
-          label={t('Order By')}
-          value={orderBy}
-          onChange={selection => {
-            setOrderBy(selection.value);
-            trackAnalytics('flags.sort-flags', {
-              organization,
-              sortMethod: selection.value,
-            });
-          }}
-          options={ORDER_BY_OPTIONS.map(o => {
-            const selectionType = getSelectionType(o.value);
-            return selectionType !== sortBy ? {...o, disabled: true} : o;
-          })}
-        />
-      </CompositeSelect>
+      <FeatureFlagSort
+        orderBy={orderBy}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        setOrderBy={setOrderBy}
+      />
     </ButtonBar>
   );
 
