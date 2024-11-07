@@ -11,7 +11,7 @@ from django.core.cache import cache
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
-from sentry import analytics, features
+from sentry import analytics, features, options
 from sentry.api.utils import default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
@@ -441,7 +441,7 @@ class SnubaTagStorage(TagStorage):
         organization_id = get_organization_id_from_project_ids(projects)
         organization = Organization.objects.get_from_cache(id=organization_id)
         if features.has("organizations:tag-key-sample-n", organization):
-            optimize_kwargs["sample"] = 1_000_000
+            optimize_kwargs["sample"] = options.get("visibility.tag-key-sample-size")
 
         # If we are fetching less than max_unsampled_projects, then disable
         # the sampling that turbo enables so that we get more accurate results.
