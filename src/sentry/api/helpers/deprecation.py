@@ -3,13 +3,14 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Concatenate, ParamSpec, TypeVar
 
 import isodate
-from croniter import croniter
+from cronsim import CronSim, CronSimError
 from django.conf import settings
 from django.http.response import HttpResponseBase
+from django.utils import timezone
 from isodate.isoerror import ISO8601Error
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -66,17 +67,19 @@ def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str) -> b
             logger.exception("Invalid ISO8601 format for blackout duration")
             return False
 
-        if not croniter.is_valid(brownout_cron):
-            logger.error("Invalid crontab for blackout schedule")
+        try:
+            # Move back one minute so we can iterate once and determine if now
+            # matches the cron schedule.
+            iter = CronSim(brownout_cron, now - timedelta(minutes=1))
+        except CronSimError:
+            logger.exception("Invalid crontab for blackout schedule")
             return False
 
-        # return True if now exactly matches the crontab
-        if croniter.match(brownout_cron, now):
+        if next(iter) == now.replace(second=0, microsecond=0):
             return True
 
-        # If not, check if now is within BROWNOUT_DURATION of the last brownout time
-        iter = croniter(brownout_cron, now)
-        brownout_start = iter.get_prev(datetime)
+        # If not, check if now is within `brownout_duration` of the last brownout time
+        brownout_start = next(CronSim(brownout_cron, now, reverse=True))
         return brownout_start <= now < brownout_start + brownout_duration
     return False
 
@@ -131,7 +134,7 @@ def deprecated(
             if is_self_hosted() and not settings.ENVIRONMENT == "development":
                 return func(self, request, *args, **kwargs)
 
-            now = datetime.now(timezone.utc)
+            now = timezone.now()
 
             if now > deprecation_date and _should_be_blocked(deprecation_date, now, key):
                 response: HttpResponseBase = Response(GONE_MESSAGE, status=GONE)
