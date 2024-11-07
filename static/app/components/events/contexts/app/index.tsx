@@ -19,16 +19,7 @@ type Props = {
   meta?: Record<string, any>;
 };
 
-export const appKnownDataValues = [
-  AppKnownDataType.ID,
-  AppKnownDataType.START_TIME,
-  AppKnownDataType.DEVICE_HASH,
-  AppKnownDataType.IDENTIFIER,
-  AppKnownDataType.NAME,
-  AppKnownDataType.VERSION,
-  AppKnownDataType.BUILD,
-  AppKnownDataType.IN_FOREGROUND,
-];
+export const appKnownDataValues = Object.values(AppKnownDataType);
 
 const appIgnoredDataValues = [];
 
