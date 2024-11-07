@@ -48,16 +48,23 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
     const areAllTeamsSelected = teamIds.every(teamId =>
       newSelectedValues.includes(teamId)
     );
-    const isAllUsersOptionSelected = selectedOptions.includes('_allUsers');
 
-    if (!isAllUsersOptionSelected && newSelectedValues.includes('_allUsers')) {
+    if (
+      !selectedOptions.includes('_allUsers') &&
+      newSelectedValues.includes('_allUsers')
+    ) {
       newSelectedValues = ['_creator', '_allUsers', ...teamIds];
-    } else if (isAllUsersOptionSelected && !newSelectedValues.includes('_allUsers')) {
+    } else if (
+      selectedOptions.includes('_allUsers') &&
+      !newSelectedValues.includes('_allUsers')
+    ) {
       newSelectedValues = ['_creator'];
-    } else if (!areAllTeamsSelected) {
-      newSelectedValues = newSelectedValues.filter(value => value !== '_allUsers');
-    } else if (areAllTeamsSelected) {
-      newSelectedValues = ['_creator', '_allUsers', ...teamIds];
+    } else {
+      areAllTeamsSelected
+        ? // selecting all teams deselects 'all users'
+          (newSelectedValues = ['_creator', '_allUsers', ...teamIds])
+        : // deselecting all teams deselects 'all users'
+          (newSelectedValues = newSelectedValues.filter(value => value !== '_allUsers'));
     }
 
     setSelectedOptions(newSelectedValues);
@@ -75,7 +82,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
     };
   }
 
-  // memo?
+  // Gets selected options from the dropdown from dashboard object
   function getSelectedOptions(): string[] {
     if (!defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone) {
       return ['_creator', '_allUsers', ...teamIds];
@@ -118,21 +125,22 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   const triggerAvatars =
     selectedOptions.includes('_allUsers') || !dashboardCreator ? (
       <StyledBadge key="_all" text={'All'} />
-    ) : (
+    ) : selectedOptions.length === 2 ? (
+      // Case where we display 1 Creator Avatar + 1 Team Avatar
       <StyledAvatarList
         key="avatar-list"
         typeAvatars="users"
-        users={Array(selectedOptions.length === 2 ? 1 : selectedOptions.length).fill(
-          dashboardCreator
-        )}
-        teams={
-          selectedOptions.length === 2
-            ? selectedOptions
-                .filter(option => option !== '_creator')
-                .map(option => teams.find(team => team.id === option))
-                .filter((team): team is Team => team !== undefined)
-            : []
-        }
+        users={[dashboardCreator]}
+        teams={[teams.find(team => team.id === selectedOptions[1])!]}
+        maxVisibleAvatars={1}
+        avatarSize={25}
+      />
+    ) : (
+      // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
+      <StyledAvatarList
+        key="avatar-list"
+        typeAvatars="users"
+        users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
         avatarSize={25}
       />
@@ -141,7 +149,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   const allDropdownOptions = [
     makeCreatorOption(),
     {
-      value: '_sall_user_section',
+      value: '_all_users_section',
       options: [
         {
           value: '_allUsers',
@@ -208,9 +216,11 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={() => {
-        setSelectedOptions(getSelectedOptions());
         setMenuOpen(!isMenuOpen);
-        setHasUnsavedChanges(false);
+        if (isMenuOpen) {
+          setSelectedOptions(getSelectedOptions());
+          setHasUnsavedChanges(false);
+        }
       }}
       menuFooter={dropdownFooterButtons}
     />
