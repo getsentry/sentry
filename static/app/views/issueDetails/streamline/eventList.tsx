@@ -93,6 +93,7 @@ export function EventList({group}: EventListProps) {
         columnTitles={columnTitles}
         referrer={referrer}
         hidePagination
+        disableSort
         renderTableHeader={({
           pageLinks,
           pageEventsCount,
