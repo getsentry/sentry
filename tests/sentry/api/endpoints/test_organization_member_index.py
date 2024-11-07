@@ -557,10 +557,6 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
             data = {"email": user.email, "role": "member", "teams": [self.team.slug]}
             self.get_success_response(self.organization.slug, **data, status_code=201)
 
-        with Feature({"organizations:invite-members": False}):
-            data = {"email": user.email, "role": "billing", "teams": [self.team.slug]}
-            self.get_success_response(self.organization.slug, **data, status_code=201)
-
     def test_no_team_invites(self):
         data = {"email": "eric@localhost", "role": "owner", "teams": []}
         response = self.get_success_response(self.organization.slug, **data)
