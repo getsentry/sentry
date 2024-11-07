@@ -12,6 +12,7 @@ type TimeSeriesItem = {
   timestamp: string;
   value: number;
 };
+
 export type TimeseriesData = {
   data: TimeSeriesItem[];
   field: string;
