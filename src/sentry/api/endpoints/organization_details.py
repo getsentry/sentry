@@ -960,35 +960,44 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
 
-            sampling_mode = organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-            is_org_mode = sampling_mode == DynamicSamplingMode.ORGANIZATION.value
-            is_project_mode = sampling_mode == DynamicSamplingMode.PROJECT.value
-
-            if is_org_mode and "targetSampleRate" in changed_data:
-                organization.update_option(
-                    "sentry:target_sample_rate", serializer.validated_data["targetSampleRate"]
+            if request.access.has_scope("org:write"):
+                sampling_mode = organization.get_option(
+                    "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
                 )
-                boost_low_volume_projects_of_org_with_query.delay(organization.id)
+                is_org_mode = sampling_mode == DynamicSamplingMode.ORGANIZATION.value
+                is_project_mode = sampling_mode == DynamicSamplingMode.PROJECT.value
 
-            if "samplingMode" in changed_data and request.access.has_scope("org:write"):
-                with transaction.atomic(router.db_for_write(ProjectOption)):
-                    if is_project_mode:
-                        self._compute_project_target_sample_rates(organization)
-                        organization.delete_option("sentry:target_sample_rate")
+                # If the sampling mode was changed, adapt the project and org options accordingly
+                if "samplingMode" in changed_data:
+                    with transaction.atomic(router.db_for_write(ProjectOption)):
+                        if is_project_mode:
+                            self._compute_project_target_sample_rates(organization)
+                            organization.delete_option("sentry:target_sample_rate")
 
-                    elif is_org_mode:
-                        if "targetSampleRate" in changed_data:
-                            organization.update_option(
-                                "sentry:target_sample_rate",
-                                serializer.validated_data["targetSampleRate"],
-                            )
+                        elif is_org_mode:
+                            if "targetSampleRate" in changed_data:
+                                organization.update_option(
+                                    "sentry:target_sample_rate",
+                                    serializer.validated_data["targetSampleRate"],
+                                )
 
-                        ProjectOption.objects.filter(
-                            project__organization_id=organization.id,
-                            key="sentry:target_sample_rate",
-                        ).delete()
+                            ProjectOption.objects.filter(
+                                project__organization_id=organization.id,
+                                key="sentry:target_sample_rate",
+                            ).delete()
 
-                boost_low_volume_projects_of_org_with_query.delay(organization.id)
+                # If the target sample rate for the org was changed, update the org option
+                if is_org_mode and "targetSampleRate" in changed_data:
+                    organization.update_option(
+                        "sentry:target_sample_rate", serializer.validated_data["targetSampleRate"]
+                    )
+
+                # If the sampling mode was changed to org mode or the target sample rate was changed (or both),
+                # trigger the rebalancing of project sample rates.
+                if is_org_mode and (
+                    "samplingMode" in changed_data or "targetSampleRate" in changed_data
+                ):
+                    boost_low_volume_projects_of_org_with_query.delay(organization.id)
 
             if was_pending_deletion:
                 self.create_audit_entry(
