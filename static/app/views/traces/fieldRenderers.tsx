@@ -71,8 +71,9 @@ export function ProjectsRenderer({
   return (
     <Projects orgId={organization.slug} slugs={projectSlugs}>
       {({projects}) => {
-        const projectAvatars =
-          projects.length > 0 ? projects : projectSlugs.map(slug => ({slug}));
+        const projectAvatars = projectSlugs.map(slug => {
+          return projects.find(project => project.slug === slug) ?? {slug};
+        });
         const numProjects = projectAvatars.length;
         const numVisibleProjects =
           maxVisibleProjects - numProjects >= 0 ? numProjects : maxVisibleProjects - 1;
