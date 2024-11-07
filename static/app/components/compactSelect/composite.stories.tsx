@@ -1,10 +1,48 @@
 import {Fragment, useState} from 'react';
 
 import {Button} from 'sentry/components/button';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
-import {IconCalendar} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {Flex} from 'sentry/components/container/flex';
+import {IconCalendar, IconSentry, IconStar} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
+import {space} from 'sentry/styles/space';
+
+const MONTH_OPTIONS = [
+  {value: 'jan', label: 'January'},
+  {value: 'feb', label: 'February'},
+];
+
+const DAY_OPTIONS = [
+  {value: '1', label: '1'},
+  {value: '2', label: '2'},
+];
+
+const DAIRY_OPTIONS = [
+  {value: 'latte', label: 'Vanilla Latte'},
+  {value: 'matcha', label: 'Matcha Latte'},
+];
+
+const DAIRY_FREE_OPTIONS = [
+  {value: 'tea', label: 'Tea'},
+  {value: 'espresso', label: 'Espresso'},
+];
+
+const MAIN_OPTIONS = [
+  {value: 'pasta', label: 'Pasta'},
+  {value: 'steak', label: 'Steak'},
+];
+
+const SIDE_OPTIONS = [
+  {value: 'salad', label: 'Salad'},
+  {value: 'potato', label: 'Mashed Potatoes'},
+];
+
+const ADJ_OPTIONS = [
+  {value: 'cool', label: 'cool'},
+  {value: 'funny', label: 'funny'},
+  {value: 'awesome', label: 'awesome'},
+];
 
 export default storyBook(CompositeSelect, story => {
   story('Introduction', () => {
@@ -31,22 +69,6 @@ export default storyBook(CompositeSelect, story => {
     const [day, setDay] = useState<string>('1');
     const [adjectives, setAdjectives] = useState<string[]>(['cool', 'funny']);
 
-    const MONTH_OPTIONS = [
-      {value: 'jan', label: 'January'},
-      {value: 'feb', label: 'February'},
-    ];
-
-    const DAY_OPTIONS = [
-      {value: '1', label: '1'},
-      {value: '2', label: '2'},
-    ];
-
-    const ADJ_OPTIONS = [
-      {value: 'cool', label: 'cool'},
-      {value: 'funny', label: 'funny'},
-      {value: 'awesome', label: 'awesome'},
-    ];
-
     return (
       <Fragment>
         <p>
@@ -60,7 +82,7 @@ export default storyBook(CompositeSelect, story => {
           trigger={triggerProps => (
             <Button
               {...triggerProps}
-              aria-label={t('Sort Flags')}
+              aria-label={'Select an Option'}
               size="sm"
               icon={<IconCalendar />}
             >
@@ -69,20 +91,20 @@ export default storyBook(CompositeSelect, story => {
           )}
         >
           <CompositeSelect.Region
-            label={t('Month')}
+            label={'Month'}
             value={month}
             onChange={selection => setMonth(selection.value)}
             options={MONTH_OPTIONS}
           />
           <CompositeSelect.Region
-            label={t('Day')}
+            label={'Day'}
             value={day}
             onChange={selection => setDay(selection.value)}
             options={DAY_OPTIONS}
           />
           <CompositeSelect.Region
-            label={t('I am...')}
-            aria-label={t('Cool')}
+            label={'I am...'}
+            aria-label={'Cool'}
             multiple
             value={adjectives}
             onChange={selection => {
@@ -95,6 +117,68 @@ export default storyBook(CompositeSelect, story => {
         <br />
         <br />
         <br />
+      </Fragment>
+    );
+  });
+
+  story('Compact vs Composite', () => {
+    const [main, setMain] = useState<string>('pasta');
+    const [side, setSide] = useState<string>('salad');
+    const [drink, setDrink] = useState<string>('matcha');
+
+    return (
+      <Fragment>
+        <p>
+          See the difference between how <code>CompositeSelect</code> and{' '}
+          <code>CompactSelect</code> deal with multiple single-select sections:
+        </p>
+
+        <Flex gap={space(1)}>
+          <CompositeSelect
+            trigger={triggerProps => (
+              <Button
+                {...triggerProps}
+                aria-label={'Composite Select'}
+                size="sm"
+                icon={<IconSentry />}
+              >
+                Composite Select Menu
+              </Button>
+            )}
+          >
+            <CompositeSelect.Region
+              label={'Mains'}
+              value={main}
+              onChange={selection => setMain(selection.value)}
+              options={MAIN_OPTIONS}
+            />
+            <CompositeSelect.Region
+              label={'Sides'}
+              value={side}
+              onChange={selection => setSide(selection.value)}
+              options={SIDE_OPTIONS}
+            />
+          </CompositeSelect>
+
+          <CompactSelect
+            trigger={triggerProps => (
+              <Button
+                {...triggerProps}
+                aria-label={'Compact Select'}
+                size="sm"
+                icon={<IconStar />}
+              >
+                Compact Select Menu
+              </Button>
+            )}
+            value={drink}
+            onChange={selection => setDrink(selection.value)}
+            options={[
+              {key: 'dairy', label: 'Dairy', options: DAIRY_OPTIONS},
+              {key: 'nondairy', label: 'Dairy Free Options', options: DAIRY_FREE_OPTIONS},
+            ]}
+          />
+        </Flex>
       </Fragment>
     );
   });
