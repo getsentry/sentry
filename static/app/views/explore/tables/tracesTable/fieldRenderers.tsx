@@ -213,14 +213,23 @@ const RectangleTraceBreakdown = styled(RowRectangle)<{
   position: relative;
   width: 100%;
   height: 15px;
-  ${p => `
+  ${p => css`
     filter: var(--highlightedSlice-${p.sliceName}-saturate, var(--defaultSlice-saturate));
   `}
-  ${p => `
-    opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
+  ${p => css`
+    opacity: var(
+      --highlightedSlice-${p.sliceName ?? ''}-opacity,
+      var(--defaultSlice-opacity, 1)
+    );
   `}
-  ${p => `
-    transform: var(--hoveredSlice-${p.offset}-translateY, var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0)));
+  ${p => css`
+    transform: var(
+      --hoveredSlice-${p.offset}-translateY,
+      var(
+        --highlightedSlice-${p.sliceName ?? ''}-transform,
+        var(--defaultSlice-transform, 1)
+      )
+    );
   `}
   transition: filter,opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
