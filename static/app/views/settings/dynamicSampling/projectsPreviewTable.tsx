@@ -1,54 +1,60 @@
 import {useMemo} from 'react';
 
-import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
-import {
-  type ProjectionSamplePeriod,
-  useProjectSampleCounts,
-} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const {useFormField} = organizationSamplingForm;
 
 interface Props {
-  period: ProjectionSamplePeriod;
+  isLoading: boolean;
+  sampleCounts: ProjectSampleCount[];
 }
 
-export function ProjectsPreviewTable({period}: Props) {
+export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
   const {value: targetSampleRate, initialValue: initialTargetSampleRate} =
     useFormField('targetSampleRate');
-
-  const {data, isPending, isError, refetch} = useProjectSampleCounts({period});
 
   const debouncedTargetSampleRate = useDebouncedValue(
     targetSampleRate,
     // For longer lists we debounce the input to avoid too many re-renders
-    data.length > 100 ? 200 : 0
+    sampleCounts.length > 100 ? 200 : 0
+  );
+
+  const balancingItems = useMemo(
+    () =>
+      sampleCounts.map(item => ({
+        ...item,
+        // Add properties to match the BalancingItem type of the balanceSampleRate function
+        id: item.project.id,
+        sampleRate: 1,
+      })),
+    [sampleCounts]
   );
 
   const {balancedItems} = useMemo(() => {
     const targetRate = Math.min(100, Math.max(0, Number(debouncedTargetSampleRate) || 0));
     return balanceSampleRate({
       targetSampleRate: targetRate / 100,
-      items: data,
+      items: balancingItems,
     });
-  }, [debouncedTargetSampleRate, data]);
+  }, [debouncedTargetSampleRate, balancingItems]);
 
   const initialSampleRatesBySlug = useMemo(() => {
     const targetRate = Math.min(100, Math.max(0, Number(initialTargetSampleRate) || 0));
     const {balancedItems: initialBalancedItems} = balanceSampleRate({
       targetSampleRate: targetRate / 100,
-      items: data,
+      items: balancingItems,
     });
     return initialBalancedItems.reduce((acc, item) => {
       acc[item.id] = item.sampleRate;
       return acc;
     }, {});
-  }, [initialTargetSampleRate, data]);
+  }, [initialTargetSampleRate, balancingItems]);
 
   const itemsWithFormattedNumbers = useMemo(() => {
     return balancedItems.map(item => ({
@@ -61,16 +67,12 @@ export function ProjectsPreviewTable({period}: Props) {
     }));
   }, [balancedItems, initialSampleRatesBySlug]);
 
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
-
   return (
     <ProjectsTable
       stickyHeaders
       emptyMessage={t('No active projects found in the selected period.')}
-      isEmpty={!data.length}
-      isLoading={isPending}
+      isEmpty={!sampleCounts.length}
+      isLoading={isLoading}
       items={itemsWithFormattedNumbers}
     />
   );

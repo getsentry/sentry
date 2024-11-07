@@ -3,7 +3,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -14,32 +13,27 @@ import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
-import {
-  type ProjectionSamplePeriod,
-  useProjectSampleCounts,
-} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 interface Props {
   isLoading: boolean;
-  period: ProjectionSamplePeriod;
+  sampleCounts: ProjectSampleCount[];
 }
 
 const {useFormField} = projectSamplingForm;
 const EMPTY_ARRAY = [];
 
-export function ProjectsEditTable({isLoading: isLoadingProp, period}: Props) {
+export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Props) {
   const {projects, fetching} = useProjects();
 
   const {value, initialValue, error, onChange} = useFormField('projectRates');
 
-  const {data, isPending, isError, refetch} = useProjectSampleCounts({period});
-
-  const dataByProjectId = data.reduce(
+  const dataByProjectId = sampleCounts.reduce(
     (acc, item) => {
       acc[item.project.id] = item;
       return acc;
     },
-    {} as Record<string, (typeof data)[0]>
+    {} as Record<string, (typeof sampleCounts)[0]>
   );
 
   const items = useMemo(
@@ -97,11 +91,7 @@ export function ProjectsEditTable({isLoading: isLoadingProp, period}: Props) {
     [value]
   );
 
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
-
-  const isLoading = fetching || isPending || isLoadingProp;
+  const isLoading = fetching || isLoadingProp;
 
   return (
     <Fragment>
@@ -126,7 +116,10 @@ export function ProjectsEditTable({isLoading: isLoadingProp, period}: Props) {
               />
             </ProjectedOrgRateWrapper>
             <Divider />
-            <SamplingBreakdown period={period} sampleRates={breakdownSampleRates} />
+            <SamplingBreakdown
+              sampleCounts={sampleCounts}
+              sampleRates={breakdownSampleRates}
+            />
           </Fragment>
         )}
       </BreakdownPanel>
@@ -135,7 +128,6 @@ export function ProjectsEditTable({isLoading: isLoadingProp, period}: Props) {
         canEdit
         onChange={handleChange}
         emptyMessage={t('No active projects found in the selected period.')}
-        isEmpty={!data.length}
         isLoading={isLoading}
         items={activeItems}
         inactiveItems={inactiveItems}
