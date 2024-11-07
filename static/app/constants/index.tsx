@@ -256,6 +256,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Errors'),
     productName: t('Error Monitoring'),
     uid: 1,
+    isBilledCategory: true,
   },
   [DataCategoryExact.TRANSACTION]: {
     name: DataCategoryExact.TRANSACTION,
@@ -265,6 +266,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Transactions'),
     productName: t('Performance Monitoring'),
     uid: 2,
+    isBilledCategory: true,
   },
   [DataCategoryExact.ATTACHMENT]: {
     name: DataCategoryExact.ATTACHMENT,
@@ -274,6 +276,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Attachments'),
     productName: t('Attachments'),
     uid: 4,
+    isBilledCategory: true,
   },
   [DataCategoryExact.PROFILE]: {
     name: DataCategoryExact.PROFILE,
@@ -283,6 +286,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Profiles'),
     productName: t('Continuous Profiling'),
     uid: 6,
+    isBilledCategory: false,
   },
   [DataCategoryExact.REPLAY]: {
     name: DataCategoryExact.REPLAY,
@@ -292,6 +296,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Session Replays'),
     productName: t('Session Replay'),
     uid: 7,
+    isBilledCategory: true,
   },
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
     name: DataCategoryExact.TRANSACTION_PROCESSED,
@@ -301,6 +306,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Transactions'),
     productName: t('Performance Monitoring'),
     uid: 8,
+    isBilledCategory: false,
   },
   [DataCategoryExact.TRANSACTION_INDEXED]: {
     name: DataCategoryExact.TRANSACTION_INDEXED,
@@ -310,6 +316,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Indexed Transactions'),
     productName: t('Performance Monitoring'),
     uid: 9,
+    isBilledCategory: false,
   },
   [DataCategoryExact.MONITOR]: {
     name: DataCategoryExact.MONITOR,
@@ -319,6 +326,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Monitor Check-Ins'),
     productName: t('Cron Monitoring'),
     uid: 10,
+    isBilledCategory: false,
   },
   [DataCategoryExact.SPAN]: {
     name: DataCategoryExact.SPAN,
@@ -328,6 +336,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Spans'),
     productName: t('Tracing'),
     uid: 12,
+    isBilledCategory: true,
   },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
@@ -337,6 +346,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Cron Monitors'),
     productName: t('Cron Monitoring'),
     uid: 13,
+    isBilledCategory: true,
   },
   [DataCategoryExact.PROFILE_DURATION]: {
     name: DataCategoryExact.PROFILE_DURATION,
@@ -346,6 +356,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Profile Hours'),
     productName: t('Continuous Profiling'),
     uid: 17,
+    isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 

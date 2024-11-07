@@ -104,6 +104,7 @@ export enum DataCategoryExact {
 export interface DataCategoryInfo {
   apiName: string;
   displayName: string;
+  isBilledCategory: boolean;
   name: DataCategoryExact;
   plural: string;
   productName: string;
