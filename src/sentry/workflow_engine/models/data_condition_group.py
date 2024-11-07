@@ -2,7 +2,6 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
-from sentry.workflow_engine.models.data_condition import ConditionResult
 
 
 @region_silo_model
@@ -22,21 +21,21 @@ class DataConditionGroup(DefaultFieldsModel):
     logic_type = models.CharField(max_length=200, choices=Type.choices, default=Type.ANY)
     organization = models.ForeignKey("sentry.Organization", on_delete=models.CASCADE)
 
-    def evaluate(self, value) -> ConditionResult:
+    def evaluate(self, value) -> bool:
         """
         Evaluate each condition with the given value
         """
         results = []
 
         for condition in self.conditions.all():
-            evaluation_result = condition.evaluate(value)
+            evaluation_result = condition.evaluate_value(value)
 
             if evaluation_result and self.logic_type == self.Type.ANY:
-                return evaluation_result
+                return bool(evaluation_result)
             else:
                 results.append(evaluation_result)
 
         if self.logic_type == self.Type.ALL:
             return all(results)
 
-        return None
+        return False
