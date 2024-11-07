@@ -1,4 +1,4 @@
-import type {Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import Color from 'color';
 
 import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
@@ -32,8 +32,9 @@ export function getHatchPattern(spanBarType: SpanBarType | undefined, theme: The
   if (spanBarType) {
     const {primary, alternate} = getSpanBarColours(spanBarType, theme);
 
-    return `
-      background-image: linear-gradient(135deg,
+    return css`
+      background-image: linear-gradient(
+        135deg,
         ${alternate},
         ${alternate} 2.5px,
         ${primary} 2.5px,
@@ -66,11 +67,15 @@ export const getDurationPillAlignment = ({
 }) => {
   switch (durationDisplay) {
     case 'left':
-      return `right: calc(100% + ${space(0.5)});`;
+      return css`
+        right: calc(100% + ${space(0.5)});
+      `;
     case 'right':
-      return `left: calc(100% + ${space(0.75)});`;
+      return css`
+        left: calc(100% + ${space(0.75)});
+      `;
     default:
-      return `
+      return css`
         right: ${space(0.75)};
       `;
   }
@@ -112,12 +117,12 @@ export const getToggleTheme = ({
 }) => {
   if (spanBarType) {
     const {primary} = getSpanBarColours(spanBarType, theme);
-    return `
-    background: ${primary};
-    border: 2px solid ${theme.button.default.border};
-    color: ${theme.button.primary.color};
-    cursor: pointer;
-  `;
+    return css`
+      background: ${primary};
+      border: 2px solid ${theme.button.default.border};
+      color: ${theme.button.primary.color};
+      cursor: pointer;
+    `;
   }
 
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
@@ -136,24 +141,24 @@ export const getToggleTheme = ({
     : buttonTheme.color;
 
   if (isSpanGroupToggler) {
-    return `
-    background: ${theme.blue300};
-    border: 2px solid ${theme.button.default.border};
-    color: ${color};
-    cursor: pointer;
-  `;
+    return css`
+      background: ${theme.blue300};
+      border: 2px solid ${theme.button.default.border};
+      color: ${color};
+      cursor: pointer;
+    `;
   }
 
   if (disabled) {
-    return `
-    background: ${background};
-    border: 2px solid ${border};
-    color: ${color};
-    cursor: default;
-  `;
+    return css`
+      background: ${background};
+      border: 2px solid ${border};
+      color: ${color};
+      cursor: default;
+    `;
   }
 
-  return `
+  return css`
     background: ${background};
     border: 2px solid ${border};
     color: ${color};
