@@ -1,4 +1,7 @@
+import {lazy} from 'react';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import LazyLoad from 'sentry/components/lazyLoad';
 import {t} from 'sentry/locale';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -15,12 +18,17 @@ import {DebugMeta} from './interfaces/debugMeta';
 import {Exception} from './interfaces/exception';
 import {Generic} from './interfaces/generic';
 import {Message} from './interfaces/message';
-import {SpanEvidenceSection} from './interfaces/performance/spanEvidence';
 import {Request} from './interfaces/request';
 import {Spans} from './interfaces/spans';
 import {StackTrace} from './interfaces/stackTrace';
 import {Template} from './interfaces/template';
 import {Threads} from './interfaces/threads';
+
+const LazySpanEvidenceSection = lazy(() =>
+  import('sentry/components/events/interfaces/performance/spanEvidence').then(m => ({
+    default: m.SpanEvidenceSection,
+  }))
+);
 
 type Props = {
   entry: Entry;
@@ -127,7 +135,8 @@ function EventEntryContent({
       }
       if (group?.issueCategory === IssueCategory.PERFORMANCE) {
         return (
-          <SpanEvidenceSection
+          <LazyLoad
+            LazyComponent={LazySpanEvidenceSection}
             event={event as EventTransaction}
             organization={organization as Organization}
             projectSlug={projectSlug}

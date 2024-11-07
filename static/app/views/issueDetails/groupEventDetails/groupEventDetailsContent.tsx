@@ -44,7 +44,6 @@ import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
-import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
@@ -85,6 +84,11 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
+);
+const LazySpanEvidenceSection = lazy(() =>
+  import('sentry/components/events/interfaces/performance/spanEvidence').then(m => ({
+    default: m.SpanEvidenceSection,
+  }))
 );
 
 export interface EventDetailsContentProps {
@@ -301,7 +305,8 @@ export function EventDetailsContent({
         </QuickTraceQuery>
       )}
       {group.issueCategory === IssueCategory.PERFORMANCE && (
-        <SpanEvidenceSection
+        <LazyLoad
+          LazyComponent={LazySpanEvidenceSection}
           event={event as EventTransaction}
           organization={organization}
           projectSlug={project.slug}
