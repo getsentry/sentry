@@ -7,7 +7,7 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +29,6 @@ condition_ops = {
     Conditions.LESS: operator.lt,
     Conditions.NOT_EQUAL: operator.ne,
 }
-
-ConditionResult = DetectorPriorityLevel | int | float | bool | None
 
 
 @region_silo_model
@@ -59,7 +57,7 @@ class DataCondition(DefaultFieldsModel):
         on_delete=models.CASCADE,
     )
 
-    def get_condition_result(self) -> ConditionResult:
+    def get_condition_result(self) -> DataConditionResult:
         match self.condition_result:
             case int() | float() | bool():
                 return self.condition_result
@@ -72,7 +70,7 @@ class DataCondition(DefaultFieldsModel):
                 )
                 return None
 
-    def evaluate_value(self, value: float | int) -> ConditionResult:
+    def evaluate_value(self, value: float | int) -> DataConditionResult:
         # TODO: This logic should be in a condition class that we get from `self.type`
         # TODO: This evaluation logic should probably go into the condition class, and we just produce a condition
         # class from this model
