@@ -93,7 +93,7 @@ export function SegmentedControl<Value extends string>({
             nextKey={option.nextKey}
             prevKey={option.prevKey}
             value={String(option.key)}
-            isDisabled={option.props.disabled}
+            isDisabled={option.props.disabled || disabled}
             state={state}
             size={size}
             priority={priority}
