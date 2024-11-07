@@ -947,6 +947,9 @@ class Referrer(Enum):
     ALERTS_MIGRATION_SCRIPT = "alerts.migration_script"
     ALERTS_MIGRATION_SCRIPT_METRICS_ENHANCED = "alerts.migration_script.metrics-enhanced"
 
+    # Getsentry scripts
+    DELETE_EVENTS_FROM_FILE = "delete-events-from-file"
+
     # Referrers in tests
     TESTING_GET_FACETS_TEST = "testing.get-facets-test"
     TESTING_TEST = "testing.test"

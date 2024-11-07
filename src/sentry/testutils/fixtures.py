@@ -45,6 +45,7 @@ from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import DataSource, Detector, Workflow
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class Fixtures:
@@ -644,8 +645,25 @@ class Fixtures:
     def create_data_source(self, *args, **kwargs) -> DataSource:
         return Factories.create_data_source(*args, **kwargs)
 
-    def create_data_condition(self, *args, **kwargs):
-        return Factories.create_data_condition(*args, **kwargs)
+    def create_data_condition(
+        self,
+        condition="eq",
+        comparison="10",
+        type="",
+        condition_result=None,
+        condition_group=None,
+    ):
+        if condition_result is None:
+            condition_result = str(DetectorPriorityLevel.HIGH.value)
+        if condition_group is None:
+            condition_group = self.create_data_condition_group()
+        return Factories.create_data_condition(
+            condition=condition,
+            comparison=comparison,
+            type=type,
+            condition_result=condition_result,
+            condition_group=condition_group,
+        )
 
     def create_detector(self, *args, **kwargs) -> Detector:
         return Factories.create_detector(*args, **kwargs)
@@ -656,8 +674,11 @@ class Fixtures:
     def create_data_source_detector(self, *args, **kwargs):
         return Factories.create_data_source_detector(*args, **kwargs)
 
-    def create_data_condition_group(self, *args, **kwargs):
-        return Factories.create_data_condition_group(*args, **kwargs)
+    def create_data_condition_group(self, *args, organization=None, **kwargs):
+        if organization is None:
+            organization = self.organization
+
+        return Factories.create_data_condition_group(*args, organization=organization, **kwargs)
 
     def create_data_condition_group_action(self, *args, **kwargs):
         return Factories.create_data_condition_group_action(*args, **kwargs)

@@ -101,7 +101,11 @@ function ThresholdTypeForm({
       AlertRuleComparisonType.DYNAMIC,
       <ComparisonContainer key="Dynamic">
         {t('Anomaly: whenever values are outside of expected bounds')}
-        <FeatureBadge type="beta" tooltipProps={{isHoverable: true}} />
+        <FeatureBadge
+          type="alpha"
+          title="Anomaly detection is in alpha and may produce inaccurate results"
+          tooltipProps={{isHoverable: true}}
+        />
       </ComparisonContainer>,
     ] as RadioOption);
   }

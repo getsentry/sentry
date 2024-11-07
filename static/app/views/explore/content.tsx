@@ -134,7 +134,7 @@ const Body = styled(Layout.Body)`
     grid-template-columns: 300px minmax(100px, auto);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
     grid-template-columns: 350px minmax(100px, auto);
   }
 `;
@@ -150,7 +150,7 @@ const TopSection = styled('div')`
     margin-bottom: 0;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
     grid-template-columns: minmax(350px, auto) 1fr;
   }
 `;

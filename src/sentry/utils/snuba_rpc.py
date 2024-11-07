@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Protocol, TypeVar
 
 import sentry_protos.snuba.v1alpha.request_common_pb2
@@ -11,6 +12,21 @@ from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry.utils.snuba import SnubaError, _snuba_pool
 
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
+
+# Show the snuba query params and the corresponding sql or errors in the server logs
+SNUBA_INFO_FILE = os.environ.get("SENTRY_SNUBA_INFO_FILE", "")
+
+SNUBA_INFO = (
+    os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1") or SNUBA_INFO_FILE
+)
+
+
+def log_snuba_info(content):
+    if SNUBA_INFO_FILE:
+        with open(SNUBA_INFO_FILE, "a") as file:
+            file.writelines(content)
+    else:
+        print(content)  # NOQA: only prints when an env variable is set
 
 
 class SnubaRPCError(SnubaError):
@@ -57,6 +73,10 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
     aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
     """
     referrer = req.meta.referrer
+    if SNUBA_INFO:
+        from google.protobuf.json_format import MessageToJson
+
+        log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
     with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
         span.set_tag("snuba.referrer", referrer)
 
@@ -75,6 +95,8 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
         if http_resp.status != 200:
             error = ErrorProto()
             error.ParseFromString(http_resp.data)
+            if SNUBA_INFO:
+                log_snuba_info(f"{referrer}.error:\n{error}")
             raise SnubaRPCError(error)
 
         resp = resp_type()

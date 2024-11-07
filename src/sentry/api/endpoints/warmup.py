@@ -1,3 +1,6 @@
+from django.conf import settings
+from django.urls import reverse
+from django.utils.translation import override
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -17,4 +20,11 @@ class WarmupEndpoint(Endpoint):
     rate_limits = RateLimitConfig(group="INTERNAL")
 
     def get(self, request: Request) -> Response:
+        # for each possible language we support, warm up the url resolver
+        # this fixes an issue we were seeing where many languages trying
+        # to resolve at once would cause lock contention
+        for lang, _ in settings.LANGUAGES:
+            with override(lang):
+                reverse("sentry-warmup")
+
         return Response(200)

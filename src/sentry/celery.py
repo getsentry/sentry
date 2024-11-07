@@ -36,12 +36,12 @@ def holds_bad_pickle_object(value, memo=None):
 
     if isinstance(value, (tuple, list)):
         for item in value:
-            bad_object = holds_bad_pickle_object(item)
+            bad_object = holds_bad_pickle_object(item, memo)
             if bad_object is not None:
                 return bad_object
     elif isinstance(value, dict):
         for item in value.values():
-            bad_object = holds_bad_pickle_object(item)
+            bad_object = holds_bad_pickle_object(item, memo)
             if bad_object is not None:
                 return bad_object
 
