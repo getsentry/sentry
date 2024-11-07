@@ -1,8 +1,8 @@
-import type {CloudResourceContext} from '@sentry/types';
 import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {CloudResourceContext} from 'sentry/components/events/contexts/cloudResource';
 import {getCloudResourceContextData} from 'sentry/components/events/contexts/cloudResource';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 
