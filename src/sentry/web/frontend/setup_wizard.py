@@ -145,6 +145,14 @@ class SetupWizardView(BaseView):
         default_cache.set(key, cache_data, SETUP_WIZARD_CACHE_TIMEOUT)
         return HttpResponse(status=200)
 
+    @allow_cors_options
+    def options(self, request, *args, **kwargs):
+        """Handle responding to requests for the OPTIONS HTTP verb."""
+        response = HttpResponse()
+        response.headers["Allow"] = ", ".join(self._allowed_methods())
+        response.headers["Content-Length"] = "0"
+        return response
+
 
 def serialize_org_mapping(mapping: OrganizationMapping):
     status = OrganizationStatus(mapping.status)
