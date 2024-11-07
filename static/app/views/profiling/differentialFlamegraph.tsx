@@ -299,6 +299,7 @@ function DifferentialFlamegraphView() {
           }
           flamegraph={
             <FlamegraphZoomView
+              scheduler={scheduler}
               profileGroup={
                 differentialFlamegraph.afterProfileGroup ?? LOADING_PROFILE_GROUP
               }
