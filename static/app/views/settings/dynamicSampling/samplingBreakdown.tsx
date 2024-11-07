@@ -11,13 +11,16 @@ import {
   formatAbbreviatedNumber,
   formatAbbreviatedNumberWithDynamicPrecision,
 } from 'sentry/utils/formatters';
-import {useProjectSampleCounts} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import {
+  type ProjectionSamplePeriod,
+  useProjectSampleCounts,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const ITEMS_TO_SHOW = 5;
 const palette = CHART_PALETTE[ITEMS_TO_SHOW - 1];
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
-  period: '24h' | '30d';
+  period: ProjectionSamplePeriod;
   sampleRates: Record<string, number>;
 }
 
