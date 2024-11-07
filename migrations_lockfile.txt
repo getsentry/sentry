@@ -13,4 +13,4 @@ replays: 0004_index_together
 sentry: 0785_add_new_field_to_dashboard_permissions
 social_auth: 0002_default_auto_field
 uptime: 0017_unique_on_timeout
-workflow_engine: 0010_detector_state_unique_group
+workflow_engine: 0011_action_updates
