@@ -381,7 +381,7 @@ function FlamegraphZoomView({
       if (type === 'selected') {
         selectedFramesRef.current = frames;
       } else {
-        setHoveredNode(frames ? frames[0] : null);
+        setHoveredNode(frames?.[0] ?? null);
       }
     };
 
