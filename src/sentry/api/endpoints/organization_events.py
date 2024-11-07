@@ -29,6 +29,7 @@ from sentry.snuba import (
     errors,
     metrics_enhanced_performance,
     metrics_performance,
+    spans_eap,
     spans_rpc,
     transactions,
 )
@@ -416,10 +417,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
+        # Only works when dataset == spans
         use_rpc = request.GET.get("useRpc", "0") == "1"
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
-            if use_rpc:
+            if use_rpc and dataset == spans_eap:
                 spans_rpc.run_table_query(
                     params=snuba_params,
                     query_string=query,

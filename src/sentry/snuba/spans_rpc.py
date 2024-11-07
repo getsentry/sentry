@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
@@ -13,6 +14,8 @@ from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.utils import snuba_rpc
+
+logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
 def categorize_column(column: ResolvedColumn) -> Column:
@@ -75,7 +78,11 @@ def run_table_query(
     for column_value in rpc_response.column_values:
         attribute = column_value.attribute_name
         if attribute not in columns_by_name:
-            raise Exception(f"{attribute} returned by the database but not a known column")
+            logger.warning(
+                "A column was returned by the rpc but not a known column",
+                extra={"attribute": attribute},
+            )
+            continue
         resolved_column = columns_by_name[attribute]
         final_meta["fields"][attribute] = resolved_column.meta_type
 
