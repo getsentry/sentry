@@ -44,14 +44,14 @@ import {getDashboardTemplates} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import type {DashboardDetails, DashboardListItem} from '../types';
 
+import DashboardList from './dashboardList';
 import {
   DASHBOARD_CARD_GRID_PADDING,
   DASHBOARD_GRID_DEFAULT_NUM_CARDS,
   DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
   DASHBOARD_GRID_DEFAULT_NUM_ROWS,
   MINIMUM_DASHBOARD_CARD_WIDTH,
-} from './dashboardGridConstants';
-import DashboardList from './dashboardList';
+} from './settings';
 import TemplateCard from './templateCard';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
