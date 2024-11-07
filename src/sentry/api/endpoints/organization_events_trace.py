@@ -1708,6 +1708,28 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
     }
     snuba_methods = ["GET"]
 
+    def get_projects(
+        self,
+        request: HttpRequest,
+        organization: Organization | RpcOrganization,
+        force_global_perms: bool = False,
+        include_all_accessible: bool = False,
+        project_ids: set[int] | None = None,
+        project_slugs: set[str] | None = None,
+    ) -> list[Project]:
+        """The trace endpoint always wants to get all projects regardless of what's passed into the API
+
+        This is because a trace can span any number of projects in an organization. But we still want to
+        use the get_projects function to check for any permissions. So we'll just pass project_ids=-1 everytime
+        which is what would be sent if we wanted all projects"""
+        return super().get_projects(
+            request,
+            organization,
+            project_ids={-1},
+            project_slugs=None,
+            include_all_accessible=True,
+        )
+
     def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
             return Response(status=404)
