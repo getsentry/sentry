@@ -973,15 +973,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             if "samplingMode" in changed_data and request.access.has_scope("org:write"):
                 with transaction.atomic(router.db_for_write(ProjectOption)):
                     if is_project_mode:
-                        for project in organization.project_set.all():
-                            current_rate, _ = get_boost_low_volume_projects_sample_rate(
-                                org_id=organization.id,
-                                project_id=project.id,
-                                error_sample_rate_fallback=None,
-                            )
-                            if current_rate:
-                                project.update_option("sentry:target_sample_rate", current_rate)
-
+                        self._compute_project_target_sample_rates(organization)
                         organization.delete_option("sentry:target_sample_rate")
 
                     elif is_org_mode:
@@ -1026,6 +1018,16 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def _compute_project_target_sample_rates(self, organization):
+        for project in organization.project_set.all():
+            current_rate, _ = get_boost_low_volume_projects_sample_rate(
+                org_id=organization.id,
+                project_id=project.id,
+                error_sample_rate_fallback=None,
+            )
+            if current_rate:
+                project.update_option("sentry:target_sample_rate", current_rate)
 
     def handle_delete(self, request: Request, organization: Organization):
         """
