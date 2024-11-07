@@ -316,4 +316,40 @@ describe('AutofixMessageBox', () => {
       within(screen.getByRole('dialog')).getByText('Allow Autofix to Make Pull Requests')
     ).toBeInTheDocument();
   });
+
+  it('shows segmented control with "Add tests" option for changes step', () => {
+    render(<AutofixMessageBox {...changesStepProps} />);
+
+    expect(screen.getByRole('radio', {name: 'Give feedback'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Add tests'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Approve changes'})).toBeInTheDocument();
+  });
+
+  it('shows "Add Tests" button and static message when "Add tests" is selected', async () => {
+    render(<AutofixMessageBox {...changesStepProps} />);
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Add tests'}));
+
+    expect(
+      screen.getByText('Write unit tests to make sure the issue is fixed?')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Tests'})).toBeInTheDocument();
+  });
+
+  it('sends correct message when "Add Tests" is clicked without onSend prop', async () => {
+    MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/issues/123/autofix/update/',
+      body: {},
+    });
+
+    render(<AutofixMessageBox {...changesStepProps} />);
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Add tests'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Tests'}));
+
+    await waitFor(() => {
+      expect(addSuccessMessage).toHaveBeenCalledWith('Thanks for the input.');
+    });
+  });
 });
