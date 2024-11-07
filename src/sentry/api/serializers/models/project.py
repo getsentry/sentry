@@ -1053,26 +1053,20 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             }
         )
 
-        is_dynamically_sampled = False
+        sample_rate = None
         if has_custom_dynamic_sampling(obj.organization):
             if is_project_mode_sampling(obj.organization):
-                is_dynamically_sampled = (
-                    obj.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT) < 1.0
-                )
+                sample_rate = obj.get_option("sentry:target_sample_rate")
             else:
-                is_dynamically_sampled = (
-                    obj.organization.get_option(
-                        "sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT
-                    )
-                    < 1.0
+                sample_rate = obj.organization.get_option(
+                    "sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT
                 )
         elif has_dynamic_sampling(obj.organization):
             sample_rate = quotas.backend.get_blended_sample_rate(
                 organization_id=obj.organization.id
             )
-            is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
 
-        data["isDynamicallySampled"] = is_dynamically_sampled
+        data["isDynamicallySampled"] = sample_rate is not None and sample_rate < 1.0
 
         return data
 
