@@ -75,7 +75,11 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, is_organization_mode_sampling
+from sentry.dynamic_sampling.utils import (
+    has_custom_dynamic_sampling,
+    is_organization_mode_sampling,
+    is_project_mode_sampling,
+)
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -960,17 +964,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
 
-            if request.access.has_scope("org:write"):
-                sampling_mode = organization.get_option(
-                    "sentry:sampling_mode", SAMPLING_MODE_DEFAULT
-                )
-                is_org_mode = sampling_mode == DynamicSamplingMode.ORGANIZATION.value
-                is_project_mode = sampling_mode == DynamicSamplingMode.PROJECT.value
+            if request.access.has_scope("org:write") and has_custom_dynamic_sampling(organization):
+                is_org_mode = is_organization_mode_sampling(organization)
 
                 # If the sampling mode was changed, adapt the project and org options accordingly
                 if "samplingMode" in changed_data:
                     with transaction.atomic(router.db_for_write(ProjectOption)):
-                        if is_project_mode:
+                        if is_project_mode_sampling(organization):
                             self._compute_project_target_sample_rates(organization)
                             organization.delete_option("sentry:target_sample_rate")
 
