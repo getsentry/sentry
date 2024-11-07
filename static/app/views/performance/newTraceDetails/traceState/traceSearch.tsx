@@ -4,7 +4,7 @@ import type {TraceSearchResult} from '../traceSearch/traceSearchEvaluator';
 import {traceReducerExhaustiveActionCheck} from '../traceState';
 
 export type TraceSearchAction =
-  | {query: string | undefined; type: 'set query'}
+  | {query: string; type: 'set query'; source?: 'external'}
   | {type: 'go to first match'}
   | {type: 'go to last match'}
   | {type: 'go to next match'}
@@ -14,7 +14,6 @@ export type TraceSearchAction =
       resultIteratorIndex: number;
       type: 'set search iterator index';
     }
-  | {type: 'clear'}
   | {type: 'clear search iterator index'}
   | {type: 'clear query'}
   | {
@@ -179,10 +178,6 @@ export function traceSearchReducer(
         resultIndex: null,
         node: null,
       };
-
-    case 'clear': {
-      return {...state, node: null, resultIteratorIndex: null, resultIndex: null};
-    }
 
     default: {
       traceReducerExhaustiveActionCheck(action);

@@ -196,6 +196,10 @@
   "sentry.dashboardpermissions": [
     "sentry.dashboard"
   ],
+  "sentry.dashboardpermissionsteam": [
+    "sentry.dashboardpermissions",
+    "sentry.team"
+  ],
   "sentry.dashboardproject": [
     "sentry.dashboard",
     "sentry.project"
@@ -869,7 +873,9 @@
     "uptime.uptimesubscription"
   ],
   "uptime.uptimesubscription": [],
-  "workflow_engine.action": [],
+  "workflow_engine.action": [
+    "sentry.integration"
+  ],
   "workflow_engine.datacondition": [
     "workflow_engine.dataconditiongroup"
   ],

@@ -3,15 +3,12 @@ from zoneinfo import ZoneInfo
 
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
-from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def t(hour: int, minute: int):
     return datetime(2019, 1, 1, hour, minute, 0, tzinfo=timezone.utc)
 
 
-@django_db_all
 def test_get_next_schedule():
     # 00 * * * *: 5:30 -> 6:00
     assert get_next_schedule(t(5, 30), CrontabSchedule("0 * * * *")) == t(6, 00)
@@ -26,7 +23,6 @@ def test_get_next_schedule():
     assert get_next_schedule(t(5, 42), IntervalSchedule(interval=2, unit="hour")) == t(7, 42)
 
 
-@django_db_all
 def test_get_next_schedule_cron_dst():
     # Minute rollover during DST start
     assert get_next_schedule(
@@ -41,21 +37,12 @@ def test_get_next_schedule_cron_dst():
     ) == datetime(2024, 3, 10, 3, 0, 0, tzinfo=ZoneInfo("America/New_York"))
 
 
-@django_db_all
-@override_options({"crons.use_cronsim": True})
 def test_get_next_schedule_cron_dst_bugs():
     """
-    XXX(epurkhiser): We have a bug in our handling of DST transitions for some
-    schedules. This is tracked at [0].
-
-    [0]: https://github.com/getsentry/sentry/issues/66868
-
-    The following test cases document the incorrectly handled cases and sahould
-    be correct once we've fixed the upstream issue in croniter.
-
-    This is fixed by using cronsim
+    XXX(epurkhiser): This is covered by the cronsim library tests, but since
+    it's somewhat important for us let's add our own coverage of the DST
+    transition.
     """
-
     # DST beginning with a daily schedule
     #
     # TODO: This incorrectly computes 13:00 instead of 12:00 for the 3rd.
@@ -73,7 +60,6 @@ def test_get_next_schedule_cron_dst_bugs():
     ) == datetime(2024, 3, 10, 12, 0, 0, tzinfo=ZoneInfo("America/New_York"))
 
 
-@django_db_all
 def test_get_prev_schedule():
     start_ts = datetime(2019, 1, 1, 1, 30, 0, tzinfo=timezone.utc)
 

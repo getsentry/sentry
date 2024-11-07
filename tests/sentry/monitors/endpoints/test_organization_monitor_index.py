@@ -558,9 +558,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "project": self.project.slug,
             "name": "My Monitor",
             "type": "cron_job",
-            # XXX(epurkhiser): February 29th is problematic for croniter
-            # unfortunately
-            "config": {"schedule_type": "crontab", "schedule": "0 0 29 2 *"},
+            # There is no Febuary 31st
+            "config": {"schedule_type": "crontab", "schedule": "0 0 31 2 *"},
         }
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert response.data["config"]["schedule"][0] == "Schedule is invalid"

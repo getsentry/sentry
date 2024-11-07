@@ -1,11 +1,9 @@
 import {Fragment, memo, useCallback, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {InputGroup} from 'sentry/components/inputGroup';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconSettings} from 'sentry/icons';
@@ -15,6 +13,7 @@ import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 
 interface ProjectItem {
   count: number;
@@ -281,24 +280,15 @@ const TableRow = memo(function TableRow({
             disabled={canEdit}
             title={t('To edit project sample rates, switch to manual sampling mode.')}
           >
-            <InputGroup
-              css={css`
-                width: 160px;
-              `}
-            >
-              <InputGroup.Input
-                type="number"
-                disabled={!canEdit}
-                onChange={handleChange}
-                min={0}
-                max={100}
-                size="sm"
-                value={sampleRate}
-              />
-              <InputGroup.TrailingItems>
-                <TrailingPercent>%</TrailingPercent>
-              </InputGroup.TrailingItems>
-            </InputGroup>
+            <PercentInput
+              type="number"
+              disabled={!canEdit}
+              onChange={handleChange}
+              min={0}
+              max={100}
+              size="sm"
+              value={sampleRate}
+            />
           </Tooltip>
         </FirstCellLine>
         {error ? (
@@ -438,8 +428,4 @@ const SettingsButton = styled(LinkButton)`
   ${Cell}:hover & {
     visibility: visible;
   }
-`;
-
-const TrailingPercent = styled('strong')`
-  padding: 0 ${space(0.25)};
 `;
