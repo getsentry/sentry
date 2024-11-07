@@ -8,6 +8,16 @@ export type Meta = {
 type TableRow = Record<string, number | string | undefined>;
 export type TableData = TableRow[];
 
+type TimeSeriesItem = {
+  timestamp: string;
+  value: number;
+};
+
+export type TimeseriesData = {
+  data: TimeSeriesItem[];
+  field: string;
+};
+
 export type ErrorProp = Error | string;
 
 export interface StateProps {
