@@ -437,6 +437,9 @@ class Referrer(Enum):
     API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE = (
         "api.profiling.functions.statistical-detector.example"
     )
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS = (
+        "api.profiling.functions.statistical-detector.chunks"
+    )
     API_PROFILING_FUNCTIONS_REGRESSION_EXAMPLES = "api.profiling.functions.regression.examples"
     API_PROFILING_FUNCTIONS_REGRESSION_LIST = "api.profiling.functions.regression.list"
     API_PROFILING_FUNCTIONS_REGRESSION_STATS = "api.profiling.functions.regression.stats"
