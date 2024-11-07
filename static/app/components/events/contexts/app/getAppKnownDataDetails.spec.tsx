@@ -30,11 +30,14 @@ describe('getAppKnownDataDetails', function () {
         subject: 'Device',
         value: '2421fae1ac9237a8131e74883e52b0f7034a143f',
       },
+      {subject: 'Build Type', value: 'test'},
       {subject: 'Build ID', value: 'io.sentry.sample.iOS-Swift'},
       {subject: 'Build Name', value: ''},
       {subject: 'Version', value: '7.1.3'},
       {subject: 'App Build', value: '1'},
       {subject: 'In Foreground', value: false},
+      {subject: 'Memory Usage', value: '12.0 MiB'},
+      {subject: 'View Names', value: ['app.view1', 'app.view2']},
     ]);
   });
 });

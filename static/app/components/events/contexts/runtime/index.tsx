@@ -12,7 +12,7 @@ import {
 
 import {getRuntimeKnownDataDetails} from './getRuntimeKnownDataDetails';
 import type {RuntimeData} from './types';
-import {RuntimeIgnoredDataType, RuntimeKnownDataType} from './types';
+import {RuntimeKnownDataType} from './types';
 
 type Props = {
   data: RuntimeData;
@@ -20,12 +20,7 @@ type Props = {
   meta?: Record<string, any>;
 };
 
-export const runtimeKnownDataValues = [
-  RuntimeKnownDataType.NAME,
-  RuntimeKnownDataType.VERSION,
-];
-
-const runtimeIgnoredDataValues = [RuntimeIgnoredDataType.BUILD];
+export const runtimeKnownDataValues = Object.values(RuntimeKnownDataType);
 
 export function getKnownRuntimeContextData({data, meta}: Pick<Props, 'data' | 'meta'>) {
   return getKnownData<RuntimeData, RuntimeKnownDataType>({
@@ -39,7 +34,7 @@ export function getKnownRuntimeContextData({data, meta}: Pick<Props, 'data' | 'm
 export function getUnknownRuntimeContextData({data, meta}: Pick<Props, 'data' | 'meta'>) {
   return getUnknownData({
     allData: data,
-    knownKeys: [...runtimeKnownDataValues, ...runtimeIgnoredDataValues],
+    knownKeys: runtimeKnownDataValues,
     meta,
   });
 }

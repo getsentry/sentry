@@ -8,6 +8,7 @@ import {RuntimeEventContext} from 'sentry/components/events/contexts/runtime';
 export const runtimeMockData = {
   version: '1.7.13',
   type: 'runtime',
+  raw_description: '',
   build: '2.7.18 (default, Apr 20 2020, 19:34:11) \n[GCC 8.3.0]',
   name: '',
 };

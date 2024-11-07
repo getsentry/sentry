@@ -29,6 +29,7 @@ describe('getDeviceKnownDataDetails', function () {
       {subject: 'Architecture', value: 'x86'},
       {subject: 'Battery Level', value: '100%'},
       {subject: 'Battery Status', value: undefined},
+      {subject: 'Battery Temperature (°C)', value: 45},
       expect.objectContaining({subject: 'Boot Time'}),
       {subject: 'Brand', value: 'google'},
       {subject: 'Charging', value: true},
