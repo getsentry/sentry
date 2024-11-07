@@ -68,7 +68,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
     return {
       isEditableByEveryone: selectedOptions.includes('_allUsers'),
       teamsWithEditAccess: selectedOptions.includes('_allUsers')
-        ? undefined
+        ? []
         : selectedOptions
             .filter(option => option !== '_creator')
             .map(teamId => parseInt(teamId, 10)),
