@@ -26,7 +26,7 @@ import withApi from 'sentry/utils/withApi';
 import {
   DASHBOARD_CARD_GRID_PADDING,
   MINIMUM_DASHBOARD_CARD_WIDTH,
-} from 'sentry/views/dashboards/manage/utils';
+} from 'sentry/views/dashboards/manage/settings';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 import {cloneDashboard} from '../utils';
