@@ -50,4 +50,11 @@ describe('useDomainViewFilters', () => {
     expect(isInDomainView).toBe(true);
     expect(view).toBe(BACKEND_LANDING_SUB_PATH);
   });
+
+  it('should not return isInDomainView if not in domain view', function () {
+    mockUseLocation.mockReturnValue(LocationFixture({pathname: '/performance/'}));
+    const {isInDomainView, view} = useDomainViewFilters();
+    expect(isInDomainView).toBe(false);
+    expect(view).toBeUndefined();
+  });
 });
