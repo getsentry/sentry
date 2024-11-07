@@ -63,7 +63,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       areAllTeamsSelected
         ? // selecting all teams deselects 'all users'
           (newSelectedValues = ['_creator', '_allUsers', ...teamIds])
-        : // deselecting all teams deselects 'all users'
+        : // deselecting any team deselects 'all users'
           (newSelectedValues = newSelectedValues.filter(value => value !== '_allUsers'));
     }
 
@@ -82,7 +82,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
     };
   }
 
-  // Gets selected options from the dropdown from dashboard object
+  // Gets selected options for the dropdown from dashboard object
   function getSelectedOptions(): string[] {
     if (!defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone) {
       return ['_creator', '_allUsers', ...teamIds];
