@@ -110,27 +110,35 @@ register(
     default={
         "default": {"hosts": {0: {"host": "127.0.0.1", "port": 6379}}},
         "processing": {
-            "hosts": {0: {"host": os.environ.get("SENTRY_PROCESSING_REDIS_HOST", "127.0.0.1"),
-                         "port": int(os.environ.get("SENTRY_PROCESSING_REDIS_PORT", "6380"))}},
+            "hosts": {
+                0: {
+                    "host": os.environ.get("SENTRY_PROCESSING_REDIS_HOST", "127.0.0.1"),
+                    "port": int(os.environ.get("SENTRY_PROCESSING_REDIS_PORT", "6380")),
+                }
+            },
             "client_args": {
                 "socket_connect_timeout": 1.0,
                 "socket_timeout": 1.0,
                 "max_connections": 50,
                 "retry_on_timeout": True,
-                "health_check_interval": 30
-            }
+                "health_check_interval": 30,
+            },
         },
         "processing-transactions": {
-            "hosts": {0: {"host": os.environ.get("SENTRY_PROCESSING_TX_REDIS_HOST", "127.0.0.1"),
-                         "port": int(os.environ.get("SENTRY_PROCESSING_TX_REDIS_PORT", "6381"))}},
+            "hosts": {
+                0: {
+                    "host": os.environ.get("SENTRY_PROCESSING_TX_REDIS_HOST", "127.0.0.1"),
+                    "port": int(os.environ.get("SENTRY_PROCESSING_TX_REDIS_PORT", "6381")),
+                }
+            },
             "client_args": {
                 "socket_connect_timeout": 1.0,
                 "socket_timeout": 1.0,
                 "max_connections": 50,
                 "retry_on_timeout": True,
-                "health_check_interval": 30
-            }
-        }
+                "health_check_interval": 30,
+            },
+        },
     },
     flags=FLAG_NOSTORE | FLAG_IMMUTABLE,
 )
