@@ -824,7 +824,7 @@ appConfig.plugins?.push(
       create: false,
     },
     reactComponentAnnotation: {
-      enabled: true,
+      enabled: false,
     },
     bundleSizeOptimizations: {
       // This is enabled so that our SDKs send exceptions to Sentry
