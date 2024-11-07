@@ -1,5 +1,7 @@
 import type {CloudResourceContext} from '@sentry/types';
 
+import type {CultureContext} from 'sentry/components/events/contexts/culture';
+import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/missingInstrumentation';
 import type {
   AggregateSpanType,
   MetricsSummary,
@@ -644,15 +646,18 @@ export type FeatureFlag = {flag: string; result: boolean};
 export type Flags = {values: FeatureFlag[]};
 
 export type EventContexts = {
+  'Current Culture'?: CultureContext;
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
   browser?: BrowserContext;
   client_os?: OSContext;
   cloud_resource?: CloudResourceContext;
+  culture?: CultureContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
   flags?: Flags;
   memory_info?: MemoryInfoContext;
+  missing_instrumentation?: MissingInstrumentationContext;
   os?: OSContext;
   otel?: OtelContext;
   // TODO (udameli): add better types here
