@@ -6,6 +6,7 @@ import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {DeviceName} from 'sentry/components/deviceName';
+import {getCloudResourceContextData} from 'sentry/components/events/contexts/cloudResource';
 import {
   ContextIcon,
   type ContextIconProps,
@@ -344,6 +345,8 @@ export function getContextTitle({
       return t('Trace Details');
     case 'otel':
       return 'OpenTelemetry';
+    case 'cloud_resource':
+      return t('Cloud Resource');
     case 'unity':
       return 'Unity';
     case 'memory_info': // Current value for memory info
@@ -542,6 +545,8 @@ export function getFormattedContextData({
         ...getKnownReplayContextData({data: contextValue, meta, organization}),
         ...getUnknownReplayContextData({data: contextValue, meta}),
       ];
+    case 'cloud_resource':
+      return getCloudResourceContextData({data: contextValue, meta});
     default:
       return getDefaultContextData(contextValue);
   }
