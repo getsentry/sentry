@@ -74,6 +74,13 @@ export function Step({
         <AnimatePresence initial={false}>
           <AnimationWrapper key="content" {...animationProps}>
             <Fragment>
+              {hasErroredStepBefore && hasStepAbove && (
+                <StepMessage>
+                  Autofix encountered an error.
+                  <br />
+                  Restarting step from scratch...
+                </StepMessage>
+              )}
               {step.type === AutofixStepType.DEFAULT && (
                 <AutofixInsightCards
                   insights={step.insights}
@@ -97,13 +104,6 @@ export function Step({
               )}
               {step.type === AutofixStepType.CHANGES && (
                 <AutofixChanges step={step} groupId={groupId} runId={runId} />
-              )}
-              {hasErroredStepBefore && hasStepBelow && (
-                <StepMessage>
-                  Autofix encountered an error.
-                  <br />
-                  Restarting step from scratch...
-                </StepMessage>
               )}
             </Fragment>
           </AnimationWrapper>
@@ -188,7 +188,9 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
       return count;
     }, 0);
 
-    const hasNewSteps = currentStepsLength > prevStepsLengthRef.current;
+    const hasNewSteps =
+      currentStepsLength > prevStepsLengthRef.current &&
+      steps[currentStepsLength - 1].type !== AutofixStepType.DEFAULT;
     const hasNewInsights = currentInsightsCount > prevInsightsCountRef.current;
 
     if (hasNewSteps || hasNewInsights) {
