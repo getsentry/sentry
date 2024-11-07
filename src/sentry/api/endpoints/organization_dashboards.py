@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-
 from django.db import IntegrityError, router, transaction
 from django.db.models import Case, IntegerField, When
 from drf_spectacular.utils import extend_schema
@@ -33,7 +31,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.dashboard import Dashboard
 from sentry.models.organization import Organization
 
-MAX_RETRIES = 10
+MAX_RETRIES = 2
 DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"
 
 
@@ -221,22 +219,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard = serializer.save()
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
-            pass
+            duplicate = request.data.get("duplicate", False)
 
-        duplicate = request.data.get("duplicate", False)
-        if not duplicate or retry >= MAX_RETRIES:
-            return Response("Dashboard title already taken", status=409)
+            if not duplicate or retry >= MAX_RETRIES:
+                return Response("Dashboard title already taken", status=409)
 
-        title = request.data["title"]
-        match = re.match(DUPLICATE_TITLE_PATTERN, title)
-        if match:
-            partial_title = match.group(1)
-            copy_counter = match.group(2)
-            if copy_counter:
-                request.data["title"] = f"{partial_title} copy {int(copy_counter) + 1}"
-            else:
-                request.data["title"] = f"{partial_title} copy 1"
-        else:
-            request.data["title"] = f"{title} copy"
+            request.data["title"] = Dashboard.incremental_title(organization, request.data["title"])
 
-        return self.post(request, organization, retry=retry + 1)
+            return self.post(request, organization, retry=retry + 1)
