@@ -405,6 +405,7 @@ def top_events_timeseries(
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ) -> SnubaTSResult | dict[str, Any]:
 
     if top_events is None:
