@@ -155,6 +155,12 @@ def _do_preprocess_event(
     # one after the other, so we handle mixed stacktraces.
     stacktraces = find_stacktraces_in_data(data)
     symbolicate_platforms = get_symbolication_platforms(data, stacktraces)
+    metrics.incr(
+        "events.to-symbolicate",
+        tags={platform.value: True for platform in symbolicate_platforms},
+        skip_internal=False,
+    )
+
     should_symbolicate = len(symbolicate_platforms) > 0
     if should_symbolicate:
         first_platform = symbolicate_platforms.pop(0)
