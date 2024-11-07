@@ -21,7 +21,7 @@ interface TraceLinkProps {
 export function TraceLink({event}: TraceLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const surface = useContext(AnalyticsAreaContext);
+  const area = useContext(AnalyticsAreaContext);
   const traceTarget = generateTraceTarget(
     event,
     organization,
@@ -32,10 +32,10 @@ export function TraceLink({event}: TraceLinkProps) {
         groupId: event.groupID,
       },
     },
-    surface.startsWith('feedback')
+    area.startsWith('feedback')
       ? TraceViewSources.FEEDBACK_DETAILS
       : TraceViewSources.ISSUE_DETAILS
-    // Surface can be leveraged for other TraceViewSources, but right now these
+    // area can be leveraged for other TraceViewSources, but right now these
     // are the only 2 that use a TraceLink.
   );
 
@@ -61,7 +61,7 @@ export function TraceLink({event}: TraceLinkProps) {
         // Source used to be hard-coded here, we keep the old value of issue details for backwards compatibility.
         trackAnalytics('quick_trace.trace_id.clicked', {
           organization,
-          source: surface.includes('issue_details') ? 'issues' : surface,
+          source: area.includes('issue_details') ? 'issues' : area,
         });
       }}
     >

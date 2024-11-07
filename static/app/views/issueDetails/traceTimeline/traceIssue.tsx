@@ -23,13 +23,13 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   const issueId = event['issue.id'];
   const {title, subtitle, message} = getTitleSubtitleMessage(event);
   const avatarSize = parseInt(space(4), 10);
-  const surface = useContext(AnalyticsAreaContext);
+  const area = useContext(AnalyticsAreaContext);
 
   // Referrer used to be hard-coded for this component. It's used for analytics
   // only. We'll still use the old referrer for backwards compatibility.
-  const queryReferrer = surface.includes('issue_details')
+  const queryReferrer = area.includes('issue_details')
     ? 'issue_details.related_trace_issue'
-    : surface;
+    : area;
 
   return (
     <Fragment>
@@ -42,7 +42,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         }}
         onClick={() => {
           // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
-          if (surface.includes('issue_details')) {
+          if (area.includes('issue_details')) {
             trackAnalytics('issue_details.related_trace_issue.trace_issue_clicked', {
               organization,
               group_id: issueId,
@@ -51,7 +51,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
           trackAnalytics('one_other_related_trace_issue.clicked', {
             organization,
             group_id: issueId,
-            surface: surface,
+            area: area,
           });
         }}
       >

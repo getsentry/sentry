@@ -165,13 +165,13 @@ export type TeamInsightsEventParameters = {
     project_id: number;
   };
   trace_timeline_clicked: {
+    area: string;
     event_id: string;
     group_id: string;
-    surface: string;
   };
   trace_timeline_more_events_clicked: {
+    area: string;
     num_hidden: number;
-    surface: string;
   };
 };
 

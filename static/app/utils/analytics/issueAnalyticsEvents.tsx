@@ -286,9 +286,9 @@ export type IssueEventParameters = {
     tab?: string;
   };
   'one_other_related_trace_issue.clicked': {
-    // Equivalent to 'issue_details.related_trace_issue.trace_issue_clicked', but includes a dynamic `surface`.
+    area: string;
+    // Equivalent to 'issue_details.related_trace_issue.trace_issue_clicked', but `area` is dynamic.
     group_id: number;
-    surface: string;
   };
   'project_modal.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';

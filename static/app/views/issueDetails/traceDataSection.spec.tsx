@@ -213,9 +213,9 @@ describe('TraceDataSection', () => {
       body: [],
     });
 
-    // Wrapping with the issue_details surface so we can test both the new and
+    // Wrapping with the issue_details area so we can test both the new and
     // old (pre-Nov 2024) analytics are emitted. In the source code, this
-    // surface is located in GroupEventDetails.
+    // area is located in GroupEventDetails.
     render(
       <AnalyticsAreaProvider name="issue_details">
         <TraceDataSection event={event} />
@@ -250,7 +250,7 @@ describe('TraceDataSection', () => {
     expect(trackAnalytics).toHaveBeenCalledWith('one_other_related_trace_issue.clicked', {
       group_id: issuePlatformBody.data[0]['issue.id'],
       organization: organization,
-      surface: 'issue_details',
+      area: 'issue_details',
     });
   });
 

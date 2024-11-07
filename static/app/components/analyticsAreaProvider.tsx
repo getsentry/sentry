@@ -43,12 +43,10 @@ export default function AnalyticsAreaProvider({
   name: string;
   overrideParent?: boolean;
 }) {
-  const parentSurface = useContext(AnalyticsAreaContext);
-  const surface = overrideParent || !parentSurface ? name : `${parentSurface}.${name}`;
+  const parentArea = useContext(AnalyticsAreaContext);
+  const area = overrideParent || !parentArea ? name : `${parentArea}.${name}`;
 
   return (
-    <AnalyticsAreaContext.Provider value={surface}>
-      {children}
-    </AnalyticsAreaContext.Provider>
+    <AnalyticsAreaContext.Provider value={area}>{children}</AnalyticsAreaContext.Provider>
   );
 }

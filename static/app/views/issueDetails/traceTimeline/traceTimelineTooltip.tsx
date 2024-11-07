@@ -24,7 +24,7 @@ interface TraceTimelineTooltipProps {
 export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineTooltipProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const surface = useContext(AnalyticsAreaContext);
+  const area = useContext(AnalyticsAreaContext);
 
   // TODO: should handling of current event + other events look different
   if (timelineEvents.length === 1 && timelineEvents[0].id === event.id) {
@@ -57,7 +57,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
           <Link
             to={generateTraceTarget(event, organization, location)}
             onClick={() => {
-              if (surface.startsWith('issue_details')) {
+              if (area.startsWith('issue_details')) {
                 // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
                 trackAnalytics(
                   'issue_details.issue_tab.trace_timeline_more_events_clicked',
@@ -70,7 +70,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
               trackAnalytics('trace_timeline_more_events_clicked', {
                 organization,
                 num_hidden: filteredTimelineEvents.length - 3,
-                surface,
+                area,
               });
             }}
           >
@@ -98,7 +98,7 @@ function EventItem({timelineEvent, location}: EventItemProps) {
     orgId: organization.slug,
   });
   const project = projects.find(p => p.slug === timelineEvent.project);
-  const surface = useContext(AnalyticsAreaContext);
+  const area = useContext(AnalyticsAreaContext);
 
   return (
     <EventItemRoot
@@ -107,13 +107,13 @@ function EventItem({timelineEvent, location}: EventItemProps) {
         query: {
           ...location.query,
           project: undefined,
-          referrer: surface.includes('issue_details')
+          referrer: area.includes('issue_details')
             ? 'issues_trace_timeline' // TODO: remove this condition after queries are migrated
-            : surface,
+            : area,
         },
       }}
       onClick={() => {
-        if (surface.includes('issue_details')) {
+        if (area.includes('issue_details')) {
           // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
           trackAnalytics('issue_details.issue_tab.trace_timeline_clicked', {
             organization,
@@ -125,7 +125,7 @@ function EventItem({timelineEvent, location}: EventItemProps) {
           organization,
           event_id: timelineEvent.id,
           group_id: `${timelineEvent['issue.id']}`,
-          surface,
+          area,
         });
       }}
     >
@@ -189,7 +189,7 @@ const EventItemRoot = styled(Link)`
   font-size: ${p => p.theme.fontSizeSmall};
 
   &:hover {
-    background-color: ${p => p.theme.surface200};
+    background-color: ${p => p.theme.area200};
     color: ${p => p.theme.textColor};
   }
 `;
