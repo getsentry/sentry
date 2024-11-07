@@ -44,7 +44,6 @@ export function EventList({group}: EventListProps) {
     group,
     queryProps: {
       fields,
-      orderby: ['-timestamp'],
       widths: fields.map(field => {
         switch (field) {
           case 'id':
@@ -72,6 +71,10 @@ export function EventList({group}: EventListProps) {
   eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
     fields.includes(sort.field)
   );
+
+  if (!eventView.sorts.length) {
+    eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
+  }
 
   const grayText = css`
     color: ${theme.subText};
