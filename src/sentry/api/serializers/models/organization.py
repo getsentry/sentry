@@ -59,8 +59,12 @@ from sentry.constants import (
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.dynamic_sampling.tasks.common import get_organization_volume
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
-from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
+from sentry.dynamic_sampling.utils import (
+    has_custom_dynamic_sampling,
+    has_dynamic_sampling,
+    is_organization_mode_sampling,
+    is_project_mode_sampling,
+)
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
@@ -659,17 +663,14 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         is_dynamically_sampled = False
         sample_rate = None
-        if has_dynamic_sampling(obj):
-            if (
-                obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-                == DynamicSamplingMode.ORGANIZATION
-            ):
+        if has_custom_dynamic_sampling(obj):
+            if is_organization_mode_sampling(obj):
                 sample_rate = obj.get_option(
                     "sentry:target_sample_rate",
                     quotas.backend.get_blended_sample_rate(organization_id=obj.id),
                 )
                 is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
-            else:
+            elif is_project_mode_sampling(obj):
                 is_dynamically_sampled = (
                     ProjectOption.objects.filter(
                         project__organization=obj,
@@ -679,6 +680,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     .filter(value_as_json__lt=1.0)
                     .exists()
                 )
+        elif has_dynamic_sampling(obj):
+            sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
+            is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
 
         context["isDynamicallySampled"] = is_dynamically_sampled
 
