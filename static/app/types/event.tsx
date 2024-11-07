@@ -1,3 +1,5 @@
+import type {CloudResourceContext} from '@sentry/types';
+
 import type {
   AggregateSpanType,
   MetricsSummary,
@@ -646,6 +648,7 @@ export type EventContexts = {
   'ThreadPool Info'?: ThreadPoolInfoContext;
   browser?: BrowserContext;
   client_os?: OSContext;
+  cloud_resource?: CloudResourceContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
   flags?: Flags;
