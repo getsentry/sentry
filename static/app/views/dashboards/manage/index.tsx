@@ -26,6 +26,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import localStorage from 'sentry/utils/localStorage';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -44,16 +45,14 @@ import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import type {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
-import TemplateCard from './templateCard';
 import {
   DASHBOARD_CARD_GRID_PADDING,
   DASHBOARD_GRID_DEFAULT_NUM_CARDS,
   DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
   DASHBOARD_GRID_DEFAULT_NUM_ROWS,
   MINIMUM_DASHBOARD_CARD_WIDTH,
-  shouldShowTemplates,
-  SHOW_TEMPLATES_KEY,
-} from './utils';
+} from './settings';
+import TemplateCard from './templateCard';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Dashboards'), value: 'mydashboards'},
@@ -63,6 +62,13 @@ const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('Most Popular'), value: 'mostPopular'},
   {label: t('Recently Viewed'), value: 'recentlyViewed'},
 ];
+
+const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
+
+function shouldShowTemplates(): boolean {
+  const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
+  return shouldShow === 'true' || shouldShow === null;
+}
 
 function ManageDashboards() {
   const organization = useOrganization();
