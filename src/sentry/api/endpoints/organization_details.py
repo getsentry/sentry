@@ -384,7 +384,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Organization does not have the custom dynamic sample rate feature enabled."
             )
 
-        if is_organization_mode_sampling(organization):
+        if not is_organization_mode_sampling(organization):
             raise serializers.ValidationError(
                 "Must be in Automatic Mode to configure the organization sample rate."
             )
