@@ -121,3 +121,79 @@ class DiscoverSavedQueryTest(TestCase):
 
         # Does not error since the query is in another org
         new_query.update(is_homepage=True)
+
+    def test_delete_project_cascade(self):
+        project = self.create_project()
+        remaining_project = self.create_project()
+
+        saved_query = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            name="Test query",
+            query=self.query,
+            created_by_id=self.user.id,
+            is_homepage=True,
+        )
+        remaining_saved_query = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            name="Test query 2",
+            query=self.query,
+            created_by_id=self.user.id,
+        )
+
+        saved_query.projects.set([project])
+        remaining_saved_query.projects.set([project, remaining_project])
+
+        assert DiscoverSavedQueryProject.objects.filter(
+            discover_saved_query=saved_query, project=project
+        ).exists()
+
+        # Delete the project to trigger the cascade
+        deleted_project_id = project.id
+        project.delete()
+
+        # No entries for the saved query project relationship with just the deleted project
+        assert not DiscoverSavedQueryProject.objects.filter(
+            discover_saved_query=saved_query, project_id=deleted_project_id
+        ).exists()
+        # Other saved query still has entries for the remaining project
+        assert DiscoverSavedQueryProject.objects.filter(
+            discover_saved_query=remaining_saved_query, project=remaining_project
+        ).exists()
+
+    def test_delete_dashboard_cascade(self):
+        project = self.create_project()
+
+        saved_query = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            name="Test query",
+            query=self.query,
+            created_by_id=self.user.id,
+            is_homepage=True,
+        )
+        remaining_saved_query = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            name="Test query 2",
+            query=self.query,
+            created_by_id=self.user.id,
+        )
+
+        saved_query.projects.set([project])
+        remaining_saved_query.projects.set([project])
+
+        assert DiscoverSavedQueryProject.objects.filter(
+            discover_saved_query=saved_query, project=project
+        ).exists()
+
+        # Delete the saved query to trigger the cascade
+        deleted_saved_query_id = saved_query.id
+        saved_query.delete()
+
+        # The deleted saved query cascaded and deletes the saved query-project relationship
+        assert not DiscoverSavedQueryProject.objects.filter(
+            project=project, discover_saved_query_id=deleted_saved_query_id
+        ).exists()
+
+        # The remaining saved query still has a relationship entry
+        assert DiscoverSavedQueryProject.objects.filter(
+            project=project, discover_saved_query=remaining_saved_query
+        ).exists()

@@ -70,8 +70,8 @@ class DatasetSourcesTypes(Enum):
 class DiscoverSavedQueryProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    project = FlexibleForeignKey("sentry.Project")
-    discover_saved_query = FlexibleForeignKey("sentry.DiscoverSavedQuery")
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+    discover_saved_query = FlexibleForeignKey("sentry.DiscoverSavedQuery", on_delete=models.CASCADE)
 
     class Meta:
         app_label = "sentry"
