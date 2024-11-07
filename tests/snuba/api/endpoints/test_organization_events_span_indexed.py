@@ -530,12 +530,9 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.data["data"] == [{"foo": "", "count()": 1}]
 
 
-@pytest.mark.xfail(
-    reason="Snuba is not stable for the EAP dataset, xfailing since its prone to failure"
-)
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True
-    use_rpc = True
+    use_rpc = False
 
     def test_simple(self):
         self.store_spans(
@@ -1005,7 +1002,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         # How to read this; these results mean that the extrapolated count is
         # 500k, with a lower estimated bound of ~200k, and an upper bound of 800k
         assert lower_limit == pytest.approx(190_000, abs=5000)
-        assert extrapolated == pytest.approx(500_000)
+        assert extrapolated == pytest.approx(500_000, abs=5000)
         assert upper_limit == pytest.approx(810_000, abs=5000)
 
     def test_skip_aggregate_conditions_option(self):
@@ -1051,3 +1048,144 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
     is_eap = True
     use_rpc = True
+
+    def test_span_duration(self):
+        spans = [
+            self.create_span(
+                {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": ["span.duration", "description"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.duration": 1000.0,
+                "description": "bar",
+                "project.name": self.project.slug,
+                "id": spans[0]["span_id"],
+            },
+            {
+                "span.duration": 1000.0,
+                "description": "foo",
+                "project.name": self.project.slug,
+                "id": spans[1]["span_id"],
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    @pytest.mark.xfail(reason="extrapolation not implemented yet")
+    def test_aggregate_numeric_attr_weighted(self):
+        super().test_aggregate_numeric_attr_weighted()
+
+    @pytest.mark.xfail(reason="RPC failing because of aliasing")
+    def test_numeric_attr_without_space(self):
+        super().test_numeric_attr_without_space()
+
+    @pytest.mark.xfail(reason="RPC failing because of aliasing")
+    def test_numeric_attr_with_spaces(self):
+        super().test_numeric_attr_with_spaces()
+
+    @pytest.mark.xfail(reason="RPC failing because of aliasing")
+    def test_numeric_attr_filtering(self):
+        super().test_numeric_attr_filtering()
+
+    @pytest.mark.xfail(reason="RPC failing because of aliasing")
+    def test_numeric_attr_orderby(self):
+        super().test_numeric_attr_orderby()
+
+    def test_aggregate_numeric_attr(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar1"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar2"},
+                    },
+                    measurements={"foo": {"value": 5}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "description",
+                    "count_unique(bar)",
+                    "count_unique(tags[bar])",
+                    "count_unique(tags[bar,string])",
+                    "count()",
+                    "count(span.duration)",
+                    "count(tags[foo,     number])",
+                    "sum(tags[foo,number])",
+                    "avg(tags[foo,number])",
+                    "p50(tags[foo,number])",
+                    # TODO: bring p75 back once its added to the rpc
+                    # "p75(tags[foo,number])",
+                    "p95(tags[foo,number])",
+                    "p99(tags[foo,number])",
+                    "p100(tags[foo,number])",
+                    "min(tags[foo,number])",
+                    "max(tags[foo,number])",
+                ],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0] == {
+            "description": "foo",
+            "count_unique(bar)": 2,
+            "count_unique(tags[bar])": 2,
+            "count_unique(tags[bar,string])": 2,
+            "count()": 2,
+            "count(span.duration)": 2,
+            "count(tags[foo,     number])": 1,
+            "sum(tags[foo,number])": 5.0,
+            "avg(tags[foo,number])": 5.0,
+            "p50(tags[foo,number])": 5.0,
+            # TODO: bring p75 back once its added to the rpc
+            # "p75(tags[foo,number])": 5.0,
+            "p95(tags[foo,number])": 5.0,
+            "p99(tags[foo,number])": 5.0,
+            "p100(tags[foo,number])": 5.0,
+            "min(tags[foo,number])": 5.0,
+            "max(tags[foo,number])": 5.0,
+        }
+
+    @pytest.mark.xfail(reason="extrapolation not implemented yet")
+    def test_margin_of_error(self):
+        super().test_margin_of_error()

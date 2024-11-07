@@ -82,7 +82,7 @@ class ResolvedColumn:
 
 @dataclass
 class ArgumentDefinition:
-    argument_type: str | None = None
+    argument_types: list[str] | None = None
     # The public alias for the default arg, the SearchResolver will resolve this value
     default_arg: str | None = None
     # Whether this argument is completely ignored, used for `count()`
@@ -291,54 +291,79 @@ SPAN_FUNCTION_DEFINITIONS = {
     "sum": FunctionDefinition(
         internal_function=Function.FUNCTION_SUM,
         search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
     ),
     "avg": FunctionDefinition(
         internal_function=Function.FUNCTION_AVERAGE,
         search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
     ),
     "count": FunctionDefinition(
         internal_function=Function.FUNCTION_COUNT,
         search_type="number",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
     ),
     "p50": FunctionDefinition(
         internal_function=Function.FUNCTION_P50,
         search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
     ),
     "p90": FunctionDefinition(
         internal_function=Function.FUNCTION_P90,
         search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
     ),
     "p95": FunctionDefinition(
         internal_function=Function.FUNCTION_P95,
         search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
     ),
     "p99": FunctionDefinition(
         internal_function=Function.FUNCTION_P99,
         search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
+    ),
+    "p100": FunctionDefinition(
+        internal_function=Function.FUNCTION_MAX,
+        search_type="duration",
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
     ),
     "max": FunctionDefinition(
         internal_function=Function.FUNCTION_MAX,
         search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
     ),
     "min": FunctionDefinition(
         internal_function=Function.FUNCTION_MIN,
         search_type="duration",
-        arguments=[ArgumentDefinition(argument_type="duration", default_arg="span.duration")],
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
     ),
     "count_unique": FunctionDefinition(
         internal_function=Function.FUNCTION_UNIQ,
         search_type="number",
         arguments=[
             ArgumentDefinition(
-                argument_type="string",
+                argument_types=["string"],
             )
         ],
     ),
