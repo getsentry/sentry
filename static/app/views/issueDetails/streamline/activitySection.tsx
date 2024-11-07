@@ -51,7 +51,9 @@ function TimelineItem({
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const Icon = iconMapping?.Component ?? null;
+  const Icon = iconMapping?.componentFunction
+    ? iconMapping.componentFunction(item.data)
+    : iconMapping?.Component ?? null;
 
   return (
     <ActivityTimelineItem
@@ -100,7 +102,7 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
     minHeight: 140,
     group,
     projectSlugs,
-    placeholder: t('Add a comment...'),
+    placeholder: t('Add a comment\u2026'),
   };
 
   const mutators = useMutateActivity({

@@ -1,9 +1,12 @@
+from unittest import mock
+
 import pytest
 import responses
 
 from fixtures.gitlab import GitLabTestCase
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
@@ -137,7 +140,8 @@ class GitlabIssuesTest(GitLabTestCase):
         ]
 
     @responses.activate
-    def test_create_issue(self):
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_create_issue(self, mock_record):
         issue_iid = "1"
         project_id = "10"
         project_name = "getsentry/sentry"
@@ -172,6 +176,29 @@ class GitlabIssuesTest(GitLabTestCase):
             "project": project_id,
             "metadata": {"display_name": key},
         }
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @responses.activate
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_create_issue_failure(self, mock_record):
+        """
+        Test that metrics are being correctly emitted on failure.
+        """
+        form_data = {
+            "title": "rip",
+            "description": "Goodnight, sweet prince",
+        }
+
+        with pytest.raises(IntegrationError):
+            self.installation.create_issue(form_data)
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.FAILURE
 
     @responses.activate
     def test_get_issue(self):

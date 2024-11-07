@@ -14,6 +14,7 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -94,26 +95,28 @@ export default function ScreensTemplate({
           />
         )}
 
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <Container>
-              <ModulePageFilterBar
-                moduleName={moduleName}
-                onProjectChange={handleProjectChange}
-                extraFilters={
-                  <Fragment>
-                    <ReleaseComparisonSelector />
-                    {additionalSelectors}
-                  </Fragment>
-                }
-              />
-            </Container>
-            <PageAlert />
-            <ErrorBoundary mini>
-              <ModulesOnboarding moduleName={moduleName}>{content}</ModulesOnboarding>
-            </ErrorBoundary>
-          </Layout.Main>
-        </Layout.Body>
+        <ModuleBodyUpsellHook moduleName={moduleName}>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <Container>
+                <ModulePageFilterBar
+                  moduleName={moduleName}
+                  onProjectChange={handleProjectChange}
+                  extraFilters={
+                    <Fragment>
+                      <ReleaseComparisonSelector />
+                      {additionalSelectors}
+                    </Fragment>
+                  }
+                />
+              </Container>
+              <PageAlert />
+              <ErrorBoundary mini>
+                <ModulesOnboarding moduleName={moduleName}>{content}</ModulesOnboarding>
+              </ErrorBoundary>
+            </Layout.Main>
+          </Layout.Body>
+        </ModuleBodyUpsellHook>
       </PageAlertProvider>
     </Layout.Page>
   );

@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 
 import {getRelativeTimeFromEventDateCreated, type KnownDataDetails} from '../utils';
 
@@ -11,6 +12,14 @@ type Props = {
   event: Event;
   type: AppKnownDataType;
 };
+
+// https://github.com/getsentry/relay/blob/24.10.0/relay-event-schema/src/protocol/contexts/app.rs#L37
+function formatMemory(memoryInBytes: number) {
+  if (!Number.isInteger(memoryInBytes) || memoryInBytes <= 0) {
+    return null;
+  }
+  return formatBytesBase2(memoryInBytes);
+}
 
 export function getAppKnownDataDetails({data, event, type}: Props): KnownDataDetails {
   switch (type) {
@@ -61,6 +70,16 @@ export function getAppKnownDataDetails({data, event, type}: Props): KnownDataDet
       return {
         subject: t('In Foreground'),
         value: data.in_foreground,
+      };
+    case AppKnownDataType.MEMORY:
+      return {
+        subject: t('Memory Usage'),
+        value: data.app_memory ? formatMemory(data.app_memory) : undefined,
+      };
+    case AppKnownDataType.VIEW_NAMES:
+      return {
+        subject: t('View Names'),
+        value: data.view_names,
       };
     default:
       return undefined;

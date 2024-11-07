@@ -21,7 +21,9 @@ describe('StreamlinedSidebar', function () {
   const activityContent = 'test-note';
   const issueTrackingKey = 'issue-key';
 
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['ai-summary'],
+  });
   const project = ProjectFixture();
   const group = GroupFixture({
     activity: [
@@ -48,6 +50,15 @@ describe('StreamlinedSidebar', function () {
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
       method: 'GET',
       body: group,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/issues/1/autofix/setup/',
+      body: {
+        genAIConsent: {ok: false},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: true},
+      },
     });
 
     mockFirstLastRelease = MockApiClient.addMockResponse({
@@ -84,6 +95,9 @@ describe('StreamlinedSidebar', function () {
       organization,
     });
 
+    expect(await screen.findByText('Solutions & Resources')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'See More'})).toBeInTheDocument();
+
     expect(await screen.findByText('First seen')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();
     expect(mockFirstLastRelease).toHaveBeenCalled();
@@ -95,7 +109,7 @@ describe('StreamlinedSidebar', function () {
     expect(mockExternalIssues).toHaveBeenCalled();
 
     expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Add a comment...')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: /Add a comment/})).toBeInTheDocument();
     expect(screen.getByText(activityContent)).toBeInTheDocument();
 
     expect(screen.getByRole('heading', {name: 'Similar Issues'})).toBeInTheDocument();

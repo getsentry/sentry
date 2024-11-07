@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
+from django.db.models import JSONField
+from django.db.models.functions import Cast
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
@@ -45,6 +47,7 @@ from sentry.constants import (
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
+    ROLLBACK_ENABLED_DEFAULT,
     SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
@@ -56,10 +59,17 @@ from sentry.constants import (
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.dynamic_sampling.tasks.common import get_organization_volume
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
+from sentry.dynamic_sampling.utils import (
+    has_custom_dynamic_sampling,
+    has_dynamic_sampling,
+    is_organization_mode_sampling,
+    is_project_mode_sampling,
+)
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
@@ -483,6 +493,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricsActivatePercentiles: bool
     metricsActivateLastForGauges: bool
     requiresSso: bool
+    rollbackEnabled: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -619,6 +630,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
                     )
                 ),
+                "rollbackEnabled": bool(
+                    obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
+                ),
             }
         )
 
@@ -627,7 +641,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 obj.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION)
             )
 
-        if features.has("organizations:dynamic-sampling-custom", obj, actor=user):
+        if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(
                 obj.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
             )
@@ -647,12 +661,30 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             team__organization=obj
         ).count()
 
-        sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
-        context["isDynamicallySampled"] = (
-            features.has("organizations:dynamic-sampling", obj)
-            and sample_rate is not None
-            and sample_rate < 1.0
-        )
+        is_dynamically_sampled = False
+        sample_rate = None
+        if has_custom_dynamic_sampling(obj):
+            if is_organization_mode_sampling(obj):
+                sample_rate = obj.get_option(
+                    "sentry:target_sample_rate",
+                    quotas.backend.get_blended_sample_rate(organization_id=obj.id),
+                )
+                is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
+            elif is_project_mode_sampling(obj):
+                is_dynamically_sampled = (
+                    ProjectOption.objects.filter(
+                        project__organization=obj,
+                        key="sentry:target_sample_rate",
+                    )
+                    .annotate(value_as_json=Cast("value", output_field=JSONField(null=True)))
+                    .filter(value_as_json__lt=1.0)
+                    .exists()
+                )
+        elif has_dynamic_sampling(obj):
+            sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
+            is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
+
+        context["isDynamicallySampled"] = is_dynamically_sampled
 
         org_volume = get_organization_volume(obj.id, timedelta(hours=24))
         if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
@@ -676,6 +708,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "metricsActivatePercentiles",
         "metricsActivateLastForGauges",
         "quota",
+        "rollbackEnabled",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

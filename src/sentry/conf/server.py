@@ -1340,6 +1340,14 @@ BGTASKS = {
     },
 }
 
+# Taskworker settings #
+# The list of modules that workers will import after starting up
+# Like celery, taskworkers need to import task modules to make tasks
+# accessible to the worker.
+TASKWORKER_IMPORTS: tuple[str, ...] = ()
+TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
+TASKWORKER_ROUTES: dict[str, str] = {}
+
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
 # handler is 'console' and disable propagating upwards.
@@ -2417,7 +2425,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "bigtable": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
+            "image": "ghcr.io/getsentry/cbtemulator:d28ad6b63e461e8c05084b8c83f1c06627068c04",
             "ports": {"8086/tcp": 8086},
             # NEED_BIGTABLE is set by CI so we don't have to pass
             # --skip-only-if when compiling which services to run.
@@ -3282,6 +3290,7 @@ SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
     "celery": {"redis": "default"},
     "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
+    "processing-store-transactions": {},
     "processing-locks": {"redis": "default"},
     "post-process-locks": {"redis": "default"},
 }
