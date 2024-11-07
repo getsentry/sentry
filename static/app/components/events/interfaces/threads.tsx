@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {CommitRow} from 'sentry/components/commitRow';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
 import {
   getMappedThreadState,
@@ -27,7 +26,7 @@ import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useHasStreamlinedUI, useIsSampleEvent} from 'sentry/views/issueDetails/utils';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {TraceEventDataSection} from '../traceEventDataSection';
 
@@ -105,7 +104,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
   const threads = data.values ?? [];
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
-  const isSampleError = useIsSampleEvent();
 
   const stackTraceNotFound = !threads.length;
 
@@ -330,23 +328,8 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         stackTraceNotFound={stackTraceNotFound}
       >
         {childrenProps => {
-          // TODO(scttcper): These are duplicated from renderContent, should consolidate
-          const stackType = childrenProps.display.includes('minified')
-            ? StackType.MINIFIED
-            : StackType.ORIGINAL;
-          const isRaw = childrenProps.display.includes('raw-stack-trace');
-          const stackTrace = getThreadStacktrace(
-            stackType !== StackType.ORIGINAL,
-            activeThread
-          );
-
           return (
             <Fragment>
-              {stackTrace && !isRaw && !isSampleError && (
-                <ErrorBoundary customComponent={null}>
-                  <StacktraceBanners event={event} stacktrace={stackTrace} />
-                </ErrorBoundary>
-              )}
               {renderContent(childrenProps)}
               {hasStreamlinedUI && group && (
                 <ErrorBoundary

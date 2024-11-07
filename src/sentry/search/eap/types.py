@@ -1,3 +1,7 @@
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
 class SearchResolverConfig:
     # Automatically add id, etc. if there are no aggregates
     auto_fields: bool = False
