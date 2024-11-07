@@ -237,6 +237,22 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
         run_worker(**options)
 
 
+@click.option("--rpc-host", help="The hostname for the taskworker-rpc", default="127.0.0.1:50051")
+@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
+@click.option(
+    "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
+)
+@log_options()
+@configuration
+def taskworker(rpc_host: str, max_task_count: int, **options: Any) -> None:
+    from sentry.taskworker.worker import TaskWorker
+
+    with managed_bgtasks(role="taskworker"):
+        worker = TaskWorker(rpc_host=rpc_host, max_task_count=max_task_count, **options)
+        exitcode = worker.start()
+        raise SystemExit(exitcode)
+
+
 @run.command()
 @click.option(
     "--pidfile",

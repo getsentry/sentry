@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 import pytest
@@ -20,9 +21,8 @@ def task_namespace() -> TaskNamespace:
 
 
 def test_define_task_defaults(task_namespace: TaskNamespace) -> None:
-    task = Task(name="test.do_things", func=do_things, namespace=task_namespace, retry=None)
+    task = Task(name="test.do_things", func=do_things, namespace=task_namespace)
     assert task.retry is None
-    assert not task.idempotent
     assert task.name == "test.do_things"
 
 
@@ -42,7 +42,6 @@ def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:
         name="test.test_func",
         func=test_func,
         namespace=task_namespace,
-        retry=None,
     )
     # Within a TaskRunner context tasks should run immediately.
     # This emulates the behavior we have with celery.
@@ -96,6 +95,21 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
         retry=retry,
     )
 
+    timedelta_expiry_task = Task(
+        name="test.with_timedelta_expires",
+        func=do_things,
+        namespace=task_namespace,
+        expires=datetime.timedelta(minutes=5),
+        processing_deadline_duration=datetime.timedelta(seconds=30),
+    )
+    int_expiry_task = Task(
+        name="test.with_int_expires",
+        func=do_things,
+        namespace=task_namespace,
+        expires=5 * 60,
+        processing_deadline_duration=30,
+    )
+
     # No retries will be made as there is no retry policy on the task or namespace.
     activation = no_retry_task.create_activation()
     assert activation.taskname == "test.no_retry"
@@ -111,6 +125,16 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
     assert activation.retry_state.attempts == 0
     assert activation.retry_state.discard_after_attempt == 0
     assert activation.retry_state.deadletter_after_attempt == 3
+
+    activation = timedelta_expiry_task.create_activation()
+    assert activation.taskname == "test.with_timedelta_expires"
+    assert activation.expires == 300
+    assert activation.processing_deadline_duration == 30
+
+    activation = int_expiry_task.create_activation()
+    assert activation.taskname == "test.with_int_expires"
+    assert activation.expires == 300
+    assert activation.processing_deadline_duration == 30
 
 
 def test_create_activation_parameters(task_namespace: TaskNamespace) -> None:
