@@ -44,6 +44,7 @@ export function EventList({group}: EventListProps) {
     group,
     queryProps: {
       fields,
+      orderby: ['-timestamp'],
       widths: fields.map(field => {
         switch (field) {
           case 'id':
