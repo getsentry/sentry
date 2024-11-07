@@ -4,6 +4,9 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Column, Condition, Limit, Op, Query
+from snuba_sdk import Request as SnqlRequest
+from snuba_sdk import Storage
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -21,6 +24,9 @@ from sentry.profiles.flamegraph import (
 )
 from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import proxy_profiling_service
+from sentry.snuba.dataset import Dataset, StorageKey
+from sentry.snuba.referrer import Referrer
+from sentry.utils.snuba import raw_snql_query
 
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
@@ -187,3 +193,41 @@ class OrganizationProfilingChunksFlamegraphEndpoint(OrganizationProfilingBaseEnd
             path=f"/organizations/{organization.id}/projects/{project_ids[0]}/chunks-flamegraph",
             json_data={"chunks_metadata": chunksMetadata},
         )
+
+
+@region_silo_endpoint
+class OrganizationProfilingHasChunksEndpoint(OrganizationProfilingBaseEndpoint):
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
+        if not features.has("organizations:profiling", organization, actor=request.user):
+            return Response(status=404)
+
+        snuba_params = self.get_snuba_params(request, organization)
+
+        with handle_query_errors():
+            # We just need to query to see if any chunks exists in that time range.
+            query = Query(
+                match=Storage(StorageKey.ProfileChunks.value),
+                select=[Column("project_id")],
+                where=[
+                    Condition(Column("project_id"), Op.IN, snuba_params.project_ids),
+                    Condition(Column("end_timestamp"), Op.GTE, snuba_params.start),
+                    Condition(Column("start_timestamp"), Op.LT, snuba_params.end),
+                ],
+                limit=Limit(1),
+            )
+
+            referrer = Referrer.API_PROFILING_PROFILE_HAS_CHUNKS.value
+
+            request = SnqlRequest(
+                dataset=Dataset.Profiles.value,
+                app_id="default",
+                query=query,
+                tenant_ids={
+                    "referrer": referrer,
+                    "organization_id": organization.id,
+                },
+            )
+
+            data = raw_snql_query(request, referrer)["data"]
+
+        return Response({"hasChunks": len(data) > 0}, status=200)

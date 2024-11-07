@@ -523,6 +523,7 @@ from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
     OrganizationProfilingChunksFlamegraphEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
+    OrganizationProfilingHasChunksEndpoint,
 )
 from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
@@ -2180,6 +2181,11 @@ ORGANIZATION_URLS = [
                     r"^chunks/$",
                     OrganizationProfilingChunksEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-chunks",
+                ),
+                re_path(
+                    r"^has-chunks/$",
+                    OrganizationProfilingHasChunksEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-has-chunks",
                 ),
             ],
         ),
