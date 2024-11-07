@@ -147,11 +147,7 @@ class SetupWizardView(BaseView):
 
     @allow_cors_options
     def options(self, request, *args, **kwargs):
-        """Handle responding to requests for the OPTIONS HTTP verb."""
-        response = HttpResponse()
-        response.headers["Allow"] = ", ".join(self._allowed_methods())
-        response.headers["Content-Length"] = "0"
-        return response
+        return super().options()
 
 
 def serialize_org_mapping(mapping: OrganizationMapping):
