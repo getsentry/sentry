@@ -19,9 +19,10 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconDashboard, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -64,10 +65,20 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 ];
 
 const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
+const LAYOUT_KEY = 'dashboards-overview-layout';
+
+type DashboardsLayout = 'grid' | 'list';
 
 function shouldShowTemplates(): boolean {
   const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
   return shouldShow === 'true' || shouldShow === null;
+}
+
+function getDashboardsOverviewLayout(): DashboardsLayout {
+  const dashboardsLayout = localStorage.getItem(LAYOUT_KEY);
+  return dashboardsLayout === 'grid' || dashboardsLayout === 'list'
+    ? dashboardsLayout
+    : 'grid';
 }
 
 function ManageDashboards() {
@@ -80,6 +91,10 @@ function ManageDashboards() {
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
     shouldShowTemplates()
+  );
+  const [dashboardsLayout, setDashboardsLayout] = useLocalStorageState(
+    LAYOUT_KEY,
+    getDashboardsOverviewLayout()
   );
   const [{rowCount, columnCount}, setGridSize] = useState({
     rowCount: DASHBOARD_GRID_DEFAULT_NUM_ROWS,
@@ -237,6 +252,18 @@ function ManageDashboards() {
           placeholder={t('Search Dashboards')}
           onSearch={query => handleSearch(query)}
         />
+        <SegmentedControl<DashboardsLayout>
+          onChange={setDashboardsLayout}
+          size="md"
+          value={dashboardsLayout}
+        >
+          <SegmentedControl.Item key="grid" textValue="grid" aria-label="Grid Layout">
+            <IconDashboard />
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="list" textValue="list" aria-label="List Layout">
+            <IconList />
+          </SegmentedControl.Item>
+        </SegmentedControl>
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
           value={activeSort.value}
@@ -446,7 +473,7 @@ function ManageDashboards() {
 
 const StyledActions = styled('div')`
   display: grid;
-  grid-template-columns: auto max-content;
+  grid-template-columns: auto max-content max-content;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
