@@ -9,22 +9,16 @@ class TestEvaluateGroup(TestCase):
         d = self.create_data_condition_group(logic_type=DataConditionGroup.Type.ANY)
         d.conditions.add(dc)
 
-        group_is_valid, result = d.evaluate(2)
-        assert group_is_valid is True
-        assert result is True
+        assert d.evaluate(2) is True
+        assert d.evaluate(1) is False
 
-        group_is_valid, result = d.evaluate(1)
-        assert group_is_valid is False
-        assert result is None
-
-    def test__type_all(self):
+    def test_single_condition__type_all(self):
         dc = self.create_data_condition(condition="gt", comparison=1.0, condition_result=True)
         d = self.create_data_condition_group(logic_type=DataConditionGroup.Type.ALL)
         d.conditions.add(dc)
 
-        group_is_valid, results = d.evaluate(2)
-        assert group_is_valid is True
-        assert results == [True]
+        assert d.evaluate(2) is True
+        assert d.evaluate(1) is False
 
     def test_multiple_conditions(self):
         dc1 = self.create_data_condition(
@@ -38,23 +32,14 @@ class TestEvaluateGroup(TestCase):
         d.conditions.add(dc2)
 
         # meets all conditions
-        group_is_valid, results = d.evaluate(6)
-        assert group_is_valid is True
-        assert results == DetectorPriorityLevel.HIGH
+        assert d.evaluate(6) is True
 
         # meets one condition
-        group_is_valid, results = d.evaluate(4)
-        assert group_is_valid is True
-        assert results == DetectorPriorityLevel.LOW
+        assert d.evaluate(4) is True
 
         # meets no conditions
-        group_is_valid, results = d.evaluate(3)
-        assert group_is_valid is False
-        assert results is None
-
-        group_is_valid, results = d.evaluate(1)
-        assert group_is_valid is False
-        assert results is None
+        assert d.evaluate(3) is False
+        assert d.evaluate(1) is False
 
     def test_multiple_conditions__type_all(self):
         dc1 = self.create_data_condition(
@@ -67,20 +52,11 @@ class TestEvaluateGroup(TestCase):
         d.conditions.add(dc1)
         d.conditions.add(dc2)
 
-        group_is_valid, results = d.evaluate(6)
-        assert group_is_valid is True
-        assert results == [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW]
+        assert d.evaluate(6) is True
 
         # meets one condition
-        group_is_valid, results = d.evaluate(4)
-        assert group_is_valid is False
-        assert results == [DetectorPriorityLevel.LOW]
+        assert d.evaluate(4) is False
 
         # meets no conditions
-        group_is_valid, results = d.evaluate(3)
-        assert group_is_valid is False
-        assert results == []
-
-        group_is_valid, results = d.evaluate(1)
-        assert group_is_valid is False
-        assert results == []
+        assert d.evaluate(3) is False
+        assert d.evaluate(1) is False

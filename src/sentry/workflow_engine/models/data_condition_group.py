@@ -22,20 +22,19 @@ class DataConditionGroup(DefaultFieldsModel):
     logic_type = models.CharField(max_length=200, choices=Type.choices, default=Type.ANY)
     organization = models.ForeignKey("sentry.Organization", on_delete=models.CASCADE)
 
-    def evaluate(
-        self, value
-    ) -> tuple[bool, DataConditionResult | list[DataConditionResult] | None]:
+    # TODO move this off of the class and into `processors` so we can cache data & flatten this code
+    def evaluate(self, value=None) -> bool:
         """
         Evaluate each condition with the given value
         """
         results: list[DataConditionResult] = []
 
-        for condition in self.datacondition_set.all():
+        for condition in self.conditions.all():
             evaluation_result = condition.evaluate_value(value)
 
             # ANY conditions always return 1 condition, the first one matched
             if evaluation_result and self.logic_type == self.Type.ANY:
-                return (evaluation_result is not None, evaluation_result)
+                return evaluation_result is not None
             else:
                 results.append(evaluation_result)
 
@@ -45,6 +44,6 @@ class DataConditionGroup(DefaultFieldsModel):
             validated_results: list[DataConditionResult] = [
                 item for item in results if item is not None
             ]
-            return (len(validated_results) == len(results), validated_results)
+            return len(validated_results) == len(results)
 
-        return (False, None)
+        return False

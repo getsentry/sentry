@@ -16,7 +16,6 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics, redis
-from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.iterators import chunked
 from sentry.workflow_engine.models import (
     DataCondition,
@@ -24,6 +23,9 @@ from sentry.workflow_engine.models import (
     DataPacket,
     Detector,
     DetectorState,
+)
+from sentry.workflow_engine.processors.data_condition_group import (
+    get_data_group_conditions_and_group,
 )
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
@@ -407,24 +409,3 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         if updated_detector_states:
             DetectorState.objects.bulk_update(updated_detector_states, ["active", "state"])
         self.state_updates.clear()
-
-
-@cache_func_for_models(
-    [
-        (DataConditionGroup, lambda group: (group.id,)),
-        (DataCondition, lambda condition: (condition.condition_group_id,)),
-    ],
-    # There shouldn't be stampedes to fetch this data, and we might update multiple `DataConditionGroup`s at the same
-    # time, so we'd prefer to avoid re-fetching this many times. Just bust the cache and re-fetch lazily.
-    recalculate=False,
-)
-def get_data_group_conditions_and_group(
-    data_condition_group_id: int,
-) -> tuple[DataConditionGroup | None, list[DataCondition]]:
-    try:
-        group = DataConditionGroup.objects.get(id=data_condition_group_id)
-        conditions = list(group.datacondition_set.all())
-    except DataConditionGroup.DoesNotExist:
-        group = None
-        conditions = []
-    return group, conditions
