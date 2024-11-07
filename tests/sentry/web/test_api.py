@@ -78,7 +78,7 @@ class RobotsTxtTest(TestCase):
     def path(self):
         return reverse("sentry-robots-txt")
 
-    def test_robots(self):
+    def test_robots_self_hosted(self):
         with override_settings(SENTRY_MODE=SentryMode.SELF_HOSTED):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
@@ -90,6 +90,7 @@ Disallow: /
 """
             )
 
+    def test_robots_saas(self):
         with override_settings(SENTRY_MODE=SentryMode.SAAS):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
@@ -117,6 +118,7 @@ Disallow: /
 """
             )
 
+    def test_robots_single_tenant(self):
         with override_settings(SENTRY_MODE=SentryMode.SINGLE_TENANT):
             resp = self.client.get(self.path)
             assert resp.status_code == 200

@@ -15,7 +15,7 @@ from sentry.web.helpers import render_to_response
 # Paths to pages should not be added here, otherwise crawlers will
 # not be able to access the metadata with the 'none' directive
 # and the URL of these pages may still appear in search results
-ROBOTS = """User-agent: *
+ROBOTS_SENTRY_IO = """User-agent: *
 Disallow: /api/
 Allow: /api/*/store/
 Allow: /
@@ -38,14 +38,10 @@ class ClientConfigView(BaseView):
 
 @cache_control(max_age=3600, public=True)
 def robots_txt(request):
-    if (
-        settings.SENTRY_MODE == SentryMode.SELF_HOSTED
-        or settings.SENTRY_MODE == SentryMode.SINGLE_TENANT
-        or request.subdomain
-    ):
-        return HttpResponse(ROBOTS_DISALLOW_ALL, content_type="text/plain")
+    if settings.SENTRY_MODE == SentryMode.SAAS and not request.subdomain:
+        return HttpResponse(ROBOTS_SENTRY_IO, content_type="text/plain")
 
-    return HttpResponse(ROBOTS, content_type="text/plain")
+    return HttpResponse(ROBOTS_DISALLOW_ALL, content_type="text/plain")
 
 
 @cache_control(max_age=60)
