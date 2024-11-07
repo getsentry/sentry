@@ -47,14 +47,8 @@ class ResolvedColumn:
                 raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
 
     @property
-    def is_aggregate(self) -> bool:
-        """So that callers can easily identify if this resolved column is an aggregate or not"""
-        return isinstance(self.internal_name, Function.ValueType)
-
-    @property
     def proto_definition(self) -> AttributeAggregation | AttributeKey:
         """The definition of this function as needed by the RPC"""
-        # This is identical to is_aggregate, but typing gets mad if you call the property
         if isinstance(self.internal_name, Function.ValueType):
             return AttributeAggregation(
                 aggregate=self.internal_name,

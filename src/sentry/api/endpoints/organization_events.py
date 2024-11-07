@@ -23,11 +23,14 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba import (
     discover,
     errors,
     metrics_enhanced_performance,
     metrics_performance,
+    spans_eap,
+    spans_rpc,
     transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -414,8 +417,24 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
+        # Only works when dataset == spans
+        use_rpc = request.GET.get("useRpc", "0") == "1"
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
+            if use_rpc and dataset == spans_eap:
+                spans_rpc.run_table_query(
+                    params=snuba_params,
+                    query_string=query,
+                    selected_columns=self.get_field_list(organization, request),
+                    orderby=self.get_orderby(request),
+                    offset=offset,
+                    limit=limit,
+                    referrer=referrer,
+                    config=SearchResolverConfig(
+                        auto_fields=True,
+                        use_aggregate_conditions=use_aggregate_conditions,
+                    ),
+                )
             query_source = self.get_request_source(request)
             return scoped_dataset.query(
                 selected_columns=self.get_field_list(organization, request),

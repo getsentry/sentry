@@ -7,6 +7,7 @@ from tests.snuba.api.endpoints.test_organization_events import OrganizationEvent
 
 class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBase):
     is_eap = False
+    use_rpc = False
     """Test the indexed spans dataset.
 
     To run this locally you may need to set the ENABLE_SPANS_CONSUMER flag to True in Snuba.
@@ -26,6 +27,10 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             return "spans"
         else:
             return "spansIndexed"
+
+    def do_request(self, query, features=None, **kwargs):
+        query["useRpc"] = "1" if self.use_rpc else "0"
+        return super().do_request(query, features, **kwargs)
 
     def setUp(self):
         super().setUp()
@@ -530,6 +535,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
 )
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True
+    use_rpc = True
 
     def test_simple(self):
         self.store_spans(
@@ -1038,3 +1044,10 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         ]
         assert meta["dataset"] == self.dataset
+
+
+class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
+    """These tests aren't fully passing yet, currently inheriting xfail from the eap tests"""
+
+    is_eap = True
+    use_rpc = True
