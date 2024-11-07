@@ -224,6 +224,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
         disableGrid
         disableCallOrderSort
         disableColorCoding
+        scheduler={props.scheduler}
         canvasBounds={flamegraphCanvasBounds}
         canvasPoolManager={props.canvasPoolManager}
         flamegraph={flamegraph}
