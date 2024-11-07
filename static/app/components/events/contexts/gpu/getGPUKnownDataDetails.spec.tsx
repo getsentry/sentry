@@ -23,11 +23,19 @@ describe('getGPUKnownDataDetails', function () {
     expect(allKnownData).toEqual([
       {subject: 'Name', value: ''},
       {subject: 'Version', value: 'Metal'},
+      {subject: 'GPU ID', value: 2400},
+      {subject: 'Vendor ID', value: '2400.0.0'},
       {subject: 'Vendor Name', value: 'Apple'},
       {subject: 'Memory', value: '4.0 GiB'},
-      {subject: 'NPOT Support', value: 'Full'},
-      {subject: 'Multi-Thread rendering', value: true},
       {subject: 'API Type', value: ''},
+      {subject: 'Multi-Thread Rendering', value: true},
+      {subject: 'NPOT Support', value: 'Full'},
+      {subject: 'Max Texture Size', value: 16384},
+      {subject: 'Approx. Shader Capability', value: 'OpenGL ES 3.0'},
+      {subject: 'Supports Draw Call Instancing', value: true},
+      {subject: 'Supports Ray Tracing', value: true},
+      {subject: 'Supports Compute Shaders', value: true},
+      {subject: 'Supports Geometry Shaders', value: true},
     ]);
   });
 });
