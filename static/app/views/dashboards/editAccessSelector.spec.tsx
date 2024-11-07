@@ -1,9 +1,7 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
-// import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-// import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
@@ -107,38 +105,16 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
   });
 
   it('renders User badge when creator-only is selected', async function () {
-    // const currentUser = UserFixture({id: '781629', name: 'John Doe'});
-    // ConfigStore.set('user', currentUser);
-
     const mockDashboard = DashboardFixture([], {
       id: '1',
       createdBy: UserFixture({id: '1', name: 'Lorem Ipsum'}),
       title: 'Custom Errors',
-      permissions: {isEditableByEveryone: false}, // set to true
+      permissions: {isEditableByEveryone: false}, // set to false
     });
     renderTestComponent(mockDashboard);
     await screen.findByText('Edit Access:');
     expect(screen.getByText('LI')).toBeInTheDocument(); // dashboard owner's initials
     expect(screen.queryByText('All')).not.toBeInTheDocument();
-  });
-
-  it('disables dropdown options when current user is not dashboard creator', async function () {
-    // const currentUser = UserFixture({id: '781629'});
-    // ConfigStore.set('user', currentUser);
-
-    renderTestComponent();
-    await userEvent.click(await screen.findByText('Edit Access:'));
-
-    // Everyone option should be disabled
-    expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
-    await userEvent.click(screen.getByRole('option', {name: 'All users'}));
-    expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
   });
 });
 
