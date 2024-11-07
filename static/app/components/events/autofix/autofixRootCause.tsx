@@ -224,7 +224,7 @@ function RootCauseContext({
           )}
         </ExpandableInsightContext>
       )}
-      {cause.code_context.length > 0 && (
+      {cause?.code_context && cause.code_context.length > 0 && (
         <ExpandableInsightContext
           icon={<IconCode size="sm" color="subText" />}
           title={'Relevant code'}

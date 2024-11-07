@@ -242,10 +242,10 @@ class SearchResolverColumnTest(TestCase):
     def test_project_field(self):
         resolved_column, virtual_context = self.resolver.resolve_column("project")
         assert resolved_column.proto_definition == AttributeKey(
-            name="sentry.project_id", type=AttributeKey.Type.TYPE_INT
+            name="project", type=AttributeKey.Type.TYPE_STRING
         )
         assert virtual_context == VirtualColumnContext(
-            from_column_name="project_id",
+            from_column_name="sentry.project_id",
             to_column_name="project",
             value_map={str(self.project.id): self.project.slug},
         )
@@ -253,10 +253,10 @@ class SearchResolverColumnTest(TestCase):
     def test_project_slug_field(self):
         resolved_column, virtual_context = self.resolver.resolve_column("project.slug")
         assert resolved_column.proto_definition == AttributeKey(
-            name="sentry.project_id", type=AttributeKey.Type.TYPE_INT
+            name="project.slug", type=AttributeKey.Type.TYPE_STRING
         )
         assert virtual_context == VirtualColumnContext(
-            from_column_name="project_id",
+            from_column_name="sentry.project_id",
             to_column_name="project.slug",
             value_map={str(self.project.id): self.project.slug},
         )
@@ -264,21 +264,21 @@ class SearchResolverColumnTest(TestCase):
     def test_simple_tag(self):
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo]")
         assert resolved_column.proto_definition == AttributeKey(
-            name="attr_str[foo]", type=AttributeKey.Type.TYPE_STRING
+            name="foo", type=AttributeKey.Type.TYPE_STRING
         )
         assert virtual_context is None
 
     def test_simple_string_tag(self):
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo, string]")
         assert resolved_column.proto_definition == AttributeKey(
-            name="attr_str[foo]", type=AttributeKey.Type.TYPE_STRING
+            name="foo", type=AttributeKey.Type.TYPE_STRING
         )
         assert virtual_context is None
 
     def test_simple_number_tag(self):
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo, number]")
         assert resolved_column.proto_definition == AttributeKey(
-            name="attr_num[foo]", type=AttributeKey.Type.TYPE_INT
+            name="foo", type=AttributeKey.Type.TYPE_INT
         )
         assert virtual_context is None
 
@@ -286,7 +286,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("sum(span.self_time)")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_SUM,
-            key=AttributeKey(name="sentry.exclusive_time_ms", type=AttributeKey.Type.TYPE_INT),
+            key=AttributeKey(name="sentry.exclusive_time_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="sum(span.self_time)",
         )
         assert virtual_context is None
@@ -295,7 +295,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("sum()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_SUM,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_INT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="sum()",
         )
         assert virtual_context is None
@@ -304,7 +304,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("sum() as test")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_SUM,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_INT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="test",
         )
         assert virtual_context is None
@@ -313,14 +313,14 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_INT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="count()",
         )
         assert virtual_context is None
         resolved_column, virtual_context = self.resolver.resolve_column("count(span.duration)")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_INT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="count(span.duration)",
         )
         assert virtual_context is None
@@ -329,7 +329,7 @@ class SearchResolverColumnTest(TestCase):
         resolved_column, virtual_context = self.resolver.resolve_column("p50()")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_P50,
-            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_INT),
+            key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="p50()",
         )
         assert virtual_context is None

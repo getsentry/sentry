@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ContextValue} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
@@ -111,14 +112,16 @@ export default function ContextCard({
         <Title>
           <div>{getContextTitle({alias, type, value})}</div>
           <div>
-            {getContextIcon({
-              alias,
-              type,
-              value,
-              contextIconProps: {
-                size: 'sm',
-              },
-            })}
+            <ErrorBoundary customComponent={null}>
+              {getContextIcon({
+                alias,
+                type,
+                value,
+                contextIconProps: {
+                  size: 'sm',
+                },
+              })}
+            </ErrorBoundary>
           </div>
         </Title>
       }

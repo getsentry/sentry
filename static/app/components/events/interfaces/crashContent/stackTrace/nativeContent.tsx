@@ -279,6 +279,7 @@ export function NativeContent({
       <ContentPanel
         className={wrapperClassName}
         data-test-id="native-stack-trace-content"
+        hideIcon={hideIcon}
       >
         <Frames data-test-id="stack-trace">
           {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
@@ -292,9 +293,9 @@ const Wrapper = styled('div')`
   position: relative;
 `;
 
-const ContentPanel = styled(Panel)`
+const ContentPanel = styled(Panel)<{hideIcon?: boolean}>`
   position: relative;
-  border-top-left-radius: 0;
+  border-top-left-radius: ${p => (p.hideIcon ? p.theme.borderRadius : 0)};
   overflow: hidden;
 `;
 

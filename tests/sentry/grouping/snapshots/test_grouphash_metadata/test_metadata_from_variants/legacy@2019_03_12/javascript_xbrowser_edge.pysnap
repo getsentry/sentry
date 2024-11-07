@@ -1,0 +1,26 @@
+---
+created: '2024-10-28T14:02:54.937885+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "7abcb72eb9800b9f38b37f448697a673"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              filename*
+                "eval code"
+              function*
+                "eval code"
+            frame*
+              filename*
+                "native code"
+              function*
+                "Array.prototype.map"
+          type*
+            "Error"

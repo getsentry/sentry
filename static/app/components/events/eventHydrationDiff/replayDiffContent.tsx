@@ -1,5 +1,4 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import Placeholder from 'sentry/components/placeholder';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff';
@@ -9,6 +8,8 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getReplayDiffOffsetsFromEvent} from 'sentry/utils/replays/getDiffTimestamps';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface Props {
   event: Event;
@@ -33,10 +34,9 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
   }
 
   const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromEvent(replay, event);
-
   return (
-    <EventDataSection
-      type="hydration-diff"
+    <InterimSection
+      type={SectionKey.HYDRATION_DIFF}
       title={t('Hydration Error Diff')}
       actions={
         <OpenReplayComparisonButton
@@ -61,6 +61,6 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
           />
         </ReplayGroupContextProvider>
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
   );
 }

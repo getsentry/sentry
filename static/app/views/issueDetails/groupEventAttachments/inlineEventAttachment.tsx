@@ -26,7 +26,7 @@ export function InlineEventAttachment({
   return (
     <AttachmentPreviewWrapper>
       <AttachmentComponent
-        orgId={organization.slug}
+        orgSlug={organization.slug}
         projectSlug={projectSlug}
         eventId={eventId}
         attachment={attachment}

@@ -36,7 +36,7 @@ sentry_sdk.init(
         : ''
     }${
       params.isProfilingSelected &&
-      params.profilingOptions?.defaultProfilingMode === 'transaction'
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
@@ -52,7 +52,10 @@ sentry_sdk.init(
 # Manually call start_profiler and stop_profiler
 # to profile the code in between
 sentry_sdk.profiler.start_profiler()
-# do some work here
+# this code will be profiled
+#
+# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
+# your application until the process exits or stop_profiler is called.
 sentry_sdk.profiler.stop_profiler()`
     : ''
 }`;
