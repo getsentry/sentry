@@ -94,7 +94,6 @@ type Props = {
   transactionName: string;
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
-  disableSort?: boolean;
   domainViewFilters?: DomainViewFilters;
   excludedTags?: string[];
   hidePagination?: boolean;
@@ -364,7 +363,6 @@ class EventsTable extends Component<Props, State> {
     const currentSort = eventView.sortForField(field, tableMeta);
     // EventId, TraceId, and ReplayId are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
     const canSort =
-      !this.props.disableSort &&
       field.field !== 'id' &&
       field.field !== 'trace' &&
       field.field !== 'replayId' &&
