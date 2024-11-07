@@ -18,6 +18,7 @@ import {type Group, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {parseCursor} from 'sentry/utils/cursor';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -66,6 +67,10 @@ export function EventList({group}: EventListProps) {
       }),
     },
   });
+
+  eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
+    fields.includes(sort.field)
+  );
 
   const grayText = css`
     color: ${theme.subText};
