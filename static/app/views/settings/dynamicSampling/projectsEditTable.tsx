@@ -14,11 +14,14 @@ import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
-import {useProjectSampleCounts} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import {
+  type ProjectionSamplePeriod,
+  useProjectSampleCounts,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 interface Props {
   isLoading: boolean;
-  period: '24h' | '30d';
+  period: ProjectionSamplePeriod;
 }
 
 const {useFormField} = projectSamplingForm;

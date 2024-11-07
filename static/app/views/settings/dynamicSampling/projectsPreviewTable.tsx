@@ -7,12 +7,15 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
-import {useProjectSampleCounts} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import {
+  type ProjectionSamplePeriod,
+  useProjectSampleCounts,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const {useFormField} = organizationSamplingForm;
 
 interface Props {
-  period: '24h' | '30d';
+  period: ProjectionSamplePeriod;
 }
 
 export function ProjectsPreviewTable({period}: Props) {
