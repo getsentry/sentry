@@ -54,7 +54,6 @@ class DataCondition(DefaultFieldsModel):
 
     condition_group = models.ForeignKey(
         DataConditionGroup,
-        related_name="conditions",
         on_delete=models.CASCADE,
     )
 
