@@ -1,7 +1,9 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -21,56 +23,80 @@ export function NewIssueExperienceButton() {
   const openForm = useFeedbackForm();
   const {mutate} = useMutateUserOptions();
 
+  const handleToggle = useCallback(() => {
+    mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
+    trackAnalytics('issue_details.streamline_ui_toggle', {
+      isEnabled: !hasStreamlinedUI,
+      organization: organization,
+    });
+    navigate({
+      ...location,
+      query: {...location.query, streamline: hasStreamlinedUI ? '0' : '1'},
+    });
+  }, [mutate, organization, hasStreamlinedUI, location, navigate]);
+
   if (!hasStreamlinedUIFlag) {
     return null;
   }
 
-  const feedbackButton = openForm ? (
-    <Button
-      size="xs"
-      aria-label={t('Give feedback on new UI')}
-      onClick={() =>
-        openForm({
-          messagePlaceholder: t('How can we make this new UI work for you?'),
-          tags: {
-            ['feedback.source']: 'issue_details_streamline_ui',
-            ['feedback.owner']: 'issues',
-          },
-        })
-      }
-    >
-      {t('Give Feedback')}
-    </Button>
-  ) : null;
+  if (!openForm || !hasStreamlinedUI) {
+    const label = hasStreamlinedUI
+      ? t('Switch to the old issue experience')
+      : t('Switch to the new issue experience');
 
-  const label = hasStreamlinedUI
-    ? t('Switch to the old issue experience')
-    : t('Switch to the new issue experience');
-
-  return (
-    <ButtonBar merged>
+    return (
       <StyledButton
         enabled={hasStreamlinedUI}
         size={hasStreamlinedUI ? 'xs' : 'sm'}
         icon={<IconLab isSolid={hasStreamlinedUI} />}
         title={label}
         aria-label={label}
-        onClick={() => {
-          mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
-          trackAnalytics('issue_details.streamline_ui_toggle', {
-            isEnabled: !hasStreamlinedUI,
-            organization: organization,
-          });
-          navigate({
-            ...location,
-            query: {...location.query, streamline: hasStreamlinedUI ? '0' : '1'},
-          });
-        }}
+        onClick={handleToggle}
       />
-      {hasStreamlinedUI && feedbackButton}
-    </ButtonBar>
+    );
+  }
+
+  return (
+    <DropdownMenu
+      trigger={triggerProps => (
+        <StyledDropdownButton
+          {...triggerProps}
+          enabled={hasStreamlinedUI}
+          size={hasStreamlinedUI ? 'xs' : 'sm'}
+          aria-label={t('Switch issue experience')}
+        >
+          {/* Passing icon as child to avoid extra icon margin */}
+          <IconLab isSolid={hasStreamlinedUI} />
+        </StyledDropdownButton>
+      )}
+      items={[
+        {
+          key: 'switch-to-old-ui',
+          label: t('Switch to the old issue experience'),
+          onAction: handleToggle,
+        },
+        {
+          key: 'give-feedback',
+          label: t('Give feedback on new UI'),
+          hidden: !openForm,
+          onAction: () => {
+            openForm({
+              messagePlaceholder: t('How can we make this new UI work for you?'),
+            });
+          },
+        },
+      ]}
+      position="bottom-end"
+    />
   );
 }
+
+const StyledDropdownButton = styled(DropdownButton)<{enabled: boolean}>`
+  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  :hover {
+    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  }
+`;
 
 const StyledButton = styled(Button)<{enabled: boolean}>`
   color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
