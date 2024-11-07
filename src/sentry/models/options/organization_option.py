@@ -17,13 +17,22 @@ if TYPE_CHECKING:
 
 class OrganizationOptionManager(OptionManager["OrganizationOption"]):
     def get_value_bulk(
-        self, instances: Sequence[Organization], key: str
+        self, instances: Sequence[Organization], key: str, default: Any = None
     ) -> Mapping[Organization, Any]:
         instance_map = {i.id: i for i in instances}
         queryset = self.filter(organization__in=instances, key=key)
-        result = {i: None for i in instances}
+        result = {i: default for i in instances}
         for obj in queryset:
             result[instance_map[obj.organization_id]] = obj.value
+        return result
+
+    def get_value_bulk_id(
+        self, ids: Sequence[int], key: str, default: Any = None
+    ) -> Mapping[int, Any]:
+        queryset = self.filter(organization_id__in=ids, key=key)
+        result = {i: default for i in ids}
+        for obj in queryset:
+            result[obj.organization_id] = obj.value
         return result
 
     def get_value(
