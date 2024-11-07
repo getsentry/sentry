@@ -109,6 +109,43 @@ describe('EventFeatureFlagList', function () {
     );
   });
 
+  it('renders a sort dropdown which disables the appropriate options', async function () {
+    render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS} />);
+
+    const control = screen.getByRole('button', {name: 'Sort Flags'});
+    expect(control).toBeInTheDocument();
+    await userEvent.click(control);
+    await userEvent.click(screen.getByRole('option', {name: 'Alphabetical'}));
+    await userEvent.click(control);
+    expect(screen.getByRole('option', {name: 'Alphabetical'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'Newest First'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'Oldest First'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+
+    await userEvent.click(screen.getByRole('option', {name: 'Evaluation Order'}));
+    await userEvent.click(control);
+    expect(screen.getByRole('option', {name: 'Evaluation Order'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'Z-A'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'A-Z'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
   it('allows sort dropdown to affect displayed flags', async function () {
     render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS} />);
 
