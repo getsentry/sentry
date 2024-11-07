@@ -19,7 +19,9 @@ const metricsQuery: MetricsQueryApiQueryParams[] = [
   },
 ];
 
-export function useProjectSampleCounts({period}: {period: '24h' | '30d'}) {
+export type ProjectionSamplePeriod = '24h' | '30d';
+
+export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod}) {
   const {projects, fetching} = useProjects();
 
   const {data, isPending, isError, refetch} = useMetricsQuery(
