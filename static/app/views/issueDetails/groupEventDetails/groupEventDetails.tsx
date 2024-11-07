@@ -165,27 +165,48 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
         transactionId={event?.type === 'transaction' ? event.id : undefined}
         timestamp={event?.dateReceived}
       >
-        <LayoutBody data-test-id="group-event-details">
-          {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
-            <ReprocessingProgress
-              totalEvents={
-                (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)
-                  .data.eventCount
-              }
-              pendingEvents={
-                (group.statusDetails as GroupReprocessing['statusDetails']).pendingEvents
-              }
-            />
-          ) : (
-            <Fragment>
-              <MainLayoutComponent>
-                {!hasStreamlinedUI && renderGroupStatusBanner()}
-                {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
-                  <GroupEventHeader
-                    group={group}
-                    event={eventWithMeta}
-                    project={project}
-                  />
+        <VisuallyCompleteWithData
+          id="IssueDetails-EventBody"
+          hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
+          isLoading={loadingEvent}
+        >
+          <LayoutBody data-test-id="group-event-details">
+            {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
+              <ReprocessingProgress
+                totalEvents={
+                  (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)
+                    .data.eventCount
+                }
+                pendingEvents={
+                  (group.statusDetails as GroupReprocessing['statusDetails'])
+                    .pendingEvents
+                }
+              />
+            ) : (
+              <Fragment>
+                <MainLayoutComponent>
+                  {!hasStreamlinedUI && renderGroupStatusBanner()}
+                  {eventWithMeta &&
+                    issueTypeConfig.stats.enabled &&
+                    !hasStreamlinedUI && (
+                      <GroupEventHeader
+                        group={group}
+                        event={eventWithMeta}
+                        project={project}
+                      />
+                    )}
+                  {renderContent()}
+                </MainLayoutComponent>
+                {hasStreamlinedUI ? null : (
+                  <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
+                    <GroupSidebar
+                      organization={organization}
+                      project={project}
+                      group={group}
+                      event={eventWithMeta}
+                      environments={environments}
+                    />
+                  </StyledLayoutSide>
                 )}
               </Fragment>
             )}
