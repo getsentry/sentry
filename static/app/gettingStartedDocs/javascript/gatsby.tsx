@@ -184,7 +184,7 @@ const onboarding: OnboardingConfig = {
   configure: (params: Params) => [
     getConfigureStep(params),
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps//',
+      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps/',
       ...params,
     }),
   ],
