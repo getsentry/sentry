@@ -347,15 +347,6 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Continuous Profiling'),
     uid: 17,
   },
-  [DataCategoryExact.METRIC_SECOND]: {
-    name: DataCategoryExact.METRIC_SECOND,
-    apiName: 'metricSecond',
-    plural: 'metricSeconds',
-    displayName: 'metric hour',
-    titleName: t('Metrics Hours'),
-    productName: t('Metrics'),
-    uid: 19,
-  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
