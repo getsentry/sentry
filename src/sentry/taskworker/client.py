@@ -15,27 +15,18 @@ logger = logging.getLogger("sentry.taskworker.client")
 class TaskworkerClient:
     """
     Taskworker RPC client wrapper
-
-    TODO(taskworker): Implement gRPC client logic.
     """
 
     def __init__(self, host: str) -> None:
         self._host = host
-        self._stub: ConsumerServiceStub | None = None
 
-    @property
-    def _client(self) -> ConsumerServiceStub:
-        if self._stub:
-            return self._stub
-
-        # TODO(taskworker) Need to add service account credentials
+        # TODO(taskworker) Need to support xds bootstrap file
         self._channel = grpc.insecure_channel(self._host)
         self._stub = ConsumerServiceStub(self._channel)
-        return self._stub
 
     def get_task(self) -> TaskActivation | None:
         request = GetTaskRequest()
-        response = self._client.GetTask(request)
+        response = self._stub.GetTask(request)
         if response.HasField("task"):
             return response.task
         return None
@@ -53,7 +44,7 @@ class TaskworkerClient:
             status=status,
             fetch_next=fetch_next,
         )
-        response = self._client.SetTaskStatus(request)
+        response = self._stub.SetTaskStatus(request)
         if response.HasField("error"):
             raise RuntimeError(response.error)
         return response.task
