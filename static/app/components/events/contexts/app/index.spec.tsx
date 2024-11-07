@@ -17,6 +17,8 @@ export const appMockData: AppData = {
   app_id: '3145EA1A-0EAE-3F8C-969A-13A01394D3EA',
   type: 'app',
   in_foreground: false,
+  app_memory: 1048576 * 12,
+  view_names: ['app.view1', 'app.view2'],
 };
 
 export const appMetaMockData = {

@@ -27,7 +27,15 @@ describe('getRuntimeKnownDataDetails', function () {
       },
       {
         subject: 'Version',
-        value: '1.7.13(2.7.18 (default, Apr 20 2020, 19:34:11) \n[GCC 8.3.0])',
+        value: '1.7.13',
+      },
+      {
+        subject: 'Build',
+        value: '2.7.18 (default, Apr 20 2020, 19:34:11) \n[GCC 8.3.0]',
+      },
+      {
+        subject: 'Raw Description',
+        value: '',
       },
     ]);
   });

@@ -8,17 +8,21 @@ export enum AppKnownDataType {
   VERSION = 'app_version',
   BUILD = 'app_build',
   IN_FOREGROUND = 'in_foreground',
+  MEMORY = 'app_memory',
+  VIEW_NAMES = 'view_names',
 }
 
 export type AppData = {
   type: string;
-  app_build?: string;
-  app_id?: string;
-  app_identifier?: string;
-  app_name?: string;
-  app_start_time?: string;
-  app_version?: string;
-  build_type?: string;
-  device_app_hash?: string;
-  in_foreground?: boolean;
+  [AppKnownDataType.BUILD]?: string;
+  [AppKnownDataType.ID]?: string;
+  [AppKnownDataType.IDENTIFIER]?: string;
+  [AppKnownDataType.NAME]?: string;
+  [AppKnownDataType.START_TIME]?: string;
+  [AppKnownDataType.VERSION]?: string;
+  [AppKnownDataType.TYPE]?: string;
+  [AppKnownDataType.DEVICE_HASH]?: string;
+  [AppKnownDataType.IN_FOREGROUND]?: boolean;
+  [AppKnownDataType.MEMORY]?: number;
+  [AppKnownDataType.VIEW_NAMES]?: string[];
 };
