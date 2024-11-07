@@ -10,6 +10,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/firstLastSeenSection';
@@ -26,6 +27,7 @@ type Props = {
 
 export default function StreamlinedSidebar({group, event, project}: Props) {
   const activeUser = useUser();
+  const organization = useOrganization();
 
   const {userParticipants, teamParticipants, viewers} = useMemo(() => {
     return {
@@ -44,7 +46,9 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   return (
     <Side>
-      {(issueTypeConfig.issueSummary.enabled || issueTypeConfig.resources) && (
+      {((organization.features.includes('ai-summary') &&
+        issueTypeConfig.issueSummary.enabled) ||
+        issueTypeConfig.resources) && (
         <Fragment>
           <SolutionsSection group={group} project={project} event={event} />
           <StyledBreak />
