@@ -648,14 +648,14 @@ def fetch_continuous_examples(raw_examples):
         app_id="default",
         query=query,
         tenant_ids={
-            "referrer": Referrer.API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS.value,
+            "referrer": Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS.value,
             "cross_org_query": 1,
         },
     )
 
     data = raw_snql_query(
         request,
-        referrer=Referrer.API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS.value,
+        referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS.value,
     )["data"]
 
     for row in data:
