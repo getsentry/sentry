@@ -1,4 +1,4 @@
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, DashboardProject
 from sentry.testutils.cases import TestCase
 
 
@@ -58,3 +58,55 @@ class IncrementalNameTest(TestCase):
 
         assert Dashboard.incremental_title(first_organization, "My Stuff") == "My Stuff copy 2"
         assert Dashboard.incremental_title(second_organization, "My Stuff") == "My Stuff"
+
+
+class DashboardProjectTest(TestCase):
+    def test_delete_project_cascade(self):
+        project = self.create_project()
+        remaining_project = self.create_project()
+
+        dashboard = self.create_dashboard()
+        remaining_dashboard = self.create_dashboard()
+
+        dashboard.projects.set([project])
+        remaining_dashboard.projects.set([project, remaining_project])
+
+        assert DashboardProject.objects.filter(dashboard=dashboard, project=project).exists()
+
+        # Delete the project to trigger the cascade
+        deleted_project_id = project.id
+        project.delete()
+
+        # No entries for the dashboard project relationship with just the deleted project
+        assert not DashboardProject.objects.filter(
+            dashboard=dashboard, project_id=deleted_project_id
+        ).exists()
+        # Other dashboard still has entries for the remaining project
+        assert DashboardProject.objects.filter(
+            dashboard=remaining_dashboard, project=remaining_project
+        ).exists()
+
+    def test_delete_dashboard_cascade(self):
+        project = self.create_project()
+
+        dashboard = self.create_dashboard()
+        remaining_dashboard = self.create_dashboard()
+
+        dashboard.projects.set([project])
+        remaining_dashboard.projects.set([project])
+
+        assert DashboardProject.objects.filter(dashboard=dashboard, project=project).exists()
+
+        # Delete the dashboard to trigger the cascade
+        deleted_dashboard_id = dashboard.id
+        dashboard.delete()
+
+        # The deleted dashboard cascaded and deletes the dashboard-project relationship
+        assert not DashboardProject.objects.filter(
+            project=project, dashboard_id=deleted_dashboard_id
+        ).exists()
+
+        # The remaining dashboard still has a relationship entry
+        assert DashboardProject.objects.filter(
+            project=project, dashboard=remaining_dashboard
+        ).exists()
