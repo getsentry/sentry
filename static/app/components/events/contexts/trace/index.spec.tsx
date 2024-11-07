@@ -12,12 +12,25 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {TraceEventContext} from 'sentry/components/events/contexts/trace';
 
 export const traceMockData = {
-  trace_id: '61d2d7c5acf448ffa8e2f8f973e2cd36',
-  span_id: 'a5702f287954a9ef',
-  parent_span_id: 'b23703998ae619e7',
-  op: 'something',
-  status: 'unknown',
-  type: 'trace',
+  trace_id: '12312012123120121231201212312012',
+  span_id: '0415201309082013',
+  parent_span_id: '123',
+  description: '<OrganizationContext>',
+  op: 'http.server',
+  status: 'not_found',
+  exclusive_time: 1.035,
+  client_sample_rate: 0.1,
+  dynamic_sampling_context: {
+    trace_id: '12312012123120121231201212312012',
+    sample_rate: '1.0',
+    public_key: '93D0D1125146288EAEE2A9B3AF4F96CCBE3CB316',
+  },
+  origin: 'auto.http.http_client_5',
+  data: {
+    route: {
+      name: 'HomeRoute',
+    },
+  },
 };
 
 export const traceContextMetaMockData = {

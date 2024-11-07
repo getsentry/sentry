@@ -20,44 +20,23 @@ type Props = {
   meta?: Record<string, any>;
 };
 
-export const gpuKnownDataValues = [
-  GPUKnownDataType.NAME,
-  GPUKnownDataType.VERSION,
-  GPUKnownDataType.VENDOR_NAME,
-  GPUKnownDataType.MEMORY_SIZE,
-  GPUKnownDataType.NPOT_SUPPORT,
-  GPUKnownDataType.MULTI_THREAD_RENDERING,
-  GPUKnownDataType.API_TYPE,
-];
+export const gpuKnownDataValues = Object.values(GPUKnownDataType);
 
 const gpuIgnoredDataValues = [];
 
-function getGpuValues({data}: Pick<Props, 'data'>) {
-  const gpuValues = [...gpuKnownDataValues];
-  if (data.vendor_id > 0) {
-    gpuValues.unshift(GPUKnownDataType.VENDOR_ID);
-  }
-  if (data.id > 0) {
-    gpuValues.unshift(GPUKnownDataType.ID);
-  }
-  return gpuValues;
-}
-
 export function getKnownGpuContextData({data, meta}: Pick<Props, 'data' | 'meta'>) {
-  const gpuValues = getGpuValues({data});
   return getKnownData<GPUData, GPUKnownDataType>({
     data,
     meta,
-    knownDataTypes: gpuValues,
+    knownDataTypes: gpuKnownDataValues,
     onGetKnownDataDetails: v => getGPUKnownDataDetails(v),
   });
 }
 
 export function getUnknownGpuContextData({data, meta}: Pick<Props, 'data' | 'meta'>) {
-  const gpuValues = getGpuValues({data});
   return getUnknownData({
     allData: data,
-    knownKeys: [...gpuValues, ...gpuIgnoredDataValues],
+    knownKeys: [...gpuKnownDataValues, ...gpuIgnoredDataValues],
     meta,
   });
 }

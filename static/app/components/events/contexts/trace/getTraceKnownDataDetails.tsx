@@ -15,7 +15,7 @@ type Props = {
   event: Event;
   location: Location;
   organization: Organization;
-  type: TraceKnownDataType;
+  type: TraceKnownDataType | 'transaction_name';
 };
 
 export function getTraceKnownDataDetails({
@@ -69,7 +69,38 @@ export function getTraceKnownDataDetails({
       };
     }
 
-    case TraceKnownDataType.TRANSACTION_NAME: {
+    case TraceKnownDataType.EXCLUSIVE_TIME: {
+      return {
+        subject: t('Exclusive Time (ms)'),
+        value: data.exclusive_time,
+      };
+    }
+    case TraceKnownDataType.CLIENT_SAMPLE_RATE: {
+      return {
+        subject: t('Client Sample Rate'),
+        value: data.client_sample_rate,
+      };
+    }
+    case TraceKnownDataType.DYNAMIC_SAMPLING_CONTEXT: {
+      return {
+        subject: t('Dynamic Sampling Context'),
+        value: data.dynamic_sampling_context,
+      };
+    }
+    case TraceKnownDataType.ORIGIN: {
+      return {
+        subject: t('Origin'),
+        value: data.origin,
+      };
+    }
+    case TraceKnownDataType.DATA: {
+      return {
+        subject: t('Data'),
+        value: data.data,
+      };
+    }
+
+    case 'transaction_name': {
       const eventTag = event?.tags.find(tag => {
         return tag.key === 'transaction';
       });
