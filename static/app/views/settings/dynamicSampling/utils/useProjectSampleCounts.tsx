@@ -19,6 +19,13 @@ const metricsQuery: MetricsQueryApiQueryParams[] = [
   },
 ];
 
+export interface ProjectSampleCount {
+  count: number;
+  ownCount: number;
+  project: Project;
+  subProjects: Array<{count: number; slug: string}>;
+}
+
 export type ProjectionSamplePeriod = '24h' | '30d';
 
 export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod}) {
@@ -117,15 +124,11 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
     () =>
       projectEntries
         .entries()
-        .map(([key, value]) => {
+        .map<ProjectSampleCount>(([key, value]) => {
           return {
-            id: key,
             project: projectBySlug[key],
             count: value.count,
             ownCount: value.ownCount,
-            // This is a placeholder value to satisfy typing
-            // the actual value is calculated in the balanceSampleRate function
-            sampleRate: 1,
             subProjects: value.subProjects.toSorted((a, b) => b.count - a.count),
           };
         })

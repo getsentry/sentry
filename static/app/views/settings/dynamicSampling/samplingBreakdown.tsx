@@ -11,16 +11,13 @@ import {
   formatAbbreviatedNumber,
   formatAbbreviatedNumberWithDynamicPrecision,
 } from 'sentry/utils/formatters';
-import {
-  type ProjectionSamplePeriod,
-  useProjectSampleCounts,
-} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const ITEMS_TO_SHOW = 5;
 const palette = CHART_PALETTE[ITEMS_TO_SHOW - 1];
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
-  period: ProjectionSamplePeriod;
+  sampleCounts: ProjectSampleCount[];
   sampleRates: Record<string, number>;
 }
 
@@ -45,10 +42,8 @@ function OthersBadge() {
   );
 }
 
-export function SamplingBreakdown({period, sampleRates, ...props}: Props) {
-  const {data} = useProjectSampleCounts({period});
-
-  const spansWithSampleRates = data
+export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) {
+  const spansWithSampleRates = sampleCounts
     ?.map(item => {
       const sampledSpans = Math.floor(item.count * (sampleRates[item.project.id] ?? 1));
       return {
