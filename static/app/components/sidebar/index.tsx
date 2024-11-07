@@ -621,7 +621,7 @@ function Sidebar() {
         icon={<IconGraph />}
         label={DOMAIN_VIEW_BASE_TITLE}
         id="insights-domains"
-        initiallyExpanded={false}
+        initiallyExpanded
         exact={!shouldAccordionFloat}
         isAlpha={DOMAIN_VIEW_RELEASE_LEVEL === 'alpha'}
         isBeta={DOMAIN_VIEW_RELEASE_LEVEL === 'beta'}

@@ -63,7 +63,7 @@ export default function SolutionsSection({
       </SidebarSectionTitle>
       {isPending &&
         isSummaryEnabled(hasGenAIConsent, issueTypeConfig.issueSummary.enabled) && (
-          <Placeholder height="19px" width="95%" style={{marginBottom: space(1)}} />
+          <Placeholder height="35px" style={{marginBottom: space(1)}} />
         )}
       {isSummaryEnabled(hasGenAIConsent, issueTypeConfig.issueSummary.enabled) &&
         data && (

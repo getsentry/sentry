@@ -72,7 +72,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
+from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, is_organization_mode_sampling
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -384,10 +384,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "Organization does not have the custom dynamic sample rate feature enabled."
             )
 
-        if (
-            organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-            != DynamicSamplingMode.ORGANIZATION.value
-        ):
+        if not is_organization_mode_sampling(organization):
             raise serializers.ValidationError(
                 "Must be in Automatic Mode to configure the organization sample rate."
             )

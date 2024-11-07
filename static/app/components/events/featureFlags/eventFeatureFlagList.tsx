@@ -3,26 +3,21 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
-  ALPHA_OPTIONS,
   CardContainer,
-  EVAL_ORDER_OPTIONS,
   FeatureFlagDrawer,
-  FlagControlOptions,
-  FlagSort,
-  getDefaultFlagSort,
-  getFlagSortLabel,
-  getSortGroupLabel,
-  SORT_GROUP_OPTIONS,
-  sortedFlags,
-  SortGroup,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
+import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
+import {
+  FlagControlOptions,
+  OrderBy,
+  SortBy,
+  sortedFlags,
+} from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
-import {IconMegaphone, IconSearch, IconSort} from 'sentry/icons';
+import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -65,8 +60,8 @@ export function EventFeatureFlagList({
     </Button>
   ) : null;
 
-  const [flagSort, setFlagSort] = useState<FlagSort>(FlagSort.NEWEST);
-  const [sortGroup, setSortGroup] = useState<SortGroup>(SortGroup.EVAL_ORDER);
+  const [sortBy, setSortBy] = useState<SortBy>(SortBy.EVAL_ORDER);
+  const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const organization = useOrganization();
@@ -132,8 +127,8 @@ export function EventFeatureFlagList({
             event={event}
             project={project}
             hydratedFlags={hydratedFlags}
-            initialSortGroup={sortGroup}
-            initialFlagSort={flagSort}
+            initialSortBy={sortBy}
+            initialOrderBy={orderBy}
             focusControl={focusControl}
           />
         ),
@@ -152,7 +147,7 @@ export function EventFeatureFlagList({
         }
       );
     },
-    [openDrawer, event, group, project, hydratedFlags, organization, flagSort, sortGroup]
+    [openDrawer, event, group, project, hydratedFlags, organization, sortBy, orderBy]
   );
 
   if (!hydratedFlags.length) {
@@ -162,13 +157,6 @@ export function EventFeatureFlagList({
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
-      <Button
-        aria-label={t('Open Feature Flag Search')}
-        icon={<IconSearch size="xs" />}
-        size="xs"
-        title={t('Open Search')}
-        onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
-      />
       <Button
         size="xs"
         aria-label={t('View All')}
@@ -180,46 +168,24 @@ export function EventFeatureFlagList({
       >
         {t('View All')}
       </Button>
-      <CompactSelect
-        value={sortGroup}
-        options={SORT_GROUP_OPTIONS}
-        triggerProps={{
-          'aria-label': t('Sort Group'),
-        }}
-        onChange={selection => {
-          setFlagSort(getDefaultFlagSort(selection.value));
-          setSortGroup(selection.value);
-        }}
-        trigger={triggerProps => (
-          <DropdownButton {...triggerProps} size="xs">
-            {getSortGroupLabel(sortGroup)}
-          </DropdownButton>
-        )}
+      <Button
+        aria-label={t('Open Feature Flag Search')}
+        icon={<IconSearch size="xs" />}
+        size="xs"
+        title={t('Open Search')}
+        onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
       />
-      <CompactSelect
-        value={flagSort}
-        options={sortGroup === SortGroup.EVAL_ORDER ? EVAL_ORDER_OPTIONS : ALPHA_OPTIONS}
-        triggerProps={{
-          'aria-label': t('Flag Sort Type'),
-        }}
-        onChange={selection => {
-          setFlagSort(selection.value);
-          trackAnalytics('flags.sort-flags', {
-            organization,
-            sortMethod: selection.value,
-          });
-        }}
-        trigger={triggerProps => (
-          <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>
-            {getFlagSortLabel(flagSort)}
-          </DropdownButton>
-        )}
+      <FeatureFlagSort
+        orderBy={orderBy}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        setOrderBy={setOrderBy}
       />
     </ButtonBar>
   );
 
   // Split the flags list into two columns for display
-  const truncatedItems = sortedFlags({flags: hydratedFlags, sort: flagSort}).slice(0, 20);
+  const truncatedItems = sortedFlags({flags: hydratedFlags, sort: orderBy}).slice(0, 20);
   const columnOne = truncatedItems.slice(0, 10);
   let columnTwo: typeof truncatedItems = [];
   if (truncatedItems.length > 10) {

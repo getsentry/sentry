@@ -4,13 +4,22 @@ export enum TraceKnownDataType {
   PARENT_SPAN_ID = 'parent_span_id',
   OP_NAME = 'op',
   STATUS = 'status',
-  TRANSACTION_NAME = 'transaction_name',
+  EXCLUSIVE_TIME = 'exclusive_time',
+  CLIENT_SAMPLE_RATE = 'client_sample_rate',
+  DYNAMIC_SAMPLING_CONTEXT = 'dynamic_sampling_context',
+  ORIGIN = 'origin',
+  DATA = 'data',
 }
 
 export type TraceKnownData = {
-  op?: string;
-  parent_span_id?: string;
-  span_id?: string;
-  status?: string;
-  trace_id?: string;
+  [TraceKnownDataType.TRACE_ID]?: string;
+  [TraceKnownDataType.SPAN_ID]?: string;
+  [TraceKnownDataType.PARENT_SPAN_ID]?: string;
+  [TraceKnownDataType.OP_NAME]?: string;
+  [TraceKnownDataType.STATUS]?: string;
+  [TraceKnownDataType.EXCLUSIVE_TIME]?: number;
+  [TraceKnownDataType.CLIENT_SAMPLE_RATE]?: number;
+  [TraceKnownDataType.DYNAMIC_SAMPLING_CONTEXT]?: Record<string, string>;
+  [TraceKnownDataType.ORIGIN]?: string;
+  [TraceKnownDataType.DATA]?: Record<string, any>;
 };
