@@ -9,6 +9,7 @@ import {
   createDashboard,
   deleteDashboard,
   updateDashboard,
+  updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
@@ -181,9 +182,9 @@ export function checkUserHasEditAccess(
   ) {
     return true;
   }
-  return dashboard.permissions.isCreatorOnlyEditable
-    ? dashboard.createdBy?.id === currentUser.id
-    : !dashboard.permissions.isCreatorOnlyEditable;
+  return dashboard.permissions.isEditableByEveryone
+    ? dashboard.permissions.isEditableByEveryone
+    : dashboard.createdBy?.id === currentUser.id;
 }
 
 class DashboardDetail extends Component<Props, State> {
@@ -622,7 +623,7 @@ class DashboardDetail extends Component<Props, State> {
     const dashboardCopy = cloneDashboard(dashboard);
     dashboardCopy.permissions = newDashboardPermissions;
 
-    updateDashboard(api, organization.slug, dashboardCopy).then(
+    updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
       (newDashboard: DashboardDetails) => {
         addSuccessMessage(t('Dashboard Edit Access updated.'));
         this.props.onDashboardUpdate?.(newDashboard);

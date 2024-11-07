@@ -79,7 +79,7 @@ describe('When EditAccessSelector is rendered', () => {
 
     await userEvent.click(await screen.findByText('Edit Access:'));
     expect(screen.getByText('Creator')).toBeInTheDocument();
-    expect(screen.getByText('Everyone')).toBeInTheDocument();
+    expect(screen.getByText('All users')).toBeInTheDocument();
   });
 
   it('renders All badge when dashboards has no perms defined', async function () {
@@ -93,7 +93,7 @@ describe('When EditAccessSelector is rendered', () => {
       id: '1',
       createdBy: UserFixture({id: '1'}),
       title: 'Custom Errors',
-      permissions: {isCreatorOnlyEditable: false, isEditablebyEveryone: true}, // set to false
+      permissions: {isEditableByEveryone: true}, // set to true
     });
     renderTestComponent(initialData, mockDashboard);
     await screen.findByText('Edit Access:');
@@ -105,7 +105,7 @@ describe('When EditAccessSelector is rendered', () => {
       id: '1',
       createdBy: UserFixture({id: '1'}),
       title: 'Custom Errors',
-      permissions: {isCreatorOnlyEditable: true, isEditablebyEveryone: false}, // set to false
+      permissions: {isEditableByEveryone: false}, // set to false
     });
     renderTestComponent(initialData, mockDashboard);
     await userEvent.click(await screen.findByText('Edit Access:'));
@@ -113,12 +113,12 @@ describe('When EditAccessSelector is rendered', () => {
     expect(screen.queryByText('All')).not.toBeInTheDocument();
 
     // Select everyone
-    expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+    expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
       'aria-selected',
       'false'
     );
-    await userEvent.click(screen.getByRole('option', {name: 'Everyone'}));
-    expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+    await userEvent.click(screen.getByRole('option', {name: 'All users'}));
+    expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -134,7 +134,7 @@ describe('When EditAccessSelector is rendered', () => {
       id: '1',
       createdBy: UserFixture({id: '1', name: 'Lorem Ipsum'}),
       title: 'Custom Errors',
-      permissions: {isCreatorOnlyEditable: true, isEditablebyEveryone: false}, // set to true
+      permissions: {isEditableByEveryone: false}, // set to true
     });
     renderTestComponent(initialData, mockDashboard);
     await screen.findByText('Edit Access:');
@@ -150,12 +150,12 @@ describe('When EditAccessSelector is rendered', () => {
     await userEvent.click(await screen.findByText('Edit Access:'));
 
     // Everyone option should be disabled
-    expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+    expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    await userEvent.click(screen.getByRole('option', {name: 'Everyone'}));
-    expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+    await userEvent.click(screen.getByRole('option', {name: 'All users'}));
+    expect(await screen.findByRole('option', {name: 'All users'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
