@@ -59,16 +59,20 @@ class DataCondition(DefaultFieldsModel):
 
     def get_condition_result(self) -> DataConditionResult:
         match self.condition_result:
-            case DetectorPriorityLevel():
-                return DetectorPriorityLevel(self.condition_result)
-            case int() | float() | bool():
+            case float() | bool():
                 return self.condition_result
+            case int() | DetectorPriorityLevel():
+                try:
+                    return DetectorPriorityLevel(self.condition_result)
+                except ValueError:
+                    return self.condition_result
             case _:
                 logger.error(
                     "Invalid condition result",
                     extra={"condition_result": self.condition_result, "id": self.id},
                 )
-                return None
+
+        return None
 
     def evaluate_value(self, value: float | int) -> DataConditionResult:
         # TODO: This logic should be in a condition class that we get from `self.type`
