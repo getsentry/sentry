@@ -17,11 +17,8 @@ import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
 import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
-import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
-import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
-import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
@@ -36,7 +33,6 @@ import HighlightsDataSection from 'sentry/components/events/highlights/highlight
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
-import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {Exception} from 'sentry/components/events/interfaces/exception';
@@ -88,6 +84,28 @@ const LLMMonitoringSection = lazy(
 const LazySpanEvidenceSection = lazy(() =>
   import('sentry/components/events/interfaces/performance/spanEvidence').then(m => ({
     default: m.SpanEvidenceSection,
+  }))
+);
+const LazyCronTimelineSection = lazy(() =>
+  import('sentry/components/events/interfaces/crons/cronTimelineSection').then(m => ({
+    default: m.CronTimelineSection,
+  }))
+);
+const LazyEventDifferentialFlamegraph = lazy(() =>
+  import(
+    'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph'
+  ).then(m => ({
+    default: m.EventDifferentialFlamegraph,
+  }))
+);
+const LazyAggregateSpanDiff = lazy(
+  () => import('sentry/components/events/eventStatisticalDetector/aggregateSpanDiff')
+);
+const LazyEventAffectedTransactions = lazy(() =>
+  import(
+    'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions'
+  ).then(m => ({
+    default: m.EventAffectedTransactions,
   }))
 );
 
@@ -230,7 +248,8 @@ export function EventDetailsContent({
         <UptimeDataSection event={event} project={project} group={group} />
       )}
       {group.issueCategory === IssueCategory.CRON && (
-        <CronTimelineSection
+        <LazyLoad
+          LazyComponent={LazyCronTimelineSection}
           event={event}
           organization={organization}
           project={project}
@@ -474,7 +493,7 @@ function PerformanceDurationRegressionIssueDetailsContent({
         <EventBreakpointChart event={event} />
       </ErrorBoundary>
       <ErrorBoundary mini>
-        <AggregateSpanDiff event={event} project={project} />
+        <LazyLoad LazyComponent={LazyAggregateSpanDiff} event={event} project={project} />
       </ErrorBoundary>
       <ErrorBoundary mini>
         <EventComparison event={event} project={project} />
@@ -499,7 +518,12 @@ function ProfilingDurationRegressionIssueDetailsContent({
             <EventFunctionBreakpointChart event={event} />
           </ErrorBoundary>
           <ErrorBoundary mini>
-            <EventAffectedTransactions event={event} group={group} project={project} />
+            <LazyLoad
+              LazyComponent={LazyEventAffectedTransactions}
+              event={event}
+              group={group}
+              project={project}
+            />
           </ErrorBoundary>
           <ErrorBoundary mini>
             <InterimSection
@@ -512,7 +536,7 @@ function ProfilingDurationRegressionIssueDetailsContent({
               frame with the largest increase in call stack population likely
               contributed to the cause for the duration regression.`)}
               </p>
-              <EventDifferentialFlamegraph event={event} />
+              <LazyLoad LazyComponent={LazyEventDifferentialFlamegraph} event={event} />
             </InterimSection>
           </ErrorBoundary>
           <ErrorBoundary mini>
