@@ -8,7 +8,7 @@ import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export const OVERVIEW_PAGE_TITLE = t('Overview');
-export const DOMAIN_VIEW_RELEASE_LEVEL: BadgeType = 'alpha';
+export const DOMAIN_VIEW_RELEASE_LEVEL: BadgeType = 'beta';
 export const DOMAIN_VIEW_BASE_URL = 'insights';
 export const DOMAIN_VIEW_BASE_TITLE = t('Insights');
 
