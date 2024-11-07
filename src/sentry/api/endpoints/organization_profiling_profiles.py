@@ -4,7 +4,9 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Limit, Op, Query, SnqlRequest, Storage
+from snuba_sdk import Column, Condition, Limit, Op, Query
+from snuba_sdk import Request as SnqlRequest
+from snuba_sdk import Storage
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -228,4 +230,4 @@ class OrganizationProfilingHasChunksEndpoint(OrganizationProfilingBaseEndpoint):
 
             data = raw_snql_query(request, referrer)["data"]
 
-        return Response({"chunks": len(data) > 0}, status=200)
+        return Response({"hasChunks": len(data) > 0}, status=200)
