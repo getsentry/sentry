@@ -314,9 +314,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         Add or invite a member to an organization.
         """
-        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
 
         allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)
+        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
 
         # We allow requests from integration tokens to invite new members as the member role only
         if not allowed_roles and request.access.is_integration_token:
