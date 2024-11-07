@@ -19,9 +19,15 @@ class GetConditionResultTest(TestCase):
         dc = self.create_data_condition(condition_result=1.0)
         assert dc.get_condition_result() == 1.0
 
-    def test_priority_level(self):
+    def test_int__overlaps_with_priority_low(self):
+        dc = self.create_data_condition(condition_result=25)
+        assert dc.get_condition_result() == 25
+        assert dc.get_condition_result() == DetectorPriorityLevel.LOW
+
+    def test_priority_level__as_level(self):
         dc = self.create_data_condition(condition_result=DetectorPriorityLevel.HIGH)
         assert dc.get_condition_result() == DetectorPriorityLevel.HIGH
+        assert dc.get_condition_result() == 75
 
     def test_boolean(self):
         dc = self.create_data_condition(condition_result=True)
