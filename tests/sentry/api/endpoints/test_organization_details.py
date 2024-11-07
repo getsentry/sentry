@@ -24,6 +24,7 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
@@ -322,6 +323,48 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
                 response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
                 assert "planSampleRate" not in response.data
+
+    def test_is_dynamically_sampled_no_org_option(self):
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ):
+                response = self.get_success_response(self.organization.slug)
+                assert response.data["isDynamicallySampled"]
+
+    def test_is_dynamically_sampled_org_option(self):
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.organization.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data["isDynamicallySampled"]
+
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.organization.update_option("sentry:target_sample_rate", 1.0)
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert not response.data["isDynamicallySampled"]
+
+    def test_is_dynamically_sampled_proj_option(self):
+        proj_1 = self.create_project(organization=self.organization)
+        proj_2 = self.create_project(organization=self.organization)
+
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        proj_1.update_option("sentry:target_sample_rate", 1.0)
+        # proj_2 remains unset
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert not response.data["isDynamicallySampled"]
+
+        proj_2.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data["isDynamicallySampled"]
 
     def test_dynamic_sampling_custom_target_sample_rate(self):
         with self.feature({"organizations:dynamic-sampling-custom": True}):
