@@ -2468,10 +2468,15 @@ class ProfilesSnubaTestCase(
         self,
         functions,
         project,
+        profiler_id=None,
         extras=None,
         timestamp=None,
     ):
-        profiler_id = uuid4().hex
+        if profiler_id is None:
+            profiler_id = uuid4().hex
+
+        # TODO: also write to chunks dataset
+        chunk_id = uuid4().hex
 
         functions = [
             {
@@ -2488,6 +2493,9 @@ class ProfilesSnubaTestCase(
             duration for function in functions for duration in function["self_times_ns"]
         )
 
+        start = timestamp
+        end = timestamp + max_duration / 1e9
+
         functions_payload = {
             "functions": functions,
             "platform": "",
@@ -2497,8 +2505,9 @@ class ProfilesSnubaTestCase(
             "received": int(timestamp),
             "retention_days": 90,
             "timestamp": int(timestamp),
-            "start_timestamp": timestamp,
-            "end_timestamp": timestamp + max_duration / 1e9,
+            "start_timestamp": start,
+            "end_timestamp": end,
+            "profiling_type": "continuous",
             "materialization_version": 1,
         }
         if extras is not None:
@@ -2512,6 +2521,7 @@ class ProfilesSnubaTestCase(
 
         return {
             "profiler_id": profiler_id,
+            "chunk_id": chunk_id,
             "functions": functions,
         }
 
