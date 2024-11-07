@@ -50,10 +50,7 @@ describe('FeatureFlagDrawer', function () {
     // Header & Controls
     expect(drawerScreen.getByText('Feature Flags', {selector: 'h3'})).toBeInTheDocument();
     expect(drawerScreen.getByRole('textbox', {name: 'Search Flags'})).toBeInTheDocument();
-    expect(drawerScreen.getByRole('button', {name: 'Newest'})).toBeInTheDocument();
-    expect(
-      drawerScreen.getByRole('button', {name: 'Evaluation Order'})
-    ).toBeInTheDocument();
+    expect(drawerScreen.getByRole('button', {name: 'Sort Flags'})).toBeInTheDocument();
 
     // Contents
     for (const {flag, result} of MOCK_FLAGS) {
@@ -91,10 +88,10 @@ describe('FeatureFlagDrawer', function () {
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
 
     const sortControl = drawerScreen.getByRole('button', {
-      name: 'Newest',
+      name: 'Sort Flags',
     });
     await userEvent.click(sortControl);
-    await userEvent.click(drawerScreen.getByRole('option', {name: 'Oldest'}));
+    await userEvent.click(drawerScreen.getByRole('option', {name: 'Oldest First'}));
 
     // expect webVitalsFlag to be preceding enableReplay
     expect(
@@ -103,10 +100,7 @@ describe('FeatureFlagDrawer', function () {
         .compareDocumentPosition(drawerScreen.getByText(webVitalsFlag.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
-    const sortGroupControl = drawerScreen.getByRole('button', {
-      name: 'Evaluation Order',
-    });
-    await userEvent.click(sortGroupControl);
+    await userEvent.click(sortControl);
     await userEvent.click(drawerScreen.getByRole('option', {name: 'Alphabetical'}));
     await userEvent.click(sortControl);
     await userEvent.click(drawerScreen.getByRole('option', {name: 'Z-A'}));

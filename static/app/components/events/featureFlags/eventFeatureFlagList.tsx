@@ -13,7 +13,7 @@ import {
   getSelectionType,
   ORDER_BY_OPTIONS,
   OrderBy,
-  SORT_GROUP_OPTIONS,
+  SORT_BY_OPTIONS,
   SortBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
@@ -196,7 +196,7 @@ export function EventFeatureFlagList({
             }
             setSortBy(selection.value);
           }}
-          options={SORT_GROUP_OPTIONS}
+          options={SORT_BY_OPTIONS}
         />
         <CompositeSelect.Region
           label={t('Order By')}

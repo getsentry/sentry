@@ -83,7 +83,7 @@ export const getDefaultOrderBy = (sortBy: SortBy) => {
   return sortBy === SortBy.EVAL_ORDER ? OrderBy.NEWEST : OrderBy.A_TO_Z;
 };
 
-export const SORT_GROUP_OPTIONS = [
+export const SORT_BY_OPTIONS = [
   {
     label: getSortByLabel(SortBy.EVAL_ORDER),
     value: SortBy.EVAL_ORDER,
@@ -207,7 +207,7 @@ export function FeatureFlagDrawer({
             }
             setSortBy(selection.value);
           }}
-          options={SORT_GROUP_OPTIONS}
+          options={SORT_BY_OPTIONS}
         />
         <CompositeSelect.Region
           label={t('Order By')}
