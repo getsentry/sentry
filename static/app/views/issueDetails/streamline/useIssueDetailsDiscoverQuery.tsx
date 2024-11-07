@@ -44,7 +44,6 @@ export function useIssueDetailsEventView({
     yAxis: ['count()', 'count_unique(user)'],
     fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
     name: group.title || group.type,
-    orderby: ['-timestamp'],
     ...queryProps,
     query,
   };
