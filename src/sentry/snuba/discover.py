@@ -311,6 +311,7 @@ def timeseries_query(
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -334,6 +335,8 @@ def timeseries_query(
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
     allow_metric_aggregates - Ignored here, only used in metric enhanced performance
+    fallback_to_transactions - Whether to fallback to the transactions dataset if the query
+                    fails in metrics enhanced requests. To be removed once the discover dataset is split.
     """
     assert dataset in [
         Dataset.Discover,

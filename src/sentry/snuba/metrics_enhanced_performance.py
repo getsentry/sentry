@@ -138,6 +138,7 @@ def timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -173,8 +174,13 @@ def timeseries_query(
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
-        sentry_sdk.set_tag("performance.dataset", "discover")
-        return discover.timeseries_query(
+        dataset: types.ModuleType = discover
+        if fallback_to_transactions:
+            dataset = transactions
+            sentry_sdk.set_tag("performance.dataset", "transactions")
+        else:
+            sentry_sdk.set_tag("performance.dataset", "discover")
+        return dataset.timeseries_query(
             selected_columns,
             query,
             snuba_params,
