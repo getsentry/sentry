@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
@@ -468,12 +469,12 @@ const TabDivider = styled(motion.div, {
 })<{isVisible: boolean}>`
   ${p =>
     p.isVisible &&
-    `
-    background-color: ${p.theme.gray200};
-    height: 16px;
-    width: 1px;
-    border-radius: 6px;
-  `}
+    css`
+      background-color: ${p.theme.gray200};
+      height: 16px;
+      width: 1px;
+      border-radius: 6px;
+    `}
 
   ${p => !p.isVisible && `margin-left: 1px;`}
 

@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
@@ -67,22 +68,23 @@ export const SpanTablePanelItem = styled(StyledPanelItem)`
 export const BreakdownPanelItem = styled(StyledPanelItem)<{highlightedSliceName: string}>`
   ${p =>
     p.highlightedSliceName
-      ? `--highlightedSlice-${p.highlightedSliceName}-opacity: 1.0;
-         --highlightedSlice-${p.highlightedSliceName}-saturate: saturate(1.0) contrast(1.0);
-         --highlightedSlice-${p.highlightedSliceName}-transform: translateY(0px);
+      ? css`
+          --highlightedSlice-${p.highlightedSliceName}-opacity: 1;
+          --highlightedSlice-${p.highlightedSliceName}-saturate: saturate(1) contrast(1);
+          --highlightedSlice-${p.highlightedSliceName}-transform: translateY(0px);
        `
       : null}
   ${p =>
     p.highlightedSliceName
-      ? `
-        --defaultSlice-opacity: 1.0;
-        --defaultSlice-saturate: saturate(0.7) contrast(0.9) brightness(1.2);
-        --defaultSlice-transform: translateY(0px);
+      ? css`
+          --defaultSlice-opacity: 1;
+          --defaultSlice-saturate: saturate(0.7) contrast(0.9) brightness(1.2);
+          --defaultSlice-transform: translateY(0px);
         `
-      : `
-        --defaultSlice-opacity: 1.0;
-        --defaultSlice-saturate: saturate(1.0) contrast(1.0);
-        --defaultSlice-transform: translateY(0px);
+      : css`
+          --defaultSlice-opacity: 1;
+          --defaultSlice-saturate: saturate(1) contrast(1);
+          --defaultSlice-transform: translateY(0px);
         `}
 `;
 
