@@ -145,6 +145,10 @@ class SetupWizardView(BaseView):
         default_cache.set(key, cache_data, SETUP_WIZARD_CACHE_TIMEOUT)
         return HttpResponse(status=200)
 
+    @allow_cors_options
+    def options(self, request, *args, **kwargs):
+        return super().options(request, *args, **kwargs)
+
 
 def serialize_org_mapping(mapping: OrganizationMapping):
     status = OrganizationStatus(mapping.status)
