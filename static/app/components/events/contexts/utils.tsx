@@ -12,6 +12,8 @@ import {
   type ContextIconProps,
   getLogoImage,
 } from 'sentry/components/events/contexts/contextIcon';
+import {getCultureContextData} from 'sentry/components/events/contexts/culture';
+import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/missingInstrumentation';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -347,6 +349,11 @@ export function getContextTitle({
       return 'OpenTelemetry';
     case 'cloud_resource':
       return t('Cloud Resource');
+    case 'culture':
+    case 'Current Culture':
+      return t('Culture');
+    case 'missing_instrumentation':
+      return t('Missing OTEL Instrumentation');
     case 'unity':
       return 'Unity';
     case 'memory_info': // Current value for memory info
@@ -547,6 +554,11 @@ export function getFormattedContextData({
       ];
     case 'cloud_resource':
       return getCloudResourceContextData({data: contextValue, meta});
+    case 'culture':
+    case 'Current Culture':
+      return getCultureContextData({data: contextValue, meta});
+    case 'missing_instrumentation':
+      return getMissingInstrumentationContextData({data: contextValue, meta});
     default:
       return getDefaultContextData(contextValue);
   }
