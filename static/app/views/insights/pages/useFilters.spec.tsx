@@ -28,7 +28,7 @@ describe('useDomainViewFilters', () => {
     );
   });
 
-  it('should return isInDomainView as false when view is not in domainViews or hasDomainViewFeature is false', function () {
+  it('should return isInDomainView as false without feature', function () {
     mockUseOrganization.mockReturnValue(OrganizationFixture());
     const {isInDomainView, view} = useDomainViewFilters();
     expect(isInDomainView).toBe(false);
