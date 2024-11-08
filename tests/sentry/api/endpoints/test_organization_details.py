@@ -704,6 +704,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowSuperuserAccess": False,
             "allowMemberInvite": False,
             "aiSuggestedSolution": False,
+            "hideAiFeatures": False,
             "githubOpenPRBot": False,
             "githubNudgeInvite": False,
             "githubPRBot": False,
@@ -799,6 +800,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["aiSuggestedSolution"]) in log.data["aiSuggestedSolution"]
+        assert "to {}".format(data["hideAiFeatures"]) in log.data["hideAiFeatures"]
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
