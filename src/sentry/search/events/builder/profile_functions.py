@@ -44,9 +44,19 @@ class ProfileFunctionsQueryBuilderMixin:
         return resolved
 
     def process_profiling_function_columns(self, row: SnubaRow):
+        # We need to check both the aliased and non aliased names
+        # as not all use cases enable `transform_alias_to_input_format`
+        # and the events-stats endpoint does not actually apply it.
         if "all_examples()" in row:
+            key = "all_examples()"
+        elif "all_examples" in row:
+            key = "all_examples"
+        else:
+            key = None
+
+        if key is not None:
             parsed_examples = []
-            for example in row["all_examples()"]:
+            for example in row[key]:
                 profile_id, thread_id, start, end = example
 
                 # This is shaped like the `ExampleMetaData` in vroom
@@ -66,7 +76,7 @@ class ProfileFunctionsQueryBuilderMixin:
                         }
                     )
 
-            row["all_examples()"] = parsed_examples
+            row[key] = parsed_examples
 
 
 class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, BaseQueryBuilder):
@@ -108,10 +118,12 @@ class ProfileFunctionsTimeseriesQueryBuilder(
         return custom_time_processor(self.interval, Function("toUInt32", [Column("timestamp")]))
 
     def process_results(self, results: Any) -> EventsResponse:
-        processed: EventsResponse = super().process_results(results)
-        for row in processed["data"]:
+        # Calling `super().process_results(results)` on the timeseries data
+        # mutates the data in such a way that breaks the zerofill later such
+        # as applying `transform_alias_to_input_format` setting.  So skip it.
+        for row in results["data"]:
             self.process_profiling_function_columns(row)
-        return processed
+        return results
 
 
 class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryBuilder):

@@ -106,6 +106,7 @@ def timeseries_query(
     )
     results = builder.run_query(referrer=referrer, query_source=query_source)
     results = builder.strip_alias_prefix(results)
+    results = builder.process_results(results)
 
     return SnubaTSResult(
         {
