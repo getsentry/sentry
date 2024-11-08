@@ -3,7 +3,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 
-export const makeHideAiFeaturesField = (organization: Organization) => {
+export const makeHideAiFeaturesField = (organization: Organization): FieldObject => {
   const isBaa = false; // TODO: add a check here once we have a way to check if the org is a BAA customer. Leave it as false for now.
   const isDeRegion = getRegionDataFromOrganization(organization)?.name === 'de';
 
@@ -21,5 +21,5 @@ export const makeHideAiFeaturesField = (organization: Organization) => {
       : isDeRegion
         ? t('Generative AI features are currently not supported for the EU')
         : null,
-  } satisfies FieldObject;
+  }
 };
