@@ -552,7 +552,7 @@ const VerticalLine = styled('div')`
 
 const HighlightsWrapper = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: ${space(1)};
   width: 100%;
   overflow: hidden;
@@ -564,7 +564,6 @@ const HighlightsLeftColumn = styled('div')`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100%;
 `;
 
 const HighlightsRightColumn = styled('div')`

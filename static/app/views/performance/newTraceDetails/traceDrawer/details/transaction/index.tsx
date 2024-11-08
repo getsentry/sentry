@@ -213,12 +213,14 @@ export function TransactionNodeDetails({
 
       <IssueList node={node} organization={organization} issues={issues} />
 
-      <TransactionHighlights
-        event={event}
-        node={node}
-        project={project}
-        organization={organization}
-      />
+      {hasNewTraceUi ? (
+        <TransactionHighlights
+          event={event}
+          node={node}
+          project={project}
+          organization={organization}
+        />
+      ) : null}
 
       <TransactionSpecificSections
         event={event}
