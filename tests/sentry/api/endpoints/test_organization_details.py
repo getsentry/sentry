@@ -704,7 +704,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowSuperuserAccess": False,
             "allowMemberInvite": False,
             "aiSuggestedSolution": False,
-            "hideAiFeatures": False,
+            "hideAiFeatures": True,
             "githubOpenPRBot": False,
             "githubNudgeInvite": False,
             "githubPRBot": False,

@@ -669,6 +669,10 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         help_text="Specify `true` to opt-in to [AI Suggested Solution](/product/issues/issue-details/ai-suggested-solution/) to get AI help on how to solve an issue.",
         required=False,
     )
+    hideAiFeatures = serializers.BooleanField(
+        help_text="Specify `true` to hide AI features from the organization.",
+        required=False,
+    )
     codecovAccess = serializers.BooleanField(
         help_text="Specify `true` to enable Code Coverage Insights. This feature is only available for organizations on the Team plan and above. Learn more about Codecov [here](/product/codecov/).",
         required=False,
