@@ -112,9 +112,9 @@ describe('SlowestFunctionsWidget', function () {
             'count()': 1000,
             'p75()': 100000,
             'sum()': 1000000,
-            'examples()': [
-              'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-              'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+            'all_examples()': [
+              {profile_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'},
+              {profile_id: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'},
             ],
           },
           {
@@ -122,7 +122,7 @@ describe('SlowestFunctionsWidget', function () {
             'count()': 2500,
             'p75()': 50000,
             'sum()': 500000,
-            'examples()': ['cccccccccccccccccccccccccccccccc'],
+            'all_examples()': [{profile_id: 'cccccccccccccccccccccccccccccccc'}],
           },
         ],
       },
@@ -130,7 +130,7 @@ describe('SlowestFunctionsWidget', function () {
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
           query: 'project.id:1 fingerprint:123',
-          field: ['transaction', 'count()', 'sum()', 'examples()', 'p75()'],
+          field: ['transaction', 'count()', 'sum()', 'all_examples()', 'p75()'],
         }),
       ],
     });
@@ -145,9 +145,9 @@ describe('SlowestFunctionsWidget', function () {
             'count()': 2000,
             'p75()': 200000,
             'sum()': 2000000,
-            'examples()': [
-              'dddddddddddddddddddddddddddddddd',
-              'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+            'all_examples()': [
+              {profile_id: 'dddddddddddddddddddddddddddddddd'},
+              {profile_id: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'},
             ],
           },
           {
@@ -155,7 +155,7 @@ describe('SlowestFunctionsWidget', function () {
             'count()': 3500,
             'p75()': 70000,
             'sum()': 700000,
-            'examples()': ['ffffffffffffffffffffffffffffffff'],
+            'all_examples()': [{profile_id: 'ffffffffffffffffffffffffffffffff'}],
           },
         ],
       },
@@ -163,7 +163,7 @@ describe('SlowestFunctionsWidget', function () {
         MockApiClient.matchQuery({
           dataset: 'profileFunctions',
           query: 'project.id:1 fingerprint:456',
-          field: ['transaction', 'count()', 'sum()', 'examples()', 'p75()'],
+          field: ['transaction', 'count()', 'sum()', 'all_examples()', 'p75()'],
         }),
       ],
     });
