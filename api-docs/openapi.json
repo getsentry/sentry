@@ -141,7 +141,7 @@
     "/api/0/issues/{issue_id}/hashes/": {
       "$ref": "paths/events/issue-hashes.json"
     },
-    "/api/0/issues/{issue_id}/": {
+    "/api/0/issues/{organization_id_or_slug}/{issue_id}/": {
       "$ref": "paths/events/issue-details.json"
     },
     "/api/0/organizations/{organization_id_or_slug}/releases/": {
