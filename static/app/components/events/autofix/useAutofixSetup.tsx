@@ -42,10 +42,6 @@ export function useAutofixSetup(
     ...options,
   });
 
-  if (queryData.data) {
-    queryData.data.genAIConsent.ok = true;
-  }
-
   return {
     ...queryData,
     canStartAutofix: Boolean(
