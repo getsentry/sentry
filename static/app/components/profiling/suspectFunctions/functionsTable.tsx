@@ -39,8 +39,9 @@ export function FunctionsTable(props: FunctionsTableProps) {
     if (!project) {
       return [];
     }
+
     return props.functions.map(func => {
-      const examples = func['all_examples()'] as Profiling.ProfileReference[];
+      const examples = func['all_examples()'];
 
       return {
         ...func,
@@ -226,7 +227,7 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
 };
 
-function getTargetId(reference: Profiling.ProfileReference): string {
+function getTargetId(reference): string {
   if (isTransactionProfileReference(reference)) {
     return reference.profile_id;
   }

@@ -244,19 +244,29 @@ declare namespace Profiling {
     profiles: ReadonlyArray<ProfileInput>;
   };
 
-  type TransactionProfileReference = {
-    project_id?: number;
+  type BaseTransactionProfileReference = {
     profile_id: string;
   };
 
-  type ContinuousProfileReference = {
+  type BaseContinuousProfileReference = {
+    end: number;
     profiler_id: string;
     start: number;
-    end: number;
     thread_id: string;
-    project_id?: number;
-    transaction_id?: string | undefined;
-    chunk_id?: string;
+  };
+
+  type BaseProfileReference =
+    | BaseTransactionProfileReference
+    | BaseContinuousProfileReference;
+
+  type TransactionProfileReference = BaseTransactionProfileReference & {
+    project_id: number;
+  };
+
+  type ContinuousProfileReference = BaseContinuousProfileReference & {
+    project_id: number;
+    transaction_id: string | undefined;
+    chunk_id: string;
   };
 
   type ProfileReference =
