@@ -302,6 +302,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
                     query_source=query_source,
+                    fallback_to_transactions=features.has(
+                        "organizations:performance-discover-dataset-selector",
+                        organization,
+                        actor=request.user,
+                    ),
                 )
 
             return scoped_dataset.timeseries_query(
@@ -328,6 +333,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 ),
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                fallback_to_transactions=features.has(
+                    "organizations:performance-discover-dataset-selector",
+                    organization,
+                    actor=request.user,
+                ),
             )
 
         def get_event_stats_factory(scoped_dataset):
