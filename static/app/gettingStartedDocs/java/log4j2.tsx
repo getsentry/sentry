@@ -155,7 +155,7 @@ const introduction = (
     {tct(
       'The [code:sentry-log4j2] library provides [log4jLink:Log4j 2.x] support for Sentry via an [appenderLink:Appender] that sends logged exceptions to Sentry.',
       {
-        log4jLink: <ExternalLink href="https://logging.apache.org/log4j/2.x//" />,
+        log4jLink: <ExternalLink href="https://logging.apache.org/log4j/2.x/" />,
         appenderLink: (
           <ExternalLink href="https://logging.apache.org/log4j/2.x/manual/appenders.html" />
         ),
