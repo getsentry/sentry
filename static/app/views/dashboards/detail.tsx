@@ -9,6 +9,7 @@ import {
   createDashboard,
   deleteDashboard,
   updateDashboard,
+  updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
@@ -28,7 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -173,17 +174,24 @@ export function handleUpdateDashboardSplit({
 export function checkUserHasEditAccess(
   dashboard: DashboardDetails,
   currentUser: User,
+  userTeams: Team[],
   organization: Organization
 ): boolean {
   if (
     !organization.features.includes('dashboards-edit-access') ||
-    !dashboard.permissions
+    !dashboard.permissions ||
+    dashboard.permissions.isEditableByEveryone ||
+    dashboard.createdBy?.id === currentUser.id
   ) {
     return true;
   }
-  return dashboard.permissions.isCreatorOnlyEditable
-    ? dashboard.createdBy?.id === currentUser.id
-    : !dashboard.permissions.isCreatorOnlyEditable;
+  if (dashboard.permissions.teamsWithEditAccess?.length) {
+    const userTeamIds = userTeams.map(team => Number(team.id));
+    dashboard.permissions.teamsWithEditAccess.some(teamId =>
+      userTeamIds.includes(teamId)
+    );
+  }
+  return false;
 }
 
 class DashboardDetail extends Component<Props, State> {
@@ -622,7 +630,7 @@ class DashboardDetail extends Component<Props, State> {
     const dashboardCopy = cloneDashboard(dashboard);
     dashboardCopy.permissions = newDashboardPermissions;
 
-    updateDashboard(api, organization.slug, dashboardCopy).then(
+    updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
       (newDashboard: DashboardDetails) => {
         addSuccessMessage(t('Dashboard Edit Access updated.'));
         this.props.onDashboardUpdate?.(newDashboard);

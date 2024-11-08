@@ -112,7 +112,8 @@ export type WidgetPreview = {
 };
 
 export type DashboardPermissions = {
-  isCreatorOnlyEditable: boolean;
+  isEditableByEveryone: boolean;
+  teamsWithEditAccess?: number[];
 };
 
 /**

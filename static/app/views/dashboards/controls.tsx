@@ -17,6 +17,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -71,6 +72,7 @@ function Controls({
 
   const organization = useOrganization();
   const currentUser = useUser();
+  const {teams: userTeams} = useUserTeams();
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
@@ -147,7 +149,12 @@ function Controls({
 
   let hasEditAccess = true;
   if (organization.features.includes('dashboards-edit-access')) {
-    hasEditAccess = checkUserHasEditAccess(dashboard, currentUser, organization);
+    hasEditAccess = checkUserHasEditAccess(
+      dashboard,
+      currentUser,
+      userTeams,
+      organization
+    );
   }
 
   return (
