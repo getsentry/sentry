@@ -97,6 +97,13 @@ For example, `24h`, to mean query data starting from 24 hours ago to now.""",
 
 
 class EnvironmentParams:
+    ENVIRONMENT = OpenApiParameter(
+        name="environment",
+        location="path",
+        required=True,
+        type=str,
+        description="The name of the environment.",
+    )
     VISIBILITY = OpenApiParameter(
         name="visibility",
         location="query",
