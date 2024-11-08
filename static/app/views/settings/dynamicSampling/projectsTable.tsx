@@ -1,11 +1,9 @@
 import {Fragment, memo, useCallback, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {InputGroup} from 'sentry/components/inputGroup';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconSettings} from 'sentry/icons';
@@ -15,6 +13,7 @@ import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 
 interface ProjectItem {
   count: number;
@@ -32,6 +31,8 @@ interface Props extends Omit<React.ComponentProps<typeof StyledPanelTable>, 'hea
   inactiveItems?: ProjectItem[];
   onChange?: (projectId: string, value: string) => void;
 }
+
+const COLUMN_COUNT = 4;
 
 export function ProjectsTable({
   items,
@@ -58,9 +59,10 @@ export function ProjectsTable({
       headers={[
         t('Project'),
         <SortableHeader type="button" key="spans" onClick={handleTableSort}>
-          {t('Spans')}
+          {t('Sent Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
+        t('Stored Spans'),
         canEdit ? t('Target Rate') : t('Projected Rate'),
       ]}
     >
@@ -141,10 +143,11 @@ function SectionHeader({
         <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
         {title}
       </SectionHeaderCell>
-      {/* As the main element spans 3 grid colums we need to ensure that nth child css selectors of other elements
+      {/* As the main element spans COLUMN_COUNT grid colums we need to ensure that nth child css selectors of other elements
         remain functional by adding hidden elements */}
-      <div style={{display: 'none'}} />
-      <div style={{display: 'none'}} />
+      {Array.from({length: COLUMN_COUNT - 1}).map((_, i) => (
+        <div key={i} style={{display: 'none'}} />
+      ))}
     </Fragment>
   );
 }
@@ -244,6 +247,12 @@ const TableRow = memo(function TableRow({
     [onChange, project.id]
   );
 
+  const getStoredSpans = (rate: number) => {
+    return Math.floor((count * rate) / 100);
+  };
+  const storedSpans = getStoredSpans(Number(sampleRate));
+  const initialStoredSpans = getStoredSpans(Number(initialSampleRate));
+
   return (
     <Fragment key={project.slug}>
       <Cell>
@@ -276,29 +285,32 @@ const TableRow = memo(function TableRow({
         <SubSpans>{subSpansContent}</SubSpans>
       </Cell>
       <Cell>
+        <FirstCellLine data-align="right">
+          {formatAbbreviatedNumber(storedSpans)}
+        </FirstCellLine>
+        <SubSpans>
+          {sampleRate !== initialSampleRate ? (
+            <SmallPrint>
+              {t('previous: %s', formatAbbreviatedNumber(initialStoredSpans))}
+            </SmallPrint>
+          ) : null}
+        </SubSpans>
+      </Cell>
+      <Cell>
         <FirstCellLine>
           <Tooltip
             disabled={canEdit}
             title={t('To edit project sample rates, switch to manual sampling mode.')}
           >
-            <InputGroup
-              css={css`
-                width: 160px;
-              `}
-            >
-              <InputGroup.Input
-                type="number"
-                disabled={!canEdit}
-                onChange={handleChange}
-                min={0}
-                max={100}
-                size="sm"
-                value={sampleRate}
-              />
-              <InputGroup.TrailingItems>
-                <TrailingPercent>%</TrailingPercent>
-              </InputGroup.TrailingItems>
-            </InputGroup>
+            <PercentInput
+              type="number"
+              disabled={!canEdit}
+              onChange={handleChange}
+              min={0}
+              max={100}
+              size="sm"
+              value={sampleRate}
+            />
           </Tooltip>
         </FirstCellLine>
         {error ? (
@@ -312,7 +324,7 @@ const TableRow = memo(function TableRow({
 });
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content max-content;
+  grid-template-columns: 1fr repeat(${COLUMN_COUNT - 1}, max-content);
 `;
 
 const SmallPrint = styled('span')`
@@ -347,7 +359,7 @@ const Cell = styled('div')`
 
 const SectionHeaderCell = styled('div')`
   display: flex;
-  grid-column: span 3;
+  grid-column: span ${COLUMN_COUNT};
   padding: ${space(1.5)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
@@ -438,8 +450,4 @@ const SettingsButton = styled(LinkButton)`
   ${Cell}:hover & {
     visibility: visible;
   }
-`;
-
-const TrailingPercent = styled('strong')`
-  padding: 0 ${space(0.25)};
 `;
