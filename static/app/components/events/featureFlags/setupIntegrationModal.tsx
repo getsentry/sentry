@@ -16,6 +16,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 
 export type ChildrenProps<T> = {
@@ -147,6 +148,8 @@ export function SetupIntegrationModal<T extends Data>({
                   url: `https://sentry.io/api/0/organizations/${organization?.slug}/flags/hooks/provider/${provider}/token/${encodedToken}/`,
                 };
               });
+
+              trackAnalytics('flags.webhook_url_generated', {organization});
             }}
             disabled={!defined(state.provider) || defined(state.url)}
           >

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -96,6 +96,7 @@ export function EventFeatureFlagList({
   const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values.length);
 
   function handleClick() {
+    trackAnalytics('flags.setup_modal_opened', {organization});
     openModal(modalProps => <SetupIntegrationModal {...modalProps} />, {
       modalCss,
     });
@@ -164,6 +165,15 @@ export function EventFeatureFlagList({
     },
     [openDrawer, event, group, project, hydratedFlags, organization, sortBy, orderBy]
   );
+
+  useEffect(() => {
+    if (hasFlags) {
+      trackAnalytics('flags.table_rendered', {
+        organization,
+        numFlags: hydratedFlags.length,
+      });
+    }
+  }, [hasFlags, hydratedFlags.length, organization]);
 
   // TODO: for LD users, show a CTA in this section instead
   // if contexts.flags is not set, hide the section
