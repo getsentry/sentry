@@ -245,18 +245,18 @@ declare namespace Profiling {
   };
 
   type TransactionProfileReference = {
-    project_id: number;
+    project_id?: number;
     profile_id: string;
   };
 
   type ContinuousProfileReference = {
-    project_id: number;
     profiler_id: string;
-    transaction_id: string | undefined;
     start: number;
-    chunk_id: string;
     end: number;
     thread_id: string;
+    project_id?: number;
+    transaction_id?: string | undefined;
+    chunk_id?: string;
   };
 
   type ProfileReference =
