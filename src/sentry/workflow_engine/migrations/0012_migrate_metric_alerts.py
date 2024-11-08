@@ -67,7 +67,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
         # what about the date_added and date_updated fields? can I write to those to preserve history?
         # description column will be added to the Detector model, but at the time of writing it isn't there yet. will need to update this
         # same for threshold_period, will likely be added to the Detector model but isn't there yet
-        # AlertRuleActivity rows for creation will need to be backfilled into the Detector model too, needs new created_by and created_at columns
+        # AlertRuleActivity creation rows need to be backfilled into the Detector model, needs new created_by and created_at columns
 
         query_subscription = QuerySubscription.objects.get(snuba_query=rule.snuba_query_id)
         data_source = DataSource.update_or_create(
@@ -147,7 +147,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                 action=action.id,
             )
 
-        # fill out join tables
+        # fill out lookup tables
         DataSourceDetector.objects.update_or_create(
             data_source=data_source.id, detector=detector.id
         )
