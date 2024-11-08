@@ -149,6 +149,10 @@ class SetupWizardView(BaseView):
     def options(self, request, *args, **kwargs):
         return super().options(request, *args, **kwargs)
 
+    @allow_cors_options
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
 
 def serialize_org_mapping(mapping: OrganizationMapping):
     status = OrganizationStatus(mapping.status)
