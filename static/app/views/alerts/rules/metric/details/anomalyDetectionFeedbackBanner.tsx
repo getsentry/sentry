@@ -25,7 +25,7 @@ export default function AnomalyDetectionFeedbackBanner({
   selectedIncident,
 }: AnomalyDetectionFeedbackProps) {
   const [isSubmitted, submit] = useDismissable(id);
-  const openForm = useFeedbackForm();
+  const openFeedbackForm = useFeedbackForm();
 
   const handleClick = useCallback(
     (anomalyCorrectlyIdentified: boolean) => {
@@ -52,8 +52,8 @@ export default function AnomalyDetectionFeedbackBanner({
         level: 'info',
         message: 'Anomaly Detection Alerts Banner Feedback',
       });
-      if (!anomalyCorrectlyIdentified && openForm) {
-        openForm({
+      if (!anomalyCorrectlyIdentified && openFeedbackForm) {
+        openFeedbackForm({
           messagePlaceholder: t('Why was this anomaly incorrect?'),
           tags: {
             ['feedback.source']: 'anomaly_detection_false_positive',
@@ -72,7 +72,7 @@ export default function AnomalyDetectionFeedbackBanner({
       selectedIncident.alertRule.thresholdType,
       selectedIncident.alertRule.timeWindow,
       submit,
-      openForm,
+      openFeedbackForm,
     ]
   );
 
