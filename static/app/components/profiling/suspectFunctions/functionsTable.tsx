@@ -11,8 +11,12 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
+import {
+  isContinuousProfileReference,
+  isTransactionProfileReference,
+} from 'sentry/utils/profiling/guards/profile';
 import type {EventsResults, Sort} from 'sentry/utils/profiling/hooks/types';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,7 +30,7 @@ interface FunctionsTableProps {
   sort: Sort<any>;
 }
 
-function FunctionsTable(props: FunctionsTableProps) {
+export function FunctionsTable(props: FunctionsTableProps) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -35,29 +39,28 @@ function FunctionsTable(props: FunctionsTableProps) {
     if (!project) {
       return [];
     }
+
     return props.functions.map(func => {
-      const profileIds = (func['examples()'] as unknown as string[]) || [];
+      const examples = func['all_examples()'];
 
       return {
         ...func,
-        'examples()': profileIds.map(profileId => {
+        'all_examples()': examples.map(example => {
           return {
-            value: getShortEventId(profileId),
+            value: getShortEventId(getTargetId(example)),
             onClick: () =>
               trackAnalytics('profiling_views.go_to_flamegraph', {
                 organization,
                 source: `${props.analyticsPageSource}.suspect_functions_table`,
               }),
-            target: generateProfileFlamechartRouteWithQuery({
+            target: generateProfileRouteFromProfileReference({
               orgSlug: organization.slug,
               projectSlug: project.slug,
-              profileId,
-              query: {
-                // specify the frame to focus, the flamegraph will switch
-                // to the appropriate thread when these are specified
-                frameName: func.function as string,
-                framePackage: func.package as string,
-              },
+              reference: example,
+              // specify the frame to focus, the flamegraph will switch
+              // to the appropriate thread when these are specified
+              frameName: func.function as string,
+              framePackage: func.package as string,
             }),
           };
         }),
@@ -156,7 +159,7 @@ function ProfilingFunctionsTableCell({
           <PerformanceDuration nanoseconds={value} abbreviation />
         </NumberContainer>
       );
-    case 'examples()':
+    case 'all_examples()':
       return <ArrayLinks items={value} />;
     case 'function':
     case 'package':
@@ -167,13 +170,16 @@ function ProfilingFunctionsTableCell({
   }
 }
 
-type TableColumnKey =
-  | 'function'
-  | 'package'
-  | 'count()'
-  | 'p75()'
-  | 'sum()'
-  | 'examples()';
+export const functionsFields = [
+  'package',
+  'function',
+  'count()',
+  'p75()',
+  'sum()',
+  'all_examples()',
+] as const;
+
+export type TableColumnKey = (typeof functionsFields)[number];
 
 type TableDataRow = Record<TableColumnKey, any>;
 
@@ -185,7 +191,7 @@ const COLUMN_ORDER: TableColumnKey[] = [
   'count()',
   'p75()',
   'sum()',
-  'examples()',
+  'all_examples()',
 ];
 
 const COLUMNS: Record<TableColumnKey, TableColumn> = {
@@ -214,11 +220,19 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
     name: t('Occurrences'),
     width: COL_WIDTH_UNDEFINED,
   },
-  'examples()': {
-    key: 'examples()',
+  'all_examples()': {
+    key: 'all_examples()',
     name: t('Example Profiles'),
     width: COL_WIDTH_UNDEFINED,
   },
 };
 
-export {FunctionsTable};
+function getTargetId(reference): string {
+  if (isTransactionProfileReference(reference)) {
+    return reference.profile_id;
+  }
+  if (isContinuousProfileReference(reference)) {
+    return reference.profiler_id;
+  }
+  return reference;
+}

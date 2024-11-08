@@ -263,8 +263,7 @@ describe('Performance > TransactionSummary', function () {
       match: [
         (_url, options) => {
           return (
-            options.query?.field?.includes('count()') &&
-            !options.query?.field?.includes('p95()')
+            options.query?.field?.length === 1 && options.query?.field[0] === 'count()'
           );
         },
       ],
@@ -429,10 +428,6 @@ describe('Performance > TransactionSummary', function () {
       ],
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/profiling/functions/`,
-      body: {functions: []},
-    });
-    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/metrics-compatibility/`,
       body: {
@@ -451,6 +446,29 @@ describe('Performance > TransactionSummary', function () {
           metrics_unparam: 0,
         },
       },
+    });
+
+    // Events Mock slowest functions
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          fields: {
+            function: 'string',
+            package: 'string',
+            'p75()': 'duration',
+            'count()': 'integer',
+            'sum()': 'duration',
+            'all_examples()': 'string',
+          },
+        },
+        data: [],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.indexOf('all_examples()') !== -1;
+        },
+      ],
     });
 
     jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.AUTO);
