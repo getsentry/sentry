@@ -13,7 +13,7 @@ export const makeHideAiFeaturesField = (organization: Organization) => {
     label: t('Hide AI Features '),
     help: t('Hide features built with AI by default'),
     defaultValue: isDeRegion || isBaa, // With a BAA or in the EU, we show this toggle as on when it's disabled, even though the option is false. This means we should check for the value of this field to be true.
-    disabled: isDeRegion,
+    disabled: ({access}) => isDeRegion || !access.has('org:write'),
     disabledReason: isBaa
       ? t(
           'To remain HIPAA compliant, Generative AI features are disabled for BAA customers'
