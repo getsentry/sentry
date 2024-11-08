@@ -7,10 +7,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  formatAbbreviatedNumber,
-  formatAbbreviatedNumberWithDynamicPrecision,
-} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const ITEMS_TO_SHOW = 5;
@@ -68,7 +66,10 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
 
   return (
     <div {...props}>
-      <Heading>{t('Breakdown of stored spans')}</Heading>
+      <Heading>
+        {t('Breakdown of stored spans')}
+        <SubText>{t('Total: %s', formatAbbreviatedNumber(total))}</SubText>
+      </Heading>
       <Breakdown>
         {topItems.map((item, index) => {
           return (
@@ -78,14 +79,8 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
               title={
                 <LegendItem key={item.project.id}>
                   <ProjectBadge disableLink avatarSize={16} project={item.project} />
-                  {`${formatAbbreviatedNumberWithDynamicPrecision(getSpanPercent(item.sampledSpans))}%`}
-                  <SubText>
-                    {t(
-                      '%s of %s sampled spans',
-                      formatAbbreviatedNumber(item.sampledSpans),
-                      formatAbbreviatedNumber(total)
-                    )}
-                  </SubText>
+                  {`${formatNumberWithDynamicDecimalPoints(getSpanPercent(item.sampledSpans))}%`}
+                  <SubText>{formatAbbreviatedNumber(item.sampledSpans)}</SubText>
                 </LegendItem>
               }
               skipWrapper
@@ -105,10 +100,8 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
             title={
               <LegendItem>
                 <OthersBadge />
-                {`${formatAbbreviatedNumberWithDynamicPrecision(otherPercent)}%`}
-                <SubText>
-                  {`${formatAbbreviatedNumber(otherSpanCount)} of ${formatAbbreviatedNumber(total)}`}
-                </SubText>
+                {`${formatNumberWithDynamicDecimalPoints(otherPercent)}%`}
+                <SubText>{formatAbbreviatedNumber(total)}</SubText>
               </LegendItem>
             }
             skipWrapper
@@ -127,14 +120,14 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
           return (
             <LegendItem key={item.project.id}>
               <ProjectBadge avatarSize={16} project={item.project} />
-              {`${formatAbbreviatedNumberWithDynamicPrecision(getSpanPercent(item.sampledSpans))}%`}
+              {`${formatNumberWithDynamicDecimalPoints(getSpanPercent(item.sampledSpans))}%`}
             </LegendItem>
           );
         })}
         {hasOthers && (
           <LegendItem>
             <OthersBadge />
-            {`${formatAbbreviatedNumberWithDynamicPrecision(otherPercent)}%`}
+            {`${formatNumberWithDynamicDecimalPoints(otherPercent)}%`}
           </LegendItem>
         )}
       </Legend>
@@ -145,6 +138,8 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
 const Heading = styled('h6')`
   margin-bottom: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
+  display: flex;
+  justify-content: space-between;
 `;
 
 const Breakdown = styled('div')`
