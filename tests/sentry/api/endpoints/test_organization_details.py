@@ -771,6 +771,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:target_sample_rate") == 0.1
         assert options.get("sentry:sampling_mode") == "organization"
         assert options.get("sentry:rollback_enabled") is True
+        assert options.get("sentry:hide_ai_features") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
