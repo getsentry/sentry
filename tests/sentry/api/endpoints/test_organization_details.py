@@ -173,8 +173,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         # make sure options are not cached the first time to get predictable number of database queries
         with assume_test_silo_mode_of(ControlOption):
             sentry_options.delete("system.rate-limit")
-            sentry_options.delete("store.symbolicate-event-lpq-always")
-            sentry_options.delete("store.symbolicate-event-lpq-never")
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
         # TODO(hybrid-cloud): put this back in
