@@ -281,6 +281,16 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       )}
+      {defined(eventEntries[EntryType.DEBUGMETA]) && (
+        <EntryErrorBoundary type={EntryType.DEBUGMETA}>
+          <DebugMeta
+            event={event}
+            projectSlug={projectSlug}
+            groupId={group?.id}
+            data={eventEntries[EntryType.DEBUGMETA].data}
+          />
+        </EntryErrorBoundary>
+      )}
       {hasStreamlinedUI && (
         <ScreenshotDataSection event={event} projectSlug={project.slug} />
       )}
@@ -408,16 +418,6 @@ export function EventDetailsContent({
           project={project}
           group={group}
         />
-      )}
-      {defined(eventEntries[EntryType.DEBUGMETA]) && (
-        <EntryErrorBoundary type={EntryType.DEBUGMETA}>
-          <DebugMeta
-            event={event}
-            projectSlug={projectSlug}
-            groupId={group?.id}
-            data={eventEntries[EntryType.DEBUGMETA].data}
-          />
-        </EntryErrorBoundary>
       )}
       {defined(eventEntries[EntryType.REQUEST]) && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
