@@ -14,7 +14,6 @@ from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.features.rollout import in_random_rollout
 from sentry.hybridcloud.rpc.caching import region_caching_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -229,23 +228,11 @@ def _process_resource_change(
         )
         assert org, "organization must exist to get related sentry app installations"
 
-        installations: list[RpcSentryAppInstallation]
-        if in_random_rollout("app_service.installations_for_org.cached"):
-            installations = [
-                installation
-                for installation in app_service.installations_for_organization(
-                    organization_id=org.id
-                )
-                if event in installation.sentry_app.events
-            ]
-        else:
-            installations = [
-                installation
-                for installation in app_service.get_installed_for_organization(
-                    organization_id=org.id
-                )
-                if event in installation.sentry_app.events
-            ]
+        installations = [
+            installation
+            for installation in app_service.installations_for_organization(organization_id=org.id)
+            if event in installation.sentry_app.events
+        ]
 
         for installation in installations:
             data = {}

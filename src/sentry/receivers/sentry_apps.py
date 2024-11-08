@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry import features
-from sentry.features.rollout import in_random_rollout
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -153,10 +152,7 @@ def send_workflow_webhooks(
 def installations_to_notify(
     organization: Organization, resource_type: str
 ) -> list[RpcSentryAppInstallation]:
-    if in_random_rollout("app_service.installations_for_org.cached"):
-        installations = app_service.installations_for_organization(organization_id=organization.id)
-    else:
-        installations = app_service.get_installed_for_organization(organization_id=organization.id)
+    installations = app_service.installations_for_organization(organization_id=organization.id)
     # All issue webhooks are under one subscription, so if an intallation is subscribed to any issue
     # events it should get notified for all the issue events
     # TODO: Refactor sentry_app model so it doesn't store event, instead it stores subscription

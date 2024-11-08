@@ -101,7 +101,7 @@ class DatabaseBackedAppService(AppService):
         self, *, organization_id: int
     ) -> list[RpcSentryAppInstallation]:
         # Deprecated. Use get_installations_for_organization instead.
-        return self.get_installed_for_organization(organization_id=organization_id)
+        return self.get_installations_for_organization(organization_id=organization_id)
 
     def get_installations_for_organization(
         self, *, organization_id: int
