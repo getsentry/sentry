@@ -14,9 +14,9 @@ type TimeSeriesItem = {
 };
 
 export type TimeseriesData = {
-  color: string;
   data: TimeSeriesItem[];
   field: string;
+  color?: string;
 };
 
 export type ErrorProp = Error | string;
