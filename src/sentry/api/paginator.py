@@ -582,13 +582,13 @@ class CombinedQuerysetPaginator:
 
     multiplier = 1000000  # Use microseconds for date keys.
     using_dates = False
-    model_key_map = {}
 
     def __init__(self, intermediaries, desc=False, on_results=None, case_insensitive=False):
         self.desc = desc
         self.intermediaries = intermediaries
         self.on_results = on_results
         self.case_insensitive = case_insensitive
+        self.model_key_map = {}
         for intermediary in list(self.intermediaries):
             if intermediary.is_empty:
                 self.intermediaries.remove(intermediary)
