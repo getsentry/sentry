@@ -167,7 +167,7 @@ export function SetupIntegrationModal<T extends Data>({
           </TextCopyInput>
           <InfoContainer>
             {t(
-              'The final step is to create a Webhook integration within your Feature flag service by utilizing the Webhook URL provided in the field above.'
+              'The final step is to create a Webhook integration within your feature flag service by utilizing the Webhook URL provided in the field above.'
             )}
             <Alert showIcon type="warning" icon={<IconWarning />}>
               {t('You won’t be able to access this URL once this modal is closed.')}
