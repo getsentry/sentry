@@ -119,17 +119,13 @@ function toTimeSeriesSelection(
   return {
     ...timeSeries,
     data: timeSeries.data.filter(datum => {
-      if (start) {
-        if (moment(datum.timestamp).isBefore(moment.utc(start))) {
+        if (start && moment(datum.timestamp).isBefore(moment.utc(start))) {
           return false;
         }
-      }
 
-      if (end) {
-        if (moment(datum.timestamp).isAfter(moment.utc(end))) {
+        if (end && moment(datum.timestamp).isAfter(moment.utc(end))) {
           return false;
         }
-      }
 
       return true;
     }),
