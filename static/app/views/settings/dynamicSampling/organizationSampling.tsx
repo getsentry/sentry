@@ -7,22 +7,22 @@ import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationSampleRateField} from 'sentry/views/settings/dynamicSampling/organizationSampleRateField';
+import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {
   type ProjectionSamplePeriod,
   useProjectSampleCounts,
 } from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
-import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
 const {useFormState, FormProvider} = organizationSamplingForm;
 const UNSAVED_CHANGES_MESSAGE = t(
@@ -31,7 +31,7 @@ const UNSAVED_CHANGES_MESSAGE = t(
 
 export function OrganizationSampling() {
   const organization = useOrganization();
-  const {hasAccess} = useAccess({access: ['org:write']});
+  const hasAccess = useHasDynamicSamplingWriteAccess();
   const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
 
   const formState = useFormState({
@@ -104,16 +104,7 @@ export function OrganizationSampling() {
 
         <HeadingRow>
           <h4>{t('Project Preview')}</h4>
-          <Tooltip
-            title={t(
-              'The time period for which the projected sample rates are calculated.'
-            )}
-          >
-            <SegmentedControl value={period} onChange={setPeriod} size="xs">
-              <SegmentedControl.Item key="24h">{t('24h')}</SegmentedControl.Item>
-              <SegmentedControl.Item key="30d">{t('30d')}</SegmentedControl.Item>
-            </SegmentedControl>
-          </Tooltip>
+          <ProjectionPeriodControl period={period} onChange={setPeriod} />
         </HeadingRow>
         <p>
           {tct(

@@ -19,12 +19,9 @@ import type {TraceKnownData} from './types';
 import {TraceKnownDataType} from './types';
 
 export const traceKnownDataValues = [
-  TraceKnownDataType.STATUS,
-  TraceKnownDataType.TRACE_ID,
-  TraceKnownDataType.SPAN_ID,
-  TraceKnownDataType.PARENT_SPAN_ID,
-  TraceKnownDataType.TRANSACTION_NAME,
-  TraceKnownDataType.OP_NAME,
+  ...Object.values(TraceKnownDataType),
+  // Manually added key to link to transactions
+  'transaction_name',
 ];
 
 const traceIgnoredDataValues = [];

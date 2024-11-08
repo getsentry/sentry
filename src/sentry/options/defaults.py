@@ -1034,19 +1034,6 @@ register(
     "store.save-event-highcpu-platforms", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
-    "store.symbolicate-event-lpq-never", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "store.symbolicate-event-lpq-always", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# Rate at which to send eligible projects to LPQ symbolicators. This is
-# intended to test gradually phasing out the LPQ.
-register(
-    "store.symbolicate-event-lpq-rate", type=Float, default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-register(
     "post_process.get-autoassign-owners", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
@@ -2853,5 +2840,12 @@ register(
     "profiling.emit_outcomes_in_profiling_consumer.enabled",
     default=False,
     type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option for sample size when fetching project tag keys
+register(
+    "visibility.tag-key-sample-size",
+    default=1_000_000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
