@@ -46,6 +46,8 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, SpanTestCase):
     viewname = "sentry-api-0-organization-events"
@@ -5910,6 +5912,43 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["issue"] == "unknown"
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_metrics_enhanced_defaults_to_transactions_with_feature_flag(self):
+        # Store an error
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "poof",
+                "timestamp": self.ten_mins_ago_iso,
+                "user": {"email": self.user.email},
+                "tags": {"notMetrics": "this makes it not metrics"},
+            },
+            project_id=self.project.id,
+        )
+
+        # Store a transaction
+        self.store_event(
+            {**self.transaction_data, "tags": {"notMetrics": "this makes it not metrics"}},
+            project_id=self.project.id,
+        )
+        features = {
+            "organizations:performance-discover-dataset-selector": True,
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+        }
+        query = {
+            "field": ["count()"],
+            "query": 'notMetrics:"this makes it not metrics"',
+            "statsPeriod": "14d",
+            "dataset": "metricsEnhanced",
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+
+        # count() is 1 because it falls back to transactions
         assert response.data["data"][0]["count()"] == 1
 
 

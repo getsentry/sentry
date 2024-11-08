@@ -456,6 +456,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                fallback_to_transactions=features.has(
+                    "organizations:performance-discover-dataset-selector",
+                    organization,
+                    actor=request.user,
+                ),
             )
 
         @sentry_sdk.tracing.trace

@@ -104,6 +104,7 @@ def timeseries_query(
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ):
 
     with sentry_sdk.start_span(op="errors", name="timeseries.filter_transform"):
@@ -214,6 +215,7 @@ def top_events_timeseries(
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
