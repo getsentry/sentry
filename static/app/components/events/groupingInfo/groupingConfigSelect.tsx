@@ -6,11 +6,9 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingError from 'sentry/components/loadingError';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {EventGroupingConfig} from 'sentry/types';
+import type {EventGroupingConfig} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {GroupingConfigItem} from '.';
 
 type GroupingConfigSelectProps = {
   configId: string;
@@ -26,7 +24,7 @@ export function GroupingConfigSelect({
   const organization = useOrganization();
   const {
     data: configs,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<EventGroupingConfig[]>(
     [`/organizations/${organization.slug}/grouping-configs/`],
@@ -51,7 +49,7 @@ export function GroupingConfigSelect({
   }
 
   return (
-    <DropdownAutoComplete busy={isLoading} onSelect={onSelect} items={options}>
+    <DropdownAutoComplete busy={isPending} onSelect={onSelect} items={options}>
       {({isOpen}) => (
         <Tooltip title={t('Click here to experiment with other grouping configs')}>
           <StyledDropdownButton isOpen={isOpen} size="sm">
@@ -67,6 +65,16 @@ export function GroupingConfigSelect({
 
 const StyledDropdownButton = styled(DropdownButton)`
   font-weight: inherit;
+`;
+
+const GroupingConfigItem = styled('span')<{
+  isActive?: boolean;
+  isHidden?: boolean;
+}>`
+  font-family: ${p => p.theme.text.familyMono};
+  opacity: ${p => (p.isHidden ? 0.5 : null)};
+  font-weight: ${p => (p.isActive ? 'bold' : null)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 export default GroupingConfigSelect;

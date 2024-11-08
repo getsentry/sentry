@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import dataclasses
 import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from enum import Enum, auto
 from hashlib import md5
 from math import floor
 from typing import Any, TypedDict, cast
@@ -15,12 +17,16 @@ import sentry_sdk
 from django.db.models import Q
 from django.utils import timezone
 from snuba_sdk import (
+    BooleanCondition,
+    BooleanOp,
     Column,
     Condition,
     Direction,
     Entity,
     Function,
+    Identifier,
     Join,
+    Lambda,
     Limit,
     Op,
     OrderBy,
@@ -32,10 +38,11 @@ from snuba_sdk.relationships import Relationship
 
 from sentry import features, options
 from sentry.api.event_search import SearchFilter
-from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
+from sentry.api.paginator import MAX_SNUBA_ELEMENTS, DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.issues import grouptype
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
 from sentry.issues.search import (
     SEARCH_FILTER_UPDATERS,
@@ -45,17 +52,25 @@ from sentry.issues.search import (
     UnsupportedSearchQuery,
     get_search_strategies,
     group_categories_from,
+    group_types_from,
 )
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.team import Team
+from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
-from sentry.search.utils import SupportedConditions, validate_cdc_search_filters
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
+
+FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
 
 class TrendsSortWeights(TypedDict):
@@ -77,6 +92,37 @@ DEFAULT_TRENDS_WEIGHTS: TrendsSortWeights = {
     "v2": True,
     "norm": False,
 }
+
+
+class Clauses(Enum):
+    HAVING = auto()
+    WHERE = auto()
+
+
+# we cannot use snuba for these fields because they require a join with tables that don't exist there
+# if we ever see these fields, we will use postgres to get the group_ids before sending back to ClickHouse
+# note that we could eventually migrate the releases table to ClickHouse and handle those with a join in ClickHouse
+POSTGRES_ONLY_SEARCH_FIELDS = [
+    "bookmarked_by",
+    "linked",
+    "subscribed_by",
+    "regressed_in_release",
+    "for_review",
+]
+
+
+ENTITY_EVENTS = "events"
+ENTITY_GROUP_ATTRIBUTES = "group_attributes"
+ENTITY_SEARCH_ISSUES = "search_issues"
+
+
+def map_field_name_from_format_search_filter(field: str) -> str:
+    """
+    Maps the field name we get from the format_search_filter to the field used in Suba
+    """
+    if field == "date":
+        return "timestamp"
+    return field
 
 
 @dataclass
@@ -124,6 +170,22 @@ def get_search_filter(
             val = search_filter.value.raw_value
             found_val = comparator(val, found_val) if found_val else val
     return found_val
+
+
+def group_categories_from_search_filters(
+    search_filters: Sequence[SearchFilter], organization: Organization, actor: User | RpcUser
+) -> set[int]:
+    group_categories = group_categories_from(search_filters)
+
+    if not group_categories:
+        group_categories = set(get_search_strategies().keys())
+        # if we're not searching for feedbacks, then hide them by default
+        group_categories.discard(GroupCategory.FEEDBACK.value)
+
+    if not features.has("organizations:performance-issues-search", organization):
+        group_categories.discard(GroupCategory.PERFORMANCE.value)
+
+    return group_categories
 
 
 class AbstractQueryExecutor(metaclass=ABCMeta):
@@ -192,6 +254,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         referrer: str | None = None,
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
+        use_group_snuba_dataset: bool = False,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -416,20 +479,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        group_categories = group_categories_from(search_filters)
-
-        if not group_categories:
-            group_categories = {
-                gc
-                for gc in get_search_strategies().keys()
-                if gc != GroupCategory.PROFILE.value
-                or features.has("organizations:issue-platform", organization, actor=actor)
-            }
-            # if we're not searching for feedbacks, then hide them by default
-            group_categories.discard(GroupCategory.FEEDBACK.value)
-
-        if not features.has("organizations:performance-issues-search", organization):
-            group_categories.discard(GroupCategory.PERFORMANCE.value)
+        group_categories = group_categories_from_search_filters(search_filters, organization, actor)
 
         query_params_for_categories = {}
 
@@ -454,6 +504,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 )
             except UnsupportedSearchQuery:
                 pass
+
         query_params_for_categories = {
             gc: query_params
             for gc, query_params in query_params_for_categories.items()
@@ -976,7 +1027,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # * we started with Postgres candidates and so only do one Snuba query max
             # * the paginator is returning enough results to satisfy the query (>= the limit)
             # * there are no more groups in Snuba to post-filter
-            # TODO do we actually have to rebuild this SequencePaginator every time
+            # TODO: do we actually have to rebuild this SequencePaginator every time
             # or can we just make it after we've broken out of the loop?
             paginator_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups], reverse=True, **paginator_options
@@ -1112,300 +1163,511 @@ class InvalidQueryForExecutor(Exception):
     pass
 
 
-class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
+    logger = logging.getLogger("sentry.search.groupattributessnuba")
+
+    def get_times_seen_filter(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        return Condition(
+            Function("count", []),
+            Op(search_filter.operator),
+            search_filter.value.raw_value,
+        )
+
+    def get_last_seen_filter(self, search_filter: SearchFilter, joined_entity: Entity) -> Condition:
+        # get the max timestamp of the error/search_issue event
+        return Condition(
+            Function("max", [Column("timestamp", joined_entity)]),
+            Op(search_filter.operator),
+            search_filter.value.raw_value,
+        )
+
+    def get_basic_group_snuba_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        """
+        Returns the basic lookup for a search filter.
+        """
+        return Condition(
+            Column(f"group_{search_filter.key.name}", self.entities["attrs"]),
+            Op(search_filter.operator),
+            search_filter.value.raw_value,
+        )
+
+    def get_basic_event_snuba_condition(
+        self,
+        search_filter: SearchFilter,
+        joined_entity: Entity,
+        snuba_params: SnubaParams,
+    ) -> Condition:
+        """
+        Returns the basic lookup for a search filter.
+        """
+        dataset = Dataset.Events if joined_entity.name == ENTITY_EVENTS else Dataset.IssuePlatform
+        query_builder = UnresolvedQuery(
+            dataset=dataset, entity=joined_entity, snuba_params=snuba_params, params={}
+        )
+        query_builder.start = snuba_params.start
+        query_builder.end = snuba_params.end
+        return query_builder.convert_search_filter_to_condition(search_filter)
+
+    def get_assigned(
+        self, search_filter: SearchFilter, joined_entity: Entity, check_none=True
+    ) -> Condition:
+        """
+        Returns the assigned lookup for a search filter.
+        """
+        attr_entity = self.entities["attrs"]
+        user_ids = [user.id for user in search_filter.value.raw_value if isinstance(user, RpcUser)]
+        team_ids = [team.id for team in search_filter.value.raw_value if isinstance(team, Team)]
+        operator = Op.NOT_IN if search_filter.is_negation else Op.IN
+        # only used when we check for none
+        null_check_operator = Op.IS_NULL if search_filter.is_negation else Op.IS_NOT_NULL
+        check_for_none = check_none and None in search_filter.value.raw_value
+
+        conditions = []
+        if user_ids:
+            assigned_to_user = Condition(
+                Column("assignee_user_id", attr_entity), operator, user_ids
+            )
+            if search_filter.is_negation:
+                # need to explicitly allow for null values
+                assigned_to_user = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        assigned_to_user,
+                        Condition(Column("assignee_user_id", attr_entity), null_check_operator),
+                    ],
+                )
+            conditions.append(assigned_to_user)
+
+        if team_ids:
+            assigned_to_team = Condition(
+                Column("assignee_team_id", attr_entity), operator, team_ids
+            )
+            # need to explicitly allow for null values
+            if search_filter.is_negation:
+                assigned_to_team = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        assigned_to_team,
+                        Condition(Column("assignee_team_id", attr_entity), null_check_operator),
+                    ],
+                )
+
+            conditions.append(assigned_to_team)
+
+        # asking for unassigned issues
+        if check_for_none:
+            conditions.append(self.get_unassigned(search_filter.is_negation))
+
+        # if one condition, we just use that
+        if len(conditions) == 1:
+            return conditions[0]
+
+        operator = BooleanOp.AND if search_filter.is_negation else BooleanOp.OR
+        return BooleanCondition(op=operator, conditions=conditions)
+
+    def get_unassigned(self, in_negation: bool = False) -> Condition:
+        """
+        Returns the unassigned lookup for a search filter.
+        """
+        attr_entity = self.entities["attrs"]
+        inner_operator = Op.IS_NOT_NULL if in_negation else Op.IS_NULL
+        return BooleanCondition(
+            op=BooleanOp.OR if in_negation else BooleanOp.AND,
+            conditions=[
+                Condition(Column("assignee_user_id", attr_entity), inner_operator),
+                Condition(Column("assignee_team_id", attr_entity), inner_operator),
+            ],
+        )
+
+    def get_unassigned_condition(
+        self,
+        search_filter: SearchFilter,
+        attr_entity: Entity,
+    ) -> Condition:
+        is_assigned = search_filter.value.raw_value is False
+        is_negation = search_filter.is_negation
+
+        check_assigned = (is_assigned and not is_negation) or (not is_assigned and is_negation)
+        if check_assigned:
+            return BooleanCondition(
+                op=BooleanOp.OR,
+                conditions=[
+                    Condition(Column("assignee_user_id", attr_entity), Op.IS_NOT_NULL),
+                    Condition(Column("assignee_team_id", attr_entity), Op.IS_NOT_NULL),
+                ],
+            )
+        return BooleanCondition(
+            op=BooleanOp.AND,
+            conditions=[
+                Condition(Column("assignee_user_id", attr_entity), Op.IS_NULL),
+                Condition(Column("assignee_team_id", attr_entity), Op.IS_NULL),
+            ],
+        )
+
+    def get_suggested(self, search_filter: SearchFilter) -> Condition:
+        """
+        Returns the suggested lookup for a search filter.
+        """
+        attr_entity = self.entities["attrs"]
+        users = filter(lambda x: isinstance(x, RpcUser), search_filter.value.raw_value)
+        user_ids = [user.id for user in users]
+        teams = filter(lambda x: isinstance(x, Team), search_filter.value.raw_value)
+        team_ids = [team.id for team in teams]
+
+        operator = Op.NOT_IN if search_filter.is_negation else Op.IN
+        null_check_operator = Op.IS_NULL if search_filter.is_negation else Op.IS_NOT_NULL
+
+        conditions = []
+        if user_ids:
+            suspect_commit_user = Condition(
+                Column("owner_suspect_commit_user_id", attr_entity), operator, user_ids
+            )
+            ownership_rule_user = Condition(
+                Column("owner_ownership_rule_user_id", attr_entity), operator, user_ids
+            )
+            codeowner_user = Condition(
+                Column("owner_codeowners_user_id", attr_entity), operator, user_ids
+            )
+
+            # need to explicitly allow for null values if we are negating
+            if search_filter.is_negation:
+                suspect_commit_user = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        suspect_commit_user,
+                        Condition(
+                            Column("owner_suspect_commit_user_id", attr_entity), null_check_operator
+                        ),
+                    ],
+                )
+                ownership_rule_user = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        ownership_rule_user,
+                        Condition(
+                            Column("owner_ownership_rule_user_id", attr_entity), null_check_operator
+                        ),
+                    ],
+                )
+                codeowner_user = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        codeowner_user,
+                        Condition(
+                            Column("owner_codeowners_user_id", attr_entity), null_check_operator
+                        ),
+                    ],
+                )
+            conditions = conditions + [suspect_commit_user, ownership_rule_user, codeowner_user]
+
+        if team_ids:
+            ownership_rule_team = Condition(
+                Column("owner_ownership_rule_team_id", attr_entity), operator, team_ids
+            )
+            codowner_team = Condition(
+                Column("owner_codeowners_team_id", attr_entity), operator, team_ids
+            )
+            # need to explicitly allow for null values if we are negating
+            if search_filter.is_negation:
+                ownership_rule_team = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        ownership_rule_team,
+                        Condition(
+                            Column("owner_ownership_rule_team_id", attr_entity),
+                            null_check_operator,
+                            None,
+                        ),
+                    ],
+                )
+                codowner_team = BooleanCondition(
+                    op=BooleanOp.OR,
+                    conditions=[
+                        codowner_team,
+                        Condition(
+                            Column("owner_codeowners_team_id", attr_entity),
+                            null_check_operator,
+                            None,
+                        ),
+                    ],
+                )
+            conditions = conditions + [ownership_rule_team, codowner_team]
+
+        return BooleanCondition(
+            op=BooleanOp.AND if search_filter.is_negation else BooleanOp.OR,
+            conditions=conditions,
+        )
+
+    def get_unsuggested(self, in_negation: bool = False) -> Condition:
+        attr_entity = self.entities["attrs"]
+        inner_operator = Op.IS_NOT_NULL if in_negation else Op.IS_NULL
+        # neither assigned to team or user
+        suspect_commit_user = Condition(
+            Column("owner_suspect_commit_user_id", attr_entity), inner_operator
+        )
+        ownership_rule_user = Condition(
+            Column("owner_ownership_rule_user_id", attr_entity), inner_operator
+        )
+        ownership_rule_team = Condition(
+            Column("owner_ownership_rule_team_id", attr_entity), inner_operator
+        )
+        codeowner_user = Condition(Column("owner_codeowners_user_id", attr_entity), inner_operator)
+        codowner_team = Condition(Column("owner_codeowners_team_id", attr_entity), inner_operator)
+        return BooleanCondition(
+            op=BooleanOp.OR if in_negation else BooleanOp.AND,
+            conditions=[
+                suspect_commit_user,
+                ownership_rule_user,
+                ownership_rule_team,
+                codeowner_user,
+                codowner_team,
+            ],
+        )
+
+    def get_assigned_or_suggested(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        # we or the conditions when they are not none
+        top_level_conditions = []
+
+        # if we are looking for things other than just none
+        if search_filter.value.raw_value != [None]:
+            condition_assigned_not_none = self.get_assigned(
+                search_filter, joined_entity, check_none=False
+            )
+            condition_suggested_not_none = self.get_suggested(search_filter)
+
+            condition_assigned_or_suggested_not_none = BooleanCondition(
+                op=BooleanOp.AND if search_filter.is_negation else BooleanOp.OR,
+                conditions=[condition_assigned_not_none, condition_suggested_not_none],
+            )
+            top_level_conditions.append(condition_assigned_or_suggested_not_none)
+
+        if None in search_filter.value.raw_value:
+            # for the none case, we need to make sure its not assigned OR suggested
+            condition_assigned_none = self.get_unassigned(search_filter.is_negation)
+            condition_suggested_none = self.get_unsuggested(search_filter.is_negation)
+            condition_assigned_or_suggested_none = BooleanCondition(
+                op=BooleanOp.OR if search_filter.is_negation else BooleanOp.AND,
+                conditions=[condition_assigned_none, condition_suggested_none],
+            )
+            top_level_conditions.append(condition_assigned_or_suggested_none)
+
+        # if one condition, we just use that
+        if len(top_level_conditions) == 1:
+            return top_level_conditions[0]
+
+        return BooleanCondition(
+            op=BooleanOp.AND if search_filter.is_negation else BooleanOp.OR,
+            conditions=top_level_conditions,
+        )
+
     sort_strategies = {
-        "date": "last_seen",
+        "new": "first_seen_score",
+        "date": "last_seen_score",
         "freq": "times_seen",
-        "new": "first_seen",
-        "trends": "trends",
         "user": "user_count",
     }
 
-    entities = {
-        "event": Entity("events", alias="e"),
-        "group": Entity("groupedmessage", alias="g"),
-    }
-    times_seen_aggregation = Function(
-        "ifNull", [Function("count", [Column("group_id", entities["event"])]), 0]
-    )
-    first_seen_aggregation = Function(
-        "ifNull",
-        [
-            Function(
-                "multiply",
-                [
-                    Function(
-                        "toUInt64", [Function("min", [Column("timestamp", entities["event"])])]
-                    ),
-                    1000,
-                ],
-            ),
-            0,
-        ],
-    )
-    last_seen_aggregation = Function(
-        "ifNull",
-        [
-            Function(
-                "multiply",
-                [
-                    Function(
-                        "toUInt64", [Function("max", [Column("timestamp", entities["event"])])]
-                    ),
-                    1000,
-                ],
-            ),
-            0,
-        ],
-    )
-
-    aggregation_defs = {
-        "times_seen": times_seen_aggregation,
-        "first_seen": first_seen_aggregation,
-        "last_seen": last_seen_aggregation,
-        # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-        "trends": Function(
-            "toUInt64",
+    def get_last_seen_aggregation(self, joined_entity: Entity) -> Function:
+        return Function(
+            "ifNull",
             [
                 Function(
-                    "plus",
+                    "multiply",
                     [
                         Function(
-                            "multiply",
+                            "toUInt64",
+                            [Function("max", [Column("timestamp", joined_entity)])],
+                        ),
+                        1000,
+                    ],
+                ),
+                0,
+            ],
+            alias=self.sort_strategies["date"],
+        )
+
+    def get_first_seen_aggregation(self) -> Function:
+        return Function(
+            "ifNull",
+            [
+                Function(
+                    "multiply",
+                    [
+                        Function(
+                            "toUInt64",
+                            [Function("max", [Column("group_first_seen", self.entities["attrs"])])],
+                        ),
+                        1000,
+                    ],
+                ),
+                0,
+            ],
+            alias=self.sort_strategies["new"],
+        )
+
+    def get_handled_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        """
+        Returns the handled and unhandled lookup for a search filter.
+        Does not use the functions that Snuba has, instead replicates that logic
+        and queries the exception_stacks.mechanism_handled colunn directly
+        """
+        if search_filter.key.name == "error.handled":
+            check_handled = search_filter.value.raw_value == 1
+        elif search_filter.key.name == "error.unhandled":
+            check_handled = search_filter.value.raw_value == 0
+
+        if check_handled:
+            outer_function_operator = "arrayAll"
+            inner_function_operator = "or"
+            is_null_check = "isNull"
+            inner_equality_check = "notEquals"
+        else:
+            outer_function_operator = "arrayExists"
+            inner_function_operator = "and"
+            is_null_check = "isNotNull"
+            inner_equality_check = "equals"
+
+        return Condition(
+            Function(
+                outer_function_operator,
+                [
+                    Lambda(
+                        ["x"],
+                        Function(
+                            inner_function_operator,
                             [
+                                Function(is_null_check, [Identifier("x")]),
                                 Function(
-                                    "log",
-                                    [times_seen_aggregation],
+                                    inner_equality_check,
+                                    [Function("assumeNotNull", [Identifier("x")]), 0],
                                 ),
-                                600,
                             ],
                         ),
-                        last_seen_aggregation,
-                    ],
-                )
-            ],
-        ),
-        "user_count": Function(
-            "ifNull", [Function("uniq", [Column("tags[sentry:user]", entities["event"])]), 0]
-        ),
-    }
-
-    def calculate_start_end(
-        self,
-        retention_window_start: datetime | None,
-        search_filters: Sequence[SearchFilter] | None,
-        date_from: datetime | None,
-        date_to: datetime | None,
-    ) -> tuple[datetime, datetime, datetime]:
-        now = timezone.now()
-        end = None
-        end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
-        if end_params:
-            end = min(end_params)
-
-        if not end:
-            end = now + ALLOWED_FUTURE_DELTA
-
-        retention_date = max(_f for _f in [retention_window_start, now - timedelta(days=90)] if _f)
-        start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
-        start = max(_f for _f in start_params if _f)
-        end = max([retention_date, end])
-        return start, end, retention_date
-
-    def query(
-        self,
-        projects: Sequence[Project],
-        retention_window_start: datetime | None,
-        group_queryset: BaseQuerySet,
-        environments: Sequence[Environment] | None,
-        sort_by: str,
-        limit: int,
-        cursor: Cursor | None,
-        count_hits: bool,
-        paginator_options: Mapping[str, Any] | None,
-        search_filters: Sequence[SearchFilter] | None,
-        date_from: datetime | None,
-        date_to: datetime | None,
-        max_hits: int | None = None,
-        referrer: str | None = None,
-        actor: Any | None = None,
-        aggregate_kwargs: TrendsSortWeights | None = None,
-    ) -> CursorResult[Group]:
-        if not validate_cdc_search_filters(search_filters):
-            raise InvalidQueryForExecutor("Search filters invalid for this query executor")
-
-        start, end, retention_date = self.calculate_start_end(
-            retention_window_start, search_filters, date_from, date_to
-        )
-
-        if start == retention_date and end == retention_date:
-            # Both `start` and `end` must have been trimmed to `retention_date`,
-            # so this entire search was against a time range that is outside of
-            # retention. We'll return empty results to maintain backwards compatibility
-            # with Django search (for now).
-            return self.empty_result
-
-        if start >= end:
-            # TODO: This maintains backwards compatibility with Django search, but
-            # in the future we should find a way to notify the user that their search
-            # is invalid.
-            return self.empty_result
-
-        e_event = self.entities["event"]
-        e_group = self.entities["group"]
-
-        where_conditions = [
-            Condition(Column("project_id", e_event), Op.IN, [p.id for p in projects]),
-            Condition(Column("timestamp", e_event), Op.GTE, start),
-            Condition(Column("timestamp", e_event), Op.LT, end),
-        ]
-        # TODO: This is still basically only handling status, handle this better once we introduce
-        # more conditions.
-        for search_filter in search_filters or ():
-            where_conditions.append(
-                Condition(
-                    Column(search_filter.key.name, e_group), Op.IN, search_filter.value.raw_value
-                )
-            )
-
-        if environments:
-            # TODO: Should this be handled via filter_keys, once we have a snql compatible version?
-            where_conditions.append(
-                Condition(Column("environment", e_event), Op.IN, [e.name for e in environments])
-            )
-
-        sort_func = self.aggregation_defs[self.sort_strategies[sort_by]]
-
-        having = []
-        if cursor is not None:
-            op = Op.GTE if cursor.is_prev else Op.LTE
-            having.append(Condition(sort_func, op, cursor.value))
-
-        tenant_ids = {"organization_id": projects[0].organization_id} if projects else None
-
-        query = Query(
-            match=Join([Relationship(e_event, "grouped", e_group)]),
-            select=[
-                Column("id", e_group),
-                replace(sort_func, alias="score"),
-            ],
-            where=where_conditions,
-            groupby=[Column("id", e_group)],
-            having=having,
-            orderby=[OrderBy(sort_func, direction=Direction.DESC)],
-            limit=Limit(limit + 1),
-        )
-        request = Request(
-            dataset="events",
-            app_id="cdc",
-            query=query,
-            tenant_ids=tenant_ids,
-        )
-        data = snuba.raw_snql_query(request, referrer="search.snuba.cdc_search.query")["data"]
-
-        hits_query = Query(
-            match=Join([Relationship(e_event, "grouped", e_group)]),
-            select=[
-                Function("uniq", [Column("id", e_group)], alias="count"),
-            ],
-            where=where_conditions,
-        )
-        hits = None
-        if count_hits:
-            request = Request(
-                dataset="events", app_id="cdc", query=hits_query, tenant_ids=tenant_ids
-            )
-            hits = snuba.raw_snql_query(request, referrer="search.snuba.cdc_search.hits")["data"][
-                0
-            ]["count"]
-
-        paginator_options = paginator_options or {}
-        paginator_results = SequencePaginator(
-            [(row["score"], row["g.id"]) for row in data],
-            reverse=True,
-            **paginator_options,
-        ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
-        # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
-        # Since replay between Postgres and Clickhouse can happen, we might get back results that
-        # have changed state in Postgres. By rechecking them we guarantee than any returned results
-        # have the correct state.
-        # TODO: This can result in us returning less than a full page of results, but shouldn't
-        # affect cursors. If we want to, we can iterate and query snuba until we manage to get a
-        # full page. In practice, this will likely only skip a couple of results at worst, and
-        # probably not be noticeable to the user, so holding off for now to reduce complexity.
-        groups = group_queryset.in_bulk(paginator_results.results)
-        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
-
-        # TODO: Add types to paginators and remove this
-        return cast(CursorResult[Group], paginator_results)
-
-
-class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
-    entities = {
-        "event": Entity("events", alias="e"),
-        "attrs": Entity("group_attributes", alias="g"),
-    }
-
-    supported_conditions = [
-        SupportedConditions("status", frozenset(["IN"])),
-    ]
-    supported_conditions_lookup = {
-        condition.field_name: condition for condition in supported_conditions
-    }
-
-    last_seen_aggregation = Function(
-        "ifNull",
-        [
-            Function(
-                "multiply",
-                [
-                    Function(
-                        "toUInt64", [Function("max", [Column("timestamp", entities["event"])])]
                     ),
-                    1000,
+                    Column("exception_stacks.mechanism_handled", joined_entity),
                 ],
             ),
-            0,
-        ],
-    )
+            Op.EQ,
+            1,
+        )
 
-    def calculate_start_end(
-        self,
-        retention_window_start: datetime | None,
-        search_filters: Sequence[SearchFilter] | None,
-        date_from: datetime | None,
-        date_to: datetime | None,
-    ) -> tuple[datetime, datetime, datetime]:
-        now = timezone.now()
-        end = None
-        end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
-        if end_params:
-            end = min(end_params)
-
-        if not end:
-            end = now + ALLOWED_FUTURE_DELTA
-
-        retention_date = max(_f for _f in [retention_window_start, now - timedelta(days=90)] if _f)
-        start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
-        start = max(_f for _f in start_params if _f)
-        end = max([retention_date, end])
-        return start, end, retention_date
-
-    def validate_search_filters(self, search_filters: Sequence[SearchFilter] | None) -> bool:
+    def get_priority_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
         """
-        Validates whether a set of search filters can be handled by this search backend.
+        Returns the priority lookup for a search filter.
         """
-        for search_filter in search_filters or ():
-            supported_condition = self.supported_conditions_lookup.get(search_filter.key.name)
-            if not supported_condition:
-                return False
-            if (
-                supported_condition.operators
-                and search_filter.operator not in supported_condition.operators
-            ):
+        return Condition(
+            Column("group_priority", self.entities["attrs"]), Op.IN, search_filter.value.raw_value
+        )
+
+    def get_first_release_condition(
+        self, search_filter: SearchFilter, projects: list[Project]
+    ) -> Condition:
+        """
+        Returns the first_release lookup for a search filter.
+        """
+        versions = search_filter.value.raw_value
+        releases = {
+            version: release_id
+            for version, release_id in Release.objects.filter(
+                organization=projects[0].organization_id, version__in=versions
+            ).values_list("version", "id")
+        }
+
+        for version in versions:
+            if version not in releases:
+                # TODO: This is mostly around for legacy reasons - we should probably just
+                # raise a validation here an inform the user that they passed an invalid
+                # release
+                releases[None] = -1
+                # We only need to find the first non-existent release here
+                break
+
+        return Condition(
+            Column("group_first_release", self.entities["attrs"]),
+            Op.IN,
+            list(releases.values()),
+        )
+
+    ISSUE_FIELD_NAME = "group_id"
+
+    entities = {
+        "event": Entity(ENTITY_EVENTS, alias="e"),
+        "attrs": Entity(ENTITY_GROUP_ATTRIBUTES, alias="g"),
+        "search_issues": Entity(ENTITY_SEARCH_ISSUES, alias="si"),
+    }
+
+    group_conditions_lookup = {
+        "status": (get_basic_group_snuba_condition, Clauses.WHERE),
+        "substatus": (get_basic_group_snuba_condition, Clauses.WHERE),
+        "assigned_or_suggested": (get_assigned_or_suggested, Clauses.WHERE),
+        "assigned_to": (get_assigned, Clauses.WHERE),
+        "unassigned": (get_unassigned_condition, Clauses.WHERE),
+        "first_seen": (get_basic_group_snuba_condition, Clauses.WHERE),
+        "last_seen": (get_last_seen_filter, Clauses.HAVING),
+        "times_seen": (get_times_seen_filter, Clauses.HAVING),
+        "error.handled": (get_handled_condition, Clauses.WHERE),
+        "error.unhandled": (get_handled_condition, Clauses.WHERE),
+        "issue.priority": (get_priority_condition, Clauses.WHERE),
+        "first_release": (get_first_release_condition, Clauses.WHERE),
+        "firstRelease": (get_first_release_condition, Clauses.WHERE),
+    }
+
+    def get_sort_defs(self, entity):
+        return {
+            "date": self.get_last_seen_aggregation(entity),
+            "new": self.get_first_seen_aggregation(),
+            "freq": Function("count", [], alias=self.sort_strategies["freq"]),
+            "user": Function(
+                "uniq", [Column("tags[sentry:user]", entity)], self.sort_strategies["user"]
+            ),
+        }
+
+    def should_check_search_issues(
+        self, group_categories: Sequence[str], search_filters: Sequence[SearchFilter]
+    ) -> bool:
+        # not in the group categories we are looking for
+        if not any([GroupCategory.ERROR.value != gc for gc in group_categories]):
+            return False
+        # error/stacktrace info doesn't exist exist in search_issues so we shouldn't it at all
+        bad_prefix_list = ["error.", "stack."]
+        for filter in search_filters:
+            if any(filter.key.name.startswith(bad_prefix) for bad_prefix in bad_prefix_list):
                 return False
         return True
 
+    def calculate_start_end(
+        self,
+        retention_window_start: datetime | None,
+        search_filters: Sequence[SearchFilter] | None,
+        date_from: datetime | None,
+        date_to: datetime | None,
+    ) -> tuple[datetime, datetime, datetime]:
+        now = timezone.now()
+        end = None
+        end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
+        if end_params:
+            end = min(end_params)
+
+        if not end:
+            end = now + ALLOWED_FUTURE_DELTA
+
+        retention_date = max(_f for _f in [retention_window_start, now - timedelta(days=90)] if _f)
+        start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
+        start = max(_f for _f in start_params if _f)
+        end = max([retention_date, end])
+        return start, end, retention_date
+
+    @metrics.wraps("snuba.search.group_attributes.query")
     def query(
         self,
         projects: Sequence[Project],
@@ -1422,12 +1684,10 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         date_to: datetime | None,
         max_hits: int | None = None,
         referrer: str | None = None,
-        actor: Any | None = None,
+        actor: User | RpcUser | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
+        use_group_snuba_dataset: bool = False,
     ) -> CursorResult[Group]:
-        if not self.validate_search_filters(search_filters):
-            raise InvalidQueryForExecutor("Search filters invalid for this query executor")
-
         start, end, retention_date = self.calculate_start_end(
             retention_window_start, search_filters, date_from, date_to
         )
@@ -1445,95 +1705,245 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             # is invalid.
             return self.empty_result
 
+        if len(projects) == 0:
+            return self.empty_result
+
+        # Check if any search filters are in POSTGRES_ONLY_SEARCH_FIELDS
+        search_filters = search_filters or ()
+        group_ids_to_pass_to_snuba = None
+        too_many_candidates = False
+        max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
+        with sentry_sdk.start_span(op="snuba_group_attributes_query") as span:
+            if any(sf.key.name in POSTGRES_ONLY_SEARCH_FIELDS for sf in search_filters):
+                group_ids_to_pass_to_snuba = list(
+                    group_queryset.using_replica().values_list("id", flat=True)[
+                        : max_candidates + 1
+                    ]
+                )
+                span.set_data("Max Candidates", max_candidates)
+                span.set_data("Result Size", len(group_ids_to_pass_to_snuba))
+
+                if too_many_candidates := (len(group_ids_to_pass_to_snuba) > max_candidates):
+                    metrics.incr(
+                        "snuba.search.group_attributes.too_many_candidates", skip_internal=False
+                    )
+                    group_ids_to_pass_to_snuba = None
+
+        # remove the search filters that are only for postgres
+        search_filters = [
+            sf for sf in search_filters if sf.key.name not in POSTGRES_ONLY_SEARCH_FIELDS
+        ]
+
+        organization = projects[0].organization
+
         event_entity = self.entities["event"]
         attr_entity = self.entities["attrs"]
+        search_issues_entity = self.entities["search_issues"]
 
-        where_conditions = [
-            Condition(Column("project_id", event_entity), Op.IN, [p.id for p in projects]),
-            Condition(Column("project_id", attr_entity), Op.IN, [p.id for p in projects]),
-            Condition(Column("timestamp", event_entity), Op.GTE, start),
-            Condition(Column("timestamp", event_entity), Op.LT, end),
-        ]
-        # TODO: This is still basically only handling status, handle this better once we introduce
-        # more conditions.
-        for search_filter in search_filters or ():
-            where_conditions.append(
-                Condition(
-                    Column(f"group_{search_filter.key.name}", attr_entity),
-                    Op.IN,
-                    search_filter.value.raw_value,
+        queries = []
+        entities_to_check = []
+        group_categories = group_categories_from_search_filters(search_filters, organization, actor)
+
+        if GroupCategory.ERROR.value in group_categories:
+            entities_to_check.append(event_entity)
+
+        # check we have non-error categories to search for
+        if self.should_check_search_issues(group_categories, search_filters):
+            entities_to_check.append(search_issues_entity)
+
+        for joined_entity in entities_to_check:
+            is_errors = joined_entity.name == ENTITY_EVENTS
+            where_conditions = [
+                Condition(Column("project_id", joined_entity), Op.IN, [p.id for p in projects]),
+                Condition(Column("project_id", attr_entity), Op.IN, [p.id for p in projects]),
+                Condition(Column("timestamp", joined_entity), Op.GTE, start),
+                Condition(Column("timestamp", joined_entity), Op.LT, end),
+            ]
+
+            having = []
+            # if we need to prefetch from postgres, we add filter by the group ids
+            if group_ids_to_pass_to_snuba is not None:
+                # will not find any matches, we can return early
+                if len(group_ids_to_pass_to_snuba) == 0:
+                    metrics.incr("snuba.search.group_attributes.no_candidates", skip_internal=False)
+                    return self.empty_result
+
+                # limit groups and events to the group ids
+                for entity_with_group_id in [attr_entity, joined_entity]:
+                    where_conditions.append(
+                        Condition(
+                            Column("group_id", entity_with_group_id),
+                            Op.IN,
+                            group_ids_to_pass_to_snuba,
+                        )
+                    )
+
+            for search_filter in search_filters or ():
+                # use the stored function if it exists in our mapping, otherwise use the basic lookup
+                lookup = self.group_conditions_lookup.get(search_filter.key.name)
+                fn = lookup[0] if lookup else None
+                clause = lookup[1] if lookup else Clauses.WHERE
+
+                # issue.category and issue.type are handled specially
+                # we handle the date filter with calculate_start_end
+                if search_filter.key.name in ["issue.category", "issue.type", "date"]:
+                    pass
+                # handle first_release filter separately
+                elif search_filter.key.name in FIRST_RELEASE_FILTERS:
+                    where_conditions.append(
+                        self.get_first_release_condition(search_filter, projects)
+                    )
+                elif search_filter.key.name == "unassigned":
+                    where_conditions.append(
+                        self.get_unassigned_condition(search_filter, attr_entity)
+                    )
+                elif fn:
+                    # dynamic lookup of what clause to use
+                    if clause == Clauses.WHERE:
+                        where_conditions.append(fn(self, search_filter, joined_entity))
+                    elif clause == Clauses.HAVING:
+                        having.append(fn(self, search_filter, joined_entity))
+                    else:
+                        raise InvalidQueryForExecutor(f"Invalid clause {clause}")
+                else:
+                    condition = self.get_basic_event_snuba_condition(
+                        search_filter,
+                        joined_entity,
+                        SnubaParams(
+                            organization=organization,
+                            projects=projects,
+                            user=actor,
+                            start=start,
+                            end=end,
+                            environments=environments,
+                            teams=[],  # may need to change, tbd
+                        ),
+                    )
+                    if condition is not None:
+                        where_conditions.append(condition)
+
+            # handle types based on issue.type and issue.category
+            if not is_errors:
+                raw_group_types = group_types_from(search_filters)
+                # no possible groups, return empty
+                if len(raw_group_types) == 0:
+                    metrics.incr(
+                        "snuba.search.group_attributes.no_possible_groups", skip_internal=False
+                    )
+                    return self.empty_result
+
+                # filter out the group types that are not visible to the org/user
+                group_types = [
+                    gt.type_id
+                    for gt in grouptype.registry.get_visible(organization, actor)
+                    if gt.type_id in raw_group_types
+                ]
+                where_conditions.append(
+                    Condition(Column("occurrence_type_id", joined_entity), Op.IN, group_types)
                 )
-            )
 
-        if environments:
-            # TODO: Should this be handled via filter_keys, once we have a snql compatible version?
-            where_conditions.append(
-                Condition(
-                    Column("environment", event_entity), Op.IN, [e.name for e in environments]
+            if environments:
+                where_conditions.append(
+                    Condition(
+                        Column("environment", joined_entity), Op.IN, [e.name for e in environments]
+                    )
                 )
+
+            sort_func = self.get_sort_defs(joined_entity)[sort_by]
+
+            if cursor is not None:
+                op = Op.GTE if cursor.is_prev else Op.LTE
+                having.append(Condition(sort_func, op, cursor.value))
+
+            tenant_ids = {"organization_id": projects[0].organization_id} if projects else None
+            groupby = [Column("group_id", attr_entity)]
+            select = [Column("group_id", attr_entity)]
+            if sort_by == "new":
+                groupby.append(Column("group_first_seen", attr_entity))
+                select.append(Column("group_first_seen", attr_entity))
+
+            select.append(sort_func)
+
+            query = Query(
+                match=Join([Relationship(joined_entity, "attributes_inner", attr_entity)]),
+                select=select,
+                where=where_conditions,
+                groupby=groupby,
+                having=having,
+                orderby=[
+                    OrderBy(dataclasses.replace(sort_func, alias=None), direction=Direction.DESC)
+                ],
+                limit=Limit(min(limit + 1, MAX_SNUBA_ELEMENTS)),
             )
-
-        sort_func = self.last_seen_aggregation
-
-        having = []
-        if cursor is not None:
-            op = Op.GTE if cursor.is_prev else Op.LTE
-            having.append(Condition(sort_func, op, cursor.value))
-
-        tenant_ids = {"organization_id": projects[0].organization_id} if projects else None
-
-        query = Query(
-            match=Join([Relationship(event_entity, "attributes", attr_entity)]),
-            select=[
-                Column("group_id", attr_entity),
-                replace(sort_func, alias="score"),
-            ],
-            where=where_conditions,
-            groupby=[Column("group_id", attr_entity)],
-            having=having,
-            orderby=[OrderBy(sort_func, direction=Direction.DESC)],
-            limit=Limit(limit + 1),
-        )
-        request = Request(
-            dataset="events",
-            app_id="group_attributes",
-            query=query,
-            tenant_ids=tenant_ids,
-        )
-        data = snuba.raw_snql_query(request, referrer="search.snuba.group_attributes_search.query")[
-            "data"
-        ]
-
-        hits_query = Query(
-            match=Join([Relationship(event_entity, "attributes", attr_entity)]),
-            select=[
-                Function("uniq", [Column("group_id", attr_entity)], alias="count"),
-            ],
-            where=where_conditions,
-        )
-        hits = None
-        if count_hits:
+            dataset = Dataset.Events.value if is_errors else Dataset.IssuePlatform.value
             request = Request(
-                dataset="events", app_id="group_attributes", query=hits_query, tenant_ids=tenant_ids
+                dataset=dataset,
+                app_id="group_attributes",
+                query=query,
+                tenant_ids=tenant_ids,
             )
-            hits = snuba.raw_snql_query(
-                request, referrer="search.snuba.group_attributes_search.hits"
-            )["data"][0]["count"]
+            queries.append(request)
 
-        paginator_options = paginator_options or {}
+            if count_hits:
+                hits_query = Query(
+                    match=Join([Relationship(joined_entity, "attributes_inner", attr_entity)]),
+                    select=[
+                        Function("uniq", [Column("group_id", attr_entity)], alias="count"),
+                    ],
+                    where=where_conditions,
+                )
+                request = Request(
+                    dataset=dataset,
+                    app_id="group_attributes",
+                    query=hits_query,
+                    tenant_ids=tenant_ids,
+                )
+                queries.append(request)
+
+        bulk_result = snuba.bulk_snuba_queries(
+            queries, referrer="search.snuba.group_attributes_search.query"
+        )
+
+        data = []
+        count: int = 0
+        # get the query data and the query counts
+        k = 0
+        for _ in range(len(entities_to_check)):
+            data.extend(bulk_result[k]["data"])
+            if count_hits:
+                k += 1
+                count += bulk_result[k]["data"][0]["count"]
+            k += 1
+
+        metrics.distribution("snuba.search.group_attributes.num_snuba_results", len(data))
+
+        if too_many_candidates:
+            # If we had too many candidates to reasonably pass down to snuba,
+            # we need to apply the Postgres filter as a post-filtering step.
+            filtered_group_ids = group_queryset.filter(
+                id__in=[group["g.group_id"] for group in data]
+            ).values_list("id", flat=True)
+
+            data = [group for group in data if group["g.group_id"] in filtered_group_ids]
+
         paginator_results = SequencePaginator(
-            [(row["score"], row["g.group_id"]) for row in data],
+            [(row[self.sort_strategies[sort_by]], row["g.group_id"]) for row in data],
             reverse=True,
             **paginator_options,
-        ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
+        ).get_result(limit, cursor, known_hits=count, max_hits=max_hits)
 
-        # We filter against `group_queryset` here so that we recheck all conditions in Postgres.
-        # Since replay between Postgres and Clickhouse can happen, we might get back results that
-        # have changed state in Postgres. By rechecking them we guarantee than any returned results
-        # have the correct state.
-        # TODO: This can result in us returning less than a full page of results, but shouldn't
-        # affect cursors. If we want to, we can iterate and query snuba until we manage to get a
-        # full page. In practice, this will likely only skip a couple of results at worst, and
+        # TODO: do we need to set has_results for the next cursor?
+
+        if cursor is not None and (not cursor.is_prev or len(paginator_results.results) > 0):
+            # If the user passed a cursor, and it isn't already a 0 result `is_prev`
+            # cursor, then it's worth allowing them to go back a page to check for
+            # more results.
+            paginator_results.prev.has_results = True
+
+        # We filter against `group_queryset` here to ensure we only return groups that aren't being migrated
+        # or being deleted before snuba is updated. This can result in us returning less than a full page of
+        # results, but we can't do much about that without a more complex solution such as asking for more results
+        # In practice, this will likely only skip a couple of results at worst, and
         # probably not be noticeable to the user, so holding off for now to reduce complexity.
 
         groups = group_queryset.in_bulk(paginator_results.results)

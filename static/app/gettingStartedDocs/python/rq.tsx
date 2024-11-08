@@ -8,6 +8,10 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -16,15 +20,16 @@ const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[rq]'`;
 
 const getInitCallSnippet = (params: Params) => `
 sentry_sdk.init(
-  dsn="${params.dsn}",${
+  dsn="${params.dsn.public}",${
     params.isPerformanceSelected
       ? `
   # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
+  # of transactions for tracing.
   traces_sample_rate=1.0,`
       : ''
   }${
-    params.isProfilingSelected
+    params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode !== 'continuous'
       ? `
   # Set profiles_sample_rate to 1.0 to profile 100%
   # of sampled transactions.
@@ -32,10 +37,23 @@ sentry_sdk.init(
   profiles_sample_rate=1.0,`
       : ''
   }
-)`;
+)${
+  params.isProfilingSelected &&
+  params.profilingOptions?.defaultProfilingMode === 'continuous'
+    ? `
+
+# Manually call start_profiler and stop_profiler
+# to profile the code in between
+sentry_sdk.profiler.start_profiler()
+# this code will be profiled
+#
+# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
+# your application until the process exits or stop_profiler is called.
+sentry_sdk.profiler.stop_profiler()`
+    : ''
+}`;
 
 const getSdkSetupSnippet = (params: Params) => `
-# mysettings.py
 import sentry_sdk
 
 ${getInitCallSnippet(params)}`;
@@ -45,20 +63,18 @@ rq worker \
 -c mysettings \  # module name of mysettings.py
 --sentry-dsn="..."  # only necessary for RQ < 1.0`;
 
-const getJobDefinitionSnippet = () => `# jobs.py
+const getJobDefinitionSnippet = () => `
 def hello(name):
     1/0  # raises an error
     return "Hello %s!" % name`;
 
 const getWorkerSetupSnippet = (params: Params) => `
-# mysettings.py
 import sentry_sdk
 
 # Sentry configuration for RQ worker processes
 ${getInitCallSnippet(params)}`;
 
 const getMainPythonScriptSetupSnippet = (params: Params) => `
-# main.py
 from redis import Redis
 from rq import Queue
 
@@ -82,13 +98,9 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [sentryRQCode:rq] extra:',
-        {
-          code: <code />,
-          sentryRQCode: <code />,
-        }
-      ),
+      description: tct('Install [code:sentry-sdk] from PyPI with the [code:rq] extra:', {
+        code: <code />,
+      }),
       configurations: [
         {
           language: 'bash',
@@ -122,8 +134,14 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'python',
-          code: getSdkSetupSnippet(params),
+          code: [
+            {
+              label: 'mysettings.py',
+              value: 'mysettings.py',
+              language: 'python',
+              code: getSdkSetupSnippet(params),
+            },
+          ],
         },
         {
           description: t('Start your worker with:'),
@@ -131,9 +149,20 @@ const onboarding: OnboardingConfig = {
           code: getStartWorkerSnippet(),
         },
       ],
-      additionalInfo: tct(
-        'Generally, make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your jobs are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
-        {code: <code />}
+      additionalInfo: (
+        <Fragment>
+          {tct(
+            'Generally, make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your jobs are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
+            {code: <code />}
+          )}
+          {params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+              <Fragment>
+                <br />
+                <AlternativeConfiguration />
+              </Fragment>
+            )}
+        </Fragment>
       ),
     },
   ],
@@ -149,37 +178,53 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           description: <h5>{t('Job definition')}</h5>,
-          language: 'python',
-          code: getJobDefinitionSnippet(),
+          code: [
+            {
+              language: 'python',
+              label: 'jobs.py',
+              value: 'jobs.py',
+              code: getJobDefinitionSnippet(),
+            },
+          ],
         },
         {
           description: <h5>{t('Settings for worker')}</h5>,
-          language: 'python',
-          code: getWorkerSetupSnippet(params),
+          code: [
+            {
+              label: 'mysettings.py',
+              value: 'mysettings.py',
+              language: 'python',
+              code: getWorkerSetupSnippet(params),
+            },
+          ],
         },
         {
           description: <h5>{t('Main Python Script')}</h5>,
-          language: 'python',
-          code: getMainPythonScriptSetupSnippet(params),
+          code: [
+            {
+              label: 'main.py',
+              value: 'main.py',
+              language: 'python',
+              code: getMainPythonScriptSetupSnippet(params),
+            },
+          ],
         },
       ],
       additionalInfo: (
         <div>
           <p>
             {tct(
-              'When you run [codeMain:python main.py] a transaction named [codeTrxName:testing_sentry] in the Performance section of Sentry will be created.',
+              'When you run [code:python main.py] a transaction named [code:testing_sentry] in the Performance section of Sentry will be created.',
               {
-                codeMain: <code />,
-                codeTrxName: <code />,
+                code: <code />,
               }
             )}
           </p>
           <p>
             {tct(
-              'If you run the RQ worker with [codeWorker:rq worker -c mysettings] a transaction for the execution of [codeFunction:hello()] will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction.',
+              'If you run the RQ worker with [code:rq worker -c mysettings] a transaction for the execution of [code:hello()] will be created. Additionally, an error event will be sent to Sentry and will be connected to the transaction.',
               {
-                codeWorker: <code />,
-                codeFunction: <code />,
+                code: <code />,
               }
             )}
           </p>
@@ -195,6 +240,7 @@ const docs: Docs = {
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
+  crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;

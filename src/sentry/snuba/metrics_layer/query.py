@@ -3,29 +3,43 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from dataclasses import replace
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Union, cast
 
 from snuba_sdk import (
+    And,
     BooleanCondition,
     Column,
     Condition,
     CurriedFunction,
+    Direction,
+    Entity,
     Formula,
     Metric,
     MetricsQuery,
+    Op,
+    OrderBy,
+    Query,
     Request,
+    Storage,
     Timeseries,
 )
 from snuba_sdk.formula import FormulaParameterGroup
+from snuba_sdk.mql.mql import parse_mql
 
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.utils import resolve_weak, reverse_resolve_weak, string_to_use_case_id
+from sentry.sentry_metrics.utils import (
+    bulk_reverse_resolve,
+    resolve_many_weak,
+    resolve_weak,
+    reverse_resolve_weak,
+    string_to_use_case_id,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
-from sentry.snuba.metrics.utils import to_intervals
+from sentry.snuba.metrics.utils import MetricDoesNotExistException, to_intervals
 from sentry.utils import metrics
 from sentry.utils.snuba import bulk_snuba_queries
 
@@ -136,6 +150,10 @@ def run_query(request: Request) -> Mapping[str, Any]:
 def _setup_metrics_query(request: Request) -> tuple[Request, datetime, datetime]:
     metrics_query = request.query
     assert isinstance(metrics_query, MetricsQuery)
+
+    # We allow users to pass in a string instead of a Formula/Timeseries object. Handle that case here.
+    if isinstance(metrics_query.query, str):
+        metrics_query = metrics_query.set_query(parse_mql(metrics_query.query))
 
     assert len(metrics_query.scope.org_ids) == 1  # Initially only allow 1 org id
     organization_id = metrics_query.scope.org_ids[0]
@@ -265,7 +283,14 @@ def _resolve_query_metadata(
     assert metrics_query.query is not None
 
     org_id = metrics_query.scope.org_ids[0]
-    use_case_id_str = _resolve_use_case_id_str(metrics_query.query)
+    use_case_ids = _resolve_use_case_ids(metrics_query.query)
+
+    if not use_case_ids:
+        raise InvalidParams("No use case found in formula parameters")
+    if len(use_case_ids) > 1:
+        raise InvalidParams("Formula parameters must all be from the same use case")
+    use_case_id_str = use_case_ids.pop()
+
     if metrics_query.scope.use_case_id is None:
         metrics_query = metrics_query.set_scope(
             metrics_query.scope.set_use_case_id(use_case_id_str)
@@ -331,7 +356,7 @@ def _resolve_timeseries_metadata(
     return series, mappings
 
 
-def _resolve_use_case_id_str(exp: Formula | Timeseries) -> str:
+def _resolve_use_case_ids(exp: Formula | Timeseries) -> set[str]:
     def fetch_namespace(metric: Metric) -> str:
         if metric.mri is None:
             mri = get_mri(metric.public_name)
@@ -344,20 +369,15 @@ def _resolve_use_case_id_str(exp: Formula | Timeseries) -> str:
         return parsed_mri.namespace
 
     if isinstance(exp, Timeseries):
-        return fetch_namespace(exp.metric)
+        return {fetch_namespace(exp.metric)}
 
     assert isinstance(exp, Formula), exp
     namespaces = set()
     for p in exp.parameters:
         if isinstance(p, (Formula, Timeseries)):
-            namespaces.add(_resolve_use_case_id_str(p))
+            namespaces |= _resolve_use_case_ids(p)
 
-    if not namespaces:
-        raise InvalidParams("No use case found in formula parameters")
-    if len(namespaces) > 1:
-        raise InvalidParams("Formula parameters must all be from the same use case")
-
-    return namespaces.pop()
+    return namespaces
 
 
 def _lookup_indexer_resolve(
@@ -512,3 +532,177 @@ def convert_snuba_result(
                     if reverse_resolve:
                         data_point[key] = reverse_resolve
     return snuba_result
+
+
+def fetch_metric_mris(
+    org_id: int, project_ids: list[int], use_case_id: UseCaseID, app_id: str = ""
+) -> dict[int, list[str]]:
+    """
+    Fetches all the metric MRIs for a set of projects and use case. This will reverse
+    resolve all the metric IDs into MRIs.
+    """
+    return _query_meta_table(org_id, project_ids, use_case_id, app_id=app_id)
+
+
+def fetch_metric_tag_keys(
+    org_id: int, project_ids: list[int], use_case_id: UseCaseID, mri: str, app_id: str = ""
+) -> dict[int, list[str]]:
+    """
+    Fetches the tag keys for a given metric MRI. This will reverse
+    resolve all the tag keys into strings.
+    """
+    return _query_meta_table(org_id, project_ids, use_case_id, mri, app_id)
+
+
+def _query_meta_table(
+    org_id: int,
+    project_ids: list[int],
+    use_case_id: UseCaseID,
+    mri: str | None = None,
+    app_id: str = "",
+) -> dict[int, list[str]]:
+    """
+    Helper function for querying the meta table. This will query across all four metric types, and resolve all the resulting
+    values. If an MRI is provided, it is assumed that this function should find unique tag keys for that MRI.
+    """
+
+    if mri:
+        column_name = "tag_key"
+        metric_id = resolve_weak(use_case_id, org_id, mri)
+        if metric_id == -1:
+            raise MetricDoesNotExistException(f"Unknown metric: {mri}")
+        extra_condition = And(
+            [
+                Condition(Column("metric_id"), Op.EQ, metric_id),
+                Condition(Column("tag_key"), Op.NEQ, 0),
+            ]
+        )
+
+    else:
+        column_name = "metric_id"
+        extra_condition = None
+
+    conditions = [
+        Condition(Column("org_id"), Op.EQ, org_id),
+        Condition(Column("project_id"), Op.IN, project_ids),
+        Condition(Column("use_case_id"), Op.EQ, use_case_id.value),
+        Condition(Column("timestamp"), Op.GTE, datetime.now(UTC) - timedelta(days=90)),
+        Condition(Column("timestamp"), Op.LT, datetime.now(UTC) + timedelta(days=1)),
+    ]
+    if extra_condition:
+        conditions.append(extra_condition)
+
+    counters_query = (
+        Query(Storage("generic_metrics_counters_meta"))
+        .set_select([Column("project_id"), Column(column_name)])
+        .set_groupby([Column("project_id"), Column(column_name)])
+        .set_where(conditions)
+        .set_orderby(
+            [
+                OrderBy(Column("project_id"), Direction.ASC),
+                OrderBy(Column(column_name), Direction.ASC),
+            ]
+        )
+        .set_limit(1000)
+    )
+
+    def build_request(query: Query) -> Request:
+        return Request(
+            dataset="generic_metrics",
+            app_id=use_case_id.value if app_id == "" else app_id,
+            query=query,
+            tenant_ids={
+                "organization_id": org_id,
+                "project_id": project_ids[0],
+                "referrer": f"generic_metrics_meta_{column_name}",
+            },
+        )
+
+    requests = [build_request(counters_query)]
+    for mtype in ["sets", "gauges", "distributions"]:
+        new_query = counters_query.set_match(Entity(f"generic_metrics_{mtype}_meta"))
+        new_request = build_request(new_query)
+        requests.append(new_request)
+
+    results = bulk_snuba_queries(requests, f"generic_metrics_meta_{column_name}")
+    indexed_ids = []
+    for result in results:
+        indexed_ids.extend([row[column_name] for row in result["data"]])
+
+    resolved_ids = bulk_reverse_resolve(use_case_id, org_id, indexed_ids)
+    # Group by project ID
+    grouped_results: dict[int, list[str]] = {}
+    for result in results:
+        for row in result["data"]:
+            indexed_id = row[column_name]
+            val = resolved_ids[indexed_id]
+            grouped_results.setdefault(row["project_id"], list()).append(val)
+
+    return grouped_results
+
+
+def fetch_metric_tag_values(
+    org_id: int,
+    project_ids: list[int],
+    use_case_id: UseCaseID,
+    mri: str,
+    tag_key: str,
+    tag_value_prefix: str = "",
+    app_id: str = "",
+) -> list[str]:
+    """
+    Find all the unique tag values for a given MRI and tag key. This will reverse resolve
+    all the values.
+    """
+    parsed_mri = parse_mri(mri)
+    if parsed_mri is None:
+        raise InvalidParams(f"'{mri}' is not a valid MRI")
+
+    metric_type = {
+        "c": "counters",
+        "d": "distributions",
+        "g": "gauges",
+        "s": "sets",
+    }[parsed_mri.entity]
+
+    resolved = resolve_many_weak(use_case_id, org_id, [mri, tag_key])
+    if len(resolved) != 2:
+        raise InvalidParams("Unknown metric or tag key")
+    metric_id, tag_key_id = resolved
+
+    conditions = [
+        Condition(Column("project_id"), Op.IN, project_ids),
+        Condition(Column("metric_id"), Op.EQ, metric_id),
+        Condition(Column("tag_key"), Op.EQ, tag_key_id),
+        Condition(Column("timestamp"), Op.GTE, datetime.now(UTC) - timedelta(days=90)),
+        Condition(Column("timestamp"), Op.LT, datetime.now(UTC) + timedelta(days=1)),
+    ]
+
+    if tag_value_prefix:
+        conditions.append(Condition(Column("tag_value"), Op.LIKE, f"{tag_value_prefix}%"))
+
+    tag_values_query = (
+        Query(Storage(f"generic_metrics_{metric_type}_meta_tag_values"))
+        .set_select([Column("tag_value")])
+        .set_groupby([Column("tag_value")])
+        .set_where(conditions)
+        .set_orderby([OrderBy(Column("tag_value"), Direction.ASC)])
+        .set_limit(1000)
+    )
+
+    request = Request(
+        dataset="generic_metrics",
+        app_id=use_case_id.value if app_id == "" else app_id,
+        query=tag_values_query,
+        tenant_ids={
+            "organization_id": org_id,
+            "referrer": "generic_metrics_meta_tag_values",
+        },
+    )
+
+    results = bulk_snuba_queries([request], "generic_metrics_meta_tag_values")
+    values = []
+    for result in results:
+        values.extend([row["tag_value"] for row in result["data"]])
+
+    return values

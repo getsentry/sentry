@@ -84,6 +84,13 @@ describe('parseFunction', function () {
       arguments: ['release', '"0.81,123,152,()"', 'others', 'current'],
     });
   });
+
+  it('handles functions with numeric tag arguments', function () {
+    expect(parseFunction('count(tags[foo,number])')).toEqual({
+      name: 'count',
+      arguments: ['tags[foo,number]'],
+    });
+  });
 });
 
 describe('getAggregateAlias', function () {

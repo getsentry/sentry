@@ -88,8 +88,8 @@ def is_in_test_case_body() -> bool:
 
 
 def validate_transaction_using_for_silo_mode(using: str | None):
-    from sentry.models.outbox import ControlOutbox, RegionOutbox
-    from sentry.silo import SiloMode
+    from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox
+    from sentry.silo.base import SiloMode
 
     if using is None:
         raise TransactionMissingDBException("'using' must be specified when creating a transaction")

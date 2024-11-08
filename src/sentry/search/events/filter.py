@@ -3,8 +3,9 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from functools import reduce
-from typing import Any, Union
+from typing import Any, TypedDict, Union
 
+import orjson
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from sentry_relay.processing import parse_release as parse_release_relay
 
@@ -21,7 +22,8 @@ from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.release import Release, SemverFilter
+from sentry.models.release import Release
+from sentry.models.releases.util import SemverFilter
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
@@ -47,10 +49,15 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
 from sentry.search.utils import parse_release
-from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import FUNCTION_TO_OPERATOR, OPERATOR_TO_FUNCTION, SNUBA_AND, SNUBA_OR
 from sentry.utils.strings import oxfordize_list
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
+
+
+class FilterConvertParams(TypedDict, total=False):
+    organization_id: int
+    project_id: list[int]
+    environment: list[str]
 
 
 def is_condition(term):
@@ -104,9 +111,7 @@ def convert_aggregate_filter_to_snuba_query(aggregate_filter, params):
     if params is not None and name in params.get("aliases", {}):
         return params["aliases"][name].converter(aggregate_filter)
 
-    value = (
-        int(to_timestamp(value)) if isinstance(value, datetime) and name != "timestamp" else value
-    )
+    value = int(value.timestamp()) if isinstance(value, datetime) and name != "timestamp" else value
 
     if aggregate_filter.operator in ("=", "!=") and aggregate_filter.value.value == "":
         return [["isNull", [name]], aggregate_filter.operator, 1]
@@ -134,7 +139,7 @@ def _environment_filter_converter(
     params: Mapping[str, int | str | datetime] | None,
 ):
     # conditions added to env_conditions are OR'd
-    env_conditions = []
+    env_conditions: list[list[object]] = []
     value = search_filter.value.value
     values = set(value if isinstance(value, (list, tuple)) else [value])
     # the "no environment" environment is null in snuba
@@ -318,7 +323,7 @@ def _flip_field_sort(field: str):
 def _release_stage_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Mapping[str, int | str | datetime] | None,
+    params: FilterConvertParams,
 ) -> tuple[str, str, Sequence[str]]:
     """
     Parses a release stage search and returns a snuba condition to filter to the
@@ -330,9 +335,9 @@ def _release_stage_filter_converter(
     if not params or "organization_id" not in params:
         raise ValueError("organization_id is a required param")
 
-    organization_id: int = params["organization_id"]
-    project_ids: list[int] | None = params.get("project_id")
-    environments: list[int] | None = params.get("environment")
+    organization_id = params["organization_id"]
+    project_ids = params.get("project_id")
+    environments = params.get("environment")
     qs = (
         Release.objects.filter_by_stage(
             organization_id,
@@ -442,8 +447,7 @@ def _semver_package_filter_converter(
 
     organization_id: int = params["organization_id"]
     project_ids: list[int] | None = params.get("project_id")
-    package: str = search_filter.value.raw_value
-
+    package: str | list[str] = search_filter.value.raw_value
     versions = list(
         Release.objects.filter_by_semver(
             organization_id,
@@ -525,7 +529,7 @@ def parse_semver(version, operator) -> SemverFilter:
         raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
 
     version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
-    parsed = parse_release_relay(version)
+    parsed = parse_release_relay(version, json_loads=orjson.loads)
     parsed_version = parsed.get("version_parsed")
     if parsed_version:
         # Convert `pre` to always be a string
@@ -564,10 +568,10 @@ def parse_semver(version, operator) -> SemverFilter:
         return SemverFilter("exact", version_parts, package, negated)
 
 
-key_conversion_map: Mapping[
-    str,
-    Callable[[SearchFilter, str, Mapping[str, int | str | datetime]], Sequence[Any] | None],
-] = {
+key_conversion_map: dict[
+    str, Callable[[SearchFilter, str, FilterConvertParams], Sequence[Any] | None]
+]
+key_conversion_map = {
     "environment": _environment_filter_converter,
     "message": _message_filter_converter,
     TRANSACTION_STATUS_ALIAS: _transaction_status_filter_converter,
@@ -586,10 +590,11 @@ key_conversion_map: Mapping[
 def convert_search_filter_to_snuba_query(
     search_filter: SearchFilter,
     key: str | None = None,
-    params: Mapping[str, int | str | datetime] | None = None,
+    params: FilterConvertParams | None = None,
 ) -> Sequence[Any] | None:
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
+    params = params or {}
 
     # We want to use group_id elsewhere so shouldn't be removed from the dataset
     # but if a user has a tag with the same name we want to make sure that works
@@ -636,7 +641,7 @@ def convert_search_filter_to_snuba_query(
             "timestamp.to_hour",
             "timestamp.to_day",
         }:
-            value = int(to_timestamp(value)) * 1000
+            value = int(value.timestamp()) * 1000
 
         if name in {"trace.span", "trace.parent_span"}:
             if search_filter.value.is_wildcard():
@@ -948,5 +953,10 @@ def format_search_filter(term, params):
 
 
 # Not a part of search.events.types to avoid a circular loop
-ParsedTerm = Union[SearchFilter, AggregateFilter, ParenExpression]
+ParsedTerm = Union[
+    SearchFilter,
+    AggregateFilter,
+    ParenExpression,
+    str,
+]
 ParsedTerms = Sequence[ParsedTerm]

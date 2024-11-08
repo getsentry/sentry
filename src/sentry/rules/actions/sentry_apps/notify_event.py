@@ -7,16 +7,15 @@ from rest_framework import serializers
 
 from sentry.eventstore.models import GroupEvent
 from sentry.models.project import Project
-from sentry.rules import EventState
 from sentry.rules.actions.sentry_apps import SentryAppEventAction
 from sentry.rules.base import CallbackFuture
-from sentry.services.hybrid_cloud.app import (
+from sentry.sentry_apps.services.app import (
     RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppEventData,
     app_service,
 )
-from sentry.tasks.sentry_apps import notify_sentry_app
+from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
 
 ValidationError = serializers.ValidationError
 
@@ -142,8 +141,8 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
             )
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture, None, None]:
+        self, event: GroupEvent, notification_uuid: str | None = None
+    ) -> Generator[CallbackFuture]:
         sentry_app = self._get_sentry_app(event)
         yield self.future(
             notify_sentry_app,

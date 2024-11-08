@@ -2,7 +2,7 @@ import {InstallWizardFixture} from 'sentry-fixture/installWizard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
@@ -237,7 +237,7 @@ describe('App', function () {
         <div>placeholder content</div>
       </App>
     );
-    ConfigStore.config.isSelfHosted = restore;
+    act(() => ConfigStore.set('isSelfHosted', restore));
 
     await waitFor(() => OrganizationsStore.getAll().length === 1);
 

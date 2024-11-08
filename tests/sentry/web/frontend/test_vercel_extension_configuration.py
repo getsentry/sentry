@@ -6,7 +6,8 @@ from django.db import router
 from sentry.identity.vercel import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient
 from sentry.models.organizationmember import OrganizationMember
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -74,8 +75,9 @@ class VercelExtensionConfigurationTest(TestCase):
 
     @responses.activate
     def test_logged_in_as_member(self):
-        with assume_test_silo_mode(SiloMode.REGION), unguarded_write(
-            using=router.db_for_write(OrganizationMember)
+        with (
+            assume_test_silo_mode(SiloMode.REGION),
+            unguarded_write(using=router.db_for_write(OrganizationMember)),
         ):
             OrganizationMember.objects.filter(user_id=self.user.id, organization=self.org).update(
                 role="member"
@@ -157,7 +159,7 @@ class VercelExtensionConfigurationTest(TestCase):
         resp = self.client.get(
             self.path,
             self.params,
-            SERVER_NAME=f"{self.org.slug}.testserver",
+            HTTP_HOST=f"{self.org.slug}.testserver",
         )
 
         mock_request = responses.calls[0].request

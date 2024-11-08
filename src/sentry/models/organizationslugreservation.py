@@ -8,12 +8,12 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models.base import control_silo_only_model, sane_repr
+from sentry.db.models.base import control_silo_model, sane_repr
 from sentry.db.models.fields import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.outboxes import ReplicatedControlModel
-from sentry.models.outbox import OutboxCategory
-from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
+from sentry.hybridcloud.outbox.base import ReplicatedControlModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 
 
 class OrganizationSlugReservationType(IntEnum):
@@ -26,7 +26,7 @@ class OrganizationSlugReservationType(IntEnum):
         return [(i.value, i.value) for i in cls]
 
 
-@control_silo_only_model
+@control_silo_model
 class OrganizationSlugReservation(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Excluded
     category = OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE
@@ -70,10 +70,10 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         return [self.region_name]
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.hybridcloud.rpc_services.control_organization_provisioning.serial import (
+        from sentry.hybridcloud.services.control_organization_provisioning.serial import (
             serialize_slug_reservation,
         )
-        from sentry.services.hybrid_cloud.replica import region_replica_service
+        from sentry.hybridcloud.services.replica import region_replica_service
 
         serialized = serialize_slug_reservation(self)
         region_replica_service.upsert_replicated_org_slug_reservation(
@@ -88,7 +88,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
-        from sentry.services.hybrid_cloud.replica import region_replica_service
+        from sentry.hybridcloud.services.replica import region_replica_service
 
         region_replica_service.delete_replicated_org_slug_reservation(
             region_name=region_name,

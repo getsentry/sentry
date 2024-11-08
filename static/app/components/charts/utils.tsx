@@ -3,14 +3,20 @@ import * as Sentry from '@sentry/react';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import type {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {
+  EventsStats,
+  GroupedMultiSeriesEventsStats,
+  MultiSeriesEventsStats,
+} from 'sentry/types/organization';
 import {defined, escape} from 'sentry/utils';
-import {getFormattedDate, parsePeriodToHours} from 'sentry/utils/dates';
+import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
 
@@ -78,9 +84,12 @@ export class GranularityLadder {
   getInterval(minutes: number): string {
     if (minutes < 0) {
       // Sometimes this happens, in unknown circumstances. See the `getIntervalForMetricFunction` function span in Sentry for more info, the reason might appear there. For now, a reasonable fallback in these rare cases is to return the finest granularity, since it'll either fulfill the request or time out.
-      Sentry.captureException(
-        new Error('Invalid duration supplied to interval function')
-      );
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['invalid-duration-for-interval']);
+        Sentry.captureException(
+          new Error('Invalid duration supplied to interval function')
+        );
+      });
 
       return (this.steps.at(-1) as GranularityStep)[1];
     }
@@ -93,7 +102,7 @@ export class GranularityLadder {
   }
 }
 
-export type Fidelity = 'high' | 'medium' | 'low' | 'metrics';
+export type Fidelity = 'high' | 'medium' | 'low' | 'metrics' | 'issues';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -103,6 +112,7 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     medium: mediumFidelityLadder,
     low: lowFidelityLadder,
     metrics: metricsFidelityLadder,
+    issues: issuesFidelityLadder,
   }[fidelity].getInterval(diffInMinutes);
 }
 
@@ -136,6 +146,18 @@ const metricsFidelityLadder = new GranularityLadder([
   [THIRTY_DAYS, '12h'],
   [TWO_WEEKS, '4h'],
   [TWENTY_FOUR_HOURS, '30m'],
+  [SIX_HOURS, '5m'],
+  [ONE_HOUR, '1m'],
+  [0, '1m'],
+]);
+
+const issuesFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
+  [FORTY_EIGHT_HOURS, '1h'],
+  [TWENTY_FOUR_HOURS, '20m'],
   [SIX_HOURS, '5m'],
   [ONE_HOUR, '1m'],
   [0, '1m'],
@@ -211,7 +233,7 @@ export function getSeriesSelection(
 }
 
 function isSingleSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats
+  data: MultiSeriesEventsStats | EventsStats | GroupedMultiSeriesEventsStats
 ): data is EventsStats {
   return (
     (defined(data.data) || defined(data.totals)) &&
@@ -221,7 +243,12 @@ function isSingleSeriesStats(
 }
 
 export function isMultiSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats | null | undefined,
+  data:
+    | MultiSeriesEventsStats
+    | EventsStats
+    | GroupedMultiSeriesEventsStats
+    | null
+    | undefined,
   isTopN?: boolean
 ): data is MultiSeriesEventsStats {
   return (

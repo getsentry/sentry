@@ -3,7 +3,7 @@ import os
 import re
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
-from datetime import timezone
+from datetime import timedelta, timezone
 from typing import Any
 
 from dateutil.parser import parse as parse_datetime
@@ -16,9 +16,10 @@ from sentry.api.utils import default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.replays.query import query_replays_dataset_tagkey_values
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
@@ -32,6 +33,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.fields import FIELD_ALIASES
 from sentry.search.events.filter import _flip_field_sort
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagKeyStatus, TagStorage
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
@@ -41,7 +43,6 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
 from sentry.utils import metrics, snuba
-from sentry.utils.dates import to_timestamp
 from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import (
     _prepare_start_end,
@@ -217,7 +218,7 @@ class SnubaTagStorage(TagStorage):
         limit=1000,
         keys=None,
         include_values_seen=True,
-        include_transactions=False,
+        dataset: Dataset = Dataset.Events,
         denylist=None,
         tenant_ids=None,
         **kwargs,
@@ -231,7 +232,7 @@ class SnubaTagStorage(TagStorage):
             limit,
             keys,
             include_values_seen=include_values_seen,
-            include_transactions=include_transactions,
+            dataset=dataset,
             denylist=denylist,
             tenant_ids=tenant_ids,
         )
@@ -247,8 +248,8 @@ class SnubaTagStorage(TagStorage):
         keys=None,
         include_values_seen=True,
         use_cache=False,
-        include_transactions=False,
         denylist=None,
+        dataset: Dataset = Dataset.Discover,
         **kwargs,
     ):
         """Query snuba for tag keys based on projects
@@ -271,9 +272,6 @@ class SnubaTagStorage(TagStorage):
         if end is None:
             end = default_end
 
-        dataset = Dataset.Events
-        if include_transactions:
-            dataset = Dataset.Discover
         conditions = []
         aggregations = [["count()", "", "count"]]
 
@@ -281,7 +279,7 @@ class SnubaTagStorage(TagStorage):
         if environments:
             filters["environment"] = sorted(environments)
         if group is not None:
-            # We override dataset changes from `include_transactions` here. They aren't relevant
+            # We override dataset changes from `dataset` here. They aren't relevant
             # when filtering by a group.
             dataset, conditions, filters = self.apply_group_filters_conditions(
                 group, conditions, filters
@@ -427,9 +425,9 @@ class SnubaTagStorage(TagStorage):
         environments,
         start,
         end,
+        dataset: Dataset = Dataset.Events,
         status=TagKeyStatus.ACTIVE,
-        use_cache=False,
-        include_transactions=False,
+        use_cache: bool = False,
         tenant_ids=None,
     ):
         max_unsampled_projects = _max_unsampled_projects
@@ -439,17 +437,24 @@ class SnubaTagStorage(TagStorage):
         # the sampling that turbo enables so that we get more accurate results.
         # We only want sampling when we have a large number of projects, so
         # that we don't cause performance issues for Snuba.
-        if len(projects) <= max_unsampled_projects:
+        # We also see issues with long timeranges in large projects,
+        # So only disable sampling if the timerange is short enough.
+        if len(projects) <= max_unsampled_projects and end - start <= timedelta(days=14):
             optimize_kwargs["sample"] = 1
+
+        # Replays doesn't support sampling.
+        if dataset == Dataset.Replays:
+            optimize_kwargs = {}
+
         return self.__get_tag_keys_for_projects(
             projects,
             None,
             environments,
             start,
             end,
+            dataset=dataset,
             include_values_seen=False,
             use_cache=use_cache,
-            include_transactions=include_transactions,
             tenant_ids=tenant_ids,
             **optimize_kwargs,
         )
@@ -861,7 +866,7 @@ class SnubaTagStorage(TagStorage):
         end=None,
         dataset=Dataset.Events,
         extra_aggregations=None,
-        referrer="tagstore.__get_groups_user_counts",
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value,
         tenant_ids=None,
     ):
         filters = {"project_id": project_ids, "group_id": group_ids}
@@ -888,7 +893,14 @@ class SnubaTagStorage(TagStorage):
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
+        self,
+        project_ids,
+        group_ids,
+        environment_ids,
+        start=None,
+        end=None,
+        tenant_ids=None,
+        referrer="tagstore.get_groups_user_counts",
     ):
         return self.__get_groups_user_counts(
             project_ids,
@@ -898,7 +910,7 @@ class SnubaTagStorage(TagStorage):
             end,
             Dataset.Events,
             [],
-            "tagstore.get_groups_user_counts",
+            referrer,
             tenant_ids=tenant_ids,
         )
 
@@ -1169,11 +1181,12 @@ class SnubaTagStorage(TagStorage):
         key,
         start=None,
         end=None,
-        query=None,
+        dataset: Dataset | None = None,
+        query: str | None = None,
         order_by="-last_seen",
-        include_transactions=False,
-        include_sessions=False,
-        include_replays=False,
+        include_transactions: bool = False,
+        include_sessions: bool = False,
+        include_replays: bool = False,
         tenant_ids=None,
     ):
         from sentry.api.paginator import SequencePaginator
@@ -1186,11 +1199,12 @@ class SnubaTagStorage(TagStorage):
         if order_by == "-count":
             order_by = "-times_seen"
 
-        dataset = Dataset.Events
-        if include_transactions:
-            dataset = Dataset.Discover
-        if include_replays:
-            dataset = Dataset.Replays
+        if not dataset:
+            dataset = Dataset.Events
+            if include_transactions:
+                dataset = Dataset.Discover
+            if include_replays:
+                dataset = Dataset.Replays
 
         snuba_key = snuba.get_snuba_column_name(key, dataset=dataset)
 
@@ -1329,6 +1343,7 @@ class SnubaTagStorage(TagStorage):
                 end=end,
                 environment=filters.get("environment"),
                 tag_key=key,
+                tag_substr_query=query,
                 tenant_ids=tenant_ids,
             )
             results = {
@@ -1394,7 +1409,7 @@ class SnubaTagStorage(TagStorage):
             if score_field == "times_seen":
                 # times_seen already an int
                 return int(getattr(tv, score_field))
-            return int(to_timestamp(getattr(tv, score_field)) * 1000)
+            return int(getattr(tv, score_field).timestamp() * 1000)
 
         return SequencePaginator(
             [(score_field_to_int(tv), tv) for tv in tag_values],
@@ -1408,8 +1423,8 @@ class SnubaTagStorage(TagStorage):
         key,
         callbacks=(),
         orderby="-first_seen",
-        limit=1000,
-        offset=0,
+        limit: int = 1000,
+        offset: int = 0,
         tenant_ids=None,
     ):
         filters = {
@@ -1473,10 +1488,7 @@ class SnubaTagStorage(TagStorage):
             )
 
         return SequencePaginator(
-            [
-                (int(to_timestamp(getattr(gtv, score_field)) * 1000), gtv)
-                for gtv in group_tag_values
-            ],
+            [(int(getattr(gtv, score_field).timestamp() * 1000), gtv) for gtv in group_tag_values],
             reverse=desc,
         )
 

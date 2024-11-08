@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import type {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -8,19 +7,20 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import type {
-  TraceFullDetailed,
   TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 import {TraceView as TraceViewV1} from './../newTraceDetails';
 import TraceDetailsContent from './content';
@@ -97,6 +97,7 @@ class TraceSummary extends Component<Props> {
     const traceSlug = this.getTraceSlug();
     const {start, end, statsPeriod} = this.getDateSelection();
     const dateSelected = Boolean(statsPeriod || (start && end));
+    const backend = decodeScalar(location.query.backend);
 
     const content = ({
       isLoading,
@@ -107,9 +108,9 @@ class TraceSummary extends Component<Props> {
       error: QueryError | null;
       isLoading: boolean;
       meta: TraceMeta | null;
-      traces: (TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>) | null;
+      traces: (TraceTree.Transaction[] | TraceSplitResults<TraceTree.Transaction>) | null;
     }) => {
-      const {transactions, orphanErrors} = getTraceSplitResults<TraceFullDetailed>(
+      const {transactions, orphanErrors} = getTraceSplitResults<TraceTree.Transaction>(
         traces ?? [],
         organization
       );
@@ -124,7 +125,7 @@ class TraceSummary extends Component<Props> {
         isLoading,
         error,
         orphanErrors,
-        traces: transactions ?? (traces as TraceFullDetailed[]),
+        traces: transactions ?? (traces as TraceTree.Transaction[]),
         meta,
         handleLimitChange: this.handleLimitChange,
       };
@@ -147,7 +148,7 @@ class TraceSummary extends Component<Props> {
 
     return (
       <TraceFullDetailedQuery
-        type="detailed"
+        type={backend === 'indexedSpans' ? 'spans' : 'detailed'}
         location={location}
         orgSlug={organization.slug}
         traceId={traceSlug}
@@ -169,7 +170,7 @@ class TraceSummary extends Component<Props> {
               content({
                 isLoading: traceResults.isLoading || metaResults.isLoading,
                 error: traceResults.error || metaResults.error,
-                traces: traceResults.traces,
+                traces: traceResults.traces as unknown as TraceTree.Transaction[],
                 meta: metaResults.meta,
               })
             }

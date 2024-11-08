@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
@@ -14,7 +13,9 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Integration, IntegrationProvider, Organization} from 'sentry/types';
+import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
@@ -22,7 +23,7 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {DisabledNotice} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
@@ -56,7 +57,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   disableErrorReport = false;
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    return [['organizations', '/organizations/']];
+    return [['organizations', '/organizations/?include_feature_flags=1']];
   }
 
   getTitle() {
@@ -138,7 +139,11 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
         Organization,
         {providers: IntegrationProvider[]},
       ] = await Promise.all([
-        this.api.requestPromise(`/organizations/${orgSlug}/`),
+        this.api.requestPromise(`/organizations/${orgSlug}/`, {
+          query: {
+            include_feature_flags: 1,
+          },
+        }),
         this.api.requestPromise(
           `/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
         ),
@@ -179,7 +184,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     return organization?.access.includes('org:integrations');
   };
 
-  // used with Github to redirect to the the integration detail
+  // used with Github to redirect to the integration detail
   onInstallWithInstallationId = (data: Integration) => {
     const {organization} = this.state;
     const orgId = organization?.slug;

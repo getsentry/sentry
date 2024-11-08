@@ -1,15 +1,12 @@
 from unittest import mock
 
-import pytest
 from django.urls import reverse
 
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now
 
 
-@region_silo_test
 class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -18,7 +15,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-sdk-updates",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         self.features = {}
 
@@ -27,7 +24,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
     )
     def test_simple(self, mock_index_state):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -58,7 +55,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         return_value=SdkIndexState(sdk_versions={"example.sdk": "1.0.1"}),
     )
     def test_ignores_patch(self, mock_index_state):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -83,7 +80,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 
         url = reverse(
             "sentry-api-0-organization-sdk-updates",
-            kwargs={"organization_slug": org.slug},
+            kwargs={"organization_id_or_slug": org.slug},
         )
 
         with self.feature(self.features):
@@ -91,7 +88,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     def test_filtered_project(self):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -114,7 +111,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
     )
     def test_multiple_versions_with_latest(self, mock_index_state):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -160,7 +157,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
     )
     def test_unknown_version(self, mock_index_state):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -184,27 +181,18 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             assert_no_errors=False,
         )
 
-        with self.feature(self.features), pytest.warns(DeprecationWarning) as warninfo:
+        with self.feature(self.features):
             response = self.client.get(self.url)
 
         update_suggestions = response.data
         assert len(update_suggestions) == 0
-
-        # until it is turned into an error, we'll get a warning about parsing an invalid version
-        (warning,) = warninfo
-        assert isinstance(warning.message, DeprecationWarning)
-        (warn_msg,) = warning.message.args
-        assert (
-            warn_msg
-            == "Creating a LegacyVersion has been deprecated and will be removed in the next major release"
-        )
 
     @mock.patch(
         "sentry.api.endpoints.organization_sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
     )
     def test_empty_version_sdk_name(self, mock_index_state):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -234,7 +222,6 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         assert len(update_suggestions) == 0
 
 
-@region_silo_test
 class OrganizationSdks(APITestCase):
     endpoint = "sentry-api-0-organization-sdks"
 

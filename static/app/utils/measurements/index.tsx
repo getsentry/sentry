@@ -1,4 +1,4 @@
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 
 export function formattedValue(record: Vital | undefined, value: number): string {

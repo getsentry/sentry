@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';
@@ -21,8 +20,9 @@ import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {EChartEventHandler, Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -44,7 +44,6 @@ type Props = {
     | DisplayModes.STABILITY;
   onTotalValuesChange: (value: number | null) => void;
   organization: Organization;
-  router: InjectedRouter;
   selection: PageFilters;
   title: string;
   disablePrevious?: boolean;
@@ -55,7 +54,6 @@ type Props = {
 function ProjectBaseSessionsChart({
   title,
   organization,
-  router,
   selection,
   api,
   onTotalValuesChange,
@@ -79,7 +77,7 @@ function ProjectBaseSessionsChart({
     <Fragment>
       {getDynamicText({
         value: (
-          <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+          <ChartZoom period={period} start={start} end={end} utc={utc}>
             {zoomRenderProps => (
               <Request
                 api={api}

@@ -1,8 +1,8 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.api.invite_helper import ApiInviteHelper
 from sentry.models.options.organization_option import OrganizationOption
@@ -11,9 +11,10 @@ from sentry.models.organizationonboardingtask import (
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
 )
+from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.organizations.services.organization import organization_service
 from sentry.plugins.bases.issue import IssueTrackingPlugin
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -27,18 +28,17 @@ from sentry.signals import (
     plugin_enabled,
     project_created,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class OrganizationOnboardingTaskTest(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_integration(self, provider, external_id=9999):
@@ -49,7 +49,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
     def test_no_existing_task(self):
-        now = django_timezone.now()
+        now = timezone.now()
         project = self.create_project(first_event=now)
         event = self.store_event(data={}, project_id=project.id)
         first_event_received.send(project=project, event=event, sender=type(project))
@@ -62,7 +62,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task.date_completed == project.first_event
 
     def test_existing_complete_task(self):
-        now = django_timezone.now()
+        now = timezone.now()
         project = self.create_project(first_event=now)
         task = OrganizationOnboardingTask.objects.create(
             organization=project.organization,
@@ -79,13 +79,13 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     # Tests on the receivers
     def test_event_processed(self):
-        now = django_timezone.now()
+        now = timezone.now()
         project = self.create_project(first_event=now)
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "platform": "javascript",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {
                     "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                     "sentry:user": "id:41656",
@@ -135,7 +135,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     def test_project_created(self):
-        now = django_timezone.now()
+        now = timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
 
@@ -147,7 +147,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     def test_first_event_received(self):
-        now = django_timezone.now()
+        now = timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         event = self.store_event(
@@ -195,7 +195,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         project = self.create_project()
 
         event_data = load_data("transaction")
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event_data.update({"start_timestamp": min_ago, "timestamp": min_ago})
 
         event = self.store_event(data=event_data, project_id=project.id)
@@ -320,7 +320,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_alert_added(self):
         alert_rule_created.send(
-            rule=Rule(id=1),
+            rule_id=Rule(id=1).id,
             project=self.project,
             user=self.user,
             rule_type="issue",
@@ -384,7 +384,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     def test_metric_added(self):
         alert_rule_created.send(
-            rule=Rule(id=1),
+            rule_id=Rule(id=1).id,
             project=self.project,
             user=self.user,
             rule_type="metric",
@@ -398,8 +398,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_onboarding_complete(self):
-        now = django_timezone.now()
+    @patch("sentry.analytics.record")
+    def test_onboarding_complete(self, record_analytics):
+        now = timezone.now()
         user = self.create_user(email="test@example.org")
         project = self.create_project(first_event=now)
         second_project = self.create_project(first_event=now)
@@ -411,7 +412,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             data={
                 "event_id": "a" * 32,
                 "platform": "javascript",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {
                     "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                     "sentry:user": "id:41656",
@@ -438,7 +439,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         event_data = load_data("transaction")
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event_data.update({"start_timestamp": min_ago, "timestamp": min_ago})
 
         transaction = self.store_event(data=event_data, project_id=project.id)
@@ -481,7 +482,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             sender=None,
         )
         alert_rule_created.send(
-            rule=Rule(id=1),
+            rule_id=Rule(id=1).id,
             project=self.project,
             user=self.user,
             rule_type="issue",
@@ -489,7 +490,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             is_api_token=False,
         )
         alert_rule_created.send(
-            rule=Rule(id=1),
+            rule_id=Rule(id=1).id,
             project=self.project,
             user=self.user,
             rule_type="metric",
@@ -505,13 +506,20 @@ class OrganizationOnboardingTaskTest(TestCase):
             == 1
         )
 
+        record_analytics.assert_called_with(
+            "onboarding.complete",
+            user_id=self.organization.default_owner_id,
+            organization_id=self.organization.id,
+            referrer="onboarding_tasks",
+        )
+
     @patch("sentry.analytics.record")
     def test_first_event_without_minified_stack_trace_received(self, record_analytics):
         """
         Test that an analytics event is NOT recorded when
         there no event with minified stack trace is received
         """
-        now = django_timezone.now()
+        now = timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         data = load_data("javascript")
@@ -536,7 +544,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         Test that an analytics event is recorded when
         a first event with minified stack trace is received
         """
-        now = django_timezone.now()
+        now = timezone.now()
         project = self.create_project(first_event=now, platform="VueJS")
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"
@@ -592,7 +600,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         Test that an analytic event is triggered only once when
         multiple events with minified stack trace are received
         """
-        now = django_timezone.now()
+        now = timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"
@@ -652,7 +660,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         In this test we also check  if the has_minified_stack_trace is being set to "True" in old projects
         """
-        old_date = datetime(2022, 12, 10, tzinfo=timezone.utc)
+        old_date = datetime(2022, 12, 10, tzinfo=UTC)
         project = self.create_project(first_event=old_date, date_added=old_date)
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"
@@ -685,8 +693,10 @@ class OrganizationOnboardingTaskTest(TestCase):
             ]
         }
 
-        # project.flags.has_minified_stack_trace = False
-        assert not project.flags.has_minified_stack_trace
+        def _project_has_minified_stack_trace(p: Project) -> bool:
+            return p.flags.has_minified_stack_trace
+
+        assert not _project_has_minified_stack_trace(project)
 
         # Store event
         self.store_event(
@@ -696,8 +706,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         project.refresh_from_db()
 
-        # project.flags.has_minified_stack_trace = True
-        assert project.flags.has_minified_stack_trace
+        assert _project_has_minified_stack_trace(project)
 
         # The analytic's event "first_event_with_minified_stack_trace_for_project" shall not be sent
         count = 0
@@ -713,7 +722,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         Test that an analytics event is NOT recorded when
         no event with sourcemaps is received
         """
-        now = django_timezone.now()
+        now = timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         data = load_data("javascript")
@@ -745,7 +754,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         Test that an analytics event is recorded when
         a first event with sourcemaps is received
         """
-        now = django_timezone.now()
+        now = timezone.now()
         project = self.create_project(first_event=now, platform="VueJS")
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"
@@ -792,7 +801,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         Test that an analytic event is triggered only once when
         multiple events with sourcemaps are received
         """
-        now = django_timezone.now()
+        now = timezone.now()
         project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"
@@ -844,7 +853,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         In this test we also check  if the has_sourcemaps is being set to "True" in old projects
         """
-        old_date = datetime(2022, 12, 10, tzinfo=timezone.utc)
+        old_date = datetime(2022, 12, 10, tzinfo=UTC)
         project = self.create_project(first_event=old_date, date_added=old_date)
         project_created.send(project=project, user=self.user, sender=type(project))
         url = "http://localhost:3000"
@@ -867,16 +876,17 @@ class OrganizationOnboardingTaskTest(TestCase):
             ]
         }
 
-        # project.flags.has_sourcemaps = False
-        assert not project.flags.has_sourcemaps
+        def _project_has_sourcemaps(p: Project) -> bool:
+            return project.flags.has_sourcemaps
+
+        assert not _project_has_sourcemaps(project)
 
         event = self.store_event(project_id=project.id, data=data)
         event_processed.send(project=project, event=event, sender=type(project))
 
         project.refresh_from_db()
 
-        # project.flags.has_sourcemaps = True
-        assert project.flags.has_sourcemaps
+        assert _project_has_sourcemaps(project)
 
         # The analytic's event "first_event_with_minified_stack_trace_for_project" shall not be sent
         count = 0
@@ -885,3 +895,55 @@ class OrganizationOnboardingTaskTest(TestCase):
                 count += 1
 
         assert count == 0
+
+    @patch("sentry.analytics.record")
+    def test_real_time_notifications_added(self, record_analytics):
+        with self.feature("organizations:quick-start-updates"):
+            integration_id = self.create_integration("slack", 123).id
+            integration_added.send(
+                integration_id=integration_id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                sender=None,
+            )
+            task = OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.REAL_TIME_NOTIFICATIONS,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+            assert task is not None
+
+            record_analytics.assert_called_with(
+                "integration.added",
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="slack",
+            )
+
+    @patch("sentry.analytics.record")
+    def test_source_code_management_added(self, record_analytics):
+        with self.feature("organizations:quick-start-updates"):
+            integration_id = self.create_integration("github", 123).id
+            integration_added.send(
+                integration_id=integration_id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                sender=None,
+            )
+            task = OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+            assert task is not None
+
+            record_analytics.assert_called_with(
+                "integration.added",
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="github",
+            )

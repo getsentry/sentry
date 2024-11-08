@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
@@ -18,22 +17,23 @@ import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import type EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import AnomaliesQuery from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
@@ -82,7 +82,6 @@ function SidebarCharts({
   transactionName,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
   const theme = useTheme();
 
   return (
@@ -128,7 +127,6 @@ function SidebarCharts({
       >
         {results => (
           <ChartZoom
-            router={router}
             period={statsPeriod}
             start={start}
             end={end}
@@ -210,7 +208,6 @@ function SidebarChartsContainer({
   transactionName,
 }: ContainerProps) {
   const location = useLocation();
-  const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 
@@ -320,7 +317,6 @@ function SidebarChartsContainer({
 
   const contentCommonProps = {
     organization,
-    router,
     error,
     isLoading,
     start,

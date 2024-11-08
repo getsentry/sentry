@@ -7,20 +7,29 @@ from collections.abc import Callable, Mapping, MutableMapping
 from datetime import timezone
 from typing import Any
 
+import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.request import Request
 
 from sentry import analytics, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
+from sentry.identity.services.identity.service import identity_service
+from sentry.integrations.github.tasks.open_pr_comment import open_pr_comment_workflow
 from sentry.integrations.pipeline import ensure_integration
+from sentry.integrations.services.integration.model import (
+    RpcIntegration,
+    RpcOrganizationIntegration,
+)
+from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -29,23 +38,14 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
-from sentry.services.hybrid_cloud.identity.service import identity_service
-from sentry.services.hybrid_cloud.integration.model import (
-    RpcIntegration,
-    RpcOrganizationIntegration,
-)
-from sentry.services.hybrid_cloud.integration.service import integration_service
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.services.hybrid_cloud.repository.service import repository_service
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow
-from sentry.utils import json, metrics
-from sentry.utils.json import JSONData
+from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
@@ -90,9 +90,12 @@ class Webhook:
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
         external_id = get_github_external_id(event=event, host=host)
 
-        integration, installs = integration_service.get_organization_contexts(
+        result = integration_service.organization_contexts(
             external_id=external_id, provider=self.provider
         )
+        integration = result.integration
+        installs = result.organization_integrations
+
         if integration is None or not installs:
             # It seems possible for the GH or GHE app to be installed on their
             # end, but the integration to not exist. Possibly from deleting in
@@ -153,6 +156,7 @@ class Webhook:
                 repos = repos.all()
 
             for repo in repos.exclude(status=ObjectStatus.HIDDEN):
+                self.update_repo_data(repo, event)
                 self._handle(integration, event, orgs[repo.organization_id], repo)
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
@@ -176,11 +180,24 @@ class Webhook:
             or repo.config.get("name") != name_from_event
             or repo.url != url_from_event
         ):
-            repo.update(
-                name=name_from_event,
-                url=url_from_event,
-                config=dict(repo.config, name=name_from_event),
-            )
+            try:
+                repo.update(
+                    name=name_from_event,
+                    url=url_from_event,
+                    config=dict(repo.config, name=name_from_event),
+                )
+            except IntegrityError:
+                logger.exception(
+                    "github.webhook.update_repo_data.integrity_error",
+                    extra={
+                        "repo_id": repo.id,
+                        "new_name": name_from_event,
+                        "new_url": url_from_event,
+                        "old_name": repo.name,
+                        "old_url": repo.url,
+                    },
+                )
+                pass
 
 
 class InstallationEventWebhook:
@@ -213,10 +230,13 @@ class InstallationEventWebhook:
             external_id = event["installation"]["id"]
             if host:
                 external_id = "{}:{}".format(host, event["installation"]["id"])
-            integration, org_integrations = integration_service.get_organization_contexts(
+            result = integration_service.organization_contexts(
                 provider=self.provider,
                 external_id=external_id,
             )
+            integration = result.integration
+            org_integrations = result.organization_integrations
+
             if integration is not None:
                 self._handle_delete(event, integration, org_integrations)
             else:
@@ -551,6 +571,10 @@ class PullRequestEventWebhook(Webhook):
         except IntegrityError:
             pass
 
+        # Because we require that the sentry github integration be installed for autofix, we can piggyback
+        # on this webhook for autofix for now. We may move to a separate autofix github integration in the future.
+        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+
 
 @all_silo_endpoint
 class GitHubIntegrationsWebhookEndpoint(Endpoint):
@@ -564,18 +588,17 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
-    _handlers = {
+    _handlers: dict[str, Callable[[], Callable[[Any], Any]]] = {
         "push": PushEventWebhook,
         "pull_request": PullRequestEventWebhook,
         "installation": InstallationEventWebhook,
     }
 
-    def get_handler(self, event_type: str) -> Callable[[], Callable[[JSONData], Any]] | None:
-        handler: Callable[[], Callable[[JSONData], Any]] | None = self._handlers.get(event_type)
-        return handler
+    def get_handler(self, event_type: str) -> Callable[[], Callable[[Any], Any]] | None:
+        return self._handlers.get(event_type)
 
     def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
         if method == "sha1":
@@ -587,7 +610,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -602,10 +625,10 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
     def get_secret(self) -> str | None:
         return options.get("github-app.webhook-secret")
 
-    def post(self, request: Request) -> HttpResponse:
+    def post(self, request: HttpRequest) -> HttpResponse:
         return self.handle(request)
 
-    def handle(self, request: Request) -> HttpResponse:
+    def handle(self, request: HttpRequest) -> HttpResponse:
         clear_tags_and_context()
         secret = self.get_secret()
 
@@ -626,7 +649,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=400)
 
         if not handler:
-            logger.error(
+            logger.info(
                 "github.webhook.missing-handler",
                 extra={"event_type": request.META["HTTP_X_GITHUB_EVENT"]},
             )
@@ -644,8 +667,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=401)
 
         try:
-            event = json.loads(body.decode("utf-8"))
-        except json.JSONDecodeError:
+            event = orjson.loads(body)
+        except orjson.JSONDecodeError:
             logger.exception("github.webhook.invalid-json", extra=self.get_logging_data())
             logger.exception("Invalid JSON.")
             return HttpResponse(status=400)

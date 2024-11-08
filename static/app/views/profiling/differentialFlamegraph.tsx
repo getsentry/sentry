@@ -7,6 +7,7 @@ import {vec2} from 'gl-matrix';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {DifferentialFlamegraphLayout} from 'sentry/components/profiling/flamegraph/differentialFlamegraphLayout';
+import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {DifferentialFlamegraphDrawer} from 'sentry/components/profiling/flamegraph/flamegraphDrawer/differentialFlamegraphDrawer';
 import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphToolbar';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
@@ -125,25 +126,6 @@ function DifferentialFlamegraphView() {
           configSpaceTransform: undefined,
         },
       });
-
-      // Find p75 of the graphtree depth and set the view to 3/4 of that
-      const depths: number[] = [];
-      for (const frame of differentialFlamegraph.differentialFlamegraph.frames) {
-        if (frame.children.length > 0) {
-          continue;
-        }
-        depths.push(frame.depth);
-      }
-
-      if (depths.length > 0) {
-        depths.sort();
-        const d = depths[Math.floor(depths.length - 1 * 0.75)];
-        const depth = Math.max(d, 0);
-
-        newView.setConfigView(
-          newView.configView.withY(depth - (newView.configView.height * 3) / 4)
-        );
-      }
 
       return newView;
     },
@@ -317,6 +299,7 @@ function DifferentialFlamegraphView() {
           }
           flamegraph={
             <FlamegraphZoomView
+              scheduler={scheduler}
               profileGroup={
                 differentialFlamegraph.afterProfileGroup ?? LOADING_PROFILE_GROUP
               }
@@ -333,6 +316,7 @@ function DifferentialFlamegraphView() {
               flamegraphView={flamegraphView}
               setFlamegraphCanvasRef={setFlamegraphCanvasRef}
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
+              contextMenu={FlamegraphContextMenu}
             />
           }
           flamegraphDrawer={

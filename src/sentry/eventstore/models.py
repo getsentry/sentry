@@ -3,29 +3,28 @@ from __future__ import annotations
 import abc
 import logging
 import string
-from collections.abc import Generator, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, cast, overload
 
+import orjson
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.encoding import force_str
+from django.utils.functional import cached_property
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
-from sentry.grouping.result import CalculatedHashes
+from sentry.grouping.variants import BaseVariant
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.event import EventDict
 from sentry.snuba.events import Columns
 from sentry.spans.grouping.api import load_span_grouping_config
-from sentry.utils import json
-from sentry.utils.cache import memoize
-from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
@@ -69,9 +68,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
     def __getstate__(self) -> Mapping[str, Any]:
         state = self.__dict__.copy()
         # do not pickle cached info.  We want to fetch this on demand
-        # again.  In particular if we were to pickle interfaces we would
-        # pickle a CanonicalKeyView which old sentry workers do not know
-        # about
+        # again.
         state.pop("_project_cache", None)
         state.pop("_environment_cache", None)
         state.pop("_group_cache", None)
@@ -88,6 +85,13 @@ class BaseEvent(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def data(self, value: NodeData | Mapping[str, Any]):
         pass
+
+    @property
+    def trace_id(self) -> str | None:
+        ret_value = None
+        if self.data:
+            ret_value = self.data.get("contexts", {}).get("trace", {}).get("trace_id")
+        return ret_value
 
     @property
     def platform(self) -> str | None:
@@ -245,8 +249,15 @@ class BaseEvent(metaclass=abc.ABCMeta):
         if column in self._snuba_data:
             return cast(str, self._snuba_data[column])
 
-        et = eventtypes.get(self.get_event_type())()
-        return cast(str, et.get_title(self.get_event_metadata()))
+        title = self.data.get("title")
+        event_type = self.get_event_type()
+
+        # TODO: It may be that we don't have to restrict this to just default and error types
+        if title and event_type in ["default", "error"]:
+            return title
+
+        event_type_instance = eventtypes.get(event_type)()
+        return cast(str, event_type_instance.get_title(self.get_event_metadata()))
 
     @property
     def culprit(self) -> str | None:
@@ -289,12 +300,15 @@ class BaseEvent(metaclass=abc.ABCMeta):
             self.project_id = project.id
         self._project_cache = project
 
-    def get_interfaces(self) -> Mapping[str, Interface]:
-        return cast(Mapping[str, Interface], CanonicalKeyView(get_interfaces(self.data)))
-
-    @memoize
+    @cached_property
     def interfaces(self) -> Mapping[str, Interface]:
-        return self.get_interfaces()
+        return get_interfaces(self.data)
+
+    @overload
+    def get_interface(self, name: Literal["user"]) -> User: ...
+
+    @overload
+    def get_interface(self, name: str) -> Interface | None: ...
 
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
@@ -316,91 +330,51 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return get_grouping_config_dict_for_event_data(self.data, self.project)
 
-    def get_hashes(self, force_config: StrategyConfiguration | None = None) -> CalculatedHashes:
+    def get_hashes_and_variants(
+        self, config: StrategyConfiguration | None = None
+    ) -> tuple[list[str], dict[str, BaseVariant]]:
         """
+        Return the event's hash values, calculated using the given config, along with the
+        `variants` data used in grouping.
+        """
+
+        variants = self.get_grouping_variants(config)
+        # Sort the variants so that the system variant (if any) is always last, in order to resolve
+        # ambiguities when choosing primary_hash for Snuba
+        sorted_variants = sorted(
+            variants.items(),
+            key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0,
+        )
+        # Get each variant's hash value, filtering out Nones
+        hashes = list({variant.get_hash() for _, variant in sorted_variants} - {None})
+
+        # Write to event before returning
+        self.data["hashes"] = hashes
+
+        return (hashes, variants)
+
+    def get_hashes(self, force_config: StrategyConfiguration | None = None) -> list[str]:
+        """
+        Returns the calculated hashes for the event. This uses the stored
+        information if available. Grouping hashes will take into account
+        fingerprinting and checksums.
+
         Returns _all_ information that is necessary to group an event into
-        issues. It returns two lists of hashes, `(flat_hashes, hierarchical_hashes)`:
-
-        1. First, `hierarchical_hashes` is walked
-           *backwards* (end to start) until one hash has been found that matches
-           an existing group. Only *that* hash gets a GroupHash instance that is
-           associated with the group.
-
-        2. If no group was found, an event should be sorted into a group X, if
-           there is a GroupHash matching *any* of `flat_hashes`. Hashes that do
-           not yet have a GroupHash model get one and are associated with the same
-           group (unless they already belong to another group).
-
-           This is how regular grouping works.
-
-        Whichever group the event lands in is associated with exactly one
-        GroupHash corresponding to an entry in `hierarchical_hashes`, and an
-        arbitrary amount of hashes from `flat_hashes` depending on whether some
-        of those hashes have GroupHashes already assigned to other groups (and
-        some other things).
-
-        The returned hashes already take SDK fingerprints and checksums into
-        consideration.
+        issues: An event should be sorted into a group X, if there is a GroupHash
+        matching *any* of the hashes. Hashes that do not yet have a GroupHash model get
+        one and are associated with the same group (unless they already belong to another group).
 
         """
-
         # If we have hashes stored in the data we use them, otherwise we
         # fall back to generating new ones from the data.  We can only use
         # this if we do not force a different config.
         if force_config is None:
-            rv = CalculatedHashes.from_event(self.data)
-            if rv is not None:
-                return rv
+            hashes = self.data.get("hashes")
+            if hashes is not None:
+                return hashes
 
         # Create fresh hashes
-        flat_variants, hierarchical_variants = self.get_sorted_grouping_variants(force_config)
-        flat_hashes, _ = self._hashes_from_sorted_grouping_variants(flat_variants)
-        hierarchical_hashes, tree_labels = self._hashes_from_sorted_grouping_variants(
-            hierarchical_variants
-        )
-
-        if flat_hashes:
-            sentry_sdk.set_tag("get_hashes.flat_variant", flat_hashes[0][0])
-        if hierarchical_hashes:
-            sentry_sdk.set_tag("get_hashes.hierarchical_variant", hierarchical_hashes[0][0])
-
-        flat_hashes = [hash_ for _, hash_ in flat_hashes]
-        hierarchical_hashes = [hash_ for _, hash_ in hierarchical_hashes]
-
-        return CalculatedHashes(
-            hashes=flat_hashes, hierarchical_hashes=hierarchical_hashes, tree_labels=tree_labels
-        )
-
-    def get_sorted_grouping_variants(self, force_config: StrategyConfiguration | None = None):
-        """Get grouping variants sorted into flat and hierarchical variants"""
-        from sentry.grouping.api import sort_grouping_variants
-
-        variants = self.get_grouping_variants(force_config)
-        return sort_grouping_variants(variants)
-
-    @staticmethod
-    def _hashes_from_sorted_grouping_variants(variants):
-        """Create hashes from variants and filter out duplicates and None values"""
-
-        from sentry.grouping.variants import ComponentVariant
-
-        filtered_hashes = []
-        tree_labels = []
-        seen_hashes = set()
-        for name, variant in variants:
-            hash_ = variant.get_hash()
-            if hash_ is None or hash_ in seen_hashes:
-                continue
-
-            seen_hashes.add(hash_)
-            filtered_hashes.append((name, hash_))
-            tree_labels.append(
-                variant.component.tree_label or None
-                if isinstance(variant, ComponentVariant)
-                else None
-            )
-
-        return filtered_hashes, tree_labels
+        return self.get_hashes_and_variants(force_config)[0]
 
     def normalize_stacktraces_for_grouping(self, grouping_config: StrategyConfiguration) -> None:
         """Normalize stacktraces and clear memoized interfaces
@@ -418,7 +392,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         self,
         force_config: StrategyConfiguration | GroupingConfig | str | None = None,
         normalize_stacktraces: bool = False,
-    ):
+    ) -> dict[str, BaseVariant]:
         """
         This is similar to `get_hashes` but will instead return the
         grouping components for each variant in a dictionary.
@@ -437,9 +411,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
             from sentry.grouping.strategies.base import StrategyConfiguration
 
             if isinstance(force_config, str):
-                # A string like `"mobile:2021-02-12"`
+                # A string like `"newstyle:2023-01-11"`
                 stored_config = self.get_grouping_config()
-                grouping_config = dict(stored_config)
+                grouping_config = stored_config.copy()
                 grouping_config["id"] = force_config
                 loaded_grouping_config = load_grouping_config(grouping_config)
             elif isinstance(force_config, StrategyConfiguration):
@@ -466,16 +440,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
             return get_grouping_variants_for_event(self, loaded_grouping_config)
 
-    def get_primary_hash(self) -> str | None:
-        hashes = self.get_hashes()
-
-        if hashes.hierarchical_hashes:
-            return hashes.hierarchical_hashes[0]
-
-        if hashes.hashes:
-            return hashes.hashes[0]
-
-        return None
+    def get_primary_hash(self) -> str:
+        return self.get_hashes()[0]
 
     def get_span_groupings(
         self, force_config: str | Mapping[str, Any] | None = None
@@ -503,7 +469,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def size(self) -> int:
-        return len(json.dumps(dict(self.data)))
+        return len(orjson.dumps(dict(self.data)).decode())
 
     def get_email_subject(self) -> str:
         template = self.project.get_option("mail:subject_template")
@@ -517,9 +483,9 @@ class BaseEvent(metaclass=abc.ABCMeta):
             str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
         )
 
-    def as_dict(self) -> Mapping[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """Returns the data in normalized form for external consumers."""
-        data: MutableMapping[str, Any] = {}
+        data: dict[str, Any] = {}
         data["event_id"] = self.event_id
         data["project"] = self.project_id
         data["release"] = self.release
@@ -546,7 +512,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return data
 
-    @memoize
+    @cached_property
     def search_message(self) -> str:
         """
         The internal search_message attribute is only used for search purposes.
@@ -634,7 +600,7 @@ class Event(BaseEvent):
     def group_id(self, value: int | None) -> None:
         self._group_id = value
 
-    # TODO We need a better way to cache these properties. functools
+    # TODO: We need a better way to cache these properties. functools
     # doesn't quite do the trick as there is a reference bug with unsaved
     # models. But the current _group_cache thing is also clunky because these
     # properties need to be stripped out in __getstate__.
@@ -688,13 +654,6 @@ class Event(BaseEvent):
         self._groups_cache = values
         self._group_ids = [group.id for group in values] if values else None
 
-    def build_group_events(self) -> Generator[GroupEvent, None, None]:
-        """
-        Yields a GroupEvent for each Group associated with this Event.
-        """
-        for group in self.groups:
-            yield GroupEvent.from_event(self, group)
-
     def for_group(self, group: Group) -> GroupEvent:
         return GroupEvent.from_event(self, group)
 
@@ -708,7 +667,7 @@ class GroupEvent(BaseEvent):
         data: NodeData,
         snuba_data: Mapping[str, Any] | None = None,
         occurrence: IssueOccurrence | None = None,
-    ):
+    ) -> None:
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group = group
         self.data = data
@@ -777,7 +736,7 @@ class GroupEvent(BaseEvent):
             return cast(str, self._snuba_data[column])
         return None
 
-    @memoize
+    @cached_property
     def search_message(self) -> str:
         message = super().search_message
         # Include values from the occurrence in our search message as well, so that occurrences work

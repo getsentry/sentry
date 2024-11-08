@@ -13,7 +13,7 @@ class FooSerializer(Serializer):
 
 
 class VariadicSerializer(Serializer):
-    def serialize(self, obj, attrs, user, kw):
+    def serialize(self, obj, attrs, user, **kw):
         return {"kw": kw}
 
 
@@ -70,7 +70,7 @@ class BaseSerializerTest(TestCase):
         foo = Foo()
         user = self.create_user()
         result = serialize(foo, user, VariadicSerializer(), kw="keyword")
-        assert result["kw"] == "keyword"
+        assert result["kw"] == {"kw": "keyword"}
 
     def test_child_serializer_failure(self):
         foo = Foo()

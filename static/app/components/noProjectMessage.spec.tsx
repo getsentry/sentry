@@ -18,15 +18,16 @@ describe('NoProjectMessage', function () {
 
   it('renders', function () {
     const organization = OrganizationFixture({slug: 'org-slug'});
-    const childrenMock = jest.fn().mockReturnValue(null);
     ProjectsStore.loadInitialData([]);
 
     render(
-      <NoProjectMessage organization={organization}>{childrenMock}</NoProjectMessage>
+      <NoProjectMessage organization={organization}>
+        <div data-test-id="child">Test</div>
+      </NoProjectMessage>
     );
 
-    expect(childrenMock).not.toHaveBeenCalled();
     expect(screen.getByText('Remain Calm')).toBeInTheDocument();
+    expect(screen.queryByTestId('child')).not.toBeInTheDocument();
   });
 
   it('shows "Create Project" button when there are no projects', function () {
@@ -58,7 +59,11 @@ describe('NoProjectMessage', function () {
     // No org-level access
     render(
       <NoProjectMessage
-        organization={OrganizationFixture({access: [], features: ['team-roles']})}
+        organization={OrganizationFixture({
+          access: [],
+          features: ['team-roles'],
+          allowMemberProjectCreation: true,
+        })}
       />
     );
 

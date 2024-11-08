@@ -4,11 +4,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
-import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {
+  DashboardsMEPContext,
+  DashboardsMEPProvider,
+} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import WidgetQueries, {
   flattenMultiSeriesDataWithGrouping,
@@ -20,7 +23,9 @@ describe('Dashboards > WidgetQueries', function () {
   const renderWithProviders = component =>
     render(
       <MetricsResultsMetaProvider>
-        <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+        <DashboardsMEPProvider>
+          <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+        </DashboardsMEPProvider>
       </MetricsResultsMetaProvider>
     );
 
@@ -142,7 +147,7 @@ describe('Dashboards > WidgetQueries', function () {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: 'event.type:error release:["abc@1.2.0","abc@1.3.0"] ',
+          query: '(event.type:error) release:["abc@1.2.0","abc@1.3.0"] ',
         }),
       })
     );
@@ -170,7 +175,7 @@ describe('Dashboards > WidgetQueries', function () {
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
-          query: 'event.type:error release:"abc@1.3.0" ',
+          query: '(event.type:error) release:"abc@1.3.0" ',
         }),
       })
     );
@@ -205,10 +210,12 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 2 requests should be sent.
-    await screen.findByTestId('child');
+    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(error).toEqual('Bad request data');
+    });
     expect(okMock).toHaveBeenCalledTimes(1);
     expect(failMock).toHaveBeenCalledTimes(1);
-    expect(error).toEqual('Bad request data');
   });
 
   it('adjusts interval based on date window', async function () {
@@ -317,15 +324,15 @@ describe('Dashboards > WidgetQueries', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'event.type:error',
-          field: ['sdk.name'],
+          field: 'sdk.name',
           statsPeriod: '14d',
-          environment: ['prod'],
-          project: [1],
+          environment: 'prod',
+          project: '1',
         }),
       })
     );
     expect(childProps?.timeseriesResults).toBeUndefined();
-    expect(childProps?.tableResults?.[0].data).toHaveLength(1);
+    await waitFor(() => expect(childProps?.tableResults?.[0].data).toHaveLength(1));
     expect(childProps?.tableResults?.[0].meta).toBeDefined();
   });
 
@@ -391,7 +398,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
-    expect(childProps?.tableResults).toHaveLength(2);
+    await waitFor(() => expect(childProps?.tableResults).toHaveLength(2));
     expect(childProps?.tableResults?.[0].data[0]['sdk.name']).toBeDefined();
     expect(childProps?.tableResults?.[1].data[0].title).toBeDefined();
   });
@@ -443,15 +450,15 @@ describe('Dashboards > WidgetQueries', function () {
         query: expect.objectContaining({
           referrer: 'api.dashboards.bignumberwidget',
           query: 'event.type:error',
-          field: ['sdk.name'],
+          field: 'sdk.name',
           statsPeriod: '14d',
-          environment: ['prod'],
-          project: [1],
+          environment: 'prod',
+          project: '1',
         }),
       })
     );
     expect(childProps?.timeseriesResults).toBeUndefined();
-    expect(childProps?.tableResults?.[0]?.data).toHaveLength(1);
+    await waitFor(() => expect(childProps?.tableResults?.[0]?.data).toHaveLength(1));
     expect(childProps?.tableResults?.[0]?.meta).toBeDefined();
   });
 
@@ -515,7 +522,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
-    expect(childProps?.loading).toEqual(false);
+    await waitFor(() => expect(childProps?.loading).toEqual(false));
   });
 
   it('sets bar charts to 1d interval', async function () {
@@ -607,13 +614,15 @@ describe('Dashboards > WidgetQueries', function () {
     await screen.findByTestId('child');
     expect(defaultMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledTimes(1);
-    expect(child).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        timeseriesResults: [
-          {data: [{name: 1000000, value: 200}], seriesName: 'errors : count()'},
-          {data: [{name: 1000000, value: 100}], seriesName: 'default : count()'},
-        ],
-      })
+    await waitFor(() =>
+      expect(child).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          timeseriesResults: [
+            {data: [{name: 1000000, value: 200}], seriesName: 'errors : count()'},
+            {data: [{name: 1000000, value: 100}], seriesName: 'default : count()'},
+          ],
+        })
+      )
     );
   });
 
@@ -686,31 +695,33 @@ describe('Dashboards > WidgetQueries', function () {
     // Simulate a re-render with a new query alias
     rerender(
       <MetricsResultsMetaProvider>
-        <MEPSettingProvider forceTransactions={false}>
-          <WidgetQueries
-            api={new MockApiClient()}
-            widget={{
-              ...lineWidget,
-              queries: [
-                {
-                  conditions: 'event.type:error',
-                  fields: ['count()'],
-                  aggregates: ['count()'],
-                  columns: [],
-                  name: 'this query alias changed',
-                  orderby: '',
-                },
-              ],
-            }}
-            organization={initialData.organization}
-            selection={selection}
-          >
-            {props => {
-              childProps = props;
-              return <div data-test-id="child" />;
-            }}
-          </WidgetQueries>
-        </MEPSettingProvider>
+        <DashboardsMEPProvider>
+          <MEPSettingProvider forceTransactions={false}>
+            <WidgetQueries
+              api={new MockApiClient()}
+              widget={{
+                ...lineWidget,
+                queries: [
+                  {
+                    conditions: 'event.type:error',
+                    fields: ['count()'],
+                    aggregates: ['count()'],
+                    columns: [],
+                    name: 'this query alias changed',
+                    orderby: '',
+                  },
+                ],
+              }}
+              organization={initialData.organization}
+              selection={selection}
+            >
+              {props => {
+                childProps = props;
+                return <div data-test-id="child" />;
+              }}
+            </WidgetQueries>
+          </MEPSettingProvider>
+        </DashboardsMEPProvider>
       </MetricsResultsMetaProvider>
     );
 

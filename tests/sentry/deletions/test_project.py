@@ -1,5 +1,7 @@
 from sentry import eventstore
-from sentry.incidents.models import AlertRule, Incident
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.debugfile import ProjectDebugFile
@@ -16,7 +18,6 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.models.servicehook import ServiceHook
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -25,21 +26,21 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
+from sentry.sentry_apps.models.servicehook import ServiceHook
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import APITestCase, TransactionTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project(name="test")
         event = self.store_event(data={}, project_id=project.id)
+        assert event.group is not None
         group = event.group
         GroupAssignee.objects.create(group=group, project=project, user_id=self.user.id)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
@@ -108,11 +109,27 @@ class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
         )
+        snuba_query = SnubaQuery.objects.create(
+            environment=env,
+            type=0,
+            query="title:ohno",
+            aggregate="",
+            time_window=3600,
+            resolution=60,
+        )
+        query_sub = QuerySubscription.objects.create(
+            project=project,
+            snuba_query=snuba_query,
+            status=0,
+            subscription_id="a-snuba-id-maybe",
+            query_extra="",
+        )
         incident = self.create_incident(
             organization=project.organization,
             projects=[project],
             alert_rule=metric_alert_rule,
             title="Something bad happened",
+            subscription=query_sub,
         )
 
         rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
@@ -131,12 +148,14 @@ class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
         assert Release.objects.filter(id=release.id).exists()
         assert ReleaseCommit.objects.filter(release_id=release.id).exists()
         assert Commit.objects.filter(id=commit.id).exists()
+        assert SnubaQuery.objects.filter(id=snuba_query.id).exists()
         assert not ProjectDebugFile.objects.filter(id=dif.id).exists()
         assert not File.objects.filter(id=file.id).exists()
         assert not ServiceHook.objects.filter(id=hook.id).exists()
         assert not Monitor.objects.filter(id=monitor.id).exists()
         assert not MonitorEnvironment.objects.filter(id=monitor_env.id).exists()
         assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()
+        assert not QuerySubscription.objects.filter(id=query_sub.id).exists()
 
         incident.refresh_from_db()
         assert len(incident.projects.all()) == 0, "Project relation should be removed"
@@ -150,7 +169,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
         project = self.create_project(name="test")
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "oh no",
             },
             project_id=project.id,

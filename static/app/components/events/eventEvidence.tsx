@@ -1,12 +1,15 @@
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
-import type {Event, Group, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {eventIsProfilingIssue} from 'sentry/utils/events';
 import {
   getConfigForIssueType,
   getIssueCategoryAndTypeFromOccurrenceType,
 } from 'sentry/utils/issueTypeConfig';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type EvidenceProps = {event: Event; project: Project; group?: Group};
 
@@ -33,7 +36,11 @@ export function EventEvidence({event, group, project}: EvidenceProps) {
   }
 
   return (
-    <EventDataSection title={config.title} type="evidence" help={config.helpText}>
+    <InterimSection
+      type={SectionKey.EVIDENCE}
+      title={config.title}
+      help={config.helpText}
+    >
       <KeyValueList
         data={evidenceDisplay.map(item => ({
           subject: item.name,
@@ -42,6 +49,6 @@ export function EventEvidence({event, group, project}: EvidenceProps) {
         }))}
         shouldSort={false}
       />
-    </EventDataSection>
+    </InterimSection>
   );
 }

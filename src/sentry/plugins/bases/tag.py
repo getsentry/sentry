@@ -10,7 +10,7 @@ class TagPlugin(Plugin2):
     tag: ClassVar[str]
     project_default_enabled = True
 
-    def get_tag_values(self, event, **kwargs):
+    def get_tag_values(self, event) -> list[str]:
         """
         Must return a list of values.
 

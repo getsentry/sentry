@@ -84,7 +84,11 @@ const unarySuggestions: Array<SourceSuggestion> = [
 ];
 
 const valueSuggestions: Array<SourceSuggestion> = [
-  {type: SourceSuggestionType.VALUE, value: '**', description: t('everywhere')},
+  {
+    type: SourceSuggestionType.VALUE,
+    value: '**',
+    description: t('all default PII fields'),
+  },
   {
     type: SourceSuggestionType.VALUE,
     value: 'password',

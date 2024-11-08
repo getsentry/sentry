@@ -1,23 +1,19 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
-import round from 'lodash/round';
 
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
-import {Button} from 'sentry/components/button';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import ScoreCard from 'sentry/components/scoreCard';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import useApi from 'sentry/utils/useApi';
+import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -121,28 +117,10 @@ export function ProjectAnrScoreCard({
   }, [start, end, period, api, organization.slug, environments, projects, query]);
 
   const value = sessionsData?.groups?.[0]?.totals['anr_rate()'] ?? null;
-
   const previousValue = previousSessionData?.groups?.[0]?.totals['anr_rate()'] ?? null;
-
-  const hasCurrentAndPrevious = previousValue && value;
-  const trend = hasCurrentAndPrevious ? round(value - previousValue, 4) : null;
-  const trendStatus = !trend ? undefined : trend < 0 ? 'good' : 'bad';
 
   if (!isProjectStabilized) {
     return null;
-  }
-
-  function renderTrend() {
-    return trend ? (
-      <Fragment>
-        {trend >= 0 ? (
-          <IconArrow direction="up" size="xs" />
-        ) : (
-          <IconArrow direction="down" size="xs" />
-        )}
-        {`${formatAbbreviatedNumber(Math.abs(trend))}\u0025`}
-      </Fragment>
-    ) : null;
   }
 
   const endpointPath = `/organizations/${organization.slug}/issues/`;
@@ -160,31 +138,31 @@ export function ProjectAnrScoreCard({
     query: queryParams,
   };
 
-  function renderButton() {
-    return (
-      <Button
-        data-test-id="issues-open"
-        size="xs"
-        to={issueSearch}
-        onClick={() => {
-          trackAnalytics('project_detail.open_anr_issues', {
-            organization,
-          });
-        }}
-      >
-        {t('View Issues')}
-      </Button>
-    );
-  }
-
   return (
-    <ScoreCard
+    <BigNumberWidget
       title={t('ANR Rate')}
-      help={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
-      score={value ? formatPercentage(value, 3) : '\u2014'}
-      trend={renderTrend()}
-      trendStatus={trendStatus}
-      renderOpenButton={renderButton}
+      description={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
+      value={value ?? undefined}
+      previousPeriodValue={previousValue ?? undefined}
+      field="anr_rate()"
+      preferredPolarity="-"
+      meta={{
+        fields: {
+          'anr_rate()': 'percentage',
+        },
+      }}
+      actions={[
+        {
+          key: 'issue-search',
+          label: t('View Issues'),
+          to: issueSearch,
+          onAction: () => {
+            trackAnalytics('project_detail.open_anr_issues', {
+              organization,
+            });
+          },
+        },
+      ]}
     />
   );
 }

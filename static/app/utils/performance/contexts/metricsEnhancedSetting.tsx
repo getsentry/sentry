@@ -1,9 +1,9 @@
 import type {Dispatch, ReactNode} from 'react';
 import {useCallback, useReducer} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorage from 'sentry/utils/localStorage';
 import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -83,7 +83,14 @@ export function canUseMetricsData(organization: Organization) {
   const isRollingOut =
     samplingFeatureFlag && organization.features.includes('mep-rollout-flag');
 
-  return isDevFlagOn || isInternalViewOn || isRollingOut;
+  // For plans transitioning from AM2 to AM3, we still want to show metrics
+  // until 90d after 100% transaction ingestion to avoid spikes in charts
+  // coming from old sampling rates.
+  const isTransitioningPlan = organization.features.includes(
+    'dashboards-metrics-transition'
+  );
+
+  return isDevFlagOn || isInternalViewOn || isRollingOut || isTransitioningPlan;
 }
 
 export function MEPSettingProvider({

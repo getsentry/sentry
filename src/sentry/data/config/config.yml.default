@@ -83,7 +83,8 @@ redis.clusters:
 filestore.backend: 'filesystem'
 filestore.options:
   location: '/tmp/sentry-files'
-filestore.relocation:
+filestore.relocation-backend: 'filesystem'
+filestore.relocation-options:
   location: '/tmp/sentry-relocation-files'
 
 # NOTE: See docs/filestore for instructions on configuring the shell environment
@@ -91,7 +92,8 @@ filestore.relocation:
 # filestore.backend: 'gcs'
 # filestore.options:
 #   bucket_name: 'gcs-bucket-name'
-# filestore.relocation:
+# filestore.relocation-backend: 'gcs'
+# filestore.relocation-options:
 #   bucket_name: 'gcs-relocation-bucket-name'
 
 # filestore.backend: 's3'
@@ -99,7 +101,8 @@ filestore.relocation:
 #   access_key: 'AKIXXXXXX'
 #   secret_key: 'XXXXXXX'
 #   bucket_name: 's3-bucket-name'
-# filestore.relocation:
+# filestore.relocation-backend: 's3'
+# filestore.relocation-options:
 #   access_key: 'AKIXXXXXX'
 #   secret_key: 'XXXXXXX'
 #   bucket_name: 's3-relocation-bucket-name'

@@ -30,7 +30,7 @@ describe('Onboarding Product Selection', function () {
   };
 
   it('renders default state', function () {
-    const {routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {
@@ -43,7 +43,7 @@ describe('Onboarding Product Selection', function () {
     });
 
     render(<PlatformOptionsControl platformOptions={platformOptions} />, {
-      context: routerContext,
+      router,
     });
 
     // Find the Spring Boot option, preselected from the URL
@@ -75,7 +75,7 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('updates the url on change', async function () {
-    const {router, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {
@@ -88,7 +88,7 @@ describe('Onboarding Product Selection', function () {
     });
 
     render(<PlatformOptionsControl platformOptions={platformOptions} />, {
-      context: routerContext,
+      router,
     });
 
     const springBootV3 = screen.getByRole('radio', {name: 'V3'});
@@ -108,5 +108,34 @@ describe('Onboarding Product Selection', function () {
         packageManager: 'gradle',
       },
     });
+  });
+
+  it('triggers onChange callback', async function () {
+    const {router} = initializeOrg({
+      router: {
+        location: {
+          query: {
+            springBoot: 'v3',
+            packageManager: 'gradle',
+          },
+        },
+        params: {},
+      },
+    });
+
+    const handleChange = jest.fn();
+
+    render(
+      <PlatformOptionsControl
+        platformOptions={platformOptions}
+        onChange={handleChange}
+      />,
+      {
+        router,
+      }
+    );
+
+    await userEvent.click(screen.getByRole('radio', {name: 'V2'}));
+    expect(handleChange).toHaveBeenCalledWith({springBoot: 'v2'});
   });
 });

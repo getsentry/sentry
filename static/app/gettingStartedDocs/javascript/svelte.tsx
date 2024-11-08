@@ -1,5 +1,8 @@
+import {Fragment} from 'react';
+
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import tracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -7,11 +10,22 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getFeedbackConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+  getFeedbackConfigOptions,
+  getFeedbackConfigureDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {
+  getProfilingDocumentHeaderConfigurationStep,
+  MaybeBrowserProfilingBetaWarning,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -24,19 +38,24 @@ import App from "./App.svelte";
 import * as Sentry from "@sentry/svelte";
 
 Sentry.init({
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   integrations: [${
     params.isPerformanceSelected
       ? `
         Sentry.browserTracingIntegration(),`
       : ''
   }${
+    params.isProfilingSelected
+      ? `
+          Sentry.browserProfilingIntegration(),`
+      : ''
+  }${
     params.isFeedbackSelected
       ? `
         Sentry.feedbackIntegration({
 // Additional SDK configuration goes in here, for example:
-colorScheme: "light",
-}),`
+colorScheme: "system",
+${getFeedbackConfigOptions(params.feedbackOptions)}}),`
       : ''
   }${
     params.isReplaySelected
@@ -47,7 +66,7 @@ colorScheme: "light",
 ],${
   params.isPerformanceSelected
     ? `
-      // Performance Monitoring
+      // Tracing
       tracesSampleRate: 1.0, //  Capture 100% of the transactions
       // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
       tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
@@ -59,6 +78,16 @@ colorScheme: "light",
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
       replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
     : ''
+}${
+  params.isProfilingSelected
+    ? `
+        // Set profilesSampleRate to 1.0 to profile every transaction.
+        // Since profilesSampleRate is relative to tracesSampleRate,
+        // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
+        // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
+        // results in 25% of transactions being profiled (0.5*0.5=0.25)
+        profilesSampleRate: 1.0,`
+    : ''
 }
 });
 
@@ -69,9 +98,11 @@ const app = new App({
 export default app;
 `;
 
-const getVerifySvelteSnippet = () => `
+const getVerifySnippet = () => `
 // SomeComponent.svelte
-<button type="button" on:click="{unknownFunction}">Break the world</button>`;
+<button type="button" on:click="{() => {throw new Error("This is your first error!");}}">
+  Break the world
+</button>`;
 
 const getInstallConfig = () => [
   {
@@ -94,14 +125,23 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+          strong: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
         {
-          codeYarn: <code />,
-          codeNpm: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
@@ -125,10 +165,14 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        ...(params.isProfilingSelected
+          ? [getProfilingDocumentHeaderConfigurationStep()]
+          : []),
       ],
     },
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/svelte/sourcemaps/',
+      ...params,
     }),
   ],
   verify: () => [
@@ -144,7 +188,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getVerifySvelteSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -159,22 +203,6 @@ const onboarding: OnboardingConfig = {
         'Learn about our first class integration with the Svelte framework.'
       ),
       link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/features/',
-    },
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/performance/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/session-replay/',
     },
   ],
 };
@@ -208,12 +236,12 @@ const replayOnboarding: OnboardingConfig = {
               code: getSdkSetupSnippet(params),
             },
           ],
-          additionalInfo: tracePropagationMessage,
+          additionalInfo: <TracePropagationMessage />,
         },
       ],
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
@@ -234,7 +262,10 @@ const feedbackOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getFeedbackConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/user-feedback/',
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/svelte/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/svelte/user-feedback/configuration/#bring-your-own-button',
       }),
       configurations: [
         {
@@ -257,11 +288,36 @@ const feedbackOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/user-feedback/configuration/#crash-report-modal',
+      }),
+      additionalInfo: widgetCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/user-feedback/#user-feedback-widget',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const profilingOnboarding: OnboardingConfig = {
+  ...onboarding,
+  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+  crashReportOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;

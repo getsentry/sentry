@@ -4,22 +4,21 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
-from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.models.project import Project
-from sentry.models.projectkey import ProjectKey
-from sentry.silo import unguarded_write
-from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import (
+from sentry.deletions.tasks.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
 )
+from sentry.models.apitoken import ApiToken
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class ProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-projects"
 

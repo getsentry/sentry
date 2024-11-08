@@ -4,6 +4,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -15,7 +16,7 @@ application = Sentry(application, config)`;
 
 const getConfigurationSnippet = (params: Params) => `
 [sentry]
-dsn=${params.dsn}
+dsn=${params.dsn.public}
 include_paths=my.package,my.other.package,
 exclude_paths=my.package.crud`;
 
@@ -95,10 +96,9 @@ const onboarding: OnboardingConfig = {
         {
           language: 'python',
           description: tct(
-            'Add the following lines to your project’s [initCode:.ini] file to setup [sentryHandlerCode:SentryHandler]:',
+            'Add the following lines to your project’s [code:.ini] file to setup [code:SentryHandler]:',
             {
-              initCode: <code />,
-              sentryHandlerCode: <code />,
+              code: <code />,
             }
           ),
           code: getLoggerSnippet(),
@@ -112,6 +112,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
+  crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;

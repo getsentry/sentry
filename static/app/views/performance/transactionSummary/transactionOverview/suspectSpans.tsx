@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -114,9 +114,9 @@ function SuspectSpansHeader(props: HeaderProps) {
   return (
     <Header>
       <SectionHeading>{t('Suspect Spans')}</SectionHeading>
-      <Button to={viewAllTarget} size="xs" data-test-id="suspect-spans-open-tab">
+      <LinkButton to={viewAllTarget} size="xs" data-test-id="suspect-spans-open-tab">
         {t('View All Spans')}
-      </Button>
+      </LinkButton>
       <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="xs" />
     </Header>
   );

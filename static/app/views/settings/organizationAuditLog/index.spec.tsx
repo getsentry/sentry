@@ -7,11 +7,12 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Config, User as UserType} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
+import type {User} from 'sentry/types/user';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', function () {
-  const user: UserType = {
+  const user: User = {
     ...UserFixture(),
     options: {
       ...UserFixture().options,
@@ -59,7 +60,7 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    const {routerContext, router} = initializeOrg({
+    const {router} = initializeOrg({
       projects: [],
       router: {
         params: {orgId: 'org-slug'},
@@ -67,7 +68,7 @@ describe('OrganizationAuditLog', function () {
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByText('project.remove')).toBeInTheDocument();
@@ -77,7 +78,7 @@ describe('OrganizationAuditLog', function () {
   });
 
   it('Displays pretty dynamic sampling logs', async function () {
-    const {routerContext, router, project, projects, organization} = initializeOrg({
+    const {router, project, projects, organization} = initializeOrg({
       router: {
         params: {orgId: 'org-slug'},
       },
@@ -128,7 +129,7 @@ describe('OrganizationAuditLog', function () {
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     // Enabled dynamic sampling priority

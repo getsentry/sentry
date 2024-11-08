@@ -24,7 +24,7 @@ describe('JsonViewer', () => {
       <JsonViewer
         attachment={attachment}
         eventId={event.id}
-        orgId={organization.id}
+        orgSlug={organization.id}
         projectSlug={project.slug}
       />
     );
@@ -42,7 +42,7 @@ describe('JsonViewer', () => {
       <JsonViewer
         attachment={attachment}
         eventId={event.id}
-        orgId={organization.id}
+        orgSlug={organization.id}
         projectSlug={project.slug}
       />
     );
@@ -63,7 +63,7 @@ describe('JsonViewer', () => {
       <JsonViewer
         attachment={attachment}
         eventId={event.id}
-        orgId={organization.id}
+        orgSlug={organization.id}
         projectSlug={project.slug}
       />
     );

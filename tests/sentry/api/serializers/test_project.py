@@ -1,15 +1,17 @@
 import datetime
-from datetime import timedelta, timezone
+from datetime import UTC, timedelta
 from functools import cached_property
 from unittest import mock
 
 from django.conf import settings
 from django.db.models import F
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry import features
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
+    PROJECT_FEATURES_NOT_USED_ON_FRONTEND,
+    UNUSED_ON_FRONTEND_FEATURES,
     DetailedProjectSerializer,
     ProjectSummarySerializer,
     ProjectWithOrganizationSerializer,
@@ -27,15 +29,13 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
-@region_silo_test
 class ProjectSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -231,7 +231,7 @@ class ProjectSerializerTest(TestCase):
             class ProjectColorFeatureHandler(features.FeatureHandler):
                 features = {color_flag}
 
-                def has(self, feature, actor):
+                def has(self, feature, actor, skip_entity: bool | None = False):
                     return feature.project in included_projects
 
                 def batch_has(self, *a, **k):
@@ -263,7 +263,6 @@ class ProjectSerializerTest(TestCase):
         assert_has_features(late_blue, [blue_flag])
 
 
-@region_silo_test
 class ProjectWithTeamSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -283,11 +282,10 @@ class ProjectWithTeamSerializerTest(TestCase):
         }
 
 
-@region_silo_test
 class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()
-        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc)
+        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=UTC)
         self.user = self.create_user(username="foo")
         self.organization = self.create_organization(owner=self.user)
         team = self.create_team(organization=self.organization)
@@ -341,7 +339,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert result["firstEvent"] is None
         assert result["firstTransactionEvent"] is False
 
-        self.project.first_event = django_timezone.now()
+        self.project.first_event = timezone.now()
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
@@ -374,7 +372,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasSessions"] is False
 
-        self.project.first_event = django_timezone.now()
+        self.project.first_event = timezone.now()
         self.project.update(flags=F("flags").bitor(Project.flags.has_sessions))
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
@@ -384,7 +382,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasProfiles"] is False
 
-        self.project.first_event = django_timezone.now()
+        self.project.first_event = timezone.now()
         self.project.update(flags=F("flags").bitor(Project.flags.has_profiles))
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
@@ -394,7 +392,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasReplays"] is False
 
-        self.project.first_event = django_timezone.now()
+        self.project.first_event = timezone.now()
         self.project.update(flags=F("flags").bitor(Project.flags.has_replays))
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
@@ -404,7 +402,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasFeedbacks"] is False
 
-        self.project.first_event = django_timezone.now()
+        self.project.first_event = timezone.now()
         self.project.update(flags=F("flags").bitor(Project.flags.has_feedbacks))
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
@@ -414,7 +412,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasNewFeedbacks"] is False
 
-        self.project.first_event = django_timezone.now()
+        self.project.first_event = timezone.now()
         self.project.update(flags=F("flags").bitor(Project.flags.has_new_feedbacks))
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
@@ -424,7 +422,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasCustomMetrics"] is False
 
-        self.project.first_event = django_timezone.now()
+        self.project.first_event = timezone.now()
         self.project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
@@ -434,7 +432,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasMonitors"] is False
 
-        self.project.first_event = django_timezone.now()
+        self.project.first_event = timezone.now()
         self.project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
@@ -444,11 +442,46 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasMinifiedStackTrace"] is False
 
-        self.project.first_event = django_timezone.now()
+        self.project.first_event = timezone.now()
         self.project.update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasMinifiedStackTrace"] is True
+
+    def test_has_insight_module_flags(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+
+        assert result["hasInsightsHttp"] is False
+        assert result["hasInsightsDb"] is False
+        assert result["hasInsightsAssets"] is False
+        assert result["hasInsightsAppStart"] is False
+        assert result["hasInsightsScreenLoad"] is False
+        assert result["hasInsightsVitals"] is False
+        assert result["hasInsightsCaches"] is False
+        assert result["hasInsightsQueues"] is False
+        assert result["hasInsightsLlmMonitoring"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_http))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_db))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_assets))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_app_start))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_screen_load))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_vitals))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_caches))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_queues))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_llm_monitoring))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasInsightsHttp"] is True
+        assert result["hasInsightsDb"] is True
+        assert result["hasInsightsAssets"] is True
+        assert result["hasInsightsAppStart"] is True
+        assert result["hasInsightsScreenLoad"] is True
+        assert result["hasInsightsVitals"] is True
+        assert result["hasInsightsCaches"] is True
+        assert result["hasInsightsQueues"] is True
+        assert result["hasInsightsLlmMonitoring"] is True
 
     def test_no_environments(self):
         # remove environments and related models
@@ -567,7 +600,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def test_stats_errors(self):
         two_min_ago = before_now(minutes=2)
         self.store_event(
-            data={"event_id": "d" * 32, "message": "oh no", "timestamp": iso_format(two_min_ago)},
+            data={"event_id": "d" * 32, "message": "oh no", "timestamp": two_min_ago.isoformat()},
             project_id=self.project.id,
         )
         serializer = ProjectSummarySerializer(stats_period="24h")
@@ -579,7 +612,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def test_stats_with_transactions(self):
         two_min_ago = before_now(minutes=2)
         self.store_event(
-            data={"event_id": "d" * 32, "message": "oh no", "timestamp": iso_format(two_min_ago)},
+            data={"event_id": "d" * 32, "message": "oh no", "timestamp": two_min_ago.isoformat()},
             project_id=self.project.id,
         )
         transaction = load_data("transaction", timestamp=two_min_ago)
@@ -651,8 +684,29 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         assert check_has_health_data.call_count == 1
 
+    def test_project_with_collapsed_unused_frontend_flags(self):
+        result_with_unused_flags = serialize(
+            self.project,
+            self.user,
+            ProjectSummarySerializer(collapse=[UNUSED_ON_FRONTEND_FEATURES]),
+        )
 
-@region_silo_test
+        intersected_result = PROJECT_FEATURES_NOT_USED_ON_FRONTEND.intersection(
+            set(result_with_unused_flags["features"])
+        )
+        assert intersected_result == set()
+
+        unused_on_frontend_first_element = next(iter(PROJECT_FEATURES_NOT_USED_ON_FRONTEND))
+        with self.feature(f"projects:{unused_on_frontend_first_element}"):
+            result_with_all_flags = serialize(
+                self.project,
+                self.user,
+                ProjectSummarySerializer(),
+            )
+
+        assert unused_on_frontend_first_element in result_with_all_flags["features"]
+
+
 class ProjectWithOrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -668,11 +722,10 @@ class ProjectWithOrganizationSerializerTest(TestCase):
         assert result["organization"] == serialize(organization, user)
 
 
-@region_silo_test
 class DetailedProjectSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc)
+        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=UTC)
         self.user = self.create_user(username="foo")
         self.organization = self.create_organization(owner=self.user)
         team = self.create_team(organization=self.organization)
@@ -704,8 +757,53 @@ class DetailedProjectSerializerTest(TestCase):
         assert "sentry:token" not in result["options"]
         assert "sentry:symbol_sources" not in result["options"]
 
+    def test_feedback_flag_with_epochs(self):
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        # new projects with default epoch should have feedback_user_report_notifications enabled
+        assert result["options"]["sentry:feedback_user_report_notifications"] is True
 
-@region_silo_test
+        self.project.update_option("sentry:option-epoch", 1)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:feedback_user_report_notifications"] is False
+
+        self.project.update_option("sentry:feedback_user_report_notifications", True)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:feedback_user_report_notifications"] is True
+
+        self.project.update_option("sentry:feedback_user_report_notifications", False)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:feedback_user_report_notifications"] is False
+
+    def test_replay_rage_click_flag(self):
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        # default should be true
+        assert result["options"]["sentry:replay_rage_click_issues"] is True
+
+        self.project.update_option("sentry:replay_rage_click_issues", False)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:replay_rage_click_issues"] is False
+
+    def test_replay_hydration_error_flag(self):
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        # default should be true
+        assert result["options"]["sentry:replay_hydration_error_issues"] is True
+
+        self.project.update_option("sentry:replay_hydration_error_issues", False)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:replay_hydration_error_issues"] is False
+
+    def test_toolbar_allowed_origins(self):
+        # Does not allow trailing newline or extra whitespace.
+        # Default is empty:
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:toolbar_allowed_origins"] == ""
+
+        origins = ["*.sentry.io", "example.net", "nugettrends.com"]
+        self.project.update_option("sentry:toolbar_allowed_origins", origins)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:toolbar_allowed_origins"].split("\n") == origins
+
+
 class BulkFetchProjectLatestReleases(TestCase):
     @cached_property
     def project(self):
@@ -720,7 +818,7 @@ class BulkFetchProjectLatestReleases(TestCase):
 
     def test_single_release(self):
         release = self.create_release(
-            self.project, date_added=django_timezone.now() - timedelta(minutes=5)
+            self.project, date_added=timezone.now() - timedelta(minutes=5)
         )
         assert bulk_fetch_project_latest_releases([self.project]) == [release]
         newer_release = self.create_release(self.project)
@@ -737,7 +835,7 @@ class BulkFetchProjectLatestReleases(TestCase):
 
     def test_multi_releases(self):
         release = self.create_release(
-            self.project, date_added=django_timezone.now() - timedelta(minutes=5)
+            self.project, date_added=timezone.now() - timedelta(minutes=5)
         )
         other_project_release = self.create_release(self.other_project)
         assert set(bulk_fetch_project_latest_releases([self.project, self.other_project])) == {

@@ -13,7 +13,7 @@ import {
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import type {TableColumn} from './types';
@@ -254,7 +254,9 @@ class CellAction extends Component<Props, State> {
     const cellActions = makeCellActions(this.props);
 
     return (
-      <Container data-test-id="cell-action-container">
+      <Container
+        data-test-id={cellActions === null ? undefined : 'cell-action-container'}
+      >
         {children}
         {cellActions?.length && (
           <DropdownMenu

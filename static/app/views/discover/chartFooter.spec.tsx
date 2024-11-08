@@ -26,7 +26,7 @@ describe('Discover > ChartFooter', function () {
 
   afterEach(function () {});
 
-  it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', function () {
+  it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', async function () {
     const organization = OrganizationFixture({
       features: [...features],
     });
@@ -56,10 +56,10 @@ describe('Discover > ChartFooter', function () {
       />
     );
 
-    render(chartFooter, {context: initialData.routerContext});
+    render(chartFooter, {router: initialData.router});
 
     expect(
-      screen.getByRole('button', {
+      await screen.findByRole('button', {
         name: `Y-Axis ${yAxisValue[0]} +${
           yAxisValue.filter(v => v !== yAxisValue[0]).length
         }`,
@@ -67,7 +67,7 @@ describe('Discover > ChartFooter', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders display limits with default limit when top 5 mode is selected', function () {
+  it('renders display limits with default limit when top 5 mode is selected', async function () {
     const organization = OrganizationFixture({
       features,
     });
@@ -98,9 +98,11 @@ describe('Discover > ChartFooter', function () {
       />
     );
 
-    render(chartFooter, {context: initialData.routerContext});
+    render(chartFooter, {router: initialData.router});
 
-    expect(screen.getByRole('button', {name: `Limit ${limit}`})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: `Limit ${limit}`})
+    ).toBeInTheDocument();
   });
 
   it('renders multi value y-axis dropdown selector on a non-Top display', async function () {

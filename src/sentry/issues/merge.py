@@ -11,9 +11,9 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
 
 
 class MergedGroup(TypedDict):
@@ -42,7 +42,9 @@ def handle_merge(
         primary_group.project_id, group_ids_to_merge, primary_group.id
     )
 
-    Group.objects.filter(id__in=group_ids_to_merge).update(status=GroupStatus.PENDING_MERGE)
+    Group.objects.filter(id__in=group_ids_to_merge).update(
+        status=GroupStatus.PENDING_MERGE, substatus=None
+    )
 
     transaction_id = uuid4().hex
     merge_groups.delay(

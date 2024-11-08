@@ -17,7 +17,6 @@ from sentry.issues.grouptype import (
     get_group_types_by_category,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
 class BaseGroupTypeTest(TestCase):
@@ -31,7 +30,6 @@ class BaseGroupTypeTest(TestCase):
         self.registry_patcher.__exit__(None, None, None)
 
 
-@region_silo_test
 class GroupTypeTest(BaseGroupTypeTest):
     def test_get_types_by_category(self) -> None:
         @dataclass(frozen=True)
@@ -118,7 +116,6 @@ class GroupTypeTest(BaseGroupTypeTest):
         assert TestGroupType.noise_config.expiry_time == timedelta(hours=12)
 
 
-@region_silo_test
 class GroupTypeReleasedTest(BaseGroupTypeTest):
     def test_released(self) -> None:
         @dataclass(frozen=True)

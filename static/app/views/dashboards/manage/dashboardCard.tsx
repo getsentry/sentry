@@ -6,7 +6,7 @@ import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 
 interface Props {
   detail: React.ReactNode;
@@ -97,7 +97,7 @@ const Title = styled('div')`
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const Detail = styled('div')`

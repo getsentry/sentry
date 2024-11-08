@@ -11,7 +11,7 @@ function uniqueCountBy<T>(
   arr: ReadonlyArray<T>,
   predicate: (t: T) => string | boolean
 ): number {
-  const visited = {};
+  const visited: Record<string, number> = {};
 
   let count = 0;
   for (let i = 0; i < arr.length; i++) {

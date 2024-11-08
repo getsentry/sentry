@@ -4,10 +4,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class SnubaQueryEventTypesTest(TestCase):
     def test(self):
         snuba_query = create_snuba_query(

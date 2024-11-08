@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterable
 
 from django.db import models
 from django.db.models.signals import post_delete, post_save, pre_save
@@ -10,7 +10,7 @@ from rest_framework.exceptions import ValidationError
 
 from sentry import analytics
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
 from sentry.models.organization import Organization
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils.cache import cache
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectCodeOwners(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -66,7 +66,7 @@ class ProjectCodeOwners(Model):
 
     @classmethod
     def merge_code_owners_list(
-        self, code_owners_list: Sequence[ProjectCodeOwners]
+        self, code_owners_list: Iterable[ProjectCodeOwners]
     ) -> ProjectCodeOwners | None:
         """
         Merge list of code_owners into a single code_owners object concatenating
@@ -149,9 +149,6 @@ def process_resource_change(instance, change, **kwargs):
     if not ownership:
         ownership = ProjectOwnership(project_id=instance.project_id)
 
-    autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
-    if ownership.auto_assignment:
-        GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
     GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
 
 

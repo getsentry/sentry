@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import SUPERUSER_READONLY_SCOPES, SUPERUSER_SCOPES
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
@@ -15,14 +16,14 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.team import TeamStatus
-from sentry.models.user import User
-from sentry.models.userrole import UserRole
-from sentry.services.hybrid_cloud.access.service import access_service
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.silo import SiloMode
+from sentry.organizations.services.organization import organization_service
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, no_silo_test
+from sentry.users.models.user import User
+from sentry.users.models.userrole import UserRole
 
 
 def silo_from_user(
@@ -574,7 +575,7 @@ class FromRequestTest(AccessFactoryTestCase):
         result = self.from_request(request, self.org)
         assert result.scopes == SUPERUSER_SCOPES
 
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_readonly_scopes(self):
         # superuser not in organization
@@ -584,12 +585,19 @@ class FromRequestTest(AccessFactoryTestCase):
         assert result.scopes == SUPERUSER_READONLY_SCOPES
 
         # superuser in organization
-        self.create_member(user=self.superuser, organization=self.org, role="member")
+        member = self.create_member(user=self.superuser, organization=self.org, role="member")
 
         result = self.from_request(request, self.org)
         assert result.scopes == SUPERUSER_READONLY_SCOPES
 
-    @with_feature("auth:enterprise-superuser-read-write")
+        # readonly scopes does not override owner scopes if passed in
+        with assume_test_silo_mode(SiloMode.REGION):
+            member.update(role="owner")
+
+        result = self.from_request(request, self.org, scopes=member.get_scopes())
+        assert result.scopes == set(member.get_scopes()).union({"org:superuser"})
+
+    @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_write_scopes(self):
         self.add_user_permission(self.superuser, "superuser.write")
@@ -606,7 +614,7 @@ class FromRequestTest(AccessFactoryTestCase):
         result = self.from_request(request, self.org)
         assert result.scopes == SUPERUSER_SCOPES
 
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_in_organization_write_scopes(self):
         self.add_user_permission(self.superuser, "superuser.write")

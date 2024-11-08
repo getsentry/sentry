@@ -1,12 +1,18 @@
 import {t} from 'sentry/locale';
+import type {
+  ActivationConditionType,
+  AlertRuleActivation,
+  MonitorType,
+} from 'sentry/types/alerts';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 import type {Incident} from '../../types';
 
 export enum AlertRuleThresholdType {
-  ABOVE,
-  BELOW,
+  ABOVE = 0,
+  BELOW = 1,
+  ABOVE_AND_BELOW = 2,
 }
 
 export enum AlertRuleTriggerType {
@@ -19,6 +25,8 @@ export enum AlertRuleComparisonType {
   COUNT = 'count',
   CHANGE = 'change',
   PERCENT = 'percent',
+  DYNAMIC = 'dynamic',
+  STATIC = 'static',
 }
 
 export enum Dataset {
@@ -32,6 +40,9 @@ export enum Dataset {
   SESSIONS = 'sessions',
   /** Also used for crash free alerts */
   METRICS = 'metrics',
+  ISSUE_PLATFORM = 'search_issues',
+  REPLAYS = 'replays',
+  EVENTS_ANALYTICS_PLATFORM = 'events_analytics_platform',
 }
 
 export enum EventTypes {
@@ -47,6 +58,16 @@ export enum Datasource {
   DEFAULT = 'default',
   ERROR = 'error',
   TRANSACTION = 'transaction',
+}
+
+export enum AlertRuleSensitivity {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+}
+
+export enum AlertRuleSeasonality {
+  AUTO = 'auto',
 }
 
 /**
@@ -84,9 +105,11 @@ export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
 
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 
+// Form values for creating a new metric alert rule
 export type UnsavedMetricRule = {
   aggregate: string;
   dataset: Dataset;
+  detectionType: string;
   environment: string | null;
   projects: string[];
   query: string;
@@ -95,13 +118,20 @@ export type UnsavedMetricRule = {
   thresholdType: AlertRuleThresholdType;
   timeWindow: TimeWindow;
   triggers: Trigger[];
+  activationCondition?: ActivationConditionType;
   comparisonDelta?: number | null;
   eventTypes?: EventTypes[];
+  monitorType?: MonitorType;
+  monitorWindow?: number | null;
   owner?: string | null;
   queryType?: MEPAlertsQueryType | null;
+  seasonality?: AlertRuleSeasonality | null;
+  sensitivity?: AlertRuleSensitivity | null;
 };
 
+// Form values for updating a metric alert rule
 export interface SavedMetricRule extends UnsavedMetricRule {
+  activations: AlertRuleActivation[];
   dateCreated: string;
   dateModified: string;
   id: string;
@@ -126,10 +156,11 @@ export enum TimePeriod {
   ONE_DAY = '1d',
   THREE_DAYS = '3d',
   // Seven days is actually 10080m but Snuba can only return up to 10000 entries, for this
-  // we approximate to 9999m which prevents rounding errors due to the minutes granularity
+  // we approximate to 9998m which prevents rounding errors due to the minutes granularity
   // limitations.
-  SEVEN_DAYS = '9999m',
+  SEVEN_DAYS = '9998m',
   FOURTEEN_DAYS = '14d',
+  TWENTY_EIGHT_DAYS = '28d',
 }
 
 export enum TimeWindow {
@@ -183,6 +214,17 @@ export enum TargetType {
 export const TargetLabel = {
   [TargetType.USER]: t('Member'),
   [TargetType.TEAM]: t('Team'),
+};
+
+export const PriorityOptions = {
+  [ActionType.PAGERDUTY]: ['critical', 'warning', 'error', 'info'],
+  [ActionType.OPSGENIE]: ['P1', 'P2', 'P3', 'P4', 'P5'],
+};
+
+// default priorities per threshold (0 = critical, 1 = warning)
+export const DefaultPriorities = {
+  [ActionType.PAGERDUTY]: {[0]: 'critical', [1]: 'warning'},
+  [ActionType.OPSGENIE]: {[0]: 'P1', [1]: 'P2'},
 };
 
 /**
@@ -267,6 +309,11 @@ type SavedActionFields = {
    *  Could not fetch details from SentryApp. Show the rule but make it disabled.
    */
   disabled?: boolean;
+
+  /**
+   * Priority of the Opsgenie action or severity of the Pagerduty action
+   */
+  priority?: string;
 };
 
 type UnsavedAction = {

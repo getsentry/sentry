@@ -1,20 +1,21 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import {Observer} from 'mobx-react';
 import scrollToElement from 'scroll-to-element';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
+import {Alert} from 'sentry/components/alert';
 import Avatar from 'sentry/components/avatar';
 import type {Model} from 'sentry/components/avatarChooser';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import {Button} from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -35,15 +36,14 @@ import {
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  InternalAppApiToken,
-  NewInternalAppApiToken,
-  Organization,
-  Scope,
-  SentryApp,
-} from 'sentry/types';
+import type {Scope} from 'sentry/types/core';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
@@ -172,10 +172,11 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {appSlug} = this.props.params;
     if (appSlug) {
-      return [
-        ['app', `/sentry-apps/${appSlug}/`],
-        ['tokens', `/sentry-apps/${appSlug}/api-tokens/`],
-      ];
+      const endpoints = [['app', `/sentry-apps/${appSlug}/`]];
+      if (this.hasTokenAccess) {
+        endpoints.push(['tokens', `/sentry-apps/${appSlug}/api-tokens/`]);
+      }
+      return endpoints as [string, string][];
     }
 
     return [];
@@ -230,13 +231,17 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     }
   };
 
+  get hasTokenAccess() {
+    return this.props.organization.access.includes('org:write');
+  }
+
   get isInternal() {
     const {app} = this.state;
     if (app) {
       // if we are editing an existing app, check the status of the app
       return app.status === 'internal';
     }
-    return this.props.route.path === 'new-internal/';
+    return this.props.location.pathname.endsWith('new-internal/');
   }
 
   get showAuthInfo() {
@@ -280,6 +285,11 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
 
   renderTokens = () => {
     const {tokens, newTokens} = this.state;
+    if (!this.hasTokenAccess) {
+      return (
+        <EmptyMessage description={t('You do not have access to view these tokens.')} />
+      );
+    }
     if (tokens.length < 1 && newTokens.length < 1) {
       return <EmptyMessage description={t('No tokens created yet.')} />;
     }
@@ -303,6 +313,32 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     );
 
     return tokensToDisplay;
+  };
+
+  rotateClientSecret = async () => {
+    try {
+      const rotateResponse = await this.api.requestPromise(
+        `/sentry-apps/${this.props.params.appSlug}/rotate-secret/`,
+        {
+          method: 'POST',
+        }
+      );
+      openModal(({Body, Header}) => (
+        <Fragment>
+          <Header>{t('Your new Client Secret')}</Header>
+          <Body>
+            <Alert type="info" showIcon>
+              {t('This will be the only time your client secret is visible!')}
+            </Alert>
+            <TextCopyInput aria-label={t('new-client-secret')}>
+              {rotateResponse.clientSecret}
+            </TextCopyInput>
+          </Body>
+        </Fragment>
+      ));
+    } catch {
+      addErrorMessage(t('Error rotating secret'));
+    }
   };
 
   onFieldChange = (name: string, value: FieldValue): void => {
@@ -446,17 +482,21 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
 
           {app && app.status === 'internal' && (
             <Panel>
-              <PanelHeader hasButtons>
-                {t('Tokens')}
-                <Button
-                  size="xs"
-                  icon={<IconAdd isCircled />}
-                  onClick={evt => this.onAddToken(evt)}
-                  data-test-id="token-add"
-                >
-                  {t('New Token')}
-                </Button>
-              </PanelHeader>
+              {this.hasTokenAccess ? (
+                <PanelHeader hasButtons>
+                  {t('Tokens')}
+                  <Button
+                    size="xs"
+                    icon={<IconAdd isCircled />}
+                    onClick={evt => this.onAddToken(evt)}
+                    data-test-id="token-add"
+                  >
+                    {t('New Token')}
+                  </Button>
+                </PanelHeader>
+              ) : (
+                <PanelHeader>{t('Tokens')}</PanelHeader>
+              )}
               <PanelBody>{this.renderTokens()}</PanelBody>
             </Panel>
           )}
@@ -474,7 +514,12 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                     )}
                   </FormField>
                 )}
-                <FormField name="clientSecret" label="Client Secret">
+                <FormField
+                  name="clientSecret"
+                  label="Client Secret"
+                  help={t(`Your secret is only available briefly after integration creation. Make
+                    sure to save this value!`)}
+                >
                   {({value, id}) =>
                     value ? (
                       <Tooltip
@@ -482,7 +527,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                         position="right"
                         containerDisplayMode="inline"
                         title={t(
-                          'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
+                          'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
                         )}
                       >
                         <TextCopyInput id={id}>
@@ -490,7 +535,19 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                         </TextCopyInput>
                       </Tooltip>
                     ) : (
-                      <em>hidden</em>
+                      <ClientSecret>
+                        <HiddenSecret>{t('hidden')}</HiddenSecret>
+                        {this.hasTokenAccess ? (
+                          <Confirm
+                            onConfirm={this.rotateClientSecret}
+                            message={t(
+                              'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
+                            )}
+                          >
+                            <Button priority="danger">Rotate client secret</Button>
+                          </Confirm>
+                        ) : undefined}
+                      </ClientSecret>
                     )
                   }
                 </FormField>
@@ -520,11 +577,23 @@ const AvatarPreviewTitle = styled('span')`
   display: block;
   grid-area: 1 / 2 / 2 / 3;
   padding-left: ${space(2)};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const AvatarPreviewText = styled('span')`
   display: block;
   grid-area: 2 / 2 / 3 / 3;
   padding-left: ${space(2)};
+`;
+
+const HiddenSecret = styled('span')`
+  width: 100px;
+  font-style: italic;
+`;
+
+const ClientSecret = styled('div')`
+  display: flex;
+  justify-content: right;
+  align-items: center;
+  margin-right: 0;
 `;

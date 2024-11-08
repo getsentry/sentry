@@ -10,14 +10,14 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
-import type {Organization as TOrganization, Project, ProjectKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
 describe('ProjectKeyDetails', function () {
   const {routerProps} = initializeOrg();
 
-  let org: TOrganization;
+  let org: Organization;
   let project: Project;
   let deleteMock: jest.Mock;
   let statsMock: jest.Mock;
@@ -81,15 +81,6 @@ describe('ProjectKeyDetails', function () {
       method: 'DELETE',
     });
 
-    const context = {
-      context: {
-        project: ProjectFixture(),
-      },
-      childContextTypes: {
-        project: SentryPropTypeValidators.isObject,
-      },
-    };
-
     render(
       <ProjectKeyDetails
         {...routerProps}
@@ -99,10 +90,7 @@ describe('ProjectKeyDetails', function () {
           keyId: projectKeys[0].id,
           projectId: project.slug,
         }}
-      />,
-      {
-        context,
-      }
+      />
     );
   });
 

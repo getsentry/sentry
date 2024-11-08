@@ -1,9 +1,9 @@
 from django.urls import reverse
 
 from sentry.api.endpoints.project_repo_path_parsing import PathMappingSerializer
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class BaseStacktraceLinkTest(APITestCase):
@@ -20,7 +20,10 @@ class BaseStacktraceLinkTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-repo-path-parsing",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         return self.client.post(url, data={"sourceUrl": source_url, "stackPath": stack_path})
@@ -119,7 +122,6 @@ class PathMappingSerializerTest(TestCase):
         assert serializer.errors["sourceUrl"][0] == "Could not find repo"
 
 
-@region_silo_test
 class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
@@ -197,8 +199,8 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "github",
-            "stackRoot": "./",
-            "sourceRoot": "src/",
+            "stackRoot": "sentry/",
+            "sourceRoot": "src/sentry/",
             "defaultBranch": "master",
         }
 
@@ -212,7 +214,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "repositoryId": self.repo.id,
             "provider": "github",
             "stackRoot": "sentry/",
-            "sourceRoot": "/",
+            "sourceRoot": "",
             "defaultBranch": "main",
         }
 
@@ -248,7 +250,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "repositoryId": self.repo.id,
             "provider": "github",
             "stackRoot": "C:\\sentry\\",
-            "sourceRoot": "/",
+            "sourceRoot": "",
             "defaultBranch": "main",
         }
 
@@ -267,7 +269,6 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         }
 
 
-@region_silo_test
 class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
@@ -300,8 +301,8 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "gitlab",
-            "stackRoot": "./",
-            "sourceRoot": "src/",
+            "stackRoot": "sentry/",
+            "sourceRoot": "src/sentry/",
             "defaultBranch": "master",
         }
 

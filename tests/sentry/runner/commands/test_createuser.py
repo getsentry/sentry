@@ -1,14 +1,14 @@
 from sentry import roles
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
-from sentry.models.userrole import manage_default_super_admin_role
 from sentry.receivers import create_default_projects
 from sentry.runner.commands.createuser import createuser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import CliTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.user import User
+from sentry.users.models.userrole import manage_default_super_admin_role
+from sentry.users.services.user.service import user_service
 
 
 @control_silo_test
@@ -66,6 +66,7 @@ class CreateUserTest(CliTestCase):
             with assume_test_silo_mode(SiloMode.REGION):
                 assert OrganizationMember.objects.count() == 1
                 member = OrganizationMember.objects.all()[0]
+            assert member.user_id is not None
             u = user_service.get_user(user_id=member.user_id)
             assert u
             assert u.email == "you@somewhereawesome.com"
@@ -80,6 +81,7 @@ class CreateUserTest(CliTestCase):
             with assume_test_silo_mode(SiloMode.REGION):
                 assert OrganizationMember.objects.count() == 1
                 member = OrganizationMember.objects.all()[0]
+            assert member.user_id is not None
             u = user_service.get_user(user_id=member.user_id)
             assert u
             assert u.email == "you@somewhereawesome.com"

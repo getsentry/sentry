@@ -1,6 +1,5 @@
 import logging
 
-from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -10,32 +9,28 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import SsoRequired
-from sentry.api.serializers import DetailedSelfUserSerializer, serialize
+from sentry.api.serializers import serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.auth.superuser import Superuser
-from sentry.models.authenticator import Authenticator
-from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.auth.providers.saml2.provider import handle_saml_single_logout
+from sentry.auth.services.auth.impl import promote_request_rpc_user
+from sentry.auth.superuser import SUPERUSER_ORG_ID
+from sentry.organizations.services.organization import organization_service
+from sentry.users.api.serializers.user import DetailedSelfUserSerializer
+from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
 from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
-getsentry_logger = logging.getLogger("getsentry.staff_auth_index")
 
 PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
-
-DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
-    settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
-)
 
 
 @control_silo_endpoint
@@ -66,7 +61,9 @@ class BaseAuthIndexEndpoint(Endpoint):
         if not url_has_allowed_host_and_scheme(redirect, allowed_hosts=(request.get_host(),)):
             redirect = None
         initiate_login(request, redirect)
-        organization_context = organization_service.get_organization_by_id(id=org_id)
+        organization_context = organization_service.get_organization_by_id(
+            id=org_id, include_teams=False, include_projects=False
+        )
         assert organization_context, "Failed to fetch organization in _reauthenticate_with_sso"
         raise SsoRequired(
             organization=organization_context.organization,
@@ -79,18 +76,12 @@ class BaseAuthIndexEndpoint(Endpoint):
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
                 interface = Authenticator.objects.get_interface(request.user, "u2f")
+                assert isinstance(interface, U2fInterface)
                 if not interface.is_enrolled():
                     raise LookupError()
                 challenge = json.loads(validator.validated_data["challenge"])
                 response = json.loads(validator.validated_data["response"])
                 authenticated = interface.validate_response(request, challenge, response)
-                getsentry_logger.info(
-                    "verify.user.inputs",
-                    extra={
-                        "user": request.user.id,
-                        "authenticated": authenticated,
-                    },
-                )
                 if not authenticated:
                     logger.warning(
                         "u2f_authentication.verification_failed",
@@ -117,10 +108,6 @@ class BaseAuthIndexEndpoint(Endpoint):
             if authenticated:
                 metrics.incr("auth.password.success", sample_rate=1.0, skip_internal=False)
             return authenticated
-        getsentry_logger.info(
-            "verify.user.inputs.failed",
-            extra={"user": request.user.id, "validator": validator.validated_data},
-        )
         return False
 
 
@@ -153,6 +140,14 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         SSO and if they do not, we redirect them back to the SSO login.
 
         """
+        logger.info(
+            "auth-index.validate_superuser",
+            extra={
+                "user": request.user.id,
+                "raise_exception": not DISABLE_SSO_CHECK_FOR_LOCAL_DEV,
+                "verify_authenticator": verify_authenticator,
+            },
+        )
         # Disable exception for missing password or u2f code if we're running locally
         validator.is_valid(raise_exception=not DISABLE_SSO_CHECK_FOR_LOCAL_DEV)
 
@@ -162,10 +157,10 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
             else True
         )
 
-        if Superuser.org_id:
-            if not has_completed_sso(request, Superuser.org_id):
+        if SUPERUSER_ORG_ID:
+            if not has_completed_sso(request, SUPERUSER_ORG_ID):
                 request.session[PREFILLED_SU_MODAL_KEY] = request.data
-                self._reauthenticate_with_sso(request, Superuser.org_id)
+                self._reauthenticate_with_sso(request, SUPERUSER_ORG_ID)
 
         return authenticated
 
@@ -185,7 +180,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
             curl -X ###METHOD### -u username:password ###URL###
         """
-        if not request.user.is_authenticated:
+        if isinstance(request.user, AnonymousUser) or not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         # If 2fa login is enabled then we cannot sign in with username and
@@ -241,17 +236,9 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
             verify_authenticator = False
 
             if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV and not is_self_hosted():
-                if Superuser.org_id:
-                    superuser_org = organization_service.get_organization_by_id(id=Superuser.org_id)
-
-                    verify_authenticator = (
-                        False
-                        if superuser_org is None
-                        else features.has(
-                            "organizations:u2f-superuser-form",
-                            superuser_org.organization,
-                            actor=request.user,
-                        )
+                if SUPERUSER_ORG_ID:
+                    verify_authenticator = organization_service.check_organization_by_id(
+                        id=SUPERUSER_ORG_ID, only_visible=False
                     )
 
                 if verify_authenticator:
@@ -261,6 +248,14 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                         return Response(
                             {"detail": {"code": "no_u2f"}}, status=status.HTTP_403_FORBIDDEN
                         )
+                logger.info(
+                    "auth-index.put",
+                    extra={
+                        "organization": SUPERUSER_ORG_ID,
+                        "user": request.user.id,
+                        "verify_authenticator": verify_authenticator,
+                    },
+                )
             try:
                 authenticated = self._validate_superuser(validator, request, verify_authenticator)
             except ValidationError:
@@ -301,7 +296,14 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         Deauthenticate all active sessions for this user.
         """
+        # If there is an SLO URL, return it to frontend so the browser can redirect
+        # the user back to the IdP site to delete the IdP session cookie
+        slo_url = handle_saml_single_logout(request)
+
         # For signals to work here, we must promote the request.user to a full user object
         logout(request._request)
         request.user = AnonymousUser()
+
+        if slo_url:
+            return Response(status=status.HTTP_200_OK, data={"sloUrl": slo_url})
         return Response(status=status.HTTP_204_NO_CONTENT)

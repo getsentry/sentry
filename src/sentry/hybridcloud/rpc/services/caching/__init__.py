@@ -1,1 +1,0 @@
-from .service import *  # noqa

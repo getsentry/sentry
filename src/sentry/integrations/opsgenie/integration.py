@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.serializers import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
@@ -17,11 +18,19 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.on_call.metrics import OnCallInteractionType
+from sentry.integrations.opsgenie.metrics import record_event
+from sentry.integrations.opsgenie.tasks import migrate_opsgenie_plugin
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.tasks.integrations import migrate_opsgenie_plugin
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiRateLimitedError,
+    ApiUnauthorized,
+    IntegrationError,
+)
 from sentry.web.helpers import render_to_response
 
 from .client import OpsgenieClient
@@ -93,7 +102,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type:ignore
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type: ignore[explicit-override, override]
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -113,7 +122,7 @@ class InstallationConfigView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    def get_keyring_client(self, keyid: str) -> OpsgenieClient:
+    def get_keyring_client(self, keyid: int | str) -> OpsgenieClient:
         org_integration = self.org_integration
         assert org_integration, "OrganizationIntegration is required"
         team = get_team(team_id=keyid, org_integration=org_integration)
@@ -122,11 +131,9 @@ class OpsgenieIntegration(IntegrationInstallation):
         return OpsgenieClient(
             integration=self.model,
             integration_key=team["integration_key"],
-            org_integration_id=org_integration.id,
-            keyid=keyid,
         )
 
-    def get_client(self) -> Any:  # type: ignore
+    def get_client(self) -> Any:  # type: ignore[explicit-override]
         raise NotImplementedError("Use get_keyring_client instead.")
 
     def get_organization_config(self) -> Sequence[Any]:
@@ -149,6 +156,8 @@ class OpsgenieIntegration(IntegrationInstallation):
         return fields
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        from sentry.integrations.services.integration import integration_service
+
         # add the integration ID to a newly added row
         if not self.org_integration:
             return
@@ -158,10 +167,54 @@ class OpsgenieIntegration(IntegrationInstallation):
         # this is not instantaneous, so you could add the same team a bunch of times in a row
         # but I don't anticipate this being too much of an issue
         added_names = {team["team"] for team in teams if team not in unsaved_teams}
+        existing_team_key_pairs = {
+            (team["team"], team["integration_key"]) for team in teams if team not in unsaved_teams
+        }
+
+        integration = integration_service.get_integration(
+            organization_integration_id=self.org_integration.id, status=ObjectStatus.ACTIVE
+        )
+        if not integration:
+            raise IntegrationError("Integration does not exist")
+
         for team in unsaved_teams:
             if team["team"] in added_names:
                 raise ValidationError({"duplicate_name": ["Duplicate team name."]})
             team["id"] = str(self.org_integration.id) + "-" + team["team"]
+
+        invalid_keys = []
+        with record_event(OnCallInteractionType.VERIFY_KEYS).capture():
+            for team in teams:
+                # skip if team, key pair already exist in config
+                if (team["team"], team["integration_key"]) in existing_team_key_pairs:
+                    continue
+
+                integration_key = team["integration_key"]
+
+                # validate integration keys
+                client = OpsgenieClient(
+                    integration=integration,
+                    integration_key=integration_key,
+                )
+                # call an API to test the integration key
+                try:
+                    client.get_alerts()
+                except ApiError as e:
+                    if e.code == 429:
+                        raise ApiRateLimitedError(
+                            "Too many requests. Please try updating one team/key at a time."
+                        )
+                    elif e.code == 401:
+                        invalid_keys.append(integration_key)
+                        pass
+                    elif e.json and e.json.get("message"):
+                        raise ApiError(e.json["message"])
+                    else:
+                        raise
+
+            if invalid_keys:
+                raise ApiUnauthorized(f"Invalid integration key: {str(invalid_keys)}")
+
         return super().update_organization_config(data)
 
     def schedule_migrate_opsgenie_plugin(self):
@@ -203,21 +256,22 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
         organization: RpcOrganizationSummary,
         extra: Any | None = None,
     ) -> None:
-        try:
-            org_integration = OrganizationIntegration.objects.get(
-                integration=integration, organization_id=organization.id
-            )
+        with record_event(OnCallInteractionType.POST_INSTALL).capture():
+            try:
+                org_integration = OrganizationIntegration.objects.get(
+                    integration=integration, organization_id=organization.id
+                )
 
-        except OrganizationIntegration.DoesNotExist:
-            logger.exception("The Opsgenie post_install step failed.")
-            return
+            except OrganizationIntegration.DoesNotExist:
+                logger.exception("The Opsgenie post_install step failed.")
+                return
 
-        key = integration.metadata["api_key"]
-        team_table = []
-        if key:
-            team_name = "my-first-key"
-            team_id = f"{org_integration.id}-{team_name}"
-            team_table.append({"team": team_name, "id": team_id, "integration_key": key})
+            key = integration.metadata["api_key"]
+            team_table = []
+            if key:
+                team_name = "my-first-key"
+                team_id = f"{org_integration.id}-{team_name}"
+                team_table.append({"team": team_name, "id": team_id, "integration_key": key})
 
-        org_integration.config.update({"team_table": team_table})
-        org_integration.update(config=org_integration.config)
+            org_integration.config.update({"team_table": team_table})
+            org_integration.update(config=org_integration.config)

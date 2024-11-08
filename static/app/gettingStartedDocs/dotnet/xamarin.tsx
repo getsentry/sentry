@@ -7,6 +7,12 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportGenericInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -34,10 +40,10 @@ public class MainActivity : global::Xamarin.Forms.Platform.Android.FormsAppCompa
         SentryXamarin.Init(options =>
         {
             // Tells which project in Sentry to send events to:
-            options.Dsn = "${params.dsn}";
+            options.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
             options.Debug = true;
-            // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             options.TracesSampleRate = 1.0;
             // If you installed Sentry.Xamarin.Forms:
@@ -51,10 +57,10 @@ public partial class AppDelegate : global::Xamarin.Forms.Platform.iOS.FormsAppli
     {
         SentryXamarin.Init(options =>
         {
-            options.Dsn = "${params.dsn}";
+            options.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
             options.Debug = true;
-            // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             options.TracesSampleRate = 1.0;
             options.AddXamarinFormsIntegration();
@@ -67,10 +73,10 @@ sealed partial class App : Application
     {
         SentryXamarin.Init(options =>
         {
-            options.Dsn = "${params.dsn}";
+            options.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
             options.Debug = true;
-            // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             options.TracesSampleRate = 1.0;
             options.AddXamarinFormsIntegration();
@@ -125,11 +131,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Initialize the SDK as early as possible, like in the constructor of the [appCode:App], and Add [sentryXamarinFormsIntegrationCode:SentryXamarinFormsIntegration] as a new Integration to [sentryXamarinOptionsCode:SentryXamarinOptions] if you are going to run your app with Xamarin Forms:',
+        'Initialize the SDK as early as possible, like in the constructor of the [code:App], and Add [code:SentryXamarinFormsIntegration] as a new Integration to [code:SentryXamarinOptions] if you are going to run your app with Xamarin Forms:',
         {
-          appCode: <code />,
-          sentryXamarinFormsIntegrationCode: <code />,
-          sentryXamarinOptionsCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -194,7 +198,7 @@ const onboarding: OnboardingConfig = {
       ),
     },
     {
-      title: t('Performance Monitoring'),
+      title: t('Tracing'),
       description: t(
         'You can measure the performance of your code by capturing transactions and spans.'
       ),
@@ -208,7 +212,7 @@ const onboarding: OnboardingConfig = {
         'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
         {
           link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/performance/instrumentation/" />
+            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/tracing/instrumentation/" />
           ),
         }
       ),
@@ -244,8 +248,25 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/dotnet/guides/xamarin/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
+  crashReportOnboarding,
 };
 
 export default docs;

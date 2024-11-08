@@ -1,11 +1,11 @@
 from django.db import router
-from django.db.models import F
+from django.db.models import F, Model
 
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
-def clear_flag(Model, flag_name, flag_attr_name="flags"):
+def clear_flag(Model: type[Model], flag_name: str, flag_attr_name: str = "flags") -> None:
     """
     This function is used to clear an existing flag value for all items in a given model
     """

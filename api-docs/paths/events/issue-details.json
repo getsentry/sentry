@@ -5,9 +5,9 @@
     "operationId": "Retrieve an Issue",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issue belongs to.",
+        "description": "The ID or slug of the organization the issue belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -186,9 +186,9 @@
     "operationId": "Update an Issue",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issue belongs to.",
+        "description": "The ID or slug of the organization the issue belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -212,7 +212,25 @@
             "properties": {
               "status": {
                 "type": "string",
-                "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"reprocessing\"`, `\"unresolved\"`, and `\"ignored\"`."
+                "description": "The new status for the issues. Valid values are `\"resolved\"`, `\"resolvedInNextRelease\"`, `\"unresolved\"`, and `\"ignored\"`."
+              },
+              "statusDetails": {
+                "type": "object",
+                "description": "Additional details about the status of the issue.",
+                "properties": {
+                  "inNextRelease": {
+                    "type": "boolean",
+                    "description": "Indicates if the issue is resolved in the next release based on the last seen release of that issue."
+                  },
+                  "inRelease": {
+                    "type": "string",
+                    "description": "The version of the release in which the issue is resolved."
+                  },
+                  "inCommit": {
+                    "type": "string",
+                    "description": "The commit hash in which the issue is resolved."
+                  }
+                }
               },
               "assignedTo": {
                 "type": "string",
@@ -306,9 +324,9 @@
     "operationId": "Remove an Issue",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issue belongs to.",
+        "description": "The ID or slug of the organization the issue belongs to.",
         "required": true,
         "schema": {
           "type": "string"

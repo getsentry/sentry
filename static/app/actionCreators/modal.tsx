@@ -1,25 +1,21 @@
+import type {Location} from 'history';
+
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
+import type {InsightChartModalOptions} from 'sentry/components/modals/insightChartModal';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {Category} from 'sentry/components/platformPicker';
 import ModalStore from 'sentry/stores/modalStore';
-import type {
-  Event,
-  Group,
-  IssueOwnership,
-  MissingMember,
-  Organization,
-  OrgRole,
-  Project,
-  SentryApp,
-  Team,
-} from 'sentry/types';
-import type {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import type {CustomRepoType} from 'sentry/types/debugFiles';
+import type {Event} from 'sentry/types/event';
+import type {Group, IssueOwnership} from 'sentry/types/group';
+import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
 export type ModalOptions = ModalTypes['options'];
@@ -66,6 +62,7 @@ export async function openEmailVerification({
 
 type OpenDiffModalOptions = {
   baseIssueId: Group['id'];
+  location: Location;
   orgId: Organization['id'];
   project: Project;
   targetIssueId: string;
@@ -116,13 +113,6 @@ type CreateOwnershipRuleModalOptions = {
   eventData?: Event;
 };
 
-export type EditOwnershipRulesModalOptions = {
-  onSave: (text: string | null) => void;
-  organization: Organization;
-  ownership: IssueOwnership;
-  project: Project;
-};
-
 /**
  * Open the edit ownership modal within issue details
  */
@@ -134,6 +124,13 @@ export async function openIssueOwnershipRuleModal(
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
+
+export type EditOwnershipRulesModalOptions = {
+  onSave: (ownership: IssueOwnership) => void;
+  organization: Organization;
+  ownership: IssueOwnership;
+  project: Project;
+};
 
 export async function openEditOwnershipRules(options: EditOwnershipRulesModalOptions) {
   const mod = await import('sentry/components/modals/editOwnershipRulesModal');
@@ -188,20 +185,10 @@ export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-export type SentryAppDetailsModalOptions = {
-  isInstalled: boolean;
-  onInstall: () => Promise<void>;
-  organization: Organization;
-  sentryApp: SentryApp;
-  onCloseModal?: () => void; // used for analytics
-};
-
 type DebugFileSourceModalOptions = {
-  appStoreConnectSourcesQuantity: number;
   onSave: (data: Record<string, any>) => Promise<void>;
   organization: Organization;
   sourceType: CustomRepoType;
-  appStoreConnectStatusData?: AppStoreConnectStatusData;
   onClose?: () => void;
   sourceConfig?: Record<string, any>;
 };
@@ -278,8 +265,8 @@ export async function openImportDashboardFromFileModal(options) {
   });
 }
 
-export async function openCreateDashboardFromScratchpad(options) {
-  const mod = await import('sentry/components/modals/createDashboardFromScratchpadModal');
+export async function openCreateDashboardFromMetrics(options) {
+  const mod = await import('sentry/components/modals/createDashboardFromMetricsModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
@@ -344,7 +331,7 @@ export async function openWidgetViewerModal({
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
-    closeEvents: 'escape-key',
+    closeEvents: 'none',
     modalCss,
     onClose,
   });
@@ -393,4 +380,11 @@ export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOpti
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss, onClose});
+}
+
+export async function openInsightChartModal(options: InsightChartModalOptions) {
+  const mod = await import('sentry/components/modals/insightChartModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }

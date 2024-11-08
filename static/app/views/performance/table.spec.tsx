@@ -1,17 +1,23 @@
-import {browserHistory} from 'react-router';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import Table from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
+
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 const initializeData = (settings = {}, features: string[] = []) => {
   const projects = [
@@ -104,6 +110,9 @@ describe('Performance > Table', function () {
   let eventsMock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -192,7 +201,7 @@ describe('Performance > Table', function () {
         query: 'event.type:transaction transaction:/api*',
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent
@@ -202,7 +211,7 @@ describe('Performance > Table', function () {
           summaryConditions=""
           projects={data.projects}
         />,
-        {context: data.routerContext}
+        {router: data.router}
       );
 
       const rows = await screen.findAllByTestId('grid-body-row');
@@ -221,10 +230,10 @@ describe('Performance > Table', function () {
       await userEvent.click(cellActionTriggers[8]);
 
       expect(
-        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
       ).toBeInTheDocument();
 
       await userEvent.keyboard('{Escape}'); // Close actions menu
@@ -245,7 +254,7 @@ describe('Performance > Table', function () {
       });
     });
 
-    it('hides cell actions when withStaticFilters is true', function () {
+    it('hides cell actions when withStaticFilters is true', async function () {
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
       });
@@ -261,6 +270,7 @@ describe('Performance > Table', function () {
         />
       );
 
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
       const cellActionContainers = screen.queryByTestId('cell-action-container');
       expect(cellActionContainers).not.toBeInTheDocument();
     });
@@ -276,7 +286,7 @@ describe('Performance > Table', function () {
         projects,
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent
@@ -307,7 +317,7 @@ describe('Performance > Table', function () {
         projects,
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent
@@ -319,12 +329,12 @@ describe('Performance > Table', function () {
         />
       );
 
-      await screen.findByTestId('grid-editable');
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
       const indicatorContainer = screen.queryByTestId('unparameterized-indicator');
       expect(indicatorContainer).not.toBeInTheDocument();
     });
 
-    it('sends MEP param when setting enabled', function () {
+    it('sends MEP param when setting enabled', async function () {
       const data = initializeData(
         {
           query: 'event.type:transaction transaction:/api*',
@@ -343,6 +353,7 @@ describe('Performance > Table', function () {
         />
       );
 
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
       expect(eventsMock).toHaveBeenCalledTimes(1);
       expect(eventsMock).toHaveBeenNthCalledWith(
         1,

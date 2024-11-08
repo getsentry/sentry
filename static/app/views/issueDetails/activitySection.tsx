@@ -5,12 +5,13 @@ import {ActivityItem} from 'sentry/components/activity/item';
 import {Note} from 'sentry/components/activity/note';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ConfigStore from 'sentry/stores/configStore';
-import type {Group, GroupActivity, User} from 'sentry/types';
-import {GroupActivityType} from 'sentry/types';
 import type {NoteType} from 'sentry/types/alerts';
+import type {Group, GroupActivity} from 'sentry/types/group';
+import {GroupActivityType} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import GroupActivityItem from 'sentry/views/issueDetails/groupActivityItem';
 
 type Props = {
@@ -27,7 +28,7 @@ function ActivitySection(props: Props) {
 
   const [inputId, setInputId] = useState(uniqueId());
 
-  const me = ConfigStore.get('user');
+  const me = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
   const noteProps = {
     minHeight: 140,
@@ -47,6 +48,7 @@ function ActivitySection(props: Props) {
             onCreate(n, me);
             setInputId(uniqueId());
           }}
+          source="activity"
           {...noteProps}
         />
       </ActivityItem>
@@ -73,13 +75,6 @@ function ActivitySection(props: Props) {
               />
             </ErrorBoundary>
           );
-        }
-
-        if (
-          item.type === GroupActivityType.SET_PRIORITY &&
-          !organization.features.includes('issue-priority-ui')
-        ) {
-          return null;
         }
 
         return (

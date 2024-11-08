@@ -8,7 +8,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, control_silo_only_model, sane_repr
+from sentry.db.models import Model, control_silo_model, sane_repr
 from sentry.utils import json, metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
@@ -18,7 +18,7 @@ BACKOFF_INTERVAL = 3
 BACKOFF_RATE = 1.4
 
 
-@control_silo_only_model
+@control_silo_model
 class WebhookPayload(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -76,7 +76,7 @@ class WebhookPayload(Model):
         *,
         region: str,
         provider: str,
-        identifier: int,
+        identifier: int | str,
         request: HttpRequest,
         integration_id: int | None = None,
     ) -> Self:
@@ -88,7 +88,7 @@ class WebhookPayload(Model):
             **cls.get_attributes_from_request(request),
         )
 
-    def schedule_next_attempt(self):
+    def schedule_next_attempt(self) -> None:
         attempts = self.attempts + 1
         backoff = BACKOFF_INTERVAL * BACKOFF_RATE**attempts
         backoff_delta = datetime.timedelta(minutes=min(backoff, 60))

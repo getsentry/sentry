@@ -1,19 +1,21 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
-import {Tooltip} from 'sentry/components/tooltip';
+import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Frame, PlatformKey} from 'sentry/types';
+import type {EventTransaction, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame as ProfilingFrame} from 'sentry/utils/profiling/frame';
 import type {Profile} from 'sentry/utils/profiling/profile/profile';
@@ -150,6 +152,7 @@ export function SpanProfileDetails({
       query: {
         tid: String(profile.threadId),
         spanId: span.span_id,
+        sorting: 'call order',
       },
     });
 
@@ -164,23 +167,33 @@ export function SpanProfileDetails({
     return null;
   }
 
+  const percentage = formatPercentage(nodes[index].count / totalWeight);
+
   return (
-    <Fragment>
+    <SpanContainer>
       <SpanDetails>
         <SpanDetailsItem grow>
           <SectionHeading>{t('Most Frequent Stacks in this Span')}</SectionHeading>
         </SpanDetailsItem>
         <SpanDetailsItem>
           <SectionSubtext>
-            <Tooltip title={t('%s out of %s samples', nodes[index].count, totalWeight)}>
-              {tct('Showing stacks [index] of [total] ([percentage])', {
-                index: index + 1,
-                total: maxNodes,
-                percentage: formatPercentage(nodes[index].count / totalWeight),
-              })}
-            </Tooltip>
+            {tct('Showing stacks [index] of [total] ([percentage])', {
+              index: index + 1,
+              total: maxNodes,
+              percentage,
+            })}
           </SectionSubtext>
         </SpanDetailsItem>
+        <QuestionTooltip
+          position="top"
+          size="xs"
+          title={t(
+            '%s out of %s (%s) of the call stacks collected during this span',
+            nodes[index].count,
+            totalWeight,
+            percentage
+          )}
+        />
         <SpanDetailsItem>
           <ButtonBar merged>
             <Button
@@ -204,14 +217,13 @@ export function SpanProfileDetails({
           </ButtonBar>
         </SpanDetailsItem>
         <SpanDetailsItem>
-          <Button icon={<IconProfiling />} to={spanTarget} size="xs">
-            {t('View Profile')}
-          </Button>
+          <LinkButton icon={<IconProfiling />} to={spanTarget} size="xs">
+            {t('Profile')}
+          </LinkButton>
         </SpanDetailsItem>
       </SpanDetails>
       <StackTraceContent
         event={processedEvent}
-        hasHierarchicalGrouping={false}
         newestFirst
         platform={event.platform || 'other'}
         stacktrace={{
@@ -224,7 +236,7 @@ export function SpanProfileDetails({
         inlined
         maxDepth={MAX_STACK_DEPTH}
       />
-    </Fragment>
+    </SpanContainer>
   );
 }
 
@@ -349,15 +361,45 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[
   return frames.reverse();
 }
 
+const SpanContainer = styled('div')`
+  container: profiling-container / inline-size;
+  border: 1px solid ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+
+  ${StackTraceContentPanel} {
+    margin-bottom: 0;
+    box-shadow: none;
+  }
+`;
 const SpanDetails = styled('div')`
-  padding: ${space(2)};
+  padding: ${space(0.5)} ${space(1)};
   display: flex;
   align-items: center;
   gap: ${space(1)};
 `;
 
 const SpanDetailsItem = styled('span')<{grow?: boolean}>`
-  ${p => (p.grow ? 'flex: 1 2 auto' : 'flex: 0 1 auto')}
+  flex: ${p => (p.grow ? '1 2 auto' : 'flex: 0 1 auto')};
+
+  &:nth-child(2) {
+    @container profiling-container (width < 680px) {
+      display: none;
+    }
+  }
+
+  &:first-child {
+    flex: 0 1 100%;
+    min-width: 0;
+  }
+
+  h4 {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+  }
 `;
 
 const SectionSubtext = styled('span')`

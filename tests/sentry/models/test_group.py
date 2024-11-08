@@ -16,9 +16,8 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.release import Release, _get_cache_key
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import ReplaysSnubaTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -26,11 +25,10 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = requires_snuba
 
 
-@region_silo_test
 class GroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).isoformat()
 
     def test_is_resolved(self):
         group = self.create_group(status=GroupStatus.RESOLVED)
@@ -256,7 +254,7 @@ class GroupTest(TestCase, SnubaTestCase):
         url = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}/events/{event.event_id}/"
         assert url == group.get_absolute_url(event_id=event.event_id)
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_get_absolute_url_customer_domains(self):
         project = self.create_project()
         event = self.store_event(
@@ -279,12 +277,12 @@ class GroupTest(TestCase, SnubaTestCase):
         last_release = Release.objects.create(
             organization_id=self.organization.id,
             version="100",
-            date_added=iso_format(now - timedelta(seconds=10)),
+            date_added=now - timedelta(seconds=10),
         )
         first_release = Release.objects.create(
             organization_id=self.organization.id,
             version="200",
-            date_added=iso_format(now - timedelta(seconds=100)),
+            date_added=now - timedelta(seconds=100),
         )
         GroupRelease.objects.create(
             project_id=project.id,
@@ -314,8 +312,12 @@ class GroupTest(TestCase, SnubaTestCase):
 
         assert group2.get_last_release() is None
 
-    def test_group_substatus_defaults(self):
-        assert self.create_group(status=GroupStatus.UNRESOLVED).substatus is GroupSubStatus.ONGOING
+    @patch("sentry.models.group.logger.error")
+    def test_group_substatus_defaults(self, mock_logger):
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        assert group.substatus is None
+        assert mock_logger.call_count == 1
+
         for nullable_status in (
             GroupStatus.IGNORED,
             GroupStatus.MUTED,
@@ -339,21 +341,7 @@ class GroupTest(TestCase, SnubaTestCase):
             group = self.create_group(status=status, substatus=substatus)
             assert group.substatus is substatus
 
-    @patch("sentry.models.group.logger")
-    def test_group_invalid_substatus(self, logger):
-        status_substatus_pairs = [
-            (GroupStatus.UNRESOLVED, GroupSubStatus.UNTIL_ESCALATING),
-            (GroupStatus.IGNORED, GroupSubStatus.ONGOING),
-            (GroupStatus.IGNORED, GroupSubStatus.ESCALATING),
-        ]
 
-        for status, substatus in status_substatus_pairs:
-            self.create_group(status=status, substatus=substatus)
-
-        assert logger.error.call_count == len(status_substatus_pairs)
-
-
-@region_silo_test
 class GroupIsOverResolveAgeTest(TestCase):
     def test_simple(self):
         group = self.group
@@ -367,9 +355,9 @@ class GroupIsOverResolveAgeTest(TestCase):
 class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
-        self.two_min_ago = iso_format(before_now(minutes=2))
-        self.just_over_one_min_ago = iso_format(before_now(seconds=61))
+        self.min_ago = before_now(minutes=1).isoformat()
+        self.two_min_ago = before_now(minutes=2).isoformat()
+        self.just_over_one_min_ago = before_now(seconds=61).isoformat()
 
     def test_get_latest_event_no_events(self):
         project = self.create_project()
@@ -386,9 +374,10 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
             project_id=self.project.id,
         )
 
-        group = Group.objects.first()
+        group = Group.objects.get()
 
         group_event = group.get_latest_event()
+        assert group_event is not None
 
         assert group_event.event_id == "b" * 32
         assert group_event.occurrence is None
@@ -406,9 +395,10 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
             data={"event_id": "b" * 32, "fingerprint": ["group-1"], "timestamp": self.min_ago},
             project_id=self.project.id,
         )
-        group = Group.objects.first()
+        group = Group.objects.get()
 
         group_event = group.get_latest_event()
+        assert group_event is not None
 
         assert group_event.event_id == "b" * 32
         assert group_event.occurrence is None
@@ -424,10 +414,11 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
             },
         )
 
-        group = Group.objects.first()
+        group = Group.objects.get()
         group.update(type=ProfileFileIOGroupType.type_id)
 
         group_event = group.get_latest_event()
+        assert group_event is not None
         assert group_event.event_id == event_id
         self.assert_occurrences_identical(group_event.occurrence, occurrence)
 
@@ -442,7 +433,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
                 "message": "Hello world",
                 "level": "error",
                 "contexts": {"replay": {"replay_id": replay1_id}},
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -454,7 +445,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
                 replay1_id,
             )
         )
-        group = Group.objects.first()
+        group = Group.objects.get()
         assert group.has_replays() is True
 
         # test caching
@@ -471,7 +462,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
 
     def test_no_replay_project(self):
         event = self.store_event(
-            data={"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=1))},
+            data={"fingerprint": ["group1"], "timestamp": before_now(minutes=1).isoformat()},
             project_id=self.project.id,
         )
         group = event.group
@@ -482,7 +473,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
         self.project.save()
 
         event = self.store_event(
-            data={"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=1))},
+            data={"fingerprint": ["group1"], "timestamp": before_now(minutes=1).isoformat()},
             project_id=self.project.id,
         )
 

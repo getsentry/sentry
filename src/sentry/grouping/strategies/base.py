@@ -2,8 +2,6 @@ import inspect
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any, Generic, Protocol, TypeVar
 
-import sentry_sdk
-
 from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
@@ -37,15 +35,13 @@ class StrategyFunc(Protocol[ConcreteInterface]):
         event: Event,
         context: "GroupingContext",
         **meta: Any,
-    ) -> ReturnedVariants:
-        ...
+    ) -> ReturnedVariants: ...
 
 
 class VariantProcessor(Protocol):
     def __call__(
         self, variants: ReturnedVariants, context: "GroupingContext", **meta: Any
-    ) -> ReturnedVariants:
-        ...
+    ) -> ReturnedVariants: ...
 
 
 def strategy(
@@ -113,10 +109,26 @@ class GroupingContext:
 
     def get_grouping_component(
         self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> GroupingComponent | ReturnedVariants:
+    ) -> ReturnedVariants:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
+        return self._get_strategy_dict(interface, event=event, **kwargs)
+
+    def get_single_grouping_component(
+        self, interface: Interface, *, event: Event, **kwargs: Any
+    ) -> GroupingComponent:
+        """Invokes a delegate grouping strategy.  If no such delegate is
+        configured a fallback grouping component is returned.
+        """
+        rv = self._get_strategy_dict(interface, event=event, **kwargs)
+
+        assert len(rv) == 1
+        return rv[self["variant"]]
+
+    def _get_strategy_dict(
+        self, interface: Interface, *, event: Event, **kwargs: Any
+    ) -> ReturnedVariants:
         path = interface.path
         strategy = self.config.delegates.get(path)
         if strategy is None:
@@ -124,15 +136,8 @@ class GroupingContext:
 
         kwargs["context"] = self
         kwargs["event"] = event
-        with sentry_sdk.start_span(
-            op="sentry.grouping.GroupingContext.get_grouping_component", description=path
-        ):
-            rv = strategy(interface, **kwargs)
+        rv = strategy(interface, **kwargs)
         assert isinstance(rv, dict)
-
-        if self["variant"] is not None:
-            assert len(rv) == 1
-            return rv[self["variant"]]
 
         return rv
 
@@ -222,7 +227,7 @@ class Strategy(Generic[ConcreteInterface]):
         prevent_contribution = None
 
         for variant, component in variants.items():
-            is_mandatory = variant[:1] == "!"
+            is_mandatory = variant.startswith("!")
             variant = variant.lstrip("!")
 
             if is_mandatory:
@@ -257,8 +262,8 @@ class Strategy(Generic[ConcreteInterface]):
                     ),
                 )
             else:
-                hash = component.get_hash()
-                duplicate_of = mandatory_contributing_hashes.get(hash)
+                hash_value = component.get_hash()
+                duplicate_of = mandatory_contributing_hashes.get(hash_value)
                 if duplicate_of is not None:
                     component.update(
                         contributes=False,
@@ -285,7 +290,7 @@ class StrategyConfiguration:
 
     def __init__(self, enhancements: str | None = None, **extra: Any):
         if enhancements is None:
-            enhancements_instance = Enhancements([])
+            enhancements_instance = Enhancements.from_config_string("")
         else:
             enhancements_instance = Enhancements.loads(enhancements)
         self.enhancements = enhancements_instance

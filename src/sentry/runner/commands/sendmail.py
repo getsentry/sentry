@@ -3,16 +3,19 @@ import email
 import click
 
 
-def send_prepared_email(input, fail_silently=False):
+def send_prepared_email(input: str, fail_silently: bool = False) -> None:
     from sentry import options
     from sentry.utils.email import send_mail
 
     msg = email.message_from_string(input)
     headers = {k: v for (k, v) in msg.items() if k.lower() not in ("to", "reply-to", "subject")}
     reply_to = msg.get("reply-to")
+    msg_body = msg.get_payload()
+    if not isinstance(msg_body, str):
+        raise SystemExit(f"expected a non-multipart text email but received {type(msg_body)}")
     send_mail(
         subject=msg["subject"],
-        message=msg.get_payload(),
+        message=msg_body,
         from_email=options.get("mail.from"),
         recipient_list=[msg["to"]],
         fail_silently=fail_silently,
@@ -24,7 +27,7 @@ def send_prepared_email(input, fail_silently=False):
 @click.command()
 @click.argument("files", nargs=-1)
 @click.option("--fail-silently", is_flag=True)
-def sendmail(files, fail_silently):
+def sendmail(files: tuple[str, ...], fail_silently: bool) -> None:
     """
     Sends emails from the default notification mail address.
 
@@ -40,5 +43,4 @@ def sendmail(files, fail_silently):
     for file in files:
         click.echo(f"Sending {file}")
         with open(file) as f:
-            if not send_prepared_email(f.read(), fail_silently=fail_silently):
-                click.echo(f"  error: Failed to send {file}")
+            send_prepared_email(f.read(), fail_silently=fail_silently)

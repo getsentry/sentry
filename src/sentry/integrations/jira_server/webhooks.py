@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.http.request import HttpRequest
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,9 +12,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt, metrics
 
@@ -51,18 +52,18 @@ def get_integration_from_token(token: str | None) -> RpcIntegration:
 class JiraServerIssueUpdatedWebhook(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()
 
     @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request, token, *args, **kwargs) -> Response:
         clear_tags_and_context()
-        extra = {}
+        extra: dict[str, object] = {}
         try:
             integration = get_integration_from_token(token)
             extra["integration_id"] = integration.id
@@ -74,6 +75,8 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
 
         data = request.data
 
+        # Note: If we ever process more webhooks from jira server
+        # we also need to update JiraServerRequestParser
         if not data.get("changelog"):
             logger.info("missing-changelog", extra=extra)
             return self.respond()

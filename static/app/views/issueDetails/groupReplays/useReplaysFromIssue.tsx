@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {type Group, IssueCategory, type Organization} from 'sentry/types';
+import {type Group, IssueCategory} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
@@ -11,7 +12,7 @@ import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
-export default function useReplayFromIssue({
+export default function useReplaysFromIssue({
   group,
   location,
   organization,
@@ -39,7 +40,7 @@ export default function useReplayFromIssue({
             returnIds: true,
             query: `issue.id:[${group.id}]`,
             data_source: dataSource,
-            statsPeriod: '14d',
+            statsPeriod: '90d',
             environment: location.query.environment,
             project: ALL_ACCESS_PROJECTS,
           },
@@ -62,7 +63,7 @@ export default function useReplayFromIssue({
       version: 2,
       fields: REPLAY_LIST_FIELDS,
       query: replayIds.length ? `id:[${String(replayIds)}]` : `id:1`,
-      range: '14d',
+      range: '90d',
       projects: [],
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });

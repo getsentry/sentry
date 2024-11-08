@@ -1,12 +1,11 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import type {BaseGroup} from 'sentry/types';
-import {EventOrGroupType, IssueCategory} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {BaseGroup} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
 
 describe('EventOrGroupTitle', function () {
   const data = {
@@ -66,8 +65,6 @@ describe('EventOrGroupTitle', function () {
   });
 
   it('renders with title override', function () {
-    const routerContext = RouterContextFixture([{organization: OrganizationFixture()}]);
-
     render(
       <EventOrGroupTitle
         data={
@@ -80,8 +77,7 @@ describe('EventOrGroupTitle', function () {
             },
           } as BaseGroup
         }
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByText('metadata title')).toBeInTheDocument();
@@ -118,7 +114,6 @@ describe('EventOrGroupTitle', function () {
             type: 'ReferenceError',
             filename: 'webpack-internal:///./app/components/tabs/tabList.tsx',
             function: 'useOverflowTabs',
-            display_title_with_tree_label: false,
           },
           actor: UserFixture(),
           isTombstone: true,
@@ -143,9 +138,7 @@ describe('EventOrGroupTitle', function () {
     } as BaseGroup;
 
     it('should correctly render title', () => {
-      const routerContext = RouterContextFixture([{organization: OrganizationFixture()}]);
-
-      render(<EventOrGroupTitle data={perfData} />, {context: routerContext});
+      render(<EventOrGroupTitle data={perfData} />);
 
       expect(screen.getByText('N+1 Query')).toBeInTheDocument();
       expect(screen.getByText('transaction name')).toBeInTheDocument();

@@ -1,34 +1,35 @@
 import type {Project} from 'sentry/types/project';
 
-const supportedProfilingPlatformSDKs = [
-  'android',
-  'apple-ios',
-  'flutter',
-  'dart-flutter',
-  'go',
-  'node',
-  'python',
-  'php',
-  'php',
-  'php-laravel',
-  'php-symfony2',
-  'ruby',
-  'javascript-nextjs',
-  'javascript-remix',
-  'javascript-sveltekit',
-  'javascript',
-  'javascript-react',
-  'javascript-vue',
-  'javascript-angular',
-  'react-native',
-] as const;
-export type SupportedProfilingPlatform = (typeof supportedProfilingPlatformSDKs)[number];
-export type SupportedProfilingPlatformSDK =
-  (typeof supportedProfilingPlatformSDKs)[number];
+type SupportedProfilingPlatformSDK =
+  | 'android'
+  | 'apple-ios'
+  | 'apple-macos'
+  | 'flutter'
+  | 'dart-flutter'
+  | 'go'
+  | 'node'
+  | 'python'
+  | 'php'
+  | 'php-laravel'
+  | 'php-symfony2'
+  | 'ruby'
+  | 'javascript-angular'
+  | 'javascript-astro'
+  | 'javascript-ember'
+  | 'javascript-gatsby'
+  | 'javascript-nextjs'
+  | 'javascript-react'
+  | 'javascript-remix'
+  | 'javascript-svelte'
+  | 'javascript-solid'
+  | 'javascript-sveltekit'
+  | 'javascript-vue'
+  | 'javascript'
+  | 'react-native';
 
 export function getDocsPlatformSDKForPlatform(
   platform: string | undefined
-): SupportedProfilingPlatform | null {
+): SupportedProfilingPlatformSDK | null {
   if (!platform) {
     return null;
   }
@@ -37,9 +38,15 @@ export function getDocsPlatformSDKForPlatform(
   if (platform === 'android') {
     return 'android';
   }
+
   // iOS
   if (platform === 'apple-ios') {
     return 'apple-ios';
+  }
+
+  // macOS
+  if (platform === 'apple-macos') {
+    return 'apple-macos';
   }
 
   // Go
@@ -71,6 +78,18 @@ export function getDocsPlatformSDKForPlatform(
   }
   if (platform === 'javascript-angular') {
     return 'javascript-angular';
+  }
+  if (platform === 'javascript-gatsby') {
+    return 'javascript-gatsby';
+  }
+  if (platform === 'javascript-ember') {
+    return 'javascript-ember';
+  }
+  if (platform === 'javascript-svelte') {
+    return 'javascript-svelte';
+  }
+  if (platform === 'javascript-solid') {
+    return 'javascript-solid';
   }
 
   if (platform === 'dart-flutter') {
@@ -127,5 +146,7 @@ export function getProfilingDocsForPlatform(platform: string | undefined): strin
   }
   return docsPlatform === 'apple-ios'
     ? 'https://docs.sentry.io/platforms/apple/guides/ios/profiling/'
-    : `https://docs.sentry.io/platforms/${docsPlatform}/profiling/`;
+    : docsPlatform === 'apple-macos'
+      ? 'https://docs.sentry.io/platforms/apple/guides/macos/profiling/'
+      : `https://docs.sentry.io/platforms/${docsPlatform}/profiling/`;
 }

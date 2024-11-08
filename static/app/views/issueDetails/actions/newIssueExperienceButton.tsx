@@ -1,69 +1,106 @@
-import {css} from '@emotion/react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import merge from 'lodash/merge';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
+import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import type {User} from 'sentry/types';
-import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import {useUser} from 'sentry/utils/useUser';
-
-type UpdateUserOptionsVariables = Partial<User['options']>;
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
+import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function NewIssueExperienceButton() {
-  const user = useUser();
-  const api = useApi();
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const openForm = useFeedbackForm();
+  const {mutate} = useMutateUserOptions();
 
-  const newIssueExperienceEnabled =
-    user?.options?.issueDetailsNewExperienceQ42023 ?? false;
+  const handleToggle = useCallback(() => {
+    mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
+    trackAnalytics('issue_details.streamline_ui_toggle', {
+      isEnabled: !hasStreamlinedUI,
+      organization: organization,
+    });
+    navigate({
+      ...location,
+      query: {...location.query, streamline: hasStreamlinedUI ? '0' : '1'},
+    });
+  }, [mutate, organization, hasStreamlinedUI, location, navigate]);
 
-  const {mutate} = useMutation({
-    mutationFn: (options: UpdateUserOptionsVariables) => {
-      return api.requestPromise('/users/me/', {
-        method: 'PUT',
-        data: {
-          options,
-        },
-      });
-    },
-    onMutate: (options: UpdateUserOptionsVariables) => {
-      ConfigStore.set('user', merge({}, user, {options}));
-    },
-    onError: () => {
-      addErrorMessage('Failed to save new issue experience preference');
-    },
-  });
+  if (!hasStreamlinedUIFlag) {
+    return null;
+  }
 
-  const label = newIssueExperienceEnabled
-    ? t('Switch to the old issue experience')
-    : t('Switch to the new issue experience');
+  if (!openForm || !hasStreamlinedUI) {
+    const label = hasStreamlinedUI
+      ? t('Switch to the old issue experience')
+      : t('Switch to the new issue experience');
+
+    return (
+      <StyledButton
+        enabled={hasStreamlinedUI}
+        size={hasStreamlinedUI ? 'xs' : 'sm'}
+        icon={<IconLab isSolid={hasStreamlinedUI} />}
+        title={label}
+        aria-label={label}
+        onClick={handleToggle}
+      />
+    );
+  }
 
   return (
-    <StyledButton
-      enabled={newIssueExperienceEnabled}
-      size="sm"
-      icon={<IconLab isSolid={newIssueExperienceEnabled} />}
-      title={label}
-      aria-label={label}
-      onClick={() =>
-        mutate({['issueDetailsNewExperienceQ42023']: !newIssueExperienceEnabled})
-      }
+    <DropdownMenu
+      trigger={triggerProps => (
+        <StyledDropdownButton
+          {...triggerProps}
+          enabled={hasStreamlinedUI}
+          size={hasStreamlinedUI ? 'xs' : 'sm'}
+          aria-label={t('Switch issue experience')}
+        >
+          {/* Passing icon as child to avoid extra icon margin */}
+          <IconLab isSolid={hasStreamlinedUI} />
+        </StyledDropdownButton>
+      )}
+      items={[
+        {
+          key: 'switch-to-old-ui',
+          label: t('Switch to the old issue experience'),
+          onAction: handleToggle,
+        },
+        {
+          key: 'give-feedback',
+          label: t('Give feedback on new UI'),
+          hidden: !openForm,
+          onAction: () => {
+            openForm({
+              messagePlaceholder: t('How can we make this new UI work for you?'),
+            });
+          },
+        },
+      ]}
+      position="bottom-end"
     />
   );
 }
 
-const StyledButton = styled(Button)<{enabled: boolean}>`
-  ${p =>
-    p.enabled &&
-    css`
-      color: ${p.theme.button.primary.background};
+const StyledDropdownButton = styled(DropdownButton)<{enabled: boolean}>`
+  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  :hover {
+    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  }
+`;
 
-      :hover {
-        color: ${p.theme.button.primary.background};
-      }
-    `}
+const StyledButton = styled(Button)<{enabled: boolean}>`
+  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  :hover {
+    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+  }
 `;

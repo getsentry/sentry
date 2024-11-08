@@ -50,11 +50,14 @@ def test_is_span_id():
     assert is_span_id("202AB439bb9c4f31")
     assert is_span_id(b"202AB439bb9c4f31")
 
+    # Relaxing the constraint so we only require it
+    # to be a hex string between 1 and 16 chars long.
+    assert is_span_id("202ab439")
+    assert is_span_id(4711)
+
     assert not is_span_id("")
     assert not is_span_id("202a-b439-bb9c-4f31")
     assert not is_span_id("ZZZZZZZZZZZZZZZZ")
     assert not is_span_id("202ab439bb9c4f31AAAAAAAAAA")
-    assert not is_span_id("202ab439")
-    assert not is_span_id(4711)
     assert not is_span_id(False)
     assert not is_span_id(None)

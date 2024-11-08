@@ -69,6 +69,42 @@ class ErrorMappingTest(unittest.TestCase):
             )
 
     @responses.activate
+    def test_react_error_mapping_resolving_no_query(self):
+        responses.add(
+            responses.GET,
+            REACT_MAPPING_URL,
+            body=r"""
+        {
+            "425": "Text content does not match server-rendered HTML."
+        }
+        """,
+            content_type="application/json",
+        )
+
+        data: dict[str, Any] = {
+            "platform": "javascript",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "value": (
+                            "Minified React error #425; visit https://react.dev/errors/425"
+                            "for the full message or use the non-minified dev environment"
+                            "for full errors and additional helpful warnings."
+                        ),
+                    }
+                ]
+            },
+        }
+
+        assert rewrite_exception(data)
+
+        assert (
+            data["exception"]["values"][0]["value"]
+            == "Text content does not match server-rendered HTML."
+        )
+
+    @responses.activate
     def test_react_error_mapping_empty_args(self):
         responses.add(
             responses.GET,

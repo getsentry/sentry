@@ -1,9 +1,8 @@
 import type {ReactNode} from 'react';
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Badge from 'sentry/components/badge';
+import Badge from 'sentry/components/badge/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
@@ -16,9 +15,10 @@ import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
 import type {QueryCounts} from './utils';
@@ -88,7 +88,7 @@ function IssueListHeader({
   selectedProjectIds,
 }: IssueListHeaderProps) {
   const {projects} = useProjects();
-  const tabs = getTabs(organization);
+  const tabs = getTabs();
   const visibleTabs = displayReprocessingTab
     ? tabs
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);

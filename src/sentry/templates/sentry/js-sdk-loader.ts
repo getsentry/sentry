@@ -1,5 +1,5 @@
 declare const __LOADER__PUBLIC_KEY__: any;
-declare const __LOADER_SDK_URL__: any;
+declare const __LOADER__SDK_URL__: any;
 declare const __LOADER__CONFIG__: any;
 declare const __LOADER__IS_LAZY__: any;
 
@@ -159,12 +159,12 @@ declare const __LOADER__IS_LAZY__: any;
 
     // Add necessary integrations based on config
     if (config.tracesSampleRate && integrationNames.indexOf('BrowserTracing') === -1) {
-      if (SDK.BrowserTracing) {
+      if (SDK.browserTracingIntegration) {
+        // (Post-)v8 version of the BrowserTracing integration
+        integrations.push(SDK.browserTracingIntegration({enableInp: true}));
+      } else if (SDK.BrowserTracing) {
         // Pre v8 version of the BrowserTracing integration
         integrations.push(new SDK.BrowserTracing());
-      } else if (SDK.browserTracingIntegration) {
-        // (Post-)v8 version of the BrowserTracing integration
-        integrations.push(SDK.browserTracingIntegration());
       }
     }
 
@@ -172,12 +172,12 @@ declare const __LOADER__IS_LAZY__: any;
       (config.replaysSessionSampleRate || config.replaysOnErrorSampleRate) &&
       integrationNames.indexOf('Replay') === -1
     ) {
-      if (SDK.Replay) {
-        // Pre v8 version of the Replay integration
-        integrations.push(new SDK.Replay());
-      } else if (SDK.replayIntegration) {
+      if (SDK.replayIntegration) {
         // (Post-)v8 version of the Replay integration
         integrations.push(SDK.replayIntegration());
+      } else if (SDK.Replay) {
+        // Pre v8 version of the Replay integration
+        integrations.push(new SDK.Replay());
       }
     }
 
@@ -186,6 +186,13 @@ declare const __LOADER__IS_LAZY__: any;
 
   function sdkIsLoaded() {
     const __sentry = _window.__SENTRY__;
+
+    // If this is set, it means a v8 SDK is already loaded
+    const version = typeof __sentry !== 'undefined' && __sentry.version;
+    if (version) {
+      return !!__sentry[version];
+    }
+
     // If there is a global __SENTRY__ that means that in any of the callbacks init() was already invoked
     return !!(
       !(typeof __sentry === 'undefined') &&
@@ -202,7 +209,12 @@ declare const __LOADER__IS_LAZY__: any;
         // Cleanup to allow garbage collection
         _window.sentryOnLoad = undefined;
       }
+    } catch (o_O) {
+      console.error('Error while calling `sentryOnLoad` handler:');
+      console.error(o_O);
+    }
 
+    try {
       // We have to make sure to call all callbacks first
       for (let i = 0; i < onLoadCallbacks.length; i++) {
         if (typeof onLoadCallbacks[i] === 'function') {
@@ -311,7 +323,7 @@ declare const __LOADER__IS_LAZY__: any;
   'unhandledrejection' as const,
   'Sentry' as const,
   __LOADER__PUBLIC_KEY__,
-  __LOADER_SDK_URL__,
+  __LOADER__SDK_URL__,
   __LOADER__CONFIG__,
   __LOADER__IS_LAZY__
 );

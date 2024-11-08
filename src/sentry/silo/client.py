@@ -3,7 +3,7 @@ from __future__ import annotations
 import ipaddress
 import socket
 from collections.abc import Iterable, Mapping
-from hashlib import sha1
+from hashlib import sha256
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
@@ -254,7 +254,7 @@ class RegionSiloClient(BaseSiloClient):
         """
         hash = None
         if prefix_hash is not None:
-            hash = sha1(f"{prefix_hash}{self.region.name}{method}{path}".encode()).hexdigest()
+            hash = sha256(f"{prefix_hash}{self.region.name}{method}{path}".encode()).hexdigest()
 
         self.check_request_attempts(hash=hash, method=method, path=path)
         response = super().request(

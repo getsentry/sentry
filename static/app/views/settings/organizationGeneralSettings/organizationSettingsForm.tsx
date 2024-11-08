@@ -7,16 +7,17 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AvatarChooser from 'sentry/components/avatarChooser';
+import Tag from 'sentry/components/badge/tag';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import type {FieldObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
-import Tag from 'sentry/components/tag';
 import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -48,8 +49,21 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
 
   const forms = useMemo(() => {
     const formsConfig = cloneDeep(organizationSettingsFields);
+    const organizationIdField: FieldObject = {
+      name: 'organizationId',
+      type: 'string',
+      disabled: true,
+      label: t('Organization ID'),
+      setValue(_, _name) {
+        return organization.id;
+      },
+      help: `The unique identifier for this organization. It cannot be modified.`,
+    };
+
     formsConfig[0].fields = [
-      ...formsConfig[0].fields,
+      ...formsConfig[0].fields.slice(0, 2),
+      organizationIdField,
+      ...formsConfig[0].fields.slice(2),
       {
         name: 'codecovAccess',
         type: 'boolean',
@@ -71,7 +85,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                     />
                   }
                 >
-                  <Tag role="status" icon={<IconLock isSolid />}>
+                  <Tag role="status" icon={<IconLock locked />}>
                     {t('disabled')}
                   </Tag>
                 </Hovercard>

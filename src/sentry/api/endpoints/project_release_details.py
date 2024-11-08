@@ -2,6 +2,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -10,11 +11,12 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseSerializer
 from sentry.models.activity import Activity
-from sentry.models.release import Release, UnsafeReleaseDeletion
+from sentry.models.release import Release
+from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.utils.sdk import Scope, bind_organization_context
 
 
 @region_silo_endpoint
@@ -33,9 +35,9 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
         Return details on an individual release.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to retrieve the
+        :pparam string project_id_or_slug: the id or slug of the project to retrieve the
                                      release of.
         :pparam string version: the version identifier of the release.
         :auth: required
@@ -77,9 +79,9 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
         Update a release.  This can change some metadata associated with
         the release (the ref, url, and dates).
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to change the
+        :pparam string project_id_or_slug: the id or slug of the project to change the
                                      release of.
         :pparam string version: the version identifier of the release.
         :param string ref: an optional commit reference.  This is useful if
@@ -93,58 +95,62 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
         :auth: required
         """
         bind_organization_context(project.organization)
-        with configure_scope() as scope:
-            scope.set_tag("version", version)
-            try:
-                release = Release.objects.get(
-                    organization_id=project.organization_id, projects=project, version=version
-                )
-            except Release.DoesNotExist:
-                scope.set_tag("failure_reason", "Release.DoesNotExist")
-                raise ResourceDoesNotExist
+        scope = Scope.get_isolation_scope()
+        scope.set_tag("version", version)
+        try:
+            release = Release.objects.get(
+                organization_id=project.organization_id, projects=project, version=version
+            )
+        except Release.DoesNotExist:
+            scope.set_tag("failure_reason", "Release.DoesNotExist")
+            raise ResourceDoesNotExist
 
-            serializer = ReleaseSerializer(data=request.data, partial=True)
+        serializer = ReleaseSerializer(data=request.data, partial=True)
 
-            if not serializer.is_valid():
-                scope.set_tag("failure_reason", "serializer_error")
-                return Response(serializer.errors, status=400)
+        if not serializer.is_valid():
+            scope.set_tag("failure_reason", "serializer_error")
+            return Response(serializer.errors, status=400)
 
-            result = serializer.validated_data
+        result = serializer.validated_data
 
-            was_released = bool(release.date_released)
+        was_released = bool(release.date_released)
 
-            kwargs = {}
-            if result.get("dateReleased"):
-                kwargs["date_released"] = result["dateReleased"]
-            if result.get("ref"):
-                kwargs["ref"] = result["ref"]
-            if result.get("url"):
-                kwargs["url"] = result["url"]
-            if result.get("status"):
-                kwargs["status"] = result["status"]
+        kwargs = {}
+        if result.get("dateReleased"):
+            kwargs["date_released"] = result["dateReleased"]
+        if result.get("ref"):
+            kwargs["ref"] = result["ref"]
+        if result.get("url"):
+            kwargs["url"] = result["url"]
+        if result.get("status"):
+            kwargs["status"] = result["status"]
 
-            if kwargs:
-                release.update(**kwargs)
+        if kwargs:
+            release.update(**kwargs)
 
-            commit_list = result.get("commits")
-            if commit_list:
-                hook = ReleaseHook(project)
-                # TODO(dcramer): handle errors with release payloads
-                hook.set_commits(release.version, commit_list)
-                self.track_set_commits_local(
-                    request, organization_id=project.organization_id, project_ids=[project.id]
-                )
+        commit_list = result.get("commits")
+        if commit_list:
+            hook = ReleaseHook(project)
+            # TODO(dcramer): handle errors with release payloads
+            hook.set_commits(release.version, commit_list)
+            self.track_set_commits_local(
+                request, organization_id=project.organization_id, project_ids=[project.id]
+            )
 
-            if not was_released and release.date_released:
-                Activity.objects.create(
-                    type=ActivityType.RELEASE.value,
-                    project=project,
-                    ident=Activity.get_version_ident(release.version),
-                    data={"version": release.version},
-                    datetime=release.date_released,
-                )
-
-            return Response(serialize(release, request.user))
+        if not was_released and release.date_released:
+            Activity.objects.create(
+                type=ActivityType.RELEASE.value,
+                project=project,
+                ident=Activity.get_version_ident(release.version),
+                data={"version": release.version},
+                datetime=release.date_released,
+            )
+        no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
+        return Response(
+            serialize(
+                release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
+            )
+        )
 
     def delete(self, request: Request, project, version) -> Response:
         """
@@ -153,9 +159,9 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
         Permanently remove a release and all of its files.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to delete the
+        :pparam string project_id_or_slug: the id or slug of the project to delete the
                                      release of.
         :pparam string version: the version identifier of the release.
         :auth: required

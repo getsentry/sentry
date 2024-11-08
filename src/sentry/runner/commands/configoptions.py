@@ -37,7 +37,7 @@ def _attempt_update(
     last_update_channel = options.get_last_update_channel(key)
     if db_value == value:
         # This script is making changes with UpdateChannel.AUTOMATOR
-        # channel. Thus, if the laast update channel was already
+        # channel. Thus, if the last update channel was already
         # UpdateChannel.AUTOMATOR, and the value we are trying to set
         # is the same as the value already stored we do nothing.
         if last_update_channel is None:
@@ -80,7 +80,7 @@ def _attempt_update(
 @log_options()
 @click.pass_context
 @configuration
-def configoptions(ctx, dry_run: bool, file: str | None, hide_drift: bool) -> None:
+def configoptions(ctx: click.Context, dry_run: bool, file: str | None, hide_drift: bool) -> None:
     """
     Makes changes to options in bulk starting from a yaml file.
     Contrarily to the `config` command, this is meant to perform
@@ -126,7 +126,7 @@ def configoptions(ctx, dry_run: bool, file: str | None, hide_drift: bool) -> Non
 
     drifted_options = set()
     invalid_options = set()
-    presenter_delegator = PresenterDelegator("options-automator")
+    presenter_delegator = PresenterDelegator("options-automator", dry_run=dry_run)
     ctx.obj["presenter_delegator"] = presenter_delegator
 
     for key, value in options_to_update.items():
@@ -155,7 +155,7 @@ def configoptions(ctx, dry_run: bool, file: str | None, hide_drift: bool) -> Non
 @configoptions.command()
 @click.pass_context
 @configuration
-def patch(ctx) -> None:
+def patch(ctx: click.Context) -> None:
     """
     Applies to the DB the option values found in the config file.
     Only the options present in the file are updated. No deletions
@@ -217,7 +217,7 @@ def patch(ctx) -> None:
 @configoptions.command()
 @click.pass_context
 @configuration
-def sync(ctx):
+def sync(ctx: click.Context) -> None:
     """
     Synchronizes the content of the file with the DB. The source of
     truth is the config file, not the DB. If an option is missing in
@@ -259,25 +259,31 @@ def sync(ctx):
                     presenter_delegator.flush()
                     raise
             else:
-                if options.isset(opt.name):
-                    if options.get_last_update_channel(opt.name) == options.UpdateChannel.AUTOMATOR:
-                        if not dry_run:
-                            try:
-                                options.delete(opt.name)
-                            except Exception:
-                                metrics.incr(
-                                    "options_automator.run",
-                                    amount=2,
-                                    tags={"status": "update_failed"},
-                                    sample_rate=1.0,
-                                )
-                                presenter_delegator.flush()
-                                raise
+                last_updated = options.get_last_update_channel(opt.name)
 
-                        presenter_delegator.unset(opt.name)
-                    else:
-                        presenter_delegator.drift(opt.name, "")
-                        drift_found = True
+                # for options that are set on disk, last_updated should be None
+                if last_updated == options.UpdateChannel.AUTOMATOR:
+                    if not dry_run:
+                        try:
+                            options.delete(opt.name)
+                        except Exception:
+                            metrics.incr(
+                                "options_automator.run",
+                                amount=2,
+                                tags={"status": "update_failed"},
+                                sample_rate=1.0,
+                            )
+                            presenter_delegator.flush()
+                            raise
+                    presenter_delegator.unset(opt.name)
+                elif last_updated == options.UpdateChannel.CLI:
+                    presenter_delegator.drift(opt.name, options.get(opt.name))
+                    drift_found = True
+                elif last_updated == options.UpdateChannel.UNKNOWN:
+                    presenter_delegator.drift(opt.name, options.get(opt.name))
+                    drift_found = True
+                else:
+                    continue
 
     if invalid_options:
         status = "update_failed"

@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
-import ConfigStore from 'sentry/stores/configStore';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useUser} from 'sentry/utils/useUser';
 
 type LocalState = {
   individualConsent: boolean;
@@ -11,7 +11,7 @@ export function useOpenAISuggestionLocalStorage(): [
   LocalState,
   (newState: Partial<LocalState>) => void,
 ] {
-  const user = ConfigStore.get('user');
+  const user = useUser();
 
   const [localStorageState, setLocalStorageState] = useLocalStorageState<LocalState>(
     `open-ai-suggestion:${user.id}`,

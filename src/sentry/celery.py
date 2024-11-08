@@ -1,6 +1,7 @@
 import gc
 from datetime import datetime
 from itertools import chain
+from typing import Any
 
 from celery import Celery, Task, signals
 from celery.worker.request import Request
@@ -13,8 +14,7 @@ LEGACY_PICKLE_TASKS = frozenset(
     [
         # basic tasks that must be passed models still
         "sentry.tasks.process_buffer.process_incr",
-        "sentry.tasks.process_resource_change_bound",
-        "sentry.tasks.sentry_apps.send_alert_event",
+        "sentry.sentry_apps.tasks.sentry_apps.send_alert_event",
         "sentry.tasks.unmerge",
         "src.sentry.notifications.utils.async_send_notification",
         # basic tasks that can already deal with primary keys passed
@@ -36,12 +36,12 @@ def holds_bad_pickle_object(value, memo=None):
 
     if isinstance(value, (tuple, list)):
         for item in value:
-            bad_object = holds_bad_pickle_object(item)
+            bad_object = holds_bad_pickle_object(item, memo)
             if bad_object is not None:
                 return bad_object
     elif isinstance(value, dict):
         for item in value.values():
-            bad_object = holds_bad_pickle_object(item)
+            bad_object = holds_bad_pickle_object(item, memo)
             if bad_object is not None:
                 return bad_object
 
@@ -85,11 +85,22 @@ def celery_prefork_freeze_gc(**kwargs: object) -> None:
 class SentryTask(Task):
     Request = "sentry.celery:SentryRequest"
 
-    def delay(self, *args, **kwargs):
+    @classmethod
+    def _add_metadata(cls, kwargs: dict[str, Any] | None) -> None:
+        """
+        Helper method that adds relevant metadata
+        """
+        if kwargs is None:
+            return None
+        # Add the start time when the task was kicked off for async processing by the calling code
         kwargs["__start_time"] = datetime.now().timestamp()
+
+    def delay(self, *args, **kwargs):
+        self._add_metadata(kwargs)
         return super().delay(*args, **kwargs)
 
     def apply_async(self, *args, **kwargs):
+        self._add_metadata(kwargs)
         # If intended detect bad uses of pickle and make the tasks fail in tests.  This should
         # in theory pick up a lot of bad uses without accidentally failing tasks in prod.
         if (

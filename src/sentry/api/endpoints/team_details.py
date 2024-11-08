@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from django.db import router, transaction
+from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,15 +13,26 @@ from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
+from sentry.api.serializers.models.team import TeamSerializer as TeamRequestSerializer
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.apidocs.constants import (
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.team_examples import TeamExamples
+from sentry.apidocs.parameters import GlobalParams, TeamParams
+from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 
 
-class TeamSerializer(CamelSnakeModelSerializer):
+@extend_schema_serializer(exclude_fields=["name"])
+class TeamDetailsSerializer(CamelSnakeModelSerializer):
     slug = SentrySerializerSlugField(
-        max_length=50,
+        max_length=DEFAULT_SLUG_MAX_LENGTH,
+        help_text="Uniquely identifies a team. This is must be available.",
     )
 
     class Meta:
@@ -36,29 +48,41 @@ class TeamSerializer(CamelSnakeModelSerializer):
         return value
 
 
+@extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class TeamDetailsEndpoint(TeamEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
+    # OrganizationSCIMTeamDetails inherits this endpoint, but toggles this setting
+    _allow_idp_changes = False
 
+    def can_modify_idp_team(self, team: Team):
+        if not team.idp_provisioned:
+            return True
+        return self._allow_idp_changes
+
+    @extend_schema(
+        operation_id="Retrieve a Team",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
+            TeamParams.EXPAND,
+            TeamParams.COLLAPSE,
+        ],
+        responses={
+            200: TeamRequestSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TeamExamples.RETRIEVE_TEAM_DETAILS,
+    )
     def get(self, request: Request, team) -> Response:
         """
-        Retrieve a Team
-        ```````````````
-
         Return details on an individual team.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          team belongs to.
-        :pparam string team_slug: the slug of the team to get.
-        :qparam list expand: an optional list of strings to opt in to additional
-            data. Supports `projects`, `externalTeams`.
-        :qparam list collapse: an optional list of strings to opt out of certain
-            pieces of data. Supports `organization`.
-        :auth: required
         """
         collapse = request.GET.getlist("collapse", [])
         expand = request.GET.getlist("expand", [])
@@ -70,28 +94,34 @@ class TeamDetailsEndpoint(TeamEndpoint):
             expand.append("organization")
 
         return Response(
-            serialize(team, request.user, ModelTeamSerializer(collapse=collapse, expand=expand))
+            serialize(team, request.user, TeamRequestSerializer(collapse=collapse, expand=expand))
         )
 
+    @extend_schema(
+        operation_id="Update a Team",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
+        request=TeamDetailsSerializer,
+        responses={
+            200: TeamRequestSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TeamExamples.UPDATE_TEAM,
+    )
     def put(self, request: Request, team) -> Response:
         """
-        Update a Team
-        `````````````
-
         Update various attributes and configurable settings for the given
         team.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          team belongs to.
-        :pparam string team_slug: the slug of the team to get.
-        :param string name: the new name for the team.
-        :param string slug: a new slug for the team.  It has to be unique
-                            and available.
-        :param string orgRole: an organization role for the team. Only
-                               owners can set this value.
-        :auth: required
         """
-        serializer = TeamSerializer(team, data=request.data, partial=True)
+
+        if not self.can_modify_idp_team(team):
+            return Response(
+                {"detail": "This team is managed through your organization's identity provider."},
+                status=403,
+            )
+
+        serializer = TeamDetailsSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():
             team = serializer.save()
 
@@ -108,17 +138,30 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        operation_id="Delete a Team",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     @sudo_required
     def delete(self, request: Request, team) -> Response:
         """
-        Delete a Team
-        `````````````
-
         Schedules a team for deletion.
 
         **Note:** Deletion happens asynchronously and therefore is not
         immediate. Teams will have their slug released while waiting for deletion.
         """
+
+        if not self.can_modify_idp_team(team):
+            return Response(
+                {"detail": "This team is managed through your organization's identity provider."},
+                status=403,
+            )
+
         suffix = uuid4().hex
         new_slug = f"{team.slug}-{suffix}"[0:50]
         try:

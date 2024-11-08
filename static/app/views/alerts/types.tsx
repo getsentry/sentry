@@ -1,12 +1,14 @@
-import type {User} from 'sentry/types';
-import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {AlertRuleActivation, IssueAlertRule} from 'sentry/types/alerts';
+import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 type Data = [number, {count: number}[]][];
 
 export enum AlertRuleType {
   METRIC = 'metric',
   ISSUE = 'issue',
+  UPTIME = 'uptime',
 }
 
 export type Incident = {
@@ -29,6 +31,7 @@ export type Incident = {
   status: IncidentStatus;
   statusMethod: IncidentStatusMethod;
   title: string;
+  activation?: AlertRuleActivation;
   activities?: ActivityType[];
 };
 
@@ -51,7 +54,7 @@ export type ActivityTypeDraft = {
 
 export type ActivityType = ActivityTypeDraft & {
   previousValue: string | null;
-  value: string | null;
+  value: string | null; // determines IncidentStatus of the activity (CRITICAL/WARNING/etc.)
   eventStats?: {data: Data};
 };
 
@@ -70,6 +73,11 @@ export enum IncidentStatus {
   CRITICAL = 20,
 }
 
+export enum ActivationStatus {
+  WAITING = 0,
+  MONITORING = 1,
+}
+
 export enum IncidentStatusMethod {
   MANUAL = 1,
   RULE_UPDATED = 2,
@@ -85,15 +93,35 @@ export enum AlertRuleStatus {
 export enum CombinedAlertType {
   METRIC = 'alert_rule',
   ISSUE = 'rule',
+  UPTIME = 'uptime',
 }
 
-interface IssueAlert extends IssueAlertRule {
+export interface IssueAlert extends IssueAlertRule {
   type: CombinedAlertType.ISSUE;
   latestIncident?: Incident | null;
 }
-interface MetricAlert extends MetricRule {
+
+export interface MetricAlert extends MetricRule {
   type: CombinedAlertType.METRIC;
-  latestIncident?: Incident | null;
+}
+
+export interface UptimeAlert extends UptimeRule {
+  type: CombinedAlertType.UPTIME;
 }
 
 export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
+
+export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert;
+
+export type Anomaly = {
+  anomaly: {anomaly_score: number; anomaly_type: AnomalyType};
+  timestamp: string | number;
+  value: number;
+};
+
+export enum AnomalyType {
+  HIGH_CONFIDENCE = 'anomaly_higher_confidence',
+  LOW_CONFIDENCE = 'anomaly_lower_confidence',
+  NONE = 'none',
+  NO_DATA = 'no_data',
+}

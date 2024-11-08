@@ -18,8 +18,8 @@ function StacktracePlatformIcon({platform}: Props) {
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   position: absolute;
-  top: -1px;
-  left: -20px;
+  top: 0;
+  right: 100%;
   border-radius: 3px 0 0 3px;
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {

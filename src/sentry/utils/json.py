@@ -5,13 +5,13 @@ from __future__ import annotations
 import datetime
 import decimal
 import uuid
-from collections.abc import Generator, Mapping
-from contextlib import nullcontext
+from collections.abc import Callable, Collection, Generator, Mapping
 from enum import Enum
-from typing import IO, TYPE_CHECKING, Any, NoReturn, TypeVar, overload
+from typing import IO, Any, NoReturn, TypeVar, overload
 
+import orjson
 import rapidjson
-import sentry_sdk
+from django.db.models.query import QuerySet
 from django.utils.encoding import force_str
 from django.utils.functional import Promise
 from django.utils.safestring import SafeString, mark_safe
@@ -20,17 +20,6 @@ from simplejson import _default_decoder  # type: ignore[attr-defined]  # noqa: S
 from simplejson import JSONDecodeError, JSONEncoder  # noqa: S003
 
 from bitfield.types import BitHandler
-
-# A more traditional raw import from django_stubs_ext.aliases here breaks monkeypatching,
-# So we jump through hoops to get only the exact types
-if TYPE_CHECKING:
-    from django.db.models.query import _QuerySetAny
-
-    QuerySetAny = _QuerySetAny
-else:
-    from django.db.models.query import QuerySet
-
-    QuerySetAny = QuerySet
 
 TKey = TypeVar("TKey")
 TValue = TypeVar("TValue")
@@ -65,7 +54,7 @@ def better_default_encoder(o: object) -> object:
         return int(o)
     elif callable(o):
         return "<function>"
-    elif isinstance(o, QuerySetAny):
+    elif isinstance(o, QuerySet):
         return list(o)
     # serialization for certain Django objects here: https://docs.djangoproject.com/en/1.8/topics/serialization/
     elif isinstance(o, Promise):
@@ -82,7 +71,7 @@ class JSONEncoderForHTML(JSONEncoder):
         chunks = self.iterencode(o, True)
         return "".join(chunks)
 
-    def iterencode(self, o: object, _one_shot: bool = False) -> Generator[str, None, None]:
+    def iterencode(self, o: object, _one_shot: bool = False) -> Generator[str]:
         chunks = super().iterencode(o, _one_shot)
         for chunk in chunks:
             chunk = chunk.replace("&", "\\u0026")
@@ -109,17 +98,14 @@ _default_escaped_encoder = JSONEncoderForHTML(
 )
 
 
-JSONData = Any  # https://github.com/python/typing/issues/182
-
-
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def dump(value: JSONData, fp: IO[str], **kwargs: NoReturn) -> None:
+def dump(value: Any, fp: IO[str], **kwargs: NoReturn) -> None:
     for chunk in _default_encoder.iterencode(value):
         fp.write(chunk)
 
 
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def dumps(value: JSONData, escape: bool = False, **kwargs: NoReturn) -> str:
+def dumps(value: Any, escape: bool = False, **kwargs: NoReturn) -> str:
     # Legacy use. Do not use. Use dumps_htmlsafe
     if escape:
         return _default_escaped_encoder.encode(value)
@@ -127,19 +113,27 @@ def dumps(value: JSONData, escape: bool = False, **kwargs: NoReturn) -> str:
 
 
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def load(fp: IO[str] | IO[bytes], **kwargs: NoReturn) -> JSONData:
+def load(fp: IO[str] | IO[bytes], **kwargs: NoReturn) -> Any:
     return loads(fp.read())
 
 
 # NoReturn here is to make this a mypy error to pass kwargs, since they are currently silently dropped
-def loads(
-    value: str | bytes, use_rapid_json: bool = False, skip_trace: bool = False, **kwargs: NoReturn
-) -> JSONData:
-    with sentry_sdk.start_span(op="sentry.utils.json.loads") if not skip_trace else nullcontext():  # type: ignore
-        if use_rapid_json is True:
-            return rapidjson.loads(value)
-        else:
-            return _default_decoder.decode(value)
+def loads(value: str | bytes, use_rapid_json: bool = False, **kwargs: NoReturn) -> Any:
+    if use_rapid_json is True:
+        return rapidjson.loads(value)
+    else:
+        return _default_decoder.decode(value)
+
+
+# dumps JSON with `orjson` or the default function depending on `option_name`
+# TODO: remove this when orjson experiment is successful
+def dumps_experimental(option_name: str, data: Any) -> str:
+    from sentry.features.rollout import in_random_rollout
+
+    if in_random_rollout(option_name):
+        return orjson.dumps(data).decode()
+    else:
+        return dumps(data)
 
 
 def dumps_htmlsafe(value: object) -> SafeString:
@@ -147,13 +141,11 @@ def dumps_htmlsafe(value: object) -> SafeString:
 
 
 @overload
-def prune_empty_keys(obj: None) -> None:
-    ...
+def prune_empty_keys(obj: None) -> None: ...
 
 
 @overload
-def prune_empty_keys(obj: Mapping[TKey, TValue | None]) -> dict[TKey, TValue]:
-    ...
+def prune_empty_keys(obj: Mapping[TKey, TValue | None]) -> dict[TKey, TValue]: ...
 
 
 def prune_empty_keys(obj: Mapping[TKey, TValue | None] | None) -> dict[TKey, TValue] | None:
@@ -173,8 +165,38 @@ def prune_empty_keys(obj: Mapping[TKey, TValue | None] | None) -> dict[TKey, TVa
     return {k: v for k, v in obj.items() if v is not None}
 
 
+def apply_key_filter(
+    obj: Mapping[TKey, TValue],
+    *,
+    keep_keys: Collection[TKey] | None = None,
+    key_filter: Callable[[TKey], bool] | None = None,
+) -> dict[TKey, TValue]:
+    """
+    A version of the built-in `filter` function which works on dictionaries, returning a (filtered)
+    shallow copy of the original.
+
+    If `keep_keys` is given, any key-value pair whose key isn't in `keep_keys` will be excluded from
+    the result.
+
+    If a `key_filter` function is given, any key-value pair for which `key_filter(key)` is False
+    will be excluded from the result.
+
+    If both are given, `keep_keys` takes precedence. If neither is given, an unfiltered shallow copy
+    of the original is returned.
+    """
+
+    if keep_keys:
+        key_filter = lambda key: key in keep_keys
+    elif not keep_keys and not key_filter:
+        key_filter = lambda _key: True
+
+    # `key_filter` can't be None by now, but mypy still thinks it might
+    assert key_filter
+
+    return {key: obj[key] for key in obj if key_filter(key)}
+
+
 __all__ = (
-    "JSONData",
     "JSONDecodeError",
     "JSONEncoder",
     "dump",
@@ -183,4 +205,5 @@ __all__ = (
     "load",
     "loads",
     "prune_empty_keys",
+    "apply_key_filter",
 )

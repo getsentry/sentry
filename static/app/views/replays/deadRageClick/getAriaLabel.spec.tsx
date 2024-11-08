@@ -48,7 +48,7 @@ describe('getAriaLabel', () => {
       ariaLabel: ']"',
     },
   ])(
-    'should construct the correct aria label for each element in the list',
+    'should construct the correct aria label for "$ariaLabel"',
     ({element, ariaLabel}) => {
       expect(getAriaLabel(element)).toStrictEqual(ariaLabel);
     }

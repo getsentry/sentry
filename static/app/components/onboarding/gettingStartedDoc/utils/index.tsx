@@ -1,6 +1,7 @@
+import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
-import type {Organization, PlatformKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 export function getUploadSourceMapsStep({
@@ -9,13 +10,11 @@ export function getUploadSourceMapsStep({
   platformKey,
   projectId,
   newOrg,
-}: {
+  isSelfHosted,
+}: DocsParams & {
   guideLink: string;
-  newOrg?: boolean;
-  organization?: Organization;
-  platformKey?: PlatformKey;
-  projectId?: string;
 }) {
+  const urlParam = isSelfHosted ? '' : '--saas';
   return {
     title: t('Upload Source Maps'),
     description: (
@@ -31,7 +30,7 @@ export function getUploadSourceMapsStep({
     configurations: [
       {
         language: 'bash',
-        code: `npx @sentry/wizard@latest -i sourcemaps`,
+        code: `npx @sentry/wizard@latest -i sourcemaps ${urlParam}`,
         onCopy: () => {
           if (!organization || !projectId || !platformKey) {
             return;
@@ -67,4 +66,17 @@ export function getUploadSourceMapsStep({
       },
     ],
   };
+}
+
+export function MobileBetaBanner({link}: {link: string}) {
+  return (
+    <Alert type="info" showIcon>
+      {tct(
+        `Currently, Mobile Replay is in beta. To learn more, you can [link:read our docs].`,
+        {
+          link: <ExternalLink href={link} />,
+        }
+      )}
+    </Alert>
+  );
 }

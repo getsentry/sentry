@@ -7,7 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models.servicehook import ServiceHook
+from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.tsdb.base import TSDBModel
 
 

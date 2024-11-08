@@ -7,14 +7,13 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID, create_default_projects
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.models.user import User
 
 
-@region_silo_test
 class CreateDefaultProjectsTest(TestCase):
     @override_settings(SENTRY_PROJECT=1)
     def test_simple(self):
@@ -35,7 +34,7 @@ class CreateDefaultProjectsTest(TestCase):
         assert project.public is False
         assert project.name == "Internal"
         assert project.slug == "internal"
-        team = project.teams.first()
+        team = project.teams.get()
         assert team.slug == "sentry"
 
         pk = ProjectKey.objects.get(project=project)
@@ -64,7 +63,7 @@ class CreateDefaultProjectsTest(TestCase):
         assert project.public is False
         assert project.name == "Internal"
         assert project.slug == "internal"
-        team = project.teams.first()
+        team = project.teams.get()
         assert team.slug == "sentry"
 
         pk = ProjectKey.objects.get(project=project)
@@ -93,7 +92,7 @@ class CreateDefaultProjectsTest(TestCase):
             assert project.public is False
             assert project.name == "Internal"
             assert project.slug == "internal"
-            team = project.teams.first()
+            team = project.teams.get()
             assert team.slug == "sentry"
 
             pk = ProjectKey.objects.get(project=project)

@@ -3,11 +3,9 @@ from datetime import datetime, timedelta, timezone
 from sentry.constants import DataCategory
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
 class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
     endpoint = "sentry-api-0-organization-stats-v2"
 

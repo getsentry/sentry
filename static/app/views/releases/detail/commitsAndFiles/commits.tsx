@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {CommitRow} from 'sentry/components/commitRow';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,13 +11,17 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {Commit, Project, Repository} from 'sentry/types';
-import {formatVersion} from 'sentry/utils/formatters';
+import {space} from 'sentry/styles/space';
+import type {Commit, Repository} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {ReleaseCommit} from 'sentry/views/releases/detail/commitsAndFiles/releaseCommit';
 
 import {getCommitsByRepository, getQuery, getReposToRender} from '../utils';
 
@@ -41,13 +44,13 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
   const query = getQuery({location, activeRepository: activeReleaseRepo});
   const {
     data: commitList = [],
-    isLoading: isLoadingCommitList,
+    isPending: isLoadingCommitList,
     error: commitListError,
     refetch,
     getResponseHeader,
   } = useApiQuery<Commit[]>(
     [
-      `/organizations/${organization.slug}/releases/${encodeURIComponent(
+      `/projects/${organization.slug}/${projectSlug}/releases/${encodeURIComponent(
         params.release
       )}/commits/`,
       {query},
@@ -56,7 +59,6 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
       staleTime: Infinity,
     }
   );
-
   const commitsByRepository = getCommitsByRepository(commitList);
   const reposToRender = getReposToRender(Object.keys(commitsByRepository));
   const activeRepoName: string | undefined = activeReleaseRepo
@@ -75,10 +77,12 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
           )}
         />
         {releaseRepos.length > 1 && (
-          <RepositorySwitcher
-            repositories={releaseRepos}
-            activeRepository={activeReleaseRepo}
-          />
+          <Actions>
+            <RepositorySwitcher
+              repositories={releaseRepos}
+              activeRepository={activeReleaseRepo}
+            />
+          </Actions>
         )}
         {commitListError && <LoadingError onRetry={refetch} />}
         {isLoadingCommitList ? (
@@ -89,7 +93,7 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
               <PanelHeader>{activeRepoName}</PanelHeader>
               <PanelBody>
                 {commitsByRepository[activeRepoName]?.map(commit => (
-                  <CommitRow key={commit.id} commit={commit} />
+                  <ReleaseCommit key={commit.id} commit={commit} />
                 ))}
               </PanelBody>
             </Panel>
@@ -109,5 +113,9 @@ function Commits({activeReleaseRepo, releaseRepos, projectSlug}: CommitsProps) {
     </Layout.Body>
   );
 }
+
+const Actions = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export default withReleaseRepos(Commits);

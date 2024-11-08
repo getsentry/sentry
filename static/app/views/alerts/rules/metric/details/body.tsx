@@ -1,32 +1,44 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
 import {RuleActionsCategories} from 'sentry/types/alerts';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
+import AnomalyDetectionFeedbackBanner from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  Dataset,
+  TimePeriod,
+} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
+import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
-import type {Incident} from 'sentry/views/alerts/types';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
+import {alertDetailsLink} from 'sentry/views/alerts/utils';
+import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
@@ -47,6 +59,7 @@ interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
   location: Location;
   organization: Organization;
   timePeriod: TimePeriodType;
+  anomalies?: Anomaly[];
   incidents?: Incident[];
   project?: Project;
   rule?: MetricRule;
@@ -63,6 +76,7 @@ export default function MetricDetailsBody({
   selectedIncident,
   location,
   router,
+  anomalies,
 }: MetricDetailsBodyProps) {
   function getPeriodInterval() {
     const startDate = moment.utc(timePeriod.start);
@@ -139,12 +153,16 @@ export default function MetricDetailsBody({
   const {dataset, aggregate, query} = rule;
 
   const eventType = extractEventTypeFilterFromRule(rule);
-  const queryWithTypeFilter = (
-    query ? `(${query}) AND (${eventType})` : eventType
-  ).trim();
+  const queryWithTypeFilter =
+    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+      ? query
+      : (query ? `(${query}) AND (${eventType})` : eventType).trim();
   const relativeOptions = {
     ...SELECTOR_RELATIVE_PERIODS,
     ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
+    ...(rule.detectionType === AlertRuleComparisonType.DYNAMIC
+      ? {[TimePeriod.TWENTY_EIGHT_DAYS]: t('Last 28 days')}
+      : {}),
   };
 
   const isSnoozed = rule.snooze;
@@ -154,8 +172,18 @@ export default function MetricDetailsBody({
     isOnDemandMetricAlert(dataset, aggregate, query) &&
     shouldShowOnDemandMetricAlertUI(organization);
 
+  let formattedAggregate = aggregate;
+  if (isCustomMetricAlert(aggregate)) {
+    formattedAggregate = formatMRIField(aggregate);
+  }
+
   return (
     <Fragment>
+      {isCustomMetricAlert(rule.aggregate) && !isInsightsMetricAlert(rule.aggregate) && (
+        <StyledLayoutBody>
+          <MetricsBetaEndAlert style={{marginBottom: 0}} organization={organization} />
+        </StyledLayoutBody>
+      )}
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
           <StyledAlert type="warning" showIcon>
@@ -181,25 +209,60 @@ export default function MetricDetailsBody({
                   )}
             </Alert>
           )}
-          <StyledTimeRangeSelector
-            relative={timePeriod.period ?? ''}
-            start={(timePeriod.custom && timePeriod.start) || null}
-            end={(timePeriod.custom && timePeriod.end) || null}
-            onChange={handleTimePeriodChange}
-            relativeOptions={relativeOptions}
-            showAbsolute={false}
-            disallowArbitraryRelativeRanges
-            triggerLabel={relativeOptions[timePeriod.period ?? '']}
-          />
+          <StyledSubHeader>
+            <StyledTimeRangeSelector
+              relative={timePeriod.period ?? ''}
+              start={(timePeriod.custom && timePeriod.start) || null}
+              end={(timePeriod.custom && timePeriod.end) || null}
+              onChange={handleTimePeriodChange}
+              relativeOptions={relativeOptions}
+              showAbsolute={false}
+              disallowArbitraryRelativeRanges
+              triggerLabel={
+                timePeriod.custom
+                  ? timePeriod.label
+                  : relativeOptions[timePeriod.period ?? '']
+              }
+            />
+            {selectedIncident && (
+              <Tooltip
+                title={`Click to clear filters`}
+                isHoverable
+                containerDisplayMode="inline-flex"
+              >
+                <Link
+                  to={{
+                    pathname: alertDetailsLink(organization, selectedIncident),
+                  }}
+                >
+                  Remove filter on alert #{selectedIncident.identifier}
+                </Link>
+              </Tooltip>
+            )}
+          </StyledSubHeader>
+
+          {selectedIncident?.alertRule.detectionType ===
+            AlertRuleComparisonType.DYNAMIC && (
+            <AnomalyDetectionFeedbackBanner
+              // unique key to force re-render when incident changes
+              key={selectedIncident.id}
+              id={selectedIncident.id}
+              organization={organization}
+              selectedIncident={selectedIncident}
+            />
+          )}
 
           <ErrorMigrationWarning project={project} rule={rule} />
 
+          {/* TODO: add activation start/stop into chart */}
           <MetricChart
             api={api}
             rule={rule}
             incidents={incidents}
+            anomalies={anomalies}
             timePeriod={timePeriod}
             selectedIncident={selectedIncident}
+            formattedAggregate={formattedAggregate}
             organization={organization}
             project={project}
             interval={getPeriodInterval()}
@@ -209,7 +272,7 @@ export default function MetricDetailsBody({
           />
           <DetailWrapper>
             <ActivityWrapper>
-              <MetricHistory incidents={incidents} />
+              <MetricHistory incidents={incidents} activations={rule.activations} />
               {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                 <RelatedIssues
                   organization={organization}
@@ -282,6 +345,12 @@ const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
 `;
 
-const StyledTimeRangeSelector = styled(TimeRangeSelector)`
+const StyledSubHeader = styled('div')`
   margin-bottom: ${space(2)};
+  display: flex;
+  align-items: center;
+`;
+
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
+  margin-right: ${space(1)};
 `;

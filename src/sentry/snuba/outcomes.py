@@ -133,7 +133,7 @@ class CategoryDimension(Dimension[DataCategory]):
             # combine DEFAULT, ERROR, and SECURITY as errors.
             # see relay: py/sentry_relay/consts.py and relay-cabi/include/relay.h
             parsed_category = DataCategory.parse(category)
-            if parsed_category is None:
+            if parsed_category is None and parsed_category != "metrics":
                 raise InvalidField(f'Invalid category: "{category}"')
             elif parsed_category == DataCategory.ERROR:
                 resolved_categories.update(DataCategory.error_categories())
@@ -361,7 +361,7 @@ class QueryDefinition:
 def run_outcomes_query_totals(
     query: QueryDefinition,
     *,
-    tenant_ids: dict[str, int | str],
+    tenant_ids: Mapping[str, int | str],
 ) -> ResultSet:
     snql_query = Query(
         match=Entity(query.match),
@@ -382,7 +382,7 @@ def run_outcomes_query_totals(
 def run_outcomes_query_timeseries(
     query: QueryDefinition,
     *,
-    tenant_ids: dict[str, int | str],
+    tenant_ids: Mapping[str, int | str],
     referrer: str = "outcomes.timeseries",
 ) -> ResultSet:
     """

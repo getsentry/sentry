@@ -51,21 +51,20 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {routerProps, routerContext} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
@@ -84,21 +83,20 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {routerProps, routerContext} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
@@ -124,21 +122,20 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {routerProps, routerContext} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
@@ -165,21 +162,20 @@ describe('AccountSecurityDetails', function () {
         authId: '15',
       };
 
-      const {routerContext, routerProps} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
@@ -209,28 +205,28 @@ describe('AccountSecurityDetails', function () {
       });
     });
 
-    it('has enrolled circle indicator', function () {
+    it('has enrolled circle indicator', async function () {
       const params = {
         authId: '16',
       };
 
-      const {routerProps, routerContext} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
+      expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
       // does not have remove button
       expect(screen.queryByRole('button', {name: 'Remove'})).not.toBeInTheDocument();
     });
@@ -245,21 +241,20 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {routerProps, routerContext} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       await userEvent.click(
@@ -284,7 +279,7 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {routerProps, routerContext} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
@@ -295,14 +290,13 @@ describe('AccountSecurityDetails', function () {
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       expect(await screen.findByRole('button', {name: 'print'})).toBeInTheDocument();

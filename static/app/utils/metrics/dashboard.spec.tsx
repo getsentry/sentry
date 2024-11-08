@@ -1,4 +1,4 @@
-import type {MRI} from 'sentry/types';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {
   convertToDashboardWidget,
   getWidgetQuery,
@@ -16,7 +16,8 @@ describe('convertToDashboardWidget', () => {
             groupBy: ['project'],
             query: 'event.type:transaction',
             mri: 'c:custom/login@second',
-            op: 'p95',
+            aggregation: 'p95',
+            id: 1,
           },
         ],
         MetricDisplayType.AREA
@@ -28,12 +29,12 @@ describe('convertToDashboardWidget', () => {
       limit: 10,
       queries: [
         {
-          name: '',
+          name: '1',
           aggregates: ['p95(c:custom/login@second)'],
           columns: ['project'],
           fields: ['p95(c:custom/login@second)'],
           conditions: 'event.type:transaction',
-          orderby: '',
+          orderby: undefined,
         },
       ],
     });
@@ -47,7 +48,7 @@ describe('convertToDashboardWidget', () => {
             groupBy: [],
             query: '',
             mri: 'd:transactions/measurements.duration@second',
-            op: 'p95',
+            aggregation: 'p95',
           },
         ],
         MetricDisplayType.BAR
@@ -64,7 +65,54 @@ describe('convertToDashboardWidget', () => {
           columns: [],
           fields: ['p95(d:transactions/measurements.duration@second)'],
           conditions: '',
-          orderby: '',
+          orderby: undefined,
+        },
+      ],
+    });
+  });
+
+  it('should convert a metrics formula to a dashboard widget (transaction mri, with grouping)', () => {
+    expect(
+      convertToDashboardWidget(
+        [
+          {
+            id: 0,
+            groupBy: [],
+            query: '',
+            mri: 'd:transactions/measurements.duration@second',
+            aggregation: 'p95',
+            isHidden: true,
+          },
+          {
+            formula: '$b / 2',
+            isHidden: false,
+          },
+        ],
+        MetricDisplayType.BAR
+      )
+    ).toEqual({
+      title: '',
+      displayType: DisplayType.BAR,
+      widgetType: 'custom-metrics',
+      limit: 10,
+      queries: [
+        {
+          name: '0',
+          aggregates: ['p95(d:transactions/measurements.duration@second)'],
+          columns: [],
+          fields: ['p95(d:transactions/measurements.duration@second)'],
+          conditions: '',
+          orderby: undefined,
+          isHidden: true,
+        },
+        {
+          name: '',
+          aggregates: ['equation|$b / 2'],
+          columns: [],
+          fields: ['equation|$b / 2'],
+          conditions: '',
+          orderby: undefined,
+          isHidden: false,
         },
       ],
     });
@@ -81,11 +129,10 @@ describe('getWidgetQuery', () => {
   };
 
   it('should return the correct widget query object', () => {
-    // Arrange
     const metricsQuery = {
       ...metricsQueryBase,
       mri: 'd:custom/sentry.events.symbolicator.query_task@second' as MRI,
-      op: 'sum',
+      aggregation: 'sum' as MetricAggregation,
       query: 'status = "success"',
       title: 'Example Widget',
     };
@@ -96,7 +143,7 @@ describe('getWidgetQuery', () => {
       columns: [],
       fields: ['sum(d:custom/sentry.events.symbolicator.query_task@second)'],
       conditions: 'status = "success"',
-      orderby: '',
+      orderby: undefined,
     };
 
     expect(getWidgetQuery(metricsQuery)).toEqual(expectedWidgetQuery);

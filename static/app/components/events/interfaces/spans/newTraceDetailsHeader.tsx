@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Organization} from 'sentry/types';
-import {getDuration} from 'sentry/utils/formatters';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import getDuration from 'sentry/utils/duration/getDuration';
 import toPercent from 'sentry/utils/number/toPercent';
-import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
+import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -18,7 +19,7 @@ type PropType = {
   event: EventTransaction | undefined;
   organization: Organization;
   traceInfo: TraceInfo;
-  traceType: TraceType;
+  traceType: TraceShape;
   traceViewHeaderRef: React.RefObject<HTMLDivElement>;
 };
 
@@ -83,7 +84,7 @@ function TraceViewHeader(props: PropType) {
 
   const opsBreakdown = generateStats(event, {type: 'no_filter'});
   const httpOp = opsBreakdown.find(obj => obj.name === 'http.client');
-  const hasServiceBreakdown = httpOp && props.traceType === TraceType.ONE_ROOT;
+  const hasServiceBreakdown = httpOp && props.traceType === TraceShape.ONE_ROOT;
 
   return (
     <HeaderContainer ref={props.traceViewHeaderRef} hasProfileMeasurementsChart={false}>
@@ -123,7 +124,7 @@ function TraceViewHeader(props: PropType) {
 const HeaderContainer = styled('div')<{hasProfileMeasurementsChart: boolean}>`
   width: 100%;
   left: 0;
-  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
+  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
   z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import Alert from 'sentry/components/alert';
 import ApiForm from 'sentry/components/forms/apiForm';
@@ -8,6 +7,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useParams} from 'sentry/utils/useParams';
@@ -51,12 +51,12 @@ type BodyProps = {
 
 function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
   const endpoint = `/organizations/${orgSlug}/unsubscribe/project/${issueId}/`;
-  const {isLoading, isError, data} = useApiQuery<UnsubscribeResponse>(
+  const {isPending, isError, data} = useApiQuery<UnsubscribeResponse>(
     [endpoint, {query: {_: signature}}],
     {staleTime: 0}
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
   if (isError) {

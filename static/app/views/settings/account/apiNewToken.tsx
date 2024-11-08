@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
 
 import ApiForm from 'sentry/components/forms/apiForm';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -9,9 +8,11 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {NewInternalAppApiToken, Permissions} from 'sentry/types';
+import type {Permissions} from 'sentry/types/integrations';
+import type {NewInternalAppApiToken} from 'sentry/types/user';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';

@@ -1,79 +1,253 @@
+import {Fragment} from 'react';
+
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import tracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import {
+  type Configuration,
+  StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
-  PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getFeedbackConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+  getFeedbackConfigOptions,
+  getFeedbackConfigureDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {
+  getProfilingDocumentHeaderConfigurationStep,
+  MaybeBrowserProfilingBetaWarning,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
-export enum AngularVersion {
-  V10 = 'v10',
-  V12 = 'v12',
+export enum AngularConfigType {
+  APP = 'standalone',
+  MODULE = 'module',
 }
 
-type PlatformOptionKey = 'siblingOption';
-
-const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
-  siblingOption: {
-    label: t('Angular Version'),
+const platformOptions = {
+  configType: {
+    label: t('Config Type'),
+    defaultValue: AngularConfigType.APP,
     items: [
       {
-        label: t('Angular 12+'),
-        value: AngularVersion.V12,
+        label: 'App Config',
+        value: AngularConfigType.APP,
       },
       {
-        label: t('Angular 10 & 11'),
-        value: AngularVersion.V10,
+        label: 'NGModule Config',
+        value: AngularConfigType.MODULE,
       },
     ],
   },
-};
+} satisfies BasePlatformOptions;
 
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
 
-const getNextStep = (
-  params: Params
-): {
-  description: string;
-  id: string;
-  link: string;
-  name: string;
-}[] => {
-  let nextStepDocs = [...nextSteps];
-
-  if (params.isPerformanceSelected) {
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.PERFORMANCE_MONITORING
-    );
-  }
-
-  if (params.isReplaySelected) {
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.SESSION_REPLAY
-    );
-  }
-  return nextStepDocs;
-};
-
-function getNpmPackage(angularVersion) {
-  return angularVersion === AngularVersion.V12
-    ? '@sentry/angular-ivy'
-    : '@sentry/angular';
+function isModuleConfig(params: Params) {
+  return params.platformOptions.configType === AngularConfigType.MODULE;
 }
 
-const getInstallConfig = (params: Params) => [
+function getSdkSetupSnippet(params: Params) {
+  const imports = isModuleConfig(params)
+    ? `
+import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
+import * as Sentry from "@sentry/angular";
+
+import { AppModule } from "./app/app.module";`
+    : `
+import { bootstrapApplication } from '@angular/platform-browser';
+import * as Sentry from "@sentry/angular";
+
+import { appConfig } from './app/app.config';
+import { AppComponent } from './app/app.component';
+  `;
+
+  const appInit = isModuleConfig(params)
+    ? `
+platformBrowserDynamic()
+  .bootstrapModule(AppModule)
+  .catch((err) => console.error(err));`
+    : `
+bootstrapApplication(appConfig, AppComponent)
+  .catch((err) => console.error(err));`;
+
+  return `${imports.trim()}
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [${
+    params.isPerformanceSelected
+      ? `
+    Sentry.browserTracingIntegration(),`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+    Sentry.browserProfilingIntegration(),`
+      : ''
+  }${
+    params.isFeedbackSelected
+      ? `
+    Sentry.feedbackIntegration({
+      // Additional SDK configuration goes in here, for example:
+      colorScheme: "system",
+    ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+    Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
+      : ''
+  }
+  ],${
+    params.isPerformanceSelected
+      ? `
+  // Tracing
+  tracesSampleRate: 1.0, //  Capture 100% of the transactions
+  // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+  // Session Replay
+  replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+  replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+  // Set profilesSampleRate to 1.0 to profile every transaction.
+  // Since profilesSampleRate is relative to tracesSampleRate,
+  // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
+  // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
+  // results in 25% of transactions being profiled (0.5*0.5=0.25)
+  profilesSampleRate: 1.0,`
+      : ''
+  }
+});
+
+  ${appInit.trim()}`;
+}
+
+const getConfigureAppModuleSnippet = () => `
+import { APP_INITIALIZER, ErrorHandler, NgModule } from "@angular/core";
+import { Router } from "@angular/router";
+import * as Sentry from "@sentry/angular";
+
+@NgModule({
+  // ...
+  providers: [
+  {
+      provide: ErrorHandler,
+      useValue: Sentry.createErrorHandler({
+        showDialog: true,
+      }),
+    }, {
+      provide: Sentry.TraceService,
+      deps: [Router],
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: () => () => {},
+      deps: [Sentry.TraceService],
+      multi: true,
+    },
+  ],
+})
+export class AppModule {}
+`;
+
+const getConfigureAppConfigSnippet = () => `
+import { APP_INITIALIZER, ApplicationConfig, ErrorHandler } from '@angular/core';
+import { Router } from '@angular/router';
+import * as Sentry from "@sentry/angular";
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // ...
+    {
+      provide: ErrorHandler,
+      useValue: Sentry.createErrorHandler(),
+    },
+    {
+      provide: Sentry.TraceService,
+      deps: [Router],
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: () => () => {},
+      deps: [Sentry.TraceService],
+      multi: true,
+    },
+  ]
+};
+`;
+
+const getVerifySnippetTemplate = () => `
+<button (click)="throwTestError()">Test Sentry Error</button>
+`;
+
+const getVerifySnippetComponent = () => `
+public throwTestError(): void {
+  throw new Error("Sentry Test Error");
+}`;
+
+function getVerifyConfiguration(): Configuration {
+  return {
+    description: t(
+      'To verify that everything is working as expected, you can trigger a test error in your app. As an example we will add a button that throws an error when being clicked to your main app component.'
+    ),
+    configurations: [
+      {
+        description: tct(
+          'First add the button element to your [code:app.component.html]:',
+          {code: <code />}
+        ),
+        code: [
+          {
+            label: 'HTML',
+            value: 'html',
+            language: 'html',
+            filename: 'app.component.html',
+            code: getVerifySnippetTemplate(),
+          },
+        ],
+      },
+      {
+        description: tct('Then, in your [code:app.component.ts] add the event handler:', {
+          code: <code />,
+        }),
+        code: [
+          {
+            label: 'TypeScript',
+            value: 'typescript',
+            language: 'typescript',
+            filename: 'app.component.ts',
+            code: getVerifySnippetComponent(),
+          },
+        ],
+      },
+    ],
+  };
+}
+
+const getInstallConfig = () => [
   {
     language: 'bash',
     code: [
@@ -81,70 +255,80 @@ const getInstallConfig = (params: Params) => [
         label: 'npm',
         value: 'npm',
         language: 'bash',
-        code: `npm install --save ${getNpmPackage(params.platformOptions.siblingOption)}`,
+        code: `npm install --save @sentry/angular`,
       },
       {
         label: 'yarn',
         value: 'yarn',
         language: 'bash',
-        code: `yarn add ${getNpmPackage(params.platformOptions.siblingOption)}`,
+        code: `yarn add @sentry/angular`,
+      },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: `pnpm install @sentry/angular`,
       },
     ],
   },
 ];
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
-  install: (params: Params) => [
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct(
+          'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
+          {
+            strong: <strong />,
+          }
+        )}
+      </p>
+    </Fragment>
+  ),
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
-        {
-          codeYarn: <code />,
-          codeNpm: <code />,
-        }
+        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn] or [code:pnpm]:',
+        {code: <code />}
       ),
-      configurations: getInstallConfig(params),
+      configurations: getInstallConfig(),
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
       configurations: [
-        getSetupConfiguration(params),
         {
-          description: t(
-            "The Sentry Angular SDK exports a function to instantiate ErrorHandler provider that will automatically send JavaScript errors captured by the Angular's error handler."
+          description: tct(
+            `Initialize the Sentry Angular SDK in your [code:main.ts] file as early as possible, before initializing Angular:`,
+            {
+              code: <code />,
+            }
           ),
           language: 'javascript',
-          code: `
-    import { APP_INITIALIZER, ErrorHandler, NgModule } from "@angular/core";
-    import { Router } from "@angular/router";
-    import * as Sentry from "${getNpmPackage(params.platformOptions.siblingOption)}";
-
-    @NgModule({
-    // ...
-    providers: [
-      {
-        provide: ErrorHandler,
-        useValue: Sentry.createErrorHandler({
-          showDialog: true,
-        }),
-      }, {
-        provide: Sentry.TraceService,
-        deps: [Router],
-      },
-      {
-        provide: APP_INITIALIZER,
-        useFactory: () => () => {},
-        deps: [Sentry.TraceService],
-        multi: true,
-      },
-    ],
-    // ...
-    })
-    export class AppModule {}`,
+          code: getSdkSetupSnippet(params),
         },
+        {
+          description: isModuleConfig(params)
+            ? tct(
+                "Register the Sentry Angular SDK's ErrorHandler and Tracing providers in your [code:app.module.ts] file:",
+                {code: <code />}
+              )
+            : tct(
+                "Register the Sentry Angular SDK's ErrorHandler and Tracing providers in your [code:app.config.ts] file:",
+                {code: <code />}
+              ),
+          language: 'javascript',
+          code: isModuleConfig(params)
+            ? getConfigureAppModuleSnippet()
+            : getConfigureAppConfigSnippet(),
+        },
+        ...(params.isProfilingSelected
+          ? [getProfilingDocumentHeaderConfigurationStep()]
+          : []),
       ],
     },
     getUploadSourceMapsStep({
@@ -155,127 +339,39 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
       configurations: [
+        getVerifyConfiguration(),
         {
-          language: 'javascript',
-          code: `myUndefinedFunction();`,
+          description: t(
+            "After clicking the button, you should see the error on Sentry's Issues page."
+          ),
         },
       ],
     },
   ],
-  nextSteps: (params: Params) => getNextStep(params),
+  nextSteps: () => [
+    {
+      id: 'angular-features',
+      name: t('Angular Features'),
+      description: t(
+        'Learn about our first class integration with the Angular framework.'
+      ),
+      link: 'https://docs.sentry.io/platforms/javascript/guides/angular/features/',
+    },
+  ],
 };
 
-export const nextSteps = [
-  {
-    id: 'angular-features',
-    name: t('Angular Features'),
-    description: t('Learn about our first class integration with the Angular framework.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/angular/features/',
-  },
-  {
-    id: 'performance-monitoring',
-    name: t('Performance Monitoring'),
-    description: t(
-      'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/angular/performance/',
-  },
-  {
-    id: 'session-replay',
-    name: t('Session Replay'),
-    description: t(
-      'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/angular/session-replay/',
-  },
-];
-
-function getSdkSetupSnippet(params: Params) {
-  const siblingOption = params.platformOptions.siblingOption;
-  return `
-  import { enableProdMode } from "@angular/core";
-  import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
-  import * as Sentry from "${getNpmPackage(siblingOption)}";
-
-  import { AppModule } from "./app/app.module";
-
-  Sentry.init({
-    dsn: "${params.dsn}",
-    integrations: [${
-      params.isPerformanceSelected
-        ? `
-          Sentry.browserTracingIntegration(),`
-        : ''
-    }${
-      params.isFeedbackSelected
-        ? `
-        Sentry.feedbackIntegration({
-// Additional SDK configuration goes in here, for example:
-colorScheme: "light",
-}),`
-        : ''
-    }${
-      params.isReplaySelected
-        ? `
-          Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
-        : ''
-    }
-  ],${
-    params.isPerformanceSelected
-      ? `
-        // Performance Monitoring
-        tracesSampleRate: 1.0, //  Capture 100% of the transactions
-        // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-        tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-        // Session Replay
-        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-      : ''
-  }
-  });`;
-}
-
-function getSetupConfiguration(params: Params) {
-  const configuration = {
-    description: tct(
-      `You should init the Sentry browser SDK in your [code:main.ts] file as soon as possible during application load up, before initializing Angular:`,
-      {
-        code: <code />,
-      }
-    ),
-    language: 'javascript',
-    code: `
-    ${getSdkSetupSnippet(params)}
-
-      enableProdMode();
-      platformBrowserDynamic()
-      .bootstrapModule(AppModule)
-      .then((success) => console.log('Bootstrap success'))
-      .catch((err) => console.error(err));`,
-  };
-  return configuration;
-}
-
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'In order to use Session Replay, you will need version 7.27.0 of [codeAngular:@sentry/angular] or [codeIvy:@sentry/angular-ivy] at minimum. You do not need to install any additional packages.',
+        'In order to use Session Replay, you will need version 7.27.0 of [code:@sentry/angular] at minimum. You do not need to install any additional packages.',
         {
-          codeAngular: <code />,
-          codeIvy: <code />,
+          code: <code />,
         }
       ),
-      configurations: getInstallConfig(params),
+      configurations: getInstallConfig(),
     },
   ],
   configure: (params: Params) => [
@@ -296,32 +392,34 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
       ],
-      additionalInfo: tracePropagationMessage,
+      additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
 const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [codeAngular:@sentry/angular] or [codeIvy:@sentry/angular-ivy]) installed, minimum version 7.85.0.',
+        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/angular]) installed, minimum version 7.85.0.',
         {
-          codeAngular: <code />,
-          codeIvy: <code />,
+          code: <code />,
         }
       ),
-      configurations: getInstallConfig(params),
+      configurations: getInstallConfig(),
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
       description: getFeedbackConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/angular/user-feedback/',
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/angular/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/angular/user-feedback/configuration/#bring-your-own-button',
       }),
       configurations: [
         {
@@ -344,12 +442,37 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
+const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/angular/user-feedback/configuration/#crash-report-modal',
+      }),
+      additionalInfo: widgetCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/angular/user-feedback/#user-feedback-widget',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
+  ...onboarding,
+  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
-  platformOptions,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+  crashReportOnboarding,
+  platformOptions,
+  profilingOnboarding,
 };
 
 export default docs;

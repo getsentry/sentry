@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
@@ -31,15 +31,10 @@ import type {GapSpanType} from './types';
 
 interface GapSpanDetailsProps {
   event: Readonly<EventTransaction>;
-  resetCellMeasureCache: () => void;
   span: Readonly<GapSpanType>;
 }
 
-export function GapSpanDetails({
-  event,
-  resetCellMeasureCache,
-  span,
-}: GapSpanDetailsProps) {
+export function GapSpanDetails({event, span}: GapSpanDetailsProps) {
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -121,14 +116,7 @@ export function GapSpanDetails({
   // This project has received a profile before so they've already
   // set up profiling. No point showing the profiling setup again.
   if (!docsLink || project?.hasProfiles) {
-    return (
-      <InlineDocs
-        orgSlug={organization.slug}
-        platform={event.sdk?.name || ''}
-        projectSlug={event?.projectSlug ?? project?.slug ?? ''}
-        resetCellMeasureCache={resetCellMeasureCache}
-      />
-    );
+    return <InlineDocs platform={event.sdk?.name || ''} />;
   }
 
   // At this point we must have a project on a supported
@@ -143,9 +131,9 @@ export function GapSpanDetails({
             'Profiles can give you additional context on which functions are sampled at the same time of these spans.'
           )}
         </p>
-        <Button size="sm" priority="primary" href={docsLink} external>
+        <LinkButton size="sm" priority="primary" href={docsLink} external>
           {t('Set Up Profiling')}
-        </Button>
+        </LinkButton>
         <ManualInstrumentationInstruction />
       </InstructionsContainer>
     </Container>
@@ -215,9 +203,9 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
           )}
         />
       </HeaderContainer>
-      <Button size="xs" onClick={handleGoToProfile} to={target}>
+      <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
         {t('View Profile')}
-      </Button>
+      </LinkButton>
     </HeaderContainer>
   );
 }

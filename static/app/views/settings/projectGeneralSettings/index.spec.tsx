@@ -1,10 +1,7 @@
-import {browserHistory} from 'react-router';
-import selectEvent from 'react-select-event';
 import {GroupingConfigsFixture} from 'sentry-fixture/groupingConfigs';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
@@ -15,11 +12,13 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import ProjectContext from 'sentry/views/projects/projectContext';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import ProjectContextProvider from 'sentry/views/projects/projectContext';
 import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -41,7 +40,6 @@ describe('projectGeneralSettings', function () {
     verifySSL: true,
   });
   const groupingConfigs = GroupingConfigsFixture();
-  let routerContext;
   let putMock;
 
   const router = RouterFixture();
@@ -55,15 +53,6 @@ describe('projectGeneralSettings', function () {
 
   beforeEach(function () {
     jest.spyOn(window.location, 'assign');
-    routerContext = RouterContextFixture([
-      {
-        router: RouterFixture({
-          params: {
-            projectId: project.slug,
-          },
-        }),
-      },
-    ]);
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -239,12 +228,10 @@ describe('projectGeneralSettings', function () {
 
   it('disables the form for users without write permissions', function () {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
-    routerContext.context.organization = readOnlyOrg;
 
     render(
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {
-        context: routerContext,
         organization: readOnlyOrg,
       }
     );
@@ -269,15 +256,15 @@ describe('projectGeneralSettings', function () {
     });
 
     render(
-      <ProjectContext projectSlug={project.slug}>
+      <ProjectContextProvider projectSlug={project.slug}>
         <ProjectGeneralSettings
           {...routerProps}
           routes={[]}
-          location={routerContext.context.location}
+          location={LocationFixture()}
           params={params}
         />
-      </ProjectContext>,
-      {context: routerContext, organization}
+      </ProjectContextProvider>,
+      {organization}
     );
 
     const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
@@ -303,15 +290,15 @@ describe('projectGeneralSettings', function () {
     });
 
     render(
-      <ProjectContext projectSlug={project.slug}>
+      <ProjectContextProvider projectSlug={project.slug}>
         <ProjectGeneralSettings
           {...routerProps}
           routes={[]}
-          location={routerContext.context.location}
+          location={LocationFixture()}
           params={params}
         />
-      </ProjectContext>,
-      {context: routerContext, organization}
+      </ProjectContextProvider>,
+      {organization}
     );
 
     await userEvent.type(
@@ -332,7 +319,6 @@ describe('projectGeneralSettings', function () {
 
   describe('Non-"save on blur" Field', function () {
     beforeEach(function () {
-      const params = {projectId: project.slug};
       ProjectsStore.loadInitialData([project]);
 
       putMock = MockApiClient.addMockResponse({
@@ -343,24 +329,28 @@ describe('projectGeneralSettings', function () {
           slug: 'new-project',
         },
       });
+    });
 
+    function renderProjectGeneralSettings() {
+      const params = {projectId: project.slug};
       render(
-        <ProjectContext projectSlug={project.slug}>
+        <ProjectContextProvider projectSlug={project.slug}>
           <ProjectGeneralSettings
             {...routerProps}
             routes={[]}
-            location={routerContext.context.location}
+            location={LocationFixture()}
             params={params}
           />
-        </ProjectContext>,
-        {context: routerContext, organization}
+        </ProjectContextProvider>,
+        {organization}
       );
-    });
+    }
 
     it('can cancel unsaved changes for a field', async function () {
+      renderProjectGeneralSettings();
       expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
 
-      const autoResolveSlider = getField('slider', 'Auto Resolve');
+      const autoResolveSlider = await screen.findByRole('slider', {name: 'Auto Resolve'});
       expect(autoResolveSlider).toHaveValue('19');
 
       // Change value
@@ -381,9 +371,10 @@ describe('projectGeneralSettings', function () {
     });
 
     it('saves when value is changed and "Save" clicked', async function () {
+      renderProjectGeneralSettings();
       expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
 
-      const autoResolveSlider = getField('slider', 'Auto Resolve');
+      const autoResolveSlider = await screen.findByRole('slider', {name: 'Auto Resolve'});
       expect(autoResolveSlider).toHaveValue('19');
 
       // Change value

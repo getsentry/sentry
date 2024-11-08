@@ -8,8 +8,11 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import {RELATIVE_DAYS_WINDOW} from 'sentry/components/events/eventStatisticalDetector/consts';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
-import type {Event, EventsStatsData, Group, PageFilters} from 'sentry/types';
-import {IssueType} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
+import type {EventsStatsData} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -18,14 +21,14 @@ import {RateUnit} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatPercentage, formatRate} from 'sentry/utils/formatters';
+import {formatRate} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
-import {transformEventStats} from 'sentry/views/performance/trends/chart';
+import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
 
 const BUCKET_SIZE = 6 * 60 * 60; // 6 hours in seconds;
 
@@ -50,7 +53,6 @@ export function EventThroughput({event, group}: EventThroughputProps) {
 
 function EventThroughputInner({event, group}: EventThroughputProps) {
   const theme = useTheme();
-  const router = useRouter();
 
   const evidenceData = event.occurrence!.evidenceData;
   const breakpoint = evidenceData.breakpoint;
@@ -179,7 +181,7 @@ function EventThroughputInner({event, group}: EventThroughputProps) {
       ) : (
         <CompareLabel>{'\u2014'}</CompareLabel>
       )}
-      <ChartZoom router={router} {...datetime}>
+      <ChartZoom {...datetime}>
         {zoomRenderProps => (
           <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
         )}
@@ -320,7 +322,7 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
 
   if (statsType === 'functions' && functionInterval) {
     return {
-      isLoading: functionStats.isLoading,
+      isLoading: functionStats.isPending,
       isError: functionStats.isError,
       series: functionData,
     };
@@ -328,7 +330,7 @@ function useThroughputStats({datetime, event, group}: UseThroughputStatsOptions)
 
   if (statsType === 'transactions' && transactionInterval) {
     return {
-      isLoading: transactionStats.isLoading,
+      isLoading: transactionStats.isPending,
       isError: transactionStats.isError,
       series: transactionData,
     };

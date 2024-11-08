@@ -1,5 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -7,7 +5,7 @@ import pick from 'lodash/pick';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -16,12 +14,16 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, SavedQuery, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
+import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import QueryList from './queryList';
 import {getPrebuiltQueries, setRenderPrebuilt, shouldRenderPrebuilt} from './utils';
@@ -96,7 +98,12 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
         const needleSearch = searchQuery.toLowerCase();
 
         const numOfPrebuiltQueries = views.reduce((sum, view) => {
-          const eventView = EventView.fromNewQueryWithLocation(view, location);
+          const newQuery = organization.features.includes(
+            'performance-discover-dataset-selector'
+          )
+            ? (getSavedQueryWithDataset(view) as NewQuery)
+            : view;
+          const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
           // if a search is performed on the list of queries, we filter
           // on the pre-built queries
@@ -278,7 +285,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
             <Layout.Header>
               <Layout.HeaderContent>{this.renderBreadcrumbs()}</Layout.HeaderContent>
               <Layout.HeaderActions>
-                <Button
+                <LinkButton
                   data-test-id="build-new-query"
                   to={to}
                   size="sm"
@@ -290,7 +297,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
                   }}
                 >
                   {t('Build a new query')}
-                </Button>
+                </LinkButton>
               </Layout.HeaderActions>
             </Layout.Header>
             <Layout.Body>
@@ -310,7 +317,7 @@ const PrebuiltSwitch = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1.5)};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin: 0;
 `;
 

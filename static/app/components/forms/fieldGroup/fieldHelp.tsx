@@ -4,7 +4,7 @@ import {space} from 'sentry/styles/space';
 
 import type {FieldGroupProps} from './types';
 
-type FieldHelpProps = Pick<FieldGroupProps, 'inline' | 'stacked'>;
+interface FieldHelpProps extends Pick<FieldGroupProps, 'inline' | 'stacked'> {}
 
 const FieldHelp = styled('div')<FieldHelpProps>`
   color: ${p => p.theme.subText};

@@ -106,7 +106,7 @@ class FlamegraphTextRenderer extends TextRenderer {
       }
 
       // If a frame is lower than the top, we can skip drawing its text, however
-      // we can only do so after we have pushed it's children into the queue or else
+      // we can only do so after we have pushed its children into the queue or else
       // those children will never be drawn and the entire sub-tree will be skipped.
       if (frame.depth < TOP_BOUNDARY) {
         continue;

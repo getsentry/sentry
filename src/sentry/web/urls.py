@@ -9,19 +9,29 @@ from django.urls import URLPattern, URLResolver, re_path
 from django.views.generic import RedirectView
 
 from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
+from sentry.api.endpoints.warmup import WarmupEndpoint
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
 from sentry.charts.endpoints import serve_chartcuterie_config
+from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
+from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
+from sentry.sentry_apps.web.sentryapp_avatar import SentryAppAvatarPhotoView
+from sentry.toolbar.views.iframe_view import IframeView
+from sentry.toolbar.views.login_success_view import LoginSuccessView
+from sentry.users.web import accounts
+from sentry.users.web.account_identity import AccountIdentityAssociateView
+from sentry.users.web.user_avatar import UserAvatarPhotoView
 from sentry.web import api
-from sentry.web.frontend import accounts, generic
-from sentry.web.frontend.account_identity import AccountIdentityAssociateView
+from sentry.web.frontend import csrf_failure, generic
 from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+from sentry.web.frontend.cli import get_cli, get_cli_download_url
 from sentry.web.frontend.disabled_member_view import DisabledMemberView
-from sentry.web.frontend.doc_integration_avatar import DocIntegrationAvatarPhotoView
+from sentry.web.frontend.error_404 import Error404View
+from sentry.web.frontend.error_500 import Error500View
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -35,28 +45,42 @@ from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
 from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
-from sentry.web.frontend.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.web.frontend.out import OutView
 from sentry.web.frontend.pipeline_advancer import PipelineAdvancerView
 from sentry.web.frontend.project_event import ProjectEventRedirect
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
-from sentry.web.frontend.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
-from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
 __all__ = ("urlpatterns",)
 
+from social_auth.views import complete
 
 # Only create one instance of the ReactPageView since it's duplicated everywhere
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
 
-urlpatterns: list[URLResolver | URLPattern] = []
+urlpatterns: list[URLResolver | URLPattern] = [
+    re_path(
+        r"^500/",
+        Error500View.as_view(),
+        name="error-500",
+    ),
+    re_path(
+        r"^404/",
+        Error404View.as_view(),
+        name="error-404",
+    ),
+    re_path(
+        r"^403-csrf-failure/",
+        csrf_failure.view,
+        name="error-403-csrf-failure",
+    ),
+]
 
 if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
     from sentry.web.debug_urls import urlpatterns as debug_urls
@@ -88,6 +112,13 @@ if settings.DEBUG:
     ]
 
 urlpatterns += [
+    # warmup, used to initialize any connections / pre-load
+    # the application so that user initiated requests are faster
+    re_path(
+        r"^_warmup/$",
+        WarmupEndpoint.as_view(),
+        name="sentry-warmup",
+    ),
     re_path(
         r"^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$",
         api.crossdomain_xml,
@@ -123,6 +154,13 @@ urlpatterns += [
         r"^js-sdk-loader/(?P<public_key>[^/\.]+)(?:(?P<minified>\.min))?\.js$",
         JavaScriptSdkLoader.as_view(),
         name="sentry-js-sdk-loader",
+    ),
+    # docs reference this for acquiring the sentry cli
+    re_path(r"^get-cli/$", get_cli, name="get_cli_script"),
+    re_path(
+        r"^get-cli/(?P<platform>[^/]+)/(?P<arch>[^/]+)/?$",
+        get_cli_download_url,
+        name="get_cli_download_url",
     ),
     # Versioned API
     re_path(
@@ -299,6 +337,11 @@ urlpatterns += [
                     name="sentry-account-recover-confirm",
                 ),
                 re_path(
+                    r"^relocation/reclaim/(?P<user_id>[\d]+)/$",
+                    accounts.relocate_reclaim,
+                    name="sentry-account-relocate-reclaim",
+                ),
+                re_path(
                     r"^password/confirm/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$",
                     accounts.set_password_confirm,
                     name="sentry-account-set-password-confirm",
@@ -387,6 +430,12 @@ urlpatterns += [
             ]
         ),
     ),
+    # GitHub social auth requires the prefix auth/sso
+    re_path(
+        r"^auth/sso/account/settings/social/associate/complete/(?P<backend>[^/]+)/$",
+        complete,
+        name="socialauth_associate_complete_auth_sso",
+    ),
     # Onboarding
     re_path(
         r"^onboarding/",
@@ -405,6 +454,12 @@ urlpatterns += [
         r"^stories/",
         react_page_view,
         name="stories",
+    ),
+    # Rollback
+    re_path(
+        r"^rollback/",
+        react_page_view,
+        name="rollback",
     ),
     # Legacy Redirects
     re_path(
@@ -624,6 +679,11 @@ urlpatterns += [
                     name="sentry-customer-domain-legal-settings",
                 ),
                 re_path(
+                    r"^dynamic-sampling/",
+                    react_page_view,
+                    name="sentry-customer-domain-dynamic-sampling-settings",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-settings",
@@ -687,7 +747,7 @@ urlpatterns += [
     ),
     # Issues
     re_path(
-        r"^issues/(?P<project_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        r"^issues/(?P<project_id_or_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-customer-domain-sentry-group-tag-export",
     ),
@@ -702,17 +762,29 @@ urlpatterns += [
         react_page_view,
         name="alerts",
     ),
+    # AI Monitoring
+    re_path(
+        r"^llm-monitoring/",
+        react_page_view,
+        name="llm-monitoring",
+    ),
     # Performance
     re_path(
         r"^performance/",
         react_page_view,
         name="performance",
     ),
-    # Starfish
+    # Insights
     re_path(
-        r"^starfish/",
+        r"^insights/",
         react_page_view,
-        name="starfish",
+        name="insights",
+    ),
+    # Traces
+    re_path(
+        r"^traces/",
+        react_page_view,
+        name="traces",
     ),
     # Profiling
     re_path(
@@ -748,7 +820,13 @@ urlpatterns += [
         react_page_view,
         name="discover",
     ),
-    # DDM
+    # DDM new
+    re_path(
+        r"^metrics/",
+        react_page_view,
+        name="metrics",
+    ),
+    # TODO(metrics): fade this out
     re_path(
         r"^ddm/",
         react_page_view,
@@ -782,6 +860,25 @@ urlpatterns += [
         r"^replays/selectors/",
         react_page_view,
         name="replays-selectors",
+    ),
+    # Dev toolbar
+    re_path(
+        r"^toolbar/",
+        include(
+            [
+                # Although the pattern looks project-scoped, these are OrganizationViews (auth and perms are org-scoped).
+                re_path(
+                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/iframe/$",
+                    IframeView.as_view(),
+                    name="sentry-toolbar-iframe",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[^/\.]+)/(?P<project_id_or_slug>[^/\.]+)/login-success/$",
+                    LoginSuccessView.as_view(),
+                    name="sentry-toolbar-login-success",
+                ),
+            ]
+        ),
     ),
     # Crons
     re_path(
@@ -922,7 +1019,7 @@ urlpatterns += [
                     name="sentry-organization-project-details",
                 ),
                 re_path(
-                    r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
+                    r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_id_or_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
                     ProjectEventRedirect.as_view(),
                     name="sentry-project-event-redirect",
                 ),
@@ -994,6 +1091,16 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/replays/rage-clicks/$",
                     react_page_view,
                     name="sentry-organization-replay-rage-clicks",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/crons/$",
+                    react_page_view,
+                    name="sentry-organization-crons",
+                ),
+                re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
+                    react_page_view,
+                    name="sentry-organization-cron-monitor-details",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
@@ -1161,7 +1268,7 @@ urlpatterns += [
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-join-request",
     ),
-    # Keep named URL for for things using reverse
+    # Keep named URL for things using reverse
     re_path(
         r"^(?P<organization_slug>[\w_-]+)/issues/(?P<short_id>[\w_-]+)/$",
         react_page_view,
@@ -1198,17 +1305,17 @@ urlpatterns += [
         name="sentry-alert-rule",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-group-tag-export",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/",
+        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/",
         GroupPluginActionView.as_view(),
         name="sentry-group-plugin-action",
     ),
     re_path(
-        r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
+        r"^(?P<organization_slug>[\w_-]+)/(?P<project_id_or_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
         ProjectEventRedirect.as_view(),
         name="sentry-project-event-redirect",
     ),

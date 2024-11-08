@@ -3,15 +3,15 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
-from sentry.integrations import IntegrationInstallation
+from sentry.constants import ObjectStatus
+from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.utils.json import JSONData
 
 WEBHOOK_EVENTS = ["push", "pull_request"]
 
@@ -20,9 +20,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
     name = "GitHub"
     repo_provider = "github"
 
-    def _validate_repo(
-        self, client: Any, installation: IntegrationInstallation, repo: str
-    ) -> JSONData:
+    def _validate_repo(self, client: Any, installation: IntegrationInstallation, repo: str) -> Any:
         try:
             repo_data = client.get_repo(repo)
         except Exception as e:
@@ -78,7 +76,14 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         integration_id = repo.integration_id
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
-        integration = integration_service.get_integration(integration_id=integration_id)
+        integration = integration_service.get_integration(
+            integration_id=integration_id, status=ObjectStatus.ACTIVE
+        )
+        if integration is None:
+            raise NotImplementedError(
+                "GitHub apps requires a valid active integration to fetch commits"
+            )
+
         installation = integration.get_installation(organization_id=repo.organization_id)
         client = installation.get_client()
 
@@ -86,13 +91,12 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
             return eval_commits(client)
         except Exception as e:
             installation.raise_error(e)
-            return []
 
     def _format_commits(
         self,
         client: Any,
         repo_name: str,
-        commit_list: JSONData,
+        commit_list: Any,
     ) -> Sequence[Mapping[str, Any]]:
         """Convert GitHub commits into our internal format
 

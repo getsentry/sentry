@@ -1,5 +1,4 @@
 import {useContext, useEffect} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import type {Query} from 'history';
 
@@ -18,7 +17,6 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {PerformanceAtScaleContext} from 'sentry/views/performance/transactionSummary/transactionOverview/performanceAtScaleContext';
 
@@ -27,7 +25,6 @@ type Props = {
   loading: boolean;
   queryExtra: Query;
   reloading: boolean;
-  router: InjectedRouter;
   theme: Theme;
   series?: Series[];
   timeFrame?: {
@@ -52,7 +49,6 @@ function Content({
   legend,
   utc,
   queryExtra,
-  router,
   onLegendSelectChanged,
 }: Props) {
   const performanceAtScaleContext = useContext(PerformanceAtScaleContext);
@@ -113,8 +109,7 @@ function Content({
     },
     tooltip: {
       trigger: 'axis' as const,
-      valueFormatter: (value, label) =>
-        tooltipFormatter(value, aggregateOutputType(label)),
+      valueFormatter: (value, _label) => tooltipFormatter(value, 'duration'),
     },
     xAxis: timeFrame
       ? {
@@ -134,7 +129,7 @@ function Content({
   };
 
   return (
-    <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+    <ChartZoom period={period} start={start} end={end} utc={utc}>
       {zoomRenderProps => (
         <ReleaseSeries
           start={start}

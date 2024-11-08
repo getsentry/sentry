@@ -1,5 +1,7 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -13,6 +15,7 @@ import {
 import * as modal from 'sentry/actionCreators/modal';
 import * as LineChart from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import {DatasetSource} from 'sentry/utils/discover/types';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {Widget} from 'sentry/views/dashboards/types';
@@ -20,22 +23,27 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
+
+import {DashboardsMEPProvider} from './dashboardsMEPContext';
+
 jest.mock('sentry/components/charts/simpleTableChart', () => jest.fn(() => <div />));
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
-  const {router, organization, routerContext} = initializeOrg({
+  const {router, organization} = initializeOrg({
     organization: OrganizationFixture({
       features: ['dashboards-edit', 'discover-basic'],
-      projects: [ProjectFixture()],
     }),
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
 
   const renderWithProviders = (component: React.ReactNode) =>
     render(
-      <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>,
-      {organization, router, context: routerContext}
+      <DashboardsMEPProvider>
+        <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+      </DashboardsMEPProvider>,
+      {organization, router}
     );
 
   const multipleQueryWidget: Widget = {
@@ -75,7 +83,14 @@ describe('Dashboards > WidgetCard', function () {
   };
 
   const api = new MockApiClient();
-  let eventsMock;
+  let eventsMock: jest.Mock;
+
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([multipleQueryWidget]),
+    organization,
+    router,
+  });
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -109,12 +124,12 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Discover'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
     expect(spy).toHaveBeenCalledWith({
       isMetricsData: false,
       organization,
@@ -122,7 +137,7 @@ describe('Dashboards > WidgetCard', function () {
     });
   });
 
-  it('renders with Open in Discover button and opens in Discover when clicked', async function () {
+  it('renders with Open in Discover button', async function () {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -135,13 +150,13 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Discover'));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(screen.getByRole('link', {name: 'Open in Discover'})).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
@@ -159,13 +174,15 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
+    await userEvent.hover(await screen.findByLabelText('Widget description'));
     expect(await screen.findByText('Valid widget description')).toBeInTheDocument();
   });
 
-  it('Opens in Discover with prepended fields pulled from equations', async function () {
+  it('renders Discover button with prepended fields pulled from equations', async function () {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -192,18 +209,18 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Discover'));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(screen.getByRole('link', {name: 'Open in Discover'})).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
     );
   });
 
-  it('Opens in Discover with Top N', async function () {
+  it('renders button to open Discover with Top N', async function () {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -227,13 +244,13 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Discover'));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(screen.getByRole('link', {name: 'Open in Discover'})).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&statsPeriod=14d&yAxis=count%28%29'
     );
   });
@@ -263,13 +280,13 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Discover'));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(screen.getByRole('link', {name: 'Open in Discover'})).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
     );
   });
@@ -292,12 +309,12 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Duplicate Widget'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Duplicate Widget'}));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
@@ -318,13 +335,13 @@ describe('Dashboards > WidgetCard', function () {
         onDuplicate={mock}
         renderErrorMessage={() => undefined}
         showContextMenu
+        widgetLegendState={widgetLegendState}
         widgetLimitReached
       />
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Duplicate Widget'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Duplicate Widget'}));
     expect(mock).toHaveBeenCalledTimes(0);
   });
 
@@ -346,12 +363,12 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Edit Widget')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Edit Widget'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit Widget'}));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
@@ -373,12 +390,12 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByText('Delete Widget')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Delete Widget'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete Widget'}));
     // Confirm Modal
     renderGlobalModal();
     await screen.findByRole('dialog');
@@ -408,6 +425,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -441,6 +459,7 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -487,14 +506,17 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
+        widgetLegendState={widgetLegendState}
       />
     );
 
     await waitFor(() => expect(eventsMock).toHaveBeenCalled());
 
-    expect(SimpleTableChart).toHaveBeenCalledWith(
-      expect.objectContaining({stickyHeaders: true}),
-      expect.anything()
+    await waitFor(() =>
+      expect(SimpleTableChart).toHaveBeenCalledWith(
+        expect.objectContaining({stickyHeaders: true}),
+        expect.anything()
+      )
     );
   });
 
@@ -519,6 +541,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         tableItemLimit={20}
+        widgetLegendState={widgetLegendState}
       />
     );
 
@@ -547,55 +570,14 @@ describe('Dashboards > WidgetCard', function () {
         widgetLimitReached={false}
         index="10"
         isPreview
+        widgetLegendState={widgetLegendState}
       />
     );
 
-    await userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
+    await userEvent.click(await screen.findByLabelText('Open Full-Screen View'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({pathname: '/mock-pathname/widget/10/'})
     );
-  });
-
-  it('renders stored data disclaimer', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        meta: {title: 'string', isMetricsData: false},
-        data: [{title: 'title'}],
-      },
-    });
-
-    renderWithProviders(
-      <WidgetCard
-        api={api}
-        organization={{
-          ...organization,
-          features: [...organization.features, 'dashboards-mep'],
-        }}
-        widget={{
-          ...multipleQueryWidget,
-          displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0]}],
-        }}
-        selection={selection}
-        isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        renderErrorMessage={() => undefined}
-        showContextMenu
-        widgetLimitReached={false}
-        showStoredAlert
-      />
-    );
-
-    // Badge in the widget header
-    expect(await screen.findByText('Indexed')).toBeInTheDocument();
-
-    expect(
-      // Alert below the widget
-      await screen.findByText(/we've automatically adjusted your results/i)
-    ).toBeInTheDocument();
   });
 
   it('renders chart using axis and tooltip formatters from custom measurement meta', async function () {
@@ -656,17 +638,21 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
     await waitFor(function () {
       expect(eventsStatsMock).toHaveBeenCalled();
     });
-    const {tooltip, yAxis} = spy.mock.calls.pop()?.[0] ?? {};
-    expect(tooltip).toBeDefined();
 
-    expect(yAxis).toBeDefined();
-    // @ts-expect-error
-    expect(yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual('24ms');
+    await waitFor(() => {
+      const mockCall = spy.mock.calls?.at(-1)?.[0];
+      expect(mockCall?.tooltip).toBeDefined();
+      // @ts-expect-error
+      expect(mockCall?.yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual(
+        '24ms'
+      );
+    });
   });
 
   it('renders label in seconds when there is a transition from seconds to minutes in the y axis', async function () {
@@ -751,17 +737,23 @@ describe('Dashboards > WidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />
     );
     await waitFor(function () {
       expect(eventsStatsMock).toHaveBeenCalled();
     });
-    const {yAxis} = spy.mock.calls.pop()?.[0] ?? {};
-    expect(yAxis).toBeDefined();
+    await waitFor(() => {
+      const mockCall = spy.mock.calls?.at(-1)?.[0];
+      expect(mockCall?.yAxis).toBeDefined();
 
-    // @ts-expect-error
-    expect(yAxis.axisLabel.formatter(60000, 'p50(transaction.duration)')).toEqual('60s');
-    expect((yAxis as any).minInterval).toEqual(SECOND);
+      expect(
+        // @ts-expect-error
+        mockCall?.yAxis.axisLabel.formatter(60000, 'p50(transaction.duration)')
+      ).toEqual('60s');
+      // @ts-expect-error
+      expect(mockCall?.yAxis?.minInterval).toEqual(SECOND);
+    });
   });
 
   it('displays indexed badge in preview mode', async function () {
@@ -782,9 +774,42 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         isPreview
+        widgetLegendState={widgetLegendState}
       />
     );
 
     expect(await screen.findByText('Indexed')).toBeInTheDocument();
+  });
+
+  it('displays the discover split warning icon when the dataset source is forced', async function () {
+    const testWidget = {
+      ...WidgetFixture(),
+      datasetSource: DatasetSource.FORCED,
+      widgetType: WidgetType.ERRORS,
+    };
+
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        organization={organization}
+        widget={testWidget}
+        selection={selection}
+        isEditingDashboard={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+        isPreview
+        widgetLegendState={widgetLegendState}
+      />
+    );
+
+    await userEvent.hover(screen.getByLabelText('Widget warnings'));
+
+    expect(
+      await screen.findByText(/We're splitting our datasets up/)
+    ).toBeInTheDocument();
   });
 });

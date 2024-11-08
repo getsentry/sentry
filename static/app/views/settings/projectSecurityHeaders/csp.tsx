@@ -11,7 +11,7 @@ import PreviewFeature from 'sentry/components/previewFeature';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import formGroups from 'sentry/data/forms/cspReports';
 import {t, tct} from 'sentry/locale';
-import type {Project, ProjectKey} from 'sentry/types';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -55,7 +55,7 @@ export default function ProjectCspReports() {
 
   const {
     data: keyList,
-    isLoading: isLoadingKeyList,
+    isPending: isLoadingKeyList,
     isError: isKeyListError,
     refetch: refetchKeyList,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
@@ -63,7 +63,7 @@ export default function ProjectCspReports() {
   });
   const {
     data: project,
-    isLoading: isLoadingProject,
+    isPending: isLoadingProject,
     isError: isProjectError,
     refetch: refetchProject,
   } = useApiQuery<Project>([`/projects/${organization.slug}/${projectId}/`], {
@@ -102,7 +102,7 @@ export default function ProjectCspReports() {
         initialData={project.options}
         apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
       >
-        <Access access={['project:write']}>
+        <Access access={['project:write']} project={project}>
           {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
         </Access>
       </Form>

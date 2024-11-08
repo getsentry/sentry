@@ -18,7 +18,9 @@ _log = logging.getLogger(__name__)
 
 
 # This helps the Relay CI to specify the generated Docker build before it is published
-RELAY_TEST_IMAGE = environ.get("RELAY_TEST_IMAGE", "us.gcr.io/sentryio/relay:nightly")
+RELAY_TEST_IMAGE = environ.get(
+    "RELAY_TEST_IMAGE", "us-central1-docker.pkg.dev/sentryio/relay/relay:nightly"
+)
 
 
 def _relay_server_container_name():
@@ -45,7 +47,7 @@ def _remove_container_if_exists(docker_client, container_name):
             pass  # could not remove the container nothing to do about it
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def relay_server_setup(live_server, tmpdir_factory):
     prefix = "test_relay_config_{}_".format(
         datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
@@ -68,8 +70,12 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     redis_db = TEST_REDIS_DB
     from sentry.relay import projectconfig_cache
+    from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 
-    assert redis_db == projectconfig_cache.backend.cluster.connection_pool.connection_kwargs["db"]
+    projectconfig_backend = projectconfig_cache.backend.test_only__downcast_to(
+        RedisProjectConfigCache
+    )
+    assert redis_db == projectconfig_backend.cluster.connection_pool.connection_kwargs["db"]
 
     template_vars = {
         "SENTRY_HOST": f"http://host.docker.internal:{port}/",

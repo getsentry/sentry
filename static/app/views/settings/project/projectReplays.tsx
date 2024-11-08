@@ -1,16 +1,16 @@
-import type {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
-
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import formGroups from 'sentry/data/forms/replay';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import type {JsonFormObject} from 'sentry/components/forms/types';
+import Link from 'sentry/components/links/link';
+import ReplaySettingsAlert from 'sentry/components/replays/alerts/replaySettingsAlert';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
@@ -22,59 +22,81 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   project: Project;
 };
 
-class ProjectUserFeedbackSettings extends DeprecatedAsyncView<Props> {
-  submitTimeout: number | undefined = undefined;
+function ProjectReplaySettings({organization, project, params: {projectId}}: Props) {
+  const formGroups: JsonFormObject[] = [
+    {
+      title: 'Settings',
+      fields: [
+        {
+          name: 'sentry:replay_rage_click_issues',
+          type: 'boolean',
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-    return [['project', `/projects/${organization.slug}/${projectId}/`]];
-  }
+          // additional data/props that is related to rendering of form field rather than data
+          label: t('Create Rage Click Issues'),
+          help: t('Toggles whether or not to create Session Replay Rage Click Issues'),
+          getData: data => ({options: data}),
+        },
+        {
+          name: 'sentry:replay_hydration_error_issues',
+          type: 'boolean',
 
-  getTitle(): string {
-    const {projectId} = this.props.params;
-    return routeTitleGen(t('Replays'), projectId, false);
-  }
+          // additional data/props that is related to rendering of form field rather than data
+          label: t('Create Hydration Error Issues'),
+          help() {
+            return tct(
+              'Toggles whether or not to create Session Replay Hydration Error Issues during replay ingest. Using [inboundFilters: inbound filters] to filter out hydration errors does not affect this setting.',
+              {
+                inboundFilters: (
+                  <Link
+                    to={`/settings/${organization.slug}/projects/${project.slug}/filters/data-filters/#filters-react-hydration-errors_help`}
+                  />
+                ),
+              }
+            );
+          },
+          getData: data => ({options: data}),
+        },
+      ],
+    },
+  ];
 
-  renderBody() {
-    const {organization, project} = this.props;
-    const {projectId} = this.props.params;
+  return (
+    <SentryDocumentTitle title={t('Replays')} projectSlug={project.slug}>
+      <SettingsPageHeader
+        title={t('Replays')}
+        action={
+          <LinkButton
+            external
+            href="https://docs.sentry.io/product/issues/issue-details/replay-issues/"
+          >
+            {t('Read the Docs')}
+          </LinkButton>
+        }
+      />
+      <PermissionAlert project={project} />
+      <ReplaySettingsAlert />
 
-    return (
-      <div>
-        <SettingsPageHeader
-          title={t('Replays')}
-          action={
-            <ButtonList>
-              <Button
-                external
-                href="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
-              >
-                {t('Read the docs')}
-              </Button>
-            </ButtonList>
-          }
-        />
-        <PermissionAlert project={project} />
-        <Form
-          saveOnBlur
-          apiMethod="PUT"
-          apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
-          initialData={this.state.project.options}
-        >
-          <Access access={['project:write']} project={project}>
-            {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
-          </Access>
-        </Form>
-      </div>
-    );
-  }
+      <Form
+        saveOnBlur
+        apiMethod="PUT"
+        apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
+        initialData={project.options}
+        onSubmitSuccess={(
+          response // This will update our project context
+        ) => ProjectsStore.onUpdateSuccess(response)}
+      >
+        <Access access={['project:write']} project={project}>
+          {({hasAccess}) => (
+            <JsonForm
+              disabled={!hasAccess}
+              features={new Set(organization.features)}
+              forms={formGroups}
+            />
+          )}
+        </Access>
+      </Form>
+    </SentryDocumentTitle>
+  );
 }
 
-export default ProjectUserFeedbackSettings;
-
-const ButtonList = styled('div')`
-  display: inline-grid;
-  grid-auto-flow: column;
-  gap: ${space(1)};
-`;
+export default ProjectReplaySettings;

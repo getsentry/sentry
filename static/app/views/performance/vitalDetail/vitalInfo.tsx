@@ -1,10 +1,10 @@
 import type {Location} from 'history';
 
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import toArray from 'sentry/utils/array/toArray';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {WebVital} from 'sentry/utils/fields';
 import VitalsCardDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import toArray from 'sentry/utils/toArray';
 
 import {VitalBar} from '../landing/vitalsCards';
 

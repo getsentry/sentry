@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import contextlib
+import functools
 import http
 import json  # noqa
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -24,9 +26,8 @@ CI = os.environ.get("CI") is not None
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
-COLIMA = os.path.expanduser("~/.local/share/sentry-devenv/bin/colima")
 
-USE_COLIMA = os.path.exists(COLIMA) and os.environ.get("SENTRY_USE_COLIMA") != "0"
+USE_COLIMA = bool(shutil.which("colima")) and os.environ.get("SENTRY_USE_COLIMA") != "0"
 USE_ORBSTACK = (
     os.path.exists("/Applications/OrbStack.app") and os.environ.get("SENTRY_USE_ORBSTACK") != "0"
 )
@@ -51,8 +52,24 @@ else:
     RAW_SOCKET_PATH = "/var/run/docker.sock"
 
 
+# Simplified from pre-commit @ fb0ccf3546a9cb34ec3692e403270feb6d6033a2
+@functools.cache
+def _gitroot() -> str:
+    from os.path import abspath
+    from subprocess import CalledProcessError, run
+
+    try:
+        proc = run(("git", "rev-parse", "--show-cdup"), check=True, capture_output=True)
+        root = abspath(proc.stdout.decode().strip())
+    except CalledProcessError:
+        raise SystemExit(
+            "git failed. Is it installed, and are you in a Git repository directory?",
+        )
+    return root
+
+
 @contextlib.contextmanager
-def get_docker_client() -> Generator[docker.DockerClient, None, None]:
+def get_docker_client() -> Generator[docker.DockerClient]:
     import docker
 
     def _client() -> ContextManager[docker.DockerClient]:
@@ -65,11 +82,13 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
             if DARWIN:
                 if USE_COLIMA:
                     click.echo("Attempting to start colima...")
+                    gitroot = _gitroot()
                     subprocess.check_call(
                         (
-                            "python3",
-                            "-uS",
-                            f"{os.path.dirname(__file__)}/../../../../scripts/start-colima.py",
+                            # explicitly use repo-local devenv, not the global one
+                            f"{gitroot}/.venv/bin/devenv",
+                            "colima",
+                            "start",
                         )
                     )
                 elif USE_DOCKER_DESKTOP:
@@ -106,15 +125,13 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
 @overload
 def get_or_create(
     client: docker.DockerClient, thing: Literal["network"], name: str
-) -> docker.models.networks.Network:
-    ...
+) -> docker.models.networks.Network: ...
 
 
 @overload
 def get_or_create(
     client: docker.DockerClient, thing: Literal["volume"], name: str
-) -> docker.models.volumes.Volume:
-    ...
+) -> docker.models.volumes.Volume: ...
 
 
 def get_or_create(
@@ -166,14 +183,19 @@ def ensure_interface(ports: dict[str, int | tuple[str, int]]) -> dict[str, tuple
     return rv
 
 
-def ensure_docker_cli_context(context: str):
+def ensure_docker_cli_context(context: str) -> None:
     # this is faster than running docker context use ...
-    with open(os.path.expanduser("~/.docker/config.json"), "rb") as f:
-        config = json.loads(f.read())
+    config_file = os.path.expanduser("~/.docker/config.json")
+    config = {}
+
+    if os.path.exists(config_file):
+        with open(config_file, "rb") as f:
+            config = json.loads(f.read())
 
     config["currentContext"] = context
 
-    with open(os.path.expanduser("~/.docker/config.json"), "w") as f:
+    os.makedirs(os.path.dirname(config_file), exist_ok=True)
+    with open(config_file, "w") as f:
         f.write(json.dumps(config))
 
 
@@ -192,15 +214,16 @@ def devservices() -> None:
         click.echo("Assuming docker (CI).")
         return
 
-    if USE_DOCKER_DESKTOP:
-        click.echo("Using docker desktop.")
-        ensure_docker_cli_context("desktop-linux")
-    if USE_COLIMA:
-        click.echo("Using colima.")
-        ensure_docker_cli_context("colima")
-    if USE_ORBSTACK:
-        click.echo("Using orbstack.")
-        ensure_docker_cli_context("orbstack")
+    if DARWIN:
+        if USE_DOCKER_DESKTOP:
+            click.echo("Using docker desktop.")
+            ensure_docker_cli_context("desktop-linux")
+        if USE_COLIMA:
+            click.echo("Using colima.")
+            ensure_docker_cli_context("colima")
+        if USE_ORBSTACK:
+            click.echo("Using orbstack.")
+            ensure_docker_cli_context("orbstack")
 
 
 @devservices.command()
@@ -401,8 +424,7 @@ def _start_service(
     project: str,
     always_start: Literal[False] = ...,
     recreate: bool = False,
-) -> docker.models.containers.Container:
-    ...
+) -> docker.models.containers.Container: ...
 
 
 @overload
@@ -413,8 +435,7 @@ def _start_service(
     project: str,
     always_start: bool = False,
     recreate: bool = False,
-) -> docker.models.containers.Container | None:
-    ...
+) -> docker.models.containers.Container | None: ...
 
 
 def _start_service(

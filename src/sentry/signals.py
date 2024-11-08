@@ -55,7 +55,7 @@ class receivers_raise_on_send:
 
 
 class BetterSignal(Signal):
-    def connect(self, receiver=None, **kwargs):
+    def connect(self, receiver=None, *args, **kwargs):
         """
         Support decorator syntax:
 
@@ -66,7 +66,7 @@ class BetterSignal(Signal):
         """
 
         def wrapped(func):
-            return super(BetterSignal, self).connect(func, **kwargs)
+            return super(BetterSignal, self).connect(func, *args, **kwargs)
 
         if receiver is None:
             return wrapped
@@ -116,6 +116,8 @@ first_new_feedback_received = BetterSignal()  # ["project"]
 first_cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"]
 cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"]
 first_cron_checkin_received = BetterSignal()  # ["project", "monitor_id"]
+first_custom_metric_received = BetterSignal()  # ["project"]
+first_insight_span_received = BetterSignal()  # ["project", "module"]
 member_invited = BetterSignal()  # ["member", "user"]
 member_joined = BetterSignal()  # ["organization_member_id", "organization_id", "user_id"]
 issue_tracker_used = BetterSignal()  # ["plugin", "project", "user"]
@@ -133,7 +135,7 @@ save_search_created = BetterSignal()  # ["project", "user"]
 inbound_filter_toggled = BetterSignal()  # ["project"]
 sso_enabled = BetterSignal()  # ["organization_id", "user_id", "provider"]
 data_scrubber_enabled = BetterSignal()  # ["organization"]
-# ["project", "rule", "user", "rule_type", "is_api_token", "duplicate_rule", "wizard_v3"]
+# ["project", "rule", "user", "rule_type", "is_api_token", "duplicate_rule", "wizard_v3", "query_type"]
 alert_rule_created = BetterSignal()
 alert_rule_edited = BetterSignal()  # ["project", "rule", "user", "rule_type", "is_api_token"]
 repo_linked = BetterSignal()  # ["repo", "user"]
@@ -153,6 +155,9 @@ issue_archived = BetterSignal()  # ["project", "user", "group_list", "activity_d
 issue_escalating = BetterSignal()  # ["project", "group", "event", "was_until_escalating"]
 issue_unignored = BetterSignal()  # ["project", "user_id", "group", "transition_type"]
 issue_mark_reviewed = BetterSignal()  # ["project", "user", "group"]
+issue_update_priority = (
+    BetterSignal()
+)  # ["project", "group", "new_priority", "previous_priority", "user_id", "reason"]
 
 # comments
 comment_created = BetterSignal()  # ["project", "user", "group", "activity_data"]
@@ -178,6 +183,7 @@ user_signup = BetterSignal()  # ["user", "source"]
 relocated = BetterSignal()  # ["relocation_uuid"]
 relocation_link_promo_code = BetterSignal()  # ["relocation_uuid", "promo_code"]
 relocation_redeem_promo_code = BetterSignal()  # ["user_id", "relocation_uuid", "orgs"]
+relocation_retry_link_promo_code = BetterSignal()  # ["old_relocation_uuid", "new_relocation_uuid"]
 
 # Fired after an update is performed on a `PostUpdateQuerySet`. Separate to a `.update` call on a model.
 post_update = BetterSignal()  # [sender: Model, updated_fields: list[str], model_ids: list[int]]

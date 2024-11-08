@@ -4,13 +4,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {getCurrentLandingDisplay} from 'sentry/views/performance/landing/utils';
 
-function initializeData(projects, query = {}) {
+function initializeData(projects: Project[], query: any = {}) {
   const organization = OrganizationFixture({
     features: [],
-    projects,
   });
   const initialData = initializeOrg({
     organization,
@@ -20,10 +20,9 @@ function initializeData(projects, query = {}) {
       },
     },
     projects,
-    project: projects[0],
   });
   const eventView = EventView.fromLocation(initialData.router.location);
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  ProjectsStore.loadInitialData(initialData.projects);
   return {
     ...initialData,
     eventView,

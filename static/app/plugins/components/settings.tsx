@@ -2,15 +2,17 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
-import type {Organization, Plugin, Project} from 'sentry/types';
-import {parseRepo} from 'sentry/utils';
+import type {Plugin} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import {parseRepo} from 'sentry/utils/git/parseRepo';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
@@ -177,9 +179,9 @@ class PluginSettings<
       return (
         <div className="m-b-1">
           <Alert type="warning">{data.config_error}</Alert>
-          <Button priority="primary" href={authUrl}>
+          <LinkButton priority="primary" href={authUrl}>
             {t('Associate Identity')}
-          </Button>
+          </LinkButton>
         </div>
       );
     }

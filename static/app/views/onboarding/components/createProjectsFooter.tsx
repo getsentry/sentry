@@ -17,8 +17,10 @@ import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext'
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {OnboardingSelectedSDK, Organization, Project} from 'sentry/types';
-import {OnboardingProjectStatus} from 'sentry/types';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import {OnboardingProjectStatus} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -42,10 +44,6 @@ export function CreateProjectsFooter({
   genSkipOnboardingLink,
   clearPlatform,
 }: Props) {
-  const frameworkSelectionEnabled = !!organization?.features.includes(
-    'onboarding-sdk-selection'
-  );
-
   const api = useApi();
   const {teams} = useTeams();
   const onboardingContext = useContext(OnboardingContext);
@@ -209,9 +207,7 @@ export function CreateProjectsFooter({
       <ButtonWrapper>
         <Button
           priority="primary"
-          onClick={() =>
-            frameworkSelectionEnabled ? handleProjectCreation() : createPlatformProject()
-          }
+          onClick={handleProjectCreation}
           disabled={!selectedPlatform}
           data-test-id="platform-select-next"
         >

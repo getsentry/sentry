@@ -1,26 +1,23 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
+import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
 import EventReplay from 'sentry/components/events/eventReplay';
+import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
+import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  Entry,
-  Event,
-  Group,
-  Organization,
-  Project,
-  SharedViewOrganization,
-} from 'sentry/types';
-import {EntryType, EventOrGroupType} from 'sentry/types';
+import type {Entry, Event} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isNotSharedOrganization} from 'sentry/types/utils';
-import {objectIsEmpty} from 'sentry/utils';
-import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {EventContexts} from './contexts';
 import {EventDevice} from './device';
@@ -31,7 +28,6 @@ import {EventExtraData} from './eventExtraData';
 import {EventSdk} from './eventSdk';
 import {EventTagsAndScreenshot} from './eventTagsAndScreenshot';
 import {EventViewHierarchy} from './eventViewHierarchy';
-import {EventGroupingInfo} from './groupingInfo';
 import {EventPackageData} from './packageData';
 import {EventRRWebIntegration} from './rrwebIntegration';
 import {DataSection} from './styles';
@@ -39,7 +35,6 @@ import {SuspectCommits} from './suspectCommits';
 import {EventUserFeedback} from './userFeedback';
 
 type Props = {
-  location: Location;
   /**
    * The organization can be the shared view on a public issue view.
    */
@@ -55,7 +50,6 @@ type Props = {
 function EventEntries({
   organization,
   project,
-  location,
   event,
   group,
   className,
@@ -74,7 +68,7 @@ function EventEntries({
     );
   }
 
-  const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
+  const hasContext = !isEmptyObject(event.user ?? {}) || !isEmptyObject(event.contexts);
   const hasActionableItems = actionableItemsEnabled({
     eventId: event.id,
     organization,
@@ -88,7 +82,7 @@ function EventEntries({
       )}
       {!isShare && isNotSharedOrganization(organization) && (
         <SuspectCommits
-          project={project}
+          projectSlug={project.slug}
           eventId={event.id}
           group={group}
           commitRow={CommitRow}
@@ -106,9 +100,7 @@ function EventEntries({
       {showTagSummary && (
         <EventTagsAndScreenshot
           event={event}
-          organization={organization as Organization}
           projectSlug={projectSlug}
-          location={location}
           isShare={isShare}
         />
       )}
@@ -125,16 +117,17 @@ function EventEntries({
       <EventPackageData event={event} />
       <EventDevice event={event} />
       {!isShare && <EventViewHierarchy event={event} project={project} />}
-      {!isShare && <EventAttachments event={event} projectSlug={projectSlug} />}
+      {!isShare && <EventAttachments event={event} project={project} group={group} />}
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {event.type === EventOrGroupType.TRANSACTION && event._metrics_summary && (
         <CustomMetricsEventData
+          projectId={event.projectID}
           metricsSummary={event._metrics_summary}
           startTimestamp={event.startTimestamp}
         />
       )}
       {!isShare && event.groupID && (
-        <EventGroupingInfo
+        <EventGroupingInfoSection
           projectSlug={projectSlug}
           event={event}
           showGroupingConfig={
@@ -154,7 +147,7 @@ function EventEntries({
 // Because replays are not an interface, we need to manually insert the replay section
 // into the array of entries. The long-term solution here is to move the ordering
 // logic to this component, similar to how GroupEventDetailsContent works.
-function partitionEntriesForReplay(entries: Entry[]) {
+export function partitionEntriesForReplay(entries: Entry[]) {
   let replayIndex = 0;
 
   for (const [i, entry] of entries.entries()) {
@@ -213,6 +206,7 @@ export function Entries({
         beforeReplayEntries.map((entry, entryIdx) => (
           <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
         ))}
+      {!isShare && <EventHydrationDiff {...eventEntryProps} />}
       {!isShare && <EventReplay {...eventEntryProps} />}
       {afterReplayEntries.map((entry, entryIdx) => {
         if (hideBreadCrumbs && entry.type === EntryType.BREADCRUMBS) {

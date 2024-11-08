@@ -1,10 +1,26 @@
 import * as Sentry from '@sentry/react';
-import type {Transaction} from '@sentry/types';
+import type {Span} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
+import {
+  alertsEventMap,
+  type AlertsEventParameters,
+} from 'sentry/utils/analytics/alertsAnalyticsEvents';
 import type {DDMEventParameters} from 'sentry/utils/analytics/ddmAnalyticsEvents';
 import {ddmEventMap} from 'sentry/utils/analytics/ddmAnalyticsEvents';
+import {
+  featureFlagEventMap,
+  type FeatureFlagEventParameters,
+} from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
+import {
+  quickStartEventMap,
+  type QuickStartEventParameters,
+} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
+import {
+  statsEventMap,
+  type StatsEventParameters,
+} from 'sentry/utils/analytics/statsAnalyticsEvents';
 
 import type {AiSuggestedSolutionEventParameters} from './analytics/aiSuggestedSolutionAnalyticsEvents';
 import {aiSuggestedSolutionEventMap} from './analytics/aiSuggestedSolutionAnalyticsEvents';
@@ -22,6 +38,8 @@ import type {FeedbackEventParameters} from './analytics/feedbackAnalyticsEvents'
 import {feedbackEventMap} from './analytics/feedbackAnalyticsEvents';
 import type {GrowthEventParameters} from './analytics/growthAnalyticsEvents';
 import {growthEventMap} from './analytics/growthAnalyticsEvents';
+import type {InsightEventParameters} from './analytics/insightAnalyticEvents';
+import {insightEventMap} from './analytics/insightAnalyticEvents';
 import type {IntegrationEventParameters} from './analytics/integrations';
 import {integrationEventMap} from './analytics/integrations';
 import type {IssueEventParameters} from './analytics/issueAnalyticsEvents';
@@ -46,20 +64,24 @@ import {searchEventMap} from './analytics/searchAnalyticsEvents';
 import type {SettingsEventParameters} from './analytics/settingsAnalyticsEvents';
 import {settingsEventMap} from './analytics/settingsAnalyticsEvents';
 import type {SignupAnalyticsParameters} from './analytics/signupAnalyticsEvents';
-import {SignupEventMap} from './analytics/signupAnalyticsEvents';
+import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
 import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
 import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
+import {tracingEventMap, type TracingEventParameters} from './analytics/tracingEventMap';
 import type {TeamInsightsEventParameters} from './analytics/workflowAnalyticsEvents';
 import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
   extends GrowthEventParameters,
+    AlertsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
     DDMEventParameters,
     DiscoverEventParameters,
+    FeatureFlagEventParameters,
     FeedbackEventParameters,
+    InsightEventParameters,
     IssueEventParameters,
     MonitorsEventParameters,
     PerformanceEventParameters,
@@ -77,18 +99,25 @@ interface EventParameters
     IntegrationEventParameters,
     ProjectCreationEventParameters,
     SignupAnalyticsParameters,
+    TracingEventParameters,
+    StatsEventParameters,
+    QuickStartEventParameters,
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
+  ...alertsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,
   ...ddmEventMap,
   ...discoverEventMap,
+  ...featureFlagEventMap,
   ...feedbackEventMap,
   ...growthEventMap,
+  ...insightEventMap,
   ...issueEventMap,
   ...monitorsEventMap,
   ...performanceEventMap,
+  ...tracingEventMap,
   ...profilingEventMap,
   ...releasesEventMap,
   ...replayEventMap,
@@ -103,19 +132,10 @@ const allEventMap: Record<string, string | null> = {
   ...integrationEventMap,
   ...projectCreationEventMap,
   ...starfishEventMap,
-  ...SignupEventMap,
+  ...signupEventMap,
+  ...statsEventMap,
+  ...quickStartEventMap,
 };
-
-/**
- * This should be with all analytics events regardless of the analytics destination
- * which includes Reload, Amplitude, and Google Analytics.
- * All events go to Reload. If eventName is defined, events also go to Amplitude.
- * For more details, refer to makeAnalyticsFunction.
- *
- * Should be used for all analytics that are defined in Sentry.
- */
-
-export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
 
 /**
  * Analytics and metric tracking functionality.
@@ -136,13 +156,18 @@ export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap
  */
 
 /**
- * This should be with all analytics events regardless of the analytics destination
- * which includes Reload, Amplitude, and Google Analytics.
- * All events go to Reload. If eventName is defined, events also go to Amplitude.
- * For more details, refer to the API defined in hooks.
+ * This should be used with all analytics events regardless of the analytics
+ * destination which includes Reload, Amplitude, and Google Analytics. All
+ * events go to Reload. If eventName is defined, events also go to Amplitude.
+ * For more details, refer to makeAnalyticsFunction.
  *
- * Should NOT be used directly.
- * Instead, use makeAnalyticsFunction to generate an analytics function.
+ * Should be used for all analytics that are defined in Sentry.
+ */
+export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
+
+/**
+ * Should NOT be used directly. Instead, use makeAnalyticsFunction to generate
+ * an analytics function.
  */
 export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
   data,
@@ -160,7 +185,7 @@ export const logExperiment: Hooks['analytics:log-experiment'] = options =>
   HookStore.get('analytics:log-experiment').forEach(cb => cb(options));
 
 type RecordMetric = Hooks['metrics:event'] & {
-  endTransaction: (opts: {
+  endSpan: (opts: {
     /**
      * Name of the transaction to end
      */
@@ -203,7 +228,7 @@ type RecordMetric = Hooks['metrics:event'] & {
     start?: string;
   }) => void;
 
-  startTransaction: (opts: {
+  startSpan: (opts: {
     /**
      * Name of transaction
      */
@@ -212,11 +237,7 @@ type RecordMetric = Hooks['metrics:event'] & {
      * Optional op code
      */
     op?: string;
-    /**
-     * Optional trace id, defaults to current tx trace
-     */
-    traceId?: string;
-  }) => Transaction;
+  }) => Span | undefined;
 };
 
 /**
@@ -305,24 +326,19 @@ metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}
 /**
  * Used to pass data between startTransaction and endTransaction
  */
-const transactionDataStore = new Map<string, object>();
+const spanDataStore = new Map<string, Span | undefined>();
 
-const getCurrentTransaction = () => {
-  return Sentry.getCurrentHub().getScope()?.getTransaction();
+metric.startSpan = ({name, op}) => {
+  const span = Sentry.startInactiveSpan({
+    name,
+    op,
+    forceTransaction: true,
+  });
+  spanDataStore.set(name, span);
+  return span;
 };
 
-metric.startTransaction = ({name, traceId, op}) => {
-  if (!traceId) {
-    traceId = getCurrentTransaction()?.traceId;
-  }
-  const transaction = Sentry.startTransaction({name, op, traceId});
-  transactionDataStore[name] = transaction;
-  return transaction;
-};
-
-metric.endTransaction = ({name}) => {
-  const transaction = transactionDataStore[name];
-  if (transaction) {
-    transaction.finish();
-  }
+metric.endSpan = ({name}) => {
+  const span = spanDataStore.get(name);
+  span?.end();
 };

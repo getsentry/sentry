@@ -1,15 +1,11 @@
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 
-import {getRelativeTimeFromEventDateCreated} from '../utils';
+import {getRelativeTimeFromEventDateCreated, type KnownDataDetails} from '../utils';
 
 import type {AppData} from './types';
 import {AppKnownDataType} from './types';
-
-type Output = {
-  subject: string;
-  value?: React.ReactNode;
-};
 
 type Props = {
   data: AppData;
@@ -17,7 +13,15 @@ type Props = {
   type: AppKnownDataType;
 };
 
-export function getAppKnownDataDetails({data, event, type}: Props): Output | undefined {
+// https://github.com/getsentry/relay/blob/24.10.0/relay-event-schema/src/protocol/contexts/app.rs#L37
+function formatMemory(memoryInBytes: number) {
+  if (!Number.isInteger(memoryInBytes) || memoryInBytes <= 0) {
+    return null;
+  }
+  return formatBytesBase2(memoryInBytes);
+}
+
+export function getAppKnownDataDetails({data, event, type}: Props): KnownDataDetails {
   switch (type) {
     case AppKnownDataType.ID:
       return {
@@ -66,6 +70,16 @@ export function getAppKnownDataDetails({data, event, type}: Props): Output | und
       return {
         subject: t('In Foreground'),
         value: data.in_foreground,
+      };
+    case AppKnownDataType.MEMORY:
+      return {
+        subject: t('Memory Usage'),
+        value: data.app_memory ? formatMemory(data.app_memory) : undefined,
+      };
+    case AppKnownDataType.VIEW_NAMES:
+      return {
+        subject: t('View Names'),
+        value: data.view_names,
       };
     default:
       return undefined;

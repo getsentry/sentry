@@ -5,14 +5,12 @@ from django.urls import reverse
 
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -20,9 +18,9 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         self.end = self.start + timedelta(hours=6)
 
         self.transaction_data = load_data("transaction", timestamp=self.start)
-        self.query = {
-            "start": iso_format(self.start),
-            "end": iso_format(self.end),
+        self.query: dict[str, str | list[str]] = {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
         }
         self.features = {}
 
@@ -46,7 +44,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-vitals",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
         with self.feature(features):
@@ -302,7 +300,6 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         }
 
 
-@region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = ["measurement_rating"]
 
@@ -311,9 +308,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.start = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.end = self.start + timedelta(hours=6)
 
-        self.query = {
-            "start": iso_format(self.start),
-            "end": iso_format(self.end),
+        self.query: dict[str, str | list[str]] = {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
         }
         self.features = {"organizations:performance-use-metrics": True}
 
@@ -329,7 +326,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         with self.feature(features):
             url = reverse(
                 "sentry-api-0-organization-events-vitals",
-                kwargs={"organization_slug": self.organization.slug},
+                kwargs={"organization_id_or_slug": self.organization.slug},
             )
 
         with self.feature(features):

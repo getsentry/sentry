@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
-import {fromSorts} from 'sentry/utils/discover/eventView';
 import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import TagKeyHistogramQuery from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 
 import TagsHeatMap from './tagsHeatMap';
 import {TagValueTable} from './tagValueTable';
@@ -111,7 +111,7 @@ function TagsDisplay(props: Props) {
 
   const tagSort = getTagSortForTagsPage(location);
 
-  const tagSorts = fromSorts(tagSort);
+  const tagSorts = decodeSorts(tagSort);
 
   eventView.fields = TAGS_TABLE_COLUMN_ORDER;
 

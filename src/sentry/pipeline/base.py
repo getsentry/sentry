@@ -13,13 +13,13 @@ from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.db.models import Model
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.utils.hashlib import md5_text
 from sentry.utils.sdk import bind_organization_context
 from sentry.web.helpers import render_to_response
 
 from ..models import Organization
-from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from . import PipelineProvider
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
@@ -85,7 +85,9 @@ class Pipeline(abc.ABC):
 
         organization: RpcOrganization | None = None
         if state.org_id:
-            org_context = organization_service.get_organization_by_id(id=state.org_id)
+            org_context = organization_service.get_organization_by_id(
+                id=state.org_id, include_teams=False
+            )
             if org_context:
                 organization = org_context.organization
 
@@ -93,13 +95,13 @@ class Pipeline(abc.ABC):
 
         return PipelineRequestState(state, provider_model, organization, provider_key)
 
-    def get_provider(self, provider_key: str) -> PipelineProvider:
+    def get_provider(self, provider_key: str, **kwargs) -> PipelineProvider:
         provider: PipelineProvider = self.provider_manager.get(provider_key)
         return provider
 
     def __init__(
         self,
-        request: Request,
+        request: Request | HttpRequest,
         provider_key: str,
         organization: Organization | RpcOrganization | None = None,
         provider_model: Model | None = None,
@@ -116,7 +118,7 @@ class Pipeline(abc.ABC):
         )
         self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
         self.provider_model = provider_model
-        self.provider = self.get_provider(provider_key)
+        self.provider = self.get_provider(provider_key, organization=organization)
 
         self.config = config or {}
         self.provider.set_pipeline(self)

@@ -17,8 +17,9 @@ from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
 from sentry.db.models.query import in_icontains
 from sentry.models.broadcast import Broadcast, BroadcastSeen
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.search.utils import tokenize_query
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry")
 
@@ -29,7 +30,7 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.UNOWNED
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
@@ -50,9 +51,19 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         # used in the SAAS product
         return list(queryset)
 
-    def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
-        if organization_slug:
-            args, kwargs = super().convert_args(request, organization_slug)
+    def convert_args(self, request: Request, *args, **kwargs):
+        organization_id_or_slug: int | str | None = None
+        if args and args[0] is not None:
+            organization_id_or_slug = args[0]
+            # Required so it behaves like the original convert_args, where organization_id_or_slug was another parameter
+            # TODO: Remove this once we remove the old `organization_slug` parameter from getsentry
+            args = args[1:]
+        else:
+            organization_id_or_slug = kwargs.pop("organization_id_or_slug", None) or kwargs.pop(
+                "organization_slug", None
+            )
+        if organization_id_or_slug:
+            args, kwargs = super().convert_args(request, organization_id_or_slug)
 
         return (args, kwargs)
 
@@ -169,9 +180,11 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                 title=result["title"],
                 message=result["message"],
                 link=result["link"],
-                cta=result["cta"],
                 is_active=result.get("isActive") or False,
                 date_expires=result.get("dateExpires"),
+                media_url=result.get("mediaUrl"),
+                category=result.get("category"),
+                created_by_id=User.objects.get(id=request.user.id),
             )
             logger.info(
                 "broadcasts.create",

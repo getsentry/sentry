@@ -18,22 +18,22 @@ from sentry.backup.dependencies import (
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.silo import SiloLimit, SiloMode
-from sentry.utils.json import JSONData
+from sentry.db.models.fields.uuid import UUIDField
+from sentry.db.models.manager.base import BaseManager, create_silo_limited_copy
+from sentry.silo.base import SiloLimit, SiloMode
 
 from .fields.bounded import BoundedBigAutoField
-from .manager import BaseManager
-from .manager.base import create_silo_limited_copy
 from .query import update
 
 __all__ = (
     "BaseModel",
     "Model",
+    "DefaultFieldsModelExisting",
     "DefaultFieldsModel",
     "sane_repr",
     "get_model_if_available",
-    "control_silo_only_model",
-    "region_silo_only_model",
+    "control_silo_model",
+    "region_silo_model",
 )
 
 
@@ -111,17 +111,17 @@ class BaseModel(models.Model):
         # for when you would like to inspect the cache.
         # In production, you should guard `model.field` with an
         # `if model.is_field_cached`.
-        name = self._get_relational_field(field_name).get_cache_name()
+        name = self._get_relational_field(field_name).cache_name
         return self._state.fields_cache.get(name, None)
 
     def delete_cached_field_value(self, field_name: str) -> None:
-        name = self._get_relational_field(field_name).get_cache_name()
+        name = self._get_relational_field(field_name).cache_name
         if name in self._state.fields_cache:
             del self._state.fields_cache[name]
 
     def is_field_cached(self, field_name: str) -> bool:
         # Ask if a relational field has a cached value.
-        name = self._get_relational_field(field_name).get_cache_name()
+        name = self._get_relational_field(field_name).cache_name
         return name in self._state.fields_cache
 
     def get_relocation_scope(self) -> RelocationScope:
@@ -137,7 +137,7 @@ class BaseModel(models.Model):
         return self.__relocation_scope__
 
     @classmethod
-    def get_relocation_ordinal_fields(self) -> list[str] | None:
+    def get_relocation_ordinal_fields(self, _json_model: Any) -> list[str] | None:
         """
         Retrieves the custom ordinal fields for models that may be re-used at import time (that is,
         the `write_relocation_import()` method may return an `ImportKind` besides
@@ -183,9 +183,7 @@ class BaseModel(models.Model):
             foreign_field_model_name = get_model_name(foreign_field.model)
             matched_fks = set(pk_map.get_pks(foreign_field_model_name))
             matched_fks_query = dict()
-            if len(matched_fks) > 0:
-                matched_fks_query[field_name + "__in"] = matched_fks
-
+            matched_fks_query[field_name + "__in"] = matched_fks
             if foreign_field.nullable:
                 match_on_null_query = dict()
                 match_on_null_query[field_name + "__isnull"] = True
@@ -197,7 +195,7 @@ class BaseModel(models.Model):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, _j: JSONData, _s: Sanitizer, _m: NormalizedModelName | None = None
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
     ) -> None:
         """
         Takes the export JSON representation of this model, and "sanitizes" any data that might be
@@ -208,6 +206,53 @@ class BaseModel(models.Model):
         and 2. to avoid risky situations where a model is modified in-place and then saved to the
         production database by some far flung code that touches it later.
         """
+
+        model_name = get_model_name(cls) if model_name is None else model_name
+        fields = cls._meta.get_fields()
+        field_names = [f.name for f in fields]
+
+        str_field_types = [models.CharField, models.TextField]
+        sensitive_words = ["password", "token", "secret"]
+
+        # All `models.CharField` fields called "slug" and "name" can be auto-sanitized as strings.
+        if "name" in field_names and "slug" in field_names:
+            sanitizer.set_name_and_slug_pair(
+                json, SanitizableField(model_name, "name"), SanitizableField(model_name, "slug")
+            )
+        elif "name" in field_names:
+            sanitizer.set_name(json, SanitizableField(model_name, "name"))
+
+        for f in fields:
+            # Auto-sanitize all `models.DateTimeField` fields on this class.
+            if isinstance(f, models.DateTimeField):
+                sanitizer.set_datetime(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all `models.EmailField` fields on this class.
+            if isinstance(f, models.EmailField):
+                sanitizer.set_email(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all IP Address fields.
+            if isinstance(f, models.IPAddressField) or isinstance(f, models.GenericIPAddressField):
+                sanitizer.set_ip(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all URL fields.
+            if isinstance(f, models.URLField) or f.name.endswith("url") or f.name.endswith("uri"):
+                sanitizer.set_url(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all UUID fields.
+            if (
+                isinstance(f, models.UUIDField)
+                or isinstance(f, UUIDField)
+                or f.name.endswith("guid")
+                or f.name.endswith("uuid")
+            ):
+                sanitizer.set_uuid(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all string fields that contain any sensitive words in their name.
+            is_str_field_type = next(filter(lambda t: isinstance(f, t), str_field_types), None)
+            contains_sensitive_word = next(filter(lambda w: w in f.name, sensitive_words), None)
+            if is_str_field_type and contains_sensitive_word:
+                sanitizer.set_string(json, SanitizableField(model_name, f.name))
 
         return None
 
@@ -277,27 +322,37 @@ class Model(BaseModel):
     __repr__ = sane_repr("id")
 
 
-class DefaultFieldsModel(Model):
+class DefaultFieldsModelExisting(Model):
+    """
+    A base model that adds default date fields to existing models. Don't use this on new models, since it makes `date_added`
+    nullable.
+    """
+
     date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         abstract = True
 
-    @classmethod
-    def sanitize_relocation_json(
-        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
-    ) -> None:
-        model_name = get_model_name(cls) if model_name is None else model_name
-        sanitizer.set_datetime(json, SanitizableField(model_name, "date_added"))
-        sanitizer.set_datetime(json, SanitizableField(model_name, "date_updated"))
-        return super().sanitize_relocation_json(json, sanitizer, model_name)
+
+class DefaultFieldsModel(Model):
+    """
+    A base model that adds default date fields to existing models.
+    """
+
+    date_updated = models.DateTimeField(auto_now=True)
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
 
 
 def __model_pre_save(instance: models.Model, **kwargs: Any) -> None:
-    if not isinstance(instance, DefaultFieldsModel):
+    if not isinstance(instance, DefaultFieldsModelExisting):
         return
-    instance.date_updated = timezone.now()
+    # Only update this field when we're updating the row, not on create.
+    if instance.pk is not None:
+        instance.date_updated = timezone.now()
 
 
 def __model_post_save(instance: models.Model, **kwargs: Any) -> None:
@@ -328,7 +383,16 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"`Excluded`, which does not make sense. `Excluded` must always be a standalone value."
         )
 
-    from .outboxes import ReplicatedControlModel, ReplicatedRegionModel
+    if (
+        getattr(sender._meta, "app_label", None) == "getsentry"
+        and sender.__relocation_scope__ != RelocationScope.Excluded
+    ):
+        raise ValueError(
+            f"{sender!r} model is in the `getsentry` app, and therefore cannot be exported. "
+            f"Please set `__relocation_scope__ = RelocationScope.Excluded` on the model definition."
+        )
+
+    from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
 
     if issubclass(sender, ReplicatedControlModel):
         sender.category.connect_control_model_updates(sender)
@@ -418,7 +482,7 @@ class ModelSiloLimit(SiloLimit):
             model_attr = getattr(model_class, model_attr_name)
             if callable(model_attr) and getattr(model_attr, "alters_data", False):
                 override = self.create_override(model_attr)
-                override.alters_data = True  # type: ignore
+                override.alters_data = True  # type: ignore[attr-defined]
 
                 # We have to resort to monkey-patching here. Dynamically extending
                 # and replacing the model class is not an option, because that would
@@ -430,13 +494,13 @@ class ModelSiloLimit(SiloLimit):
         return model_class
 
 
-control_silo_only_model = ModelSiloLimit(SiloMode.CONTROL)
+control_silo_model = ModelSiloLimit(SiloMode.CONTROL)
 """
 Apply to models that are shared by multiple organizations or
 require strong consistency with other Control silo resources.
 """
 
-region_silo_only_model = ModelSiloLimit(SiloMode.REGION)
+region_silo_model = ModelSiloLimit(SiloMode.REGION)
 """
 Apply to models that belong to a single organization or
 require strong consistency with other Region silo resources.

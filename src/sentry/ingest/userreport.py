@@ -3,12 +3,17 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
+import sentry_sdk
 from django.db import IntegrityError, router
 from django.utils import timezone
 
-from sentry import eventstore, features
-from sentry.eventstore.models import Event
-from sentry.feedback.usecases.create_feedback import shim_to_feedback
+from sentry import eventstore, options
+from sentry.eventstore.models import Event, GroupEvent
+from sentry.feedback.usecases.create_feedback import (
+    UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
+    is_in_feedback_denylist,
+    shim_to_feedback,
+)
 from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
 from sentry.utils import metrics
@@ -29,6 +34,34 @@ def save_userreport(
     start_time=None,
 ):
     with metrics.timer("sentry.ingest.userreport.save_userreport"):
+        if is_in_feedback_denylist(project.organization):
+            metrics.incr("user_report.create_user_report.filtered", tags={"reason": "org.denylist"})
+            return
+        if should_filter_user_report(report["comments"]):
+            return
+
+        max_comment_length = UserReport._meta.get_field("comments").max_length
+        if max_comment_length and len(report["comments"]) > max_comment_length:
+            metrics.distribution(
+                "feedback.large_message",
+                len(report["comments"]),
+                tags={
+                    "entrypoint": "save_userreport",
+                    "referrer": source.value,
+                },
+            )
+            logger.info(
+                "Feedback message exceeds max size.",
+                extra={
+                    "project_id": project.id,
+                    "entrypoint": "save_userreport",
+                    "referrer": source.value,
+                },
+            )
+            # Sentry will capture `feedback_message` in local variables (truncated).
+            sentry_sdk.capture_message("Feedback message exceeds max size.", "warning")
+            report["comments"] = report["comments"][:max_comment_length]
+
         if start_time is None:
             start_time = timezone.now()
 
@@ -77,9 +110,10 @@ def save_userreport(
                 name=report.get("name", ""),
                 email=report["email"],
                 comments=report["comments"],
-                date_added=timezone.now(),
             )
             report_instance = existing_report
+
+            metrics.incr("user_report.create_user_report.overwrite_duplicate")
 
         else:
             if report_instance.group_id:
@@ -87,14 +121,51 @@ def save_userreport(
 
         user_feedback_received.send(project=project, sender=save_userreport)
 
-        if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
+        logger.info(
+            "ingest.user_report",
+            extra={
+                "project_id": project.id,
+                "event_id": report["event_id"],
+                "has_event": bool(event),
+            },
+        )
+        metrics.incr(
+            "user_report.create_user_report.saved",
+            tags={"has_event": bool(event)},
+        )
+        if event:
+            logger.info(
+                "ingest.user_report.shim_to_feedback",
+                extra={"project_id": project.id, "event_id": report["event_id"]},
+            )
             shim_to_feedback(report, event, project, source)
 
         return report_instance
 
 
-def find_event_user(event: Event):
+def find_event_user(event: Event | GroupEvent | None) -> EventUser | None:
     if not event:
         return None
-    eventuser = EventUser.from_event(event)
-    return eventuser
+    return EventUser.from_event(event)
+
+
+def should_filter_user_report(comments: str):
+    """
+    We don't care about empty user reports, or ones that
+    the unreal SDKs send.
+    """
+
+    if not options.get("feedback.filter_garbage_messages"):
+        return False
+
+    if not comments:
+        metrics.incr("user_report.create_user_report.filtered", tags={"reason": "empty"})
+        return True
+
+    if comments == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
+        metrics.incr(
+            "user_report.create_user_report.filtered", tags={"reason": "unreal.unattended"}
+        )
+        return True
+
+    return False

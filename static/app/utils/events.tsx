@@ -1,30 +1,42 @@
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ConfigStore from 'sentry/stores/configStore';
 import type {
-  BaseGroup,
   EntryException,
   EntryRequest,
   EntryThreads,
-  EventMetadata,
+  Event,
+  ExceptionValue,
+  Frame,
+  Thread,
+} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {
+  BaseGroup,
   Group,
   GroupActivityAssigned,
   GroupTombstoneHelper,
-  TreeLabelPart,
-} from 'sentry/types';
-import {
-  EventOrGroupType,
-  GroupActivityType,
-  IssueCategory,
-  IssueType,
-} from 'sentry/types';
-import type {Event, ExceptionValue, Frame, Thread} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+} from 'sentry/types/group';
+import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {uniq} from 'sentry/utils/array/uniq';
 import {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+
+const EVENT_TYPES_WITH_LOG_LEVEL = new Set([
+  EventOrGroupType.ERROR,
+  EventOrGroupType.CSP,
+  EventOrGroupType.EXPECTCT,
+  EventOrGroupType.DEFAULT,
+  EventOrGroupType.EXPECTSTAPLE,
+  EventOrGroupType.HPKP,
+  EventOrGroupType.NEL,
+]);
+
+export function eventTypeHasLogLevel(type: EventOrGroupType) {
+  return EVENT_TYPES_WITH_LOG_LEVEL.has(type);
+}
 
 export function isTombstone(
   maybe: BaseGroup | Event | GroupTombstoneHelper
@@ -76,86 +88,22 @@ export function getLocation(event: Event | BaseGroup | GroupTombstoneHelper) {
   return undefined;
 }
 
-export function getTreeLabelPartDetails(part: TreeLabelPart) {
-  // Note: This function also exists in Python in eventtypes/base.py, to make
-  // porting efforts simpler it's recommended to keep both variants
-  // structurally similar.
-  if (typeof part === 'string') {
-    return part;
-  }
-
-  const label = part?.function || part?.package || part?.filebase || part?.type;
-  const classbase = part?.classbase;
-
-  if (classbase) {
-    return label ? `${classbase}.${label}` : classbase;
-  }
-
-  return label || '<unknown>';
-}
-
-function computeTitleWithTreeLabel(metadata: EventMetadata) {
-  const {type, current_tree_label, finest_tree_label} = metadata;
-
-  const treeLabel = current_tree_label || finest_tree_label;
-
-  const formattedTreeLabel = treeLabel
-    ? treeLabel.map(labelPart => getTreeLabelPartDetails(labelPart)).join(' | ')
-    : undefined;
-
-  if (!type) {
-    return {
-      title: formattedTreeLabel || metadata.function || '<unknown>',
-      treeLabel,
-    };
-  }
-
-  if (!formattedTreeLabel) {
-    return {title: type, treeLabel: undefined};
-  }
-
-  return {
-    title: `${type} | ${formattedTreeLabel}`,
-    treeLabel: [{type}, ...(treeLabel ?? [])],
-  };
-}
-
-export function getTitle(
-  event: Event | BaseGroup | GroupTombstoneHelper,
-  features: string[] = [],
-  grouping = false
-) {
+export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper) {
   const {metadata, type, culprit, title} = event;
   const customTitle = metadata?.title;
 
   switch (type) {
     case EventOrGroupType.ERROR: {
-      if (customTitle) {
+      if (customTitle && customTitle !== '<unlabeled event>') {
         return {
           title: customTitle,
           subtitle: culprit,
-          treeLabel: undefined,
-        };
-      }
-
-      const displayTitleWithTreeLabel =
-        !isTombstone(event) &&
-        features.includes('grouping-title-ui') &&
-        (grouping ||
-          isNativePlatform(event.platform) ||
-          isMobilePlatform(event.platform));
-
-      if (displayTitleWithTreeLabel) {
-        return {
-          subtitle: culprit,
-          ...computeTitleWithTreeLabel(metadata),
         };
       }
 
       return {
         subtitle: culprit,
         title: metadata.type || metadata.function || '<unknown>',
-        treeLabel: undefined,
       };
     }
     case EventOrGroupType.CSP:
@@ -163,7 +111,6 @@ export function getTitle(
       return {
         title: customTitle ?? metadata.directive ?? '',
         subtitle: metadata.uri ?? '',
-        treeLabel: undefined,
       };
     case EventOrGroupType.EXPECTCT:
     case EventOrGroupType.EXPECTSTAPLE:
@@ -174,13 +121,11 @@ export function getTitle(
       return {
         title: customTitle ?? (metadata.message || title),
         subtitle: metadata.origin ?? '',
-        treeLabel: undefined,
       };
     case EventOrGroupType.DEFAULT:
       return {
-        title: customTitle ?? metadata.title ?? '',
+        title: customTitle ?? title,
         subtitle: '',
-        treeLabel: undefined,
       };
     case EventOrGroupType.TRANSACTION:
     case EventOrGroupType.GENERIC:
@@ -188,13 +133,11 @@ export function getTitle(
       return {
         title: customTitle ?? title,
         subtitle: isIssue ? culprit : '',
-        treeLabel: undefined,
       };
     default:
       return {
         title: customTitle ?? title,
         subtitle: '',
-        treeLabel: undefined,
       };
   }
 }
@@ -280,6 +223,15 @@ export function eventHasSourceContext(event: Event) {
   const frames = getAllFrames(event, false);
 
   return frames.some(frame => defined(frame.context) && !!frame.context.length);
+}
+
+/**
+ * Function to determine if an event has local variables
+ */
+export function eventHasLocalVariables(event: Event) {
+  const frames = getAllFrames(event, false);
+
+  return frames.some(frame => defined(frame.vars));
 }
 
 /**
@@ -441,6 +393,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     has_graphql_request: event ? eventHasGraphQlRequest(event) : false,
     has_profile: event ? hasProfile(event) : false,
     has_source_context: event ? eventHasSourceContext(event) : false,
+    has_local_variables: event ? eventHasLocalVariables(event) : false,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,
@@ -454,11 +407,13 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     sdk_version: event?.sdk?.version,
     release_user_agent: event?.release?.userAgent,
     resolved_with: event?.resolvedWith ?? [],
+    mobile: isMobilePlatform(event?.platform),
     error_has_replay: Boolean(getReplayIdFromEvent(event)),
     error_has_user_feedback: defined(event?.userReport),
     has_otel: event?.contexts?.otel !== undefined,
     event_mechanism:
       event?.tags?.find(tag => tag.key === 'mechanism')?.value || undefined,
+    is_sample_event: event ? event.tags?.some(tag => tag.key === 'sample_event') : false,
   };
 }
 
@@ -515,9 +470,6 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
 export function eventIsProfilingIssue(event: BaseGroup | Event | GroupTombstoneHelper) {
   if (isTombstone(event) || isGroup(event)) {
     return false;
-  }
-  if (event.issueCategory === IssueCategory.PROFILE) {
-    return true;
   }
   const evidenceData = event.occurrence?.evidenceData ?? {};
   return evidenceData.templateName === 'profile';

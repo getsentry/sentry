@@ -15,8 +15,9 @@ import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/ed
 import {IconClose, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, SavedSearch} from 'sentry/types';
-import {SavedSearchVisibility} from 'sentry/types';
+import type {SavedSearch} from 'sentry/types/group';
+import {SavedSearchVisibility} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -170,7 +171,7 @@ function SavedIssueSearches({
   const [showAll, setShowAll] = useState(false);
   const {
     data: savedSearches,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
@@ -180,7 +181,7 @@ function SavedIssueSearches({
     return null;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <StyledSidebar>
         <LoadingIndicator />
@@ -317,7 +318,7 @@ const StyledItemButton = styled(Button)`
   width: 100%;
   text-align: left;
   height: auto;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   line-height: ${p => p.theme.text.lineHeightBody};
 
   padding: ${space(1)} ${space(2)};
@@ -328,6 +329,7 @@ const StyledItemButton = styled(Button)`
 `;
 
 const OverflowMenu = styled(DropdownMenu)`
+  display: block;
   position: absolute;
   top: 12px;
   right: ${space(1)};
@@ -391,7 +393,7 @@ const SavedSearchItemQuery = styled('div')`
 
 const ShowAllButton = styled(Button)`
   color: ${p => p.theme.linkColor};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   padding: ${space(0.5)} ${space(2)};
 
   &:hover {

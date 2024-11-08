@@ -2,7 +2,9 @@ import {useEffect, useState} from 'react';
 
 import type {Client, ResponseMeta} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
-import type {Group, Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {IssuesConfig} from '../datasetConfig/issues';
@@ -66,6 +68,7 @@ function IssueWidgetQueries({
         dashboardFilters={dashboardFilters}
         onDataFetched={onDataFetched}
         afterFetchTableData={afterFetchTableData}
+        skipDashboardFilterParens // Issue widgets do not support parens in search
       >
         {({loading, ...rest}) =>
           children({

@@ -1,23 +1,22 @@
-import type {AnchorHTMLAttributes} from 'react';
-import {cloneElement, createContext, useCallback, useState} from 'react';
+import {createContext, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
+import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {EventDataSection} from './eventDataSection';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
@@ -54,9 +53,9 @@ type Props = {
   projectSlug: Project['slug'];
   recentFirst: boolean;
   stackTraceNotFound: boolean;
-  title: React.ReactElement<any, any>;
+  title: React.ReactNode;
   type: string;
-  wrapTitle?: boolean;
+  isNestedSection?: boolean;
 };
 
 export const TraceEventDataSectionContext = createContext<ChildProps | undefined>(
@@ -66,7 +65,6 @@ export const TraceEventDataSectionContext = createContext<ChildProps | undefined
 export function TraceEventDataSection({
   type,
   title,
-  wrapTitle,
   stackTraceNotFound,
   fullStackTrace,
   recentFirst,
@@ -80,9 +78,11 @@ export function TraceEventDataSection({
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
   hasAppOnlyFrames,
+  isNestedSection = false,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const [state, setState] = useState<State>({
     sortBy: recentFirst ? 'recent-first' : 'recent-last',
@@ -247,7 +247,12 @@ export function TraceEventDataSection({
     disabled?: boolean;
     tooltip?: string;
   }[] {
-    if (platform === 'objc' || platform === 'native' || platform === 'cocoa') {
+    if (
+      platform === 'objc' ||
+      platform === 'native' ||
+      platform === 'cocoa' ||
+      platform === 'nintendo-switch'
+    ) {
       return [
         {
           label: displayOptions['absolute-addresses'],
@@ -350,10 +355,14 @@ export function TraceEventDataSection({
     fullStackTrace: state.fullStackTrace,
   };
 
+  const SectionComponent = isNestedSection ? InlineThreadSection : InterimSection;
+
   return (
-    <EventDataSection
+    <SectionComponent
       type={type}
-      title={cloneElement(title, {type})}
+      showPermalink={!hasStreamlinedUI}
+      title={title}
+      guideTarget={type}
       actions={
         !stackTraceNotFound && (
           <ButtonBar gap={1}>
@@ -378,7 +387,7 @@ export function TraceEventDataSection({
               </Tooltip>
             )}
             {state.display.includes('raw-stack-trace') && nativePlatform && (
-              <Button
+              <LinkButton
                 size="xs"
                 href={rawStackTraceDownloadLink}
                 title={t('Download raw stack trace file')}
@@ -392,7 +401,7 @@ export function TraceEventDataSection({
                 }}
               >
                 {t('Download')}
-              </Button>
+              </LinkButton>
             )}
             <CompactSelect
               triggerProps={{
@@ -428,44 +437,46 @@ export function TraceEventDataSection({
           </ButtonBar>
         )
       }
-      showPermalink={false}
-      wrapTitle={wrapTitle}
     >
       <TraceEventDataSectionContext.Provider value={childProps}>
         {children(childProps)}
       </TraceEventDataSectionContext.Provider>
-    </EventDataSection>
+    </SectionComponent>
   );
 }
 
-interface PermalinkTitleProps
-  extends React.DetailedHTMLProps<
-    AnchorHTMLAttributes<HTMLAnchorElement>,
-    HTMLAnchorElement
-  > {}
-
-export function PermalinkTitle(props: PermalinkTitleProps) {
+function InlineThreadSection({
+  children,
+  title,
+  actions,
+}: {
+  actions: React.ReactNode;
+  children: React.ReactNode;
+  title: React.ReactNode;
+}) {
   return (
-    <Permalink {...props} href={'#' + props.type} className="permalink">
-      <StyledIconLink size="xs" color="subText" />
-      <h3>{props.children}</h3>
-    </Permalink>
+    <Wrapper>
+      <InlineSectionHeaderWrapper>
+        <ThreadHeading>{title}</ThreadHeading>
+        {actions}
+      </InlineSectionHeaderWrapper>
+      {children}
+    </Wrapper>
   );
 }
 
-const StyledIconLink = styled(IconLink)`
-  display: none;
-  position: absolute;
-  top: 50%;
-  left: -${space(2)};
-  transform: translateY(-50%);
+const Wrapper = styled('div')``;
+
+const ThreadHeading = styled('h3')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
+  margin-bottom: ${space(1)};
 `;
 
-const Permalink = styled('a')`
-  display: inline-flex;
-  justify-content: flex-start;
-
-  &:hover ${StyledIconLink} {
-    display: block;
-  }
+const InlineSectionHeaderWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${space(1)};
 `;

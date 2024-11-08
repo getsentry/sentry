@@ -87,7 +87,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Retrieve a Spike Protection Notification Action",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             NotificationParams.ACTION_ID,
         ],
         responses={200: OutgoingNotificationActionSerializer},
@@ -111,7 +111,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Update a Spike Protection Notification Action",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             NotificationParams.ACTION_ID,
         ],
         request=NotificationActionSerializer,
@@ -159,7 +159,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Delete a Spike Protection Notification Action",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             NotificationParams.ACTION_ID,
         ],
         responses={

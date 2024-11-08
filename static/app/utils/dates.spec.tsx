@@ -1,13 +1,7 @@
 import {UserFixture} from 'sentry-fixture/user';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {
-  getTimeFormat,
-  intervalToMilliseconds,
-  parsePeriodToHours,
-  setDateToTime,
-  shouldUse24Hours,
-} from 'sentry/utils/dates';
+import {getTimeFormat, setDateToTime, shouldUse24Hours} from 'sentry/utils/dates';
 
 describe('utils.dates', function () {
   describe('setDateToTime', function () {
@@ -30,45 +24,9 @@ describe('utils.dates', function () {
     });
   });
 
-  describe('intervalToMilliseconds()', function () {
-    it('can convert standard formats', function () {
-      expect(intervalToMilliseconds('24h')).toBe(86400000);
-      expect(intervalToMilliseconds('30m')).toBe(1800000);
-      expect(intervalToMilliseconds('15m')).toBe(900000);
-      expect(intervalToMilliseconds('5m')).toBe(300000);
-      expect(intervalToMilliseconds('1m')).toBe(60000);
-    });
-
-    it('can convert arbitrary formats', function () {
-      expect(intervalToMilliseconds('8w')).toBe(4838400000);
-      expect(intervalToMilliseconds('30d')).toBe(2592000000);
-      expect(intervalToMilliseconds('7d')).toBe(604800000);
-      expect(intervalToMilliseconds('1d')).toBe(86400000);
-      expect(intervalToMilliseconds('1h')).toBe(3600000);
-      expect(intervalToMilliseconds('2m')).toBe(120000);
-    });
-  });
-
-  describe('parsePeriodToHours()', function () {
-    it('can convert standard formats', function () {
-      expect(parsePeriodToHours('30s').toFixed(4)).toBe('0.0083');
-      expect(parsePeriodToHours('1m').toFixed(4)).toBe('0.0167');
-      expect(parsePeriodToHours('1h')).toBe(1);
-      expect(parsePeriodToHours('24h')).toBe(24);
-      expect(parsePeriodToHours('1d')).toBe(24);
-      expect(parsePeriodToHours('2w')).toBe(336);
-    });
-
-    it('handle invalid statsPeriod', function () {
-      expect(parsePeriodToHours('24')).toBe(24 / 3600);
-      expect(parsePeriodToHours('')).toBe(-1);
-      expect(parsePeriodToHours('24x')).toBe(-1);
-    });
-  });
-
   describe('user clock preferences', function () {
     afterEach(function () {
-      ConfigStore.set('user', UserFixture({}));
+      ConfigStore.set('user', UserFixture());
     });
 
     describe('shouldUse24Hours()', function () {

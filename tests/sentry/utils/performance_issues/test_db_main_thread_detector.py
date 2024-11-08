@@ -8,7 +8,6 @@ from sentry.issues.grouptype import PerformanceDBMainThreadGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.io_main_thread_detector import DBMainThreadDetector
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
@@ -17,7 +16,6 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-@region_silo_test
 @pytest.mark.django_db
 class DBMainThreadDetectorTest(TestCase):
     def setUp(self):

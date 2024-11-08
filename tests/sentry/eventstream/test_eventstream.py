@@ -1,28 +1,28 @@
+import itertools
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
-from django.conf import settings
+from django.test import override_settings
+from django.utils import timezone
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
 from sentry import nodestore
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
-from sentry.eventstream.base import EventStreamEventType
 from sentry.eventstream.kafka.backend import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
+from sentry.eventstream.types import EventStreamEventType
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json, snuba
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
 class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     @pytest.fixture(autouse=True)
     def patch_get_producer(self):
@@ -61,13 +61,13 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args
         if event_type == EventStreamEventType.Transaction:
-            assert produce_kwargs["topic"] == settings.KAFKA_TRANSACTIONS
+            assert produce_kwargs["topic"] == "transactions"
             assert produce_kwargs["key"] is None
         elif event_type == EventStreamEventType.Generic:
-            assert produce_kwargs["topic"] == settings.KAFKA_EVENTSTREAM_GENERIC
+            assert produce_kwargs["topic"] == "generic-events"
             assert produce_kwargs["key"] is None
         else:
-            assert produce_kwargs["topic"] == settings.KAFKA_EVENTS
+            assert produce_kwargs["topic"] == "events"
             assert produce_kwargs["key"] == str(self.project.id).encode("utf-8")
 
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
@@ -100,7 +100,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
 
         event = self.__build_event(now)
 
@@ -137,7 +137,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_issueless(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
         event = self.__build_transaction_event()
         event.group_id = None
         insert_args = ()
@@ -165,7 +165,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_multiple_groups(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
@@ -221,7 +221,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_groupevent_occurrence_passed(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
         event = self.__build_transaction_event()
         event.group_id = self.group.id
         group_event = event.for_group(self.group)
@@ -242,7 +242,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         producer = self.producer_mock
         produce_args, produce_kwargs = list(producer.produce.call_args)
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
-        assert produce_kwargs["topic"] == settings.KAFKA_EVENTSTREAM_GENERIC
+        assert produce_kwargs["topic"] == "generic-events"
         assert produce_kwargs["key"] is None
         assert version == 2
         assert type_ == "insert"
@@ -283,7 +283,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_error_queue(self, mock_eventstream_insert):
-        now = datetime.utcnow()
+        now = timezone.now()
 
         event = self.__build_event(now)
 
@@ -338,6 +338,61 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "occurrence_id" not in dict(headers)
         assert body["queue"] == "post_process_transactions"
 
+    @override_settings()
+    @patch("sentry.eventstream.backend.insert", autospec=True)
+    def test_queue_legacy_split_router(self, mock_eventstream_insert):
+        event = self.__build_transaction_event()
+        event.group_id = None
+        event.groups = [self.group]
+        insert_args = ()
+        group_state = {
+            "is_new_group_environment": True,
+            "is_new": True,
+            "is_regression": False,
+        }
+        insert_kwargs = {
+            "event": event,
+            **group_state,
+            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
+            "skip_consume": False,
+            "received_timestamp": event.data["received"],
+            "group_states": [{"id": event.groups[0].id, **group_state}],
+        }
+
+        queues_gen = itertools.cycle(
+            [
+                "post_process_transactions_1",
+                "post_process_transactions_2",
+                "post_process_transactions_3",
+            ]
+        )
+
+        with override_settings(
+            SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER={
+                "post_process_transactions": lambda: next(queues_gen)
+            }
+        ):
+            _, body = self.__produce_payload(*insert_args, **insert_kwargs)
+            assert body["queue"] == "post_process_transactions_1"
+            _, body = self.__produce_payload(*insert_args, **insert_kwargs)
+            assert body["queue"] == "post_process_transactions_2"
+            _, body = self.__produce_payload(*insert_args, **insert_kwargs)
+            assert body["queue"] == "post_process_transactions_3"
+            _, body = self.__produce_payload(*insert_args, **insert_kwargs)
+            assert body["queue"] == "post_process_transactions_1"
+
+        # test default assignment
+        insert_kwargs = {
+            "event": self.__build_event(timezone.now()),
+            **group_state,
+            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
+            "skip_consume": False,
+            "received_timestamp": event.data["received"],
+            "group_states": [{"id": event.groups[0].id, **group_state}],
+        }
+        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+        assert body["queue"] == "post_process_errors"
+
     @patch("sentry.eventstream.backend.insert", autospec=True)
     def test_issue_platform_queue(self, mock_eventstream_insert):
         event = self.__build_transaction_event()
@@ -364,7 +419,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
         assert ("queue", b"post_process_issue_platform") in headers
-        assert ("occurrence_id", bytes(group_event.occurrence.id, encoding="utf-8")) in headers
+        assert ("occurrence_id", group_event.occurrence.id.encode()) in headers
         assert body["queue"] == "post_process_issue_platform"
 
     def test_insert_generic_event_contexts(self):
@@ -376,7 +431,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         event_data = {
             **profile_message["event"],
             "user": {"geo": geo_interface},
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": timezone.now().isoformat(),
         }
 
         project_id = event_data.get("project_id", self.project.id)

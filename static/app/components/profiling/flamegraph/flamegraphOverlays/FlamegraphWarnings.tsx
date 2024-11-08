@@ -1,29 +1,39 @@
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import type {RequestState} from 'sentry/types/core';
 import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
-interface FlamegraphWarningProps {
+interface FlamegraphWarningPropsWithoutFilter {
   flamegraph: Flamegraph;
+  requestState: RequestState<any>;
 }
 
-export function FlamegraphWarnings(props: FlamegraphWarningProps) {
-  const orgSlug = useOrganization().slug;
-  const params = useParams();
-  const profiles = useProfiles();
+interface FlamegraphWarningPropsWithFilter extends FlamegraphWarningPropsWithoutFilter {
+  filter: 'application' | 'system' | 'all' | null;
+  onResetFilter: () => void;
+}
 
-  if (profiles.type === 'loading') {
+type FlamegraphWarningProps =
+  | FlamegraphWarningPropsWithoutFilter
+  | FlamegraphWarningPropsWithFilter;
+
+export function FlamegraphWarnings(props: FlamegraphWarningProps) {
+  const params = useParams();
+  const orgSlug = useOrganization().slug;
+
+  if (props.requestState.type === 'loading') {
     return null;
   }
 
-  if (profiles.type === 'errored') {
+  if (props.requestState.type === 'errored') {
     return (
-      <Overlay>
-        <p>{profiles.error || t('Failed to load profile')}</p>
+      <Overlay data-test-id="flamegraph-warning-overlay">
+        <p>{props.requestState.error || t('Failed to load profile')}</p>
       </Overlay>
     );
   }
@@ -36,12 +46,8 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
 
   if (props.flamegraph.profile.samples.length === 0) {
     return (
-      <Overlay>
-        <p>
-          {t(
-            'This profile either has no samples or the total duration of frames in the profile is 0.'
-          )}
-        </p>
+      <Overlay data-test-id="flamegraph-warning-overlay">
+        <p>{t('This flamegraph has no data.')}</p>
         <div>
           <ExportProfileButton
             variant="default"
@@ -55,6 +61,33 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
             {t('Export Raw Profile')}
           </ExportProfileButton>
         </div>
+      </Overlay>
+    );
+  }
+
+  if ('filter' in props && !props.flamegraph.frames.length) {
+    if (props.filter === 'all') {
+      return (
+        <Overlay data-test-id="flamegraph-warning-overlay">
+          <p>{t('This flamegraph has no data.')}</p>
+        </Overlay>
+      );
+    }
+
+    return (
+      <Overlay data-test-id="flamegraph-warning-overlay">
+        <p>
+          {tct(`No frames match the [filter] frame filter`, {
+            filter: props.filter,
+          })}
+        </p>
+        {props.onResetFilter ? (
+          <div>
+            <Button size="sm" onClick={props.onResetFilter}>
+              {t('Reset Filter')}
+            </Button>
+          </div>
+        ) : null}
       </Overlay>
     );
   }

@@ -43,13 +43,20 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders', async () => {
-    const {routerContext, organization, routerProps} = initializeOrg();
+    const {organization, routerProps, router} = initializeOrg();
     const incident = IncidentFixture();
     const rule = MetricRuleFixture({
       projects: [project.slug],
       latestIncident: incident,
     });
-
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: promptResponse,
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/alert-rules/${rule.id}/`,
       body: rule,
@@ -65,7 +72,7 @@ describe('MetricAlertDetails', () => {
         {...routerProps}
         params={{ruleId: rule.id}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
@@ -84,10 +91,17 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders selected incident', async () => {
-    const {routerContext, organization, router, routerProps} = initializeOrg();
+    const {organization, router, routerProps} = initializeOrg();
     const rule = MetricRuleFixture({projects: [project.slug]});
     const incident = IncidentFixture();
-
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: promptResponse,
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/alert-rules/${rule.id}/`,
       body: rule,
@@ -113,7 +127,7 @@ describe('MetricAlertDetails', () => {
         location={{...router.location, query: {alert: incident.id}}}
         params={{ruleId: rule.id}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
@@ -131,13 +145,12 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders mute button for metric alert', async () => {
-    const {routerContext, organization, routerProps} = initializeOrg();
+    const {organization, routerProps, router} = initializeOrg();
     const incident = IncidentFixture();
     const rule = MetricRuleFixture({
       projects: [project.slug],
       latestIncident: incident,
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/alert-rules/${rule.id}/`,
       body: rule,
@@ -146,7 +159,14 @@ describe('MetricAlertDetails', () => {
       url: `/organizations/org-slug/incidents/`,
       body: [incident],
     });
-
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: promptResponse,
+    });
     const postRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/alert-rules/${rule.id}/snooze/`,
       method: 'POST',
@@ -162,7 +182,7 @@ describe('MetricAlertDetails', () => {
         organization={organization}
         params={{ruleId: rule.id}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findByText('Mute for me')).toBeInTheDocument();
@@ -177,8 +197,8 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders open in discover button with dataset=errors for is:unresolved query', async () => {
-    const {routerContext, organization, routerProps} = initializeOrg({
-      organization: {features: ['discover-basic', 'metric-alert-ignore-archived']},
+    const {organization, routerProps, router} = initializeOrg({
+      organization: {features: ['discover-basic']},
     });
     const rule = MetricRuleFixture({
       projects: [project.slug],
@@ -205,7 +225,7 @@ describe('MetricAlertDetails', () => {
         {...routerProps}
         params={{ruleId: rule.id}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);

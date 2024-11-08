@@ -1,7 +1,6 @@
 import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
 import {AuthenticatorsFixture} from 'sentry-fixture/authenticators';
 import {OrganizationsFixture} from 'sentry-fixture/organizations';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
@@ -38,19 +37,12 @@ describe('AccountSecurity', function () {
   });
 
   afterEach(function () {
-    (window.location.assign as jest.Mock).mockRestore();
+    jest.mocked(window.location.assign).mockRestore();
   });
 
   function renderComponent() {
     return render(
-      <AccountSecurityWrapper
-        location={router.location}
-        route={router.routes[0]}
-        routes={router.routes}
-        router={router}
-        routeParams={router.params}
-        params={{...router.params, authId: '15'}}
-      >
+      <AccountSecurityWrapper>
         <AccountSecurity
           deleteDisabled={false}
           authenticators={[]}
@@ -67,7 +59,11 @@ describe('AccountSecurity', function () {
           params={{...router.params, authId: '15'}}
         />
       </AccountSecurityWrapper>,
-      {context: RouterContextFixture()}
+      {
+        router: {
+          params: {authId: '15'},
+        },
+      }
     );
   }
 

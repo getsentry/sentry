@@ -7,11 +7,9 @@ from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry_plugins.bitbucket.plugin import BitbucketPlugin
 
 
-@region_silo_test
 class BitbucketPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
@@ -40,9 +38,9 @@ class BitbucketPluginTest(PluginTestCase):
         )
 
     def test_is_configured(self):
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("repo", "maxbittker/newsdiffs", self.project)
-        assert self.plugin.is_configured(None, self.project) is True
+        assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
     def test_create_issue(self):
@@ -83,7 +81,7 @@ class BitbucketPluginTest(PluginTestCase):
         assert self.plugin.create_issue(request, group, form_data) == 1
 
         request = responses.calls[-1].request
-        assert request.headers.get("Authorization", b"").startswith(b"OAuth ")
+        assert request.headers["Authorization"].startswith("OAuth ")
 
     @responses.activate
     def test_link_issue(self):

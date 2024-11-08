@@ -1,14 +1,24 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportApiIntroduction,
+  getCrashReportGenericInstallStep,
+  getCrashReportInstallDescription,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -16,12 +26,39 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 type Params = DocsParams;
 
 const getInstallSnippetPackageManager = (params: Params) => `
-Install-Package Sentry -Version ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
+Install-Package Sentry -Version ${getPackageVersion(
+  params,
+  'sentry.dotnet',
+  params.isProfilingSelected ? '4.3.0' : '3.34.0'
+)}`;
 
 const getInstallSnippetCoreCli = (params: Params) => `
-dotnet add package Sentry -v ${getPackageVersion(params, 'sentry.dotnet', '3.34.0')}`;
+dotnet add package Sentry -v ${getPackageVersion(
+  params,
+  'sentry.dotnet',
+  params.isProfilingSelected ? '4.3.0' : '3.34.0'
+)}`;
 
-const getConfigureSnippet = (params: Params) => `
+const getInstallProfilingSnippetPackageManager = (params: Params) => `
+Install-Package Sentry.Profiling -Version ${getPackageVersion(
+  params,
+  'sentry.dotnet.profiling',
+  '4.3.0'
+)}`;
+
+const getInstallProfilingSnippetCoreCli = (params: Params) => `
+dotnet add package Sentry.Profiling -v ${getPackageVersion(
+  params,
+  'sentry.dotnet.profiling',
+  '4.3.0'
+)}`;
+
+enum DotNetPlatform {
+  WINDOWS = 0,
+  IOS_MACCATALYST = 1,
+}
+
+const getConfigureSnippet = (params: Params, platform?: DotNetPlatform) => `
 using Sentry;
 
 SentrySdk.Init(options =>
@@ -29,7 +66,7 @@ SentrySdk.Init(options =>
     // A Sentry Data Source Name (DSN) is required.
     // See https://docs.sentry.io/product/sentry-basics/dsn-explainer/
     // You can set it in the SENTRY_DSN environment variable, or you can set it in code here.
-    options.Dsn = "${params.dsn}";
+    options.Dsn = "${params.dsn.public}";
 
     // When debug is enabled, the Sentry client will emit detailed debugging information to the console.
     // This might be helpful, or might interfere with the normal operation of your application.
@@ -38,14 +75,38 @@ SentrySdk.Init(options =>
     options.Debug = true;
 
     // This option is recommended. It enables Sentry's "Release Health" feature.
-    options.AutoSessionTracking = true;
+    options.AutoSessionTracking = true;${
+      params.isPerformanceSelected
+        ? `
 
-    // This option is recommended for client applications only. It ensures all threads use the same global scope.
-    // If you're writing a background service of any kind, you should remove this.
-    options.IsGlobalModeEnabled = true;
+    // Set TracesSampleRate to 1.0 to capture 100%
+    // of transactions for tracing.
+    // We recommend adjusting this value in production.
+    options.TracesSampleRate = 1.0;`
+        : ''
+    }${
+      params.isProfilingSelected
+        ? `
 
-    // This option will enable Sentry's tracing features. You still need to start transactions and spans.
-    options.EnableTracing = true;
+    // Sample rate for profiling, applied on top of othe TracesSampleRate,
+    // e.g. 0.2 means we want to profile 20 % of the captured transactions.
+    // We recommend adjusting this value in production.
+    options.ProfilesSampleRate = 1.0;${
+      platform !== DotNetPlatform.IOS_MACCATALYST
+        ? `
+    // Requires NuGet package: Sentry.Profiling
+    // Note: By default, the profiler is initialized asynchronously. This can
+    // be tuned by passing a desired initialization timeout to the constructor.
+    options.AddIntegration(new ProfilingIntegration(
+        // During startup, wait up to 500ms to profile the app startup code.
+        // This could make launching the app a bit slower so comment it out if you
+        // prefer profiling to start asynchronously
+        TimeSpan.FromMilliseconds(500)
+    ));`
+        : ''
+    }`
+        : ''
+    }
 });`;
 
 const getPerformanceMonitoringSnippet = () => `
@@ -98,6 +159,41 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
+        ...(params.isProfilingSelected
+          ? [
+              {
+                description: tct(
+                  'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
+                  {
+                    sentryProfilingPackage: <code />,
+                  }
+                ),
+                code: [
+                  {
+                    language: 'shell',
+                    label: 'Package Manager',
+                    value: 'packageManager',
+                    code: getInstallProfilingSnippetPackageManager(params),
+                  },
+                  {
+                    language: 'shell',
+                    label: '.NET Core CLI',
+                    value: 'coreCli',
+                    code: getInstallProfilingSnippetCoreCli(params),
+                  },
+                ],
+              },
+              {
+                description: (
+                  <AlertWithoutMarginBottom type="info">
+                    {t(
+                      'Profiling for .NET Framework and .NET on Android are not supported.'
+                    )}
+                  </AlertWithoutMarginBottom>
+                ),
+              },
+            ]
+          : []),
       ],
     },
   ],
@@ -105,21 +201,37 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Initialize the SDK as early as possible. For example, call [sentrySdkCode:SentrySdk.Init] in your [programCode:Program.cs] file:',
+        'Initialize the SDK as early as possible. For example, call [code:SentrySdk.Init] in your [code:Program.cs] file:',
         {
-          sentrySdkCode: <code />,
-          programCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
-        {
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        params.isProfilingSelected
+          ? {
+              code: [
+                {
+                  language: 'csharp',
+                  label: 'Windows/Linux/macOS',
+                  value: 'windows/linux/macos',
+                  code: getConfigureSnippet(params, DotNetPlatform.WINDOWS),
+                },
+                {
+                  language: 'csharp',
+                  label: 'iOS/Mac Catalyst',
+                  value: 'ios/macCatalyst',
+                  code: getConfigureSnippet(params, DotNetPlatform.IOS_MACCATALYST),
+                },
+              ],
+            }
+          : {
+              language: 'csharp',
+              code: getConfigureSnippet(params),
+            },
       ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t('Verify Sentry is correctly configured by sending a message:'),
@@ -130,26 +242,30 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    {
-      title: t('Performance Monitoring'),
-      description: t(
-        'You can measure the performance of your code by capturing transactions and spans.'
-      ),
-      configurations: [
-        {
-          language: 'csharp',
-          code: getPerformanceMonitoringSnippet(),
-        },
-      ],
-      additionalInfo: tct(
-        'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/performance/instrumentation/" />
-          ),
-        }
-      ),
-    },
+    ...(params.isPerformanceSelected
+      ? [
+          {
+            title: t('Tracing'),
+            description: t(
+              'You can measure the performance of your code by capturing transactions and spans.'
+            ),
+            configurations: [
+              {
+                language: 'csharp',
+                code: getPerformanceMonitoringSnippet(),
+              },
+            ],
+            additionalInfo: tct(
+              'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/dotnet/tracing/instrumentation/" />
+                ),
+              }
+            ),
+          },
+        ]
+      : []),
     {
       title: t('Samples'),
       description: (
@@ -199,9 +315,70 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+export const csharpFeedbackOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'C#',
+              value: 'csharp',
+              language: 'csharp',
+              code: `using Sentry;
+
+var eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.");
+
+SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User");`,
+            },
+            {
+              label: 'F#',
+              value: 'fsharp',
+              language: 'fsharp',
+              code: `open Sentry
+
+let eventId = SentrySdk.CaptureMessage("An event that will receive user feedback.")
+
+SentrySdk.CaptureUserFeedback(eventId, "user@example.com", "It broke.", "The User")`,
+            },
+          ],
+        },
+      ],
+      additionalInfo: altCrashReportCallout(),
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/dotnet/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
   customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry'}),
+  crashReportOnboarding,
 };
 
 export default docs;
+
+const AlertWithoutMarginBottom = styled(Alert)`
+  margin-bottom: 0;
+`;

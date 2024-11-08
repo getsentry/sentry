@@ -8,10 +8,11 @@ import {
 } from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {
   getStatusBodyText,
@@ -40,7 +41,7 @@ interface EventContextProps extends BaseContextProps {
 
 function EventContext(props: EventContextProps) {
   const {organization, dataRow, eventView, location} = props;
-  const {isLoading, isError, data} = useApiQuery<Event>(
+  const {isPending, isError, data} = useApiQuery<Event>(
     [
       `/organizations/${organization.slug}/events/${dataRow['project.name']}:${dataRow.id}/`,
     ],
@@ -59,8 +60,8 @@ function EventContext(props: EventContextProps) {
     }
   }, [data, organization]);
 
-  if (isLoading || isError) {
-    return <NoContext isLoading={isLoading} />;
+  if (isPending || isError) {
+    return <NoContext isLoading={isPending} />;
   }
 
   if (data.type === 'transaction') {

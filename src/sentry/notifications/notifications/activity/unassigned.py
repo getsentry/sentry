@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.types.integrations import ExternalProviders
+from sentry.integrations.types import ExternalProviders
 
 from .base import GroupActivityNotification
 

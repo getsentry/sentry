@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import type {
   MultipleSelectProps,
+  SelectKey,
   SelectOption,
   SelectOptionOrSection,
   SelectSection,
@@ -18,7 +19,7 @@ import {space} from 'sentry/styles/space';
 import {isModifierKeyPressed} from 'sentry/utils/isModifierKeyPressed';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
-export interface HybridFilterProps<Value extends React.Key>
+export interface HybridFilterProps<Value extends SelectKey>
   extends Omit<
     MultipleSelectProps<Value>,
     | 'grid'
@@ -70,13 +71,13 @@ export interface HybridFilterProps<Value extends React.Key>
 /**
  * A special filter component with "hybrid" (both single and multiple) selection, made
  * specifically for page filters. Clicking on an option will select only that option
- * (single selection). Command/ctrl-clicking on an option or clicking on it's checkbox
+ * (single selection). Command/ctrl-clicking on an option or clicking on its checkbox
  * will add the option to the selection state (multiple selection).
  *
  * Note: this component is controlled only — changes must be handled via the `onChange`
  * callback.
  */
-export function HybridFilter<Value extends React.Key>({
+export function HybridFilter<Value extends SelectKey>({
   options,
   multiple,
   value,
@@ -234,7 +235,7 @@ export function HybridFilter<Value extends React.Key>({
           <Fragment>
             {footerMessage && <FooterMessage>{footerMessage}</FooterMessage>}
             <FooterWrap>
-              <FooterInnerWrap>{menuFooter}</FooterInnerWrap>
+              <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
               {showModifierTip && (
                 <FooterTip>
                   <IconInfo size="xs" />
@@ -290,7 +291,7 @@ export function HybridFilter<Value extends React.Key>({
 
   const sectionToggleWasPressed = useRef(false);
   const handleSectionToggle = useCallback(
-    (section: SelectSection<React.Key>) => {
+    (section: SelectSection<SelectKey>) => {
       onSectionToggle?.(section);
       sectionToggleWasPressed.current = true;
     },
@@ -388,7 +389,7 @@ export function HybridFilter<Value extends React.Key>({
 
 const ResetButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};

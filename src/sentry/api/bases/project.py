@@ -6,7 +6,6 @@ from typing import Any
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import Scope
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ProjectMoved, ResourceDoesNotExist
@@ -17,7 +16,7 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.models.projectredirect import ProjectRedirect
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.utils.sdk import Scope, bind_organization_context
 
 from .organization import OrganizationPermission
 
@@ -111,14 +110,33 @@ class ProjectEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
-        project_slug: str,
         *args,
         **kwargs,
     ):
+        if args and args[0] is not None:
+            organization_id_or_slug: int | str = args[0]
+            # Required so it behaves like the original convert_args, where organization_id_or_slug was another parameter
+            # TODO: Remove this once we remove the old `organization_slug` parameter from getsentry
+            args = args[1:]
+        else:
+            organization_id_or_slug = kwargs.pop("organization_id_or_slug", None) or kwargs.pop(
+                "organization_slug"
+            )
+
+        if args and args[0] is not None:
+            project_id_or_slug: int | str = args[0]
+            # Required so it behaves like the original convert_args, where project_id_or_slug was another parameter
+            args = args[1:]
+        else:
+            project_id_or_slug = kwargs.pop("project_id_or_slug", None) or kwargs.pop(
+                "project_slug"
+            )
         try:
             project = (
-                Project.objects.filter(organization__slug=organization_slug, slug=project_slug)
+                Project.objects.filter(
+                    organization__slug__id_or_slug=organization_id_or_slug,
+                    slug__id_or_slug=project_id_or_slug,
+                )
                 .select_related("organization")
                 .prefetch_related("teams")
                 .get()
@@ -126,9 +144,11 @@ class ProjectEndpoint(Endpoint):
         except Project.DoesNotExist:
             try:
                 # Project may have been renamed
+                # This will only happen if the passed in project_id_or_slug is a slug and not an id
                 redirect = ProjectRedirect.objects.select_related("project")
                 redirect = redirect.get(
-                    organization__slug=organization_slug, redirect_slug=project_slug
+                    organization__slug__id_or_slug=organization_id_or_slug,
+                    redirect_slug=project_id_or_slug,
                 )
                 # Without object permissions don't reveal the rename
                 self.check_object_permissions(request, redirect.project)
@@ -136,8 +156,8 @@ class ProjectEndpoint(Endpoint):
                 # get full path so that we keep query strings
                 requested_url = request.get_full_path()
                 new_url = requested_url.replace(
-                    f"projects/{organization_slug}/{project_slug}/",
-                    f"projects/{organization_slug}/{redirect.project.slug}/",
+                    f"projects/{organization_id_or_slug}/{project_id_or_slug}/",
+                    f"projects/{organization_id_or_slug}/{redirect.project.slug}/",
                 )
 
                 # Resource was moved/renamed if the requested url is different than the new url
@@ -154,8 +174,7 @@ class ProjectEndpoint(Endpoint):
 
         self.check_object_permissions(request, project)
 
-        with configure_scope() as scope:
-            scope.set_tag("project", project.id)
+        Scope.get_isolation_scope().set_tag("project", project.id)
 
         bind_organization_context(project.organization)
 

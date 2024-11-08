@@ -1,15 +1,14 @@
-import {browserHistory} from 'react-router';
-
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import type {Monitor} from '../types';
 
@@ -18,10 +17,10 @@ import {StatusToggleButton} from './statusToggleButton';
 type Props = {
   monitor: Monitor;
   onUpdate: (data: Monitor) => void;
-  orgId: string;
+  orgSlug: string;
 };
 
-function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
+function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   const api = useApi();
   const {selection} = usePageFilters();
 
@@ -33,17 +32,17 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
   };
 
   const handleDelete = async () => {
-    await deleteMonitor(api, orgId, monitor.slug);
+    await deleteMonitor(api, orgSlug, monitor);
     browserHistory.push(
       normalizeUrl({
-        pathname: `/organizations/${orgId}/crons/`,
+        pathname: `/organizations/${orgSlug}/crons/`,
         query: endpointOptions.query,
       })
     );
   };
 
   const handleUpdate = async (data: Partial<Monitor>) => {
-    const resp = await updateMonitor(api, orgId, monitor.slug, data);
+    const resp = await updateMonitor(api, orgSlug, monitor, data);
 
     if (resp !== null) {
       onUpdate?.(resp);
@@ -71,12 +70,12 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
       >
         <Button size="sm" icon={<IconDelete size="xs" />} aria-label={t('Delete')} />
       </Confirm>
-      <Button
+      <LinkButton
         priority="primary"
         size="sm"
         icon={<IconEdit />}
         to={{
-          pathname: `/organizations/${orgId}/crons/${monitor.slug}/edit/`,
+          pathname: `/organizations/${orgSlug}/crons/${monitor.project.slug}/${monitor.slug}/edit/`,
           // TODO(davidenwang): Right now we have to pass the environment
           // through the URL so that when we save the monitor and are
           // redirected back to the details page it queries the backend
@@ -88,7 +87,7 @@ function MonitorHeaderActions({monitor, orgId, onUpdate}: Props) {
         }}
       >
         {t('Edit')}
-      </Button>
+      </LinkButton>
     </ButtonBar>
   );
 }

@@ -28,7 +28,7 @@ class CommitSerializer(Serializer):
         self.exclude = frozenset(exclude if exclude else ())
         self.type = type or ""
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         if "author" not in self.exclude:
             users_by_author = get_users_for_commits(item_list, user)
         else:
@@ -63,7 +63,7 @@ class CommitSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         d = {
             "id": obj.key,
             "message": obj.message,
@@ -85,7 +85,7 @@ class CommitWithReleaseSerializer(CommitSerializer):
         self.exclude = frozenset(exclude if exclude else ())
         self.type = type or ""
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         from sentry.models.releasecommit import ReleaseCommit
 
         attrs = super().get_attrs(item_list, user)
@@ -99,7 +99,7 @@ class CommitWithReleaseSerializer(CommitSerializer):
             attrs[item]["releases"] = releases_by_commit[item.id]
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         data = super().serialize(obj, attrs, user)
         data["releases"] = [
             {

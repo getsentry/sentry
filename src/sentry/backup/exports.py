@@ -1,7 +1,13 @@
 from __future__ import annotations
 
 import io
-from typing import BinaryIO
+
+# We have to use the default JSON interface to enable pretty-printing on export. When loading JSON,
+# we still use the one from `sentry.utils`, imported as `sentry_json` below.
+import json as builtin_json  # noqa: S003
+from typing import IO
+
+import orjson
 
 from sentry.backup.crypto import Encryptor, create_encrypted_export_tarball
 from sentry.backup.dependencies import (
@@ -12,18 +18,14 @@ from sentry.backup.dependencies import (
 )
 from sentry.backup.helpers import Filter, Printer
 from sentry.backup.scopes import ExportScope
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportScope,
     RpcFilter,
     RpcPrimaryKeyMap,
 )
-from sentry.services.hybrid_cloud.import_export.service import (
-    ImportExportService,
-    import_export_service,
-)
+from sentry.backup.services.import_export.service import ImportExportService, import_export_service
 from sentry.silo.base import SiloMode
-from sentry.utils import json
 
 __all__ = (
     "ExportingError",
@@ -40,7 +42,7 @@ class ExportingError(Exception):
 
 
 def _export(
-    dest: BinaryIO,
+    dest: IO[bytes],
     scope: ExportScope,
     *,
     encryptor: Encryptor | None = None,
@@ -59,7 +61,7 @@ def _export(
     # Import here to prevent circular module resolutions.
     from sentry.models.organization import Organization
     from sentry.models.organizationmember import OrganizationMember
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         errText = "Exports must be run in REGION or MONOLITH instances only"
@@ -73,7 +75,7 @@ def _export(
     if filter_by is not None:
         filters.append(filter_by)
         if filter_by.model == Organization:
-            if filter_by.field not in {"pk", "id", "slug"}:
+            if filter_by.field != "slug":
                 raise ValueError(
                     "Filter arguments must only apply to `Organization`'s `slug` field"
                 )
@@ -81,6 +83,10 @@ def _export(
             org_pks = set(
                 Organization.objects.filter(slug__in=filter_by.values).values_list("id", flat=True)
             )
+
+            # Note: `user_id` can be NULL (for invited members that have not yet responded), but
+            # this is okay, because `Filter`s constructor explicitly filters out `None` members
+            # from the set.
             user_pks = set(
                 OrganizationMember.objects.filter(organization_id__in=org_pks).values_list(
                     "user_id", flat=True
@@ -93,7 +99,8 @@ def _export(
         else:
             raise ValueError("Filter arguments must only apply to `Organization` or `User` models")
 
-    # TODO(getsentry/team-ospo#190): Another optimization opportunity to use a generator with ijson # to print the JSON objects in a streaming manner.
+    # TODO(getsentry/team-ospo#190): Another optimization opportunity to use a generator with ijson
+    # # to print the JSON objects in a streaming manner.
     for model in sorted_dependencies():
         from sentry.db.models.base import BaseModel
 
@@ -113,7 +120,7 @@ def _export(
         dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
         export_by_model = ImportExportService.get_exporter_for_model(model)
         result = export_by_model(
-            model_name=str(model_name),
+            export_model_name=str(model_name),
             scope=RpcExportScope.into_rpc(scope),
             from_pk=0,
             filter_by=[RpcFilter.into_rpc(f) for f in filters],
@@ -130,14 +137,14 @@ def _export(
         # TODO(getsentry/team-ospo#190): Since the structure of this data is very predictable (an
         # array of serialized model objects), we could probably avoid re-ingesting the JSON string
         # as a future optimization.
-        for json_model in json.loads(result.json_data):
+        for json_model in orjson.loads(result.json_data):
             json_export.append(json_model)
 
     # If no `encryptor` argument was passed in, this is an unencrypted export, so we can just dump
     # the JSON into the `dest` file and exit early.
     if encryptor is None:
         dest_wrapper = io.TextIOWrapper(dest, encoding="utf-8", newline="")
-        json.dump(json_export, dest_wrapper)
+        builtin_json.dump(json_export, dest_wrapper, indent=indent)
         dest_wrapper.detach()
         return
 
@@ -145,7 +152,7 @@ def _export(
 
 
 def export_in_user_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
     encryptor: Encryptor | None = None,
     user_filter: set[str] | None = None,
@@ -158,7 +165,7 @@ def export_in_user_scope(
     """
 
     # Import here to prevent circular module resolutions.
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     return _export(
         dest,
@@ -171,7 +178,7 @@ def export_in_user_scope(
 
 
 def export_in_organization_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
     encryptor: Encryptor | None = None,
     org_filter: set[str] | None = None,
@@ -198,7 +205,7 @@ def export_in_organization_scope(
 
 
 def export_in_config_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
     encryptor: Encryptor | None = None,
     indent: int = 2,
@@ -210,7 +217,7 @@ def export_in_config_scope(
     """
 
     # Import here to prevent circular module resolutions.
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     return _export(
         dest,
@@ -223,7 +230,7 @@ def export_in_config_scope(
 
 
 def export_in_global_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
     encryptor: Encryptor | None = None,
     indent: int = 2,

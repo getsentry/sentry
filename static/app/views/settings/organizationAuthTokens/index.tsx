@@ -3,13 +3,15 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Organization, OrgAuthToken, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   setApiQueryData,
@@ -58,7 +60,7 @@ function TokenList({
 
   const hasProjects = projectIds.length > 0;
 
-  const {data: projects, isLoading: isLoadingProjects} = useApiQuery<Project[]>(
+  const {data: projects, isPending: isLoadingProjects} = useApiQuery<Project[]>(
     [apiEndpoint, {query: {query: idQueryParams}}],
     {
       staleTime: 0,
@@ -97,7 +99,7 @@ export function OrganizationAuthTokensIndex({
   const queryClient = useQueryClient();
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: tokenList,
     refetch: refetchTokenList,
@@ -108,7 +110,7 @@ export function OrganizationAuthTokensIndex({
     }
   );
 
-  const {mutate: handleRevokeToken, isLoading: isRevoking} = useMutation<
+  const {mutate: handleRevokeToken, isPending: isRevoking} = useMutation<
     {},
     RequestError,
     RevokeTokenQueryVariables
@@ -144,14 +146,14 @@ export function OrganizationAuthTokensIndex({
   });
 
   const createNewToken = (
-    <Button
+    <LinkButton
       priority="primary"
       size="sm"
       to={`/settings/${organization.slug}/auth-tokens/new-token/`}
       data-test-id="create-token"
     >
       {t('Create New Token')}
-    </Button>
+    </LinkButton>
   );
 
   return (
@@ -176,8 +178,8 @@ export function OrganizationAuthTokensIndex({
           </TextBlock>
 
           <ResponsivePanelTable
-            isLoading={isLoading || isError}
-            isEmpty={!isLoading && !tokenList?.length}
+            isLoading={isPending || isError}
+            isEmpty={!isPending && !tokenList?.length}
             loader={
               isError ? (
                 <LoadingError
@@ -189,7 +191,7 @@ export function OrganizationAuthTokensIndex({
             emptyMessage={t("You haven't created any authentication tokens yet.")}
             headers={[t('Auth token'), t('Created'), t('Last access'), '']}
           >
-            {!isError && !isLoading && !!tokenList?.length && (
+            {!isError && !isPending && !!tokenList?.length && (
               <TokenList
                 organization={organization}
                 tokenList={tokenList}

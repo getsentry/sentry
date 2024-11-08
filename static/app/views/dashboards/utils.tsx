@@ -1,5 +1,3 @@
-import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import {connect} from 'echarts';
 import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -22,13 +20,14 @@ import {
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import CircleIndicator from 'sentry/components/circleIndicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import type {MRI, Organization, PageFilters} from 'sentry/types';
+import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -41,13 +40,17 @@ import {
   RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
+import {
+  DiscoverDatasets,
+  DisplayModes,
+  type SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {getDdmUrl, getMetricDisplayType} from 'sentry/utils/metrics';
+import {getMetricDisplayType, getMetricsUrl} from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
-import {decodeList} from 'sentry/utils/queryString';
-import theme from 'sentry/utils/theme';
+import type {MetricsWidget} from 'sentry/utils/metrics/types';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -57,12 +60,11 @@ import type {
 import {
   DashboardFilterKeys,
   DisplayType,
+  WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-import ThresholdsHoverWrapper from './widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
-import {ThresholdMaxKeys} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -131,7 +133,7 @@ export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolea
   return Object.keys(thresholdsConfig.max_values).length > 0;
 }
 
-function normalizeUnit(value: number, unit: string, dataType: string): number {
+export function normalizeUnit(value: number, unit: string, dataType: string): number {
   const multiplier =
     dataType === 'rate'
       ? RATE_UNIT_MULTIPLIERS[unit]
@@ -139,53 +141,6 @@ function normalizeUnit(value: number, unit: string, dataType: string): number {
         ? DURATION_UNITS[unit]
         : 1;
   return value * multiplier;
-}
-
-export function getColoredWidgetIndicator(
-  thresholds: ThresholdsConfig,
-  tableData: TableDataWithTitle[]
-): React.ReactNode {
-  const tableMeta = {...tableData[0].meta};
-  const fields = Object.keys(tableMeta);
-  const field = fields[0];
-  const dataType = tableMeta[field];
-  const dataUnit = tableMeta.units?.[field];
-  const dataRow = tableData[0].data[0];
-
-  if (!dataRow) {
-    return null;
-  }
-
-  const data = Number(dataRow[field]);
-  const normalizedData = dataUnit ? normalizeUnit(data, dataUnit, dataType) : data;
-
-  const {max_values} = thresholds;
-
-  let color = theme.red300;
-
-  const yellowMax = max_values[ThresholdMaxKeys.MAX_2];
-  const normalizedYellowMax =
-    thresholds.unit && yellowMax
-      ? normalizeUnit(yellowMax, thresholds.unit, dataType)
-      : yellowMax;
-  if (normalizedYellowMax && normalizedData <= normalizedYellowMax) {
-    color = theme.yellow300;
-  }
-
-  const greenMax = max_values[ThresholdMaxKeys.MAX_1];
-  const normalizedGreenMax =
-    thresholds.unit && greenMax
-      ? normalizeUnit(greenMax, thresholds.unit, dataType)
-      : greenMax;
-  if (normalizedGreenMax && normalizedData <= normalizedGreenMax) {
-    color = theme.green300;
-  }
-
-  return (
-    <ThresholdsHoverWrapper thresholds={thresholds} tableData={tableData}>
-      <CircleIndicator color={color} size={12} />
-    </ThresholdsHoverWrapper>
-  );
 }
 
 function coerceStringToArray(value?: string | string[] | null) {
@@ -197,6 +152,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
     const queryNames = coerceStringToArray(query.queryNames);
     const queryConditions = coerceStringToArray(query.queryConditions);
     const queryFields = coerceStringToArray(query.queryFields);
+    const widgetType = decodeScalar(query.widgetType);
     const queries: WidgetQuery[] = [];
     if (
       queryConditions &&
@@ -223,7 +179,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
           interval: string;
           title: string;
         }),
-        widgetType: WidgetType.DISCOVER,
+        widgetType: widgetType ? (widgetType as WidgetType) : WidgetType.DISCOVER,
         queries,
       };
       return newWidget;
@@ -309,7 +265,13 @@ export function getWidgetDiscoverUrl(
   isMetricsData: boolean = false
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[index], selection);
-  const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
+  const discoverLocation = eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) && widget.widgetType
+      ? WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
+      : undefined
+  );
 
   // Pull a max of 3 valid Y-Axis from the widget
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
@@ -338,18 +300,23 @@ export function getWidgetDiscoverUrl(
   }
 
   // Equation fields need to have their terms explicitly selected as columns in the discover table
-  const fields = discoverLocation.query.field;
+  const fields =
+    Array.isArray(discoverLocation.query.field) || !discoverLocation.query.field
+      ? discoverLocation.query.field
+      : [discoverLocation.query.field];
+
   const query = widget.queries[0];
   const queryFields = defined(query.fields)
     ? query.fields
     : [...query.columns, ...query.aggregates];
-  const equationFields = getFieldsFromEquations(queryFields);
+
   // Updates fields by adding any individual terms from equation fields as a column
-  equationFields.forEach(term => {
+  getFieldsFromEquations(queryFields).forEach(term => {
     if (Array.isArray(fields) && !fields.includes(term)) {
       fields.unshift(term);
     }
   });
+  discoverLocation.query.field = fields;
 
   if (isMetricsData) {
     discoverLocation.query.fromMetric = 'true';
@@ -400,7 +367,7 @@ export function getWidgetReleasesUrl(
   return releasesLocation;
 }
 
-export function getWidgetDDMUrl(
+export function getWidgetMetricsUrl(
   _widget: Widget,
   selection: PageFilters,
   organization: Organization
@@ -414,23 +381,24 @@ export function getWidgetDDMUrl(
   // ensures that My Projects selection is properly handled
   const project = selection.projects.length ? selection.projects : [0];
 
-  const ddmLocation = getDdmUrl(organization.slug, {
+  const metricsLocation = getMetricsUrl(organization.slug, {
     ...datetime,
     project,
     environment: selection.environments,
     widgets: _widget.queries.map(query => {
-      const {mri: mri, op} = parseField(query.aggregates[0]) ?? {mri: '', op: ''};
+      const parsed = parseField(query.aggregates[0]);
+
       return {
-        mri: mri as MRI,
-        op,
+        mri: parsed?.mri,
+        aggregation: parsed?.aggregation,
         groupBy: query.columns,
         query: query.conditions ?? '',
         displayType: getMetricDisplayType(_widget.displayType),
-      } satisfies Partial<MetricWidgetQueryParams>;
+      } satisfies Partial<MetricsWidget>;
     }),
   });
 
-  return ddmLocation;
+  return metricsLocation;
 }
 
 export function flattenErrors(
@@ -670,15 +638,39 @@ export function connectDashboardCharts(groupName: string) {
   connect?.(groupName);
 }
 
-export function openWidgetPreviewModal(
-  router: InjectedRouter,
-  location: Location,
-  widget: Widget
-) {
-  router.push({
-    pathname: `${location.pathname}${location.pathname.endsWith('/') ? '' : '/'}widget/${
-      widget.id
-    }/`,
-    query: location.query,
-  });
+export function hasDatasetSelector(organization: Organization): boolean {
+  return organization.features.includes('performance-discover-dataset-selector');
 }
+
+export function appendQueryDatasetParam(
+  organization: Organization,
+  queryDataset?: SavedQueryDatasets
+) {
+  if (hasDatasetSelector(organization) && queryDataset) {
+    return {queryDataset: queryDataset};
+  }
+  return {};
+}
+
+/**
+ * Checks if the widget is using the performance_score aggregate
+ */
+export function isUsingPerformanceScore(widget: Widget) {
+  if (widget.queries.length === 0) {
+    return false;
+  }
+  return widget.queries.some(_doesWidgetUsePerformanceScore);
+}
+
+function _doesWidgetUsePerformanceScore(query: WidgetQuery) {
+  if (query.conditions?.includes('performance_score')) {
+    return true;
+  }
+  if (query.aggregates.some(aggregate => aggregate.includes('performance_score'))) {
+    return true;
+  }
+
+  return false;
+}
+
+export const performanceScoreTooltip = t('peformance_score is not supported in Discover');

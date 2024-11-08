@@ -2,7 +2,7 @@ import type React from 'react';
 
 import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {
   AggregationKey,
   type ErrorTags,
@@ -79,7 +79,7 @@ export function shouldDisplayOnDemandWidgetWarning(
     !hasErrorCondition(query.conditions) &&
     isOnDemandQueryString(query.conditions) &&
     hasOnDemandMetricWidgetFeature(organization) &&
-    widgetType === WidgetType.DISCOVER
+    (widgetType === WidgetType.DISCOVER || widgetType === WidgetType.TRANSACTIONS)
   );
 }
 

@@ -8,15 +8,13 @@ from sentry.eventstore.base import EventStorage
 from sentry.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class EventStorageTest(TestCase):
     def setUp(self):
         self.eventstorage = EventStorage()
@@ -29,7 +27,7 @@ class EventStorageTest(TestCase):
         """
         Test that bind_nodes populates _node_data
         """
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": min_ago, "user": {"id": "user1"}},
             project_id=self.project.id,
@@ -42,7 +40,7 @@ class EventStorageTest(TestCase):
         event = Event(project_id=self.project.id, event_id="a" * 32)
         event2 = Event(project_id=self.project.id, event_id="b" * 32)
         assert event.data._node_data is None
-        self.eventstorage.bind_nodes([event, event2], "data")
+        self.eventstorage.bind_nodes([event, event2])
         assert event.data._node_data is not None
         assert event.data["user"]["id"] == "user1"
 
@@ -50,8 +48,8 @@ class EventStorageTest(TestCase):
 class ServiceDelegationTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
-        self.two_min_ago = iso_format(before_now(minutes=2))
+        self.min_ago = before_now(minutes=1)
+        self.two_min_ago = before_now(minutes=2)
         self.project = self.create_project()
 
         self.event = self.store_event(
@@ -67,8 +65,8 @@ class ServiceDelegationTest(TestCase, SnubaTestCase):
         )
 
         event_data = load_data("transaction")
-        event_data["timestamp"] = iso_format(before_now(minutes=1))
-        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=1))
+        event_data["timestamp"] = before_now(minutes=1)
+        event_data["start_timestamp"] = before_now(minutes=1, seconds=1)
         event_data["event_id"] = "b" * 32
 
         self.transaction_event = self.store_event(data=event_data, project_id=self.project.id)

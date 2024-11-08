@@ -41,8 +41,9 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
     def initialize(self, live_server):
         self.project.update_option("sentry:builtin_symbol_sources", [])
 
-        with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
-            {"system.url-prefix": live_server.url}
+        with (
+            patch("sentry.auth.system.is_internal_ip", return_value=True),
+            self.options({"system.url-prefix": live_server.url}),
         ):
             # Run test case
             yield
@@ -51,8 +52,8 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 

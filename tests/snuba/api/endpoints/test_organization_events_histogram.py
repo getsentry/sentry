@@ -12,7 +12,6 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import get_array_column_alias
 
@@ -25,11 +24,10 @@ HistogramSpec = namedtuple(
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
-@region_silo_test
 class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1)
         self.data = load_data("transaction")
         self.features = {}
 
@@ -44,7 +42,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     measurement_name = suffix_key
                     breakdown_name = f"ops.{suffix_key}"
 
-                    data["timestamp"] = iso_format(start)
+                    data["timestamp"] = start.isoformat()
                     data["start_timestamp"] = iso_format(start - timedelta(seconds=i))
                     value = random.random() * (spec.end - spec.start) + spec.start
                     data["transaction"] = f"/measurement/{measurement_name}/value/{value}"
@@ -74,7 +72,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-histogram",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         with self.feature(features):
             return self.client.get(url, query, format="json")
@@ -85,6 +83,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data == {}
 
+    @pytest.mark.querybuilder
     def test_good_params(self):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)
@@ -1033,7 +1032,7 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
 ):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1)
         self.features = {}
 
     def populate_events(self, specs):
@@ -1070,7 +1069,7 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-histogram",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         with self.feature(features):
             return self.client.get(url, query, format="json")
@@ -1160,7 +1159,6 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
         assert response.data == expected_response
 
 
-@region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest
 ):

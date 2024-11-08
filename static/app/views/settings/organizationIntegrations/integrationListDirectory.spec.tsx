@@ -22,7 +22,7 @@ describe('IntegrationListDirectory', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const {organization: org, routerContext, routerProps} = initializeOrg();
+  const {organization: org, router, routerProps} = initializeOrg();
 
   describe('Renders view', function () {
     beforeEach(() => {
@@ -44,7 +44,7 @@ describe('IntegrationListDirectory', function () {
       ]);
     });
 
-    it('shows installed integrations at the top in order of weight', function () {
+    it('shows installed integrations at the top in order of weight', async function () {
       render(
         <IntegrationListDirectory
           {...routerProps}
@@ -53,11 +53,11 @@ describe('IntegrationListDirectory', function () {
           hideHeader={false}
         />,
         {
-          context: routerContext,
+          router,
         }
       );
 
-      expect(screen.getByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
+      expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
 
       [
         'bitbucket',
@@ -70,7 +70,7 @@ describe('IntegrationListDirectory', function () {
       ].map(testId => expect(screen.getByTestId(testId)).toBeInTheDocument());
     });
 
-    it('does not show legacy plugin that has a First Party Integration if not installed', function () {
+    it('does not show legacy plugin that has a First Party Integration if not installed', async function () {
       render(
         <IntegrationListDirectory
           {...routerProps}
@@ -78,13 +78,14 @@ describe('IntegrationListDirectory', function () {
           routeParams={{orgId: org.slug}}
           hideHeader={false}
         />,
-        {context: routerContext}
+        {router}
       );
 
+      expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
       expect(screen.queryByText('GitHub (Legacy)')).not.toBeInTheDocument();
     });
 
-    it('shows legacy plugin that has a First Party Integration if installed', function () {
+    it('shows legacy plugin that has a First Party Integration if installed', async function () {
       render(
         <IntegrationListDirectory
           {...routerProps}
@@ -92,10 +93,10 @@ describe('IntegrationListDirectory', function () {
           routeParams={{orgId: org.slug}}
           hideHeader={false}
         />,
-        {context: routerContext}
+        {router}
       );
 
-      expect(screen.getByText('PagerDuty (Legacy)')).toBeInTheDocument();
+      expect(await screen.findByText('PagerDuty (Legacy)')).toBeInTheDocument();
     });
   });
 });

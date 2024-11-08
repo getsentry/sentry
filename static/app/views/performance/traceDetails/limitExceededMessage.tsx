@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -6,10 +5,13 @@ import DiscoverFeature from 'sentry/components/discover/discoverFeature';
 import Link from 'sentry/components/links/link';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 interface LimitExceededMessageProps {
@@ -42,7 +44,11 @@ function LimitExceededMessage({
     return null;
   }
 
-  const target = traceEventView.getResultsViewUrlTarget(organization.slug);
+  const target = traceEventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+  );
 
   // Number of rows in the trace view. Doesnot include associated errors/issues appearing in
   // txn detail.

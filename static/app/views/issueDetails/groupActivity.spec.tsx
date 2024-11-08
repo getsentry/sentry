@@ -21,12 +21,11 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Group, Organization as TOrganization, Project} from 'sentry/types';
-import {GroupActivityType, PriorityLevel} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Group} from 'sentry/types/group';
+import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import GroupActivity from 'sentry/views/issueDetails/groupActivity';
-
-jest.mock('sentry/utils/useOrganization');
 
 describe('GroupActivity', function () {
   let project!: Project;
@@ -50,7 +49,7 @@ describe('GroupActivity', function () {
     organization: additionalOrg,
   }: {
     activity?: Group['activity'];
-    organization?: TOrganization;
+    organization?: Organization;
   } = {}) {
     const group = GroupFixture({
       id: '1337',
@@ -66,16 +65,19 @@ describe('GroupActivity', function () {
       ],
       project,
     });
-    const {organization, routerContext, routerProps} = initializeOrg({
+    const {organization, routerProps, router} = initializeOrg({
       organization: additionalOrg,
     });
-    jest.mocked(useOrganization).mockReturnValue(organization);
     GroupStore.add([group]);
     TeamStore.loadInitialData([TeamFixture({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
     return render(
-      <GroupActivity {...routerProps} params={{orgId: 'org-slug'}} group={group} />,
-      {context: routerContext}
+      <GroupActivity
+        {...routerProps}
+        params={{orgId: 'org-slug', groupId: group.id}}
+        group={group}
+      />,
+      {router, organization}
     );
   }
 
@@ -452,7 +454,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: OrganizationFixture({}),
+      organization: OrganizationFixture(),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue until it escalates'
@@ -483,7 +485,7 @@ describe('GroupActivity', function () {
           dateCreated: '2021-10-05T15:31:38.950115Z',
         },
       ],
-      organization: OrganizationFixture({}),
+      organization: OrganizationFixture(),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 400 events happened in an hour'
@@ -507,7 +509,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: OrganizationFixture({}),
+      organization: OrganizationFixture(),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 1 event happened in an hour'
@@ -646,7 +648,7 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: OrganizationFixture({}),
+      organization: OrganizationFixture(),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue forever'
@@ -791,7 +793,6 @@ describe('GroupActivity', function () {
             dateCreated,
           },
         ],
-        organization: OrganizationFixture({features: ['issue-priority-ui']}),
       });
       expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
         'Sentry updated the priority value of this issue to be high after it escalated'
@@ -811,10 +812,27 @@ describe('GroupActivity', function () {
             dateCreated,
           },
         ],
-        organization: OrganizationFixture({features: ['issue-priority-ui']}),
       });
       expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
         'Sentry updated the priority value of this issue to be low after it was marked as ongoing'
+      );
+    });
+
+    it('renders a deleted attachment activity', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.DELETED_ATTACHMENT,
+            project: ProjectFixture(),
+            data: {},
+            dateCreated,
+            user: UserFixture(),
+          },
+        ],
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'deleted an attachment'
       );
     });
   });

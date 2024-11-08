@@ -19,7 +19,7 @@
     "moduleResolution": "node",
 
     // We add esnext to lib to pull in types for all newer ECMAScript features
-    "lib": ["esnext", "dom"],
+    "lib": ["esnext", "dom", "dom.iterable"],
 
     // Skip type checking of all declaration files
     "skipLibCheck": true,
@@ -97,7 +97,7 @@
     "baseUrl": "../",
     "paths": {
       "sentry/*": ["static/app/*"],
-      "sentry-fixture/*": ["fixtures/js-stubs/*"],
+      "sentry-fixture/*": ["tests/js/fixtures/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
       "sentry-images/*": ["static/images/*"],
       "sentry-locale/*": ["src/sentry/locale/*"],
@@ -111,7 +111,7 @@
       { "name": "@styled/typescript-styled-plugin" }
     ]
   },
-  "include": ["../static/app", "../tests/js", "../fixtures/js-stubs"],
+  "include": ["../static/app", "../tests/js"],
   "exclude": ["../node_modules", "../**/*.benchmark.ts"],
   "ts-node": {
     "transpileOnly": true

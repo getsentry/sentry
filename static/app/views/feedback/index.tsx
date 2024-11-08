@@ -1,10 +1,9 @@
-import type {RouteComponentProps} from 'react-router';
-
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = RouteComponentProps<{}, {}> & {

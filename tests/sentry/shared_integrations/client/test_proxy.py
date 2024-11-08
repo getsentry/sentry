@@ -5,21 +5,22 @@ from django.test import override_settings
 from pytest import raises
 from requests import Request
 
+from sentry.constants import ObjectStatus
 from sentry.net.http import Session
 from sentry.shared_integrations.client.proxy import (
     IntegrationProxyClient,
     get_control_silo_ip_address,
+    infer_org_integration,
 )
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 control_address = "http://controlserver"
 
 
-@region_silo_test
 class IntegrationProxyClientTest(TestCase):
     oi_id = 24
     base_url = "https://example.com"
@@ -33,6 +34,30 @@ class IntegrationProxyClientTest(TestCase):
             _use_proxy_url_for_tests = True
 
         self.client_cls = TestClient
+
+    def test_infer_organization_is_active(self):
+        integration = self.create_provider_integration(provider="slack", external_id="workspace:1")
+        # Share the slack workspace across two organizations
+        organization_invalid = self.create_organization()
+        organization_valid = self.create_organization()
+        # Create a valid one, and an invalid one
+        org_integration_invalid = self.create_organization_integration(
+            integration_id=integration.id,
+            organization_id=organization_invalid.id,
+            status=ObjectStatus.DISABLED,
+        )
+        org_integration_valid = self.create_organization_integration(
+            integration_id=integration.id,
+            organization_id=organization_valid.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        # Infer should always look for the first ACTIVE organization_integration
+        assert infer_org_integration(integration_id=integration.id) == org_integration_valid.id
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration_valid.delete()
+        second_inference = infer_org_integration(integration_id=integration.id)
+        assert second_inference is not org_integration_invalid.id
+        assert second_inference is None
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_authorize_request_noop(self):
@@ -51,11 +76,11 @@ class IntegrationProxyClientTest(TestCase):
             return prepared_request
 
         client = self.client_cls(org_integration_id=self.oi_id)
-        client.authorize_request = authorize_request
 
-        assert prepared_request.headers.get("Authorization") is None
-        client.authorize_request(prepared_request)
-        assert prepared_request.headers.get("Authorization") == "Bearer tkn"
+        with patch.object(client, "authorize_request", authorize_request):
+            assert prepared_request.headers.get("Authorization") is None
+            client.authorize_request(prepared_request)
+            assert prepared_request.headers.get("Authorization") == "Bearer tkn"
 
     @patch.object(IntegrationProxyClient, "authorize_request")
     def test_finalize_request_noop(self, mock_authorize):
@@ -181,17 +206,20 @@ def test_get_control_silo_ip_address():
 
     with override_settings(SENTRY_CONTROL_ADDRESS=control_address):
         get_control_silo_ip_address.cache_clear()
-        with patch("socket.gethostbyname") as mock_gethostbyname, patch(
-            "sentry_sdk.capture_exception"
-        ) as mock_capture_exception:
+        with (
+            patch("socket.gethostbyname") as mock_gethostbyname,
+            patch("sentry_sdk.capture_exception") as mock_capture_exception,
+        ):
             mock_gethostbyname.return_value = "172.31.255.255"
             assert get_control_silo_ip_address() == ipaddress.ip_address("172.31.255.255")
             assert mock_capture_exception.call_count == 0
 
         get_control_silo_ip_address.cache_clear()
-        with patch("socket.gethostbyname") as mock_gethostbyname, patch(
-            "urllib3.util.parse_url"
-        ) as mock_parse_url, patch("sentry_sdk.capture_exception") as mock_capture_exception:
+        with (
+            patch("socket.gethostbyname") as mock_gethostbyname,
+            patch("urllib3.util.parse_url") as mock_parse_url,
+            patch("sentry_sdk.capture_exception") as mock_capture_exception,
+        ):
             mock_parse_url.return_value = MagicMock(host=None)
             assert get_control_silo_ip_address() is None
             assert mock_gethostbyname.call_count == 0

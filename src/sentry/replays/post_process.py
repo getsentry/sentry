@@ -73,6 +73,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     info_ids: list[str] | None
     count_warnings: int | None
     count_infos: int | None
+    has_viewed: bool
 
 
 def process_raw_response(
@@ -84,12 +85,12 @@ def process_raw_response(
 
 def generate_restricted_fieldset(
     fields: list[str],
-    response: Generator[ReplayDetailsResponse, None, None],
+    response: Generator[ReplayDetailsResponse],
 ) -> Iterator[ReplayDetailsResponse]:
     """Return only the fields requested by the client."""
     if fields:
         for item in response:
-            yield {field: item[field] for field in fields}  # type: ignore
+            yield {field: item[field] for field in fields}  # type: ignore[literal-required, misc]
     else:
         yield from response
 
@@ -100,18 +101,16 @@ def _strip_dashes(field: str) -> str:
     return field
 
 
-def generate_normalized_output(
-    response: list[dict[str, Any]],
-) -> Generator[ReplayDetailsResponse, None, None]:
+def generate_normalized_output(response: list[dict[str, Any]]) -> Generator[ReplayDetailsResponse]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
         ret_item: ReplayDetailsResponse = {}
         if item["isArchived"]:
-            yield _archived_row(item["replay_id"], item["project_id"])  # type: ignore
+            yield _archived_row(item["replay_id"], item["agg_project_id"])  # type: ignore[misc]
             continue
 
         ret_item["id"] = _strip_dashes(item.pop("replay_id", None))
-        ret_item["project_id"] = str(item["project_id"])
+        ret_item["project_id"] = str(item["agg_project_id"])
         ret_item["trace_ids"] = item.pop("traceIds", [])
         ret_item["error_ids"] = item.pop("errorIds", [])
         ret_item["environment"] = item.pop("agg_environment", None)
@@ -181,6 +180,8 @@ def generate_normalized_output(
         ret_item["info_ids"] = item.pop("info_ids", None)
         ret_item["count_infos"] = item.pop("count_infos", None)
         ret_item["count_warnings"] = item.pop("count_warnings", None)
+        # Returns a UInt8 of either 0 or 1. We coerce to a bool.
+        ret_item["has_viewed"] = bool(item.get("has_viewed", 0))
         yield ret_item
 
 

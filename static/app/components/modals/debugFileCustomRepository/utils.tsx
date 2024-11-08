@@ -66,7 +66,7 @@ export function getFormFieldsAndInitialData(
   type: CustomRepoType,
   sourceConfig?: Record<string, any>
 ) {
-  if (type === CustomRepoType.HTTP || type === CustomRepoType.APP_STORE_CONNECT) {
+  if (type === CustomRepoType.HTTP) {
     return {};
   }
 
@@ -212,7 +212,7 @@ export function getFormFieldsAndInitialData(
 }
 
 export function getFinalData(type: CustomRepoType, data: Record<string, any>) {
-  if (type === CustomRepoType.HTTP || type === CustomRepoType.APP_STORE_CONNECT) {
+  if (type === CustomRepoType.HTTP) {
     return data;
   }
 

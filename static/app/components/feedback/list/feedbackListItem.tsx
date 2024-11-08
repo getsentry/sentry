@@ -1,44 +1,37 @@
 import type {CSSProperties} from 'react';
-import {forwardRef} from 'react';
-import {browserHistory} from 'react-router';
-import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
-import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
+import {Flex} from 'sentry/components/container/flex';
 import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
-import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChat, IconCircleFill, IconFatal, IconPlay} from 'sentry/icons';
+import {IconChat, IconCircleFill, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
-  feedbackItem: FeedbackIssue;
+  feedbackItem: FeedbackIssueListItem;
   isSelected: 'all-selected' | boolean;
   onSelect: (isSelected: boolean) => void;
-  className?: string;
   style?: CSSProperties;
 }
 
-function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
+function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListItem}) {
   const {feedbackSlug} = useLocationQuery({
     fields: {feedbackSlug: decodeScalar},
   });
@@ -46,138 +39,149 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   return feedbackId === feedbackItem.id;
 }
 
-const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
-  ({className, feedbackItem, isSelected, onSelect, style}: Props, ref) => {
-    const config = useLegacyStore(ConfigStore);
-    const organization = useOrganization();
-    const isOpen = useIsSelectedFeedback({feedbackItem});
-    const {feedbackHasReplay} = useReplayCountForFeedbacks();
-    const hasReplayId = feedbackHasReplay(feedbackItem.id);
+export default function FeedbackListItem({
+  feedbackItem,
+  isSelected,
+  onSelect,
+  style,
+}: Props) {
+  const organization = useOrganization();
+  const isOpen = useIsSelectedFeedback({feedbackItem});
+  const {feedbackHasReplay} = useReplayCountForFeedbacks();
+  const hasReplayId = feedbackHasReplay(feedbackItem.id);
+  const location = useLocation();
 
-    const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
-    const isUserReportWithError = feedbackItem.metadata.source === 'user_report_envelope';
-    const hasComments = feedbackItem.numComments > 0;
-    const theme = isOpen || config.theme === 'dark' ? darkTheme : lightTheme;
+  const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
+  const isUserReportWithError = feedbackItem.metadata.source === 'user_report_envelope';
+  const hasAttachments = feedbackItem.latestEventHasAttachments;
+  const hasComments = feedbackItem.numComments > 0;
 
-    return (
-      <CardSpacing className={className} style={style} ref={ref}>
-        <ThemeProvider theme={theme}>
-          <LinkedFeedbackCard
-            data-selected={isOpen}
-            to={() => {
-              const location = browserHistory.getCurrentLocation();
-              return {
-                pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
-                query: {
-                  ...location.query,
-                  referrer: 'feedback_list_page',
-                  feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
-                },
-              };
+  return (
+    <CardSpacing style={style}>
+      <LinkedFeedbackCard
+        data-selected={isOpen}
+        to={{
+          pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+          query: {
+            ...location.query,
+            referrer: 'feedback_list_page',
+            feedbackSlug: `${feedbackItem.project?.slug}:${feedbackItem.id}`,
+          },
+        }}
+        onClick={() => {
+          trackAnalytics('feedback.list-item-selected', {organization});
+        }}
+      >
+        <InteractionStateLayer />
+
+        <Row
+          style={{gridArea: 'checkbox'}}
+          onClick={e => {
+            e.stopPropagation();
+          }}
+        >
+          <Checkbox
+            disabled={isSelected === 'all-selected'}
+            checked={isSelected !== false}
+            onChange={e => {
+              onSelect(e.target.checked);
             }}
-            onClick={() => {
-              trackAnalytics('feedback.list-item-selected', {organization});
-            }}
-          >
-            <InteractionStateLayer />
+          />
+        </Row>
 
-            <Row style={{gridArea: 'checkbox'}}>
-              <Checkbox
-                style={{gridArea: 'checkbox'}}
-                disabled={isSelected === 'all-selected'}
-                checked={isSelected !== false}
-                onChange={e => {
-                  onSelect(e.target.checked);
-                  e.stopPropagation();
-                }}
-                invertColors={isOpen}
+        <ContactRow>
+          {feedbackItem.metadata.name ??
+            feedbackItem.metadata.contact_email ??
+            t('Anonymous User')}
+        </ContactRow>
+
+        <StyledTimeSince date={feedbackItem.firstSeen} />
+
+        {feedbackItem.hasSeen ? null : (
+          <DotRow style={{gridArea: 'unread'}}>
+            <IconCircleFill size="xs" color="purple400" />
+          </DotRow>
+        )}
+
+        <PreviewRow
+          align="flex-start"
+          justify="flex-start"
+          style={{
+            gridArea: 'message',
+          }}
+        >
+          <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
+        </PreviewRow>
+
+        <BottomGrid style={{gridArea: 'bottom'}}>
+          <Row justify="flex-start" gap={space(0.75)}>
+            {feedbackItem.project ? (
+              <StyledProjectBadge
+                project={feedbackItem.project}
+                avatarSize={14}
+                hideName
+                avatarProps={{hasTooltip: false}}
               />
-            </Row>
+            ) : null}
+            <ShortId>{feedbackItem.shortId}</ShortId>
+          </Row>
 
-            <TextOverflow style={{gridArea: 'user'}}>
-              <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay={false} />
-            </TextOverflow>
+          <Row justify="flex-end" gap={space(1)}>
+            <IssueTrackingSignals group={feedbackItem as unknown as Group} />
 
-            <TimeSince date={feedbackItem.firstSeen} style={{gridArea: 'time'}} />
-
-            {feedbackItem.hasSeen ? null : (
-              <DotRow style={{gridArea: 'unread'}}>
-                <IconCircleFill size="xs" color={isOpen ? 'white' : 'purple400'} />
-              </DotRow>
+            {hasComments && (
+              <Tooltip title={t('Has Activity')} containerDisplayMode="flex">
+                <IconChat color="gray500" size="sm" />
+              </Tooltip>
             )}
 
-            <PreviewRow
-              align="flex-start"
-              justify="flex-start"
-              style={{gridArea: 'message'}}
-              isOpen={isOpen}
-            >
-              <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
-            </PreviewRow>
+            {(isCrashReport || isUserReportWithError) && (
+              <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
+                <IconFatal color="red400" size="xs" />
+              </Tooltip>
+            )}
 
-            <BottomGrid style={{gridArea: 'bottom'}}>
-              <Row justify="flex-start" gap={space(0.75)}>
-                <StyledProjectAvatar
-                  project={feedbackItem.project}
-                  size={12}
-                  title={feedbackItem.project.slug}
-                />
-                <TextOverflow>{feedbackItem.shortId}</TextOverflow>
-              </Row>
+            {hasReplayId && (
+              <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
+                <IconPlay size="xs" />
+              </Tooltip>
+            )}
 
-              <Row justify="flex-end" gap={space(1)}>
-                <IssueTrackingSignals group={feedbackItem as unknown as Group} />
+            {hasAttachments && (
+              <Tooltip title={t('Has Screenshot')} containerDisplayMode="flex">
+                <IconImage size="xs" />
+              </Tooltip>
+            )}
 
-                {hasComments && (
-                  <Tooltip title={t('Has Activity')} containerDisplayMode="flex">
-                    <IconChat color="gray500" size="sm" />
-                  </Tooltip>
-                )}
-
-                {(isCrashReport || isUserReportWithError) && (
-                  <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
-                    <IconFatal color="red400" size="xs" />
-                  </Tooltip>
-                )}
-
-                {hasReplayId && (
-                  <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
-                    <IconPlay size="xs" />
-                  </Tooltip>
-                )}
-
-                {feedbackItem.assignedTo && (
-                  <ActorAvatar
-                    actor={feedbackItem.assignedTo}
-                    size={16}
-                    tooltipOptions={{containerDisplayMode: 'flex'}}
-                  />
-                )}
-              </Row>
-            </BottomGrid>
-          </LinkedFeedbackCard>
-        </ThemeProvider>
-      </CardSpacing>
-    );
-  }
-);
-
-const CardSpacing = styled('div')`
-  padding: ${space(0.25)} ${space(0.5)};
-`;
+            {feedbackItem.assignedTo && (
+              <ActorAvatar
+                actor={feedbackItem.assignedTo}
+                size={16}
+                tooltipOptions={{containerDisplayMode: 'flex'}}
+              />
+            )}
+          </Row>
+        </BottomGrid>
+      </LinkedFeedbackCard>
+    </CardSpacing>
+  );
+}
 
 const LinkedFeedbackCard = styled(Link)`
   position: relative;
-  border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)} ${space(3)} ${space(1)} ${space(1.5)};
+  border: 1px solid transparent;
+  border-radius: ${space(0.75)};
 
   color: ${p => p.theme.textColor};
   &:hover {
     color: ${p => p.theme.textColor};
   }
   &[data-selected='true'] {
-    background: ${p => p.theme.purple300};
-    color: white;
+    background: ${p => p.theme.purple100};
+    border: 1px solid ${p => p.theme.purple200};
+    border-radius: ${space(0.75)};
+    color: ${p => p.theme.purple300};
   }
 
   display: grid;
@@ -187,14 +191,13 @@ const LinkedFeedbackCard = styled(Link)`
     'checkbox user time'
     'unread message message'
     '. bottom bottom';
-  gap: ${space(1)};
+  gap: ${space(0.5)} ${space(1)};
   place-items: stretch;
   align-items: center;
 `;
 
 const Row = styled(Flex)`
   place-items: center;
-  overflow: hidden;
 `;
 
 const BottomGrid = styled('div')`
@@ -205,29 +208,49 @@ const BottomGrid = styled('div')`
   overflow: hidden;
 `;
 
-const StyledProjectAvatar = styled(ProjectAvatar)`
+const StyledProjectBadge = styled(ProjectBadge)`
   && img {
     box-shadow: none;
   }
 `;
 
-const PreviewRow = styled(Row)<{isOpen: boolean}>`
-  height: 2.8em;
+const PreviewRow = styled(Row)`
   align-items: flex-start;
-  color: ${p => (p.isOpen ? p.theme.white : p.theme.gray300)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding-bottom: ${space(0.75)};
 `;
 
 const DotRow = styled(Row)`
-  height: 2.2em;
+  height: 1.1em;
   align-items: flex-start;
+  justify-content: center;
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`
   white-space: initial;
-  height: 2.8em;
-  -webkit-line-clamp: 2;
+  height: 1.4em;
+  -webkit-line-clamp: 1;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
-export default FeedbackListItem;
+
+const ContactRow = styled(TextOverflow)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  grid-area: 'user';
+  font-weight: bold;
+`;
+
+const ShortId = styled(TextOverflow)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray300};
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  grid-area: 'time';
+`;
+
+const CardSpacing = styled('div')`
+  padding: ${space(0.5)} ${space(0.5)} 0 ${space(0.5)};
+`;

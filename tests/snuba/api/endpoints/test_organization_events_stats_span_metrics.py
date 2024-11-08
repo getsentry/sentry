@@ -6,18 +6,17 @@ from django.urls import reverse
 
 from sentry.search.events import constants
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformanceTestCase):
     endpoint = "sentry-api-0-organization-events-stats"
     METRIC_STRINGS = [
         "foo_transaction",
     ]
+    features = {"organizations:discover-basic": True}
 
     def setUp(self):
         super().setUp()
@@ -27,20 +26,14 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         self.features = {
             "organizations:performance-use-metrics": True,
         }
 
-    def do_request(self, data, url=None, features=None):
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
-
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
+    @pytest.mark.querybuilder
     def test_throughput_epm_hour_rollup(self):
         # Each of these denotes how many events to create in each hour
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -55,8 +48,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for axis in ["epm()", "spm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=6)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=6),
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -86,8 +79,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for axis in ["epm()", "spm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=24)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=24),
                     "interval": "24h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -115,8 +108,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for axis in ["epm()", "spm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago + timedelta(minutes=30)),
-                    "end": iso_format(self.day_ago + timedelta(hours=6, minutes=30)),
+                    "start": self.day_ago + timedelta(minutes=30),
+                    "end": self.day_ago + timedelta(hours=6, minutes=30),
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -146,8 +139,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for axis in ["eps()", "sps()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(minutes=6),
                     "interval": "1m",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -175,8 +168,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
                 "interval": "1m",
                 "yAxis": "count()",
                 "field": ["transaction", "sum(span.self_time)"],
@@ -203,8 +196,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(http.response_content_length)",
                 "project": self.project.id,
@@ -230,8 +223,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(http.decoded_response_content_length)",
                 "project": self.project.id,
@@ -256,8 +249,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(http.response_transfer_size)",
                 "project": self.project.id,
@@ -272,8 +265,69 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
+    def test_cache_item_size(self):
+        self.store_span_metric(
+            4,
+            metric="cache.item_size",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo", "cache.hit": "true"},
+        )
 
-@region_silo_test
+        response = self.do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
+                "interval": "1m",
+                "yAxis": "avg(cache.item_size)",
+                "field": ["cache.hit"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        assert response.status_code == 200
+
+        data = response.data["data"]
+        assert len(data) == 2
+        assert not data[0][1][0]["count"]
+        assert data[1][1][0]["count"] == 4.0
+
+    def test_messaging_receive_latency(self):
+        self.store_span_metric(
+            {
+                "min": 10,
+                "max": 10,
+                "sum": 10,
+                "count": 1,
+                "last": 10,
+            },
+            entity="metrics_gauges",
+            metric="messaging.message.receive.latency",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"messaging.destination.name": "foo", "trace.status": "ok"},
+        )
+
+        response = self.do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
+                "interval": "1m",
+                "query": "messaging.destination.name:foo",
+                "yAxis": "avg(messaging.message.receive.latency)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        data = response.data["data"]
+        assert response.status_code == 200
+        assert len(data) == 2
+        assert not data[0][1][0]["count"]
+        assert data[1][1][0]["count"] == 10.0
+
+
 class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
     OrganizationEventsStatsSpansMetricsEndpointTest
 ):
@@ -292,8 +346,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
 
         self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(http.response_content_length)",
                 "project": self.project.id,

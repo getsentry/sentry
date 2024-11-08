@@ -4,9 +4,9 @@ from rest_framework import serializers
 
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.validators.integrations import validate_provider
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalProviders
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.types.integrations import ExternalProviders
 
 EXTERNAL_ID_LENGTH_MIN = 1
 EXTERNAL_ID_LENGTH_MAX = 64

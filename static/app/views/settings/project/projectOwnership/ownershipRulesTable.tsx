@@ -6,19 +6,20 @@ import isEqual from 'lodash/isEqual';
 import uniqBy from 'lodash/uniqBy';
 
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
-import Tag from 'sentry/components/tag';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import type {CodeOwner, ParsedOwnershipRule} from 'sentry/types';
+import type {ParsedOwnershipRule} from 'sentry/types/group';
+import type {CodeOwner} from 'sentry/types/integrations';
 import {useTeams} from 'sentry/utils/useTeams';
+import {useUser} from 'sentry/utils/useUser';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
 
 interface OwnershipRulesTableProps {
@@ -39,6 +40,7 @@ export function OwnershipRulesTable({
   projectRules,
   codeowners,
 }: OwnershipRulesTableProps) {
+  const user = useUser();
   const [search, setSearch] = useState<string>('');
   const [page, setPage] = useState<number>(0);
   const [selectedActors, setSelectedActors] = useState<string[] | null>(null);
@@ -80,7 +82,6 @@ export function OwnershipRulesTable({
   }, [combinedRules]);
 
   const myTeams = useMemo(() => {
-    const user = ConfigStore.get('user');
     const memberTeamsIds = teams.filter(team => team.isMember).map(team => team.id);
     return allActors.filter(actor => {
       if (actor.type === 'user') {
@@ -89,7 +90,7 @@ export function OwnershipRulesTable({
 
       return memberTeamsIds.includes(actor.id);
     });
-  }, [allActors, teams]);
+  }, [allActors, teams, user]);
 
   useEffect(() => {
     if (myTeams.length > 0 && selectedActors === null) {
@@ -174,8 +175,8 @@ export function OwnershipRulesTable({
               name = `#${team.slug}`;
             }
           } else if (owners[0]?.type === 'user') {
-            const user = MemberListStore.getById(owners[0].id);
-            name = user?.name;
+            const firstUser = MemberListStore.getById(owners[0].id);
+            name = firstUser?.name;
           }
 
           return (

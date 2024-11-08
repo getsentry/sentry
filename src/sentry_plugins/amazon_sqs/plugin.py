@@ -3,7 +3,7 @@ import logging
 import boto3
 from botocore.client import ClientError, Config
 
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry.utils import json, metrics
 from sentry_plugins.base import CorePluginMixin
@@ -61,7 +61,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
         )
     ]
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         return [
             {
                 "name": "queue_url",

@@ -7,7 +7,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -181,7 +181,7 @@ class OrganizationAuditLogsTest(APITestCase):
         assert set(response.data["options"]) == audit_log_api_names
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_write_can_see_audit_logs(self):
         superuser = self.create_user(is_superuser=True)
         self.login_as(superuser, superuser=True)

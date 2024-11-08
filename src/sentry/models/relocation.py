@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from enum import Enum, unique
+from enum import Enum, IntEnum, unique
 from uuid import uuid4
 
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, region_silo_only_model
-from sentry.db.models.base import DefaultFieldsModel, sane_repr
+from sentry.db.models import BoundedBigIntegerField, region_silo_model
+from sentry.db.models.base import DefaultFieldsModelExisting, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.uuid import UUIDField
 
@@ -16,8 +16,8 @@ def default_guid():
     return uuid4().hex
 
 
-@region_silo_only_model
-class Relocation(DefaultFieldsModel):
+@region_silo_model
+class Relocation(DefaultFieldsModelExisting):
     """
     Represents a single relocation instance. The relocation may be attempted multiple times, but we
     keep a mapping of 1 `Relocation` model per file upload.
@@ -81,6 +81,15 @@ class Relocation(DefaultFieldsModel):
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
 
+    class Provenance(IntEnum):
+        SELF_HOSTED = 0
+        SAAS_TO_SAAS = 1
+
+        # TODO(azaslavsky): Could we dedup this with a mixin in the future?
+        @classmethod
+        def get_choices(cls) -> list[tuple[int, str]]:
+            return [(key.value, key.name) for key in cls]
+
     # The user that requested this relocation - if the request was made by an admin on behalf of a
     # user, this will be different from `owner`. Otherwise, they are identical.
     creator_id = BoundedBigIntegerField()
@@ -96,10 +105,16 @@ class Relocation(DefaultFieldsModel):
     # directory named after this UUID.
     uuid = UUIDField(db_index=True, unique=True, default=default_guid)
 
-    # Possible values are in the the Stage enum.
+    # Possible values are in the Stage enum.
     step = models.SmallIntegerField(choices=Step.get_choices(), default=None)
 
-    # Possible values are in the the Status enum.
+    # Possible values are in the Provenance enum. The relocation pipeline has different behaviors
+    # depending on the source of the relocation.
+    provenance = models.SmallIntegerField(
+        choices=Provenance.get_choices(), default=Provenance.SELF_HOSTED
+    )
+
+    # Possible values are in the Status enum.
     status = models.SmallIntegerField(
         choices=Status.get_choices(), default=Status.IN_PROGRESS.value
     )
@@ -154,19 +169,19 @@ class Relocation(DefaultFieldsModel):
         constraints = [
             models.CheckConstraint(
                 name="scheduled_pause_at_step_greater_than_current_step",
-                check=models.Q(scheduled_pause_at_step__gt=models.F("step"))
+                condition=models.Q(scheduled_pause_at_step__gt=models.F("step"))
                 | models.Q(scheduled_pause_at_step__isnull=True),
             ),
             models.CheckConstraint(
                 name="scheduled_cancel_at_step_greater_than_current_step",
-                check=models.Q(scheduled_cancel_at_step__gt=models.F("step"))
+                condition=models.Q(scheduled_cancel_at_step__gt=models.F("step"))
                 | models.Q(scheduled_cancel_at_step__isnull=True),
             ),
         ]
 
 
-@region_silo_only_model
-class RelocationFile(DefaultFieldsModel):
+@region_silo_model
+class RelocationFile(DefaultFieldsModelExisting):
     """
     A `RelocationFile` is an association between a `Relocation` and a `File`.
 
@@ -186,18 +201,18 @@ class RelocationFile(DefaultFieldsModel):
         #
         # TODO(getsentry/team-ospo#216): Add a normalization step to the relocation flow
         NORMALIZED_USER_DATA = 2
-        # (Deprecated) The global configuration we're going to validate against - pulled from the
-        # live Sentry instance, not supplied by the user.
+        # The global configuration we're going to validate against - pulled from the live Sentry
+        # instance, not supplied by the user.
         #
-        # TODO(getsentry/team-ospo#216): Deprecated, since we no longer store these in main bucket.
-        # Remove in the future.
+        # Note: These files are only ever stored in the relocation-specific GCP bucket, never in the
+        # main filestore, so in practice no DB entry should have this value set.
         BASELINE_CONFIG_VALIDATION_DATA = 3
         # (Deprecated) The colliding users we're going to validate against - pulled from the live
         # Sentry instance, not supplied by the user. However, to determine what is a "colliding
         # user", we must inspect the user-provided data.
         #
-        # TODO(getsentry/team-ospo#216): Deprecated, since we no longer store these in main bucket.
-        # Remove in the future.
+        # Note: These files are only ever stored in the relocation-specific GCP bucket, never in the
+        # main filestore, so in practice no DB entry should have this value set.
         COLLIDING_USERS_VALIDATION_DATA = 4
 
         # TODO(getsentry/team-ospo#190): Could we dedup this with a mixin in the future?
@@ -227,7 +242,7 @@ class RelocationFile(DefaultFieldsModel):
     __repr__ = sane_repr("relocation", "file")
 
     class Meta:
-        unique_together = (("relocation", "file"),)
+        unique_together = (("relocation", "file"), ("relocation", "kind"))
         app_label = "sentry"
         db_table = "sentry_relocationfile"
 
@@ -258,8 +273,8 @@ class ValidationStatus(Enum):
         return [(key.value, key.name) for key in cls]
 
 
-@region_silo_only_model
-class RelocationValidation(DefaultFieldsModel):
+@region_silo_model
+class RelocationValidation(DefaultFieldsModelExisting):
     """
     Stores general information about whether or not the associated `Relocation` passed its
     validation run.
@@ -272,7 +287,7 @@ class RelocationValidation(DefaultFieldsModel):
 
     relocation = FlexibleForeignKey("sentry.Relocation")
 
-    # Possible values are in the the `ValidationStatus` enum. Shows the best result from all of the
+    # Possible values are in the `ValidationStatus` enum. Shows the best result from all of the
     # `RelocationValidationAttempt`s associated with this model.
     status = status = models.SmallIntegerField(
         choices=ValidationStatus.get_choices(), default=ValidationStatus.IN_PROGRESS.value
@@ -286,8 +301,8 @@ class RelocationValidation(DefaultFieldsModel):
         db_table = "sentry_relocationvalidation"
 
 
-@region_silo_only_model
-class RelocationValidationAttempt(DefaultFieldsModel):
+@region_silo_model
+class RelocationValidationAttempt(DefaultFieldsModelExisting):
     """
     Represents a single Google CloudBuild validation run invocation, and tracks it over its
     lifetime.
@@ -298,7 +313,7 @@ class RelocationValidationAttempt(DefaultFieldsModel):
     relocation = FlexibleForeignKey("sentry.Relocation")
     relocation_validation = FlexibleForeignKey("sentry.RelocationValidation")
 
-    # Possible values are in the the `ValidationStatus` enum.
+    # Possible values are in the `ValidationStatus` enum.
     status = status = models.SmallIntegerField(
         choices=ValidationStatus.get_choices(), default=ValidationStatus.IN_PROGRESS.value
     )

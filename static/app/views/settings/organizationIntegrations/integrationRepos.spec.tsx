@@ -36,10 +36,29 @@ describe('IntegrationRepos', function () {
       });
 
       render(<IntegrationRepos integration={integration} />);
+      // we only attempt to fetch repositories upon typing
+      await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.type(screen.getByRole('textbox'), 'asdf');
+
       expect(
         await screen.findByText(
           /We were unable to fetch repositories for this integration/
         )
+      ).toBeInTheDocument();
+    });
+
+    it('does not fetch repositories with empty query', async function () {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'GET',
+        body: [],
+      });
+
+      render(<IntegrationRepos integration={integration} />);
+      await userEvent.click(screen.getByText('Add Repository'));
+
+      expect(
+        await screen.findByText(/Please enter a repository name/)
       ).toBeInTheDocument();
     });
   });
@@ -65,6 +84,7 @@ describe('IntegrationRepos', function () {
 
       render(<IntegrationRepos integration={integration} />);
       await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
 
       expect(addRepo).toHaveBeenCalledWith(
@@ -107,6 +127,7 @@ describe('IntegrationRepos', function () {
 
       render(<IntegrationRepos integration={integration} />);
       await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.type(screen.getByRole('textbox'), 'sentry-repo');
       await userEvent.click(screen.getByText('sentry-repo'));
 
       expect(addRepo).toHaveBeenCalled();
@@ -163,6 +184,7 @@ describe('IntegrationRepos', function () {
       render(<IntegrationRepos integration={integration} />);
 
       await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
 
       expect(updateRepo).toHaveBeenCalledWith(
@@ -195,6 +217,7 @@ describe('IntegrationRepos', function () {
       render(<IntegrationRepos integration={integration} />);
 
       await userEvent.click(screen.getByText('Add Repository'));
+      await userEvent.type(screen.getByRole('textbox'), 'repo-name');
       await userEvent.click(screen.getByText('repo-name'));
 
       expect(getItems).toHaveBeenCalled();

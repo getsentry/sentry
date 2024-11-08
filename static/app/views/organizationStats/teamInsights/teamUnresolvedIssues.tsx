@@ -6,13 +6,14 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
-import {formatPercentage} from 'sentry/utils/formatters';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
@@ -46,7 +47,7 @@ export function TeamUnresolvedIssues({
 }: TeamUnresolvedIssuesProps) {
   const {
     data: periodIssues = {},
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<ProjectReleaseCount>(
@@ -116,8 +117,8 @@ export function TeamUnresolvedIssues({
   return (
     <div>
       <ChartWrapper>
-        {isLoading && <Placeholder height="200px" />}
-        {!isLoading && (
+        {isPending && <Placeholder height="200px" />}
+        {!isPending && (
           <BarChart
             style={{height: 190}}
             isGroupedByDate
@@ -141,7 +142,7 @@ export function TeamUnresolvedIssues({
           <Fragment>
             <StyledPanelTable
               isEmpty={projects.length === 0}
-              isLoading={isLoading}
+              isLoading={isPending}
               headers={[
                 t('Project'),
                 <RightAligned key="last">
@@ -190,7 +191,7 @@ export function TeamUnresolvedIssues({
                 );
               })}
             </StyledPanelTable>
-            {!isLoading && showMoreButton}
+            {!isPending && showMoreButton}
           </Fragment>
         )}
       </CollapsePanel>

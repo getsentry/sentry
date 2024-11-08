@@ -8,28 +8,33 @@ POSTGRES_CONTAINER := sentry_postgres
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
 
-bootstrap \
-develop \
+bootstrap:
+	@echo "devenv bootstrap is typically run on new machines."
+	@echo "you probably want to run devenv sync to bring the"
+	@echo "sentry dev environment up to date!"
+
+build-platform-assets \
 clean \
 init-config \
 run-dependent-services \
 drop-db \
 create-db \
 apply-migrations \
-reset-db \
-setup-git \
-node-version-check \
-install-js-dev \
-install-py-dev :
+reset-db :
 	@./scripts/do.sh $@
 
-build-platform-assets \
-direnv-help \
-upgrade-pip \
-setup-git-config :
-	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@
+develop \
+install-js-dev \
+install-py-dev :
+	@make devenv-sync
 
-build-js-po: node-version-check
+# This is to ensure devenv sync's only called once if the above
+# macros are combined e.g. `make install-js-dev install-py-dev`
+.PHONY: devenv-sync
+devenv-sync:
+	devenv sync
+
+build-js-po:
 	mkdir -p build
 	rm -rf node_modules/.cache/babel-loader
 	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
@@ -85,13 +90,9 @@ build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
 	yarn build-chartcuterie-config
 
-fetch-release-registry:
-	@echo "--> Fetching release registry"
-	@echo "from sentry.utils.distutils import sync_registry; sync_registry()" | sentry exec
-
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml"
+	python3 -b -m pytest tests/acceptance --cov . --cov-report="xml:.artifacts/acceptance.coverage.xml" --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
 	@echo ""
 
 test-cli: create-db
@@ -105,18 +106,18 @@ test-cli: create-db
 	rm -r test_cli
 	@echo ""
 
-test-js-build: node-version-check
+test-js-build:
 	@echo "--> Running type check"
 	@yarn run tsc -p config/tsconfig.build.json
 	@echo "--> Building static assets"
 	@NODE_ENV=production yarn webpack-profile > .artifacts/webpack-stats.json
 
-test-js: node-version-check
+test-js:
 	@echo "--> Running JavaScript tests"
 	@yarn run test
 	@echo ""
 
-test-js-ci: node-version-check
+test-js-ci:
 	@echo "--> Running CI JavaScript tests"
 	@yarn run test-ci
 	@echo ""
@@ -130,13 +131,18 @@ COV_ARGS = --cov-report="xml:.artifacts/python.coverage.xml"
 
 test-python-ci:
 	@echo "--> Running CI Python tests"
-	pytest \
+	python3 -b -m pytest \
 		tests \
 		--ignore tests/acceptance \
 		--ignore tests/apidocs \
 		--ignore tests/js \
 		--ignore tests/tools \
-		--cov . $(COV_ARGS)
+		--cov . $(COV_ARGS) \
+		--json-report \
+		--json-report-file=".artifacts/pytest.json" \
+		--json-report-omit=log \
+		--junit-xml=.artifacts/pytest.junit.xml \
+		-o junit_suite_name=pytest
 	@echo ""
 
 # it's not possible to change settings.DATABASE after django startup, so
@@ -148,7 +154,7 @@ test-monolith-dbs:
 	@echo "--> Running CI Python tests (SENTRY_USE_MONOLITH_DBS=1)"
 	SENTRY_LEGACY_TEST_SUITE=1 \
 	SENTRY_USE_MONOLITH_DBS=1 \
-	pytest \
+	python3 -b -m pytest \
 	  tests/sentry/backup/test_exhaustive.py \
 	  tests/sentry/backup/test_exports.py \
 	  tests/sentry/backup/test_imports.py \
@@ -156,23 +162,30 @@ test-monolith-dbs:
 	  tests/sentry/runner/commands/test_backup.py \
 	  --cov . \
 	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
+	  --json-report \
+	  --json-report-file=".artifacts/pytest.monolith-dbs.json" \
+	  --json-report-omit=log \
+	  --junit-xml=.artifacts/monolith-dbs.junit.xml \
+	  -o junit_suite_name=monolith-dbs \
 	;
 	@echo ""
 
 test-tools:
 	@echo "--> Running tools tests"
-	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
+	@# bogus configuration to force vanilla pytest
+	python3 -b -m pytest -c setup.cfg --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml" --junit-xml=.artifacts/tools.junit.xml -o junit_suite_name=tools
 	@echo ""
 
 # JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
 # Running Locally: Run `sentry devservices up kafka` before starting these tests
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
-	pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
+	python3 -b -m pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml" --junit-xml=.artifacts/symbolicator.junit.xml -o junit_suite_name=symbolicator
+	python3 -b -m pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
+	python3 -b -m pytest tests/relay_integration/lang/java/ -vv -m symbolicator
 	@echo ""
 
-test-acceptance: node-version-check
+test-acceptance:
 	@echo "--> Building static assets"
 	@$(WEBPACK)
 	make run-acceptance
@@ -180,7 +193,7 @@ test-acceptance: node-version-check
 # XXX: this is called by `getsentry/relay`
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
-	pytest \
+	python3 -b -m pytest \
 		tests/relay_integration \
 		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
 		-vv --cov . --cov-report="xml:.artifacts/relay.coverage.xml"
@@ -188,7 +201,7 @@ test-relay-integration:
 
 test-api-docs: build-api-docs
 	yarn run validate-api-examples
-	pytest tests/apidocs
+	python3 -b -m pytest tests/apidocs
 	@echo ""
 
 review-python-snapshots:
@@ -202,11 +215,5 @@ accept-python-snapshots:
 reject-python-snapshots:
 	@cargo insta --version &> /dev/null || cargo install cargo-insta
 	@cargo insta reject --workspace-root `pwd` -e pysnap
-
-lint-js:
-	@echo "--> Linting javascript"
-	bin/lint --js --parseable
-	@echo ""
-
 
 .PHONY: build

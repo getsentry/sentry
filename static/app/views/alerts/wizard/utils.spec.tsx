@@ -75,7 +75,7 @@ describe('Wizard utils', function () {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
-        dataset: Dataset.SESSIONS,
+        dataset: Dataset.METRICS,
       })
     ).toEqual('crash_free_sessions');
   });
@@ -84,7 +84,7 @@ describe('Wizard utils', function () {
     expect(
       getAlertTypeFromAggregateDataset({
         aggregate: SessionsAggregate.CRASH_FREE_USERS,
-        dataset: Dataset.SESSIONS,
+        dataset: Dataset.METRICS,
       })
     ).toEqual('crash_free_users');
   });
@@ -135,5 +135,35 @@ describe('Wizard utils', function () {
         dataset: Dataset.GENERIC_METRICS,
       })
     ).toBe('custom_transactions');
+  });
+
+  it('extracts insights metric alerts', function () {
+    expect(
+      getAlertTypeFromAggregateDataset({
+        aggregate: 'spm()',
+        dataset: Dataset.GENERIC_METRICS,
+      })
+    ).toEqual('insights_metrics');
+    expect(
+      getAlertTypeFromAggregateDataset({
+        aggregate: 'avg(d:spans/exclusive_time@millisecond)',
+        dataset: Dataset.GENERIC_METRICS,
+      })
+    ).toEqual('insights_metrics');
+    expect(
+      getAlertTypeFromAggregateDataset({
+        aggregate: 'avg(g:spans/mobile.slow_frames@none)',
+        dataset: Dataset.GENERIC_METRICS,
+      })
+    ).toEqual('insights_metrics');
+  });
+
+  it('extracts eap metric alerts', function () {
+    expect(
+      getAlertTypeFromAggregateDataset({
+        aggregate: 'count(span.duration)',
+        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+      })
+    ).toEqual('eap_metrics');
   });
 });

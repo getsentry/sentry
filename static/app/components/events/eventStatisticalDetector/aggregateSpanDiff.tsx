@@ -1,14 +1,18 @@
 import {useMemo, useState} from 'react';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
 import {EventRegressionTable} from './eventRegressionTable';
@@ -26,6 +30,7 @@ interface SpanDiff {
 
 interface UseFetchAdvancedAnalysisProps {
   breakpoint: string;
+  enabled: boolean;
   end: string;
   projectId: string;
   start: string;
@@ -38,6 +43,7 @@ function useFetchAdvancedAnalysis({
   end,
   breakpoint,
   projectId,
+  enabled,
 }: UseFetchAdvancedAnalysisProps) {
   const organization = useOrganization();
   return useApiQuery<SpanDiff[]>(
@@ -57,6 +63,7 @@ function useFetchAdvancedAnalysis({
     {
       staleTime: 60000,
       retry: false,
+      enabled,
     }
   );
 }
@@ -74,6 +81,9 @@ interface AggregateSpanDiffProps {
 function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const isSpansOnly = organization.features.includes(
+    'statistical-detectors-rca-spans-only'
+  );
 
   const [causeType, setCauseType] = useState<'duration' | 'throughput'>('duration');
 
@@ -85,17 +95,85 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     relativeDays: 7,
     retentionDays: 30,
   });
-  const {data, isLoading, isError} = useFetchAdvancedAnalysis({
+
+  const {
+    data: rcaData,
+    isPending: isRcaLoading,
+    isError: isRcaError,
+  } = useFetchAdvancedAnalysis({
     transaction,
     start: (start as Date).toISOString(),
     end: (end as Date).toISOString(),
     breakpoint: breakpointTimestamp,
     projectId: project.id,
+    enabled: !isSpansOnly,
   });
 
+  // Initialize the search query with has:span.group because only
+  // specific operations have their span.group recorded in the span
+  // metrics dataset
+  const search = new MutableSearch('has:span.group');
+  search.addFilterValue('transaction', transaction);
+
+  const {
+    data: spansData,
+    isPending: isSpansDataLoading,
+    isError: isSpansDataError,
+  } = useSpanMetrics(
+    {
+      search,
+      fields: [
+        'span.op',
+        'any(span.description)',
+        'span.group',
+        `regression_score(span.self_time,${breakpoint})`,
+        `avg_by_timestamp(span.self_time,less,${breakpoint})`,
+        `avg_by_timestamp(span.self_time,greater,${breakpoint})`,
+        `epm_by_timestamp(less,${breakpoint})`,
+        `epm_by_timestamp(greater,${breakpoint})`,
+      ],
+      sorts: [{field: `regression_score(span.self_time,${breakpoint})`, kind: 'desc'}],
+      limit: 10,
+      enabled: isSpansOnly,
+    },
+    'api.performance.transactions.statistical-detector-root-cause-analysis'
+  );
+
   const tableData = useMemo(() => {
+    if (isSpansOnly) {
+      return spansData?.map(row => {
+        const commonProps = {
+          operation: row['span.op'],
+          group: row['span.group'],
+          description: row['any(span.description)'] || undefined,
+        };
+
+        if (causeType === 'throughput') {
+          const throughputBefore = row[`epm_by_timestamp(less,${breakpoint})`];
+          const throughputAfter = row[`epm_by_timestamp(greater,${breakpoint})`];
+          return {
+            ...commonProps,
+            throughputBefore,
+            throughputAfter,
+            percentageChange: throughputAfter / throughputBefore - 1,
+          };
+        }
+
+        const durationBefore =
+          row[`avg_by_timestamp(span.self_time,less,${breakpoint})`] / 1e3;
+        const durationAfter =
+          row[`avg_by_timestamp(span.self_time,greater,${breakpoint})`] / 1e3;
+        return {
+          ...commonProps,
+          durationBefore,
+          durationAfter,
+          percentageChange: durationAfter / durationBefore - 1,
+        };
+      });
+    }
+
     return (
-      data?.map(row => {
+      rcaData?.map(row => {
         if (causeType === 'throughput') {
           return {
             operation: row.span_op,
@@ -106,6 +184,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
             percentageChange: row.spm_after / row.spm_before - 1,
           };
         }
+
         return {
           operation: row.span_op,
           group: row.span_group,
@@ -116,7 +195,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         };
       }) || []
     );
-  }, [data, causeType]);
+  }, [isSpansOnly, rcaData, spansData, causeType, breakpoint]);
 
   const tableOptions = useMemo(() => {
     return {
@@ -142,8 +221,8 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
   }, [location, organization, project, transaction, start, end]);
 
   return (
-    <EventDataSection
-      type="potential-causes"
+    <InterimSection
+      type={SectionKey.REGRESSION_POTENTIAL_CAUSES}
       title={t('Potential Causes')}
       actions={
         <SegmentedControl
@@ -153,7 +232,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
           onChange={setCauseType}
         >
           <SegmentedControl.Item key="duration">
-            {t('Duration (P95)')}
+            {isSpansOnly ? t('Average Duration') : t('Duration (P95)')}
           </SegmentedControl.Item>
           <SegmentedControl.Item key="throughput">
             {t('Throughput')}
@@ -165,12 +244,11 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         causeType={causeType}
         columns={ADDITIONAL_COLUMNS}
         data={tableData}
-        isLoading={isLoading}
-        isError={isError}
-        // renderers={renderers}
+        isLoading={isSpansOnly ? isSpansDataLoading : isRcaLoading}
+        isError={isSpansOnly ? isSpansDataError : isRcaError}
         options={tableOptions}
       />
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

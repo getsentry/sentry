@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -7,7 +6,8 @@ import Pagination from 'sentry/components/pagination';
 import {FunctionsTable} from 'sentry/components/profiling/suspectFunctions/functionsTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -106,7 +106,7 @@ export function SuspectFunctionsTable({
       <FunctionsTable
         analyticsPageSource={analyticsPageSource}
         error={functionsQuery.isError ? functionsQuery.error.message : null}
-        isLoading={functionsQuery.isLoading}
+        isLoading={functionsQuery.isPending}
         functions={functionsQuery.isFetched ? functionsQuery.data?.data ?? [] : []}
         project={project}
         sort={functionsSort}

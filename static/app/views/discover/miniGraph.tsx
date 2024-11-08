@@ -16,8 +16,8 @@ import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
-import type {Organization} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -91,6 +91,7 @@ class MiniGraph extends Component<Props> {
       expired: eventView.expired,
       name: eventView.name,
       display,
+      dataset: eventView.dataset,
     };
   }
 
@@ -141,6 +142,7 @@ class MiniGraph extends Component<Props> {
       expired,
       name,
       display,
+      dataset,
     } = this.getRefreshProps(this.props);
 
     return (
@@ -162,6 +164,7 @@ class MiniGraph extends Component<Props> {
         expired={expired}
         name={name}
         referrer={referrer}
+        dataset={dataset}
         hideError
         partial
       >

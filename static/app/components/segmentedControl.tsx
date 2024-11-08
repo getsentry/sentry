@@ -93,7 +93,7 @@ export function SegmentedControl<Value extends string>({
             nextKey={option.nextKey}
             prevKey={option.prevKey}
             value={String(option.key)}
-            isDisabled={option.props.disabled}
+            isDisabled={option.props.disabled || disabled}
             state={state}
             size={size}
             priority={priority}
@@ -166,6 +166,8 @@ function Segment<Value extends string>({
           transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
           priority={priority}
           aria-hidden
+          // Prevent animations until the user has made a change
+          layoutDependency={isSelected}
         />
       )}
 
@@ -237,7 +239,7 @@ const SegmentWrap = styled('label')<{
   min-width: 0;
 
   ${p => p.theme.buttonPadding[p.size]}
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 
   ${p =>
     !p.isDisabled &&
@@ -311,7 +313,7 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
       ? `
     background: ${p.theme.active};
     border-radius: ${p.theme.borderRadius};
-    input.focus-visible ~ & {
+    input:focus-visible ~ & {
       box-shadow: 0 0 0 3px ${p.theme.focus};
     }
 
@@ -328,7 +330,7 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
     background: ${p.theme.backgroundElevated};
     border-radius: calc(${p.theme.borderRadius} - 1px);
     box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
-    input.focus-visible ~ & {
+    input:focus-visible ~ & {
       box-shadow: 0 0 0 2px ${p.theme.focusBorder};
     }
   `}

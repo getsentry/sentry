@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
 from django.utils import timezone
 
 from sentry import options
-from sentry.api.utils import get_date_range_from_params
 from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
@@ -24,8 +22,8 @@ from sentry.relay.config.metric_extraction import (
     widget_exceeds_max_specs,
 )
 from sentry.search.events import fields
-from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.types import EventsResponse, QueryBuilderConfig
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.snuba.referrer import Referrer
@@ -128,7 +126,10 @@ def schedule_on_demand_check() -> None:
 
     for (widget_query_id,) in RangeQuerySetWrapper(
         DashboardWidgetQuery.objects.filter(
-            widget__widget_type=DashboardWidgetTypes.DISCOVER
+            widget__widget_type__in=[
+                DashboardWidgetTypes.DISCOVER,
+                DashboardWidgetTypes.TRANSACTION_LIKE,
+            ]
         ).values_list("id"),
         result_value_getter=lambda item: item[0],
     ):
@@ -183,7 +184,7 @@ def schedule_on_demand_check() -> None:
     time_limit=120,
     expires=180,
 )
-def process_widget_specs(widget_query_ids: list[int], *args, **kwargs) -> None:
+def process_widget_specs(widget_query_ids: list[int], *args: object, **kwargs: object) -> None:
     """
     Child task spawned from :func:`schedule_on_demand_check`.
     """
@@ -278,7 +279,7 @@ def _set_widget_on_demand_state(
     specs: Sequence[HashedMetricSpec],
     is_low_cardinality: bool | None,
     enabled_features: set[str],
-):
+) -> None:
     specs_per_version: dict[int, list[HashedMetricSpec]] = {}
     for hash, spec, spec_version in specs:
         specs_per_version.setdefault(spec_version.version, [])
@@ -316,8 +317,8 @@ def set_or_create_on_demand_state(
     organization: Organization,
     is_low_cardinality: bool,
     feature_enabled: bool,
-    current_widget_specs,
-):
+    current_widget_specs: set[str],
+) -> None:
     specs = _get_widget_on_demand_specs(widget_query, organization)
 
     specs_per_version: dict[int, list[HashedMetricSpec]] = {}
@@ -394,6 +395,7 @@ def _get_widget_query_low_cardinality(
     return all(field_cardinality.values())
 
 
+@sentry_sdk.tracing.trace
 def check_field_cardinality(
     query_columns: list[str] | None,
     organization: Organization,
@@ -424,7 +426,7 @@ def check_field_cardinality(
 
     query_columns = [col for col, key in cache_keys.items() if key not in cardinality_map]
 
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         if widget_query:
             scope.set_tag("widget_query.widget_id", widget_query.id)
             scope.set_tag("widget_query.org_slug", organization.slug)
@@ -460,27 +462,26 @@ def check_field_cardinality(
     return {key: cardinality_map.get(value, True) for key, value in cache_keys.items()}
 
 
+@sentry_sdk.tracing.trace
 def _query_cardinality(
     query_columns: list[str], organization: Organization, period: str = "30m"
 ) -> tuple[EventsResponse, list[str]]:
     # Restrict period down to an allowlist so we're not slamming snuba with giant queries
     if period not in [TASK_QUERY_PERIOD, DASHBOARD_QUERY_PERIOD]:
         raise Exception("Cardinality can only be queried with 1h or 30m")
-    params: dict[str, Any] = {
-        "statsPeriod": period,
-        "organization_id": organization.id,
-        "projects": Project.objects.filter(organization=organization),
-    }
-    start, end = get_date_range_from_params(params)
-    params["start"] = start
-    params["end"] = end
+    params = SnubaParams(
+        stats_period=period,
+        organization=organization,
+        projects=list(Project.objects.filter(organization=organization)),
+    )
 
     columns_to_check = [column for column in query_columns if not fields.is_function(column)]
     unique_columns = [f"count_unique({column})" for column in columns_to_check]
 
-    query_builder = QueryBuilder(
+    query_builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
-        params=params,
+        params={},
+        snuba_params=params,
         selected_columns=unique_columns,
         config=QueryBuilderConfig(
             transform_alias_to_input_format=True,

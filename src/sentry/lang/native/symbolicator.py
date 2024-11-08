@@ -9,44 +9,66 @@ from dataclasses import dataclass
 from enum import Enum
 from urllib.parse import urljoin
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from requests.exceptions import RequestException
 
 from sentry import options
 from sentry.lang.native.sources import (
-    get_bundle_index_urls,
     get_internal_artifact_lookup_source,
+    get_internal_source,
     get_scraping_config,
     sources_for_symbolication,
 )
 from sentry.models.project import Project
 from sentry.net.http import Session
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 MAX_ATTEMPTS = 3
 
 logger = logging.getLogger(__name__)
 
 
+class SymbolicatorPlatform(Enum):
+    """The platforms for which we want to
+    invoke Symbolicator."""
+
+    jvm = "jvm"
+    js = "js"
+    native = "native"
+
+
 @dataclass(frozen=True)
 class SymbolicatorTaskKind:
-    is_js: bool = False
-    is_low_priority: bool = False
+    """Bundles information about a symbolication task:
+    the platform and whether it's an existing event being reprocessed.
+    """
+
+    platform: SymbolicatorPlatform
     is_reprocessing: bool = False
 
-    def with_low_priority(self, is_low_priority: bool) -> SymbolicatorTaskKind:
-        return dataclasses.replace(self, is_low_priority=is_low_priority)
-
-    def with_js(self, is_js: bool) -> SymbolicatorTaskKind:
-        return dataclasses.replace(self, is_js=is_js)
+    def with_platform(self, platform: SymbolicatorPlatform) -> SymbolicatorTaskKind:
+        return dataclasses.replace(self, platform=platform)
 
 
 class SymbolicatorPools(Enum):
     default = "default"
     js = "js"
-    lpq = "lpq"
-    lpq_js = "lpq_js"
+    jvm = "jvm"
+
+
+def pool_for_platform(platform: SymbolicatorPlatform) -> SymbolicatorPools:
+    """Returns the Symbolicator pool to use to symbolicate events for
+    the given platform.
+    """
+    match platform:
+        case SymbolicatorPlatform.native:
+            return SymbolicatorPools.default
+        case SymbolicatorPlatform.js:
+            return SymbolicatorPools.js
+        case SymbolicatorPlatform.jvm:
+            return SymbolicatorPools.jvm
 
 
 class Symbolicator:
@@ -58,17 +80,10 @@ class Symbolicator:
         event_id: str,
     ):
         URLS = settings.SYMBOLICATOR_POOL_URLS
-        pool = SymbolicatorPools.default.value
-        if task_kind.is_low_priority:
-            if task_kind.is_js:
-                pool = SymbolicatorPools.lpq_js.value
-            else:
-                pool = SymbolicatorPools.lpq.value
-        elif task_kind.is_js:
-            pool = SymbolicatorPools.js.value
+        pool = pool_for_platform(task_kind.platform)
 
         base_url = (
-            URLS.get(pool)
+            URLS.get(pool.value)
             or URLS.get(SymbolicatorPools.default.value)
             or options.get("symbolicator.options")["url"]
         )
@@ -145,13 +160,16 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
-            "sources": json.dumps(sources),
-            "scraping": json.dumps(scraping_config),
+            "sources": orjson.dumps(sources).decode(),
+            "scraping": orjson.dumps(scraping_config).decode(),
             "options": '{"dif_candidates": true}',
         }
 
         res = self._process(
-            "process_minidump", "minidump", data=data, files={"upload_file_minidump": minidump}
+            "process_minidump",
+            "minidump",
+            data=data,
+            files={"upload_file_minidump": minidump},
         )
         return process_response(res)
 
@@ -159,8 +177,8 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
-            "sources": json.dumps(sources),
-            "scraping": json.dumps(scraping_config),
+            "sources": orjson.dumps(sources).decode(),
+            "scraping": orjson.dumps(scraping_config).decode(),
             "options": '{"dif_candidates": true}',
         }
 
@@ -177,7 +195,10 @@ class Symbolicator:
         scraping_config = get_scraping_config(self.project)
         json = {
             "sources": sources,
-            "options": {"dif_candidates": True, "apply_source_context": apply_source_context},
+            "options": {
+                "dif_candidates": True,
+                "apply_source_context": apply_source_context,
+            },
             "stacktraces": stacktraces,
             "modules": modules,
             "scraping": scraping_config,
@@ -201,21 +222,49 @@ class Symbolicator:
             "scraping": scraping_config,
         }
 
-        try:
-            debug_id_index, url_index = get_bundle_index_urls(self.project, release, dist)
-            if debug_id_index:
-                json["debug_id_index"] = debug_id_index
-            if url_index:
-                json["url_index"] = url_index
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-
         if release is not None:
             json["release"] = release
         if dist is not None:
             json["dist"] = dist
 
         return self._process("symbolicate_js_stacktraces", "symbolicate-js", json=json)
+
+    def process_jvm(
+        self,
+        exceptions,
+        stacktraces,
+        modules,
+        release_package,
+        classes,
+        apply_source_context=True,
+    ):
+        """
+        Process a JVM event by remapping its frames and exceptions with
+        ProGuard.
+
+        :param exceptions: The event's exceptions. These must contain a `type` and a `module`.
+        :param stacktraces: The event's stacktraces. Frames must contain a `function` and a `module`.
+        :param modules: ProGuard modules and source bundles. They must contain a `uuid` and have a
+                        `type` of either "proguard" or "source".
+        :param release_package: The name of the release's package. This is optional.
+                                Used for determining whether frames are in-app.
+        :param apply_source_context: Whether to add source context to frames.
+        """
+        source = get_internal_source(self.project)
+
+        json = {
+            "sources": [source],
+            "exceptions": exceptions,
+            "stacktraces": stacktraces,
+            "modules": modules,
+            "classes": classes,
+            "options": {"apply_source_context": apply_source_context},
+        }
+
+        if release_package is not None:
+            json["release_package"] = release_package
+
+        return self._process("symbolicate_jvm_stacktraces", "symbolicate-jvm", json=json)
 
 
 class TaskIdNotFound(Exception):
@@ -316,7 +365,7 @@ class SymbolicatorSession:
                             unit="byte",
                         )
                 else:
-                    with sentry_sdk.push_scope():
+                    with sentry_sdk.isolation_scope():
                         sentry_sdk.set_extra("symbolicator_response", response.text)
                         sentry_sdk.capture_message("Symbolicator request failed")
 

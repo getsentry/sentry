@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {GroupStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types/group';
 import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/issues';
 
 describe('transformIssuesResponseToTable', function () {
@@ -52,7 +52,7 @@ describe('transformIssuesResponseToTable', function () {
             id: '1',
             'issue.id': '1',
             lifetimeUsers: 5,
-            links: '',
+            links: [],
             period: '',
             projectId: '3',
             status: 'unresolved',

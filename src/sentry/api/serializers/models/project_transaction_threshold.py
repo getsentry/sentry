@@ -8,7 +8,7 @@ from sentry.models.transaction_threshold import (
 
 @register(ProjectTransactionThreshold)
 class ProjectTransactionThresholdSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "threshold": str(obj.threshold),
@@ -22,7 +22,7 @@ class ProjectTransactionThresholdSerializer(Serializer):
 
 @register(ProjectTransactionThresholdOverride)
 class ProjectTransactionThresholdOverrideSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "threshold": str(obj.threshold),

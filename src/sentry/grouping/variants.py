@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
+from sentry.types.misc import KeyedList
 
 
 class BaseVariant:
@@ -10,7 +11,7 @@ class BaseVariant:
     # This is true if `get_hash` does not return `None`.
     contributes = True
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         return None
 
     @property
@@ -28,31 +29,48 @@ class BaseVariant:
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, BaseVariant):
+            return NotImplemented
+        return self.as_dict() == other.as_dict()
+
+
+KeyedVariants = KeyedList[BaseVariant]
+
 
 class ChecksumVariant(BaseVariant):
     """A checksum variant returns a single hardcoded hash."""
 
     type = "checksum"
+    description = "legacy checksum"
 
-    def __init__(self, hash, hashed=False):
-        self.hash = hash
-        self.hashed = hashed
+    def __init__(self, checksum: str):
+        self.checksum = checksum
 
-    @property
-    def description(self):
-        if self.hashed:
-            return "hashed legacy checksum"
-        return "legacy checksum"
+    def get_hash(self) -> str | None:
+        return self.checksum
 
-    def get_hash(self):
-        return self.hash
+    def _get_metadata_as_dict(self):
+        return {"checksum": self.checksum}
+
+
+class HashedChecksumVariant(ChecksumVariant):
+    type = "hashed-checksum"
+    description = "hashed legacy checksum"
+
+    def __init__(self, checksum: str, raw_checksum: str):
+        self.checksum = checksum
+        self.raw_checksum = raw_checksum
+
+    def _get_metadata_as_dict(self):
+        return {"checksum": self.checksum, "raw_checksum": self.raw_checksum}
 
 
 class FallbackVariant(BaseVariant):
-    id = "fallback"
+    type = "fallback"
     contributes = True
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         return hash_from_values([])
 
 
@@ -75,7 +93,7 @@ class PerformanceProblemVariant(BaseVariant):
         self.event_performance_problem = event_performance_problem
         self.problem = event_performance_problem.problem
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         return self.problem.fingerprint
 
     def _get_metadata_as_dict(self):
@@ -87,7 +105,7 @@ class PerformanceProblemVariant(BaseVariant):
 
 class ComponentVariant(BaseVariant):
     """A component variant is a variant that produces a hash from the
-    `GroupComponent` it encloses.
+    `GroupingComponent` it encloses.
     """
 
     type = "component"
@@ -104,11 +122,14 @@ class ComponentVariant(BaseVariant):
     def contributes(self):
         return self.component.contributes
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         return self.component.get_hash()
 
     def _get_metadata_as_dict(self):
         return {"component": self.component.as_dict(), "config": self.config.as_dict()}
+
+    def __repr__(self):
+        return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
 def expose_fingerprint_dict(values, info=None):
@@ -134,7 +155,7 @@ def expose_fingerprint_dict(values, info=None):
 
 
 class CustomFingerprintVariant(BaseVariant):
-    """A user defined custom fingerprint."""
+    """A user-defined custom fingerprint."""
 
     type = "custom-fingerprint"
 
@@ -146,7 +167,7 @@ class CustomFingerprintVariant(BaseVariant):
     def description(self):
         return "custom fingerprint"
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         return hash_from_values(self.values)
 
     def _get_metadata_as_dict(self):
@@ -177,7 +198,7 @@ class SaltedComponentVariant(ComponentVariant):
     def description(self):
         return "modified " + self.component.description
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         if not self.component.contributes:
             return None
         final_values = []
@@ -192,23 +213,3 @@ class SaltedComponentVariant(ComponentVariant):
         rv = ComponentVariant._get_metadata_as_dict(self)
         rv.update(expose_fingerprint_dict(self.values, self.info))
         return rv
-
-
-# defines the order of hierarchical grouping hashes, globally. variant names
-# defined in this list
-#
-# 1) will be persisted in snuba for split/unsplit operations
-# 2) in save_event, will be traversed bottom-to-top, and the first GroupHash
-#    found is used to find/create group
-#
-# variants outside of this list are assumed to not contribute to any sort of
-# hierarchy, their hashes are always persisted as GroupHash (and used to find
-# existing groups)
-HIERARCHICAL_VARIANTS = [
-    "app-depth-1",  # hashing by 1 level of stacktrace (eg just crashing frame)
-    "app-depth-2",
-    "app-depth-3",
-    "app-depth-4",
-    "app-depth-5",
-    "app-depth-max",  # hashing by full stacktrace
-]

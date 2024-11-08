@@ -112,6 +112,10 @@ interface TooltipOption
     seriesParams?: TooltipComponentFormatterCallback<any>
   ) => string;
   /**
+   * If true does not display sublabels with a value of 0.
+   */
+  skipZeroValuedSubLabels?: boolean;
+  /**
    * Array containing data that is used to display indented sublabels.
    */
   subLabels?: TooltipSubLabel[];
@@ -686,7 +690,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     ${p.theme.overflowEllipsis};
   }
   .tooltip-label strong {
-    font-weight: normal;
+    font-weight: ${p.theme.fontWeightNormal};
     color: ${p.theme.textColor};
   }
   .tooltip-label-value {
@@ -699,6 +703,16 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     display: flex;
     justify-content: space-between;
     align-items: baseline;
+  }
+  .tooltip-label-align-start {
+    display: flex;
+    justify-content: flex-start;
+    align-items: baseline;
+  }
+  .tooltip-code-no-margin {
+    padding-left: 0;
+    margin-left: 0;
+    color: ${p.theme.subText};
   }
   .tooltip-footer {
     border-top: solid 1px ${p.theme.innerBorder};
@@ -746,7 +760,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     opacity: 0.9;
     padding: 5px 10px;
     position: relative;
-    font-weight: bold;
+    font-weight: ${p.theme.fontWeightBold};
     font-size: ${p.theme.fontSizeSmall};
     line-height: 1.4;
     font-family: ${p.theme.text.family};

@@ -16,7 +16,6 @@ from sentry.snuba.metrics.extraction import (
     to_standard_metrics_query,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 from sentry.utils.glob import glob_match
 
 
@@ -75,6 +74,7 @@ def test_equality_of_specs(default_project) -> None:
         ("user_misery(300)", "transaction.duration:>0", True),
     ],
 )
+@django_db_all
 def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
@@ -90,6 +90,7 @@ def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:
         ("p95(d:spans/duration@millisecond)", "transaction.duration:>0", False),
     ],
 )
+@django_db_all
 def test_should_use_on_demand_with_mri(agg, query, result) -> None:
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
@@ -143,6 +144,7 @@ class TestCreatesOndemandMetricSpec:
             ("count()", "transaction.source:route"),
         ],
     )
+    @django_db_all
     def test_creates_on_demand_spec(self, aggregate, query) -> None:
         assert create_spec_if_needed(self.dataset, aggregate, query)
 
@@ -169,6 +171,7 @@ class TestCreatesOndemandMetricSpec:
             ("failure_rate()", ""),
         ],
     )
+    @django_db_all
     def test_does_not_create_on_demand_spec(self, aggregate, query) -> None:
         assert not create_spec_if_needed(self.dataset, aggregate, query)
 
@@ -424,9 +427,7 @@ def test_spec_wildcard() -> None:
         ("title:*?dispatch*", "backend ?dispatch", r"*\?dispatch*"),
     ],
 )
-def test_spec_wildcard_escaping(
-    default_project, insta_snapshot, query, title, expected_pattern
-) -> None:
+def test_spec_wildcard_escaping(query, title, expected_pattern) -> None:
     spec = OnDemandMetricSpec("count()", query)
 
     assert spec._metric_type == "c"
@@ -441,10 +442,6 @@ def test_spec_wildcard_escaping(
     # We also validate using Relay's glob implementation to make sure the escaping
     # is interpreted correctly.
     assert glob_match(title, expected_pattern, ignorecase=True)
-
-    # We want to validate the json output, to make sure that characters are correctly escaped.
-    metric_spec = spec.to_metric_spec(default_project)
-    insta_snapshot(json.dumps(metric_spec))
 
 
 def test_spec_count_if() -> None:
@@ -609,9 +606,9 @@ def test_spec_failure_rate(default_project) -> None:
 
 
 @django_db_all
-@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
-def test_spec_apdex(_get_satisfactory_threshold_and_metric, default_project) -> None:
-    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_metric")
+def test_spec_apdex(_get_satisfactory_metric, default_project) -> None:
+    _get_satisfactory_metric.return_value = "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "release:a")
 
@@ -623,9 +620,9 @@ def test_spec_apdex(_get_satisfactory_threshold_and_metric, default_project) -> 
 
 
 @django_db_all
-@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
-def test_spec_apdex_decimal(_get_satisfactory_threshold_and_metric, default_project) -> None:
-    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_metric")
+def test_spec_apdex_decimal(_get_satisfactory_metric, default_project) -> None:
+    _get_satisfactory_metric.return_value = "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(0.8)", "release:a")
 
@@ -708,11 +705,9 @@ def test_cleanup_with_environment_injection(query) -> None:
 
 
 @django_db_all
-@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
-def test_spec_apdex_without_condition(
-    _get_satisfactory_threshold_and_metric, default_project
-) -> None:
-    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_metric")
+def test_spec_apdex_without_condition(_get_satisfactory_metric, default_project) -> None:
+    _get_satisfactory_metric.return_value = "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "")
 
@@ -721,6 +716,15 @@ def test_spec_apdex_without_condition(
     assert spec.op == "on_demand_apdex"
     assert spec.condition is None
     assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, ["10"])
+
+
+@django_db_all
+def test_spec_is_dependent_on_project(default_project) -> None:
+    spec = OnDemandMetricSpec("apdex(10)", "")
+    assert spec.is_project_dependent() is True
+
+    spec = OnDemandMetricSpec("failure_rate()", "")
+    assert spec.is_project_dependent() is False
 
 
 def test_spec_custom_tag() -> None:

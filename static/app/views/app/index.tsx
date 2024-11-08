@@ -1,5 +1,4 @@
 import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -11,23 +10,32 @@ import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
+import GuideStore from 'sentry/stores/guideStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
+import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
+import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
+import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
+import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
 import SystemAlerts from './systemAlerts';
 
@@ -35,9 +43,10 @@ type Props = {
   children: React.ReactNode;
 } & RouteComponentProps<{orgId?: string}, {}>;
 
-const InstallWizard: React.ComponentType<InstallWizardProps> = lazy(
+const InstallWizard = lazy(
   () => import('sentry/views/admin/installWizard')
-);
+  // TODO(TS): DeprecatedAsyncComponent prop types are doing something weird
+) as unknown as React.ComponentType<InstallWizardProps>;
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 
@@ -126,6 +135,10 @@ function App({children, params}: Props) {
       return;
     }
   }, [orgId, sentryUrl, isOrgSlugValid]);
+
+  // Update guide store on location change
+  const location = useLocation();
+  useEffect(() => GuideStore.onURLChange(), [location]);
 
   useEffect(() => {
     loadOrganizations();
@@ -230,14 +243,24 @@ function App({children, params}: Props) {
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
-      <OrganizationContextProvider>
-        <MainContainer tabIndex={-1} ref={mainContainerRef}>
-          <GlobalModal onClose={handleModalClose} />
-          <SystemAlerts className="messages-container" />
-          <Indicators className="indicators-container" />
-          <ErrorBoundary>{renderBody()}</ErrorBoundary>
-        </MainContainer>
-      </OrganizationContextProvider>
+      <LastKnownRouteContextProvider>
+        <RouteAnalyticsContextProvider>
+          <OrganizationContextProvider>
+            <AsyncSDKIntegrationContextProvider>
+              <GlobalFeedbackForm>
+                <GlobalDrawer>
+                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                    <GlobalModal onClose={handleModalClose} />
+                    <SystemAlerts className="messages-container" />
+                    <Indicators className="indicators-container" />
+                    <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                  </MainContainer>
+                </GlobalDrawer>
+              </GlobalFeedbackForm>
+            </AsyncSDKIntegrationContextProvider>
+          </OrganizationContextProvider>
+        </RouteAnalyticsContextProvider>
+      </LastKnownRouteContextProvider>
     </Profiler>
   );
 }
@@ -249,5 +272,5 @@ const MainContainer = styled('div')`
   flex-direction: column;
   min-height: 100vh;
   outline: none;
-  padding-top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
+  padding-top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
 `;

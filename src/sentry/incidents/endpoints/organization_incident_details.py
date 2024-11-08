@@ -7,9 +7,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.incident import DetailedIncidentSerializer
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.users.services.user.serial import serialize_generic_user
 
 
 class IncidentSerializer(serializers.Serializer):
@@ -55,7 +56,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
                 incident = update_incident_status(
                     incident=incident,
                     status=result["status"],
-                    user=request.user,
+                    user=serialize_generic_user(request.user),
                     comment=result.get("comment"),
                     status_method=IncidentStatusMethod.MANUAL,
                 )

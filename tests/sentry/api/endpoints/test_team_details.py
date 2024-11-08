@@ -1,13 +1,13 @@
 from sentry import audit_log
+from sentry.audit_log.services.log.service import log_rpc_service
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.deletedteam import DeletedTeam
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
-from sentry.services.hybrid_cloud.log.service import log_rpc_service
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
 
 
 class TeamDetailsTestBase(APITestCase):
@@ -61,16 +61,18 @@ class TeamDetailsTestBase(APITestCase):
         self.assert_team_status(team_id, TeamStatus.ACTIVE)
 
 
-@region_silo_test
 class TeamDetailsTest(TeamDetailsTestBase):
+    @override_options({"api.id-or-slug-enabled": True})
     def test_simple(self):
         team = self.team  # force creation
 
         response = self.get_success_response(team.organization.slug, team.slug)
         assert response.data["id"] == str(team.id)
 
+        response = self.get_success_response(team.organization.slug, team.id)
+        assert response.data["id"] == str(team.id)
 
-@region_silo_test
+
 class TeamUpdateTest(TeamDetailsTestBase):
     method = "put"
 
@@ -109,6 +111,22 @@ class TeamUpdateTest(TeamDetailsTestBase):
         self.login_as(user)
 
         self.get_success_response(team.organization.slug, team.slug, name="foo", slug="bar")
+
+        team = Team.objects.get(id=team.id)
+        assert team.name == "foo"
+        assert team.slug == "bar"
+
+    @override_options({"api.id-or-slug-enabled": True})
+    def test_admin_with_team_membership_with_id(self):
+        """Admins can modify their teams"""
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        user = self.create_user(email="foo@example.com", is_superuser=False)
+
+        self.create_member(organization=org, user=user, role="admin", teams=[team])
+        self.login_as(user)
+
+        self.get_success_response(team.organization.slug, team.id, name="foo", slug="bar")
 
         team = Team.objects.get(id=team.id)
         assert team.name == "foo"
@@ -185,8 +203,16 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "foo"
         assert team.slug == "bar"
 
+    def test_cannot_modify_idp_provisioned_teams(self):
+        org = self.create_organization(owner=self.user)
+        idp_team = self.create_team(organization=org, idp_provisioned=True)
 
-@region_silo_test
+        self.login_as(self.user)
+        self.get_error_response(
+            idp_team.organization.slug, idp_team.slug, name="foo", slug="bar", status_code=403
+        )
+
+
 class TeamDeleteTest(TeamDetailsTestBase):
     method = "delete"
 
@@ -248,6 +274,22 @@ class TeamDeleteTest(TeamDetailsTestBase):
         team.refresh_from_db()
         self.assert_team_deleted(team.id)
 
+    @override_options({"api.id-or-slug-enabled": True})
+    def test_admin_with_team_membership_with_id(self):
+        """Admins can delete their teams"""
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        user = self.create_user(email="foo@example.com", is_superuser=False)
+
+        self.create_member(organization=org, user=user, role="admin", teams=[team])
+        self.login_as(user)
+
+        with outbox_runner():
+            self.get_success_response(team.organization.slug, team.id, status_code=204)
+
+        team.refresh_from_db()
+        self.assert_team_deleted(team.id)
+
     def test_admin_without_team_membership(self):
         """Admins can't delete teams of which they're not inside, unless
         open membership is on."""
@@ -287,3 +329,14 @@ class TeamDeleteTest(TeamDetailsTestBase):
 
         team.refresh_from_db()
         self.assert_team_deleted(team.id)
+
+    def test_cannot_delete_idp_provisioned_teams(self):
+        org = self.create_organization(owner=self.user)
+        idp_team = self.create_team(organization=org, idp_provisioned=True)
+
+        self.login_as(self.user)
+        with outbox_runner():
+            self.get_error_response(
+                idp_team.organization.slug, idp_team.slug, name="foo", slug="bar", status_code=403
+            )
+        self.assert_team_not_deleted(idp_team.id)

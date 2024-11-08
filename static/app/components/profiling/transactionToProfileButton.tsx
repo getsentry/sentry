@@ -1,9 +1,9 @@
 import type {Location} from 'history';
 
 import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -45,9 +45,9 @@ function TransactionToProfileButton({
   });
 
   return (
-    <Button size={size} onClick={handleGoToProfile} to={target}>
+    <LinkButton size={size} onClick={handleGoToProfile} to={target}>
       {children}
-    </Button>
+    </LinkButton>
   );
 }
 

@@ -5,7 +5,8 @@ import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
-from sentry.discover.models import TeamKeyTransaction
+from sentry.discover.models import DatasetSourcesTypes, TeamKeyTransaction
+from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
@@ -24,15 +25,14 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.snuba.utils import DATASET_OPTIONS
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.discover import user_misery_formula
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.on_demand import create_widget
 from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
     viewname = "sentry-api-0-organization-events"
 
@@ -69,7 +69,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.login_as(user=self.user)
         url = reverse(
             self.viewname,
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         with self.feature(features):
             return self.client.get(url, query, format="json")
@@ -104,8 +104,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "field": ["id", "timestamp"],
                 "orderby": ["-timestamp", "-id"],
                 "query": "event.type:transaction",
-                "start": iso_format(before_now(days=20)),
-                "end": iso_format(before_now(days=15)),
+                "start": before_now(days=20),
+                "end": before_now(days=15),
                 "dataset": "metricsEnhanced",
             }
             response = self.do_request(query)
@@ -412,6 +412,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 400, response.content
 
+    @pytest.mark.querybuilder
     def test_performance_homepage_query(self):
         self.store_transaction_metric(
             1,
@@ -2531,6 +2532,49 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["dataset"] == "metrics"
         assert meta["fields"]["avg_if(transaction.duration, release, foo)"] == "duration"
 
+    def test_count_if(self):
+        self.store_transaction_metric(
+            100,
+            timestamp=self.min_ago,
+            tags={"release": "1.0.0"},
+        )
+        self.store_transaction_metric(
+            200,
+            timestamp=self.min_ago,
+            tags={"release": "1.0.0"},
+        )
+        self.store_transaction_metric(
+            10,
+            timestamp=self.min_ago,
+            tags={"release": "2.0.0"},
+        )
+
+        countIfRelease1 = "count_if(transaction.duration,release,1.0.0)"
+        countIfRelease2 = "count_if(transaction.duration,release,2.0.0)"
+
+        response = self.do_request(
+            {
+                "field": [
+                    countIfRelease1,
+                    countIfRelease2,
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0][countIfRelease1] == 2
+        assert data[0][countIfRelease2] == 1
+
+        assert meta["dataset"] == "metrics"
+        assert meta["fields"][countIfRelease1] == "integer"
+        assert meta["fields"][countIfRelease2] == "integer"
+
     def test_device_class(self):
         self.store_transaction_metric(
             100,
@@ -2593,13 +2637,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_performance_score(self):
         self.store_transaction_metric(
             0.03,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.30,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2624,18 +2668,18 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         self.store_transaction_metric(
             1.00,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             1.00,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
-            0.00,
+            1.00,
             metric="measurements.score.fid",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -2648,7 +2692,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
-            1.00,
+            0.00,
             metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -2666,14 +2710,34 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             timestamp=self.min_ago,
         )
 
+        # INP metrics
+        self.store_transaction_metric(
+            0.80,
+            metric="measurements.score.inp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1.00,
+            metric="measurements.score.weight.inp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.80,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
         response = self.do_request(
             {
                 "field": [
                     "transaction",
-                    "performance_score(measurements.score.lcp)",
                     "performance_score(measurements.score.fcp)",
                     "performance_score(measurements.score.fid)",
                     "performance_score(measurements.score.ttfb)",
+                    "performance_score(measurements.score.inp)",
                 ],
                 "query": "event.type:transaction",
                 "dataset": "metrics",
@@ -2686,25 +2750,25 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         field_meta = meta["fields"]
 
-        assert data[0]["performance_score(measurements.score.lcp)"] == 0.7923076923076923
         assert data[0]["performance_score(measurements.score.fcp)"] == 0.5
         assert data[0]["performance_score(measurements.score.fid)"] == 0
-        assert data[0]["performance_score(measurements.score.ttfb)"] == 0
+        assert data[0]["performance_score(measurements.score.ttfb)"] == 0.7923076923076923
+        assert data[0]["performance_score(measurements.score.inp)"] == 0.8
 
         assert meta["isMetricsData"]
-        assert field_meta["performance_score(measurements.score.lcp)"] == "number"
+        assert field_meta["performance_score(measurements.score.ttfb)"] == "number"
 
     def test_performance_score_boundaries(self):
         # Scores shouldn't exceed 1 or go below 0, but we can test these boundaries anyways
         self.store_transaction_metric(
             0.65,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.30,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2731,7 +2795,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "transaction",
-                    "performance_score(measurements.score.lcp)",
+                    "performance_score(measurements.score.ttfb)",
                     "performance_score(measurements.score.fcp)",
                 ],
                 "query": "event.type:transaction",
@@ -2745,22 +2809,22 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         field_meta = meta["fields"]
 
-        assert data[0]["performance_score(measurements.score.lcp)"] == 1.0
+        assert data[0]["performance_score(measurements.score.ttfb)"] == 1.0
         assert data[0]["performance_score(measurements.score.fcp)"] == 0.0
 
         assert meta["isMetricsData"]
-        assert field_meta["performance_score(measurements.score.lcp)"] == "number"
+        assert field_meta["performance_score(measurements.score.ttfb)"] == "number"
 
     def test_weighted_performance_score(self):
         self.store_transaction_metric(
             0.03,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.30,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2773,13 +2837,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         self.store_transaction_metric(
             1.00,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             1.00,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2789,8 +2853,21 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
+
         self.store_transaction_metric(
-            0.00,
+            0.80,
+            metric="measurements.score.inp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1.00,
+            metric="measurements.score.weight.inp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.80,
             metric="measurements.score.total",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -2800,7 +2877,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "transaction",
-                    "weighted_performance_score(measurements.score.lcp)",
+                    "weighted_performance_score(measurements.score.ttfb)",
+                    "weighted_performance_score(measurements.score.inp)",
                 ],
                 "query": "event.type:transaction",
                 "dataset": "metrics",
@@ -2813,9 +2891,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         field_meta = meta["fields"]
 
-        assert data[0]["weighted_performance_score(measurements.score.lcp)"] == 0.3433333333333333
+        assert data[0]["weighted_performance_score(measurements.score.ttfb)"] == 0.3433333333333333
+        assert data[0]["weighted_performance_score(measurements.score.inp)"] == 0.26666666666666666
         assert meta["isMetricsData"]
-        assert field_meta["weighted_performance_score(measurements.score.lcp)"] == "number"
+        assert field_meta["weighted_performance_score(measurements.score.ttfb)"] == "number"
 
     def test_invalid_performance_score_column(self):
         self.store_transaction_metric(
@@ -2862,7 +2941,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_no_weighted_performance_score_column(self):
         self.store_transaction_metric(
             0.0,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2870,7 +2949,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "transaction",
-                    "weighted_performance_score(measurements.score.lcp)",
+                    "weighted_performance_score(measurements.score.ttfb)",
                 ],
                 "query": "event.type:transaction",
                 "dataset": "metrics",
@@ -2884,20 +2963,20 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         field_meta = meta["fields"]
 
-        assert data[0]["weighted_performance_score(measurements.score.lcp)"] == 0.0
+        assert data[0]["weighted_performance_score(measurements.score.ttfb)"] == 0.0
         assert meta["isMetricsData"]
-        assert field_meta["weighted_performance_score(measurements.score.lcp)"] == "number"
+        assert field_meta["weighted_performance_score(measurements.score.ttfb)"] == "number"
 
     def test_opportunity_score(self):
         self.store_transaction_metric(
             0.03,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             0.30,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2922,13 +3001,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         self.store_transaction_metric(
             1.0,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
         self.store_transaction_metric(
             1.0,
-            metric="measurements.score.weight.lcp",
+            metric="measurements.score.weight.ttfb",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -2938,8 +3017,28 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
+
         self.store_transaction_metric(
             0.0,
+            metric="measurements.score.total",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            0.80,
+            metric="measurements.score.inp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1.00,
+            metric="measurements.score.weight.inp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.80,
             metric="measurements.score.total",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -2949,7 +3048,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             {
                 "field": [
                     "transaction",
-                    "opportunity_score(measurements.score.lcp)",
+                    "opportunity_score(measurements.score.ttfb)",
+                    "opportunity_score(measurements.score.inp)",
                     "opportunity_score(measurements.score.total)",
                 ],
                 "query": "event.type:transaction",
@@ -2962,9 +3062,173 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
 
-        assert data[0]["opportunity_score(measurements.score.lcp)"] == 0.27
-        assert data[0]["opportunity_score(measurements.score.total)"] == 1.57
+        assert data[0]["opportunity_score(measurements.score.ttfb)"] == 0.27
+        # Should be 0.2. Precision issue?
+        assert data[0]["opportunity_score(measurements.score.inp)"] == 0.19999999999999996
+        assert data[0]["opportunity_score(measurements.score.total)"] == 1.77
 
+        assert meta["isMetricsData"]
+
+    def test_opportunity_score_with_fixed_weights(self):
+        self.store_transaction_metric(
+            0.5,
+            metric="measurements.score.inp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1.0,
+            metric="measurements.score.weight.inp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.2,
+            metric="measurements.score.inp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            1.0,
+            metric="measurements.score.weight.inp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.2,
+            metric="measurements.score.inp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.5,
+            metric="measurements.score.weight.inp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.1,
+            metric="measurements.score.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.3,
+            metric="measurements.score.weight.lcp",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.2,
+            metric="measurements.score.inp",
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.5,
+            metric="measurements.score.weight.inp",
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "total_opportunity_score()",
+                ],
+                "query": "event.type:transaction",
+                "orderby": "transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["total_opportunity_score()"] == 0.029999999999999995
+        assert data[1]["total_opportunity_score()"] == 0.36
+        assert meta["isMetricsData"]
+
+    def test_total_performance_score(self):
+        self.store_transaction_metric(
+            0.03,
+            metric="measurements.score.lcp",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.30,
+            metric="measurements.score.weight.lcp",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.15,
+            metric="measurements.score.fcp",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.15,
+            metric="measurements.score.weight.fcp",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.10,
+            metric="measurements.score.cls",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.15,
+            metric="measurements.score.weight.cls",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.05,
+            metric="measurements.score.ttfb",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.10,
+            metric="measurements.score.weight.ttfb",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.05,
+            metric="measurements.score.inp",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.10,
+            metric="measurements.score.weight.inp",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "performance_score(measurements.score.total)",
+                ],
+                "query": "",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert data[0]["performance_score(measurements.score.total)"] == 0.48
         assert meta["isMetricsData"]
 
     def test_count_scores(self):
@@ -2994,7 +3258,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         self.store_transaction_metric(
             0.5,
-            metric="measurements.score.lcp",
+            metric="measurements.score.ttfb",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.8,
+            metric="measurements.score.inp",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
@@ -3004,7 +3274,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "field": [
                     "transaction",
                     "count_scores(measurements.score.total)",
-                    "count_scores(measurements.score.lcp)",
+                    "count_scores(measurements.score.ttfb)",
+                    "count_scores(measurements.score.inp)",
                 ],
                 "query": "event.type:transaction",
                 "dataset": "metrics",
@@ -3017,7 +3288,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
 
         assert data[0]["count_scores(measurements.score.total)"] == 4
-        assert data[0]["count_scores(measurements.score.lcp)"] == 1
+        assert data[0]["count_scores(measurements.score.ttfb)"] == 1
+        assert data[0]["count_scores(measurements.score.inp)"] == 1
 
         assert meta["isMetricsData"]
 
@@ -3167,8 +3439,284 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["faketag"] == "foo"
         assert not meta["isMetricsData"]
 
+    def test_filtering_by_org_id_is_not_compatible(self):
+        """Implicitly test the fact that percentiles are their own 'dataset'"""
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
 
-@region_silo_test
+        response = self.do_request(
+            {
+                "field": ["title", "p50()", "count()"],
+                "query": "event.type:transaction organization_id:2",
+                "dataset": "metrics",
+                "project": self.project.id,
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 400, response.content
+
+    def test_cache_miss_rate(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "true"},
+        )
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"cache.hit": "false"},
+        )
+        response = self.do_request(
+            {
+                "field": ["cache_miss_rate()"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["cache_miss_rate()"] == 0.75
+        assert meta["dataset"] == "metrics"
+        assert meta["fields"]["cache_miss_rate()"] == "percentage"
+
+    def test_http_response_rate(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "200"},
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "301"},
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "404"},
+        )
+
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "503"},
+        )
+
+        self.store_span_metric(
+            5,
+            timestamp=self.min_ago,
+            tags={"span.status_code": "501"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "http_response_rate(200)",  # By exact code
+                    "http_response_rate(3)",  # By code class
+                    "http_response_rate(4)",
+                    "http_response_rate(5)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["http_response_rate(200)"] == 0.2
+        assert data[0]["http_response_rate(3)"] == 0.2
+        assert data[0]["http_response_rate(4)"] == 0.2
+        assert data[0]["http_response_rate(5)"] == 0.4
+
+        meta = response.data["meta"]
+        assert meta["dataset"] == "metrics"
+        assert meta["fields"]["http_response_rate(200)"] == "percentage"
+
+    def test_avg_span_self_time(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            5,
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(span.self_time)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(span.self_time)"] == 3.2
+
+    def test_avg_message_receive_latency_gauge_functions(self):
+        self.store_span_metric(
+            {
+                "min": 5,
+                "max": 5,
+                "sum": 5,
+                "count": 1,
+                "last": 5,
+            },
+            internal_metric=constants.SPAN_MESSAGING_LATENCY,
+            timestamp=self.min_ago,
+            entity="metrics_gauges",
+        )
+        self.store_span_metric(
+            {
+                "min": 15,
+                "max": 15,
+                "sum": 15,
+                "count": 1,
+                "last": 15,
+            },
+            internal_metric=constants.SPAN_MESSAGING_LATENCY,
+            timestamp=self.min_ago,
+            entity="metrics_gauges",
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(messaging.message.receive.latency)",
+                    "sum(messaging.message.receive.latency)",
+                    "min(messaging.message.receive.latency)",
+                    "max(messaging.message.receive.latency)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(messaging.message.receive.latency)"] == 10.0
+        assert data[0]["sum(messaging.message.receive.latency)"] == 20.0
+        assert data[0]["min(messaging.message.receive.latency)"] == 5.0
+        assert data[0]["max(messaging.message.receive.latency)"] == 15.0
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(g:spans/messaging.message.receive.latency@millisecond)",
+                    "sum(g:spans/messaging.message.receive.latency@millisecond)",
+                    "min(g:spans/messaging.message.receive.latency@millisecond)",
+                    "max(g:spans/messaging.message.receive.latency@millisecond)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(g:spans/messaging.message.receive.latency@millisecond)"] == 10.0
+        assert data[0]["sum(g:spans/messaging.message.receive.latency@millisecond)"] == 20.0
+        assert data[0]["min(g:spans/messaging.message.receive.latency@millisecond)"] == 5.0
+        assert data[0]["max(g:spans/messaging.message.receive.latency@millisecond)"] == 15.0
+
+    def test_span_module_filter(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+            tags={"span.category": "db", "span.op": "db.redis"},
+        )
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+            tags={"span.category": "cache"},
+        )
+        self.store_span_metric(
+            4,
+            timestamp=self.min_ago,
+            tags={"span.category": "db", "span.op": "db.sql.room"},
+        )
+        self.store_span_metric(
+            2,
+            timestamp=self.min_ago,
+            tags={"span.category": "db"},
+        )
+        self.store_span_metric(
+            3,
+            timestamp=self.min_ago,
+            tags={"span.category": "http"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "span.description",
+                    "span.module",
+                    "avg(span.self_time)",
+                ],
+                "orderby": "avg(span.self_time)",
+                "query": "span.module:[db, cache, other]",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+
+        assert data[0]["span.module"] == "db"
+        assert data[0]["avg(span.self_time)"] == 2
+        assert data[1]["span.module"] == "cache"
+        assert data[1]["avg(span.self_time)"] == 2.5
+        assert data[2]["span.module"] == "other"
+        assert data[2]["avg(span.self_time)"] == 4
+
+
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
 ):
@@ -3176,7 +3724,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
     def setUp(self) -> None:
         super().setUp()
-        self.url = reverse(self.viewname, kwargs={"organization_slug": self.organization.slug})
+        self.url = reverse(
+            self.viewname, kwargs={"organization_id_or_slug": self.organization.slug}
+        )
         self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
 
     def _create_specs(
@@ -3257,6 +3807,79 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         self._assert_on_demand_response(response, expected_on_demand_query=True)
         assert response.data["data"] == [{user_misery_field: user_misery_formula(1, 2)}]
 
+    def test_on_demand_user_misery_discover_split_with_widget_id_unsaved(self) -> None:
+        user_misery_field = "user_misery(300)"
+        query = "transaction.duration:>=100"
+
+        _, widget, __ = create_widget(["count()"], "", self.project, discover_widget_split=None)
+
+        # We store data for both specs, however, when the query builders try to query
+        # for the data it will not query on-demand data
+        for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+            spec = OnDemandMetricSpec(
+                field=user_misery_field,
+                query=query,
+                spec_type=MetricSpecType.DYNAMIC_QUERY,
+                # We only allow querying the function in the latest spec version,
+                # otherwise, the data returned by the endpoint would be 0.05
+                spec_version=spec_version,
+            )
+            tags = {"satisfaction": "miserable"}
+            self.store_on_demand_metric(1, spec=spec, additional_tags=tags, timestamp=self.min_ago)
+            self.store_on_demand_metric(2, spec=spec, timestamp=self.min_ago)
+
+        params = {"field": [user_misery_field], "project": self.project.id, "query": query}
+        self._create_specs(params)
+
+        params["dashboardWidgetId"] = widget.id
+
+        # Since we're using the extra feature flag we expect user_misery to be an on-demand metric
+        with mock.patch.object(widget, "save") as mock_widget_save:
+            response = self._make_on_demand_request(params, {SPEC_VERSION_TWO_FLAG: True})
+            assert bool(mock_widget_save.assert_called_once)
+
+        self._assert_on_demand_response(response, expected_on_demand_query=True)
+        assert response.data["data"] == [{user_misery_field: user_misery_formula(1, 2)}]
+
+    def test_on_demand_user_misery_discover_split_with_widget_id_saved(self) -> None:
+        user_misery_field = "user_misery(300)"
+        query = "transaction.duration:>=100"
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,  # Transactions like uses on-demand
+        )
+
+        # We store data for both specs, however, when the query builders try to query
+        # for the data it will not query on-demand data
+        for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+            spec = OnDemandMetricSpec(
+                field=user_misery_field,
+                query=query,
+                spec_type=MetricSpecType.DYNAMIC_QUERY,
+                # We only allow querying the function in the latest spec version,
+                # otherwise, the data returned by the endpoint would be 0.05
+                spec_version=spec_version,
+            )
+            tags = {"satisfaction": "miserable"}
+            self.store_on_demand_metric(1, spec=spec, additional_tags=tags, timestamp=self.min_ago)
+            self.store_on_demand_metric(2, spec=spec, timestamp=self.min_ago)
+
+        params = {"field": [user_misery_field], "project": self.project.id, "query": query}
+        self._create_specs(params)
+
+        params["dashboardWidgetId"] = widget.id
+
+        # Since we're using the extra feature flag we expect user_misery to be an on-demand metric
+        with mock.patch.object(widget, "save") as mock_widget_save:
+            response = self._make_on_demand_request(params, {SPEC_VERSION_TWO_FLAG: True})
+            assert bool(mock_widget_save.assert_not_called)
+
+        self._assert_on_demand_response(response, expected_on_demand_query=True)
+        assert response.data["data"] == [{user_misery_field: user_misery_formula(1, 2)}]
+
     def test_on_demand_count_unique(self):
         field = "count_unique(user)"
         query = "transaction.duration:>0"
@@ -3284,8 +3907,204 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         self._assert_on_demand_response(response, expected_on_demand_query=True)
         assert response.data["data"] == [{"count_unique(user)": 2}]
 
+    def test_split_decision_for_errors_widget(self):
+        error_data = load_data("python", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **error_data,
+                "exception": {"values": [{"type": "blah", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+        _, widget, __ = create_widget(
+            ["count()", "error.type"], "error.type:blah", self.project, discover_widget_split=None
+        )
 
-@region_silo_test
+        response = self.do_request(
+            {
+                "field": ["count()", "error.type"],
+                "query": "error.type:blah",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
+
+    def test_split_decision_for_transactions_widget(self):
+        transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **transaction_data,
+            },
+            project_id=self.project.id,
+        )
+        _, widget, __ = create_widget(
+            ["count()", "transaction.name"], "", self.project, discover_widget_split=None
+        )
+
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()", "transaction.name"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+        assert widget.dataset_source == DatasetSourcesTypes.INFERRED.value
+
+    def test_split_decision_for_ambiguous_widget_without_data(self):
+        _, widget, __ = create_widget(
+            ["count()", "transaction.name", "error.type"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()", "transaction.op", "error.type"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            },
+            features={"organizations:performance-discover-dataset-selector": True},
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
+
+    def test_split_decision_for_ambiguous_widget_with_data(self):
+        # Store a transaction
+        transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **transaction_data,
+            },
+            project_id=self.project.id,
+        )
+
+        # Store an event
+        error_data = load_data("python", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **error_data,
+                "exception": {"values": [{"type": "blah", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            },
+            features={"organizations:performance-discover-dataset-selector": True},
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) == DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+        assert widget.dataset_source == DatasetSourcesTypes.FORCED.value
+
+    @mock.patch("sentry.snuba.errors.query")
+    def test_errors_request_made_for_saved_error_dashboard_widget_type(self, mock_errors_query):
+        mock_errors_query.return_value = {
+            "data": [],
+            "meta": {},
+        }
+        _, widget, __ = create_widget(
+            ["count()"], "", self.project, discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count()",
+                ],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        mock_errors_query.assert_called_once()
+
+    @mock.patch("sentry.snuba.metrics_enhanced_performance.query")
+    def test_metrics_enhanced_request_made_for_saved_transaction_like_dashboard_widget_type(
+        self, mock_mep_query
+    ):
+        mock_mep_query.return_value = {
+            "data": [],
+            "meta": {},
+        }
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count()",
+                ],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        mock_mep_query.assert_called_once()
+
+
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
 ):
@@ -3319,6 +4138,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
         super().test_avg_if()
 
     @pytest.mark.xfail(reason="Not implemented")
+    def test_count_if(self):
+        super().test_count_if()
+
+    @pytest.mark.xfail(reason="Not implemented")
     def test_device_class(self):
         super().test_device_class()
 
@@ -3332,7 +4155,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_performance_score_boundaries(self):
-        super().test_performance_score()
+        super().test_performance_score_boundaries()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_total_performance_score(self):
+        super().test_total_performance_score()
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_weighted_performance_score(self):
@@ -3355,6 +4182,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
         super().test_opportunity_score()
 
     @pytest.mark.xfail(reason="Not implemented")
+    def test_opportunity_score_with_fixed_weights(self):
+        super().test_opportunity_score_with_fixed_weights()
+
+    @pytest.mark.xfail(reason="Not implemented")
     def test_count_scores(self):
         super().test_count_scores()
 
@@ -3373,3 +4204,23 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_on_demand_with_mep(self):
         super().test_on_demand_with_mep()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_cache_miss_rate(self):
+        super().test_cache_miss_rate()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_http_response_rate(self):
+        super().test_http_response_rate()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_span_self_time(self):
+        super().test_avg_span_self_time()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_avg_message_receive_latency_gauge_functions(self):
+        super().test_avg_message_receive_latency_gauge_functions()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_span_module_filter(self):
+        super().test_span_module_filter()

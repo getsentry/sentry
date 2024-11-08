@@ -9,7 +9,7 @@ from sentry.models.environment import Environment
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.services.hybrid_cloud.organization import RpcOrganization
+    from sentry.organizations.services.organization import RpcOrganization
 
 environment_visibility_filter_options = {
     "all": lambda queryset: queryset,

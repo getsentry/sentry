@@ -10,7 +10,14 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
         "operator": ">",
-        "value": {"type": "valueIso8601Date", "value": "2015-05-18T00:00:00.000Z"}
+        "value": {
+          "type": "valueIso8601Date",
+          "value": "2015-05-18",
+          "parsed": {"value": "2015-05-18T00:00:00.000Z"},
+          "date": "2015-05-18",
+          "time": null,
+          "tz": null
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -26,7 +33,14 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
         "operator": ">",
-        "value": {"type": "valueIso8601Date", "value": "2015-05-18T10:15:01.000Z"}
+        "value": {
+          "type": "valueIso8601Date",
+          "value": "2015-05-18T10:15:01",
+          "parsed": {"value": "2015-05-18T10:15:01.000Z"},
+          "date": "2015-05-18",
+          "time": "10:15:01",
+          "tz": null
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -42,7 +56,14 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
         "operator": ">",
-        "value": {"type": "valueIso8601Date", "value": "2015-05-18T10:15:01.103Z"}
+        "value": {
+          "type": "valueIso8601Date",
+          "value": "2015-05-18T10:15:01.103",
+          "parsed": {"value": "2015-05-18T10:15:01.103Z"},
+          "date": "2015-05-18",
+          "time": "10:15:01.103",
+          "tz": null
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -58,7 +79,14 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "timestamp", "quoted": false},
         "operator": ">",
-        "value": {"type": "valueIso8601Date", "value": "2015-05-18T10:15:01.103Z"}
+        "value": {
+          "type": "valueIso8601Date",
+          "value": "2015-05-18T10:15:01.103Z",
+          "parsed": {"value": "2015-05-18T10:15:01.103Z"},
+          "date": "2015-05-18",
+          "time": "10:15:01.103",
+          "tz": "Z"
+        }
       },
       {"type": "spaces", "value": ""}
     ]

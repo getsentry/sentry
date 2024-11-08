@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
 import type {ApiResult} from 'sentry/api';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
@@ -52,6 +52,7 @@ export default function useReplayCount({
   statsPeriod,
 }: Props) {
   const cache = useAggregatedQueryKeys<string, CountState>({
+    cacheKey: `/organizations/${organization.slug}/replay-count/|${dataSource}|${fieldName}|${statsPeriod}`,
     bufferLimit,
     getQueryKey: useCallback(
       (ids: readonly string[]): ApiQueryKey => [
@@ -61,7 +62,10 @@ export default function useReplayCount({
             data_source: dataSource,
             project: -1,
             statsPeriod,
-            query: `${fieldName}:[${ids.join(',')}]`,
+            query:
+              fieldName === 'transaction'
+                ? `${fieldName}:[${ids.map(id => `"${id}"`).join(',')}]`
+                : `${fieldName}:[${ids.join(',')}]`,
           },
         },
       ],

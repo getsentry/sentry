@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import re
 from base64 import b64encode
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
 from django.db import router
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from rest_framework import status
 
 from sentry import audit_log
@@ -19,28 +20,31 @@ from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.utils import generate_region_url
+from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.authenticator import Authenticator
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.options import ControlOption
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
-from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.user import User
 from sentry.signals import project_created
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
 
 pytestmark = [requires_snuba]
 
@@ -83,24 +87,8 @@ class MockAccess:
 @region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
-        response = self.get_success_response(self.organization.slug)
-
-        assert response.data["slug"] == self.organization.slug
-        assert response.data["links"] == {
-            "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": generate_region_url(),
-        }
-        assert response.data["id"] == str(self.organization.id)
-        assert response.data["role"] == "owner"
-        assert response.data["orgRole"] == "owner"
-        assert len(response.data["teams"]) == 0
-        assert len(response.data["projects"]) == 0
-        assert "customer-domains" not in response.data["features"]
-
-    def test_simple_customer_domain(self):
-        HTTP_HOST = f"{self.organization.slug}.testserver"
         response = self.get_success_response(
-            self.organization.slug, extra_headers={"HTTP_HOST": HTTP_HOST}
+            self.organization.slug, qs_params={"include_feature_flags": 1}
         )
 
         assert response.data["slug"] == self.organization.slug
@@ -113,14 +101,42 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
-        assert "customer-domains" in response.data["features"]
 
-        with self.feature({"organizations:customer-domains": False}):
+    def test_include_feature_flag_query_param(self):
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"include_feature_flags": 1}
+        )
+        assert "features" in response.data
+
+        response = self.get_success_response(self.organization.slug)
+        assert "features" not in response.data
+
+    def test_simple_customer_domain(self):
+        HTTP_HOST = f"{self.organization.slug}.testserver"
+        response = self.get_success_response(
+            self.organization.slug,
+            extra_headers={"HTTP_HOST": HTTP_HOST},
+            qs_params={"include_feature_flags": 1},
+        )
+
+        assert response.data["slug"] == self.organization.slug
+        assert response.data["links"] == {
+            "organizationUrl": f"http://{self.organization.slug}.testserver",
+            "regionUrl": generate_region_url(),
+        }
+        assert response.data["id"] == str(self.organization.id)
+        assert response.data["role"] == "owner"
+        assert response.data["orgRole"] == "owner"
+        assert len(response.data["teams"]) == 0
+        assert len(response.data["projects"]) == 0
+
+        with self.feature({"system:multi-region": False}):
             HTTP_HOST = f"{self.organization.slug}.testserver"
             response = self.get_success_response(
-                self.organization.slug, extra_headers={"HTTP_HOST": HTTP_HOST}
+                self.organization.slug,
+                extra_headers={"HTTP_HOST": HTTP_HOST},
+                qs_params={"include_feature_flags": 1},
             )
-            assert "customer-domains" in response.data["features"]
 
     def test_org_mismatch_customer_domain(self):
         HTTP_HOST = f"{self.organization.slug}-apples.testserver"
@@ -242,9 +258,9 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.now(timezone.utc)
+            start_time = timezone.now()
             self.get_success_response(self.organization.slug, method="put", **data)
-            end_time = datetime.now(timezone.utc)
+            end_time = timezone.now()
             response = self.get_success_response(self.organization.slug)
 
         response_data = response.data.get("trustedRelays")
@@ -310,6 +326,237 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
                 assert not response.data["isDynamicallySampled"]
                 assert "planSampleRate" not in response.data
 
+    def test_is_dynamically_sampled_no_org_option(self):
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ):
+                response = self.get_success_response(self.organization.slug)
+                assert response.data["isDynamicallySampled"]
+
+    def test_is_dynamically_sampled_org_option(self):
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.organization.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data["isDynamicallySampled"]
+
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.organization.update_option("sentry:target_sample_rate", 1.0)
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert not response.data["isDynamicallySampled"]
+
+    def test_is_dynamically_sampled_proj_option(self):
+        proj_1 = self.create_project(organization=self.organization)
+        proj_2 = self.create_project(organization=self.organization)
+
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        proj_1.update_option("sentry:target_sample_rate", 1.0)
+        # proj_2 remains unset
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert not response.data["isDynamicallySampled"]
+
+        proj_2.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data["isDynamicallySampled"]
+
+    def test_dynamic_sampling_custom_target_sample_rate(self):
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data["targetSampleRate"] == 1.0
+
+        with self.feature({"organizations:dynamic-sampling-custom": False}):
+            response = self.get_success_response(self.organization.slug)
+            assert "targetSampleRate" not in response.data
+
+    def test_dynamic_sampling_custom_sampling_mode(self):
+        with self.feature({"organizations:dynamic-sampling-custom": True}):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data["samplingMode"] == "organization"
+
+        with self.feature({"organizations:dynamic-sampling-custom": False}):
+            response = self.get_success_response(self.organization.slug)
+            assert "samplingMode" not in response.data
+
+    @django_db_all
+    def test_sampling_mode_project_to_org(self):
+        """
+        Test changing sampling mode from project-level to organization-level:
+        - Should set org-level target sample rate to the blended rate
+        - Should remove project-level sampling rates
+        """
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+
+        project1.update_option("sentry:target_sample_rate", 0.3)
+        project2.update_option("sentry:target_sample_rate", 0.5)
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                samplingMode=DynamicSamplingMode.ORGANIZATION.value,
+                targetSampleRate=0.123456789,
+            )
+
+        assert response.status_code == 200
+
+        # Verify org option was set
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.123456789
+
+        # Verify project options were removed
+
+        assert not ProjectOption.objects.filter(
+            project__organization_id=self.organization.id, key="sentry:target_sample_rate"
+        )
+
+    @django_db_all
+    def test_sampling_mode_retains_target_sample_rate(self):
+        """
+        Test that changing sampling mode while not providing a new targetSampleRate
+        retains the previous targetSampleRate value
+        """
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        self.organization.update_option("sentry:target_sample_rate", 0.4)
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                samplingMode=DynamicSamplingMode.ORGANIZATION.value,
+            )
+
+        assert response.status_code == 200
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.4
+
+    @django_db_all
+    def test_cannot_set_target_sample_rate_in_project_mode(self):
+        """
+        Test that setting targetSampleRate while in project sampling mode raises an error
+        """
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(self.organization.slug, method="put", targetSampleRate=0.5)
+
+        assert response.status_code == 400
+        assert response.data == {
+            "non_field_errors": [
+                "Must be in Automatic Mode to configure the organization sample rate."
+            ]
+        }
+
+    @django_db_all
+    def test_sampling_mode_default_when_not_set(self):
+        """
+        Test that when sentry:sampling_mode is not set, it uses SAMPLING_MODE_DEFAULT
+        when validating targetSampleRate
+        """
+        # Ensure no sampling mode is set
+        self.organization.delete_option("sentry:sampling_mode")
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            # Since SAMPLING_MODE_DEFAULT is ORGANIZATION, this should succeed
+            response = self.get_response(self.organization.slug, method="put", targetSampleRate=0.5)
+
+        assert response.status_code == 200
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.5
+
+    @django_db_all
+    def test_sampling_mode_org_to_project(self):
+        """
+        Test changing sampling mode from organization-level to project-level:
+        - Should preserve existing project rates
+        - Should remove org-level target sample rate
+        """
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.organization.update_option("sentry:target_sample_rate", 0.4)
+
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+
+        # Set some existing sampling rates
+        project1.update_option("sentry:target_sample_rate", 0.3)
+        project2.update_option("sentry:target_sample_rate", 0.5)
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                samplingMode=DynamicSamplingMode.PROJECT.value,
+            )
+
+        assert response.status_code == 200
+
+        # Verify project rates were preserved
+        assert project1.get_option("sentry:target_sample_rate") == 0.3
+        assert project2.get_option("sentry:target_sample_rate") == 0.5
+
+        # Verify org target rate was removed
+        assert not self.organization.get_option("sentry:target_sample_rate")
+
+    @django_db_all
+    def test_change_just_org_target_sample_rate(self):
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.organization.update_option("sentry:target_sample_rate", 0.4)
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.4
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                targetSampleRate=0.1,
+            )
+
+        assert response.status_code == 200
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.1
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                unrelatedData="hello",
+            )
+
+        assert response.status_code == 200
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.1
+
+    @django_db_all
+    def test_sampling_mode_change_requires_write_scope(self):
+        """
+        Test that changing sampling mode requires org:write scope
+        """
+        self.non_write_user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.non_write_user,
+            organization=self.organization,
+            role="member",  # Member role doesn't have org:write scope
+        )
+        self.login_as(user=self.non_write_user)
+
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                data={"samplingMode": DynamicSamplingMode.ORGANIZATION.value},
+            )
+
+        assert response.status_code == 403
+
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]
         resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
@@ -333,8 +580,48 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             == generate_region_url() + "/organization-avatar/abc123/"
         )
 
+    def test_old_orgs_with_options_do_not_get_onboarding_feature_flag(self):
+        with self.feature("organizations:onboarding"):
+            old_date = datetime(2023, 12, 31, tzinfo=UTC)
+            old_org = self.create_organization(name="old-org", date_added=old_date, owner=self.user)
+            self.login_as(user=self.user)
 
-@region_silo_test
+            OrganizationOption.objects.create(organization_id=old_org.id, key="foo:bar", value=True)
+
+            response = self.get_success_response(
+                old_org.slug, qs_params={"include_feature_flags": 1}
+            )
+            assert "onboarding" not in response.data["features"]
+
+    def test_new_orgs_with_options_get_onboarding_feature_flag(self):
+        with self.feature("organizations:onboarding"):
+            newer_date = datetime(2024, 12, 31, tzinfo=UTC)
+            new_org = self.create_organization(date_added=newer_date, owner=self.user)
+            self.login_as(user=self.user)
+
+            OrganizationOption.objects.create(organization_id=new_org.id, key="foo:bar", value=True)
+
+            response = self.get_success_response(
+                new_org.slug, qs_params={"include_feature_flags": 1}
+            )
+            assert "onboarding" in response.data["features"]
+
+    def test_new_orgs_with_options_do_not_get_onboarding_feature_flag(self):
+        with self.feature("organizations:onboarding"):
+            newer_date = datetime(2024, 12, 31, tzinfo=UTC)
+            new_org = self.create_organization(date_added=newer_date, owner=self.user)
+            self.login_as(user=self.user)
+
+            OrganizationOption.objects.create(
+                organization_id=new_org.id, key="onboarding:complete", value=True
+            )
+
+            response = self.get_success_response(
+                new_org.slug, qs_params={"include_feature_flags": 1}
+            )
+            assert "onboarding" not in response.data["features"]
+
+
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -344,6 +631,15 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=self.organization.id)
         assert org.name == "hello world"
         assert org.slug == "foobar"
+
+    def test_include_feature_flag_query_param(self):
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"include_feature_flags": 1}
+        )
+        assert "features" in response.data
+
+        response = self.get_success_response(self.organization.slug)
+        assert "features" not in response.data
 
     def test_dupe_slug(self):
         org = self.create_organization(owner=self.user, slug="duplicate")
@@ -386,10 +682,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.GitHubAppsClient.get_repositories",
+        "sentry.integrations.github.integration.GitHubApiClient.get_repositories",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
-    @with_feature("organizations:codecov-integration")
+    @with_feature(["organizations:codecov-integration", "organizations:dynamic-sampling-custom"])
     def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -407,6 +703,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "openMembership": False,
             "isEarlyAdopter": True,
             "codecovAccess": True,
+            "allowSuperuserAccess": False,
+            "allowMemberInvite": False,
             "aiSuggestedSolution": False,
             "githubOpenPRBot": False,
             "githubNudgeInvite": False,
@@ -425,6 +723,14 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
+            "issueAlertsThreadFlag": False,
+            "metricAlertsThreadFlag": False,
+            "metricsActivatePercentiles": False,
+            "metricsActivateLastForGauges": True,
+            "uptimeAutodetection": False,
+            "targetSampleRate": 0.1,
+            "samplingMode": "organization",
+            "rollbackEnabled": True,
         }
 
         # needed to set require2FA
@@ -441,6 +747,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert org.flags.early_adopter
         assert org.flags.codecov_access
+        assert org.flags.prevent_superuser_access
+        assert org.flags.disable_member_invite
         assert not org.flags.allow_joinleave
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy
@@ -458,6 +766,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
+        assert options.get("sentry:metrics_activate_percentiles") is False
+        assert options.get("sentry:metrics_activate_last_for_gauges") is True
+        assert options.get("sentry:uptime_autodetection") is False
+        assert options.get("sentry:target_sample_rate") == 0.1
+        assert options.get("sentry:sampling_mode") == "organization"
+        assert options.get("sentry:rollback_enabled") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -468,6 +782,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
         assert "to {}".format(data["isEarlyAdopter"]) in log.data["early_adopter"]
         assert "to {}".format(data["codecovAccess"]) in log.data["codecov_access"]
+        assert (
+            "to {}".format(not data["allowSuperuserAccess"]) in log.data["prevent_superuser_access"]
+        )
+        assert "to {}".format(not data["allowMemberInvite"]) in log.data["disable_member_invite"]
         assert "to {}".format(data["enhancedPrivacy"]) in log.data["enhanced_privacy"]
         assert "to {}".format(not data["allowSharedIssues"]) in log.data["disable_shared_issues"]
         assert "to {}".format(data["require2FA"]) in log.data["require_2fa"]
@@ -486,10 +804,21 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
+        assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
+        assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
+        assert (
+            "to {}".format(data["metricsActivatePercentiles"])
+            in log.data["metricsActivatePercentiles"]
+        )
+        assert (
+            "to {}".format(data["metricsActivateLastForGauges"])
+            in log.data["metricsActivateLastForGauges"]
+        )
+        assert "to {}".format(data["uptimeAutodetection"]) in log.data["uptimeAutodetection"]
 
     @responses.activate
     @patch(
-        "sentry.integrations.github.GitHubAppsClient.get_repositories",
+        "sentry.integrations.github.client.GitHubApiClient.get_repositories",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     @with_feature("organizations:codecov-integration")
@@ -553,7 +882,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         response_data = response.data.get("trustedRelays")
         assert response_data is not None
-        resp_str = json.dumps(response_data)
+        resp_str = orjson.dumps(response_data).decode()
         # check that we have the duplicate key specified somewhere in the error message
         assert resp_str.find(_VALID_RELAY_KEYS[0]) >= 0
 
@@ -577,9 +906,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"), outbox_runner():
-            start_time = datetime.now(timezone.utc)
+            start_time = timezone.now()
             response = self.get_success_response(self.organization.slug, **data)
-            end_time = datetime.now(timezone.utc)
+            end_time = timezone.now()
             response_data = response.data.get("trustedRelays")
 
         actual = get_trusted_relay_value(self.organization)
@@ -661,11 +990,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         changed_settings = {"trustedRelays": modified_trusted_relays}
 
         with self.feature("organizations:relay"), outbox_runner():
-            start_time = datetime.now(timezone.utc)
+            start_time = timezone.now()
             self.get_success_response(self.organization.slug, **initial_settings)
-            after_initial = datetime.now(timezone.utc)
+            after_initial = timezone.now()
             self.get_success_response(self.organization.slug, **changed_settings)
-            after_final = datetime.now(timezone.utc)
+            after_final = timezone.now()
 
         actual = get_trusted_relay_value(self.organization)
         assert len(actual) == len(modified_trusted_relays)
@@ -888,8 +1217,59 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.create_organization(slug="taken")
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
+    def test_target_sample_rate_feature(self):
+        with self.feature("organizations:dynamic-sampling-custom"):
+            data = {"targetSampleRate": 0.1}
+            self.get_success_response(self.organization.slug, **data)
 
-@region_silo_test
+        with self.feature({"organizations:dynamic-sampling-custom": False}):
+            data = {"targetSampleRate": 0.1}
+            self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    @with_feature("organizations:dynamic-sampling-custom")
+    def test_target_sample_rate_range(self):
+        # low, within and high
+        data = {"targetSampleRate": 0.0}
+        self.get_success_response(self.organization.slug, **data)
+
+        data = {"targetSampleRate": 0.1}
+        self.get_success_response(self.organization.slug, **data)
+
+        data = {"targetSampleRate": 1.0}
+        self.get_success_response(self.organization.slug, **data)
+
+        # below range
+        data = {"targetSampleRate": -0.1}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+        # above range
+        data = {"targetSampleRate": 1.1}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_sampling_mode_feature(self):
+        with self.feature("organizations:dynamic-sampling-custom"):
+            data = {"samplingMode": "project"}
+            self.get_success_response(self.organization.slug, **data)
+
+        with self.feature({"organizations:dynamic-sampling-custom": False}):
+            data = {"samplingMode": "project"}
+            self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    @with_feature("organizations:dynamic-sampling-custom")
+    def test_sampling_mode_values(self):
+        # project
+        data = {"samplingMode": "project"}
+        self.get_success_response(self.organization.slug, **data)
+
+        # organization
+        data = {"samplingMode": "organization"}
+        self.get_success_response(self.organization.slug, **data)
+
+        # invalid
+        data = {"samplingMode": "invalid"}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
 
@@ -909,7 +1289,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
         schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
         # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
-        assert schedule.date_scheduled >= django_timezone.now() + timedelta(hours=23)
+        assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
         # Make sure we've emailed all owners
         assert len(mail.outbox) == len(owners)
@@ -999,7 +1379,6 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=400)
 
 
-@region_silo_test
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     endpoint = "sentry-api-0-organization-details"
 
@@ -1065,6 +1444,12 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         with assume_test_silo_mode_of(Authenticator):
+            assert not self.owner.has_2fa()
+        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
+
+        # having recovery codes only (backup method) should not allow to enforce org 2FA
+        with assume_test_silo_mode_of(Authenticator):
+            RecoveryCodeInterface().enroll(self.owner)
             assert not self.owner.has_2fa()
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 

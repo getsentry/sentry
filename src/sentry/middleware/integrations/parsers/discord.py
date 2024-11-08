@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import logging
 from collections.abc import Sequence
 
@@ -9,18 +8,25 @@ from django.http import HttpResponse, JsonResponse
 from rest_framework import status
 from rest_framework.request import Request
 
+from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.integrations.discord.message_builder.base.flags import EPHEMERAL_FLAG
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.views.link_identity import DiscordLinkIdentityView
 from sentry.integrations.discord.views.unlink_identity import DiscordUnlinkIdentityView
 from sentry.integrations.discord.webhooks.base import DiscordInteractionsEndpoint
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
+from sentry.integrations.discord.webhooks.types import DiscordResponseTypes
+from sentry.integrations.middleware.hybrid_cloud.parser import (
+    BaseRequestParser,
+    create_async_request_payload,
+)
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.integrations.web.discord_extension_configuration import (
+    DiscordExtensionConfigurationView,
+)
 from sentry.middleware.integrations.tasks import convert_to_async_discord_response
-from sentry.models.integrations import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
-from sentry.web.frontend.discord_extension_configuration import DiscordExtensionConfigurationView
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +45,10 @@ class DiscordRequestParser(BaseRequestParser):
     _discord_request: DiscordRequest | None = None
 
     # https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type
-    async_response_data = {"type": 5, "flags": 64}
+    async_response_data = {
+        "type": DiscordResponseTypes.DEFERRED_MESSAGE,
+        "data": {"flags": EPHEMERAL_FLAG},
+    }
 
     @property
     def discord_request(self) -> DiscordRequest | None:
@@ -52,17 +61,16 @@ class DiscordRequestParser(BaseRequestParser):
         return self._discord_request
 
     def get_async_region_response(self, regions: Sequence[Region]) -> HttpResponse:
-        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=self.request)
         if self.discord_request:
             convert_to_async_discord_response.apply_async(
                 kwargs={
                     "region_names": [r.name for r in regions],
-                    "payload": dataclasses.asdict(webhook_payload),
+                    "payload": create_async_request_payload(self.request),
                     "response_url": self.discord_request.response_url,
                 }
             )
 
-        return JsonResponse(data=self.async_response_data, status=status.HTTP_202_ACCEPTED)
+        return JsonResponse(data=self.async_response_data, status=status.HTTP_200_OK)
 
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.control_classes:
@@ -79,7 +87,7 @@ class DiscordRequestParser(BaseRequestParser):
                 external_id=discord_request.guild_id,
             ).first()
 
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_extra("path", self.request.path)
             scope.set_extra("guild_id", str(discord_request.guild_id if discord_request else None))
             sentry_sdk.capture_exception(

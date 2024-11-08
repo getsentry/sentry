@@ -1,6 +1,7 @@
 import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
-import type {Organization, SandboxData} from 'sentry/types';
+import {LinkButton} from 'sentry/components/button';
+import type {Organization} from 'sentry/types/organization';
+import type {SandboxData} from 'sentry/types/sandbox';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -75,7 +76,7 @@ function DemoSandboxButton({
   };
   url.searchParams.append('client', JSON.stringify(clientOptions));
   return (
-    <Button
+    <LinkButton
       external
       href={url.toString()}
       onClick={() =>

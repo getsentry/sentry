@@ -249,7 +249,7 @@ class MessageBuilder:
             send_email_task = send_email.delay
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 send_email_task = send_email_control.delay
-            safe_execute(send_email_task, message=message, _with_transaction=False)
+            safe_execute(send_email_task, message=message)
             extra["message_id"] = message.extra_headers["Message-Id"]
             metrics.incr("email.queued", instance=self.type, skip_internal=False)
             if fmt == LoggingFormat.HUMAN:

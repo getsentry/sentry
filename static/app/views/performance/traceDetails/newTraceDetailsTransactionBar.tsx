@@ -1,5 +1,4 @@
 import {createRef, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {Observer} from 'mobx-react';
@@ -63,9 +62,10 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconZoom} from 'sentry/icons/iconZoom';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import toPercent from 'sentry/utils/number/toPercent';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import type {
@@ -80,7 +80,7 @@ import {
 import Projects from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -137,7 +137,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
   const transactionRowDOMRef = createRef<HTMLDivElement>();
   const transactionTitleRef = createRef<HTMLDivElement>();
   let spanContentRef: HTMLDivElement | null = null;
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const handleWheel = useCallback(
     (event: WheelEvent) => {
@@ -230,7 +230,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
       : undefined;
   const {
     data: embeddedChildren,
-    isLoading: isEmbeddedChildrenLoading,
+    isPending: isEmbeddedChildrenLoading,
     error: embeddedChildrenError,
   } = useApiQuery<EventTransaction>(
     [
@@ -292,19 +292,22 @@ function NewTraceDetailsTransactionBar(props: Props) {
     const {transaction, organization, location} = props;
 
     if (isTraceError(transaction)) {
-      browserHistory.push(generateIssueEventTarget(transaction, organization));
+      navigate(generateIssueEventTarget(transaction, organization));
       return;
     }
 
     if (isTraceTransaction<TraceFullDetailed>(transaction)) {
-      router.replace({
-        ...location,
-        hash: transactionTargetHash(transaction.event_id),
-        query: {
-          ...location.query,
-          openPanel: 'open',
+      navigate(
+        {
+          ...location,
+          hash: transactionTargetHash(transaction.event_id),
+          query: {
+            ...location.query,
+            openPanel: 'open',
+          },
         },
-      });
+        {replace: true}
+      );
     }
   };
 
@@ -477,6 +480,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
           event={embeddedChildren}
           location={location}
           orgSlug={organization.slug}
+          skipLight={false}
         >
           {results => (
             <ProfilesProvider
@@ -777,7 +781,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
     const hasMetrics = Object.keys(embeddedChildren?._metrics_summary ?? {}).length > 0;
 
     if (
-      !hasDDMExperimentalFeature(organization) ||
+      !hasMetricsExperimentalFeature(organization) ||
       isTraceRoot(transaction) ||
       isTraceError(transaction) ||
       !hasMetrics

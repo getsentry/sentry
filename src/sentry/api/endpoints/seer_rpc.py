@@ -1,10 +1,11 @@
 import hashlib
 import hmac
-from datetime import datetime
 from typing import Any
 
+import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.exceptions import (
     AuthenticationFailed,
     NotFound,
@@ -14,17 +15,18 @@ from rest_framework.exceptions import (
 )
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import capture_exception, configure_scope
+from sentry_sdk import Scope, capture_exception
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.models.group import Group
-from sentry.services.hybrid_cloud.rpc import RpcAuthenticationSetupException, RpcResolutionException
-from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
+from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
+from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
+from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
-from sentry.utils import json
+from sentry.utils.env import in_test_environment
 
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
@@ -43,16 +45,16 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
         return False
 
     # We aren't using the version bits currently.
-    body = json.dumps(json.loads(body.decode("utf8"))).encode("utf8")
+    body = orjson.dumps(orjson.loads(body))
     _, signature_data = signature.split(":", 2)
     signature_input = b"%s:%s" % (
-        url.encode("utf8"),
+        url.encode(),
         body,
     )
 
     for key in settings.SEER_RPC_SHARED_SECRET:
-        computed = hmac.new(key.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
-        is_valid = hmac.compare_digest(computed.encode("utf-8"), signature_data.encode("utf-8"))
+        computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
+        is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
         if is_valid:
             return True
 
@@ -77,8 +79,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
         if not compare_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 
-        with configure_scope() as scope:
-            scope.set_tag("seer_rpc_auth", True)
+        Scope.get_isolation_scope().set_tag("seer_rpc_auth", True)
 
         return (AnonymousUser(), token)
 
@@ -110,7 +111,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise RpcResolutionException(f"Unknown method {method_name}")
         # As seer is a single service, we just directly expose the methods instead of services.
         method = seer_method_registry[method_name]
-        return method(**arguments)  # type: ignore
+        return method(**arguments)
 
     def post(self, request: Request, method_name: str) -> Response:
         if not self._is_authorized(request):
@@ -131,8 +132,13 @@ class SeerRpcServiceEndpoint(Endpoint):
         except SerializableFunctionValueException as e:
             capture_exception()
             raise ParseError from e
+        except ObjectDoesNotExist as e:
+            # Let this fall through, this is normal.
+            capture_exception()
+            raise NotFound from e
         except Exception as e:
-            # Produce more detailed log
+            if in_test_environment():
+                raise
             if settings.DEBUG:
                 raise Exception(f"Problem processing seer rpc endpoint {method_name}") from e
             capture_exception()
@@ -140,41 +146,40 @@ class SeerRpcServiceEndpoint(Endpoint):
         return Response(data=result)
 
 
-def on_autofix_step_update(*, issue_id: int, status: str, steps: list[dict]) -> None:
-    group: Group = Group.objects.get(id=issue_id)
+def get_organization_slug(*, org_id: int) -> dict:
+    org: Organization = Organization.objects.get(id=org_id)
+    return {"slug": org.slug}
 
-    metadata = group.data.get("metadata", {})
-    autofix_data = metadata.get("autofix", {})
 
-    metadata["autofix"] = {
-        **autofix_data,
-        "status": status,
-        "steps": steps,
+def get_organization_autofix_consent(*, org_id: int) -> dict:
+    org: Organization = Organization.objects.get(id=org_id)
+    consent = org.get_option("sentry:gen_ai_consent", False)
+    github_extension_enabled = org_id in options.get("github-extension.enabled-orgs")
+    return {
+        "consent": consent or github_extension_enabled,
     }
-
-    group.data["metadata"] = metadata
-    group.save()
-
-
-def on_autofix_complete(*, issue_id: int, status: str, steps: list[dict], fix: dict | None) -> None:
-    group: Group = Group.objects.get(id=issue_id)
-
-    metadata = group.data.get("metadata", {})
-    autofix_data = metadata.get("autofix", {})
-
-    metadata["autofix"] = {
-        **autofix_data,
-        "completedAt": datetime.now().isoformat(),
-        "status": status,
-        "steps": steps,
-        "fix": fix,
-    }
-
-    group.data["metadata"] = metadata
-    group.save()
 
 
 seer_method_registry = {
-    "on_autofix_step_update": on_autofix_step_update,
-    "on_autofix_complete": on_autofix_complete,
+    "get_organization_slug": get_organization_slug,
+    "get_organization_autofix_consent": get_organization_autofix_consent,
 }
+
+
+def generate_request_signature(url_path: str, body: bytes) -> str:
+    """
+    Generate a signature for the request body
+    with the first shared secret. If there are other
+    shared secrets in the list they are only to be used
+    for verfication during key rotation.
+    """
+    if not settings.SEER_RPC_SHARED_SECRET:
+        raise RpcAuthenticationSetupException("Cannot sign RPC requests without RPC_SHARED_SECRET")
+
+    signature_input = b"%s:%s" % (
+        url_path.encode("utf8"),
+        body,
+    )
+    secret = settings.SEER_RPC_SHARED_SECRET[0]
+    signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
+    return f"rpc0:{signature}"

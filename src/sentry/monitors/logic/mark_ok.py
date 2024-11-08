@@ -1,33 +1,41 @@
-from datetime import datetime
+from __future__ import annotations
 
-from sentry.monitors.models import (
-    CheckInStatus,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorIncident,
-    MonitorStatus,
-)
+import logging
+from datetime import datetime, timedelta
+from typing import NotRequired, TypedDict
+
+from django.utils import timezone
+
+from sentry import analytics
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
+from sentry.monitors.tasks.detect_broken_monitor_envs import NUM_DAYS_BROKEN_PERIOD
+
+logger = logging.getLogger(__name__)
 
 
-def mark_ok(checkin: MonitorCheckIn, ts: datetime):
+class _Params(TypedDict):
+    last_checkin: datetime
+    next_checkin: datetime
+    next_checkin_latest: datetime
+    status: NotRequired[int]
+
+
+def mark_ok(checkin: MonitorCheckIn, ts: datetime) -> None:
     monitor_env = checkin.monitor_environment
+
+    if monitor_env is None:
+        return None
 
     next_checkin = monitor_env.monitor.get_next_expected_checkin(ts)
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(ts)
 
-    params = {
+    params: _Params = {
         "last_checkin": checkin.date_added,
         "next_checkin": next_checkin,
         "next_checkin_latest": next_checkin_latest,
     }
 
-    if (
-        not monitor_env.monitor.is_muted
-        and not monitor_env.is_muted
-        and monitor_env.status != MonitorStatus.OK
-        and checkin.status == CheckInStatus.OK
-    ):
-        params["status"] = MonitorStatus.OK
+    if monitor_env.status != MonitorStatus.OK and checkin.status == CheckInStatus.OK:
         recovery_threshold = monitor_env.monitor.config.get("recovery_threshold", 1)
         if not recovery_threshold:
             recovery_threshold = 1
@@ -52,24 +60,36 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime):
 
         # Resolve any open incidents
         if incident_recovering:
-            # TODO(rjo100): Check for multiple open incidents where we only
-            # resolved if recovery_threshold was set and not faiure_issue_threshold
-            active_incidents = MonitorIncident.objects.filter(
-                monitor_environment=monitor_env,
-                resolving_checkin__isnull=True,
-            )
-
-            # Only send an occurrence if we have an active incident
-            for grouphash in active_incidents.values_list("grouphash", flat=True):
-                resolve_incident_group(grouphash, checkin.monitor.project_id)
-            if active_incidents.update(
-                resolving_checkin=checkin,
-                resolving_timestamp=checkin.date_added,
-            ):
-                params["last_state_change"] = ts
-        else:
-            # Don't update status if incident isn't recovered
-            params.pop("status", None)
+            params["status"] = MonitorStatus.OK
+            incident = monitor_env.active_incident
+            if incident:
+                resolve_incident_group(incident.grouphash, checkin.monitor.project_id)
+                incident.update(
+                    resolving_checkin=checkin,
+                    resolving_timestamp=checkin.date_added,
+                )
+                logger.info(
+                    "monitors.logic.mark_ok.resolving_incident",
+                    extra={
+                        "monitor_env_id": monitor_env.id,
+                        "incident_id": incident.id,
+                        "grouphash": incident.grouphash,
+                    },
+                )
+                # if incident was longer than the broken env time, check if there was a broken detection that is also now resolved
+                if (
+                    incident.starting_timestamp is not None
+                    and incident.starting_timestamp
+                    <= timezone.now() - timedelta(days=NUM_DAYS_BROKEN_PERIOD)
+                ):
+                    if incident.monitorenvbrokendetection_set.exists():
+                        analytics.record(
+                            "cron_monitor_broken_status.recovery",
+                            organization_id=monitor_env.monitor.organization_id,
+                            project_id=monitor_env.monitor.project_id,
+                            monitor_id=monitor_env.monitor.id,
+                            monitor_env_id=monitor_env.id,
+                        )
 
     MonitorEnvironment.objects.filter(id=monitor_env.id).exclude(last_checkin__gt=ts).update(
         **params

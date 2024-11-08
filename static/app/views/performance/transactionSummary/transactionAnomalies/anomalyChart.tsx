@@ -3,13 +3,12 @@ import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
   data: Series[];
@@ -20,7 +19,6 @@ type Props = {
 };
 
 export function AnomalyChart(props: Props) {
-  const router = useRouter();
   const location = useLocation();
   const {data, statsPeriod, height, start: propsStart, end: propsEnd} = props;
 
@@ -53,13 +51,7 @@ export function AnomalyChart(props: Props) {
   };
 
   return (
-    <ChartZoom
-      router={router}
-      period={statsPeriod}
-      start={start}
-      end={end}
-      utc={utc === 'true'}
-    >
+    <ChartZoom period={statsPeriod} start={start} end={end} utc={utc === 'true'}>
       {zoomRenderProps => (
         <LineChart {...zoomRenderProps} series={data} {...chartOptions} />
       )}

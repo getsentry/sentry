@@ -5,7 +5,6 @@ import {Component} from 'react';
 import type {Layouts} from 'react-grid-layout';
 import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -22,11 +21,15 @@ import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {DatasetSource} from 'sentry/utils/discover/types';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -53,6 +56,7 @@ import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardWidgetSource, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
+import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -85,8 +89,10 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
+  widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   handleAddMetricWidget?: (layout?: Widget['layout']) => void;
+  handleChangeSplitDataset?: (widget: Widget, index: number) => void;
   isPreview?: boolean;
   newWidget?: Widget;
   onSetNewWidget?: () => void;
@@ -280,7 +286,18 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
-    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
+    const {
+      organization,
+      dashboard,
+      onUpdate,
+      isEditingDashboard,
+      handleUpdateWidgetList,
+    } = this.props;
+
+    trackAnalytics('dashboards_views.widget.delete', {
+      organization,
+      widget_type: widgetToDelete.displayType,
+    });
 
     let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
     nextList = generateWidgetsAfterCompaction(nextList);
@@ -293,7 +310,18 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
+    const {
+      organization,
+      dashboard,
+      onUpdate,
+      isEditingDashboard,
+      handleUpdateWidgetList,
+    } = this.props;
+
+    trackAnalytics('dashboards_views.widget.duplicate', {
+      organization,
+      widget_type: widget.displayType,
+    });
 
     const widgetCopy = cloneDeep(
       assignTempId({...widget, id: undefined, tempId: undefined})
@@ -309,13 +337,39 @@ class Dashboard extends Component<Props, State> {
     }
   };
 
+  handleChangeSplitDataset = (widget: Widget, index: number) => {
+    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
+
+    const widgetCopy = cloneDeep({
+      ...widget,
+      id: undefined,
+    });
+
+    const nextList = [...dashboard.widgets];
+    const nextWidgetData = {
+      ...widgetCopy,
+      widgetType: WidgetType.TRANSACTIONS,
+      datasetSource: DatasetSource.USER,
+      id: widget.id,
+    };
+    nextList[index] = nextWidgetData;
+
+    onUpdate(nextList);
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+  };
+
   handleEditWidget = (index: number) => () => {
     const {organization, router, location, paramDashboardId} = this.props;
-
     const widget = this.props.dashboard.widgets[index];
 
-    if (widget.widgetType === WidgetType.METRICS && hasDDMFeature(organization)) {
-      // TODO(ddm): open preview modal
+    trackAnalytics('dashboards_views.widget.edit', {
+      organization,
+      widget_type: widget.displayType,
+    });
+
+    if (widget.widgetType === WidgetType.METRICS) {
       return;
     }
 
@@ -361,11 +415,13 @@ class Dashboard extends Component<Props, State> {
 
     const widgetProps = {
       widget,
+      widgetLegendState: this.props.widgetLegendState,
       isEditingDashboard,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
+      onSetTransactionsDataset: () => this.handleChangeSplitDataset(widget, index),
 
       isPreview,
 
@@ -487,18 +543,9 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {isEditingDashboard, dashboard, widgetLimitReached, organization} = this.props;
-    let {widgets} = dashboard;
-    // Filter out any issue/release widgets if the user does not have the feature flag
-    widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.RELEASE) {
-        return organization.features.includes('dashboards-rh-widget');
-      }
-      if (widgetType === WidgetType.METRICS) {
-        return hasDDMFeature(organization);
-      }
-      return true;
-    });
+    const {isEditingDashboard, dashboard, widgetLimitReached, organization, isPreview} =
+      this.props;
+    const {widgets} = dashboard;
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
 
@@ -507,7 +554,7 @@ class Dashboard extends Component<Props, State> {
     const canModifyLayout = !isMobile && isEditingDashboard;
 
     const displayInlineAddWidget =
-      hasDDMFeature(organization) &&
+      hasCustomMetrics(organization) &&
       isValidLayout({...this.addWidgetLayout, i: ADD_WIDGET_BUTTON_DRAG_ID});
 
     return (
@@ -537,14 +584,16 @@ class Dashboard extends Component<Props, State> {
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {(isEditingDashboard || displayInlineAddWidget) && !widgetLimitReached && (
-          <AddWidgetWrapper
-            key={ADD_WIDGET_BUTTON_DRAG_ID}
-            data-grid={this.addWidgetLayout}
-          >
-            <AddWidget onAddWidget={this.handleStartAdd} />
-          </AddWidgetWrapper>
-        )}
+        {(isEditingDashboard || displayInlineAddWidget) &&
+          !widgetLimitReached &&
+          !isPreview && (
+            <AddWidgetWrapper
+              key={ADD_WIDGET_BUTTON_DRAG_ID}
+              data-grid={this.addWidgetLayout}
+            >
+              <AddWidget onAddWidget={this.handleStartAdd} />
+            </AddWidgetWrapper>
+          )}
       </GridLayout>
     );
   }

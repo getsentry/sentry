@@ -2,8 +2,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   findAllByTestId,
-  reactHooks,
   render,
   screen,
   userEvent,
@@ -117,7 +117,7 @@ Object.defineProperty(window, 'matchMedia', {
 describe('Flamegraph', function () {
   beforeEach(() => {
     const project = ProjectFixture({slug: 'foo-project'});
-    reactHooks.act(() => void ProjectsStore.loadInitialData([project]));
+    act(() => void ProjectsStore.loadInitialData([project]));
   });
   it('renders a missing profile', async function () {
     MockApiClient.addMockResponse({
@@ -165,7 +165,9 @@ describe('Flamegraph', function () {
       {organization: initializeOrg().organization}
     );
 
-    const frames = await findAllByTestId(document.body, 'flamegraph-frame');
+    const frames = await findAllByTestId(document.body, 'flamegraph-frame', undefined, {
+      timeout: 5000,
+    });
 
     // 1 for main view and 1 for minimap
     expect(frames.length).toBe(2);

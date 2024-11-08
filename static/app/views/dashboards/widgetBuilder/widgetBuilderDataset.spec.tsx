@@ -1,5 +1,6 @@
-import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -12,9 +13,12 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
+import {ERROR_FIELDS, ERRORS_AGGREGATION_FUNCTIONS} from 'sentry/utils/discover/fields';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
@@ -24,12 +28,13 @@ import {
 import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
+
 const defaultOrgFeatures = [
   'performance-view',
   'dashboards-edit',
   'global-views',
   'dashboards-mep',
-  'dashboards-rh-widget',
 ];
 
 function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
@@ -58,7 +63,7 @@ function renderTestComponent({
   params?: Partial<WidgetBuilderProps['params']>;
   query?: Record<string, any>;
 } = {}) {
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, projects, router} = initializeOrg({
     organization: {
       features: orgFeatures ?? defaultOrgFeatures,
     },
@@ -72,7 +77,14 @@ function renderTestComponent({
     },
   });
 
-  ProjectsStore.loadInitialData(organization.projects);
+  ProjectsStore.loadInitialData(projects);
+
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
+    organization,
+    router,
+  });
 
   render(
     <WidgetBuilder
@@ -97,9 +109,10 @@ function renderTestComponent({
         dashboardId: dashboard?.id ?? 'new',
         ...params,
       }}
+      widgetLegendState={widgetLegendState}
     />,
     {
-      context: routerContext,
+      router,
       organization,
     }
   );
@@ -263,6 +276,10 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/releases/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/spans/fields/`,
+      body: [],
+    });
 
     TagStore.reset();
   });
@@ -270,7 +287,7 @@ describe('WidgetBuilder', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    jest.useRealTimers();
+    resetMockDate();
   });
 
   describe('Release Widgets', function () {
@@ -362,7 +379,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('does not allow sort on tags except release', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -403,7 +420,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('makes the appropriate sessions call', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -435,7 +452,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('calls the session endpoint with the right limit', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -473,7 +490,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('calls sessions api when session.status is selected as a groupby', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -532,7 +549,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('sets widgetType to release', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'), {
@@ -580,31 +597,40 @@ describe('WidgetBuilder', function () {
       );
     });
 
-    it('renders with a release search bar', async function () {
+    it('suggests release properties for sessions dataset', async function () {
       renderTestComponent();
 
-      await userEvent.type(
-        await screen.findByPlaceholderText('Search for events, users, tags, and more'),
-        'session.status:'
+      await userEvent.click(
+        await screen.findByRole('combobox', {name: 'Add a search term'})
       );
+      await userEvent.paste('session.status:');
 
-      await waitFor(() => {
-        expect(screen.getByText("The field isn't supported here.")).toBeInTheDocument();
-      });
+      const row = await screen.findByRole('row', {name: 'session.status:'});
+      expect(row).toHaveAttribute('aria-invalid', 'true');
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Remove filter: session.status'})
+      );
 
       await userEvent.click(screen.getByText('Releases (Sessions, Crash rates)'));
+
       await userEvent.click(
-        screen.getByPlaceholderText(
-          'Search for release version, session status, and more'
-        )
+        await screen.findByRole('combobox', {name: 'Add a search term'})
       );
-      expect(await screen.findByText('environment')).toBeInTheDocument();
-      expect(screen.getByText('project')).toBeInTheDocument();
-      expect(screen.getByText('release')).toBeInTheDocument();
+
+      expect(await screen.findByRole('button', {name: 'All'})).toBeInTheDocument();
+
+      const menu = screen.getByRole('listbox');
+      const groups = within(menu).getAllByRole('group');
+
+      const all = groups[0];
+      expect(within(all).getByRole('option', {name: 'environment'})).toBeInTheDocument();
+      expect(within(all).getByRole('option', {name: 'project'})).toBeInTheDocument();
+      expect(within(all).getByRole('option', {name: 'release'})).toBeInTheDocument();
     });
 
     it('adds a function when the only column chosen in a table is a tag', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'), {
@@ -676,6 +702,28 @@ describe('WidgetBuilder', function () {
       ).toBeDisabled();
     });
 
+    it('renders errors and transactions dataset options', async function () {
+      renderTestComponent({
+        query: {
+          source: DashboardWidgetSource.DISCOVERV2,
+        },
+        orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+      });
+
+      await userEvent.click(await screen.findByText('Table'));
+      await userEvent.click(screen.getByText('Line Chart'));
+      expect(
+        screen.getByRole('radio', {
+          name: 'Errors (TypeError, InvalidSearchQuery, etc)',
+        })
+      ).toBeEnabled();
+      expect(
+        screen.getByRole('radio', {
+          name: 'Transactions',
+        })
+      ).toBeEnabled();
+    });
+
     it('disables moving and deleting issue column', async function () {
       renderTestComponent();
 
@@ -724,32 +772,34 @@ describe('WidgetBuilder', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('issue query does not work on default search bar', async function () {
+    it('does not suggest issue filter keys for default dataset', async function () {
       renderTestComponent();
 
-      const input = (await screen.findByPlaceholderText(
-        'Search for events, users, tags, and more'
-      )) as HTMLTextAreaElement;
-      await userEvent.type(input, 'bookmarks');
-      input.setSelectionRange(9, 9);
+      await userEvent.click(
+        await screen.findByRole('combobox', {name: 'Add a search term'})
+      );
+      await userEvent.paste('bookmarks');
 
-      expect(await screen.findByText('No items found')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('option', {
+          name: '"bookmarks"',
+        })
+      ).toBeInTheDocument();
     });
 
-    it('renders with an issues search bar when selected in dataset selection', async function () {
+    it('suggests issue filter keys for issues dataset', async function () {
       renderTestComponent();
 
       await userEvent.click(
         await screen.findByText('Issues (States, Assignment, Time, etc.)')
       );
 
-      const input = (await screen.findByPlaceholderText(
-        'Search for issues, status, assigned, and more'
-      )) as HTMLTextAreaElement;
-      await userEvent.type(input, 'is:');
-      input.setSelectionRange(3, 3);
+      await userEvent.click(
+        await screen.findByRole('combobox', {name: 'Add a search term'})
+      );
+      await userEvent.paste('ass');
 
-      expect(await screen.findByText('resolved')).toBeInTheDocument();
+      expect(screen.getByLabelText('assigned')).toBeInTheDocument();
     });
 
     it('Update table header values (field alias)', async function () {
@@ -839,6 +889,7 @@ describe('WidgetBuilder', function () {
                 utc: null,
                 project: [],
                 environment: [],
+                widgetType: 'discover',
               },
             })
           );
@@ -1242,7 +1293,9 @@ describe('WidgetBuilder', function () {
         });
         await screen.findByText('transaction');
         await userEvent.click(screen.getAllByText('count()')[1]);
-        expect(screen.getByText('measurements.custom.measurement')).toBeInTheDocument();
+        expect(
+          await screen.findByText('measurements.custom.measurement')
+        ).toBeInTheDocument();
       });
 
       it('does not default to sorting by transaction when columns change', async function () {
@@ -1293,6 +1346,107 @@ describe('WidgetBuilder', function () {
         expect(
           within(screen.getByTestId('sort-by-step')).getByText('count()')
         ).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Errors dataset', function () {
+    it('only shows the correct aggregates for timeseries charts', async function () {
+      renderTestComponent({
+        dashboard: {
+          ...testDashboard,
+          widgets: [
+            {
+              title: 'Errors Widget',
+              interval: '1d',
+              id: '1',
+              widgetType: WidgetType.ERRORS,
+              displayType: DisplayType.LINE,
+              queries: [
+                {
+                  conditions: '',
+                  name: '',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  orderby: '-count()',
+                },
+              ],
+            },
+          ],
+        },
+        params: {
+          widgetIndex: '0',
+        },
+        orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+      });
+
+      // Open the y-axis options dropdown
+      const yAxisStep = screen
+        .getByRole('heading', {name: /choose what to plot in the y-axis/i})
+        .closest('li');
+      await userEvent.click(within(yAxisStep!).getByText('count()'));
+
+      // Verify the error aggregates are present
+      expect(screen.getAllByRole('menuitemradio')).toHaveLength(
+        ERRORS_AGGREGATION_FUNCTIONS.length
+      );
+      ERRORS_AGGREGATION_FUNCTIONS.forEach(aggregation => {
+        expect(
+          screen.getByRole('menuitemradio', {name: new RegExp(`${aggregation}\\(…?\\)`)})
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('only shows the correct aggregate params for timeseries charts', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        method: 'GET',
+        body: [],
+      });
+      renderTestComponent({
+        dashboard: {
+          ...testDashboard,
+          widgets: [
+            {
+              title: 'Errors Widget',
+              interval: '1d',
+              id: '1',
+              widgetType: WidgetType.ERRORS,
+              displayType: DisplayType.LINE,
+              queries: [
+                {
+                  conditions: '',
+                  name: '',
+                  fields: ['count_unique(user)'],
+                  columns: [],
+                  aggregates: ['count_unique(user)'],
+                  orderby: '-count_unique(user)',
+                },
+              ],
+            },
+          ],
+        },
+        params: {
+          widgetIndex: '0',
+        },
+        orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+      });
+
+      expect(await screen.findByText('Select group')).toBeInTheDocument();
+
+      // Open the aggregate parameter dropdown
+      const yAxisStep = screen
+        .getByRole('heading', {name: /choose what to plot in the y-axis/i})
+        .closest('li');
+      await userEvent.click(within(yAxisStep!).getByText('user'));
+
+      // Verify the error aggregate params are present
+      expect(screen.getAllByTestId('menu-list-item-label')).toHaveLength(
+        ERROR_FIELDS.length
+      );
+      ERROR_FIELDS.forEach(field => {
+        expect(screen.getByRole('menuitemradio', {name: field})).toBeInTheDocument();
       });
     });
   });

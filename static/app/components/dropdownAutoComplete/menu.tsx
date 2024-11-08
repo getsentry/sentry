@@ -408,17 +408,14 @@ function Menu({
                       {!busy && (
                         <List
                           items={autoCompleteResults}
-                          {...{
-                            maxHeight,
-                            highlightedIndex,
-                            inputValue,
-                            onScroll,
-                            getItemProps,
-                            registerVisibleItem,
-                            virtualizedLabelHeight,
-                            virtualizedHeight,
-                            itemSize,
-                          }}
+                          maxHeight={maxHeight}
+                          highlightedIndex={highlightedIndex}
+                          onScroll={onScroll}
+                          getItemProps={getItemProps}
+                          registerVisibleItem={registerVisibleItem}
+                          virtualizedLabelHeight={virtualizedLabelHeight}
+                          virtualizedHeight={virtualizedHeight}
+                          itemSize={itemSize}
                         />
                       )}
                     </ItemList>
@@ -453,7 +450,7 @@ const StyledInput = styled(Input)`
     box-shadow: none;
     font-size: 13px;
     padding: ${space(1)};
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
     color: ${p => p.theme.gray300};
   }
 `;

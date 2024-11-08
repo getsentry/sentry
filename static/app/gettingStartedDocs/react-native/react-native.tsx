@@ -9,6 +9,16 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getCrashReportApiIntroduction,
+  getCrashReportInstallDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getReactNativeMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {
+  getReplayMobileConfigureDescription,
+  getReplayVerifyStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -17,10 +27,21 @@ const getConfigureSnippet = (params: Params) => `
 import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
-  dsn: "${params.dsn}",
-  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+  dsn: "${params.dsn.public}",${
+    params.isPerformanceSelected
+      ? `
+  // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
   // We recommend adjusting this value in production.
-  tracesSampleRate: 1.0,
+  tracesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+  // profilesSampleRate is relative to tracesSampleRate.
+  // Here, we'll capture profiles for 100% of transactions.
+  profilesSampleRate: 1.0,`
+      : ''
+  }
 });`;
 
 const getPerformanceSnippet = () => `
@@ -53,6 +74,27 @@ shopCheckout() {
     transaction.finish();
   }
 }`;
+
+const getReplaySetupSnippet = (params: Params) => `
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  _experiments: {
+    replaysSessionSampleRate: 1.0,
+    replaysOnErrorSampleRate: 1.0,
+  },
+  integrations: [
+    Sentry.mobileReplayIntegration(),
+  ],
+});`;
+
+const getReplayConfigurationSnippet = () => `
+Sentry.mobileReplayIntegration({
+  maskAllText: true,
+  maskAllImages: true,
+  maskAllVectors: true,
+}),`;
 
 const onboarding: OnboardingConfig = {
   install: () => [
@@ -90,11 +132,9 @@ const onboarding: OnboardingConfig = {
                 </ListItem>
                 <ListItem>
                   {tct(
-                    "Android Specifics: We hook into Gradle for the source map build process. When you run [gradLewCode:./gradlew] assembleRelease, source maps are automatically built and uploaded to Sentry. If you have enabled Gradle's [orgGradleCode:org.gradle.configureondemand] feature, you'll need a clean build, or you'll need to disable this feature to upload the source map on every build by setting [orgGradleCodeConfigureCode:org.gradle.configureondemand=false] or remove it.",
+                    "Android Specifics: We hook into Gradle for the source map build process. When you run [code:./gradlew] assembleRelease, source maps are automatically built and uploaded to Sentry. If you have enabled Gradle's [code:org.gradle.configureondemand] feature, you'll need a clean build, or you'll need to disable this feature to upload the source map on every build by setting [code:org.gradle.configureondemand=false] or remove it.",
                     {
-                      gradLewCode: <code />,
-                      orgGradleCode: <code />,
-                      orgGradleCodeConfigureCode: <code />,
+                      code: <code />,
                     }
                   )}
                 </ListItem>
@@ -109,6 +149,15 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       configurations: [
+        ...(params.isProfilingSelected
+          ? [
+              {
+                description: t(
+                  'React Native Profiling is available since SDK version 5.32.0.'
+                ),
+              },
+            ]
+          : []),
         {
           language: 'javascript',
           code: getConfigureSnippet(params),
@@ -122,13 +171,13 @@ const onboarding: OnboardingConfig = {
         {
           language: 'javascript',
           description: tct(
-            'Wrap your app with Sentry to automatically instrument it with [touchEventTrakingLink:touch event tracking] and [automaticPerformanceMonitoringLink:automatic performance monitoring]:',
+            'Wrap your app with Sentry to automatically instrument it with [touchEventTrakingLink:touch event tracking] and [automaticPerformanceMonitoringLink:automatic tracing]:',
             {
               touchEventTrakingLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/react-native/touchevents/" />
               ),
               automaticPerformanceMonitoringLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/automatic-instrumentation/" />
               ),
             }
           ),
@@ -140,7 +189,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -168,49 +217,60 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    {
-      title: t('Performance'),
-      description: (
-        <Fragment>
-          {t(
-            'Sentry can measure the performance of your app automatically when instrumented with the following routers:'
-          )}
-          <List symbol="bullet">
-            <ListItem>
-              <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-navigation">
-                {t('React Navigation')}
-              </ExternalLink>
-            </ListItem>
-            <ListItem>
-              <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-navigation-v4">
-                {t('React Navigation V4 and prior')}
-              </ExternalLink>
-            </ListItem>
-            <ListItem>
-              <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-native-navigation">
-                {t('React Native Navigation')}
-              </ExternalLink>
-            </ListItem>
-          </List>
-          {t('Additionally, you can create transactions and spans programatically:')}
-        </Fragment>
-      ),
-      configurations: [
-        {
-          description: t('For example:'),
-          language: 'javascript',
-          code: getPerformanceSnippet(),
-          additionalInfo: tct(
-            'For more information, please refer to the [docLink: Sentry React Native documentation].',
-            {
-              docLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
+    ...(params.isPerformanceSelected
+      ? [
+          {
+            title: t('Tracing'),
+            description: (
+              <Fragment>
+                {t(
+                  'Sentry can measure the performance of your app automatically when instrumented with the following routers:'
+                )}
+                <List symbol="bullet">
+                  <ListItem>
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-navigation/">
+                      {t('React Navigation')}
+                    </ExternalLink>
+                  </ListItem>
+                  <ListItem>
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-navigation-v4/">
+                      {t('React Navigation V4 and prior')}
+                    </ExternalLink>
+                  </ListItem>
+                  <ListItem>
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-native-navigation/">
+                      {t('React Native Navigation')}
+                    </ExternalLink>
+                  </ListItem>
+                  <ListItem>
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/expo-router/">
+                      {t('Expo Router')}
+                    </ExternalLink>
+                  </ListItem>
+                </List>
+                {t(
+                  'Additionally, you can create transactions and spans programatically:'
+                )}
+              </Fragment>
+            ),
+            configurations: [
+              {
+                description: t('For example:'),
+                language: 'javascript',
+                code: getPerformanceSnippet(),
+                additionalInfo: tct(
+                  'For more information, please refer to the [docLink: Sentry React Native documentation].',
+                  {
+                    docLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/" />
+                    ),
+                  }
+                ),
+              },
+            ],
+          },
+        ]
+      : []),
     {
       title: t('Debug Symbols'),
       description: (
@@ -285,8 +345,148 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const feedbackOnboardingCrashApi: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'TypeScript',
+              value: 'typescript',
+              language: 'typescript',
+              code: `import * as Sentry from "@sentry/react-native";
+import { UserFeedback } from "@sentry/react-native";
+
+const sentryId = Sentry.captureMessage("My Message");
+// OR: const sentryId = Sentry.lastEventId();
+
+const userFeedback: UserFeedback = {
+  event_id: sentryId,
+  name: "John Doe",
+  email: "john@doe.com",
+  comments: "Hello World!",
+};
+
+Sentry.captureUserFeedback(userFeedback);`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const getInstallConfig = () => [
+  {
+    language: 'bash',
+    code: [
+      {
+        label: 'npm',
+        value: 'npm',
+        language: 'bash',
+        code: 'npm install --save @sentry/react-native',
+      },
+      {
+        label: 'yarn',
+        value: 'yarn',
+        language: 'bash',
+        code: 'yarn add @sentry/react-native',
+      },
+    ],
+  },
+];
+
+const replayOnboarding: OnboardingConfig = {
+  introduction: () => (
+    <MobileBetaBanner link="https://docs.sentry.io/platforms/react-native/session-replay/" />
+  ),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      description: t(
+        'Make sure your Sentry React Native SDK version is at least 5.26.0. If you already have the SDK installed, you can update it to the latest version with:'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'npm',
+              value: 'npm',
+              language: 'bash',
+              code: `npm install @sentry/react-native --save`,
+            },
+            {
+              label: 'yarn',
+              value: 'yarn',
+              language: 'bash',
+              code: `yarn add @sentry/react-native`,
+            },
+            {
+              label: 'pnpm',
+              value: 'pnpm',
+              language: 'bash',
+              code: `pnpm add @sentry/react-native`,
+            },
+          ],
+        },
+        {
+          description: t(
+            'To set up the integration, add the following to your Sentry initialization:'
+          ),
+        },
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getReplaySetupSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getReplayMobileConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/react-native/session-replay/#privacy',
+      }),
+      configurations: [
+        {
+          description: t(
+            'The following code is the default configuration, which masks and blocks everything.'
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getReplayConfigurationSnippet(),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: getReplayVerifyStep(),
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi,
+  crashReportOnboarding: feedbackOnboardingCrashApi,
+  customMetricsOnboarding: getReactNativeMetricsOnboarding({getInstallConfig}),
+  replayOnboarding,
 };
 
 export default docs;

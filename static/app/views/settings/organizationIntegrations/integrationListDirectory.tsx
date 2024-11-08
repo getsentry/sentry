@@ -1,6 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import groupBy from 'lodash/groupBy';
@@ -24,12 +22,14 @@ import type {
   DocIntegration,
   Integration,
   IntegrationProvider,
-  Organization,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {uniq} from 'sentry/utils/array/uniq';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
@@ -598,7 +598,7 @@ const EmptyResultsBody = styled('div')`
 `;
 
 const EmptyResultsBodyBold = styled(EmptyResultsBody)`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 export default withOrganization(IntegrationListDirectory);

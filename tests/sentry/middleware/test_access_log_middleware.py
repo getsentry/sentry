@@ -14,12 +14,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import (
-    all_silo_test,
-    assume_test_silo_mode,
-    control_silo_test,
-    region_silo_test,
-)
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -44,9 +39,9 @@ class RateLimitedEndpoint(Endpoint):
         group="foo",
         limit_overrides={
             "GET": {
-                RateLimitCategory.IP: RateLimit(0, 1),
-                RateLimitCategory.USER: RateLimit(0, 1),
-                RateLimitCategory.ORGANIZATION: RateLimit(0, 1),
+                RateLimitCategory.IP: RateLimit(limit=0, window=1),
+                RateLimitCategory.USER: RateLimit(limit=0, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=0, window=1),
             },
         },
     )
@@ -62,9 +57,9 @@ class ConcurrentRateLimitedEndpoint(Endpoint):
         group="foo",
         limit_overrides={
             "GET": {
-                RateLimitCategory.IP: RateLimit(20, 1, 1),
-                RateLimitCategory.USER: RateLimit(20, 1, 1),
-                RateLimitCategory.ORGANIZATION: RateLimit(20, 1, 1),
+                RateLimitCategory.IP: RateLimit(limit=20, window=1, concurrent_limit=1),
+                RateLimitCategory.USER: RateLimit(limit=20, window=1, concurrent_limit=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=1),
             },
         },
     )
@@ -85,6 +80,7 @@ class MyControlOrganizationEndpoint(ControlSiloOrganizationEndpoint):
 
 urlpatterns = [
     re_path(r"^/dummy$", DummyEndpoint.as_view(), name="dummy-endpoint"),
+    re_path(r"^api/0/internal/test$", DummyEndpoint.as_view(), name="internal-dummy-endpoint"),
     re_path(r"^/dummyfail$", DummyFailEndpoint.as_view(), name="dummy-fail-endpoint"),
     re_path(r"^/dummyratelimit$", RateLimitedEndpoint.as_view(), name="ratelimit-endpoint"),
     re_path(
@@ -93,18 +89,18 @@ urlpatterns = [
         name="concurrent-ratelimit-endpoint",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/stats_v2/$",
         MyOrganizationEndpoint.as_view(),
         name="sentry-api-0-organization-stats-v2",
     ),
     re_path(
-        r"^(?P<organization_slug>[^\/]+)/members/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/members/$",
         MyControlOrganizationEndpoint.as_view(),
         name="sentry-api-0-organization-members",
     ),
     # Need to retain RPC endpoint for cross-silo calls
     re_path(
-        r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
+        r"^api/0/internal/rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
         InternalRpcServiceEndpoint.as_view(),
         name="sentry-api-0-rpc-service",
     ),
@@ -210,7 +206,9 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         self.login_as(user=self.create_user())
         self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
         self.assert_access_log_recorded()
-        assert self.get_tested_log().token_type == "api_token"
+        tested_log = self.get_tested_log()
+        assert tested_log.token_type == "api_token"
+        assert tested_log.token_last_characters == token.token_last_characters
 
 
 @all_silo_test
@@ -228,6 +226,20 @@ class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
 
 
 @all_silo_test
+class TestAccessLogSkippedForExcludedPath(LogCaptureAPITestCase):
+    endpoint = "internal-dummy-endpoint"
+
+    def test_access_log_skipped(self):
+        self._caplog.set_level(logging.INFO, logger="sentry")
+        token = None
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+        self.login_as(user=self.create_user())
+        self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
+        assert len(self.captured_logs) == 0
+
+
+@all_silo_test
 class TestAccessLogFail(LogCaptureAPITestCase):
     endpoint = "dummy-fail-endpoint"
 
@@ -236,7 +248,6 @@ class TestAccessLogFail(LogCaptureAPITestCase):
         self.assert_access_log_recorded()
 
 
-@region_silo_test
 class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-stats-v2"
 

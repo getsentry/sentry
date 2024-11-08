@@ -2,6 +2,7 @@ import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import type {Location} from 'history';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
@@ -16,17 +17,19 @@ import SimilarScoreCard from 'sentry/components/similarScoreCard';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization, Project} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 type Props = {
   groupId: Group['id'];
   issue: Group;
+  location: Location;
   orgId: Organization['id'];
   project: Project;
   aggregate?: {
     exception: number;
-    message: number;
-    shouldBeGrouped?: string;
+    message?: number;
   };
   score?: Record<string, any>;
   scoresByInterface?: {
@@ -36,6 +39,8 @@ type Props = {
 };
 
 const initialState = {visible: true, checked: false, busy: false};
+
+const similarityEmbeddingScoreValues = [0.9, 0.925, 0.95, 0.975, 0.99, 1];
 
 type State = typeof initialState;
 
@@ -58,16 +63,16 @@ class Item extends Component<Props, State> {
   };
 
   handleShowDiff = (event: React.MouseEvent) => {
-    const {orgId, groupId: baseIssueId, issue, project, aggregate} = this.props;
+    const {orgId, groupId: baseIssueId, issue, project, location} = this.props;
     const {id: targetIssueId} = issue;
 
-    const hasSimilarityEmbeddingsFeature = project.features.includes(
-      'similarity-embeddings'
-    );
-    const shouldBeGrouped = hasSimilarityEmbeddingsFeature
-      ? aggregate?.shouldBeGrouped
-      : '';
-    openDiffModal({baseIssueId, targetIssueId, project, orgId, shouldBeGrouped});
+    openDiffModal({
+      baseIssueId,
+      targetIssueId,
+      project,
+      orgId,
+      location,
+    });
     event.stopPropagation();
   };
 
@@ -101,13 +106,13 @@ class Item extends Component<Props, State> {
   };
 
   render() {
-    const {aggregate, scoresByInterface, issue, project} = this.props;
+    const {aggregate, scoresByInterface, issue, project, location} = this.props;
     const {visible, busy} = this.state;
-    const hasSimilarityEmbeddingsFeature = project.features.includes(
-      'similarity-embeddings'
-    );
+    const hasSimilarityEmbeddingsFeature =
+      project.features.includes('similarity-embeddings') ||
+      location.query.similarityEmbeddings === '1';
     const similarInterfaces = hasSimilarityEmbeddingsFeature
-      ? ['exception', 'message', 'shouldBeGrouped']
+      ? ['exception']
       : ['exception', 'message'];
 
     if (!visible) {
@@ -133,7 +138,7 @@ class Item extends Component<Props, State> {
             onChange={this.handleCheckClick}
           />
           <EventDetails>
-            <EventOrGroupHeader data={issue} size="normal" source="similar-issues" />
+            <EventOrGroupHeader data={issue} source="similar-issues" />
             <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
           </EventDetails>
 
@@ -150,16 +155,19 @@ class Item extends Component<Props, State> {
             const avgScore = aggregate?.[interfaceName];
             const scoreList = scoresByInterface?.[interfaceName] || [];
 
-            // If hasSimilarityEmbeddingsFeature is on, avgScore can be a string
-            let scoreValue = avgScore;
-            if (
-              (typeof avgScore !== 'string' && hasSimilarityEmbeddingsFeature) ||
-              !hasSimilarityEmbeddingsFeature
-            ) {
-              // Check for valid number (and not NaN)
-              scoreValue =
-                typeof avgScore === 'number' && !Number.isNaN(avgScore) ? avgScore : 0;
+            // Check for valid number (and not NaN)
+            let scoreValue =
+              typeof avgScore === 'number' && !Number.isNaN(avgScore) ? avgScore : 0;
+            // If hasSimilarityEmbeddingsFeature is on, translate similarity score in range 0.9-1 to score between 1-5
+            if (hasSimilarityEmbeddingsFeature) {
+              for (let i = 0; i <= similarityEmbeddingScoreValues.length; i++) {
+                if (scoreValue <= similarityEmbeddingScoreValues[i]) {
+                  scoreValue = i;
+                  break;
+                }
+              }
             }
+
             return (
               <Column key={interfaceName}>
                 {!hasSimilarityEmbeddingsFeature && (
@@ -170,9 +178,7 @@ class Item extends Component<Props, State> {
                   </Hovercard>
                 )}
                 {hasSimilarityEmbeddingsFeature && (
-                  <div>
-                    {typeof scoreValue === 'number' ? scoreValue.toFixed(4) : scoreValue}
-                  </div>
+                  <ScoreBar vertical score={scoreValue} />
                 )}
               </Column>
             );
@@ -187,6 +193,7 @@ const Details = styled('div')`
   ${p => p.theme.overflowEllipsis};
 
   display: grid;
+  align-items: start;
   gap: ${space(1)};
   grid-template-columns: max-content auto max-content;
   margin-left: ${space(2)};
@@ -222,6 +229,7 @@ const StyledCount = styled(Count)`
 `;
 
 const Diff = styled('div')`
+  height: 100%;
   display: flex;
   align-items: center;
   margin-right: ${space(0.25)};

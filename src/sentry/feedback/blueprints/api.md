@@ -14,7 +14,7 @@ returns a response _will_ document the full interchange format. Clients may opt
 to restrict response data or provide a subset of the request data. The API may
 or may not accept partial payloads.
 
-## Feedback Index [/organizations/<organization_slug>/feedback/]
+## Feedback Index [/organizations/<organization_id_or_slug>/feedback/]
 
 - Parameters
 
@@ -155,7 +155,7 @@ Retrieve a collection of feedback items.
     }
     ```
 
-## Feedback [/projects/<organization_slug>/<project_slug>/feedback/<feedback_id>/]
+## Feedback [/projects/<organization_id_or_slug>/<project_id_or_slug>/feedback/<feedback_id>/]
 
 - Model
 

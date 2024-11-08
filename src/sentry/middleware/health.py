@@ -1,5 +1,6 @@
 import itertools
 
+import orjson
 from django.http import HttpResponse
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework.request import Request
@@ -20,7 +21,6 @@ class HealthCheck(MiddlewareMixin):
             return HttpResponse("ok", content_type="text/plain")
 
         from sentry.status_checks import Problem, check_all
-        from sentry.utils import json
 
         threshold = Problem.threshold(Problem.SEVERITY_CRITICAL)
         results = {
@@ -29,7 +29,7 @@ class HealthCheck(MiddlewareMixin):
         problems = list(itertools.chain.from_iterable(results.values()))
 
         return HttpResponse(
-            json.dumps(
+            orjson.dumps(
                 {
                     "problems": [str(p) for p in problems],
                     "healthy": {type(check).__name__: not p for check, p in results.items()},

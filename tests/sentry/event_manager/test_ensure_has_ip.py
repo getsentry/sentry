@@ -1,4 +1,5 @@
 from sentry.event_manager import EventManager
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def validate_and_normalize(report, client_ip=None):
@@ -29,6 +30,7 @@ def test_with_user_auto_ip():
     assert out["user"]["ip_address"] == "127.0.0.1"
 
 
+@django_db_all
 def test_without_ip_values():
     inp = {
         "platform": "javascript",

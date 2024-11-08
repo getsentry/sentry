@@ -5,7 +5,7 @@ DEFAULT_PROJECT_ID = "10000"
 
 
 class MockJira(StubJiraApiClient, MockService):
-    def get_projects_list(self):
+    def get_projects_list(self, cached: bool = True):
         """
         List all projects in the Jira data format.
 

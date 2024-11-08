@@ -1,17 +1,23 @@
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
 import type {AggregateEventTransaction} from 'sentry/types/event';
-import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {
   QuickTraceEvent,
   TraceErrorOrIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
 import type {AggregateSpanType, ParsedTraceType} from './types';
 
@@ -27,20 +33,40 @@ type Props = {
   trace: Readonly<ParsedTraceType>;
 };
 
-function renderSpanSamples(span: AggregateSpanType, project: Project | undefined) {
+function renderSpanSamples(
+  aggSpan: AggregateSpanType,
+  project: Project | undefined,
+  location: Location,
+  organization: Organization
+) {
   if (!project) {
     return null;
   }
 
-  return span.samples?.map(([transactionId, spanId], index) => (
+  return aggSpan.samples?.map(({transaction, span, trace, timestamp}, index) => (
     <Link
-      key={`${transactionId}-${spanId}`}
-      to={`/performance/${project.slug}:${transactionId}#span-${spanId}`}
-    >{`${spanId}${index < span.samples.length - 1 ? ', ' : ''}`}</Link>
+      key={`${transaction}-${span}`}
+      to={generateLinkToEventInTraceView({
+        organization,
+        traceSlug: trace,
+        projectSlug: project.slug,
+        eventId: transaction,
+        timestamp,
+        location: {
+          ...location,
+          query: {
+            ...location.query,
+            tab: Tab.AGGREGATE_WATERFALL,
+          },
+        },
+        spanId: span,
+        source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+      })}
+    >{`${span}${index < aggSpan.samples.length - 1 ? ', ' : ''}`}</Link>
   ));
 }
 
-function AggregateSpanDetail({span}: Props) {
+function AggregateSpanDetail({span, organization}: Props) {
   const location = useLocation();
   const {projects} = useProjects();
 
@@ -62,7 +88,9 @@ function AggregateSpanDetail({span}: Props) {
           <tbody>
             <Row title={t('Avg Duration')}>{getDuration(avgDuration)}</Row>
             <Row title={t('Frequency')}>{frequency && formatPercentage(frequency)}</Row>
-            <Row title={t('Span Samples')}>{renderSpanSamples(span, project)}</Row>
+            <Row title={t('Span Samples')}>
+              {renderSpanSamples(span, project, location, organization)}
+            </Row>
           </tbody>
         </table>
       </SpanDetails>

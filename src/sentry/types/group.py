@@ -28,8 +28,6 @@ IGNORED_SUBSTATUS_CHOICES = {
     GroupSubStatus.UNTIL_ESCALATING,
     GroupSubStatus.FOREVER,
     GroupSubStatus.UNTIL_CONDITION_MET,
-    # IGNORED groups may have no substatus for now. Remove this once the migration is complete.
-    None,
 }
 
 SUBSTATUS_UPDATE_CHOICES: Mapping[str, int] = {
@@ -40,12 +38,6 @@ SUBSTATUS_UPDATE_CHOICES: Mapping[str, int] = {
     "ongoing": GroupSubStatus.ONGOING,
     "regressed": GroupSubStatus.REGRESSED,
     "new": GroupSubStatus.NEW,
-    # Deprecated
-    "until_escalating": GroupSubStatus.UNTIL_ESCALATING,
-    # Deprecated
-    "until_condition_met": GroupSubStatus.UNTIL_CONDITION_MET,
-    # Deprecated
-    "forever": GroupSubStatus.FOREVER,
 }
 
 SUBSTATUS_TO_STR: Mapping[int, str] = {
@@ -80,8 +72,9 @@ class PriorityLevel(IntEnum):
         return self.name.lower()
 
     @classmethod
-    def from_str(self, name: str) -> "PriorityLevel":
+    def from_str(self, name: str) -> "PriorityLevel | None":
         """
         Return the priority level from a string representation.
         """
-        return self[name.upper()]
+        name = name.upper()
+        return self[name] if name in self.__members__ else None

@@ -1,21 +1,17 @@
-from django.core.signing import BadSignature, SignatureExpired
-from django.http import HttpResponse
-from django.utils.decorators import method_decorator
-from rest_framework.request import Request
+import logging
+from collections.abc import Mapping
+from typing import Any
 
-from sentry.integrations.utils import get_identity_or_404
-from sentry.models.identity import Identity
-from sentry.models.integrations.integration import Integration
-from sentry.notifications.notificationcontroller import NotificationController
-from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
-from sentry.utils.signing import unsign
-from sentry.web.frontend.base import BaseView, control_silo_view
-from sentry.web.helpers import render_to_response
+from sentry.integrations.messaging.linkage import LinkIdentityView
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.slack.utils.notifications import SlackCommandResponse
+from sentry.integrations.slack.views.linkage import SlackIdentityLinkageView
+from sentry.web.frontend.base import control_silo_view
 
-from ..utils import send_slack_response
 from . import build_linking_url as base_build_linking_url
-from . import never_cache
+
+_logger = logging.getLogger(__name__)
 
 SUCCESS_LINKED_MESSAGE = (
     "Your Slack identity has been linked to your Sentry account. You're good to go!"
@@ -23,7 +19,7 @@ SUCCESS_LINKED_MESSAGE = (
 
 
 def build_linking_url(
-    integration: Integration, slack_id: str, channel_id: str, response_url: str
+    integration: RpcIntegration, slack_id: str, channel_id: str, response_url: str
 ) -> str:
     return base_build_linking_url(
         "sentry-integration-slack-link-identity",
@@ -35,52 +31,23 @@ def build_linking_url(
 
 
 @control_silo_view
-class SlackLinkIdentityView(BaseView):
+class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
     """
     Django view for linking user to slack account. Creates an entry on Identity table.
     """
 
-    @method_decorator(never_cache)
-    def handle(self, request: Request, signed_params: str) -> HttpResponse:
-        try:
-            params = unsign(signed_params)
-        except (SignatureExpired, BadSignature):
-            return render_to_response(
-                "sentry/integrations/slack/expired-link.html",
-                request=request,
+    @property
+    def command_response(self) -> SlackCommandResponse:
+        return SlackCommandResponse("link", SUCCESS_LINKED_MESSAGE, "slack.link-identity")
+
+    def get_success_template_and_context(
+        self, params: Mapping[str, Any], integration: Integration | None
+    ) -> tuple[str, dict[str, Any]]:
+        if integration is None:
+            raise ValueError(
+                'integration is required for linking (params must include "integration_id")'
             )
-
-        organization, integration, idp = get_identity_or_404(
-            ExternalProviders.SLACK,
-            request.user,
-            integration_id=params["integration_id"],
-        )
-
-        if request.method != "POST":
-            return render_to_response(
-                "sentry/auth-link-identity.html",
-                request=request,
-                context={"organization": organization, "provider": integration.get_provider()},
-            )
-
-        Identity.objects.link_identity(user=request.user, idp=idp, external_id=params["slack_id"])
-
-        send_slack_response(integration, SUCCESS_LINKED_MESSAGE, params, command="link")
-        has_slack_settings = None
-        controller = NotificationController(
-            recipients=[request.user],
-            organization_id=organization.id,
-            provider=ExternalProviderEnum.SLACK,
-        )
-        has_slack_settings = controller.user_has_any_provider_settings(ExternalProviderEnum.SLACK)
-
-        if not has_slack_settings:
-            IntegrationNudgeNotification(organization, request.user, ExternalProviders.SLACK).send()
-
-        # TODO(epurkhiser): We could do some fancy slack querying here to
-        #  render a nice linking page with info about the user their linking.
-        return render_to_response(
-            "sentry/integrations/slack/linked.html",
-            request=request,
-            context={"channel_id": params["channel_id"], "team_id": integration.external_id},
-        )
+        return "sentry/integrations/slack/linked.html", {
+            "channel_id": params["channel_id"],
+            "team_id": integration.external_id,
+        }

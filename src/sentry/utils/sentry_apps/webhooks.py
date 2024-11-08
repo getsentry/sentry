@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Concatenate, ParamSpec, TypeVar
 
 from requests import Response
 from requests.exceptions import ConnectionError, Timeout
@@ -9,40 +10,48 @@ from rest_framework import status
 
 from sentry import audit_log, options
 from sentry.http import safe_urlopen
+from sentry.integrations.base import is_response_error, is_response_success
+from sentry.integrations.models.utils import get_redis_key
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models.integrations.sentry_app import SentryApp, track_response_code
-from sentry.models.integrations.utils import get_redis_key, is_response_error, is_response_success
 from sentry.models.organization import Organization
+from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 if TYPE_CHECKING:
-    from sentry.api.serializers import AppPlatformEvent
-    from sentry.services.hybrid_cloud.app.model import RpcSentryApp
+    from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
+    from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 
 TIMEOUT_STATUS_CODE = 0
 
 logger = logging.getLogger("sentry.sentry_apps.webhooks")
 
+P = ParamSpec("P")
+R = TypeVar("R")
 
-def ignore_unpublished_app_errors(func):
-    def wrapper(sentry_app, app_platform_event, url=None):
+
+def ignore_unpublished_app_errors(
+    func: Callable[Concatenate[SentryApp | RpcSentryApp, P], R]
+) -> Callable[Concatenate[SentryApp | RpcSentryApp, P], R | None]:
+    def wrapper(
+        sentry_app: SentryApp | RpcSentryApp, *args: P.args, **kwargs: P.kwargs
+    ) -> R | None:
         try:
-            return func(sentry_app, app_platform_event, url)
+            return func(sentry_app, *args, **kwargs)
         except Exception:
             if sentry_app.is_published:
                 raise
             else:
-                return
+                return None
 
     return wrapper
 
 
-def check_broken(sentryapp: SentryApp | RpcSentryApp, org_id: str):
-    from sentry.services.hybrid_cloud.app.service import app_service
+def check_broken(sentryapp: SentryApp | RpcSentryApp, org_id: str) -> None:
+    from sentry.sentry_apps.services.app.service import app_service
 
     redis_key = get_redis_key(sentryapp, org_id)
     buffer = IntegrationRequestBuffer(redis_key)
@@ -70,7 +79,9 @@ def check_broken(sentryapp: SentryApp | RpcSentryApp, org_id: str):
         )
 
 
-def record_timeout(sentryapp: SentryApp | RpcSentryApp, org_id: str, e: ConnectionError | Timeout):
+def record_timeout(
+    sentryapp: SentryApp | RpcSentryApp, org_id: str, e: ConnectionError | Timeout
+) -> None:
     """
     Record Unpublished Sentry App timeout or connection error in integration buffer to check if it is broken and should be disabled
     """
@@ -86,7 +97,7 @@ def record_timeout(sentryapp: SentryApp | RpcSentryApp, org_id: str, e: Connecti
 
 def record_response_for_disabling_integration(
     sentryapp: SentryApp | RpcSentryApp, org_id: str, response: Response
-):
+) -> None:
     if not sentryapp.is_internal:
         return
     redis_key = get_redis_key(sentryapp, org_id)
@@ -121,7 +132,8 @@ def send_and_save_webhook_request(
     event = f"{app_platform_event.resource}.{app_platform_event.action}"
     slug = sentry_app.slug_for_metrics
     url = url or sentry_app.webhook_url
-    response = None
+    assert url is not None
+
     try:
         response = safe_urlopen(
             url=url,
@@ -137,6 +149,7 @@ def send_and_save_webhook_request(
                 "error_type": error_type,
                 "organization_id": org_id,
                 "integration_slug": sentry_app.slug,
+                "url": url,
             },
         )
         track_response_code(error_type, slug, event)

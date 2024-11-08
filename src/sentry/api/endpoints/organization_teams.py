@@ -18,7 +18,8 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, TeamParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models.integrations.external_actor import ExternalActor
+from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
@@ -44,7 +45,7 @@ class TeamPostSerializer(serializers.Serializer):
     slug = SentrySerializerSlugField(
         help_text="""Uniquely identifies a team and is used for the interface. If not
         provided, it is automatically generated from the name.""",
-        max_length=50,
+        max_length=DEFAULT_SLUG_MAX_LENGTH,
         required=False,
         allow_null=True,
     )
@@ -80,7 +81,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="List an Organization's Teams",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             TeamParams.DETAILED,
             CursorQueryParam,
         ],
@@ -130,16 +131,18 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                         )
 
                 elif key == "query":
-                    value = " ".join(value)
-                    queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
+                    joined_value = " ".join(value)
+                    queryset = queryset.filter(
+                        Q(name__icontains=joined_value) | Q(slug__icontains=joined_value)
+                    )
                 elif key == "slug":
                     queryset = queryset.filter(slug__in=value)
                 elif key == "id":
                     try:
-                        value = [int(item) for item in value]
+                        int_values = [int(item) for item in value]
                     except ValueError:
                         raise ParseError(detail="Invalid id value")
-                    queryset = queryset.filter(id__in=value)
+                    queryset = queryset.filter(id__in=int_values)
                 else:
                     queryset = queryset.none()
 
@@ -161,7 +164,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Create a New Team",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
         ],
         request=TeamPostSerializer,
         responses={

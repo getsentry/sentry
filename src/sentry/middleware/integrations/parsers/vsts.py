@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import logging
 
+import orjson
 import sentry_sdk
 from django.http.response import HttpResponseBase
 
+from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.vsts.webhooks import WorkItemWebhook, get_vsts_external_id
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.utils import json
+from sentry.silo.base import control_silo_function
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class VstsRequestParser(BaseRequestParser):
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
         try:
-            data = json.loads(self.request.body.decode(encoding="utf-8"))
+            data = orjson.loads(self.request.body)
             external_id = get_vsts_external_id(data=data)
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -45,6 +45,6 @@ class VstsRequestParser(BaseRequestParser):
         except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
             return self.get_default_missing_integration_response()
 
-        return self.get_response_from_outbox_creation_for_integration(
-            regions=regions, integration=integration
+        return self.get_response_from_webhookpayload(
+            regions=regions, identifier=integration.id, integration_id=integration.id
         )

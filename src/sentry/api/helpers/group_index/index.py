@@ -1,6 +1,6 @@
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -17,12 +17,13 @@ from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group, looks_like_short_id
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.savedsearch import SavedSearch, Visibility
-from sentry.models.user import User
 from sentry.signals import advanced_search_feature_gated
+from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -39,6 +40,8 @@ advanced_search_features: Sequence[tuple[Callable[[SearchFilter], Any], str]] = 
     (lambda search_filter: search_filter.is_negation, "negative search"),
     (lambda search_filter: search_filter.value.is_wildcard(), "wildcard search"),
 ]
+
+DEFAULT_QUERY = "is:unresolved issue.priority:[high, medium]"
 
 
 def parse_and_convert_issue_search_query(
@@ -84,36 +87,53 @@ def build_query_params_from_request(
     has_query = request.GET.get("query")
     query = request.GET.get("query", None)
     if query is None:
-        query = _get_default_query(organization)
+        query = DEFAULT_QUERY
 
     query = query.strip()
 
     if request.GET.get("savedSearch") == "0" and request.user and not has_query:
-        saved_searches = (
-            SavedSearch.objects
-            # Do not include pinned or personal searches from other users in
-            # the same organization. DOES include the requesting users pinned
-            # search
-            .exclude(
-                ~Q(owner_id=request.user.id),
-                visibility__in=(Visibility.OWNER, Visibility.OWNER_PINNED),
-            )
-            .filter(
-                Q(organization=organization) | Q(is_global=True),
-            )
-            .extra(order_by=["name"])
-        )
-        selected_search_id = request.GET.get("searchId", None)
-        if selected_search_id:
-            # saved search requested by the id
-            saved_search = saved_searches.filter(id=int(selected_search_id)).first()
-        else:
-            # pinned saved search
-            saved_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED).first()
+        if features.has(
+            "organizations:issue-stream-custom-views", organization, actor=request.user
+        ):
+            selected_view_id = request.GET.get("viewId")
+            if selected_view_id:
+                default_view = GroupSearchView.objects.filter(id=int(selected_view_id)).first()
+            else:
+                default_view = GroupSearchView.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    position=0,
+                ).first()
 
-        if saved_search:
-            query_kwargs["sort_by"] = saved_search.sort
-            query = saved_search.query
+            if default_view:
+                query_kwargs["sort_by"] = default_view.query_sort
+                query = default_view.query
+        else:
+            saved_searches = (
+                SavedSearch.objects
+                # Do not include pinned or personal searches from other users in
+                # the same organization. DOES include the requesting users pinned
+                # search
+                .exclude(
+                    ~Q(owner_id=request.user.id),
+                    visibility__in=(Visibility.OWNER, Visibility.OWNER_PINNED),
+                )
+                .filter(
+                    Q(organization=organization) | Q(is_global=True),
+                )
+                .extra(order_by=["name"])
+            )
+            selected_search_id = request.GET.get("searchId", None)
+            if selected_search_id:
+                # saved search requested by the id
+                saved_search = saved_searches.filter(id=int(selected_search_id)).first()
+            else:
+                # pinned saved search
+                saved_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED).first()
+
+            if saved_search:
+                query_kwargs["sort_by"] = saved_search.sort
+                query = saved_search.query
 
     sentry_sdk.set_tag("search.query", query)
     sentry_sdk.set_tag("search.sort", query)
@@ -164,7 +184,7 @@ def get_by_short_id(
     organization_id: int,
     is_short_id_lookup: str,
     query: str,
-) -> Optional["Group"]:
+) -> Group | None:
     if is_short_id_lookup == "1" and looks_like_short_id(query):
         try:
             return Group.objects.by_qualified_short_id(organization_id, query)
@@ -257,7 +277,7 @@ def prep_search(
 
         query_kwargs["environments"] = environments
         query_kwargs["actor"] = request.user
-        result = search.query(**query_kwargs)
+        result = search.backend.query(**query_kwargs)
     return result, query_kwargs
 
 
@@ -318,10 +338,3 @@ def get_first_last_release_info(
         item if item is not None else {"version": version}
         for item, version in zip(serialized_releases, versions)
     ]
-
-
-def _get_default_query(organization: Organization) -> str:
-    if features.has("organizations:issue-priority-ui", organization):
-        return "is:unresolved issue.priority:[high, medium]"
-
-    return "is:unresolved"

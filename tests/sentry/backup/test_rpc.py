@@ -2,20 +2,18 @@ from __future__ import annotations
 
 from copy import deepcopy
 from functools import cached_property
+from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import orjson
 from django.db import models
 
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
-from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
-from sentry.models.options.option import ControlOption, Option
-from sentry.models.project import Project
-from sentry.models.user import MAX_USERNAME_LENGTH, User
-from sentry.services.hybrid_cloud.import_export import import_export_service
-from sentry.services.hybrid_cloud.import_export.impl import get_existing_import_chunk
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export import import_export_service
+from sentry.backup.services.import_export.impl import get_existing_import_chunk
+from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportErrorKind,
     RpcExportScope,
@@ -26,11 +24,14 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
+from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
+from sentry.models.options.option import ControlOption, Option
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
-from sentry.utils import json
+from sentry.users.models.user import MAX_USERNAME_LENGTH, User
 
 CONTROL_OPTION_MODEL_NAME = get_model_name(ControlOption)
 OPTION_MODEL_NAME = get_model_name(Option)
@@ -56,7 +57,7 @@ class RpcImportRetryTests(TestCase):
             nonlocal option_count, import_chunk_count, import_uuid
 
             result = import_export_service.import_by_model(
-                model_name="sentry.option",
+                import_model_name="sentry.option",
                 scope=RpcImportScope.Global,
                 flags=RpcImportFlags(import_uuid=import_uuid),
                 filter_by=[],
@@ -75,6 +76,7 @@ class RpcImportRetryTests(TestCase):
                     }
                 ]
                 """,
+                min_ordinal=1,
             )
 
             assert isinstance(result, RpcImportOk)
@@ -83,7 +85,10 @@ class RpcImportRetryTests(TestCase):
             assert result.min_source_pk == 5
             assert result.max_source_pk == 5
             assert result.min_inserted_pk == result.max_inserted_pk
-            assert len(result.mapped_pks.from_rpc().mapping[str(OPTION_MODEL_NAME)]) == 1
+
+            mapping = result.mapped_pks.from_rpc().mapping[str(OPTION_MODEL_NAME)]
+            assert len(mapping) == 1
+            assert mapping.get(5, None) is not None
 
             assert Option.objects.count() == option_count + 1
             assert RegionImportChunk.objects.count() == import_chunk_count + 1
@@ -98,10 +103,23 @@ class RpcImportRetryTests(TestCase):
             assert len(import_chunk.existing_map) == 0
             assert len(import_chunk.overwrite_map) == 0
 
+            existing_import_chunk = get_existing_import_chunk(
+                OPTION_MODEL_NAME,
+                ImportFlags(import_uuid=import_uuid),
+                RegionImportChunk,
+                1,
+            )
+            assert existing_import_chunk is not None
+
+            mapping = existing_import_chunk.mapped_pks.from_rpc().mapping[str(OPTION_MODEL_NAME)]
+            assert len(mapping) == 1
+            assert mapping.get(5, None) is not None
+
+            return import_chunk
+
         # Doing the write twice should produce identical results from the sender's point of view,
         # and should not result in multiple `RegionImportChunk`s being written.
-        verify_option_write()
-        verify_option_write()
+        assert verify_option_write() == verify_option_write()
 
     def test_good_remote_retry_idempotent(self):
         # If the response gets lost on the way to the caller, it will try again. Make sure it is
@@ -116,7 +134,7 @@ class RpcImportRetryTests(TestCase):
             nonlocal control_option_count, import_chunk_count, import_uuid
 
             result = import_export_service.import_by_model(
-                model_name="sentry.controloption",
+                import_model_name="sentry.controloption",
                 scope=RpcImportScope.Global,
                 flags=RpcImportFlags(import_uuid=import_uuid),
                 filter_by=[],
@@ -135,6 +153,7 @@ class RpcImportRetryTests(TestCase):
                     }
                 ]
                 """,
+                min_ordinal=1,
             )
 
             assert isinstance(result, RpcImportOk)
@@ -159,10 +178,25 @@ class RpcImportRetryTests(TestCase):
                 assert len(import_chunk.existing_map) == 0
                 assert len(import_chunk.overwrite_map) == 0
 
+                existing_import_chunk = get_existing_import_chunk(
+                    CONTROL_OPTION_MODEL_NAME,
+                    ImportFlags(import_uuid=import_uuid),
+                    ControlImportChunk,
+                    1,
+                )
+                assert existing_import_chunk is not None
+
+                mapping = existing_import_chunk.mapped_pks.from_rpc().mapping[
+                    str(CONTROL_OPTION_MODEL_NAME)
+                ]
+                assert len(mapping) == 1
+                assert mapping.get(7, None) is not None
+
+                return import_chunk
+
         # Doing the write twice should produce identical results from the sender's point of view,
         # and should not result in multiple `ControlImportChunk`s being written.
-        verify_control_option_write()
-        verify_control_option_write()
+        assert verify_control_option_write() == verify_control_option_write()
 
     # This is a bit of a hacky way in which to "simulate" a race that occurs between when we first
     # try to detect the duplicate chunk and when we try to send our actual write.
@@ -171,21 +205,22 @@ class RpcImportRetryTests(TestCase):
 
         # First call returns `None`, but then, by the time we get around to trying to commit the
         # atomic transaction, another mocked concurrent process has written the same chunk. We
-        # should handle this gracefully by going and getting
+        # should handle this gracefully by going and getting that chunk instead.
         def wrapped_get_existing_import_chunk(
             model_name: NormalizedModelName,
             flags: ImportFlags,
             import_chunk_type: type[models.base.Model],
+            min_ordinal: int,
         ) -> RpcImportOk | None:
             nonlocal mock_call_count
             mock_call_count += 1
             if mock_call_count > 1:
-                return get_existing_import_chunk(model_name, flags, import_chunk_type)
+                return get_existing_import_chunk(model_name, flags, import_chunk_type, min_ordinal)
 
             return None
 
         with patch(
-            "sentry.services.hybrid_cloud.import_export.impl.get_existing_import_chunk",
+            "sentry.backup.services.import_export.impl.get_existing_import_chunk",
             MagicMock(side_effect=wrapped_get_existing_import_chunk),
         ) as get_existing_import_chunk_mock:
             import_uuid = str(uuid4().hex)
@@ -201,15 +236,11 @@ class RpcImportRetryTests(TestCase):
                     max_source_pk=9,
                     min_inserted_pk=123,
                     max_inserted_pk=123,
-                    inserted_map={
-                        "sentry.controloption": {
-                            9: 123,
-                        },
-                    },
+                    inserted_map={9: 123},
                 )
 
             result = import_export_service.import_by_model(
-                model_name="sentry.controloption",
+                import_model_name="sentry.controloption",
                 scope=RpcImportScope.Global,
                 flags=RpcImportFlags(import_uuid=import_uuid),
                 filter_by=[],
@@ -228,6 +259,7 @@ class RpcImportRetryTests(TestCase):
                     }
                 ]
                 """,
+                min_ordinal=1,
             )
 
             assert get_existing_import_chunk_mock.call_count == 2
@@ -251,6 +283,20 @@ class RpcImportRetryTests(TestCase):
                 assert len(import_chunk.existing_map) == 0
                 assert len(import_chunk.overwrite_map) == 0
 
+                existing_import_chunk = get_existing_import_chunk(
+                    CONTROL_OPTION_MODEL_NAME,
+                    ImportFlags(import_uuid=import_uuid),
+                    ControlImportChunk,
+                    1,
+                )
+                assert existing_import_chunk is not None
+
+                mapping = existing_import_chunk.mapped_pks.from_rpc().mapping[
+                    str(CONTROL_OPTION_MODEL_NAME)
+                ]
+                assert len(mapping) == 1
+                assert mapping.get(9, None) is not None
+
                 assert ControlImportChunk.objects.count() == import_chunk_count + 1
 
 
@@ -261,25 +307,42 @@ class RpcImportErrorTests(TestCase):
     """
 
     @staticmethod
-    def is_user_model(model: json.JSONData) -> bool:
+    def is_user_model(model: Any) -> bool:
         return NormalizedModelName(model["model"]) == USER_MODEL_NAME
 
     @cached_property
-    def _json_of_exhaustive_user_with_minimum_privileges(self) -> json.JSONData:
-        with open(get_fixture_path("backup", "user-with-minimum-privileges.json")) as backup_file:
-            return json.load(backup_file)
+    def _json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
+        with open(
+            get_fixture_path("backup", "user-with-minimum-privileges.json"), "rb"
+        ) as backup_file:
+            return orjson.loads(backup_file.read())
 
-    def json_of_exhaustive_user_with_minimum_privileges(self) -> json.JSONData:
+    def json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
 
-    def test_bad_unknown_model(self):
+    def test_bad_invalid_min_ordinal(self):
         result = import_export_service.import_by_model(
-            model_name="sentry.doesnotexist",
+            import_model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="[]",
+            min_ordinal=0,
+        )
+
+        assert isinstance(result, RpcImportError)
+        assert result.get_kind() == RpcImportErrorKind.InvalidMinOrdinal
+
+    def test_bad_unknown_model(self):
+        result = import_export_service.import_by_model(
+            import_model_name="sentry.doesnotexist",
+            scope=RpcImportScope.Global,
+            flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
+            filter_by=[],
+            pk_map=RpcPrimaryKeyMap(),
+            json_data="[]",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -288,12 +351,13 @@ class RpcImportErrorTests(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
     def test_bad_incorrect_silo_mode_for_model(self):
         result = import_export_service.import_by_model(
-            model_name=str(PROJECT_MODEL_NAME),
+            import_model_name=str(PROJECT_MODEL_NAME),
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="[]",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -301,11 +365,12 @@ class RpcImportErrorTests(TestCase):
 
     def test_bad_unspecified_scope(self):
         result = import_export_service.import_by_model(
-            model_name=str(USER_MODEL_NAME),
+            import_model_name=str(USER_MODEL_NAME),
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="[]",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -313,12 +378,13 @@ class RpcImportErrorTests(TestCase):
 
     def test_bad_missing_import_uuid(self):
         result = import_export_service.import_by_model(
-            model_name=str(USER_MODEL_NAME),
+            import_model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="[]",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -326,12 +392,13 @@ class RpcImportErrorTests(TestCase):
 
     def test_bad_invalid_json(self):
         result = import_export_service.import_by_model(
-            model_name=str(USER_MODEL_NAME),
+            import_model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data="_",
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -345,14 +412,18 @@ class RpcImportErrorTests(TestCase):
             if self.is_user_model(model):
                 model["fields"]["username"] = "a" * (MAX_USERNAME_LENGTH + 1)
 
-        json_data = json.dumps([m for m in models if self.is_user_model(m)])
+        json_data = orjson.dumps(
+            [m for m in models if self.is_user_model(m)],
+            option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS,
+        ).decode()
         result = import_export_service.import_by_model(
-            model_name=str(USER_MODEL_NAME),
+            import_model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data=json_data,
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -360,14 +431,18 @@ class RpcImportErrorTests(TestCase):
 
     def test_bad_unexpected_model(self):
         models = self.json_of_exhaustive_user_with_minimum_privileges()
-        json_data = json.dumps([m for m in models if self.is_user_model(m)])
+        json_data = orjson.dumps(
+            [m for m in models if self.is_user_model(m)],
+            option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS,
+        ).decode()
         result = import_export_service.import_by_model(
-            model_name="sentry.option",
+            import_model_name="sentry.option",
             scope=RpcImportScope.Global,
             flags=RpcImportFlags(import_uuid=str(uuid4().hex)),
             filter_by=[],
             pk_map=RpcPrimaryKeyMap(),
             json_data=json_data,
+            min_ordinal=1,
         )
 
         assert isinstance(result, RpcImportError)
@@ -380,7 +455,7 @@ class RpcExportErrorTests(TestCase):
 
     def test_bad_unknown_model(self):
         result = import_export_service.export_by_model(
-            model_name="sentry.doesnotexist",
+            export_model_name="sentry.doesnotexist",
             scope=RpcExportScope.Global,
             from_pk=0,
             filter_by=[],
@@ -393,7 +468,7 @@ class RpcExportErrorTests(TestCase):
 
     def test_bad_unexportable_model(self):
         result = import_export_service.export_by_model(
-            model_name="sentry.controloutbox",
+            export_model_name="sentry.controloutbox",
             scope=RpcExportScope.Global,
             from_pk=0,
             filter_by=[],
@@ -407,7 +482,7 @@ class RpcExportErrorTests(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False)
     def test_bad_incorrect_silo_mode_for_model(self):
         result = import_export_service.export_by_model(
-            model_name=str(PROJECT_MODEL_NAME),
+            export_model_name=str(PROJECT_MODEL_NAME),
             scope=RpcExportScope.Global,
             from_pk=0,
             filter_by=[],
@@ -420,7 +495,7 @@ class RpcExportErrorTests(TestCase):
 
     def test_bad_unspecified_scope(self):
         result = import_export_service.export_by_model(
-            model_name=str(USER_MODEL_NAME),
+            export_model_name=str(USER_MODEL_NAME),
             scope=None,
             from_pk=0,
             filter_by=[],

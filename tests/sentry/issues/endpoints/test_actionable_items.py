@@ -2,13 +2,11 @@ from rest_framework import status
 
 from sentry.models.eventerror import EventError
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class ActionableItemsEndpointTestCase(APITestCase):
     # These tests will not focus on the actual source map debugging functionality as that is covered in
     # test_source_map_debug.py. Instead, these tests will focus on the unique parts of this endpoint including the responses,
@@ -19,7 +17,7 @@ class ActionableItemsEndpointTestCase(APITestCase):
         self.login_as(self.user)
         return super().setUp()
 
-    def test_missing_event(self):
+    def test_missing_event(self) -> None:
         resp = self.get_error_response(
             self.organization.slug,
             self.project.slug,
@@ -28,7 +26,7 @@ class ActionableItemsEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Event not found"
 
-    def test_orders_event_errors_by_priority(self):
+    def test_orders_event_errors_by_priority(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,

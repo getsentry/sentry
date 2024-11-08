@@ -9,8 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.incidents.logic import delete_comment, update_comment
-from sentry.incidents.models import IncidentActivity, IncidentActivityType
+from sentry.incidents.models.incident import IncidentActivity, IncidentActivityType
 
 
 class CommentSerializer(serializers.Serializer):
@@ -63,7 +62,7 @@ class OrganizationIncidentCommentDetailsEndpoint(CommentDetailsEndpoint):
         """
 
         try:
-            delete_comment(activity)
+            activity.delete()
         except IncidentActivity.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -81,7 +80,7 @@ class OrganizationIncidentCommentDetailsEndpoint(CommentDetailsEndpoint):
             result = serializer.validated_data
 
             try:
-                comment = update_comment(activity=activity, comment=result.get("comment"))
+                comment = activity.update(comment=result.get("comment"))
             except IncidentActivity.DoesNotExist:
                 raise ResourceDoesNotExist
 

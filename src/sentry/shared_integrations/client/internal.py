@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from rest_framework.response import Response
+from requests.models import Response
 
 from sentry.api.client import ApiClient
 from sentry.shared_integrations.track_response import TrackResponseMixin

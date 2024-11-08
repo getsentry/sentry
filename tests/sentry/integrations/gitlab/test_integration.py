@@ -3,26 +3,31 @@ from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
+import orjson
 import pytest
 import responses
 from django.core.cache import cache
 from django.test import override_settings
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
-from sentry.integrations.gitlab import GitlabIntegrationProvider
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
-from sentry.integrations.gitlab.client import GitLabProxyApiClient, GitlabProxySetupClient
-from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.gitlab.client import GitLabApiClient, GitLabSetupApiClient
+from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabIntegrationProvider
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitInfo,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.utils import json
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 
@@ -213,7 +218,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
         assert self.default_group_id == installation.get_group_id()
 
     @responses.activate
@@ -232,7 +239,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         filepath = "README.md"
         ref = "master"
@@ -263,7 +272,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         filepath = "README.md"
         ref = "master"
@@ -292,7 +303,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         filepath = "README.md"
         ref = "master"
@@ -330,7 +343,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         filepath = "README.md"
         ref = "master"
@@ -365,14 +380,16 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         file = SourceLineInfo(
             path="src/gitlab.py",
             lineno=10,
             ref="master",
             repo=repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
 
         responses.add(
@@ -414,7 +431,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
     def test_source_url_matches(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         test_cases = [
             (
@@ -450,7 +469,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         test_cases = [
             "https://gitlab.example.com/getsentry/projects/example-repo/blob/master/src/sentry/integrations/github/integration.py",
@@ -475,7 +496,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         test_cases = [
             "https://gitlab.example.com/getsentry/projects/example-repo/blob/master/src/sentry/integrations/github/integration.py",
@@ -607,7 +630,9 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
         assert installation.get_group_id() is None
 
 
@@ -625,7 +650,7 @@ def assert_proxy_request(request, is_proxy=True):
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",
 )
-class GitlabProxySetupClientTest(IntegrationTestCase):
+class GitlabSetupApiClientTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     base_url = "https://gitlab.example.com"
     access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
@@ -652,11 +677,11 @@ class GitlabProxySetupClientTest(IntegrationTestCase):
             json=response_payload,
         )
 
-        class GitlabProxySetupTestClient(GitlabProxySetupClient):
+        class GitLabSetupTestClient(GitLabSetupApiClient):
             _use_proxy_url_for_tests = True
 
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
-            client = GitlabProxySetupTestClient(
+            client = GitLabSetupTestClient(
                 base_url=self.base_url,
                 access_token=self.access_token,
                 verify_ssl=False,
@@ -670,7 +695,7 @@ class GitlabProxySetupClientTest(IntegrationTestCase):
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            client = GitlabProxySetupTestClient(
+            client = GitLabSetupTestClient(
                 base_url=self.base_url,
                 access_token=self.access_token,
                 verify_ssl=False,
@@ -687,7 +712,7 @@ class GitlabProxySetupClientTest(IntegrationTestCase):
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",
 )
-class GitlabProxyApiClientTest(GitLabTestCase):
+class GitlabApiClientTest(GitLabTestCase):
     @responses.activate
     def test_integration_proxy_is_active(self):
         gitlab_id = 123
@@ -695,20 +720,20 @@ class GitlabProxyApiClientTest(GitLabTestCase):
         gitlab_response = responses.add(
             method=responses.GET,
             url=f"https://example.gitlab.com/api/v4/projects/{gitlab_id}/repository/commits/{commit}",
-            json=json.loads(GET_COMMIT_RESPONSE),
+            json=orjson.loads(GET_COMMIT_RESPONSE),
         )
 
         control_proxy_response = add_control_silo_proxy_response(
             method=responses.GET,
             path=f"api/v4/projects/{gitlab_id}/repository/commits/{commit}",
-            json=json.loads(GET_COMMIT_RESPONSE),
+            json=orjson.loads(GET_COMMIT_RESPONSE),
         )
 
-        class GitlabProxyApiTestClient(GitLabProxyApiClient):
+        class GitLabApiTestClient(GitLabApiClient):
             _use_proxy_url_for_tests = True
 
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
-            client = GitlabProxyApiTestClient(self.installation)
+            client = GitLabApiTestClient(self.installation)
             client.get_commit(gitlab_id, commit)
             request = responses.calls[0].request
 
@@ -723,7 +748,7 @@ class GitlabProxyApiClientTest(GitLabTestCase):
         responses.calls.reset()
         cache.clear()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            client = GitlabProxyApiTestClient(self.installation)
+            client = GitLabApiTestClient(self.installation)
             client.get_commit(gitlab_id, commit)
             request = responses.calls[0].request
 
@@ -738,7 +763,7 @@ class GitlabProxyApiClientTest(GitLabTestCase):
         responses.calls.reset()
         cache.clear()
         with override_settings(SILO_MODE=SiloMode.REGION):
-            client = GitlabProxyApiTestClient(self.installation)
+            client = GitLabApiTestClient(self.installation)
             client.get_commit(gitlab_id, commit)
             request = responses.calls[0].request
 

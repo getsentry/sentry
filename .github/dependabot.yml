@@ -18,29 +18,46 @@ updates:
       babel-dependencies:
         patterns:
           - '@babel/*'
+      sentry-dependencies:
+        patterns:
+          - '@sentry/*'
+      spectrum-dependencies:
+        patterns:
+          - '@react-stately/*'
+          - '@react-aria/*'
+          - '@react-types/*'
+      emotion-dependencies:
+        patterns:
+          - '@emotion/*'
+      jest-dependencies:
+        patterns:
+          - 'jest'
+          - 'jest-*'
+      react-testing-library-dependencies:
+        patterns:
+          - '@testing-library/*'
+      react-dependencies:
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+      webpack-dependencies:
+        patterns:
+          - 'webpack'
+          - 'webpack-*'
     ignore:
       # For all packages, ignore all patch updates
       - dependency-name: '*'
         update-types: ['version-update:semver-patch']
-
-      # Sentry updates should all happen in unison, same as above we ignore
-      # all but one as a reminder.
-      # - dependency-name: "@sentry/react"
-      - dependency-name: '@sentry/node'
-      - dependency-name: '@sentry/utils'
-      - dependency-name: '@sentry/integrations'
-      - dependency-name: '@sentry/rrweb'
 
       # We ignore everything that hasn't yet been upgrade, this way we will
       # only get the _freshest_ of new packages to consider upgrading
       - dependency-name: '@types/react-router'
       - dependency-name: '@types/react-select'
       - dependency-name: '@types/reflux'
-      - dependency-name: 'babel-jest'
       - dependency-name: 'gettext-parser'
-      - dependency-name: 'jest-junit'
       - dependency-name: 'react-lazyload'
-      - dependency-name: 'react-refresh'
       - dependency-name: 'react-router'
       - dependency-name: 'react-select'
       - dependency-name: 'reflux'

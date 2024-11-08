@@ -5,13 +5,14 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {DeviceEventContext} from 'sentry/components/events/contexts/device';
-import type {DeviceContext} from 'sentry/types';
+import type {DeviceContext} from 'sentry/types/event';
 
 export const deviceMockData: DeviceContext = {
   screen_resolution: '1136x768',
   orientation: 'portrait',
   family: 'Android',
   battery_level: 100,
+  battery_temperature: 45,
   screen_dpi: 480,
   memory_size: 1055186944,
   timezone: 'America/Los_Angeles',

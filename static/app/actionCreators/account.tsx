@@ -1,7 +1,8 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
-import type {User, UserIdentityConfig} from 'sentry/types';
+import type {UserIdentityConfig} from 'sentry/types/auth';
+import type {User} from 'sentry/types/user';
 import type {ChangeAvatarUser} from 'sentry/views/settings/account/accountDetails';
 
 export async function disconnectIdentity(
@@ -45,8 +46,11 @@ export function updateUser(user: User | ChangeAvatarUser) {
   ConfigStore.set('user', {...previousUser, ...user, options});
 }
 
-export function logout(api: Client) {
-  return api.requestPromise('/auth/', {method: 'DELETE'});
+export async function logout(api: Client, redirectUrl = '/auth/login/') {
+  const data = await api.requestPromise('/auth/', {method: 'DELETE'});
+
+  // If there's a URL for SAML Single-logout, redirect back to IdP
+  window.location.assign(data?.sloUrl || redirectUrl);
 }
 
 export function removeAuthenticator(api: Client, userId: string, authId: string) {

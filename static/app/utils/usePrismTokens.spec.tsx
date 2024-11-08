@@ -1,4 +1,4 @@
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {loadPrismLanguage} from 'sentry/utils/prism';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
@@ -22,7 +22,7 @@ describe('usePrismTokens', () => {
   });
 
   it('splits tokens by line', () => {
-    const {result} = reactHooks.renderHook(usePrismTokens, {
+    const {result} = renderHook(usePrismTokens, {
       initialProps: {code: JS_CODE, language: 'javascript'},
     });
     const lines = result.current;
@@ -55,7 +55,7 @@ describe('usePrismTokens', () => {
   });
 
   it('works with single line of code', () => {
-    const {result} = reactHooks.renderHook(usePrismTokens, {
+    const {result} = renderHook(usePrismTokens, {
       initialProps: {code: SINGLE_LINE_CODE, language: 'javascript'},
     });
     const lines = result.current;
@@ -73,7 +73,7 @@ describe('usePrismTokens', () => {
   it('falls back when no grammar is available', () => {
     jest.spyOn(console, 'warn').mockImplementation();
 
-    const {result} = reactHooks.renderHook(usePrismTokens, {
+    const {result} = renderHook(usePrismTokens, {
       initialProps: {code: JS_CODE, language: 'not-a-language'},
     });
     const lines = result.current;
@@ -87,7 +87,7 @@ describe('usePrismTokens', () => {
   });
 
   it('works with nested tokens', () => {
-    const {result} = reactHooks.renderHook(usePrismTokens, {
+    const {result} = renderHook(usePrismTokens, {
       initialProps: {code: NESTED_CODE, language: 'html'},
     });
     const lines = result.current;

@@ -7,7 +7,7 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.serializers import serialize
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 # TODO(dcramer): once LatestRepoReleaseEnvironment is backfilled, change this query to use the new
 # schema [performance]
@@ -50,12 +50,12 @@ class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
     }
 
     def get(self, request: Request, organization, member) -> Response:
-        email_list = [
-            e.email
-            for e in filter(
-                lambda x: x.is_verified, user_service.get_user(member.user_id).useremails
-            )
-        ]
+        user = user_service.get_user(member.user_id)
+        if user is None:
+            email_list = []
+        else:
+            email_list = [e.email for e in user.useremails if e.is_verified]
+
         if not email_list:
             return self.respond(
                 {"commits": [], "repositories": {}, "errors": {"missing_emails": True}}

@@ -1,4 +1,4 @@
-import toArray from 'sentry/utils/toArray';
+import toArray from 'sentry/utils/array/toArray';
 
 /**
  * Noramlize a team slug from the query

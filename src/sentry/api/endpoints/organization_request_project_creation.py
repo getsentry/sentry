@@ -18,7 +18,7 @@ class OrganizationRequestProjectCreationSerializer(CamelSnakeSerializer):
 @region_silo_endpoint
 class OrganizationRequestProjectCreation(OrganizationRequestChangeEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def post(self, request: Request, organization) -> Response:

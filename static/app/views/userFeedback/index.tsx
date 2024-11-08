@@ -1,9 +1,8 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -23,10 +22,11 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {UserReport} from 'sentry/types';
+import type {UserReport} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';
@@ -43,7 +43,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
 
   const {
     data: reportList,
-    isLoading,
+    isPending,
     isError,
     getResponseHeader,
   } = useApiQuery<UserReport[]>(
@@ -72,7 +72,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
     if (isError) {
       return <LoadingError />;
     }
-    if (isLoading) {
+    if (isPending) {
       return (
         <Panel>
           <LoadingIndicator />
@@ -80,7 +80,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
       );
     }
     if (!reportList?.length) {
-      return <UserFeedbackEmpty projectIds={getProjectIds()} />;
+      return <UserFeedbackEmpty projectIds={getProjectIds()} issueTab={false} />;
     }
     return (
       <Panel className="issue-list" data-test-id="user-feedback-list">
@@ -123,7 +123,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
                   position="left"
                   isHoverable
                 >
-                  <Button
+                  <LinkButton
                     size="sm"
                     priority="default"
                     to={{
@@ -138,7 +138,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
                     }}
                   >
                     {t('Go to New User Feedback')}
-                  </Button>
+                  </LinkButton>
                 </Tooltip>
               </Layout.HeaderActions>
             )}

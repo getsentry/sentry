@@ -1,6 +1,6 @@
 {
   "event_id": "ce6ab074ae0d45388af7a1cbb9eb092d",
-  "message": "DivideByZeroException",
+  "logentry": { "formatted": "DivideByZeroException" },
   "logger": "",
   "platform": "csharp",
   "release": "1.1",

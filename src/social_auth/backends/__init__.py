@@ -9,6 +9,7 @@ Also the modules *must* define a BACKENDS dictionary with the backend name
 (which is used for URLs matching) and Auth class, otherwise it won't be
 enabled.
 """
+
 from __future__ import annotations
 
 import logging
@@ -24,7 +25,7 @@ from django.contrib.auth import authenticate, load_backend
 from django.utils.crypto import constant_time_compare, get_random_string
 from requests_oauthlib import OAuth1
 
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from social_auth.exceptions import (
@@ -703,7 +704,7 @@ class BaseOAuth2(OAuthAuth):
 
 
 # Cache for discovered backends.
-BACKENDSCACHE: dict[str, type[SocialAuthBackend]] = {}
+BACKENDSCACHE: dict[str, type[BaseAuth]] = {}
 
 _import_lock = threading.Lock()
 

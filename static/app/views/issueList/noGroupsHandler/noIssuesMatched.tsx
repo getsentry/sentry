@@ -23,7 +23,7 @@ function NoIssuesMatched() {
           <li>
             {tct('Make sure your search has the right syntax. [link]', {
               link: (
-                <ExternalLink href="https://docs.sentry.io/product/reference/search/">
+                <ExternalLink href="https://docs.sentry.io/concepts/search/">
                   {t('Learn more')}
                 </ExternalLink>
               ),

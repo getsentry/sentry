@@ -1,38 +1,46 @@
-import {Fragment, useMemo, useRef} from 'react';
-import type {InjectedRouter} from 'react-router';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {ErrorBoundary} from '@sentry/react';
 import type {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import TransitionChart from 'sentry/components/charts/transitionChart';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EquationFormatter} from 'sentry/components/metrics/equationInput/syntax/formatter';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconSearch, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {getWidgetTitle} from 'sentry/utils/metrics';
+import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import {getFormattedMQL, unescapeMetricsFormula} from 'sentry/utils/metrics';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
+import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {MetricExpressionType} from 'sentry/utils/metrics/types';
+import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
+import {MetricBigNumberContainer} from 'sentry/views/dashboards/metrics/bigNumber';
+import {MetricChartContainer} from 'sentry/views/dashboards/metrics/chart';
+import {MetricTableContainer} from 'sentry/views/dashboards/metrics/table';
+import type {DashboardMetricsExpression} from 'sentry/views/dashboards/metrics/types';
 import {
-  type MetricsQueryApiRequestQuery,
-  useMetricsQuery,
-} from 'sentry/utils/metrics/useMetricsQuery';
-import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
-import {
-  getMetricQueries,
+  expressionsToApiQueries,
+  formatAlias,
+  getMetricExpressions,
+  isMetricsEquation,
   toMetricDisplayType,
 } from 'sentry/views/dashboards/metrics/utils';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
+import {
+  WidgetCardContextMenuContainer,
+  WidgetCardPanel,
+  WidgetTitleRow,
+} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
-import {MetricChart} from 'sentry/views/ddm/chart/chart';
-import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
-import {getChartTimeseries} from 'sentry/views/ddm/widget';
-import {LoadingScreen} from 'sentry/views/starfish/components/chart';
+import {useMetricsIntervalOptions} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
 
 type Props = {
   isEditingDashboard: boolean;
@@ -51,6 +59,32 @@ type Props = {
   showContextMenu?: boolean;
 };
 
+const EMPTY_FN = () => {};
+
+export function getWidgetTitle(expressions: DashboardMetricsExpression[]) {
+  const filteredExpressions = expressions.filter(query => !query.isQueryOnly);
+
+  if (filteredExpressions.length === 1) {
+    const firstQuery = filteredExpressions[0];
+    if (isMetricsEquation(firstQuery)) {
+      return (
+        <Fragment>
+          <EquationFormatter equation={unescapeMetricsFormula(firstQuery.formula)} />
+        </Fragment>
+      );
+    }
+    return formatAlias(firstQuery.alias) ?? getFormattedMQL(firstQuery);
+  }
+
+  return filteredExpressions
+    .map(q =>
+      isMetricsEquation(q)
+        ? formatAlias(q.alias) ?? unescapeMetricsFormula(q.formula)
+        : formatAlias(q.alias) ?? formatMRIField(MRIToField(q.mri, q.aggregation))
+    )
+    .join(', ');
+}
+
 export function MetricWidgetCard({
   organization,
   selection,
@@ -64,12 +98,88 @@ export function MetricWidgetCard({
   renderErrorMessage,
   showContextMenu = true,
 }: Props) {
-  const metricQueries = useMemo(
-    () => getMetricQueries(widget, dashboardFilters),
-    [widget, dashboardFilters]
+  const metricsNewInputs = hasMetricsNewInputs(organization);
+  const {getVirtualMRIQuery, isLoading: isLoadingVirtualMetrics} =
+    useVirtualMetricsContext();
+
+  const metricExpressions = getMetricExpressions(
+    widget,
+    dashboardFilters,
+    getVirtualMRIQuery
   );
 
-  const widgetMQL = useMemo(() => getWidgetTitle(metricQueries), [metricQueries]);
+  const hasSetMetric = useMemo(
+    () =>
+      metricExpressions.some(
+        expression =>
+          expression.type === MetricExpressionType.QUERY &&
+          parseMRI(expression.mri)!.type === 's'
+      ),
+    [metricExpressions]
+  );
+
+  const widgetMQL = useMemo(
+    () => (isLoadingVirtualMetrics ? '' : getWidgetTitle(metricExpressions)),
+    [isLoadingVirtualMetrics, metricExpressions]
+  );
+
+  const metricQueries = useMemo(() => {
+    const formattedAliasQueries = expressionsToApiQueries(
+      metricExpressions,
+      metricsNewInputs
+    ).map(query => {
+      if (query.alias) {
+        return {...query, alias: formatAlias(query.alias)};
+      }
+      return query;
+    });
+    return [...formattedAliasQueries];
+  }, [metricExpressions, metricsNewInputs]);
+
+  const {interval: validatedInterval} = useMetricsIntervalOptions({
+    // TODO: Figure out why this can be undefined
+    interval: widget.interval ?? '',
+    hasSetMetric,
+    datetime: selection.datetime,
+    onIntervalChange: EMPTY_FN,
+  });
+
+  const {
+    data: timeseriesData,
+    isPending,
+    isError,
+    error,
+  } = useMetricsQuery(metricQueries, selection, {
+    interval: validatedInterval,
+  });
+
+  const vizualizationComponent = useMemo(() => {
+    if (widget.displayType === DisplayType.TABLE) {
+      return (
+        <MetricTableContainer
+          metricQueries={metricQueries}
+          timeseriesData={timeseriesData}
+          isLoading={isPending}
+        />
+      );
+    }
+    if (widget.displayType === DisplayType.BIG_NUMBER) {
+      return (
+        <MetricBigNumberContainer timeseriesData={timeseriesData} isLoading={isPending} />
+      );
+    }
+
+    return (
+      <MetricChartContainer
+        timeseriesData={timeseriesData}
+        isLoading={isPending}
+        metricQueries={metricQueries}
+        displayType={toMetricDisplayType(widget.displayType)}
+        chartHeight={!showContextMenu ? 200 : undefined}
+        showLegend
+      />
+    );
+  }, [widget.displayType, metricQueries, timeseriesData, isPending, showContextMenu]);
 
   return (
     <DashboardsMEPContext.Provider
@@ -90,114 +200,63 @@ export function MetricWidgetCard({
 
           <ContextMenuWrapper>
             {showContextMenu && !isEditingDashboard && (
-              <WidgetCardContextMenu
-                organization={organization}
-                widget={widget}
-                selection={selection}
-                showContextMenu
-                isPreview={false}
-                widgetLimitReached={false}
-                onEdit={() => {
-                  router.push({
-                    pathname: `${location.pathname}${
-                      location.pathname.endsWith('/') ? '' : '/'
-                    }widget/${widget.id}/`,
-                    query: location.query,
-                  });
-                }}
-                router={router}
-                location={location}
-                onDelete={onDelete}
-                onDuplicate={onDuplicate}
-              />
+              <WidgetCardContextMenuContainer>
+                <WidgetCardContextMenu
+                  organization={organization}
+                  widget={widget}
+                  selection={selection}
+                  showContextMenu
+                  isPreview={false}
+                  widgetLimitReached={false}
+                  onEdit={() => {
+                    router.push({
+                      pathname: `${location.pathname}${
+                        location.pathname.endsWith('/') ? '' : '/'
+                      }widget/${widget.id}/`,
+                      query: location.query,
+                    });
+                  }}
+                  router={router}
+                  location={location}
+                  onDelete={onDelete}
+                  onDuplicate={onDuplicate}
+                  title={widget.title || widgetMQL}
+                />
+              </WidgetCardContextMenuContainer>
             )}
           </ContextMenuWrapper>
         </WidgetHeaderWrapper>
-
-        <MetricWidgetChartContainer
-          metricQueries={metricQueries}
-          selection={selection}
-          renderErrorMessage={renderErrorMessage}
-          chartHeight={!showContextMenu ? 200 : undefined}
-          displayType={widget.displayType}
-        />
+        <ErrorBoundary>
+          <WidgetCardBody
+            isError={isError}
+            timeseriesData={timeseriesData}
+            renderErrorMessage={renderErrorMessage}
+            error={error}
+          >
+            {vizualizationComponent}
+          </WidgetCardBody>
+        </ErrorBoundary>
         {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
       </WidgetCardPanel>
     </DashboardsMEPContext.Provider>
   );
 }
 
-type MetricWidgetChartContainerProps = {
-  displayType: DisplayType;
-  metricQueries: MetricsQueryApiRequestQuery[];
-  selection: PageFilters;
-  chartHeight?: number;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
-};
-
-export function MetricWidgetChartContainer({
-  selection,
-  renderErrorMessage,
-  metricQueries,
-  chartHeight,
-  displayType,
-}: MetricWidgetChartContainerProps) {
-  const {
-    data: timeseriesData,
-    isLoading,
-    isError,
-    error,
-  } = useMetricsQuery(metricQueries, selection, {
-    intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
-  });
-
-  const chartRef = useRef<ReactEchartsRef>(null);
-
-  const chartSeries = useMemo(() => {
-    return timeseriesData
-      ? getChartTimeseries(timeseriesData, metricQueries, {
-          getChartPalette: createChartPalette,
-        })
-      : [];
-  }, [timeseriesData, metricQueries]);
-
+function WidgetCardBody({children, isError, timeseriesData, renderErrorMessage, error}) {
   if (isError && !timeseriesData) {
     const errorMessage =
       error?.responseJSON?.detail?.toString() || t('Error while fetching metrics data');
     return (
-      <Fragment>
+      <ErrorWrapper>
         {renderErrorMessage?.(errorMessage)}
         <ErrorPanel>
           <IconWarning color="gray500" size="lg" />
         </ErrorPanel>
-      </Fragment>
+      </ErrorWrapper>
     );
   }
 
-  if (timeseriesData?.data.length === 0) {
-    return (
-      <EmptyMessage
-        icon={<IconSearch size="xxl" />}
-        title={t('No results')}
-        description={t('No results found for the given query')}
-      />
-    );
-  }
-
-  return (
-    <MetricWidgetChartWrapper>
-      <TransitionChart loading={isLoading} reloading={isLoading}>
-        <LoadingScreen loading={isLoading} />
-        <MetricChart
-          ref={chartRef}
-          series={chartSeries}
-          displayType={toMetricDisplayType(displayType)}
-          group={DASHBOARD_CHART_GROUP}
-          height={chartHeight}
-        />
-      </TransitionChart>
-    </MetricWidgetChartWrapper>
-  );
+  return children;
 }
 
 const WidgetHeaderWrapper = styled('div')`
@@ -222,12 +281,9 @@ const WidgetTitle = styled(HeaderTitle)`
   padding-top: ${space(2)};
   padding-right: ${space(1)};
   ${p => p.theme.overflowEllipsis};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const MetricWidgetChartWrapper = styled('div')`
-  height: 100%;
-  width: 100%;
-  padding: ${space(3)};
-  padding-top: ${space(2)};
+const ErrorWrapper = styled('div')`
+  padding-top: ${space(1)};
 `;

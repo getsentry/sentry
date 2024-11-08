@@ -9,6 +9,11 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportGenericInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
@@ -25,14 +30,17 @@ import (
 
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
 if err := sentry.Init(sentry.ClientOptions{
-  Dsn: "${params.dsn}",
-  EnableTracing: true,
+  Dsn: "${params.dsn.public}",${
+    params.isPerformanceSelected
+      ? `
   // Set TracesSampleRate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
+  // of transactions for tracing.
   // We recommend adjusting this value in production,
-  TracesSampleRate: 1.0,
-}); err != nil {
-  fmt.Printf("Sentry initialization failed: %v\n", err)
+  TracesSampleRate: 1.0,`
+      : ''
+  }
+); err != nil {
+  fmt.Printf("Sentry initialization failed: %v\\n", err)
 }
 
 // Then create your app
@@ -93,7 +101,7 @@ app.Run(iris.Addr(":3000"))`;
 
 const getBeforeSendSnippet = params => `
 sentry.Init(sentry.ClientOptions{
-  Dsn: "${params.dsn}",
+  Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
     if hint.Context != nil {
       if req, ok := hint.Context.Value(sentry.RequestContextKey).(*http.Request); ok {
@@ -137,8 +145,8 @@ const onboarding: OnboardingConfig = {
               <strong>{t('Options')}</strong>
               <p>
                 {tct(
-                  '[sentryirisCode:sentryiris] accepts a struct of [optionsCode:Options] that allows you to configure how the handler will behave.',
-                  {sentryirisCode: <code />, optionsCode: <code />}
+                  '[code:sentryiris] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
+                  {code: <code />}
                 )}
               </p>
               {t('Currently it respects 3 options:')}
@@ -155,23 +163,19 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              "[sentryirisCode:sentryiris] attaches an instance of [sentryHubLink:*sentry.Hub] to the [irisContextCode:iris.Context], which makes it available throughout the rest of the request's lifetime. You can access it by using the [getHubFromContextCode:sentryiris.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [captureMessageCode:sentry.CaptureMessage], [captureExceptionCode:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
+              "[code:sentryiris] attaches an instance of [sentryHubLink:*sentry.Hub] to the [code:iris.Context], which makes it available throughout the rest of the request's lifetime. You can access it by using the [code:sentryiris.GetHubFromContext()] method on the context itself in any of your proceeding middleware and routes. And it should be used instead of the global [code:sentry.CaptureMessage], [code:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
               {
-                sentryirisCode: <code />,
+                code: <code />,
                 sentryHubLink: (
-                  <ExternalLink href="https://godoc.org/github.com/getsentry/sentry-go#Hub" />
+                  <ExternalLink href="https://pkg.go.dev/github.com/getsentry/sentry-go#Hub" />
                 ),
-                irisContextCode: <code />,
-                getHubFromContextCode: <code />,
-                captureMessageCode: <code />,
-                captureExceptionCode: <code />,
               }
             )}
           </p>
           <AlertWithoutMarginBottom>
             {tct(
-              "Keep in mind that [sentryHubCode:*sentry.Hub] won't be available in middleware attached before [sentryirisCode:sentryiris]!",
-              {sentryirisCode: <code />, sentryHubCode: <code />}
+              "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryiris]!",
+              {code: <code />}
             )}
           </AlertWithoutMarginBottom>
         </Fragment>
@@ -198,9 +202,25 @@ const onboarding: OnboardingConfig = {
   verify: () => [],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/go/guides/iris/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  crashReportOnboarding,
 };
 
 export default docs;

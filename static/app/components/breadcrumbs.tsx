@@ -4,10 +4,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Chevron} from 'sentry/components/chevron';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
-import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {BreadcrumbDropdownProps} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
@@ -127,9 +127,7 @@ export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
               <BreadcrumbItem>{label}</BreadcrumbItem>
             )}
 
-            {index < crumbs.length - 1 && (
-              <BreadcrumbDividerIcon size="xs" direction="right" />
-            )}
+            {index < crumbs.length - 1 && <BreadcrumbDividerIcon direction="right" />}
           </Fragment>
         );
       })}
@@ -174,9 +172,9 @@ const BreadcrumbItem = styled('span')`
   max-width: 400px;
 `;
 
-const BreadcrumbDividerIcon = styled(IconChevron)`
+const BreadcrumbDividerIcon = styled(Chevron)`
   color: ${p => p.theme.subText};
-  margin: 0 ${space(1)};
+  margin: 0 ${space(0.5)};
   flex-shrink: 0;
 `;
 

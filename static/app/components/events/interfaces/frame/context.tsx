@@ -6,14 +6,14 @@ import ClippedBox from 'sentry/components/clippedBox';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event, Frame} from 'sentry/types/event';
 import type {
-  Frame,
   LineCoverage,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
-} from 'sentry/types';
-import {CodecovStatusCode, Coverage} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+} from 'sentry/types/integrations';
+import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
+import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -43,6 +43,7 @@ type Props = {
   hasContextVars?: boolean;
   isExpanded?: boolean;
   isFirst?: boolean;
+  platform?: PlatformKey;
   registersMeta?: Record<any, any>;
 };
 
@@ -74,6 +75,7 @@ function Context({
   className,
   frameMeta,
   registersMeta,
+  platform,
 }: Props) {
   const organization = useOrganization();
 
@@ -83,7 +85,7 @@ function Context({
     [projects, event]
   );
 
-  const {data: coverage, isLoading: isLoadingCoverage} = useStacktraceCoverage(
+  const {data: coverage, isPending: isLoadingCoverage} = useStacktraceCoverage(
     {
       event,
       frame,
@@ -184,7 +186,11 @@ function Context({
 
       {hasContextVars && (
         <StyledClippedBox clipHeight={100}>
-          <FrameVariables data={frame.vars ?? {}} meta={frameMeta?.vars} />
+          <FrameVariables
+            platform={platform}
+            data={frame.vars ?? {}}
+            meta={frameMeta?.vars}
+          />
         </StyledClippedBox>
       )}
 

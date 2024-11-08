@@ -31,7 +31,7 @@ describe('OnDemandMetricRequest', function () {
 
   describe('with props changes', function () {
     beforeAll(function () {
-      (doEventsRequest as jest.Mock).mockImplementation(() =>
+      jest.mocked(doEventsRequest).mockImplementation(() =>
         Promise.resolve({
           isMetricsData: true,
           data: [],
@@ -67,11 +67,10 @@ describe('OnDemandMetricRequest', function () {
       expect(doEventsRequest).toHaveBeenCalled();
     });
 
-    it('makes a new request if projects prop changes', function () {
+    it('makes a new request if projects prop changes', async function () {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
-      doEventsRequest as jest.Mock;
 
       rerender(
         <OnDemandMetricRequest {...DEFAULTS} project={[123]}>
@@ -79,7 +78,7 @@ describe('OnDemandMetricRequest', function () {
         </OnDemandMetricRequest>
       );
 
-      expect(doEventsRequest).toHaveBeenCalledTimes(2);
+      await waitFor(() => expect(doEventsRequest).toHaveBeenCalledTimes(2));
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -88,11 +87,10 @@ describe('OnDemandMetricRequest', function () {
       );
     });
 
-    it('makes a new request if environments prop changes', function () {
+    it('makes a new request if environments prop changes', async function () {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
-      doEventsRequest as jest.Mock;
 
       rerender(
         <OnDemandMetricRequest {...DEFAULTS} environment={['dev']}>
@@ -100,7 +98,7 @@ describe('OnDemandMetricRequest', function () {
         </OnDemandMetricRequest>
       );
 
-      expect(doEventsRequest).toHaveBeenCalledTimes(2);
+      await waitFor(() => expect(doEventsRequest).toHaveBeenCalledTimes(2));
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -109,11 +107,10 @@ describe('OnDemandMetricRequest', function () {
       );
     });
 
-    it('makes a new request if period prop changes', function () {
+    it('makes a new request if period prop changes', async function () {
       const {rerender} = render(
         <OnDemandMetricRequest {...DEFAULTS}>{mock}</OnDemandMetricRequest>
       );
-      doEventsRequest as jest.Mock;
 
       rerender(
         <OnDemandMetricRequest {...DEFAULTS} period="7d">
@@ -121,7 +118,7 @@ describe('OnDemandMetricRequest', function () {
         </OnDemandMetricRequest>
       );
 
-      expect(doEventsRequest).toHaveBeenCalledTimes(2);
+      await waitFor(() => expect(doEventsRequest).toHaveBeenCalledTimes(2));
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({

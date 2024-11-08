@@ -2,6 +2,7 @@ from unittest import mock
 
 from django.urls import reverse
 
+from sentry import options
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -11,8 +12,7 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -24,12 +24,11 @@ ONDEMAND_FEATURES = [
 ]
 
 
-@region_silo_test
 class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTestCase):
     def url(self):
         return reverse(
             "sentry-api-0-organization-dashboard-widget-details",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
     def test_valid_widget(self):
@@ -332,6 +331,29 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
+    def test_big_number_widget_with_selected_equation(self):
+        data = {
+            "title": "EPM Big Number",
+            "displayType": "big_number",
+            "queries": [
+                {
+                    "name": "",
+                    "fields": ["epm()"],
+                    "columns": [],
+                    "aggregates": ["epm()", "count()", "equation|epm()*count()"],
+                    "conditions": "",
+                    "orderby": "",
+                    "selectedAggregate": "1",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
     def test_project_search_condition(self):
         self.user = self.create_user(is_superuser=False)
         self.project = self.create_project(
@@ -374,7 +396,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group_1"],
             },
             project_id=self.project.id,
@@ -480,7 +502,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "queries": [
                 {
                     "name": "timestamp filter",
-                    "conditions": f"timestamp.to_day:<{iso_format(before_now(hours=1))}",
+                    "conditions": f"timestamp.to_day:<{before_now(hours=1)}",
                     "fields": [],
                 }
             ],
@@ -639,6 +661,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert "queries" in response.data, response.data
 
     def test_save_with_total_count(self):
+        # We cannot query the Discover entity without a project being defined for the org
+        self.create_project()
         data = {
             "title": "Test Query",
             "displayType": "table",
@@ -1034,3 +1058,72 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         warnings = response.data["warnings"]
         assert len(warnings["queries"]) == 2
         assert response.data == {"warnings": {"columns": {}, "queries": [None, None]}}
+
+    def test_widget_cardinality(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": before_now(minutes=2).isoformat(),
+                "tags": {"sometag": "foo"},
+            },
+            project_id=self.project.id,
+        )
+        project = self.create_project()
+        self.create_environment(project=project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+
+        option_get = options.get
+
+        def mock_options(option_name):
+            if option_name == "on_demand.max_widget_cardinality.on_query_count":
+                return 0
+            else:
+                return option_get(option_name)
+
+        with mock.patch("sentry.options.get", side_effect=mock_options):
+            with self.feature(ONDEMAND_FEATURES):
+                response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        warnings = response.data["warnings"]
+        assert "columns" in warnings
+        assert len(warnings["columns"]) == 1
+        assert warnings["columns"]["sometag"] == "disabled:high-cardinality"
+
+    def test_widget_type_spans(self):
+        data = {
+            "title": "Test Query",
+            "widgetType": "spans",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["span.op", "count()"],
+                    "columns": ["span.op"],
+                    "aggregates": ["count()"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data

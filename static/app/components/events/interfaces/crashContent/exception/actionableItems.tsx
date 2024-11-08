@@ -2,7 +2,7 @@ import type React from 'react';
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -19,7 +19,8 @@ import {
 } from 'sentry/constants/eventErrors';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
@@ -35,7 +36,7 @@ import {
 import type {ActionableItemsResponse} from './useActionableItems';
 import {useActionableItems} from './useActionableItems';
 
-interface ErrorMessage {
+export interface ErrorMessage {
   desc: React.ReactNode;
   title: string;
   data?: {
@@ -59,7 +60,7 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-function getErrorMessage(
+export function getErrorMessage(
   error: ActionableItemErrors | EventErrorData,
   meta?: Record<string, any>
 ): Array<ErrorMessage> {
@@ -108,6 +109,24 @@ function getErrorMessage(
       return [
         {
           title: t('The debug information file used was broken'),
+          desc: null,
+          data: errorData,
+          meta: metaData,
+        },
+      ];
+    case NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED:
+      return [
+        {
+          title: t('Failed to process native stacktraces'),
+          desc: null,
+          data: errorData,
+          meta: metaData,
+        },
+      ];
+    case NativeProcessingErrors.NATIVE_INTERNAL_FAILURE:
+      return [
+        {
+          title: t('Internal failure when attempting to symbolicate'),
           desc: null,
           data: errorData,
           meta: metaData,
@@ -349,7 +368,7 @@ interface ActionableItemsProps {
 
 export function ActionableItems({event, project, isShare}: ActionableItemsProps) {
   const organization = useOrganization();
-  const {data, isLoading} = useActionableItems({
+  const {data, isPending} = useActionableItems({
     eventId: event.id,
     orgSlug: organization.slug,
     projectSlug: project.slug,
@@ -389,9 +408,9 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
   });
 
   if (
-    isLoading ||
+    isPending ||
     !defined(data) ||
-    data.errors.length === 0 ||
+    data.errors?.length === 0 ||
     Object.keys(errorMessages).length === 0
   ) {
     return null;

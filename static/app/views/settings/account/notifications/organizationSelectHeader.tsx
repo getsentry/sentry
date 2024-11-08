@@ -4,7 +4,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 type OrganizationSelectHeaderProps = {
   handleOrgChange: (orgId: string) => void;
@@ -51,7 +51,7 @@ export function OrganizationSelectHeader({
 // Resetting styles because its in a panel header
 const StyledSelectControl = styled(SelectControl)`
   text-transform: initial;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const OrgControlWrapper = styled('div')`

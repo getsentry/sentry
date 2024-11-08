@@ -3,12 +3,11 @@ import os
 import os.path
 
 import click
-
-from sentry.utils import json
+import orjson
 
 
 def find_test_cases_matching(model_name: str):
-    manifest = json.loads(open(os.environ["SENTRY_MODEL_MANIFEST_FILE_PATH"]).read())
+    manifest = orjson.loads(open(os.environ["SENTRY_MODEL_MANIFEST_FILE_PATH"], "rb").read())
     for test_node_id, hits in manifest.items():
         if model_name in hits:
             yield test_node_id.split("::")[1]

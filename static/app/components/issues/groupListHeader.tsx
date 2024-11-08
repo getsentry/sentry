@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import type {GroupListColumn} from './groupList';
 
@@ -18,8 +17,6 @@ function GroupListHeader({
   narrowGroups = false,
   withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
 }: Props) {
-  const organization = useOrganization();
-
   return (
     <PanelHeader disablePadding>
       <IssueWrapper>{t('Issue')}</IssueWrapper>
@@ -30,10 +27,9 @@ function GroupListHeader({
         <EventUserWrapper>{t('events')}</EventUserWrapper>
       )}
       {withColumns.includes('users') && <EventUserWrapper>{t('users')}</EventUserWrapper>}
-      {withColumns.includes('priority') &&
-        organization.features.includes('issue-priority-ui') && (
-          <PriorityWrapper narrowGroups={narrowGroups}>{t('Priority')}</PriorityWrapper>
-        )}
+      {withColumns.includes('priority') && (
+        <PriorityWrapper narrowGroups={narrowGroups}>{t('Priority')}</PriorityWrapper>
+      )}
       {withColumns.includes('assignee') && (
         <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
       )}
@@ -84,7 +80,7 @@ const ChartWrapper = styled(Heading)<{narrowGroups: boolean}>`
 
 const PriorityWrapper = styled(Heading)<{narrowGroups: boolean}>`
   justify-content: flex-end;
-  width: 85px;
+  width: 70px;
 
   @media (max-width: ${p =>
       p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {

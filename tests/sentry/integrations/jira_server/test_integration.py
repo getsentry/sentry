@@ -1,8 +1,8 @@
-import copy
 from functools import cached_property
 from unittest import mock
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.db import router
@@ -11,22 +11,21 @@ from django.urls import reverse
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira_server.integration import JiraServerIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.factories import EventType
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils.http import absolute_uri
 from sentry_plugins.jira.plugin import JiraPlugin
 
@@ -45,7 +44,7 @@ def get_client():
 class JiraServerIntegrationBaseTest(APITestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).isoformat()
         (
             self.integration,
             self.org_integration,
@@ -83,7 +82,6 @@ class JiraServerIntegrationBaseTest(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
 class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
     def test_get_create_issue_config(self):
         event = self.store_event(
@@ -91,9 +89,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -271,9 +269,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
 
@@ -324,9 +322,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
 
@@ -386,9 +384,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -420,9 +418,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -490,9 +488,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -503,10 +501,10 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         )
 
         with mock.patch.object(self.installation, "get_client", get_client):
-            mock_get_issue_fields_return_value = json.loads(
+            mock_get_issue_fields_return_value = orjson.loads(
                 StubService.get_stub_json("jira", "issue_fields_response.json")
             )
-            project_list_response = json.loads(
+            project_list_response = orjson.loads(
                 StubService.get_stub_json("jira", "project_list_response.json")
             )
             side_effect_values = [
@@ -533,9 +531,9 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
         )
         group = event.group
         assert group is not None
@@ -700,7 +698,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         )
 
         def responder(request):
-            body = json.loads(request.body)
+            body = orjson.loads(request.body)
             assert body["fields"]["labels"] == ["fuzzy", "bunnies"]
             assert body["fields"]["customfield_10200"] == {"value": "sad"}
             assert body["fields"]["customfield_10201"] == [
@@ -1037,7 +1035,6 @@ class JiraServerControlIntegrationTest(JiraServerIntegrationBaseTest):
         ]
 
 
-@region_silo_test
 class JiraMigrationIntegrationTest(APITestCase):
     @cached_property
     def integration(self):

@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 import abc
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any, ClassVar
+
+if TYPE_CHECKING:
+    from sentry.search.events.builder.base import BaseQueryBuilder
 
 from snuba_sdk import OrderBy
 
@@ -13,7 +18,12 @@ from sentry.search.events.types import SelectType, WhereType
 class DatasetConfig(abc.ABC):
     custom_threshold_columns: set[str] = set()
     non_nullable_keys: set[str] = set()
-    missing_function_error = InvalidSearchQuery
+    missing_function_error: ClassVar[type[Exception]] = InvalidSearchQuery
+    optimize_wildcard_searches = False
+    subscriptables_with_index: set[str] = set()
+
+    def __init__(self, builder: BaseQueryBuilder):
+        pass
 
     @property
     @abc.abstractmethod
@@ -50,7 +60,7 @@ class DatasetConfig(abc.ABC):
         ) -> str:
             argument = function_arguments[index]
             value = parameter_values[argument.name]
-            if (field_type := self.builder.get_field_type(value)) is not None:  # type: ignore
+            if (field_type := self.builder.get_field_type(value)) is not None:  # type: ignore[attr-defined]
                 return field_type
             else:
                 return argument.get_type(value)

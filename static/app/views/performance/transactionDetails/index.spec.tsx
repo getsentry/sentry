@@ -15,7 +15,6 @@ describe('EventDetails', () => {
   const project = ProjectFixture();
   const organization = OrganizationFixture({
     features: ['performance-view'],
-    projects: [project],
   });
 
   beforeEach(() => {
@@ -71,7 +70,7 @@ describe('EventDetails', () => {
     await act(tick);
   });
 
-  it('does not reender alert if already received transaction', async () => {
+  it('does not render alert if already received transaction', async () => {
     const event = EventFixture();
 
     MockApiClient.addMockResponse({

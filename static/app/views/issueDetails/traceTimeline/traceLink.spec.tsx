@@ -10,7 +10,7 @@ import {TraceLink} from './traceLink';
 import type {TraceEventResponse} from './useTraceTimelineEvents';
 
 describe('TraceLink', () => {
-  const organization = OrganizationFixture({features: ['issues-trace-timeline']});
+  const organization = OrganizationFixture();
   const event = EventFixture({
     contexts: {
       trace: {
@@ -23,6 +23,8 @@ describe('TraceLink', () => {
   const issuePlatformBody: TraceEventResponse = {
     data: [
       {
+        // In issuePlatform, we store the subtitle within the message
+        message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
         timestamp: '2024-01-24T09:09:03+00:00',
         'issue.id': 1000,
         project: project.slug,
@@ -30,6 +32,8 @@ describe('TraceLink', () => {
         title: 'Slow DB Query',
         id: 'abc',
         transaction: '/api/slow/',
+        culprit: 'foo',
+        'event.type': '',
       },
     ],
     meta: {fields: {}, units: {}},
@@ -45,6 +49,9 @@ describe('TraceLink', () => {
         id: event.id,
         transaction: 'important.task',
         'event.type': 'error',
+        culprit: 'foo',
+        'stack.function': [''],
+        'error.value': ['foo', 'bar'],
       },
     ],
     meta: {fields: {}, units: {}},
@@ -66,13 +73,11 @@ describe('TraceLink', () => {
       match: [MockApiClient.matchQuery({dataset: 'discover'})],
     });
     render(<TraceLink event={event} />, {organization});
-    expect(
-      await screen.findByRole('link', {name: 'View Full Trace (2 issues)'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('View Full Trace')).toBeInTheDocument();
   });
 
   it('renders no trace available', async () => {
-    render(<TraceLink event={EventFixture({})} />, {organization});
+    render(<TraceLink event={EventFixture()} />, {organization});
     expect(await screen.findByText('No Trace Available')).toBeInTheDocument();
   });
 });

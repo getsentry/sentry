@@ -14,15 +14,25 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.project import Project
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import issue_archived
+from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+IGNORED_CONDITION_FIELDS = {
+    "ignoreDuration",
+    "snoozeDuration",
+    "ignoreCount",
+    "ignoreWindow",
+    "ignoreUserCount",
+    "ignoreUserWindow",
+}
 
 
 class IgnoredStatusDetails(TypedDict, total=False):
@@ -111,7 +121,9 @@ def handle_ignored(
             if ignore_count and not ignore_window:
                 state["times_seen"] = group.times_seen
             if ignore_user_count and not ignore_user_window:
-                state["users_seen"] = group.count_users_seen()
+                state["users_seen"] = group.count_users_seen(
+                    referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_IGNORED.value
+                )
             GroupSnooze.objects.create_or_update(
                 group=group,
                 values={

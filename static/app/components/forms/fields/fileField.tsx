@@ -27,11 +27,22 @@ export interface FileFieldProps extends Omit<InputFieldProps, 'type' | 'accept'>
 
 export default function FileField({accept, hideControlState, ...props}: FileFieldProps) {
   const [fileName, setFileName] = useState('');
-  const handleFile = (model, name, onChange, e) => {
-    const file = e.target.files[0];
+  const handleFile = (
+    model: FormModel,
+    name: string,
+    onChange: (value: any, e: React.ChangeEvent<HTMLInputElement>) => void,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
 
-    const reader = new FileReader();
+    // No file selected
+    if (!file) {
+      onChange([], e);
+      return;
+    }
+
     model.setSaving(name, true);
+    const reader = new FileReader();
     reader.addEventListener(
       'load',
       () => {
@@ -56,7 +67,7 @@ export default function FileField({accept, hideControlState, ...props}: FileFiel
         children: React.ReactNode;
         model: FormModel;
         name: string;
-        onChange: (value, event?: React.FormEvent<HTMLInputElement>) => void;
+        onChange: (value: any, event?: React.FormEvent<HTMLInputElement>) => void;
       }) => {
         return (
           <InputGroup>

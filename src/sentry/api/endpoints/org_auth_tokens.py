@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.core.exceptions import ValidationError
 from django.db.models import Value
@@ -19,12 +19,12 @@ from sentry.api.utils import generate_region_url
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
-from sentry.models.user import User
-from sentry.security.utils import capture_security_activity
-from sentry.services.hybrid_cloud.organization.model import (
+from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
+from sentry.security.utils import capture_security_activity
+from sentry.users.models.user import User
 from sentry.utils.security.orgauthtoken_token import (
     SystemUrlPrefixMissingException,
     generate_token,
@@ -49,7 +49,7 @@ class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         organization: RpcOrganization,
     ) -> Response:
         # We want to sort by date_last_used, but sort NULLs last
-        the_past = datetime.min
+        the_past = datetime.min.replace(tzinfo=UTC)
 
         token_list = list(
             OrgAuthToken.objects.filter(

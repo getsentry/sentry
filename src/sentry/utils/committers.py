@@ -13,7 +13,7 @@ from django.db.models import Q
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import Group
@@ -21,7 +21,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
@@ -255,7 +255,7 @@ def get_event_file_committers(
     munged = munged_filename_and_frames(event_platform, frames, "munged_filename", sdk_name)
     if munged:
         frames = munged[1]
-    app_frames = [frame for frame in frames if frame.get("in_app")][-frame_limit:]
+    app_frames = [frame for frame in frames if frame and frame.get("in_app")][-frame_limit:]
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
 
@@ -293,7 +293,7 @@ def get_event_file_committers(
 
 
 def get_serialized_event_file_committers(
-    project: Project, event: Event, frame_limit: int = 25
+    project: Project, event: BaseEvent, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
 
     group_owners = GroupOwner.objects.filter(

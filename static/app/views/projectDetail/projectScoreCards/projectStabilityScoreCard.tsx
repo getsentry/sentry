@@ -1,29 +1,27 @@
-import round from 'lodash/round';
-
 import {
   getDiffInMinutes,
   shouldFetchPreviousPeriod,
 } from 'sentry/components/charts/utils';
-import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {PageFilters, SessionApiResponse} from 'sentry/types';
-import {SessionFieldWithOperation} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import type {PageFilters} from 'sentry/types/core';
+import type {SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {displayCrashFreePercent} from 'sentry/views/releases/utils';
+import {BigNumberWidget} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidget';
+import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 import {
   getSessionTermDescription,
   SessionTerm,
 } from 'sentry/views/releases/utils/sessionTerm';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
+
+import {ActionWrapper} from './actionWrapper';
 
 type Props = {
   field:
@@ -32,6 +30,7 @@ type Props = {
   hasSessions: boolean | null;
   isProjectStabilized: boolean;
   selection: PageFilters;
+  project?: Project;
   query?: string;
 };
 
@@ -99,7 +98,7 @@ const useCrashFreeRate = (props: Props) => {
     crashFreeRate: currentQuery.data,
     previousCrashFreeRate: previousQuery.data,
     isLoading:
-      currentQuery.isLoading || (previousQuery.isLoading && isPreviousPeriodEnabled),
+      currentQuery.isPending || (previousQuery.isPending && isPreviousPeriodEnabled),
     error: currentQuery.error || previousQuery.error,
     refetch: () => {
       currentQuery.refetch();
@@ -107,8 +106,6 @@ const useCrashFreeRate = (props: Props) => {
     },
   };
 };
-
-// shouldRenderBadRequests = true;
 
 function ProjectStabilityScoreCard(props: Props) {
   const {hasSessions} = props;
@@ -137,50 +134,36 @@ function ProjectStabilityScoreCard(props: Props) {
     ? undefined
     : previousCrashFreeRate?.groups[0]?.totals[props.field] * 100;
 
-  const trend =
-    defined(score) && defined(previousScore)
-      ? round(score - previousScore, 3)
-      : undefined;
-
-  const shouldRenderTrend = !isLoading && defined(score) && defined(trend);
-
   if (hasSessions === false) {
     return (
-      <ScoreCard
-        title={cardTitle}
-        help={cardHelp}
-        score={<MissingReleasesButtons organization={organization} health />}
-      />
-    );
-  }
-
-  if (error) {
-    return (
-      <LoadingError
-        message={error.responseJSON?.detail || t('There was an error loading data.')}
-        onRetry={refetch}
-      />
+      <WidgetFrame title={cardTitle} description={cardHelp}>
+        <ActionWrapper>
+          <MissingReleasesButtons
+            organization={organization}
+            health
+            platform={props.project?.platform}
+          />
+        </ActionWrapper>
+      </WidgetFrame>
     );
   }
 
   return (
-    <ScoreCard
+    <BigNumberWidget
       title={cardTitle}
-      help={cardHelp}
-      score={isLoading || !defined(score) ? '\u2014' : displayCrashFreePercent(score)}
-      trend={
-        shouldRenderTrend ? (
-          <div>
-            {trend >= 0 ? (
-              <IconArrow direction="up" size="xs" />
-            ) : (
-              <IconArrow direction="down" size="xs" />
-            )}
-            {`${formatAbbreviatedNumber(Math.abs(trend))}\u0025`}
-          </div>
-        ) : null
-      }
-      trendStatus={!trend ? undefined : trend > 0 ? 'good' : 'bad'}
+      description={cardHelp}
+      value={score ? score / 100 : undefined}
+      previousPeriodValue={previousScore ? previousScore / 100 : undefined}
+      field={`${props.field}()`}
+      meta={{
+        fields: {
+          [`${props.field}()`]: 'percentage',
+        },
+      }}
+      preferredPolarity="+"
+      isLoading={isLoading}
+      error={error ?? undefined}
+      onRetry={refetch}
     />
   );
 }

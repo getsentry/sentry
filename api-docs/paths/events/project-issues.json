@@ -1,22 +1,22 @@
 {
   "get": {
     "tags": ["Events"],
-    "description": "Return a list of issues (groups) bound to a project.  All parameters are supplied as query string parameters. \n\n A default query of ``is:unresolved`` is applied. To return results with other statuses send an new query value (i.e. ``?query=`` for all results).\n\nThe ``statsPeriod`` parameter can be used to select the timeline stats which should be present. Possible values are: ``\"\"`` (disable),``\"24h\"``, ``\"14d\"``",
+    "description": "Return a list of issues (groups) bound to a project.  All parameters are supplied as query string parameters. \n\n A default query of ``is:unresolved`` is applied. To return results with other statuses send an new query value (i.e. ``?query=`` for all results).\n\nThe ``statsPeriod`` parameter can be used to select the timeline stats which should be present. Possible values are: ``\"\"`` (disable),``\"24h\"`` (default), ``\"14d\"``\n\nUser feedback items from the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget) are built off the issue platform, so to return a list of user feedback items for a specific project, filter for `issue.category:feedback`.",
     "operationId": "List a Project's Issues",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The ID or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the issues belong to.",
+        "description": "The ID or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -25,7 +25,7 @@
       {
         "name": "statsPeriod",
         "in": "query",
-        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`). If not provided, the API will return the max time period for the project (90 days for paid accounts, 30 days for free).",
+        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`), defaults to \"24h\" if not provided.",
         "schema": {
           "type": "string"
         }
@@ -42,6 +42,14 @@
         "name": "query",
         "in": "query",
         "description": "An optional Sentry structured search query. If not provided an implied `\"is:unresolved\"` is assumed.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "hashes",
+        "in": "query",
+        "description": "A list of hashes of groups to return. Is not compatible with 'query' parameter. The maximum number of hashes that can be sent is 100. If more are sent, only the first 100 will be used.",
         "schema": {
           "type": "string"
         }
@@ -143,18 +151,18 @@
     "operationId": "Bulk Mutate a List of Issues",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The ID or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the issues belong to.",
+        "description": "The ID or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -304,18 +312,18 @@
     "operationId": "Bulk Remove a List of Issues",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The ID or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the issues belong to.",
+        "description": "The ID or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"

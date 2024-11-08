@@ -1,5 +1,4 @@
 import {createRef, Fragment, memo, useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -22,7 +21,9 @@ import {
 } from 'sentry/components/performance/waterfall/miniHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {tct} from 'sentry/locale';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import toPercent from 'sentry/utils/number/toPercent';
@@ -31,6 +32,10 @@ import type {
   TraceFullDetailed,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
+import type {
+  TraceShape,
+  TraceTree,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TraceDetailBody,
   TraceViewContainer,
@@ -45,7 +50,7 @@ import {
 } from 'sentry/views/performance/traceDetails/utils';
 
 import LimitExceededMessage from './limitExceededMessage';
-import type {EventDetail, TraceType} from './newTraceDetailsContent';
+import type {EventDetail} from './newTraceDetailsContent';
 import TraceNotFound from './traceNotFound';
 
 type AccType = {
@@ -61,8 +66,8 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   rootEvent: EventTransaction | undefined;
   traceEventView: EventView;
   traceSlug: string;
-  traceType: TraceType;
-  traces: TraceFullDetailed[];
+  traceType: TraceShape;
+  traces: TraceTree.Transaction[];
   filteredEventIds?: Set<string>;
   handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
@@ -152,11 +157,13 @@ function NewTraceView({
   ...props
 }: Props) {
   const [isTransactionBarScrolledTo, setIsTransactionBarScrolledTo] = useState(false);
-  const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
-  const sentrySpan = sentryTransaction?.startChild({
+
+  const sentrySpan = Sentry.startInactiveSpan({
     op: 'trace.render',
-    description: 'trace-view-content',
+    name: 'trace-view-content',
+    onlyIfParent: true,
   });
+
   const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
   const onlyOrphanErrors = hasOrphanErrors && (!traces || traces.length === 0);
   useEffect(() => {
@@ -495,7 +502,7 @@ function NewTraceView({
     </TraceDetailBody>
   );
 
-  sentrySpan?.finish();
+  sentrySpan?.end();
 
   return traceView;
 }

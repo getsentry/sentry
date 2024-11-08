@@ -137,19 +137,22 @@ text_filter = negation? text_key sep operator? search_value
 key                    = ~r"[a-zA-Z0-9_.-]+"
 quoted_key             = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
 explicit_tag_key       = "tags" open_bracket search_key closed_bracket
+explicit_string_tag_key = "tags" open_bracket search_key spaces comma spaces "string" closed_bracket
+explicit_number_tag_key = "tags" open_bracket search_key spaces comma spaces "number" closed_bracket
 aggregate_key          = key open_paren spaces function_args? spaces closed_paren
 function_args          = aggregate_param (spaces comma spaces !comma aggregate_param?)*
 aggregate_param        = quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param    = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
-search_key             = key / quoted_key
-text_key               = explicit_tag_key / search_key
+search_key             = explicit_number_tag_key / key / quoted_key
+search_type            = "number" / "string"
+text_key               = explicit_tag_key / explicit_string_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
 in_value               = (&in_value_termination in_value_char)+
 text_in_value          = quoted_value / in_value
 search_value           = quoted_value / value
-numeric_value          = "-"? numeric ~r"[kmb]"? &(end_value / comma / closed_bracket)
+numeric_value          = "-"? numeric numeric_unit? &(end_value / comma / closed_bracket)
 boolean_value          = ~r"(true|1|false|0)"i &end_value
 text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
 numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
@@ -165,11 +168,17 @@ time_format = ~r"T\d{2}:\d{2}:\d{2}" ("." ms_format)?
 ms_format   = ~r"\d{1,6}"
 tz_format   = ~r"[+-]\d{2}:\d{2}"
 
+
 iso_8601_date_format = date_format time_format? ("Z" / tz_format)? &end_value
 rel_date_format      = ~r"[+-][0-9]+[wdhm]" &end_value
 duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") &end_value
-size_format          = numeric ("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib") &end_value
+size_format          = numeric (size_unit) &end_value
 percentage_format    = numeric "%"
+
+numeric_unit        = ~r"[kmb]"i
+size_unit            = bits / bytes
+bits                 = ~r"bit|kib|mib|gib|tib|pib|eib|zib|yib"i
+bytes                = ~r"bytes|nb|kb|mb|gb|tb|pb|eb|zb|yb"i
 
 # NOTE: the order in which these operators are listed matters because for
 # example, if < comes before <= it will match that even if the operator is <=
@@ -381,6 +390,60 @@ class SearchValue(NamedTuple):
             return False
         return bool(WILDCARD_CHARS.search(self.raw_value))
 
+    def classify_wildcard(self) -> Literal["prefix", "infix", "suffix", "other"]:
+        if not self.is_wildcard():
+            return "other"
+
+        ret = WILDCARD_CHARS.finditer(self.raw_value)
+
+        leading_wildcard = False
+        trailing_wildcard = False
+        middle_wildcard = False
+
+        for x in ret:
+            start, end = x.span()
+            if start == 0 and end == 1:
+                # It must span exactly [0, 1) because if it spans further,
+                # the pattern also matched on some leading slashes.
+                leading_wildcard = True
+            elif end == len(self.raw_value):
+                # It only needs to match on end because if it matches on
+                # some slashes before the *, that's okay.
+                trailing_wildcard = True
+            else:
+                # The wildcard happens somewhere in the middle of the value.
+                # We care about this because when this happens, it's not
+                # trivial to optimize the query, so let it fall back to
+                # the existing regex approach.
+                middle_wildcard = True
+
+        if not middle_wildcard:
+            if leading_wildcard and trailing_wildcard:
+                return "infix"
+            elif leading_wildcard:
+                return "suffix"
+            elif trailing_wildcard:
+                return "prefix"
+
+        return "other"
+
+    def format_wildcard(self, kind: Literal["prefix", "infix", "suffix", "other"]) -> str:
+        if kind == "prefix":
+            # If it's a prefix wildcard, we strip off the last character
+            # which is always a `*` and match on the rest.
+            return translate_escape_sequences(self.raw_value[:-1])
+        elif kind == "infix":
+            # If it's an infix wildcard, we strip off the first and last character
+            # which is always a `*` and match on the rest.
+            return translate_escape_sequences(self.raw_value[1:-1])
+        elif kind == "suffix":
+            # If it's a suffix wildcard, we strip off the first character
+            # which is always a `*` and match on the rest.
+            return translate_escape_sequences(self.raw_value[1:])
+
+        # Fall back to the usual formatting that includes formatting escape values.
+        return self.value
+
     def is_event_id(self) -> bool:
         """Return whether the current value is a valid event id
 
@@ -397,6 +460,8 @@ class SearchValue(NamedTuple):
 
         Empty strings are valid, so that it can be used for has:trace.span queries
         """
+        if isinstance(self.raw_value, list):
+            return all(isinstance(value, str) and is_span_id(value) for value in self.raw_value)
         if not isinstance(self.raw_value, str):
             return False
         return is_span_id(self.raw_value) or self.raw_value == ""
@@ -507,16 +572,24 @@ class SearchConfig:
 class SearchVisitor(NodeVisitor):
     unwrapped_exceptions = (InvalidSearchQuery,)
 
-    def __init__(self, config=None, params=None, builder=None):
+    def __init__(
+        self,
+        config=None,
+        params=None,
+        builder=None,
+        get_field_type=None,
+        get_function_result_type=None,
+    ):
         super().__init__()
 
         if config is None:
             config = SearchConfig()
         self.config = config
         self.params = params if params is not None else {}
+        self.get_field_type = get_field_type
         if builder is None:
             # Avoid circular import
-            from sentry.search.events.builder import UnresolvedQuery
+            from sentry.search.events.builder.discover import UnresolvedQuery
 
             # TODO: read dataset from config
             self.builder = UnresolvedQuery(
@@ -526,6 +599,14 @@ class SearchVisitor(NodeVisitor):
             )
         else:
             self.builder = builder
+        if get_field_type is None:
+            self.get_field_type = self.builder.get_field_type
+        else:
+            self.get_field_type = get_field_type
+        if get_function_result_type is None:
+            self.get_function_result_type = self.builder.get_function_result_type
+        else:
+            self.get_function_result_type = get_function_result_type
 
     @cached_property
     def key_mappings_lookup(self):
@@ -540,7 +621,7 @@ class SearchVisitor(NodeVisitor):
             key in self.config.numeric_keys
             or is_measurement(key)
             or is_span_op_breakdown(key)
-            or self.builder.get_field_type(key) == "number"
+            or self.get_field_type(key) == "number"
             or self.is_duration_key(key)
         )
 
@@ -550,11 +631,11 @@ class SearchVisitor(NodeVisitor):
             key in self.config.duration_keys
             or is_duration_measurement(key)
             or is_span_op_breakdown(key)
-            or self.builder.get_field_type(key) in duration_types
+            or self.get_field_type(key) in duration_types
         )
 
     def is_size_key(self, key):
-        return self.builder.get_field_type(key) in SIZE_UNITS
+        return self.get_field_type(key) in SIZE_UNITS
 
     def is_date_key(self, key):
         return key in self.config.date_keys
@@ -984,6 +1065,15 @@ class SearchVisitor(NodeVisitor):
     def visit_explicit_tag_key(self, node, children):
         return SearchKey(f"tags[{children[2].name}]")
 
+    def visit_explicit_string_tag_key(self, node, children):
+        return SearchKey(f"tags[{children[2].name},string]")
+
+    def visit_explicit_number_tag_key(self, node, children):
+        return SearchKey(f"tags[{children[2].name},number]")
+
+    def visit_search_type(self, node, children):
+        return node.text
+
     def visit_aggregate_key(self, node, children):
         children = remove_optional_nodes(children)
         children = remove_space(children)
@@ -1020,6 +1110,8 @@ class SearchVisitor(NodeVisitor):
             or key in self.config.blocked_keys
         ):
             raise InvalidSearchQuery(f"Invalid key for this search: {key}")
+        if isinstance(key, SearchKey):
+            return key
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
     def visit_text_key(self, node, children):
@@ -1171,7 +1263,13 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 
 def parse_search_query(
-    query, config=None, params=None, builder=None, config_overrides=None
+    query,
+    config=None,
+    params=None,
+    builder=None,
+    config_overrides=None,
+    get_field_type=None,
+    get_function_result_type=None,
 ) -> list[
     SearchFilter
 ]:  # TODO: use the `Sequence[QueryToken]` type and update the code that fails type checking.
@@ -1194,4 +1292,10 @@ def parse_search_query(
     if config_overrides:
         config = SearchConfig.create_from(config, **config_overrides)
 
-    return SearchVisitor(config, params=params, builder=builder).visit(tree)
+    return SearchVisitor(
+        config,
+        params=params,
+        builder=builder,
+        get_field_type=get_field_type,
+        get_function_result_type=get_function_result_type,
+    ).visit(tree)

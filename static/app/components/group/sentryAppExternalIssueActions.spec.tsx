@@ -27,7 +27,7 @@ describe('SentryAppExternalIssueActions', () => {
   });
   // unable to use the selectByValue here so remove the select option
   component.schema.create.required_fields.pop();
-  const install = SentryAppInstallationFixture({});
+  const install = SentryAppInstallationFixture();
   const submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;
   const externalIssue = PlatformExternalIssueFixture({
     issueId: group.id,
@@ -38,6 +38,10 @@ describe('SentryAppExternalIssueActions', () => {
     MockApiClient.addMockResponse({
       url: `/sentry-apps/${sentryApp.slug}/interaction/`,
       method: 'POST',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/external-issues/`,
+      body: [],
     });
   });
 

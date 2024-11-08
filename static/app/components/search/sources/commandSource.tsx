@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {PlainRoute} from 'react-router';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
@@ -7,6 +6,7 @@ import Access from 'sentry/components/acl/access';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 
@@ -167,7 +167,7 @@ class CommandSource extends Component<Props, State> {
 
 function CommandSourceWithFeature(props: Omit<Props, 'isSuperuser'>) {
   return (
-    <Access isSuperuser>
+    <Access access={[]} isSuperuser>
       {({hasSuperuser}) => <CommandSource {...props} isSuperuser={hasSuperuser} />}
     </Access>
   );

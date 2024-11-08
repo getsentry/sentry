@@ -17,15 +17,14 @@ from fixtures.bitbucket_server import (
     REPO,
 )
 from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.identity import Identity, IdentityStatus
 
 
-@region_silo_test
 class BitbucketServerRepositoryProviderTest(APITestCase):
     @cached_property
     def integration(self):

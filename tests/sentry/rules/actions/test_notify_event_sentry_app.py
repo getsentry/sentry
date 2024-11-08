@@ -4,10 +4,10 @@ import pytest
 from rest_framework import serializers
 
 from sentry.rules.actions.sentry_apps import NotifyEventSentryAppAction
-from sentry.silo import SiloMode
-from sentry.tasks.sentry_apps import notify_sentry_app
+from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -16,7 +16,6 @@ ValidationError = serializers.ValidationError
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
 
-@region_silo_test
 class NotifyEventSentryAppActionTest(RuleTestCase):
     rule_cls = NotifyEventSentryAppAction
     schema_data = [
@@ -51,13 +50,13 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
 
         assert rule.id == SENTRY_APP_ALERT_ACTION
 
-        futures = list(rule.after(event=event, state=self.get_state()))
+        futures = list(rule.after(event=event))
         assert len(futures) == 1
         assert futures[0].callback is notify_sentry_app
         assert futures[0].kwargs["sentry_app"].id == self.app.id
         assert futures[0].kwargs["schema_defined_settings"] == self.schema_data
 
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_sentry_app_actions(self, mock_sentry_app_component_preparer):
         event = self.get_event()
 

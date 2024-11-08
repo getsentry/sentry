@@ -1,14 +1,21 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
 import type {InitializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {useLocation} from 'sentry/utils/useLocation';
 import TransactionAnomalies from 'sentry/views/performance/transactionSummary/transactionAnomalies';
+
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 const initializeData = (settings: InitializeDataSettings) => {
   const data = _initializeData(settings);
 
-  act(() => void ProjectsStore.loadInitialData(data.organization.projects));
+  act(() => void ProjectsStore.loadInitialData(data.projects));
   return data;
 };
 
@@ -16,6 +23,9 @@ describe('AnomaliesTab', function () {
   let anomaliesMock: any;
 
   beforeEach(function () {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -32,6 +42,10 @@ describe('AnomaliesTab', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
     anomaliesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/transaction-anomaly-detection/',
       body: {},
@@ -45,7 +59,7 @@ describe('AnomaliesTab', function () {
     });
 
     render(<TransactionAnomalies location={initialData.router.location} />, {
-      context: initialData.routerContext,
+      router: initialData.router,
       organization: initialData.organization,
     });
 

@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -16,7 +15,8 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -25,6 +25,7 @@ import {AlertRuleType} from 'sentry/views/alerts/types';
 import type {AlertType, WizardRuleTemplate} from './options';
 import {
   AlertWizardAlertNames,
+  AlertWizardExtraContent,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
 } from './options';
@@ -60,17 +61,12 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
-    if (
-      organization.features.includes('alert-crash-free-metrics') &&
-      metricRuleTemplate?.dataset === Dataset.SESSIONS
-    ) {
+    // If theres anything using the legacy sessions dataset, we need to convert it to metrics
+    if (metricRuleTemplate?.dataset === Dataset.SESSIONS) {
       metricRuleTemplate = {...metricRuleTemplate, dataset: Dataset.METRICS};
     }
 
-    if (
-      organization.features.includes('metric-alert-ignore-archived') &&
-      metricRuleTemplate?.dataset === Dataset.ERRORS
-    ) {
+    if (metricRuleTemplate?.dataset === Dataset.ERRORS) {
       // Pre-fill is:unresolved for error metric alerts
       // Filters out events in issues that are archived or resolved
       metricRuleTemplate = {...metricRuleTemplate, query: 'is:unresolved'};
@@ -120,7 +116,11 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
               priority="primary"
               to={{
                 pathname: `/organizations/${organization.slug}/alerts/new/${
-                  isMetricAlert ? AlertRuleType.METRIC : AlertRuleType.ISSUE
+                  isMetricAlert
+                    ? AlertRuleType.METRIC
+                    : alertOption === 'uptime_monitor'
+                      ? AlertRuleType.UPTIME
+                      : AlertRuleType.ISSUE
                 }/`,
                 query: {
                   ...(metricRuleTemplate ? metricRuleTemplate : {}),
@@ -161,11 +161,15 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
                 ({categoryHeading, options}) => (
                   <div key={categoryHeading}>
                     <CategoryTitle>{categoryHeading} </CategoryTitle>
-                    <RadioPanelGroup
+                    <WizardGroupedOptions
                       choices={options.map(alertType => {
-                        return [alertType, AlertWizardAlertNames[alertType]];
+                        return [
+                          alertType,
+                          AlertWizardAlertNames[alertType],
+                          AlertWizardExtraContent[alertType],
+                        ];
                       })}
-                      onChange={handleChangeAlertOption}
+                      onChange={option => handleChangeAlertOption(option as AlertType)}
                       value={alertOption}
                       label="alert-option"
                     />
@@ -210,7 +214,7 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 `;
 
 const CategoryTitle = styled('h2')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)} !important;
 `;
@@ -290,6 +294,12 @@ const WizardButtonContainer = styled('div')`
   justify-content: flex-end;
   a:not(:last-child) {
     margin-right: ${space(1)};
+  }
+`;
+
+const WizardGroupedOptions = styled(RadioPanelGroup)`
+  label {
+    grid-template-columns: repeat(3, max-content);
   }
 `;
 

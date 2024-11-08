@@ -1,11 +1,9 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 
-import type {
-  Group,
-  OnboardingRecentCreatedProject,
-  Organization,
-  Project,
-} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 // Refetch the data every second
@@ -22,16 +20,16 @@ export function useRecentCreatedProject({
   orgSlug,
   projectSlug,
 }: Props): undefined | OnboardingRecentCreatedProject {
-  const {isLoading: isProjectLoading, data: project} = useApiQuery<Project>(
+  const {isPending: isProjectLoading, data: project} = useApiQuery<Project>(
     [`/projects/${orgSlug}/${projectSlug}/`],
     {
       staleTime: 0,
       enabled: !!projectSlug,
-      refetchInterval: data => {
-        if (!data) {
+      refetchInterval: query => {
+        if (!query.state.data) {
           return false;
         }
-        const [projectData] = data;
+        const [projectData] = query.state.data;
         return projectData?.firstEvent ? false : DEFAULT_POLL_INTERVAL_MS;
       },
     }

@@ -1,23 +1,22 @@
 from __future__ import annotations
 
 import abc
-import logging
 import re
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from rest_framework import status
 
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
+    from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
     from sentry.middleware.integrations.integration_control import ResponseHandler
-    from sentry.middleware.integrations.parsers.base import BaseRequestParser
 
 
 class BaseClassification(abc.ABC):
@@ -39,7 +38,6 @@ class BaseClassification(abc.ABC):
 class PluginClassification(BaseClassification):
     plugin_prefix = "/plugins/"
     """Prefix for plugin requests."""
-    logger = logging.getLogger(f"{__name__}.plugin")
 
     def should_operate(self, request: HttpRequest) -> bool:
         from .parsers import PluginRequestParser
@@ -54,14 +52,12 @@ class PluginClassification(BaseClassification):
         from .parsers import PluginRequestParser
 
         rp = PluginRequestParser(request=request, response_handler=self.response_handler)
-        self.logger.info("routing_request.plugin", extra={"path": request.path})
         return rp.get_response()
 
 
 class IntegrationClassification(BaseClassification):
     integration_prefix = "/extensions/"
     """Prefix for all integration requests. See `src/sentry/web/urls.py`"""
-    logger = logging.getLogger(f"{__name__}.integration")
 
     @property
     def integration_parsers(self) -> Mapping[str, type[BaseRequestParser]]:
@@ -96,7 +92,7 @@ class IntegrationClassification(BaseClassification):
             VercelRequestParser,
             VstsRequestParser,
         ]
-        return {cast(str, parser.provider): parser for parser in active_parsers}
+        return {parser.provider: parser for parser in active_parsers}
 
     def _identify_provider(self, request: HttpRequest) -> str | None:
         """
@@ -128,12 +124,12 @@ class IntegrationClassification(BaseClassification):
 
         parser_class = self.integration_parsers.get(provider)
         if not parser_class:
-            with sentry_sdk.configure_scope() as scope:
-                scope.set_tag("provider", provider)
-                scope.set_tag("path", request.path)
-                sentry_sdk.capture_exception(
-                    Exception("Unknown provider was extracted from integration extension url")
-                )
+            scope = sentry_sdk.Scope.get_isolation_scope()
+            scope.set_tag("provider", provider)
+            scope.set_tag("path", request.path)
+            sentry_sdk.capture_exception(
+                Exception("Unknown provider was extracted from integration extension url")
+            )
             return self.response_handler(request)
 
         parser = parser_class(
@@ -153,14 +149,5 @@ class IntegrationClassification(BaseClassification):
             f"hybrid_cloud.integration_control.integration.{parser.provider}",
             tags={"url_name": parser.match.url_name, "status_code": response.status_code},
             sample_rate=1.0,
-        )
-        self.logger.info(
-            f"integration_control.routing_request.{parser.provider}.response",
-            extra={
-                "request.path": request.path,
-                "request.method": request.method,
-                "url_name": parser.match.url_name,
-                "response.status_code": response.status_code,
-            },
         )
         return response

@@ -111,7 +111,12 @@ def result_transformer(result):
             return SearchValue(raw_value=[item["value"]["value"] for item in token["items"]])
 
         if token["type"] == "valueNumberList":
-            return SearchValue(raw_value=[item["value"]["rawValue"] for item in token["items"]])
+            return SearchValue(
+                raw_value=[
+                    parse_numeric_value(item["value"]["value"], item["value"]["unit"])
+                    for item in token["items"]
+                ]
+            )
 
         if token["type"] == "valueIso8601Date":
             return SearchValue(raw_value=parse_datetime_string(token["value"]))
@@ -123,7 +128,7 @@ def result_transformer(result):
             return SearchValue(raw_value=parse_duration(token["value"], token["unit"]))
 
         if token["type"] == "valueBoolean":
-            return SearchValue(raw_value=int(token["value"]))
+            return SearchValue(raw_value=int(token["value"].lower() in ("1", "true")))
 
         if token["type"] == "freeText":
             if token["quoted"]:
@@ -224,7 +229,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_size_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "gigabyte"
@@ -242,7 +247,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_ibyte_size_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "gibibyte"
@@ -262,7 +267,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_size_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "gigabyte"
@@ -282,7 +287,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_ibyte_size_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "gibibyte"
@@ -302,7 +307,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_duration_measurement_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "second"
@@ -320,7 +325,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_duration_measurement_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "minute"
@@ -340,7 +345,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_numeric_measurement_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "number"
@@ -358,7 +363,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
-    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_numeric_measurement_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "number"
@@ -705,3 +710,32 @@ def test_search_value_to_query_string(value, expected_query_string):
     actual = search_value.to_query_string()
 
     assert actual == expected_query_string
+
+
+@pytest.mark.parametrize(
+    ["value", "expected_kind", "expected_value"],
+    [
+        (1, "other", 1),
+        ("1", "other", "1"),
+        ("*", "suffix", ""),  # consider special casing this
+        ("*foo", "suffix", "foo"),
+        ("foo*", "prefix", "foo"),
+        ("*foo*", "infix", "foo"),
+        (r"\*foo", "other", r"*foo"),
+        (r"\\*foo", "other", r"^\\.*foo$"),
+        (r"foo\*", "other", r"foo*"),
+        (r"foo\\*", "prefix", r"foo\\"),
+        ("*f*o*o*", "other", "^.*f.*o.*o.*$"),
+        (r"*foo\*", "suffix", r"foo*"),
+        (r"*foo\\*", "infix", r"foo\\"),
+    ],
+)
+def test_search_value_classify_and_format_wildcard(value, expected_kind, expected_value):
+    """
+    Test classifying the wildcard type into one of prefix/suffix/infix/other
+    and formatting the value according to the classification results.
+    """
+    search_value = SearchValue(value)
+    kind = search_value.classify_wildcard()
+    assert kind == expected_kind
+    assert search_value.format_wildcard(kind) == expected_value

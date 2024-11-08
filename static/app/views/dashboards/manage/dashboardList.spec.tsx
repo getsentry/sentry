@@ -1,7 +1,6 @@
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -15,16 +14,18 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import DashboardList from 'sentry/views/dashboards/manage/dashboardList';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {type DashboardListItem, DisplayType} from 'sentry/views/dashboards/types';
 
 describe('Dashboards - DashboardList', function () {
-  let dashboards, deleteMock, dashboardUpdateMock, createMock;
+  let dashboards: DashboardListItem[];
+  let deleteMock: jest.Mock;
+  let dashboardUpdateMock: jest.Mock;
+  let createMock: jest.Mock;
   const organization = OrganizationFixture({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
-    projects: [ProjectFixture()],
   });
 
-  const {router, routerContext} = initializeOrg();
+  const {router} = initializeOrg();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -105,8 +106,9 @@ describe('Dashboards - DashboardList', function () {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={[]}
-        pageLinks=""
         location={router.location}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
@@ -119,8 +121,9 @@ describe('Dashboards - DashboardList', function () {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
-        pageLinks=""
         location={router.location}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
@@ -134,19 +137,20 @@ describe('Dashboards - DashboardList', function () {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
-        pageLinks=""
         location={router.location}
+        columnCount={3}
+        rowCount={3}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/dashboard/1/?'
+      '/organizations/org-slug/dashboard/1/'
     );
     expect(screen.getByRole('link', {name: 'Dashboard 2'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/dashboard/2/?'
+      '/organizations/org-slug/dashboard/2/'
     );
   });
 
@@ -156,10 +160,11 @@ describe('Dashboards - DashboardList', function () {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
-        pageLinks=""
         location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
+        columnCount={3}
+        rowCount={3}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByRole('link', {name: 'Dashboard 1'})).toHaveAttribute(
@@ -173,11 +178,12 @@ describe('Dashboards - DashboardList', function () {
       <DashboardList
         organization={organization}
         dashboards={dashboards}
-        pageLinks=""
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
+        columnCount={3}
+        rowCount={3}
       />,
-      {context: routerContext}
+      {router}
     );
     renderGlobalModal();
 
@@ -210,9 +216,10 @@ describe('Dashboards - DashboardList', function () {
       <DashboardList
         organization={organization}
         dashboards={singleDashboard}
-        pageLinks=""
         location={LocationFixture()}
         onDashboardsChange={dashboardUpdateMock}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
@@ -228,9 +235,10 @@ describe('Dashboards - DashboardList', function () {
       <DashboardList
         organization={organization}
         dashboards={dashboards}
-        pageLinks=""
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
@@ -254,9 +262,10 @@ describe('Dashboards - DashboardList', function () {
       <DashboardList
         organization={organization}
         dashboards={dashboards}
-        pageLinks=""
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
+        columnCount={3}
+        rowCount={3}
       />
     );
 

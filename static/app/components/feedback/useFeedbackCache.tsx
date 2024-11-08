@@ -3,15 +3,15 @@ import {useCallback} from 'react';
 import type {ApiResult} from 'sentry/api';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import {defined} from 'sentry/utils';
-import type {FeedbackIssue, FeedbackIssueList} from 'sentry/utils/feedback/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {FeedbackIssue, FeedbackIssueListItem} from 'sentry/utils/feedback/types';
+import type {ApiQueryKey, InfiniteData, QueryState} from 'sentry/utils/queryClient';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 
 type TFeedbackIds = 'all' | string[];
 
 export type ListCache = {
   pageParams: unknown[];
-  pages: ApiResult<FeedbackIssueList>[];
+  pages: ApiResult<FeedbackIssueListItem[]>[];
 };
 
 const issueApiEndpointRegexp = /^\/organizations\/\w+\/issues\/\d+\/$/;
@@ -93,12 +93,24 @@ export default function useFeedbackCache() {
 
   const invalidateCachedListPage = useCallback(
     (ids: TFeedbackIds) => {
-      queryClient.invalidateQueries({
-        queryKey: listQueryKey,
-        refetchPage: ([results]: ApiResult<FeedbackIssueList>) => {
-          return ids === 'all' || results.some(item => ids.includes(item.id));
-        },
-      });
+      if (ids === 'all') {
+        queryClient.invalidateQueries({
+          queryKey: listQueryKey,
+          type: 'all',
+        });
+      } else {
+        queryClient.refetchQueries({
+          queryKey: listQueryKey,
+          predicate: query => {
+            // Check if any of the pages contain the items we want to invalidate
+            return Boolean(
+              (
+                query.state.data as QueryState<InfiniteData<FeedbackIssueListItem[]>>
+              ).data?.pages.some(items => items.some(item => ids.includes(item.id)))
+            );
+          },
+        });
+      }
     },
     [listQueryKey, queryClient]
   );

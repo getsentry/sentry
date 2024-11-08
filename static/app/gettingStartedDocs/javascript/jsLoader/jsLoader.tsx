@@ -3,7 +3,7 @@ import beautify from 'js-beautify';
 
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
-import tracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
@@ -14,7 +14,7 @@ import {
   getReplayJsLoaderSdkSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 type Params = DocsParams;
 
@@ -26,7 +26,7 @@ const getInstallConfig = (params: Params) => [
         description: t('Add this script tag to the top of the page:'),
         language: 'html',
         code: beautify.html(
-          `<script src="${params.cdn}" crossorigin="anonymous"></script>`,
+          `<script src="${params.dsn.cdn}" crossorigin="anonymous"></script>`,
           {indent_size: 2, wrap_attributes: 'force-expand-multiline'}
         ),
         additionalInfo: (
@@ -37,7 +37,7 @@ const getInstallConfig = (params: Params) => [
                 link: (
                   <ExternalLink
                     href={normalizeUrl(
-                      `/settings/projects/${params.projectSlug}/loader-script/`
+                      `/settings/${params.organization.slug}/projects/${params.projectSlug}/loader-script/`
                     )}
                   />
                 ),
@@ -50,11 +50,21 @@ const getInstallConfig = (params: Params) => [
   },
 ];
 
+const getVerifySnippet = () => `
+<!-- A button to trigger a test error -->
+<button id="test-error">Trigger Test Error</button>
+<script>
+  const button = document.getElementById('test-error');
+  button.addEventListener('click', () => {
+    throw new Error('This is a test error');
+  });
+</script>`;
+
 const replayOnboardingJsLoader: OnboardingConfig = {
   install: (params: Params) => getInstallConfig(params),
   configure: (params: Params) => [
     {
-      type: StepType.CONFIGURE,
+      title: t('Configure Session Replay (Optional)'),
       description: getReplayConfigureDescription({
         link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
       }),
@@ -64,11 +74,28 @@ const replayOnboardingJsLoader: OnboardingConfig = {
           code: getReplayJsLoaderSdkSetupSnippet(params),
         },
       ],
-      isOptional: true,
-      additionalInfo: tracePropagationMessage,
+      collapsible: true,
+      additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To verify your Replay setup, trigger an error on your page and watch Sentry capture the event along with a recording of the user interaction.'
+      ),
+      configurations: [
+        {
+          description: t('You can simulate an error by adding the following code:'),
+          language: 'html',
+          code: getVerifySnippet(),
+          additionalInfo: t(
+            'After clicking the button, wait a few moments, and you\'ll see a new session appear on the "Replays" page.'
+          ),
+        },
+      ],
+    },
+  ],
   nextSteps: () => [],
 };
 

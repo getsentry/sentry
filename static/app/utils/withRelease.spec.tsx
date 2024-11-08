@@ -63,7 +63,7 @@ describe('withRelease HoC', function () {
     );
   });
 
-  it('prevents repeated calls', function () {
+  it('prevents repeated calls', async function () {
     const Component = jest.fn(() => null);
     const Container = withRelease(Component);
 
@@ -100,7 +100,7 @@ describe('withRelease HoC', function () {
       />
     );
 
-    expect(api.requestPromise).toHaveBeenCalledTimes(2); // 1 for fetchRelease, 1 for fetchDeploys
+    await waitFor(() => expect(api.requestPromise).toHaveBeenCalledTimes(2)); // 1 for fetchRelease, 1 for fetchDeploys
     expect(Container.prototype.fetchRelease).toHaveBeenCalledTimes(3);
     expect(Container.prototype.fetchDeploys).toHaveBeenCalledTimes(3);
   });

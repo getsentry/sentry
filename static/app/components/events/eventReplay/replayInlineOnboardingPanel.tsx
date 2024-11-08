@@ -2,61 +2,52 @@ import styled from '@emotion/styled';
 
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
+import {usePrompt} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import theme from 'sentry/utils/theme';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type OnboardingCTAProps = {
   platform: PlatformKey;
   projectId: string;
 };
 
-const OnboardingCTAButton = HookOrDefault({
-  hookName: 'component:replay-onboarding-cta-button',
-  defaultComponent: null,
-});
-
 export default function ReplayInlineOnboardingPanel({
   platform,
   projectId,
 }: OnboardingCTAProps) {
-  const LOCAL_STORAGE_KEY = `${projectId}:issue-details-replay-onboarding-hide`;
-
-  const {dismiss: snooze, isDismissed: isSnoozed} = useDismissAlert({
-    key: LOCAL_STORAGE_KEY,
-    expirationDays: 7,
-  });
-
-  const {dismiss, isDismissed} = useDismissAlert({
-    key: LOCAL_STORAGE_KEY,
-    expirationDays: 365,
-  });
+  const organization = useOrganization();
 
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
   const platformKey = platforms.find(p => p.id === platform) ?? otherPlatform;
   const platformName = platformKey === otherPlatform ? '' : platformKey.name;
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
-  const organization = useOrganization();
 
-  if (isDismissed || isSnoozed) {
+  const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
+    feature: 'issue_replay_inline_onboarding',
+    organization,
+    projectId,
+    daysToSnooze: 7,
+  });
+
+  if (isLoading || isError || isPromptDismissed) {
     return null;
   }
 
   return (
-    <EventReplaySection>
+    <InterimSection type={SectionKey.REPLAY} title={t('Session Replay')}>
       <BannerWrapper>
         <div>
           <BannerTitle>
@@ -68,7 +59,6 @@ export default function ReplayInlineOnboardingPanel({
             {t('Watch the errors and latency issues your users face')}
           </BannerDescription>
           <ActionButton>
-            {!isScreenSmall && <OnboardingCTAButton />}
             <Button
               analyticsEventName="Clicked Replay Onboarding CTA Set Up Button in Issue Details"
               analyticsEventKey="issue_details.replay-onboarding-cta-set-up-button-clicked"
@@ -93,7 +83,7 @@ export default function ReplayInlineOnboardingPanel({
               key: 'dismiss',
               label: t('Dismiss'),
               onAction: () => {
-                dismiss();
+                dismissPrompt();
                 trackAnalytics('issue-details.replay-cta-dismiss', {
                   organization,
                   type: 'dismiss',
@@ -104,7 +94,7 @@ export default function ReplayInlineOnboardingPanel({
               key: 'snooze',
               label: t('Snooze'),
               onAction: () => {
-                snooze();
+                snoozePrompt();
                 trackAnalytics('issue-details.replay-cta-dismiss', {
                   organization,
                   type: 'snooze',
@@ -114,13 +104,13 @@ export default function ReplayInlineOnboardingPanel({
           ]}
         />
       </BannerWrapper>
-    </EventReplaySection>
+    </InterimSection>
   );
 }
 
 const PurpleText = styled('span')`
   color: ${p => p.theme.purple300};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const BannerWrapper = styled('div')`
@@ -140,7 +130,7 @@ const BannerWrapper = styled('div')`
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const BannerDescription = styled('div')`

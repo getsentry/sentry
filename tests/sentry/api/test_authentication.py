@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 from django.http import HttpRequest
@@ -16,22 +16,23 @@ from sentry.api.authentication import (
     RpcSignatureAuthentication,
     UserAuthTokenAuthentication,
 )
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_system_auth
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
+from sentry.hybridcloud.rpc.service import (
+    RpcAuthenticationSetupException,
+    generate_request_signature,
+)
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import ApiToken, is_api_token_auth
 from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
 from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken
-from sentry.services.hybrid_cloud.rpc import (
-    RpcAuthenticationSetupException,
-    generate_request_signature,
-)
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
+from sentry.types.token import AuthTokenType
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
@@ -81,14 +82,20 @@ class TestClientIdSecretAuthentication(TestCase):
 
     def test_incorrect_client_id(self):
         request = HttpRequest()
-        request.json_body = {"client_id": "notit", "client_secret": self.api_app.client_secret}
+        request.json_body = {
+            "client_id": "notit",
+            "client_secret": self.api_app.client_secret,
+        }
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
 
     def test_incorrect_client_secret(self):
         request = HttpRequest()
-        request.json_body = {"client_id": self.api_app.client_id, "client_secret": "notit"}
+        request.json_body = {
+            "client_id": self.api_app.client_id,
+            "client_secret": "notit",
+        }
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
@@ -162,7 +169,7 @@ class TestOrgAuthTokenAuthentication(TestCase):
             self.auth.authenticate(request)
 
     def test_inactive_key(self):
-        self.org_auth_token.update(date_deactivated=datetime.now())
+        self.org_auth_token.update(date_deactivated=datetime.now(UTC))
         request = HttpRequest()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
 
@@ -177,11 +184,11 @@ class TestTokenAuthentication(TestCase):
 
         self.auth = UserAuthTokenAuthentication()
         self.org = self.create_organization(owner=self.user)
-        self.token = "abc123"
         self.api_token = ApiToken.objects.create(
-            token=self.token,
+            token_type=AuthTokenType.USER,
             user=self.user,
         )
+        self.token = self.api_token.plaintext_token
 
     def test_authenticate(self):
         request = HttpRequest()

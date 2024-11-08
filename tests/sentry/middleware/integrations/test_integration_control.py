@@ -13,7 +13,7 @@ from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
 from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 
 
@@ -70,11 +70,12 @@ class IntegrationControlMiddlewareTest(TestCase):
 
         self.middleware.register_classifications(classifications=[NewClassification])
 
-        with patch.object(
-            NewClassification, "should_operate", return_value=True
-        ) as mock_new_should_operate, patch.object(
-            NewClassification, "get_response"
-        ) as mock_new_get_response:
+        with (
+            patch.object(
+                NewClassification, "should_operate", return_value=True
+            ) as mock_new_should_operate,
+            patch.object(NewClassification, "get_response") as mock_new_get_response,
+        ):
             self.middleware(self.factory.post("/"))
             assert mock_integration_operate.called
             assert mock_plugin_operate.called

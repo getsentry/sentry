@@ -4,12 +4,12 @@ import click
 
 
 @click.group()
-def plugins():
+def plugins() -> None:
     "Manage Sentry plugins."
 
 
 @plugins.command()
-def list():
+def list() -> None:
     "List all installed plugins"
     plugins = [
         (ep.name, dist.metadata["name"], dist.version, str(dist.locate_file(".")))

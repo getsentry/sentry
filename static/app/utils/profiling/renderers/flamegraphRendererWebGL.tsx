@@ -259,6 +259,7 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
     });
 
     // Use shader program
+    // biome-ignore lint/correctness/useHookAtTopLevel: not a hook
     this.ctx.useProgram(this.program);
 
     // Check if we should draw border - order matters here
@@ -300,6 +301,7 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
       this.program,
       'a_is_search_result'
     );
+
     createAndBindBuffer(this.ctx, this.searchResults, this.ctx.STATIC_DRAW);
     pointToAndEnableVertexAttribute(this.ctx, this.attributes.a_is_search_result, {
       size: 1,

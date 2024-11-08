@@ -10,7 +10,7 @@ import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import type {Field, FieldValue} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
+import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import withApi from 'sentry/utils/withApi';
 
 // 0 is a valid choice but empty string, undefined, and null are not
@@ -23,6 +23,7 @@ export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   choices?: Array<[any, string]>;
   default?: 'issue.title' | 'issue.description';
   depends_on?: string[];
+  skip_load_on_open?: boolean;
   uri?: string;
 };
 
@@ -125,7 +126,33 @@ export class SentryAppExternalForm extends Component<Props, State> {
         uri: config.uri,
       });
     }
+    // let the state update before we try and load the dependent options
+    setTimeout(() => {
+      this.tryAndLoadDependentOptions();
+    }, 0);
   }
+
+  tryAndLoadDependentOptions = () => {
+    const {required_fields, optional_fields} = this.state;
+
+    // first find every field where we don't load the values on open
+    const fieldsToLoad = [...(required_fields || []), ...(optional_fields || [])].filter(
+      field => field.skip_load_on_open
+    );
+
+    fieldsToLoad.forEach(field => {
+      if (field.depends_on && field.depends_on.length > 0) {
+        // check that we can load this field
+        const isReadyToLoad = field.depends_on.every(dependentField => {
+          return !!this.model.getValue(dependentField);
+        });
+        // if ready to load, trigger a field change to trigger the api request to load options
+        if (isReadyToLoad) {
+          this.handleFieldChange(field.depends_on[0]);
+        }
+      }
+    });
+  };
 
   onSubmitError = () => {
     const {action, appName} = this.props;

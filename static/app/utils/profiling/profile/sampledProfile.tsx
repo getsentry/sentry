@@ -1,5 +1,7 @@
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
+import {assertValidProfilingUnit} from '../units/units';
+
 import {Frame} from './../frame';
 import {Profile} from './profile';
 import type {createFrameIndex} from './utils';
@@ -28,7 +30,7 @@ function sortStacks(
 
 function stacksWithWeights(
   profile: Readonly<Profiling.SampledProfile>,
-  profileIds: Readonly<string[][]> = [],
+  profileIds: Profiling.ProfileReference[][] = [],
   frameFilter?: (i: number) => boolean
 ) {
   return profile.samples.map((stack, index) => {
@@ -43,10 +45,24 @@ function stacksWithWeights(
 
 function sortSamples(
   profile: Readonly<Profiling.SampledProfile>,
-  profileIds: Readonly<string[][]> = [],
+  profileIds: Profiling.ProfileReference[][] = [],
   frameFilter?: (i: number) => boolean
 ): {aggregate_sample_duration: number; stack: number[]; weight: number}[] {
   return stacksWithWeights(profile, profileIds, frameFilter).sort(sortStacks);
+}
+
+function mergeProfileExamples(
+  profileIds: Readonly<Profiling.SampledProfile['samples_profiles']>,
+  profileReferences: Readonly<Profiling.SampledProfile['samples_examples']>
+): number[][] {
+  const merged: number[][] = [];
+
+  const l = Math.max(profileIds?.length ?? 0, profileReferences?.length ?? 0);
+  for (let i = 0; i < l; i++) {
+    merged[i] = (profileIds?.[i] ?? []).concat(profileReferences?.[i] ?? []);
+  }
+
+  return merged;
 }
 
 // We should try and remove these as we adopt our own profile format and only rely on the sampled format.
@@ -57,9 +73,12 @@ export class SampledProfile extends Profile {
     options: {
       type: 'flamechart' | 'flamegraph';
       frameFilter?: (frame: Frame) => boolean;
-      profileIds?: Readonly<string[]>;
+      profileIds?:
+        | Profiling.Schema['shared']['profile_ids']
+        | Profiling.Schema['shared']['profiles'];
     }
   ): Profile {
+    assertValidProfilingUnit(sampledProfile.unit);
     const profile = new SampledProfile({
       duration: sampledProfile.endValue - sampledProfile.startValue,
       startedAt: sampledProfile.startValue,
@@ -76,19 +95,22 @@ export class SampledProfile extends Profile {
       );
     }
 
-    let resolvedProfileIds: string[][] = [];
+    let resolvedProfileIds: Profiling.ProfileReference[][] = [];
     if (
       options.type === 'flamegraph' &&
-      sampledProfile.samples_profiles &&
+      (sampledProfile.samples_profiles || sampledProfile.samples_examples) &&
       options.profileIds
     ) {
       resolvedProfileIds = resolveFlamegraphSamplesProfileIds(
-        sampledProfile.samples_profiles,
-        options.profileIds
+        mergeProfileExamples(
+          sampledProfile.samples_profiles,
+          sampledProfile.samples_examples
+        ),
+        options.profileIds as Profiling.ProfileReference[]
       );
     }
 
-    function resolveFrame(index) {
+    function resolveFrame(index: number) {
       const resolvedFrame = frameIndex[index];
       if (!resolvedFrame) {
         throw new Error(`Could not resolve frame ${index} in frame index`);
@@ -219,7 +241,7 @@ export class SampledProfile extends Profile {
     stack: Frame[],
     weight: number,
     end: number,
-    resolvedProfileIds?: string[],
+    resolvedProfileIds?: Profiling.ProfileReference[] | string[],
     aggregate_duration_ns?: number
   ): void {
     // Keep track of discarded samples and ones that may have negative weights

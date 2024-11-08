@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from sentry.issues.grouptype import GroupType, PerformanceP95EndpointRegressionGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
-from sentry.seer.utils import BreakpointData
+from sentry.seer.breakpoints import BreakpointData
 from sentry.utils import metrics
 
 
@@ -24,7 +24,7 @@ def send_regression_to_platform(regression: BreakpointData):
     displayed_new_baseline = round(float(regression["aggregate_range_2"]), 2)
 
     # For legacy reasons, we're passing project id as project
-    # TODO fix this in the breakpoint microservice and in trends v2
+    # TODO: fix this in the breakpoint microservice and in trends v2
     project_id = int(regression["project"])
 
     issue_type: type[GroupType] = PerformanceP95EndpointRegressionGroupType

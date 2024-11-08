@@ -1,8 +1,7 @@
-import {browserHistory} from 'react-router';
-
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import LoginForm from 'sentry/views/auth/loginForm';
 
 async function doLogin() {

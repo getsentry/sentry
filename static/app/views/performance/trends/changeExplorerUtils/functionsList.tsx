@@ -1,18 +1,19 @@
 import {Fragment, useMemo} from 'react';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {parsePeriodToHours} from 'sentry/utils/dates';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import type {EventsResultsDataRow, Sort} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -111,7 +112,7 @@ export function FunctionsList(props: FunctionsListProps) {
 
   const {
     data: totalTransactionsBefore,
-    isLoading: transactionsLoadingBefore,
+    isPending: transactionsLoadingBefore,
     isError: transactionsErrorBefore,
   } = useDiscoverQuery(
     getQueryParams(
@@ -133,7 +134,7 @@ export function FunctionsList(props: FunctionsListProps) {
 
   const {
     data: totalTransactionsAfter,
-    isLoading: transactionsLoadingAfter,
+    isPending: transactionsLoadingAfter,
     isError: transactionsErrorAfter,
   } = useDiscoverQuery(
     getQueryParams(
@@ -240,8 +241,8 @@ export function FunctionsList(props: FunctionsListProps) {
         isLoading={
           transactionsLoadingBefore ||
           transactionsLoadingAfter ||
-          beforeFunctionsQuery.isLoading ||
-          afterFunctionsQuery.isLoading
+          beforeFunctionsQuery.isPending ||
+          afterFunctionsQuery.isPending
         }
         isError={
           transactionsErrorBefore ||

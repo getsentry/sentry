@@ -2,29 +2,48 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable, Mapping
-from typing import Any
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, cast
 
+import orjson
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
+from rest_framework.request import Request
+from rest_framework.response import Response
 
-from sentry import analytics, audit_log, eventstore, features, options
+from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.constants import ObjectStatus
+from sentry.identity.services.identity import identity_service
+from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.messaging import commands
+from sentry.integrations.messaging.commands import (
+    CommandInput,
+    CommandNotMatchedError,
+    MessagingIntegrationCommand,
+    MessagingIntegrationCommandDispatcher,
+)
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
+from sentry.integrations.messaging.spec import MessagingIntegrationSpec
+from sentry.integrations.msteams import parsing
+from sentry.integrations.msteams.spec import PROVIDER, MsTeamsMessagingSpec
+from sentry.integrations.services.integration import integration_service
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
-from sentry.utils import json, jwt
+from sentry.silo.base import SiloMode
+from sentry.users.services.user.service import user_service
+from sentry.utils import jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 
@@ -46,6 +65,7 @@ from .card_builder.installation import (
 )
 from .card_builder.issues import MSTeamsIssueMessageBuilder
 from .client import CLOCK_SKEW, MsTeamsClient, MsTeamsJwtClient
+from .constants import SALT
 from .link_identity import build_linking_url
 from .unlink_identity import build_unlinking_url
 from .utils import ACTION_TYPE, get_preinstall_client
@@ -65,8 +85,8 @@ class MsTeamsIntegrationResolve(MsTeamsIntegrationAnalytics):
     type = "integrations.msteams.resolve"
 
 
-class MsTeamsIntegrationIgnore(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.ignore"
+class MsTeamsIntegrationArchive(MsTeamsIntegrationAnalytics):
+    type = "integrations.msteams.archive"
 
 
 class MsTeamsIntegrationUnresolve(MsTeamsIntegrationAnalytics):
@@ -79,12 +99,12 @@ class MsTeamsIntegrationUnassign(MsTeamsIntegrationAnalytics):
 
 analytics.register(MsTeamsIntegrationAssign)
 analytics.register(MsTeamsIntegrationResolve)
-analytics.register(MsTeamsIntegrationIgnore)
+analytics.register(MsTeamsIntegrationArchive)
 analytics.register(MsTeamsIntegrationUnresolve)
 analytics.register(MsTeamsIntegrationUnassign)
 
 
-def verify_signature(request):
+def verify_signature(request) -> bool:
     # docs for jwt authentication here: https://docs.microsoft.com/en-us/azure/bot-service/rest-api/bot-framework-rest-connector-authentication?view=azure-bot-service-4.0#bot-to-connector
     token = request.META.get("HTTP_AUTHORIZATION", "").replace("Bearer ", "")
     if not token:
@@ -100,14 +120,14 @@ def verify_signature(request):
     # get the open id config and jwks
     client = MsTeamsJwtClient()
     open_id_config = client.get_open_id_config()
-    jwks = client.get_cached(open_id_config["jwks_uri"])
+    jwks = cast(Mapping[str, Any], client.get_cached(open_id_config["jwks_uri"]))
 
     # create a mapping of all the keys
     # taken from: https://renzolucioni.com/verifying-jwts-with-jwks-and-pyjwt/
     public_keys = {}
     for jwk in jwks["keys"]:
         kid = jwk["kid"]
-        public_keys[kid] = jwt.rsa_key_from_jwk(json.dumps(jwk))
+        public_keys[kid] = jwt.rsa_key_from_jwk(orjson.dumps(jwk).decode())
 
     kid = jwt.peek_header(token)["kid"]
     key = public_keys[kid]
@@ -139,109 +159,168 @@ def verify_signature(request):
     return True
 
 
-class MsTeamsWebhookMixin:
-    provider = "msteams"
+class MsTeamsEvents(Enum):
+    INSTALLATION_UPDATE = "installationUpdate"
+    MESSAGE = "message"
+    CONVERSATION_UPDATE = "conversationUpdate"
+    UNKNOWN = "unknown"
 
-    def infer_team_id_from_channel_data(self, data: Mapping[str, Any]) -> str | None:
+    @classmethod
+    def get_from_value(cls, value: str) -> MsTeamsEvents:
         try:
-            channel_data = data["channelData"]
-            team_id = channel_data["team"]["id"]
-            return team_id
+            return MsTeamsEvents(value)
         except Exception:
-            pass
-        return None
-
-    def get_integration_from_channel_data(self, data: Mapping[str, Any]) -> RpcIntegration | None:
-        team_id = self.infer_team_id_from_channel_data(data=data)
-        if team_id is None:
-            return None
-        return integration_service.get_integration(provider=self.provider, external_id=team_id)
-
-    def infer_integration_id_from_card_action(self, data: Mapping[str, Any]) -> int | None:
-        # The bot builds and sends Adaptive Cards to the channel, and in it will include card actions and context.
-        # The context will include the "integrationId".
-        # Whenever a user interacts with the card, MS Teams will send the card action and the context to the bot.
-        # Here we parse the "integrationId" from the context.
-        #
-        # See: https://learn.microsoft.com/en-us/microsoftteams/platform/task-modules-and-cards/cards/cards-actions?tabs=json#actionsubmit
-        try:
-            payload = data["value"]["payload"]
-            integration_id = payload["integrationId"]
-            return integration_id
-        except Exception:
-            pass
-        return None
-
-    def get_integration_from_card_action(self, data: Mapping[str, Any]) -> RpcIntegration | None:
-        integration_id = self.infer_integration_id_from_card_action(data=data)
-        if integration_id is None:
-            return None
-        return integration_service.get_integration(integration_id=integration_id)
-
-    def can_infer_integration(self, data: Mapping[str, Any]) -> bool:
-        return (
-            self.infer_integration_id_from_card_action(data=data) is not None
-            or self.infer_team_id_from_channel_data(data=data) is not None
-        )
+            return MsTeamsEvents.UNKNOWN
 
 
 @all_silo_endpoint
-class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
+class MsTeamsWebhookEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()
-    provider = "msteams"
+    provider = PROVIDER
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._event_handlers: dict[MsTeamsEvents, Callable[[Request], Response]] = {
+            MsTeamsEvents.MESSAGE: self._handle_message_event,
+            MsTeamsEvents.CONVERSATION_UPDATE: self._handle_conversation_update_event,
+            MsTeamsEvents.INSTALLATION_UPDATE: self._handle_installation_update_event,
+            MsTeamsEvents.UNKNOWN: self._handle_unknown_event,
+        }
 
     @csrf_exempt
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: HttpRequest) -> HttpResponse:
+    def post(self, request: Request) -> Response:
+        """
+        POST webhook handler for MSTeams bot.
+        The events are broadcast to MSTeams from Microsoft, and are documented at https://learn.microsoft.com/en-us/microsoftteams/platform/resources/bot-v3/bots-notifications
+        """
+
         # verify_signature will raise the exception corresponding to the error
-        self.verify_webhook_request(request)
+        self._verify_webhook_request(request)
 
         data = request.data
-        conversation_type = data.get("conversation", {}).get("conversationType")
-        event_type = data["type"]
+        raw_event_type = data["type"]
+        event_type = MsTeamsEvents.get_from_value(value=raw_event_type)
 
-        # only care about conversationUpdate and message
-        if event_type == "message":
-            # the only message events we care about are those which
-            # are from a user submitting an option on a card, which
-            # will always contain an "payload.actionType" in the data.
-            if data.get("value", {}).get("payload", {}).get("actionType"):
-                # Processing card actions can only occur in the Region silo.
-                if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                    return self.respond(status=400)
-                return self.handle_action_submitted(request)
-            elif conversation_type == "channel":
-                return self.handle_channel_message(request)
-            else:
-                return self.handle_personal_message(request)
-        elif event_type == "conversationUpdate":
-            channel_data = data["channelData"]
-            event = channel_data.get("eventType")
-            # TODO: Handle other events
-            if event == "teamMemberAdded":
-                return self.handle_team_member_added(request)
-            elif event == "teamMemberRemoved":
-                if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                    return self.respond(status=400)
-                return self.handle_team_member_removed(request)
-            elif (
-                data.get("membersAdded") and conversation_type == "personal"
-            ):  # no explicit event for user adding app unfortunately
-                return self.handle_personal_member_add(request)
+        event_handler_func = self._event_handlers[event_type]
+        response = event_handler_func(request)
+
+        logger.info("sentry.integrations.msteams.webhook", extra={"request_data": data})
+        return response if response else self.respond(status=204)
+
+    @classmethod
+    def _get_team_installation_request_data(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """
+        Helper method that will construct the installation request for a MsTeams team channel.
+        We want the KeyError exception to be raised if the key does not exist.
+        """
+        channel_data = data["channelData"]
+
+        new_team_info = channel_data["team"]
+        team_id = new_team_info["id"]
+        team_name = new_team_info["name"]
+
+        service_url = data["serviceUrl"]
+        from_data = data["from"]
+        user_id = from_data["id"]
+
+        tenant_info = channel_data["tenant"]
+        tenant_id = tenant_info["id"]
+        params = {
+            "service_url": service_url,
+            "user_id": user_id,
+            "tenant_id": tenant_id,
+            "conversation_id": team_id,
+            "external_id": team_id,
+            "external_name": team_name,
+            "installation_type": "team",
+        }
+        return params
+
+    def _handle_installation_update_event(self, request: Request) -> Response:
+        data = request.data
+        action = data.get("action", None)
+        if action is None or action != "add":
+            logger.info(
+                "sentry.integrations.msteams.webhooks: Action not supported",
+                extra={"request_data": data},
+            )
+            return self.respond({"details": f"{action} is currently not supported"}, status=204)
+
+        try:
+            installation_params = self._get_team_installation_request_data(data=data)
+        except Exception as err:
+            logger.info(
+                "sentry.integrations.msteams.webhooks: Installation param error",
+                exc_info=err,
+                extra={"request_data": data},
+            )
+            return self.respond(
+                {"details": "required request format or keys are missing"}, status=400
+            )
+
+        # sign the params so this can't be forged
+        signed_params = sign(salt=SALT, **installation_params)
+
+        # send welcome message to the team
+        preinstall_client = get_preinstall_client(installation_params["service_url"])
+        card = build_team_installation_message(signed_params)
+        preinstall_client.send_card(installation_params["conversation_id"], card)
+
+        return self.respond(status=201)
+
+    def _handle_message_event(self, request: Request) -> Response:
+        data = request.data
+        conversation = data.get("conversation", {})
+        conversation_type = conversation.get("conversationType")
+
+        # the only message events we care about are those which
+        # are from a user submitting an option on a card, which
+        # will always contain an "payload.actionType" in the data.
+        if data.get("value", {}).get("payload", {}).get("actionType"):
+            # Processing card actions can only occur in the Region silo.
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                return self.respond(status=400)
+            return self._handle_action_submitted(request)
+        elif conversation_type == "channel":
+            return self._handle_channel_message(request)
+
+        return self._handle_personal_message(request)
+
+    def _handle_conversation_update_event(self, request: Request) -> Response:
+        data = request.data
+        conversation = data.get("conversation", {})
+        conversation_type = conversation.get("conversationType")
+        channel_data = data["channelData"]
+        event = channel_data.get("eventType")
+
+        if event == "teamMemberAdded":
+            return self._handle_team_member_added(request)
+        elif event == "teamMemberRemoved":
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                return self.respond(status=400)
+            return self._handle_team_member_removed(request)
+        elif (
+            data.get("membersAdded") and conversation_type == "personal"
+        ):  # no explicit event for user adding app unfortunately
+            return self._handle_personal_member_add(request)
 
         return self.respond(status=204)
 
-    def verify_webhook_request(self, request: HttpRequest) -> bool:
+    def _handle_unknown_event(self, request: Request) -> Response:
+        return self.respond(status=204)
+
+    def _verify_webhook_request(self, request: Request) -> bool:
         return verify_signature(request)
 
-    def handle_personal_member_add(self, request: HttpRequest):
+    def _handle_personal_member_add(self, request: Request):
         data = request.data
         data["conversation_id"] = data["conversation"]["id"]
         tenant_id = data["conversation"]["tenantId"]
@@ -251,10 +330,9 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             "external_name": f"{tenant_id} (Microsoft Tenant)",
             "installation_type": "tenant",
         }
+        return self._handle_member_add(data, params, build_personal_installation_message)
 
-        return self.handle_member_add(data, params, build_personal_installation_message)
-
-    def handle_team_member_added(self, request: HttpRequest):
+    def _handle_team_member_added(self, request: Request) -> Response:
         data = request.data
         team = data["channelData"]["team"]
         data["conversation_id"] = team["id"]
@@ -265,14 +343,14 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             "installation_type": "team",
         }
 
-        return self.handle_member_add(data, params, build_team_installation_message)
+        return self._handle_member_add(data, params, build_team_installation_message)
 
-    def handle_member_add(
+    def _handle_member_add(
         self,
-        data: Mapping[str, str],
-        params: Mapping[str, str],
+        data: Mapping[str, Any],
+        params: dict[str, str],
         build_installation_card: Callable[[str], AdaptiveCard],
-    ) -> HttpResponse:
+    ) -> Response:
         # only care if our bot is the new member added
         matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
         if not matches:
@@ -288,8 +366,15 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             }
         )
 
+        logger.info(
+            "sentry.integrations.msteams.webhook.handle_member_add",
+            extra={
+                **params,
+                "member_type_handler": build_installation_card.__name__,
+            },
+        )
         # sign the params so this can't be forged
-        signed_params = sign(**params)
+        signed_params = sign(salt=SALT, **params)
 
         # send welcome message to the team
         client = get_preinstall_client(data["serviceUrl"])
@@ -299,7 +384,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         return self.respond(status=201)
 
-    def handle_team_member_removed(self, request: HttpRequest):
+    def _handle_team_member_removed(self, request: Request) -> Response:
         data = request.data
         channel_data = data["channelData"]
         # only care if our bot is the new member removed
@@ -309,7 +394,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         team_id = channel_data["team"]["id"]
 
-        integration = self.get_integration_from_channel_data(data=data)
+        integration = parsing.get_integration_from_channel_data(data=data)
         if integration is None:
             logger.info(
                 "msteams.uninstall.missing-integration",
@@ -344,8 +429,8 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         integration_service.delete_integration(integration_id=integration.id)
         return self.respond(status=204)
 
-    def make_action_data(self, data, user_id, has_escalating_issues=False):
-        action_data = {}
+    def _make_action_data(self, data: Mapping[str, Any], user_id: int) -> dict[str, Any]:
+        action_data: dict[str, Any] = {}
         action_type = data["payload"]["actionType"]
         if action_type == ACTION_TYPE.UNRESOLVE:
             action_data = {"status": "unresolved"}
@@ -361,12 +446,11 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
                     action_data.update({"statusDetails": {"inNextRelease": True}})
                 elif resolve_type == "inCurrentRelease":
                     action_data.update({"statusDetails": {"inRelease": "latest"}})
-        elif action_type == ACTION_TYPE.IGNORE:
-            ignore_count = data.get("ignoreInput")
+        # ignore has been renamed to archive, but ignore is still used in the payload
+        elif action_type == ACTION_TYPE.ARCHIVE:
+            ignore_count = data.get("archiveInput")
             if ignore_count:
                 action_data = {"status": "ignored"}
-                if has_escalating_issues:
-                    action_data.update({"substatus": "archived_until_condition_met"})
                 if int(ignore_count) > 0:
                     action_data.update({"statusDetails": {"ignoreCount": int(ignore_count)}})
         elif action_type == ACTION_TYPE.ASSIGN:
@@ -378,26 +462,21 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             action_data = {"assignedTo": ""}
         return action_data
 
-    def issue_state_change(self, group: Group, identity: RpcIdentity, data):
+    _ACTION_TYPES = {
+        ACTION_TYPE.RESOLVE: ("resolve", MessagingInteractionType.RESOLVE),
+        ACTION_TYPE.ARCHIVE: ("archive", MessagingInteractionType.ARCHIVE),
+        ACTION_TYPE.ASSIGN: ("assign", MessagingInteractionType.ASSIGN),
+        ACTION_TYPE.UNRESOLVE: ("unresolve", MessagingInteractionType.UNRESOLVE),
+        ACTION_TYPE.UNASSIGN: ("unassign", MessagingInteractionType.UNASSIGN),
+    }
+
+    def _issue_state_change(self, group: Group, identity: RpcIdentity, data) -> Response:
         event_write_key = ApiKey(
             organization_id=group.project.organization_id, scope_list=["event:write"]
         )
 
-        has_escalating_issues = features.has(
-            "organizations:escalating-issues-msteams", group.project.organization
-        )
-
-        # undoing the enum structure of ACTION_TYPE to
-        # get a more sensible analytics_event
-        action_types = {
-            ACTION_TYPE.RESOLVE: "resolve",
-            ACTION_TYPE.IGNORE: "ignore",
-            ACTION_TYPE.ASSIGN: "assign",
-            ACTION_TYPE.UNRESOLVE: "unresolve",
-            ACTION_TYPE.UNASSIGN: "unassign",
-        }
-        action_data = self.make_action_data(data, identity.user_id, has_escalating_issues)
-        status = action_types[data["payload"]["actionType"]]
+        action_data = self._make_action_data(data, identity.user_id)
+        status, interaction_type = self._ACTION_TYPES[data["payload"]["actionType"]]
         analytics_event = f"integrations.msteams.{status}"
         analytics.record(
             analytics_event,
@@ -405,15 +484,21 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             organization_id=group.project.organization.id,
         )
 
-        return client.put(
-            path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
-            params={"id": group.id},
-            data=action_data,
-            user=user_service.get_user(user_id=identity.user_id),
-            auth=event_write_key,
-        )
+        with MessagingInteractionEvent(
+            interaction_type, MsTeamsMessagingSpec()
+        ).capture() as lifecycle:
+            response = client.put(
+                path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
+                params={"id": group.id},
+                data=action_data,
+                user=user_service.get_user(user_id=identity.user_id),
+                auth=event_write_key,
+            )
+            if response.status_code >= 400:
+                lifecycle.record_failure()
+            return response
 
-    def handle_action_submitted(self, request: HttpRequest):
+    def _handle_action_submitted(self, request: Request) -> Response:
         # pull out parameters
         data = request.data
         channel_data = data["channelData"]
@@ -429,7 +514,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         else:
             conversation_id = channel_data["channel"]["id"]
 
-        integration = self.get_integration_from_card_action(data=data)
+        integration = parsing.get_integration_from_card_action(data=data)
         if integration is None:
             logger.info(
                 "msteams.action.missing-integration", extra={"integration_id": integration_id}
@@ -441,14 +526,19 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         group = Group.objects.select_related("project__organization").filter(id=group_id).first()
         if group:
-            integration = integration_service.get_integration(integration_id=integration.id)
+            integration = integration_service.get_integration(
+                integration_id=integration.id, status=ObjectStatus.ACTIVE
+            )
             if integration is None:
                 group = None
 
-        if not group:
+        if integration is None or group is None:
             logger.info(
                 "msteams.action.invalid-issue",
-                extra={"team_id": team_id, "integration_id": integration.id},
+                extra={
+                    "team_id": team_id,
+                    "integration_id": (integration.id if integration else None),
+                },
             )
             return self.respond(status=404)
 
@@ -478,10 +568,10 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             return self.respond(status=201)
 
         # update the state of the issue
-        issue_change_response = self.issue_state_change(group, identity, data["value"])
+        issue_change_response = self._issue_state_change(group, identity, data["value"])
 
         # get the rules from the payload
-        rules = Rule.objects.filter(id__in=payload["rules"])
+        rules = tuple(Rule.objects.filter(id__in=payload["rules"]))
 
         # pull the event based off our payload
         event = eventstore.backend.get_event_by_id(group.project_id, payload["eventId"])
@@ -505,7 +595,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         return issue_change_response
 
-    def handle_channel_message(self, request: HttpRequest):
+    def _handle_channel_message(self, request: Request) -> Response:
         data = request.data
 
         # check to see if we are mentioned
@@ -531,30 +621,57 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         return self.respond(status=204)
 
-    def handle_personal_message(self, request: HttpRequest):
+    def _handle_personal_message(self, request: Request) -> Response:
         data = request.data
         command_text = data.get("text", "").strip()
-        lowercase_command = command_text.lower()
-        conversation_id = data["conversation"]["id"]
-        teams_user_id = data["from"]["id"]
 
-        # only supporting unlink for now
-        if "unlink" in lowercase_command:
-            unlink_url = build_unlinking_url(conversation_id, data["serviceUrl"], teams_user_id)
-            card = build_unlink_identity_card(unlink_url)
-        elif "help" in lowercase_command:
-            card = build_help_command_card()
-        elif "link" == lowercase_command:  # don't to match other types of link commands
-            has_linked_identity = (
-                identity_service.get_identity(filter={"identity_ext_id": teams_user_id}) is not None
-            )
-            if has_linked_identity:
-                card = build_already_linked_identity_command_card()
-            else:
-                card = build_link_identity_command_card()
-        else:
+        dispatcher = MsTeamsCommandDispatcher(data)
+        try:
+            card = dispatcher.dispatch(CommandInput(command_text))
+        except CommandNotMatchedError:
             card = build_unrecognized_command_card(command_text)
 
         client = get_preinstall_client(data["serviceUrl"])
-        client.send_card(conversation_id, card)
+        client.send_card(dispatcher.conversation_id, card)
         return self.respond(status=204)
+
+
+@dataclass(frozen=True)
+class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCard]):
+    data: dict[str, Any]
+
+    @property
+    def integration_spec(self) -> MessagingIntegrationSpec:
+        return MsTeamsMessagingSpec()
+
+    @property
+    def conversation_id(self) -> str:
+        return self.data["conversation"]["id"]
+
+    @property
+    def teams_user_id(self) -> str:
+        return self.data["from"]["id"]
+
+    @property
+    def command_handlers(
+        self,
+    ) -> Iterable[tuple[MessagingIntegrationCommand, Callable[[CommandInput], AdaptiveCard]]]:
+        yield commands.HELP, (lambda _: build_help_command_card())
+        yield commands.LINK_IDENTITY, self.link_identity
+        yield commands.UNLINK_IDENTITY, self.unlink_identity
+
+    def link_identity(self, _: CommandInput) -> AdaptiveCard:
+        linked_identity = identity_service.get_identity(
+            filter={"identity_ext_id": self.teams_user_id}
+        )
+        has_linked_identity = linked_identity is not None
+        if has_linked_identity:
+            return build_already_linked_identity_command_card()
+        else:
+            return build_link_identity_command_card()
+
+    def unlink_identity(self, _: CommandInput) -> AdaptiveCard:
+        unlink_url = build_unlinking_url(
+            self.conversation_id, self.data["serviceUrl"], self.teams_user_id
+        )
+        return build_unlink_identity_card(unlink_url)

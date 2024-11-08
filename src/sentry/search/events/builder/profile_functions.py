@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from snuba_sdk import AliasedExpression, And, Column, Condition, CurriedFunction, Op, Or
@@ -5,14 +6,17 @@ from snuba_sdk.function import Function
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover.arithmetic import categorize_columns
-from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
+from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.builder.discover import TimeseriesQueryBuilder
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
-from sentry.search.events.fields import get_function_alias
+from sentry.search.events.fields import custom_time_processor, get_function_alias
 from sentry.search.events.types import (
+    EventsResponse,
     ParamsType,
     QueryBuilderConfig,
     SelectType,
     SnubaParams,
+    SnubaRow,
     WhereType,
 )
 from sentry.snuba.dataset import Dataset
@@ -20,15 +24,12 @@ from sentry.snuba.dataset import Dataset
 
 class ProfileFunctionsQueryBuilderProtocol(Protocol):
     @property
-    def config(self) -> ProfileFunctionsDatasetConfig:
-        ...
+    def config(self) -> ProfileFunctionsDatasetConfig: ...
 
     @property
-    def params(self) -> SnubaParams:
-        ...
+    def params(self) -> SnubaParams: ...
 
-    def column(self, name: str) -> Column:
-        ...
+    def column(self, name: str) -> Column: ...
 
 
 class ProfileFunctionsQueryBuilderMixin:
@@ -42,15 +43,48 @@ class ProfileFunctionsQueryBuilderMixin:
         resolved: str | None = self.config.resolve_column_type(field)
         return resolved
 
+    def process_profiling_function_columns(self, row: SnubaRow):
+        if "all_examples()" in row:
+            parsed_examples = []
+            for example in row["all_examples()"]:
+                profile_id, thread_id, start, end = example
 
-class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, QueryBuilder):
+                # This is shaped like the `ExampleMetaData` in vroom
+                if not start and not end:
+                    parsed_examples.append(
+                        {
+                            "profile_id": profile_id,
+                        }
+                    )
+                else:
+                    parsed_examples.append(
+                        {
+                            "profiler_id": profile_id,
+                            "thread_id": thread_id,
+                            "start": datetime.fromisoformat(start).replace(tzinfo=UTC).timestamp(),
+                            "end": datetime.fromisoformat(end).replace(tzinfo=UTC).timestamp(),
+                        }
+                    )
+
+            row["all_examples()"] = parsed_examples
+
+
+class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, BaseQueryBuilder):
     function_alias_prefix = "sentry_"
+    config_class = ProfileFunctionsDatasetConfig
+
+    def process_results(self, results: Any) -> EventsResponse:
+        processed: EventsResponse = super().process_results(results)
+        for row in processed["data"]:
+            self.process_profiling_function_columns(row)
+        return processed
 
 
 class ProfileFunctionsTimeseriesQueryBuilder(
     ProfileFunctionsQueryBuilderMixin, TimeseriesQueryBuilder
 ):
     function_alias_prefix = "sentry_"
+    config_class = ProfileFunctionsDatasetConfig
 
     def strip_alias_prefix(self, result):
         alias_mappings = {
@@ -71,34 +105,25 @@ class ProfileFunctionsTimeseriesQueryBuilder(
 
     @property
     def time_column(self) -> SelectType:
-        return Function(
-            "toDateTime",
-            [
-                Function(
-                    "multiply",
-                    [
-                        Function(
-                            "intDiv",
-                            [
-                                Function("toUInt32", [Column("timestamp")]),
-                                self.interval,
-                            ],
-                        ),
-                        self.interval,
-                    ],
-                ),
-            ],
-            "time",
-        )
+        return custom_time_processor(self.interval, Function("toUInt32", [Column("timestamp")]))
+
+    def process_results(self, results: Any) -> EventsResponse:
+        processed: EventsResponse = super().process_results(results)
+        for row in processed["data"]:
+            self.process_profiling_function_columns(row)
+        return processed
 
 
 class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryBuilder):
+    config_class = ProfileFunctionsDatasetConfig
+
     def __init__(
         self,
         dataset: Dataset,
         params: ParamsType,
         interval: int,
         top_events: list[dict[str, Any]],
+        snuba_params: SnubaParams | None = None,
         other: bool = False,
         query: str | None = None,
         selected_columns: list[str] | None = None,
@@ -113,6 +138,7 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         super().__init__(
             dataset,
             params,
+            snuba_params=snuba_params,
             interval=interval,
             query=query,
             selected_columns=list(set(selected_columns + timeseries_functions)),

@@ -1,8 +1,9 @@
 import jsonschema
+import orjson
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -18,12 +19,11 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
-from sentry.utils import json
 
 
 @region_silo_endpoint
 class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -50,21 +50,33 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         }
 
         try:
-            data = json.loads(request.body)
+            data = orjson.loads(request.body)
             jsonschema.validate(data, schema)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
         except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 
-        projects = set(data.get("projects", []))
-        if len(projects) == 0:
+        input_projects = data.get("projects", [])
+        if len(input_projects) == 0:
             return Response({"error": "You need to specify at least one project"}, status=400)
 
+        input_project_slug = set()
+        input_project_id = set()
+        for project in input_projects:
+            # IDs are always numeric, slugs cannot be numeric
+            if str(project).isdecimal():
+                input_project_id.add(project)
+            else:
+                input_project_slug.add(project)
+
         project_ids = Project.objects.filter(
-            organization=organization, status=ObjectStatus.ACTIVE, slug__in=projects
+            (Q(id__in=input_project_id) | Q(slug__in=input_project_slug)),
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
         ).values_list("id", flat=True)
-        if len(project_ids) != len(projects):
+
+        if len(project_ids) != len(input_projects):
             return Response({"error": "One or more projects are invalid"}, status=400)
 
         if not self.has_release_permission(request, organization, project_ids=set(project_ids)):
@@ -73,19 +85,16 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         checksum = data.get("checksum")
         chunks = data.get("chunks", [])
 
-        # We want to put the missing chunks functionality behind an option in order to cut it off in case of CLI
-        # regressions for our users.
-        if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks") is True:
-            # We check if all requested chunks have been uploaded.
-            missing_chunks = find_missing_chunks(organization.id, chunks)
-            # In case there are some missing chunks, we will tell the client which chunks we require.
-            if missing_chunks:
-                return Response(
-                    {
-                        "state": ChunkFileState.NOT_FOUND,
-                        "missingChunks": missing_chunks,
-                    }
-                )
+        # We check if all requested chunks have been uploaded.
+        missing_chunks = find_missing_chunks(organization.id, chunks)
+        # In case there are some missing chunks, we will tell the client which chunks we require.
+        if missing_chunks:
+            return Response(
+                {
+                    "state": ChunkFileState.NOT_FOUND,
+                    "missingChunks": missing_chunks,
+                }
+            )
 
         # We want to check the current state of the assemble status.
         state, detail = get_assemble_status(AssembleTask.ARTIFACT_BUNDLE, organization.id, checksum)
@@ -133,6 +142,6 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         )
 
         if is_org_auth_token_auth(request.auth):
-            update_org_auth_token_last_used(request.auth, project_ids)
+            update_org_auth_token_last_used(request.auth, list(project_ids))
 
         return Response({"state": ChunkFileState.CREATED, "missingChunks": []}, status=200)

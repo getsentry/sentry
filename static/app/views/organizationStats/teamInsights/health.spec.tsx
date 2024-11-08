@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {TeamAlertsTriggeredFixture} from 'sentry-fixture/teamAlertsTriggered';
 import {TeamResolutionTimeFixture} from 'sentry-fixture/teamResolutionTime';
@@ -10,7 +9,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Project, Team as TeamType} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import TeamStatsHealth from 'sentry/views/organizationStats/teamInsights/health';
@@ -47,6 +47,8 @@ describe('TeamStatsHealth', () => {
   const {routerProps, router} = initializeOrg();
 
   beforeEach(() => {
+    TeamStore.reset();
+
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/projects/`,
@@ -156,10 +158,6 @@ describe('TeamStatsHealth', () => {
     });
   });
 
-  beforeEach(() => {
-    TeamStore.reset();
-  });
-
   afterEach(() => {
     jest.resetAllMocks();
   });
@@ -168,20 +166,16 @@ describe('TeamStatsHealth', () => {
     projects,
     teams,
     isOrgOwner,
-  }: {isOrgOwner?: boolean; projects?: Project[]; teams?: TeamType[]} = {}) {
+  }: {isOrgOwner?: boolean; projects?: Project[]; teams?: Team[]} = {}) {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
-    const organization = OrganizationFixture({
-      teams,
-      projects,
-    });
+    const organization = OrganizationFixture();
 
     if (isOrgOwner !== undefined && !isOrgOwner) {
       organization.access = organization.access.filter(scope => scope !== 'org:admin');
     }
 
-    const context = RouterContextFixture([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
     MockApiClient.addMockResponse({
@@ -190,15 +184,14 @@ describe('TeamStatsHealth', () => {
     });
 
     return render(<TeamStatsHealth {...routerProps} />, {
-      context,
       organization,
     });
   }
 
-  it('defaults to first team', () => {
+  it('defaults to first team', async () => {
     createWrapper();
 
-    expect(screen.getByText('#backend')).toBeInTheDocument();
+    expect(await screen.findByText('#backend')).toBeInTheDocument();
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
   });
 

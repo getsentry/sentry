@@ -1,7 +1,5 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
@@ -9,21 +7,19 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import {decodeList} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
-import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
 
 import FirstEventFooter from './components/firstEventFooter';
-import IntegrationSetup from './integrationSetup';
+import IntegrationSetup, {InstallationMode} from './integrationSetup';
 import type {StepProps} from './types';
 
 function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   const organization = useOrganization();
-
-  const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
 
   const products = useMemo<ProductSolution[]>(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -34,35 +30,14 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   const currentPlatform =
     platforms.find(p => p.id === currentPlatformKey) ?? otherPlatform;
 
-  const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
-    currentPlatformKey === 'javascript'
-  );
-
-  useEffect(() => {
-    setShowLoaderOnboarding(currentPlatformKey === 'javascript');
-  }, [currentPlatformKey]);
-
-  const hideLoaderOnboarding = useCallback(() => {
-    setShowLoaderOnboarding(false);
-
-    if (!project?.id) {
-      return;
-    }
-
-    trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-      organization,
-      platform: currentPlatformKey,
-      project_id: project?.id,
-    });
-  }, [organization, currentPlatformKey, project?.id]);
-
   if (!project || !currentPlatform) {
     return null;
   }
 
-  const platformName = currentPlatform?.name ?? '';
-  const integrationSlug = project?.platform && platformToIntegrationMap[project.platform];
-  const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
+  const platformName = currentPlatform.name;
+  const integrationSlug = project.platform && platformToIntegrationMap[project.platform];
+  const showIntegrationOnboarding =
+    integrationSlug && location.query.installationMode !== InstallationMode.MANUAL;
 
   return (
     <Fragment>
@@ -72,9 +47,7 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
             <IntegrationSetup
               integrationSlug={integrationSlug}
               project={project}
-              onClickManualSetup={() => {
-                setIntegrationUseManualSetup(true);
-              }}
+              platform={currentPlatform}
             />
           ) : (
             <Fragment>
@@ -86,14 +59,6 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
                 <OtherPlatformsInfo
                   projectSlug={project.slug}
                   platform={currentPlatform.name}
-                />
-              ) : showLoaderOnboarding ? (
-                <SetupDocsLoader
-                  organization={organization}
-                  project={project}
-                  location={location}
-                  platform={currentPlatform.id}
-                  close={hideLoaderOnboarding}
                 />
               ) : (
                 <SdkDocumentation
@@ -128,30 +93,6 @@ function SetupDocs({location, recentCreatedProject: project}: StepProps) {
 }
 
 export default SetupDocs;
-
-const AnimatedContentWrapper = styled(motion.div)`
-  overflow: hidden;
-`;
-
-AnimatedContentWrapper.defaultProps = {
-  initial: {
-    height: 0,
-  },
-  animate: {
-    height: 'auto',
-  },
-  exit: {
-    height: 0,
-  },
-};
-
-const DocsWrapper = styled(motion.div)``;
-
-DocsWrapper.defaultProps = {
-  initial: {opacity: 0, y: 40},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0},
-};
 
 const Wrapper = styled('div')`
   display: flex;

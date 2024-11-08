@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 import round from 'lodash/round';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -10,13 +10,14 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import type {PlatformKey, Release, SemverVerison, VersionInfo} from 'sentry/types';
-import {ReleaseStatus} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
+import type {Release, SemverVersion, VersionInfo} from 'sentry/types/release';
+import {ReleaseStatus} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-export const CRASH_FREE_DECIMAL_THRESHOLD = 95;
+export const CRASH_FREE_DECIMAL_THRESHOLD = 90;
 
 export const roundDuration = (seconds: number) => {
   return round(seconds, seconds > 60 ? 0 : 3);
@@ -249,6 +250,6 @@ export function searchReleaseVersion(version: string): string {
 
 export function isVersionInfoSemver(
   versionInfo: VersionInfo['version']
-): versionInfo is SemverVerison {
+): versionInfo is SemverVersion {
   return versionInfo.hasOwnProperty('components');
 }

@@ -166,7 +166,6 @@ class RelayStoreHelper(RequiredBaseclass):
     def relay_setup_fixtures(
         self,
         settings,
-        live_server,
         get_relay_store_url,
         get_relay_minidump_url,
         get_relay_unreal_url,

@@ -1,7 +1,13 @@
 import {ApiApplicationFixture} from 'sentry-fixture/apiApplication';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import ApiApplications from 'sentry/views/settings/account/apiApplications';
 
@@ -12,26 +18,28 @@ describe('ApiApplications', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: [],
     });
 
     render(<ApiApplications {...routerProps} />);
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(
       screen.getByText("You haven't created any applications yet.")
     ).toBeInTheDocument();
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const requestMock = MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: [ApiApplicationFixture()],
     });
 
     render(<ApiApplications {...routerProps} />);
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(requestMock).toHaveBeenCalled();
 
@@ -52,6 +60,7 @@ describe('ApiApplications', function () {
     });
 
     render(<ApiApplications {...routerProps} />);
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     await userEvent.click(screen.getByLabelText('Create New Application'));
 
@@ -78,6 +87,7 @@ describe('ApiApplications', function () {
     });
 
     render(<ApiApplications {...routerProps} />);
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     await userEvent.click(screen.getByLabelText('Remove'));
 

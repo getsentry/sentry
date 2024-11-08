@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import Count from 'sentry/components/count';
 import LoadingError from 'sentry/components/loadingError';
@@ -11,7 +11,8 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {CrashFreeTimeBreakdown, Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {CrashFreeTimeBreakdown} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -29,7 +30,7 @@ type ReleaseStatsType = {usersBreakdown: CrashFreeTimeBreakdown} | null;
 function TotalCrashFreeUsers({location, organization, projectSlug, version}: Props) {
   const {
     data: releaseStats,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<ReleaseStatsType>(
     [
@@ -48,7 +49,7 @@ function TotalCrashFreeUsers({location, organization, projectSlug, version}: Pro
     {staleTime: 0}
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

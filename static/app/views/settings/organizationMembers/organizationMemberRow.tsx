@@ -11,7 +11,8 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AvatarUser, Member, Organization} from 'sentry/types';
+import type {Member, Organization} from 'sentry/types/organization';
+import type {AvatarUser} from 'sentry/types/user';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
@@ -103,7 +104,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
       canAddMembers,
     } = this.props;
 
-    const {id, flags, email, name, pending, user} = member;
+    const {id, flags, email, name, pending, user, inviterName} = member;
+    const {access} = organization;
 
     // if member is not the only owner, they can leave
     const isIdpProvisioned = flags['idp:provisioned'];
@@ -112,8 +114,16 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     const isCurrentUser = currentUser.email === email;
     const showRemoveButton = !isCurrentUser;
     const showLeaveButton = isCurrentUser;
+    const isInviteFromCurrentUser = pending && inviterName === currentUser.name;
+    const canInvite =
+      organization.features?.includes('members-invite-teammates') &&
+      organization.allowMemberInvite &&
+      access.includes('member:invite');
+    // members can remove invites they sent if allowMemberInvite is true
+    const canEditInvite = canInvite && isInviteFromCurrentUser;
     const canRemoveMember =
-      canRemoveMembers && !isCurrentUser && !isIdpProvisioned && !isPartnershipUser;
+      (canRemoveMembers && !isCurrentUser && !isIdpProvisioned && !isPartnershipUser) ||
+      canEditInvite;
     // member has a `user` property if they are registered with sentry
     // i.e. has accepted an invite to join org
     const has2fa = user?.has2fa;
@@ -150,7 +160,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               {isInviteSuccessful && <span>{t('Sent!')}</span>}
               {!isInviting && !isInviteSuccessful && (
                 <Button
-                  disabled={!canAddMembers}
+                  disabled={!canAddMembers && !canEditInvite}
                   priority="primary"
                   size="sm"
                   onClick={this.handleSendInvite}
@@ -203,7 +213,10 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                       )
                     : isPartnershipUser
                       ? t('You cannot make changes to this partner-provisioned user.')
-                      : t('You do not have access to remove members')
+                      : // only show this message if member can remove invites but invite was not sent by them
+                        pending && canInvite && !isInviteFromCurrentUser
+                        ? t('You cannot modify this invite.')
+                        : t('You do not have access to remove members')
                 }
                 icon={<IconSubtract isCircled />}
               >

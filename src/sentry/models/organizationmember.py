@@ -4,7 +4,7 @@ import datetime
 import logging
 import secrets
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
@@ -28,32 +28,32 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.manager import BaseManager
-from sentry.db.models.outboxes import ReplicatedRegionModel
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.models.outbox import OutboxCategory, outbox_context
-from sentry.models.team import TeamStatus
-from sentry.roles import organization_roles
-from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud import extract_id_from
-from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.services.hybrid_cloud.organizationmember_mapping import (
+from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.rpc import extract_id_from
+from sentry.hybridcloud.services.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.models.team import TeamStatus
+from sentry.roles import organization_roles
+from sentry.roles.manager import OrganizationRole
 from sentry.signals import member_invited
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
+    from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.organization import Organization
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
-    from sentry.services.hybrid_cloud.user import RpcUser
 
 _OrganizationMemberFlags = TypedDict(
     "_OrganizationMemberFlags",
@@ -113,7 +113,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
 
     def delete_expired(self, threshold: datetime.datetime) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
-        from sentry.services.hybrid_cloud.auth import auth_service
+        from sentry.auth.services.auth import auth_service
 
         orgs_with_scim = auth_service.get_org_ids_with_scim()
         for member in (
@@ -128,11 +128,11 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
 
     def get_for_integration(
         self, integration: RpcIntegration | int, user: RpcUser, organization_id: int | None = None
-    ) -> QuerySet:
+    ) -> QuerySet[OrganizationMember]:
         # This can be moved into the integration service once OrgMemberMapping is completed.
         # We are forced to do an ORM -> service -> ORM call to reduce query size while avoiding
         # cross silo queries until we have a control silo side to map users through.
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         if organization_id is not None:
             if (
@@ -165,11 +165,12 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
             id=id,
         )
 
-    def get_teams_by_user(self, organization: Organization) -> Mapping[int, list[int]]:
-        user_teams: MutableMapping[int, list[int]] = defaultdict(list)
+    def get_teams_by_user(self, organization: Organization) -> dict[int, list[int]]:
         queryset = self.filter(organization_id=organization.id).values_list("user_id", "teams")
+        user_teams: dict[int, list[int]] = defaultdict(list)
         for user_id, team_id in queryset:
-            user_teams[user_id].append(team_id)
+            if user_id is not None:
+                user_teams[user_id].append(team_id)
         return user_teams
 
     def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
@@ -183,7 +184,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
         return self.filter(role=role, user_id__in=[u.id for u in users_by_email])
 
 
-@region_silo_only_model
+@region_silo_model
 class OrganizationMember(ReplicatedRegionModel):
     """
     Identifies relationships between organizations and users.
@@ -275,7 +276,7 @@ class OrganizationMember(ReplicatedRegionModel):
         self.token = self.generate_token()
         self.refresh_expires_at()
 
-    def payload_for_update(self) -> Mapping[str, Any] | None:
+    def payload_for_update(self) -> dict[str, Any] | None:
         return dict(user_id=self.user_id)
 
     def refresh_expires_at(self):
@@ -389,32 +390,33 @@ class OrganizationMember(ReplicatedRegionModel):
         )
         msg.send_async([self.get_email()])
 
-    def send_sso_unlink_email(self, disabling_user: RpcUser, provider):
-        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+    def send_sso_unlink_email(self, disabling_user: RpcUser | str, provider):
+        from sentry.users.services.lost_password_hash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
-
-        email = self.get_email()
-
-        recover_uri = "{path}?{query}".format(
-            path=reverse("sentry-account-recover"), query=urlencode({"email": email})
-        )
 
         # Nothing to send if this member isn't associated to a user
         if not self.user_id:
             return
 
+        email = self.get_email()
+        recover_uri = "{path}?{query}".format(
+            path=reverse("sentry-account-recover"), query=urlencode({"email": email})
+        )
         user = user_service.get_user(user_id=self.user_id)
         if not user:
             return
 
         has_password = user.has_usable_password()
+        actor_email = disabling_user
+        if isinstance(disabling_user, RpcUser):
+            actor_email = disabling_user.email
 
         context = {
             "email": email,
             "recover_url": absolute_uri(recover_uri),
             "has_password": has_password,
             "organization": self.organization,
-            "actor_email": disabling_user.email,
+            "actor_email": actor_email,
             "provider": provider,
         }
 
@@ -625,6 +627,8 @@ class OrganizationMember(ReplicatedRegionModel):
     def handle_async_deletion(
         cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
     ) -> None:
+        from sentry.identity.services.identity import identity_service
+
         if payload and payload.get("user_id") is not None:
             identity_service.delete_identities(
                 user_id=payload["user_id"], organization_id=shard_identifier
@@ -643,6 +647,29 @@ class OrganizationMember(ReplicatedRegionModel):
             mapping=rpc_org_member_update,
         )
 
+    @classmethod
+    def query_for_relocation_export(cls, q: Q, pk_map: PrimaryKeyMap) -> Q:
+        q = super().query_for_relocation_export(q, pk_map)
+
+        # Manually avoid filtering on `inviter_id` when exporting. This ensures that
+        # `OrganizationMember`s that were invited by a user from a different organization are not
+        # filtered out when export in `Organization` scope.
+        new_q = Q()
+        for clause in q.children:
+            if not isinstance(clause, Q):
+                new_q.children.append(clause)
+                continue
+
+            mentioned_inviter = False
+            for subclause in clause.children:
+                if isinstance(subclause, tuple) and "inviter" in subclause[0]:
+                    mentioned_inviter = True
+                    break
+            if not mentioned_inviter:
+                new_q.children.append(clause)
+
+        return new_q
+
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> int | None:
@@ -653,5 +680,11 @@ class OrganizationMember(ReplicatedRegionModel):
             and pk_map.get_pk(NormalizedModelName("sentry.user"), self.inviter_id) is None
         ):
             self.inviter_id = None
+
+        # If there is a token collision, just wipe the token. The user can always make a new one.
+        matching_token = self.__class__.objects.filter(token=self.token).first()
+        if matching_token is not None:
+            self.token = None
+            self.token_expires_at = None
 
         return super().normalize_before_relocation_import(pk_map, scope, flags)

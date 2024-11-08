@@ -1,13 +1,13 @@
-import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
-import type {IssueConfigField} from 'sentry/types';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+import type {IssueConfigField} from 'sentry/types/integrations';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -34,12 +34,6 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     await doSubmit();
     expect(addSuccessMessage).toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
-  };
-
-  const submitErrors = async errorCount => {
-    await doSubmit();
-    expect(screen.getAllByText('Field is required')).toHaveLength(errorCount);
-    expect(closeModal).toHaveBeenCalledTimes(0);
   };
 
   const addMockConfigsAPICall = (otherField = {}) => {
@@ -88,7 +82,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       name: 'reporter',
     }
   ) => {
-    const {organization, routerContext} = initializeOrg();
+    const {organization, router} = initializeOrg();
     addMockConfigsAPICall(otherField);
 
     const body = styled(c => c.children);
@@ -107,7 +101,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         onSubmitAction={() => {}}
         organization={organization}
       />,
-      {context: routerContext}
+      {router}
     );
   };
 
@@ -126,10 +120,14 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
-    it('should raise validation errors when "Apply Changes" is clicked with invalid data', async function () {
+    it('submit button shall be disabled if form is incomplete', async function () {
       // This doesn't test anything TicketRules specific but I'm leaving it here as an example.
       renderComponent();
-      await submitErrors(1);
+      expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeDisabled();
+      await userEvent.hover(screen.getByRole('button', {name: 'Apply Changes'}));
+      expect(
+        await screen.findByText('Required fields must be filled out')
+      ).toBeInTheDocument();
     });
 
     it('should reload fields when an "updatesForm" field changes', async function () {
@@ -216,6 +214,19 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
+    it('should persist non-choice value when the modal is reopened', async function () {
+      const textField: IssueConfigField = {
+        label: 'Text Field',
+        required: true,
+        type: 'string',
+        name: 'textField',
+      };
+      renderComponent({data: {textField: 'foo'}}, textField);
+
+      expect(screen.getByRole('textbox', {name: 'Text Field'})).toHaveValue('foo');
+      await submitSuccess();
+    });
+
     it('should get async options from URL', async function () {
       renderComponent();
       addMockConfigsAPICall({
@@ -240,7 +251,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       }
 
       const menu = screen.getByRole('textbox', {name: 'Assignee'});
-      selectEvent.openMenu(menu);
+      await selectEvent.openMenu(menu);
       await userEvent.type(menu, 'Joe{Escape}');
       await selectEvent.select(menu, 'Joe');
 

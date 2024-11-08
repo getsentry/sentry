@@ -52,7 +52,7 @@ class LatestAdoptedReleaseForm(forms.Form):
 class LatestAdoptedReleaseFilter(EventFilter):
     id = "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter"
     form_cls = LatestAdoptedReleaseForm
-    label = "The {oldest_or_newest} release associated with the event's issue is {older_or_newer} than the latest release in {environment}"
+    label = "The {oldest_or_newest} adopted release associated with the event's issue is {older_or_newer} than the latest adopted release in {environment}"
 
     form_fields = {
         "oldest_or_newest": {"type": "choice", "choices": list(model_age_choices)},

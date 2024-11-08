@@ -1,6 +1,5 @@
 import {GitHubIntegrationConfigFixture} from 'sentry-fixture/integrationListDirectory';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -45,34 +44,22 @@ describe('Project Ownership', () => {
   });
 
   describe('without codeowners', () => {
-    it('renders', () => {
-      render(
-        <ProjectOwnership
-          {...routerProps}
-          params={{projectId: project.slug}}
-          organization={organization}
-          project={project}
-        />
-      );
+    it('renders', async () => {
+      render(<ProjectOwnership {...routerProps} project={project} />);
+      expect(await screen.findByText('No ownership rules found')).toBeInTheDocument();
       // Does not render codeowners for orgs without 'integrations-codeowners' feature
       expect(
         screen.queryByRole('button', {name: 'Add CODEOWNERS'})
       ).not.toBeInTheDocument();
     });
 
-    it('renders allows users to edit ownership rules', () => {
-      render(
-        <ProjectOwnership
-          {...routerProps}
-          params={{projectId: project.slug}}
-          organization={organization}
-          project={project}
-        />,
-        {organization: OrganizationFixture({access: ['project:read']})}
-      );
+    it('renders allows users to edit ownership rules', async () => {
+      render(<ProjectOwnership {...routerProps} project={project} />, {
+        organization: OrganizationFixture({access: ['project:read']}),
+      });
 
+      expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Edit Rules'})).toBeEnabled();
-      expect(screen.getByTestId('project-permission-alert')).toBeInTheDocument();
       // eslint-disable-next-line jest-dom/prefer-in-document
       expect(screen.getAllByTestId('project-permission-alert')).toHaveLength(1);
     });
@@ -84,18 +71,14 @@ describe('Project Ownership', () => {
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
       });
-      render(
-        <ProjectOwnership
-          {...routerProps}
-          params={{projectId: project.slug}}
-          organization={org}
-          project={project}
-        />,
-        {context: RouterContextFixture([{organization: org}])}
-      );
+      render(<ProjectOwnership {...routerProps} project={project} />, {
+        organization: org,
+      });
 
       // Renders button
-      expect(screen.getByRole('button', {name: 'Import CODEOWNERS'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Import CODEOWNERS'})
+      ).toBeInTheDocument();
 
       // Opens modal
       await userEvent.click(screen.getByRole('button', {name: 'Import CODEOWNERS'}));
@@ -115,17 +98,10 @@ describe('Project Ownership', () => {
         },
       });
 
-      render(
-        <ProjectOwnership
-          {...routerProps}
-          params={{projectId: project.slug}}
-          organization={organization}
-          project={project}
-        />
-      );
+      render(<ProjectOwnership {...routerProps} project={project} />);
 
       // Switch to Assign To Issue Owner
-      await userEvent.click(screen.getByText('Auto-assign to suspect commits'));
+      await userEvent.click(await screen.findByText('Auto-assign to suspect commits'));
       await userEvent.click(screen.getByText('Auto-assign to issue owner'));
 
       await waitFor(() => {

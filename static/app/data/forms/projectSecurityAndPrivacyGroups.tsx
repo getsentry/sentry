@@ -54,22 +54,6 @@ const formGroups: JsonFormObject[] = [
             formatStoreCrashReports(value, organization.storeCrashReports),
           ]),
       },
-      {
-        name: 'recapServerUrl',
-        type: 'string',
-        placeholder: t('URL'),
-        label: t('Recap Server URL'),
-        help: t('URL to the Recap Server events should be polled from'),
-        visible: ({features}) => features.has('recap-server'),
-      },
-      {
-        name: 'recapServerToken',
-        type: 'string',
-        placeholder: t('Token'),
-        label: t('Recap Server Token'),
-        help: t('Auth Token to the configured Recap Server'),
-        visible: ({features}) => features.has('recap-server'),
-      },
     ],
   },
   {

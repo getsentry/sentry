@@ -1,17 +1,24 @@
 from unittest.mock import Mock, patch
 
 from sentry.constants import TICKET_ACTIONS
-from sentry.rules.filters.issue_category import IssueCategoryFilter
+from sentry.integrations.github_enterprise.actions import GitHubEnterpriseCreateTicketAction
+from sentry.rules import MatchType
+from sentry.rules import rules as default_rules
 from sentry.rules.registry import RuleRegistry
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.features import with_feature
 
 EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
 APP_ACTION = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
 SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"
 
+# Adding GitHub Enterprise ticket action is protected by an option, and we
+# cannot override the option before importing it in the test so we need to
+# manually add it here.
+if GitHubEnterpriseCreateTicketAction.id not in default_rules:
+    default_rules.add(GitHubEnterpriseCreateTicketAction)
 
-@region_silo_test
+
 class ProjectRuleConfigurationTest(APITestCase):
     endpoint = "sentry-api-0-project-rules-configuration"
 
@@ -25,9 +32,9 @@ class ProjectRuleConfigurationTest(APITestCase):
         self.create_project(teams=[team], name="baz")
 
         response = self.get_success_response(self.organization.slug, project1.slug)
-        assert len(response.data["actions"]) == 11
-        assert len(response.data["conditions"]) == 7
-        assert len(response.data["filters"]) == 8
+        assert len(response.data["actions"]) == 12
+        assert len(response.data["conditions"]) == 9
+        assert len(response.data["filters"]) == 9
 
     @property
     def rules(self):
@@ -131,7 +138,7 @@ class ProjectRuleConfigurationTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, project1.slug)
 
-        assert len(response.data["actions"]) == 12
+        assert len(response.data["actions"]) == 13
         assert {
             "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
             "label": "Send a notification via {service}",
@@ -141,10 +148,10 @@ class ProjectRuleConfigurationTest(APITestCase):
                 "service": {"type": "choice", "choices": [[sentry_app.slug, sentry_app.name]]}
             },
         } in response.data["actions"]
-        assert len(response.data["conditions"]) == 7
-        assert len(response.data["filters"]) == 8
+        assert len(response.data["conditions"]) == 9
+        assert len(response.data["filters"]) == 9
 
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_sentry_app_alert_rules(self, mock_sentry_app_components_preparer):
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo")
@@ -161,7 +168,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         )
         response = self.get_success_response(self.organization.slug, project1.slug)
 
-        assert len(response.data["actions"]) == 12
+        assert len(response.data["actions"]) == 13
         assert {
             "id": SENTRY_APP_ALERT_ACTION,
             "service": sentry_app.slug,
@@ -172,44 +179,52 @@ class ProjectRuleConfigurationTest(APITestCase):
             "formFields": settings_schema["settings"],
             "sentryAppInstallationUuid": str(install.uuid),
         } in response.data["actions"]
-        assert len(response.data["conditions"]) == 7
-        assert len(response.data["filters"]) == 8
+        assert len(response.data["conditions"]) == 9
+        assert len(response.data["filters"]) == 9
 
     def test_issue_type_and_category_filter_feature(self):
         response = self.get_success_response(self.organization.slug, self.project.slug)
-        assert len(response.data["actions"]) == 11
-        assert len(response.data["conditions"]) == 7
-        assert len(response.data["filters"]) == 8
+        assert len(response.data["actions"]) == 12
+        assert len(response.data["conditions"]) == 9
+        assert len(response.data["filters"]) == 9
 
-        filter_ids = {f["id"] for f in response.data["filters"]}
-        assert IssueCategoryFilter.id in filter_ids
+        response = self.get_success_response(self.organization.slug, self.project.slug)
+        tagged_event_filter = next(
+            (
+                filter
+                for filter in response.data["filters"]
+                if filter["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter"
+            ),
+            None,
+        )
+        assert tagged_event_filter
+        filter_list = [
+            choice[0] for choice in tagged_event_filter["formFields"]["match"]["choices"]
+        ]
+        assert MatchType.IS_IN in filter_list
+        assert MatchType.NOT_IN in filter_list
 
-    def test_issue_severity_filter_feature(self):
-        # Hide the issue severity filter when issue-severity-alerts is off
-        with self.feature({"projects:first-event-severity-alerting": False}):
-            response = self.get_success_response(self.organization.slug, self.project.slug)
-            assert "sentry.rules.filters.issue_severity.IssueSeverityFilter" not in [
-                filter["id"] for filter in response.data["filters"]
-            ]
+    @with_feature("organizations:event-unique-user-frequency-condition-with-conditions")
+    def test_issue_type_and_category_filter_feature_with_conditions(self):
+        response = self.get_success_response(self.organization.slug, self.project.slug)
+        assert len(response.data["actions"]) == 12
 
-        # Show the issue severity filter when issue-severity-alerts is on
-        with self.feature({"projects:first-event-severity-alerting": True}):
-            response = self.get_success_response(self.organization.slug, self.project.slug)
-            assert "sentry.rules.filters.issue_severity.IssueSeverityFilter" in [
-                filter["id"] for filter in response.data["filters"]
-            ]
+        assert len(response.data["conditions"]) == 10
+        assert len(response.data["filters"]) == 9
+        assert len(response.data["conditions"]) == 10
 
-    def test_high_priority_issue_condition_feature(self):
-        # Hide the high priority issue condition when high-priority-alerts is off
-        with self.feature({"projects:high-priority-alerts": False}):
-            response = self.get_success_response(self.organization.slug, self.project.slug)
-            assert "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition" not in [
-                filter["id"] for filter in response.data["conditions"]
-            ]
-
-        # Show the high priority issue condition when high-priority-alerts is on
-        with self.feature({"projects:high-priority-alerts": True}):
-            response = self.get_success_response(self.organization.slug, self.project.slug)
-            assert "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition" in [
-                filter["id"] for filter in response.data["conditions"]
-            ]
+        response = self.get_success_response(self.organization.slug, self.project.slug)
+        tagged_event_filter = next(
+            (
+                filter
+                for filter in response.data["filters"]
+                if filter["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter"
+            ),
+            None,
+        )
+        assert tagged_event_filter
+        filter_list = [
+            choice[0] for choice in tagged_event_filter["formFields"]["match"]["choices"]
+        ]
+        assert MatchType.IS_IN in filter_list
+        assert MatchType.NOT_IN in filter_list

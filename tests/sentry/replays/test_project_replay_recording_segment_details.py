@@ -1,5 +1,6 @@
 import datetime
 import uuid
+import zlib
 
 from django.urls import reverse
 
@@ -7,13 +8,13 @@ from sentry.replays.lib.storage import (
     FilestoreBlob,
     RecordingSegmentStorageMeta,
     StorageBlob,
-    make_filename,
+    make_recording_filename,
 )
 from sentry.replays.testutils import mock_replay
+from sentry.replays.usecases.pack import pack
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers.response import close_streaming_response
-from sentry.testutils.silo import region_silo_test
 
 
 class EnvironmentBase(APITestCase):
@@ -72,7 +73,6 @@ class EnvironmentBase(APITestCase):
             assert self.segment_data == close_streaming_response(response)
 
 
-@region_silo_test
 class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentBase):
     def init_environment(self):
         metadata = RecordingSegmentStorageMeta(
@@ -82,11 +82,10 @@ class FilestoreReplayRecordingSegmentDetailsTestCase(EnvironmentBase):
             retention_days=None,
         )
 
-        self.segment_filename = make_filename(metadata)
+        self.segment_filename = make_recording_filename(metadata)
         FilestoreBlob().set(metadata, self.segment_data)
 
 
-@region_silo_test
 class StorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnubaTestCase):
     def init_environment(self):
         metadata = RecordingSegmentStorageMeta(
@@ -96,7 +95,7 @@ class StorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnuba
             retention_days=30,
         )
 
-        self.segment_filename = make_filename(metadata)
+        self.segment_filename = make_recording_filename(metadata)
 
         self.store_replays(
             mock_replay(
@@ -108,3 +107,26 @@ class StorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnuba
             )
         )
         StorageBlob().set(metadata, self.segment_data)
+
+
+class PackedStorageReplayRecordingSegmentDetailsTestCase(EnvironmentBase, ReplaysSnubaTestCase):
+    def init_environment(self):
+        metadata = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=self.segment_id,
+            retention_days=30,
+        )
+
+        self.segment_filename = make_recording_filename(metadata)
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                metadata.project_id,
+                metadata.replay_id,
+                segment_id=metadata.segment_id,
+                retention_days=metadata.retention_days,
+            )
+        )
+        StorageBlob().set(metadata, zlib.compress(pack(self.segment_data, None)))

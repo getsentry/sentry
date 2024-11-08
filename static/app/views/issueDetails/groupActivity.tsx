@@ -1,5 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {
@@ -13,26 +12,32 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import type {NoteType} from 'sentry/types/alerts';
 import type {
   Group,
   GroupActivity as GroupActivityType,
   GroupActivityNote,
   GroupActivityReprocess,
-  User,
-} from 'sentry/types';
-import type {NoteType} from 'sentry/types/alerts';
+} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {User} from 'sentry/types/user';
 import type {MutateOptions} from 'sentry/utils/queryClient';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import ActivitySection from 'sentry/views/issueDetails/activitySection';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
   getGroupMostRecentActivity,
   getGroupReprocessingStatus,
   ReprocessingStatus,
+  useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
 
 type Props = {
   group: Group;
-} & RouteComponentProps<{}, {}>;
+} & RouteComponentProps<{groupId: string; orgId: string}, {}>;
+
+export type MutateActivityOptions = MutateOptions<TData, TError, TVariables, TContext>;
 
 function GroupActivity({group}: Props) {
   const organization = useOrganization();
@@ -45,44 +50,41 @@ function GroupActivity({group}: Props) {
     group,
   });
 
-  const deleteOptions: MutateOptions<TData, TError, TVariables, TContext> =
-    useMemo(() => {
-      return {
-        onError: () => {
-          addErrorMessage(t('Failed to delete comment'));
-        },
-        onSuccess: () => {
-          addSuccessMessage(t('Comment removed'));
-        },
-      };
-    }, []);
+  const deleteOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Failed to delete comment'));
+      },
+      onSuccess: () => {
+        addSuccessMessage(t('Comment removed'));
+      },
+    };
+  }, []);
 
-  const createOptions: MutateOptions<TData, TError, TVariables, TContext> =
-    useMemo(() => {
-      return {
-        onError: () => {
-          addErrorMessage(t('Unable to post comment'));
-        },
-        onSuccess: data => {
-          GroupStore.addActivity(group.id, data);
-          addSuccessMessage(t('Comment posted'));
-        },
-      };
-    }, [group.id]);
+  const createOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Unable to post comment'));
+      },
+      onSuccess: data => {
+        GroupStore.addActivity(group.id, data);
+        addSuccessMessage(t('Comment posted'));
+      },
+    };
+  }, [group.id]);
 
-  const updateOptions: MutateOptions<TData, TError, TVariables, TContext> =
-    useMemo(() => {
-      return {
-        onError: () => {
-          addErrorMessage(t('Unable to update comment'));
-        },
-        onSuccess: data => {
-          const d = data as GroupActivityNote;
-          GroupStore.updateActivity(group.id, data.id, {text: d.data.text});
-          addSuccessMessage(t('Comment updated'));
-        },
-      };
-    }, [group.id]);
+  const updateOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Unable to update comment'));
+      },
+      onSuccess: data => {
+        const d = data as GroupActivityNote;
+        GroupStore.updateActivity(group.id, data.id, {text: d.data.text});
+        addSuccessMessage(t('Comment updated'));
+      },
+    };
+  }, [group.id]);
 
   const handleDelete = useCallback(
     (item: GroupActivityType) => {
@@ -145,4 +147,22 @@ function GroupActivity({group}: Props) {
   );
 }
 
-export default GroupActivity;
+function GroupActivityRoute(props: Props) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const navigate = useNavigate();
+  const {baseUrl} = useGroupDetailsRoute();
+
+  // TODO(streamlined-ui): Activity will become a router redirect to the event details page
+  useEffect(() => {
+    if (hasStreamlinedUI) {
+      navigate({
+        ...props.location,
+        pathname: baseUrl,
+      });
+    }
+  }, [hasStreamlinedUI, navigate, baseUrl, props.location]);
+
+  return <GroupActivity {...props} />;
+}
+
+export default GroupActivityRoute;

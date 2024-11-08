@@ -7,6 +7,11 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -14,7 +19,7 @@ type Params = DocsParams;
 const getConfigureSnippet = (params: Params) => `
 onDeviceReady: function() {
   var Sentry = cordova.require('sentry-cordova.Sentry');
-  Sentry.init({ dsn: '${params.dsn}' });
+  Sentry.init({ dsn: '${params.dsn.public}' });
 }`;
 
 const onboarding: OnboardingConfig = {
@@ -34,10 +39,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'You should [initCode:init] the SDK in the [deviceReadyCode:deviceReady] function, to make sure the native integrations runs. For more details about Cordova [link:click here]',
+        'You should [code:init] the SDK in the [code:deviceReady] function, to make sure the native integrations runs. For more details about Cordova [link:click here]',
         {
-          initCode: <code />,
-          deviceReadyCode: <code />,
+          code: <code />,
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/cordova/" />
           ),
@@ -72,8 +76,24 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/cordova/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  crashReportOnboarding,
 };
 
 export default docs;

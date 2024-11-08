@@ -91,20 +91,19 @@ describe('api', function () {
 });
 
 describe('resolveHostname', function () {
-  let devUi, location, orgstate, configstate;
+  let devUi, location, configstate;
 
   const controlPath = '/api/0/broadcasts/';
   const regionPath = '/api/0/organizations/slug/issues/';
 
   beforeEach(function () {
-    orgstate = OrganizationStore.get();
     configstate = ConfigStore.getState();
     location = window.location;
     devUi = window.__SENTRY_DEV_UI;
 
-    OrganizationStore.onUpdate(OrganizationFixture({features: ['frontend-domainsplit']}));
     ConfigStore.loadInitialData({
       ...configstate,
+      features: ['system:multi-region'],
       links: {
         organizationUrl: 'https://acme.sentry.io',
         sentryUrl: 'https://sentry.io',
@@ -116,13 +115,15 @@ describe('resolveHostname', function () {
   afterEach(() => {
     window.location = location;
     window.__SENTRY_DEV_UI = devUi;
-    OrganizationStore.onUpdate(orgstate.organization);
     ConfigStore.loadInitialData(configstate);
   });
 
   it('does nothing without feature', function () {
-    // Org does not have the required feature.
-    OrganizationStore.onUpdate(OrganizationFixture());
+    ConfigStore.loadInitialData({
+      ...configstate,
+      // Remove the feature flag
+      features: [],
+    });
 
     let result = resolveHostname(controlPath);
     expect(result).toBe(controlPath);

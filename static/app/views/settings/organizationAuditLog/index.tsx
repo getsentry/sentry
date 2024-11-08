@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {CursorHandler} from 'sentry/components/pagination';
-import type {AuditLog} from 'sentry/types';
+import type {AuditLog} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -37,6 +38,8 @@ function OrganizationAuditLog({location}: Props) {
   const organization = useOrganization();
   const api = useApi();
 
+  const hasPermission = organization.access.includes('org:write') || isActiveSuperuser();
+
   const handleCursor: CursorHandler = resultsCursor => {
     setState(prevState => ({
       ...prevState,
@@ -51,6 +54,10 @@ function OrganizationAuditLog({location}: Props) {
   }, [location.query]);
 
   const fetchAuditLogData = useCallback(async () => {
+    if (!hasPermission) {
+      return;
+    }
+
     setState(prevState => ({...prevState, isLoading: true}));
 
     try {
@@ -85,9 +92,11 @@ function OrganizationAuditLog({location}: Props) {
         ...prevState,
         isLoading: false,
       }));
-      addErrorMessage('Unable to load audit logs.');
+      if (err.status !== 403) {
+        addErrorMessage('Unable to load audit logs.');
+      }
     }
-  }, [api, organization.slug, state.currentCursor, state.eventType]);
+  }, [api, organization.slug, state.currentCursor, state.eventType, hasPermission]);
 
   useEffect(() => {
     fetchAuditLogData();
@@ -106,9 +115,7 @@ function OrganizationAuditLog({location}: Props) {
 
   return (
     <Fragment>
-      {!organization.access.includes('org:write') ? (
-        <PermissionAlert />
-      ) : (
+      {hasPermission ? (
         <AuditLogList
           entries={state.entryList}
           pageLinks={state.entryListPageLinks}
@@ -118,6 +125,8 @@ function OrganizationAuditLog({location}: Props) {
           isLoading={state.isLoading}
           onCursor={handleCursor}
         />
+      ) : (
+        <PermissionAlert />
       )}
     </Fragment>
   );

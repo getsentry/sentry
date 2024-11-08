@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 import StacktracePlatformIcon from 'sentry/components/events/interfaces/crashContent/stackTrace/platformIcon';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import type {Frame, Group, PlatformKey} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import type {Event, Frame} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
@@ -269,23 +270,33 @@ export function NativeContent({
   }
 
   return (
-    <Wrapper className={wrapperClassName} data-test-id="native-stack-trace-content">
+    <Wrapper>
       {hideIcon ? null : (
         <StacktracePlatformIcon
           platform={stackTracePlatformIcon(platform, data.frames ?? [])}
         />
       )}
-
-      <Frames data-test-id="stack-trace">
-        {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
-      </Frames>
+      <ContentPanel
+        className={wrapperClassName}
+        data-test-id="native-stack-trace-content"
+        hideIcon={hideIcon}
+      >
+        <Frames data-test-id="stack-trace">
+          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+        </Frames>
+      </ContentPanel>
     </Wrapper>
   );
 }
 
-const Wrapper = styled(Panel)`
+const Wrapper = styled('div')`
   position: relative;
-  border-top-left-radius: 0;
+`;
+
+const ContentPanel = styled(Panel)<{hideIcon?: boolean}>`
+  position: relative;
+  border-top-left-radius: ${p => (p.hideIcon ? p.theme.borderRadius : 0)};
+  overflow: hidden;
 `;
 
 export const Frames = styled('ul')`

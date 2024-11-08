@@ -5,14 +5,15 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Frame, LineCoverage} from 'sentry/types';
-import {CodecovStatusCode, Coverage} from 'sentry/types';
+import type {Frame} from 'sentry/types/event';
+import type {LineCoverage} from 'sentry/types/integrations';
+import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 
 import Context, {getLineCoverage} from './context';
 
 describe('Frame - Context', function () {
   const org = OrganizationFixture();
-  const project = ProjectFixture({});
+  const project = ProjectFixture();
   const event = EventFixture({projectID: project.id});
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
 

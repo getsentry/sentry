@@ -5,7 +5,7 @@ IN_APP_FRAME = {
     "function": "LoginViewController.viewDidAppear",
     "raw_function": "LoginViewController.viewDidAppear(Bool)",
     "symbol": "$s8Sentry9LoginViewControllerC13viewDidAppearyySbF",
-    "package": "SentryApp",
+    "package": "/private/var/containers/Bundle/Application/6D441916-FFB1-4346-9C51-3DD3E23046FC/Sentry.app/Sentry",
     "filename": "LoginViewController.swift",
     "abs_path": "/Users/sentry/git/iOS/Sentry/LoggedOut/LoginViewController.swift",
     "lineno": 196,
@@ -92,6 +92,7 @@ def get_frames(
             "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "platform": "platform",
             "post_context": ["should_be_removed"],
+            "lineno": 143,
         },
     ]
 
@@ -101,12 +102,22 @@ def get_frames(
     return frames[::-1]
 
 
-def get_crash_event(handled=False, function="-[Sentry]", **kwargs) -> dict[str, Collection[str]]:
-    return get_crash_event_with_frames(get_frames(function), handled=handled, **kwargs)
+def get_crash_event(
+    handled=False,
+    function="-[Sentry]",
+    registers: Sequence[Mapping[str, str]] | None = None,
+    **kwargs,
+) -> dict[str, Collection[str]]:
+    return get_crash_event_with_frames(
+        get_frames(function), registers=registers, handled=handled, **kwargs
+    )
 
 
 def get_crash_event_with_frames(
-    frames: Sequence[Mapping[str, Any]], handled=False, **kwargs
+    frames: Sequence[Mapping[str, Any]],
+    registers: Sequence[Mapping[str, str]] | None = None,
+    handled=False,
+    **kwargs,
 ) -> dict[str, Collection[str]]:
     result = {
         "event_id": "80e3496eff734ab0ac993167aaa0d1cd",
@@ -120,12 +131,14 @@ def get_crash_event_with_frames(
                 {
                     "stacktrace": {
                         "frames": frames,
+                        "registers": registers,
                     },
                     "type": "EXC_BAD_ACCESS",
                     "value": "crash > crash: > objectAtIndex: >\nAttempted to dereference null pointer.",
                     "mechanism": {
                         "handled": handled,
                         "type": "mach",
+                        "synthetic": False,
                         "meta": {
                             "signal": {
                                 "number": 11,
@@ -138,6 +151,10 @@ def get_crash_event_with_frames(
                                 "code": 1,
                                 "subcode": 0,
                                 "name": "EXC_BAD_ACCESS",
+                            },
+                            "errno": {
+                                "number": 10,
+                                "name": "EACCES",
                             },
                         },
                     },

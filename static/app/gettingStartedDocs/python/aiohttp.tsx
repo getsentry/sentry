@@ -1,12 +1,17 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
+import {
+  type Docs,
+  DocsPageLocation,
+  type DocsParams,
+  type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -19,21 +24,31 @@ from aiohttp import web
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn="${params.dsn}",${
+    dsn="${params.dsn.public}",${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    _experiments={
+        # Set continuous_profiling_auto_start to True
+        # to automatically start the profiler on when
+        # possible.
+        "continuous_profiling_auto_start": True,
+    },`
+          : ''
     }
 )
 `;
@@ -46,7 +61,7 @@ const onboarding: OnboardingConfig = {
         link: <ExternalLink href="https://docs.aiohttp.org/en/stable/web.html" />,
       }
     ),
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct('Install [code:sentry-sdk] from PyPI:', {
@@ -54,6 +69,15 @@ const onboarding: OnboardingConfig = {
       }),
       configurations: [
         {
+          description:
+            params.docsLocation === DocsPageLocation.PROFILING_PAGE
+              ? tct(
+                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
+                  {
+                    code: <code />,
+                  }
+                )
+              : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },
@@ -91,9 +115,13 @@ app = web.Application()
 app.add_routes([web.get('/', hello)])
 
 web.run_app(app)
-        `,
+`,
         },
       ],
+      additionalInfo: params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+          <AlternativeConfiguration />
+        ),
     },
   ],
   verify: (params: Params) => [
@@ -107,15 +135,16 @@ web.run_app(app)
           language: 'python',
 
           code: `
-          ${getSdkSetupSnippet(params)}
+${getSdkSetupSnippet(params)}
 async def hello(request):
-  1/0  # raises an error
-  return web.Response(text="Hello, world")
+    1/0  # raises an error
+    return web.Response(text="Hello, world")
 
 app = web.Application()
 app.add_routes([web.get('/', hello)])
 
-web.run_app(app)`,
+web.run_app(app)
+`,
         },
       ],
       additionalInfo: (
@@ -147,6 +176,7 @@ const docs: Docs = {
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
+  crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;

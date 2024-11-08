@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import AlertLink from 'sentry/components/alertLink';
 import {LinkButton} from 'sentry/components/button';
@@ -13,7 +12,9 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {fields} from 'sentry/data/forms/projectAlerts';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Plugin, Project} from 'sentry/types';
+import type {Plugin} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -39,21 +40,21 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
   const projectSlug = params.projectId;
   const {
     data: project,
-    isLoading: isProjectLoading,
+    isPending: isProjectLoading,
     isError: isProjectError,
     refetch: refetchProject,
   } = useApiQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
   });
   const {
     data: pluginList = [],
-    isLoading: isPluginListLoading,
+    isPending: isPluginListLoading,
     isError: isPluginListError,
     refetch: refetchPluginList,
   } = useApiQuery<Plugin[]>(
     makeFetchProjectPluginsQueryKey(organization.slug, projectSlug),
-    {staleTime: 0, cacheTime: 0}
+    {staleTime: 0, gcTime: 0}
   );
 
   if ((!isProjectLoading && !project) || isPluginListError || isProjectError) {

@@ -11,13 +11,13 @@ class Migration(CheckedMigration):
     # the most part, this should only be used for operations where it's safe to run the migration
     # after your code has deployed. So this should not be used for most operations that alter the
     # schema of a table.
-    # Here are some things that make sense to mark as dangerous:
+    # Here are some things that make sense to mark as post deployment:
     # - Large data migrations. Typically we want these to be run manually by ops so that they can
     #   be monitored and not block the deploy for a long period of time while they run.
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = True
+    is_post_deployment = True
 
     dependencies = [
         ("sentry", "0517_backfill_pagerdutyservices_into_org_integrations"),
@@ -51,20 +51,16 @@ class Migration(CheckedMigration):
             name="releaseartifactbundle",
             unique_together=set(),
         ),
-        migrations.AlterIndexTogether(
-            name="artifactbundleindex",
-            index_together={("url", "artifact_bundle")},
+        migrations.AddIndex(
+            model_name="artifactbundleindex",
+            index=models.Index(
+                fields=["url", "artifact_bundle"], name="sentry_arti_url_7e628a_idx"
+            ),
         ),
-        migrations.AlterIndexTogether(
-            name="debugidartifactbundle",
-            index_together={("debug_id", "artifact_bundle")},
-        ),
-        migrations.AlterIndexTogether(
-            name="projectartifactbundle",
-            index_together={("project_id", "artifact_bundle")},
-        ),
-        migrations.AlterIndexTogether(
-            name="releaseartifactbundle",
-            index_together={("organization_id", "release_name", "dist_name", "artifact_bundle")},
+        migrations.AddIndex(
+            model_name="debugidartifactbundle",
+            index=models.Index(
+                fields=["debug_id", "artifact_bundle"], name="sentry_debu_debug_i_8c6c44_idx"
+            ),
         ),
     ]

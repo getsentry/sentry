@@ -6,10 +6,8 @@ from django.urls import reverse
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.testutils.cases import SCIMTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class SCIMDetailGetTest(SCIMTestCase):
     def test_team_details_404(self):
         url = reverse(
@@ -25,7 +23,9 @@ class SCIMDetailGetTest(SCIMTestCase):
         }
 
     def test_scim_team_details_basic(self):
-        team = self.create_team(organization=self.organization, name="test-scimv2")
+        team = self.create_team(
+            organization=self.organization, name="test-scimv2", idp_provisioned=True
+        )
         url = reverse(
             "sentry-api-0-organization-scim-team-details",
             args=[self.organization.slug, team.id],
@@ -41,7 +41,9 @@ class SCIMDetailGetTest(SCIMTestCase):
         }
 
     def test_scim_team_details_excluded_attributes(self):
-        team = self.create_team(organization=self.organization, name="test-scimv2")
+        team = self.create_team(
+            organization=self.organization, name="test-scimv2", idp_provisioned=True
+        )
         url = reverse(
             "sentry-api-0-organization-scim-team-details",
             args=[self.organization.slug, team.id],
@@ -77,14 +79,13 @@ class SCIMDetailGetTest(SCIMTestCase):
         assert response.status_code == 403, response.data
 
 
-@region_silo_test
 class SCIMDetailPatchTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-details"
     method = "patch"
 
     def setUp(self):
         super().setUp()
-        self.team = self.create_team(organization=self.organization)
+        self.team = self.create_team(organization=self.organization, idp_provisioned=True)
         self.base_data: dict[str, Any] = {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
         }
@@ -307,14 +308,13 @@ class SCIMDetailPatchTest(SCIMTestCase):
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
 
-@region_silo_test
 class SCIMDetailDeleteTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-details"
     method = "delete"
 
     @patch("sentry.scim.endpoints.teams.metrics")
     def test_delete_team(self, mock_metrics):
-        team = self.create_team(organization=self.organization)
+        team = self.create_team(organization=self.organization, idp_provisioned=True)
         self.get_success_response(self.organization.slug, team.id, status_code=204)
 
         assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION

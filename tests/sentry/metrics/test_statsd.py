@@ -11,7 +11,7 @@ def statsd_backend():
     try:
         yield backend
     finally:
-        # XXX: this socket is never closed so we close it to prevent ResourceWarning
+        # XXX: this socket is never closed, so we close it to prevent ResourceWarning
         backend.client._sock.close()
 
 

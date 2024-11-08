@@ -1,7 +1,6 @@
-import type {RouteComponentProps} from 'react-router';
-
-import Feature from 'sentry/components/acl/feature';
-import type {Organization, Project} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 import ProjectMetrics from './projectMetrics';
 
@@ -11,11 +10,7 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
 };
 
 function ProjectMetricsContainer(props: Props) {
-  return (
-    <Feature features={['ddm-ui', 'custom-metrics']}>
-      <ProjectMetrics {...props} />
-    </Feature>
-  );
+  return <ProjectMetrics {...props} />;
 }
 
 export default ProjectMetricsContainer;

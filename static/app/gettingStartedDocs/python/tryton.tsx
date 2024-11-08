@@ -5,34 +5,47 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
-# wsgi.py
 import sentry_sdk
 from sentry_sdk.integrations.trytond import TrytondWSGIIntegration
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations:[
         sentry_sdk.integrations.trytond.TrytondWSGIIntegration(),
     ],${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    _experiments={
+        # Set continuous_profiling_auto_start to True
+        # to automatically start the profiler on when
+        # possible.
+        "continuous_profiling_auto_start": True,
+    },`
+          : ''
     }
 )
 
@@ -40,7 +53,7 @@ from trytond.application import app as application
 
 # ...`;
 
-const getErrorHandlerSnippet = () => `# wsgi.py
+const getErrorHandlerSnippet = () => `
 # ...
 
 from trytond.exceptions import TrytonException
@@ -72,17 +85,31 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          language: 'python',
-          code: getSdkSetupSnippet(params),
+          code: [
+            {
+              label: 'wsgi.py',
+              value: 'wsgi.py',
+              language: 'python',
+              code: getSdkSetupSnippet(params),
+            },
+          ],
         },
         {
           description: t(
             'In Tryton>=5.4 an error handler can be registered to respond the client with a custom error message including the Sentry event id instead of a traceback.'
           ),
           language: 'python',
-          code: getErrorHandlerSnippet(),
+          code: [
+            {
+              label: 'wsgi.py',
+              value: 'wsgi.py',
+              language: 'python',
+              code: getErrorHandlerSnippet(),
+            },
+          ],
         },
       ],
+      additionalInfo: <AlternativeConfiguration />,
     },
   ],
   verify: () => [],
@@ -90,6 +117,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
+  crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;

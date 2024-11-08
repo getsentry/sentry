@@ -4,12 +4,12 @@ import classNames from 'classnames';
 
 import ListItem from 'sentry/components/list/listItem';
 import StrictClick from 'sentry/components/strictClick';
+import type {Event} from 'sentry/types/event';
 import type {
-  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
-} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+} from 'sentry/types/integrations';
+import type {PlatformKey} from 'sentry/types/project';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import Context from '../context';
@@ -98,6 +98,7 @@ function Line({
       case 'objc':
       case 'cocoa':
       case 'native':
+      case 'nintendo-switch':
         return (
           <Native
             event={event}
@@ -164,6 +165,7 @@ function Line({
         isExpanded={isExpanded}
         registersMeta={registersMeta}
         frameMeta={frameMeta}
+        platform={platform}
       />
     </StyleListItem>
   );

@@ -83,14 +83,84 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
             status_code=status.HTTP_201_CREATED,
             value="always",
         )
-        row = NotificationSettingOption.objects.filter(
+        row = NotificationSettingOption.objects.get(
             user_id=self.user.id,
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
             scope_identifier=self.organization.id,
             type=NotificationSettingEnum.ISSUE_ALERTS.value,
             value=NotificationSettingsOptionEnum.ALWAYS.value,
-        ).first()
+        )
         assert response.data["id"] == str(row.id)
+
+    def test_user_scope(self):
+
+        notification_settings = [
+            NotificationSettingEnum.QUOTA,
+            NotificationSettingEnum.QUOTA_WARNINGS,
+            NotificationSettingEnum.QUOTA_THRESHOLDS,
+            NotificationSettingEnum.QUOTA_ERRORS,
+            NotificationSettingEnum.QUOTA_TRANSACTIONS,
+            NotificationSettingEnum.QUOTA_ATTACHMENTS,
+            NotificationSettingEnum.QUOTA_REPLAYS,
+            NotificationSettingEnum.QUOTA_MONITOR_SEATS,
+            NotificationSettingEnum.QUOTA_SPANS,
+        ]
+
+        # turn on notification settings
+        for setting in notification_settings:
+            response = self.get_success_response(
+                "me",
+                user_id=self.user.id,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                type=setting.value,
+                status_code=status.HTTP_201_CREATED,
+                value="always",
+            )
+            record = NotificationSettingOption.objects.filter(
+                user_id=self.user.id,
+                scope_type=NotificationScopeEnum.USER.value,
+                scope_identifier=self.user.id,
+                type=setting.value,
+                value=NotificationSettingsOptionEnum.ALWAYS.value,
+            ).get()
+            assert response.data == {
+                "id": str(record.id),
+                "scopeType": "user",
+                "scopeIdentifier": str(self.user.id),
+                "type": setting.value,
+                "value": "always",
+                "user_id": str(self.user.id),
+                "team_id": None,
+            }
+
+        # turn off notification settings
+        for setting in notification_settings:
+            response = self.get_success_response(
+                "me",
+                user_id=self.user.id,
+                scope_type="user",
+                scope_identifier=self.user.id,
+                type=setting.value,
+                status_code=status.HTTP_201_CREATED,
+                value="never",
+            )
+            record = NotificationSettingOption.objects.filter(
+                user_id=self.user.id,
+                scope_type=NotificationScopeEnum.USER.value,
+                scope_identifier=self.user.id,
+                type=setting.value,
+                value=NotificationSettingsOptionEnum.NEVER.value,
+            ).get()
+            assert response.data == {
+                "id": str(record.id),
+                "scopeType": "user",
+                "scopeIdentifier": str(self.user.id),
+                "type": setting.value,
+                "value": "never",
+                "user_id": str(self.user.id),
+                "team_id": None,
+            }
 
     def test_invalid_scope_type(self):
         response = self.get_error_response(
@@ -138,11 +208,11 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
             status_code=status.HTTP_201_CREATED,
             value="always",
         )
-        row = NotificationSettingOption.objects.filter(
+        row = NotificationSettingOption.objects.get(
             user_id=self.user.id,
             scope_type=NotificationScopeEnum.ORGANIZATION.value,
             scope_identifier=self.organization.id,
             type=NotificationSettingEnum.REPORTS.value,
             value=NotificationSettingsOptionEnum.ALWAYS.value,
-        ).first()
+        )
         assert response.data["id"] == str(row.id)

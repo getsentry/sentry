@@ -6,10 +6,13 @@ import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import EAPField from 'sentry/views/alerts/rules/metric/eapField';
+import InsightsMetricField from 'sentry/views/alerts/rules/metric/insightsMetricField';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
@@ -20,6 +23,8 @@ import {
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 
 import {getFieldOptionConfig} from './metricField';
 
@@ -107,7 +112,7 @@ export default function WizardField({
           label: AlertWizardAlertNames.cls,
           value: 'cls',
         },
-        ...(hasDDMFeature(organization)
+        ...(hasCustomMetrics(organization)
           ? [
               {
                 label: AlertWizardAlertNames.custom_transactions,
@@ -115,12 +120,28 @@ export default function WizardField({
               },
             ]
           : []),
+        ...(hasInsightsAlerts(organization)
+          ? [
+              {
+                label: AlertWizardAlertNames.insights_metrics,
+                value: 'insights_metrics' as const,
+              },
+            ]
+          : []),
+        ...(hasEAPAlerts(organization)
+          ? [
+              {
+                label: AlertWizardAlertNames.eap_metrics,
+                value: 'eap_metrics' as const,
+              },
+            ]
+          : []),
       ],
     },
     {
-      label: hasDDMFeature(organization) ? t('METRICS') : t('CUSTOM'),
+      label: hasCustomMetrics(organization) ? t('METRICS') : t('CUSTOM'),
       options: [
-        hasDDMFeature(organization)
+        hasCustomMetrics(organization)
           ? {
               label: AlertWizardAlertNames.custom_metrics,
               value: 'custom_metrics',
@@ -166,7 +187,7 @@ export default function WizardField({
           (hidePrimarySelector ? 1 : 0);
 
         return (
-          <Container hideGap={gridColumns < 1}>
+          <Container alertType={alertType} hideGap={gridColumns < 1}>
             <SelectControl
               value={selectedTemplate}
               options={menuOptions}
@@ -181,11 +202,26 @@ export default function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {hasDDMFeature(organization) && alertType === 'custom_metrics' ? (
+            {alertType === 'custom_metrics' ? (
               <MriField
                 project={project}
                 aggregate={aggregate}
                 onChange={newAggregate => onChange(newAggregate, {})}
+              />
+            ) : alertType === 'insights_metrics' ? (
+              <InsightsMetricField
+                project={project}
+                aggregate={aggregate}
+                onChange={newAggregate => {
+                  return onChange(newAggregate, {});
+                }}
+              />
+            ) : alertType === 'eap_metrics' ? (
+              <EAPField
+                aggregate={aggregate}
+                onChange={newAggregate => {
+                  return onChange(newAggregate, {});
+                }}
               />
             ) : (
               <StyledQueryField
@@ -261,10 +297,10 @@ const getApproximateKnownPercentile = (customPercentile: string) => {
   return 'p100';
 };
 
-const Container = styled('div')<{hideGap: boolean}>`
+const Container = styled('div')<{hideGap: boolean; alertType?: AlertType}>`
   display: grid;
+  gap: ${p => (p.hideGap ? 0 : space(1))};
   grid-template-columns: 1fr auto;
-  gap: ${p => (p.hideGap ? space(0) : space(1))};
 `;
 
 const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: number}>`

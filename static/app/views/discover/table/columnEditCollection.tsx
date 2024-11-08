@@ -13,7 +13,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MRI, Organization} from 'sentry/types';
+import type {MRI} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Column} from 'sentry/utils/discover/fields';
 import {
@@ -54,6 +55,7 @@ type Props = {
   noFieldsMessage?: string;
   showAliasField?: boolean;
   source?: Sources;
+  supportsEquations?: boolean;
 };
 
 type State = {
@@ -71,8 +73,8 @@ const GHOST_PADDING = 4;
 const MAX_COL_COUNT = 20;
 
 enum PlaceholderPosition {
-  TOP,
-  BOTTOM,
+  TOP = 0,
+  BOTTOM = 1,
 }
 
 class ColumnEditCollection extends Component<Props, State> {
@@ -581,7 +583,7 @@ class ColumnEditCollection extends Component<Props, State> {
   }
 
   render() {
-    const {className, columns, showAliasField, source} = this.props;
+    const {className, columns, showAliasField, source, supportsEquations} = this.props;
     const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
     const canDrag = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
@@ -671,20 +673,18 @@ class ColumnEditCollection extends Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            {WidgetType.ISSUE &&
-              source !== WidgetType.RELEASE &&
-              source !== WidgetType.METRICS && (
-                <Button
-                  size="sm"
-                  aria-label={t('Add an Equation')}
-                  onClick={this.handleAddEquation}
-                  title={title}
-                  disabled={!canAdd}
-                  icon={<IconAdd isCircled />}
-                >
-                  {t('Add an Equation')}
-                </Button>
-              )}
+            {supportsEquations && (
+              <Button
+                size="sm"
+                aria-label={t('Add an Equation')}
+                onClick={this.handleAddEquation}
+                title={title}
+                disabled={!canAdd}
+                icon={<IconAdd isCircled />}
+              >
+                {t('Add an Equation')}
+              </Button>
+            )}
           </Actions>
         </RowContainer>
       </div>

@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs, {PackageManager} from './log4j2';
 
-describe('GettingStartedWithSpring', function () {
+describe('getting started with log4j2', function () {
   it('renders gradle docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {

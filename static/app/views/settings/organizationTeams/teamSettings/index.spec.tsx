@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
@@ -12,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import TeamSettings from 'sentry/views/settings/organizationTeams/teamSettings';
 
 describe('TeamSettings', function () {
@@ -102,5 +102,22 @@ describe('TeamSettings', function () {
     );
 
     expect(TeamStore.getAll()).toEqual([]);
+  });
+
+  it('cannot modify idp:provisioned teams regardless of role', function () {
+    const team = TeamFixture({hasAccess: true, flags: {'idp:provisioned': true}});
+    const organization = OrganizationFixture({access: []});
+
+    render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
+      organization,
+    });
+
+    expect(
+      screen.getByText(
+        "This team is managed through your organization's identity provider. These settings cannot be modified."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Team Slug'})).toBeDisabled();
+    expect(screen.getByTestId('button-remove-team')).toBeDisabled();
   });
 });

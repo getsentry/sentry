@@ -3,21 +3,21 @@ import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfac
 import Panel from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {ExceptionValue, Group, PlatformKey} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+import type {Event, ExceptionValue} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import StackTraceContent from '../stackTrace/content';
-import {HierarchicalGroupingContent} from '../stackTrace/hierarchicalGroupingContent';
 import {NativeContent} from '../stackTrace/nativeContent';
 
 type Props = {
   chainedException: boolean;
   data: ExceptionValue['stacktrace'];
   event: Event;
-  hasHierarchicalGrouping: boolean;
   platform: PlatformKey;
   stackType: StackType;
   stacktrace: ExceptionValue['stacktrace'];
@@ -37,7 +37,6 @@ function StackTrace({
   platform,
   newestFirst,
   groupingCurrentLevel,
-  hasHierarchicalGrouping,
   data,
   expandFirstFrame,
   event,
@@ -46,6 +45,7 @@ function StackTrace({
   frameSourceMapDebuggerData,
   stackType,
 }: Props) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   if (!defined(stacktrace)) {
     return null;
   }
@@ -59,11 +59,7 @@ function StackTrace({
       <Panel dashedBorder>
         <EmptyMessage
           icon={<IconWarning size="xl" />}
-          title={
-            hasHierarchicalGrouping
-              ? t('No relevant stack trace has been found!')
-              : t('No app only stack trace has been found!')
-          }
+          title={t('No app only stack trace has been found!')}
         />
       </Panel>
     );
@@ -96,21 +92,7 @@ function StackTrace({
         newestFirst={newestFirst}
         event={event}
         meta={meta}
-      />
-    );
-  }
-
-  if (hasHierarchicalGrouping) {
-    return (
-      <HierarchicalGroupingContent
-        data={data}
-        expandFirstFrame={expandFirstFrame}
-        includeSystemFrames={includeSystemFrames}
-        groupingCurrentLevel={groupingCurrentLevel}
-        platform={platform}
-        newestFirst={newestFirst}
-        event={event}
-        meta={meta}
+        hideIcon={hasStreamlinedUI}
       />
     );
   }
@@ -127,6 +109,7 @@ function StackTrace({
       threadId={threadId}
       frameSourceMapDebuggerData={frameSourceMapDebuggerData}
       hideSourceMapDebugger={stackType === StackType.MINIFIED}
+      hideIcon={hasStreamlinedUI}
     />
   );
 }

@@ -13,6 +13,8 @@ const replayConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     attachments: {enabled: false},
+    autofix: false,
+    aiSuggestedSolution: false,
     events: {enabled: true},
     mergedIssues: {enabled: false},
     regression: {enabled: false},
@@ -26,6 +28,7 @@ const replayConfig: IssueCategoryConfigMapping = {
     evidence: {title: t('Evidence')},
     resources: null,
     usesIssuePlatform: true,
+    issueSummary: {enabled: false},
   },
 };
 

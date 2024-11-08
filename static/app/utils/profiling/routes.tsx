@@ -1,7 +1,13 @@
+import {dropUndefinedKeys} from '@sentry/utils';
 import type {Location, LocationDescriptor, Path} from 'history';
 
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {Trace} from 'sentry/types/profiling/core';
+import type {Project} from 'sentry/types/project';
+import {
+  isContinuousProfileReference,
+  isTransactionProfileReference,
+} from 'sentry/utils/profiling/guards/profile';
 
 export function generateProfilingRoute({orgSlug}: {orgSlug: Organization['slug']}): Path {
   return `/organizations/${orgSlug}/profiling/`;
@@ -27,6 +33,16 @@ export function generateProfileFlamechartRoute({
   projectSlug: Project['slug'];
 }): string {
   return `/organizations/${orgSlug}/profiling/profile/${projectSlug}/${profileId}/flamegraph/`;
+}
+
+export function generateContinuousProfileFlamechartRoute({
+  orgSlug,
+  projectSlug,
+}: {
+  orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
+}): string {
+  return `/organizations/${orgSlug}/profiling/profile/${projectSlug}/flamegraph/`;
 }
 
 export function generateProfileDifferentialFlamegraphRoute({
@@ -88,9 +104,7 @@ export function generateProfilingRouteWithQuery({
   const pathname = generateProfilingRoute({orgSlug});
   return {
     pathname,
-    query: {
-      ...query,
-    },
+    query,
   };
 }
 
@@ -133,9 +147,44 @@ export function generateProfileFlamechartRouteWithQuery({
   });
   return {
     pathname,
-    query: {
+    query,
+  };
+}
+
+export function generateContinuousProfileFlamechartRouteWithQuery({
+  orgSlug,
+  projectSlug,
+  profilerId,
+  start,
+  end,
+  query,
+  frameName,
+  framePackage,
+}: {
+  end: string;
+  orgSlug: Organization['slug'];
+  profilerId: string;
+  projectSlug: Project['slug'];
+  start: string;
+  frameName?: string;
+  framePackage?: string | undefined;
+  query?: Location['query'];
+}): LocationDescriptor {
+  const pathname = generateContinuousProfileFlamechartRoute({
+    orgSlug,
+    projectSlug,
+  });
+
+  return {
+    pathname,
+    query: dropUndefinedKeys({
+      profilerId,
+      start,
+      end,
+      frameName,
+      framePackage,
       ...query,
-    },
+    }),
   };
 }
 
@@ -164,4 +213,61 @@ export function generateProfileFlamechartRouteWithHighlightFrame({
       framePackage,
     },
   });
+}
+
+export function generateProfileRouteFromProfileReference({
+  orgSlug,
+  projectSlug,
+  frameName,
+  framePackage,
+  reference,
+  query,
+}: {
+  frameName: string;
+  framePackage: string | undefined;
+  orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
+  reference: Profiling.ProfileReference;
+  query?: Location['query'];
+}): LocationDescriptor {
+  if (typeof reference === 'string') {
+    return generateProfileFlamechartRouteWithHighlightFrame({
+      orgSlug: orgSlug,
+      projectSlug: projectSlug,
+      profileId: reference,
+      frameName: frameName,
+      framePackage: framePackage,
+      query: query,
+    });
+  }
+
+  if (isContinuousProfileReference(reference)) {
+    return generateContinuousProfileFlamechartRouteWithQuery({
+      orgSlug,
+      projectSlug,
+      profilerId: reference.profiler_id,
+      frameName,
+      framePackage,
+      start: new Date(reference.start * 1e3).toISOString(),
+      end: new Date(reference.end * 1e3).toISOString(),
+      query: dropUndefinedKeys({
+        ...query,
+        frameName,
+        framePackage,
+        eventId: reference.transaction_id,
+        tid: reference.thread_id as unknown as string,
+      }),
+    });
+  }
+
+  if (isTransactionProfileReference(reference)) {
+    return generateProfileFlamechartRouteWithQuery({
+      orgSlug,
+      projectSlug,
+      profileId: reference.profile_id,
+      query: dropUndefinedKeys({...query, frameName, framePackage}),
+    });
+  }
+
+  throw new Error('Not implemented');
 }

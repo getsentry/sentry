@@ -5,54 +5,46 @@ import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
+/**
+ * RawCrumb.type is used for filtering, icons and color. This function converts crumbs
+ * that have known categories into better types.
+ */
 export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
   if (breadcrumb.type === BreadcrumbType.EXCEPTION) {
-    return {
-      ...breadcrumb,
-      type: BreadcrumbType.ERROR,
-    };
+    return {...breadcrumb, type: BreadcrumbType.ERROR};
   }
-  // special case for 'ui.' and `sentry.` category breadcrumbs
-  // TODO: find a better way to customize UI around non-schema data
+  const breadcrumbTypeSet = new Set<BreadcrumbType>(Object.values(BreadcrumbType));
+
   if (breadcrumb.type === BreadcrumbType.DEFAULT && defined(breadcrumb?.category)) {
     const [category, subcategory] = breadcrumb.category.split('.');
-    if (category === 'ui') {
-      return {
-        ...breadcrumb,
-        type: BreadcrumbType.UI,
-      };
+    if (breadcrumbTypeSet.has(category as BreadcrumbType)) {
+      // XXX: Type hack, instead of manually adding cases for BreadcrumbType.x when BreadcrumbType.x's
+      // enum value is the category, we just say it's the default and set it.
+      return {...breadcrumb, type: category as BreadcrumbType.DEFAULT};
     }
-
-    if (category === 'console') {
-      return {
-        ...breadcrumb,
-        type: BreadcrumbType.DEBUG,
-      };
-    }
-
-    if (category === 'navigation') {
-      return {
-        ...breadcrumb,
-        type: BreadcrumbType.NAVIGATION,
-      };
-    }
-
-    if (
-      category === 'sentry' &&
-      (subcategory === 'transaction' || subcategory === 'event')
-    ) {
-      return {
-        ...breadcrumb,
-        type: BreadcrumbType.TRANSACTION,
-      };
+    switch (category) {
+      case 'console':
+      case 'Logcat':
+        return {...breadcrumb, type: BreadcrumbType.DEBUG};
+      case 'session':
+        return {...breadcrumb, type: BreadcrumbType.NAVIGATION};
+      case 'graphql':
+      case 'mutation':
+      case 'subscription':
+      case 'data_loader':
+        return {...breadcrumb, type: BreadcrumbType.QUERY};
+      case 'sentry':
+        if (subcategory === 'transaction' || subcategory === 'event') {
+          return {...breadcrumb, type: BreadcrumbType.TRANSACTION};
+        }
+        break;
+      default:
+        break;
     }
   }
 
-  if (!Object.values(BreadcrumbType).includes(breadcrumb.type)) {
-    return {
-      ...breadcrumb,
-      type: BreadcrumbType.DEFAULT,
-    };
+  if (!breadcrumbTypeSet.has(breadcrumb.type)) {
+    return {...breadcrumb, type: BreadcrumbType.DEFAULT};
   }
 
   return breadcrumb;

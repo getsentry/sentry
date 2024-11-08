@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from django.db import router, transaction
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -13,7 +15,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.api.endpoints.organization_member.index import (
+    ROLE_CHOICES,
+    OrganizationMemberRequestSerializer,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (
@@ -25,14 +30,14 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
-from sentry.services.hybrid_cloud.auth import auth_service
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
 from . import get_allowed_org_roles, save_team_assignments
@@ -40,6 +45,8 @@ from . import get_allowed_org_roles, save_team_assignments
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
 ERR_INSUFFICIENT_SCOPE = "You are missing the member:admin scope."
+ERR_MEMBER_INVITE = "You cannot modify invitations sent by someone else."
+ERR_MEMBER_REINVITE = "You can only reinvite members; you cannot modify other member details."
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full member."
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
@@ -65,33 +72,12 @@ Configures the team role of the member. The two roles are:
 ```
 """
 
-# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
-# has the wrong descriptions, includes deprecated admin, and excludes billing
-ROLE_CHOICES = [
-    ("billing", "Can manage payment and compliance details."),
-    (
-        "member",
-        "Can view and act on events, as well as view most other data within the organization.",
-    ),
-    (
-        "manager",
-        """Has full management access to all teams and projects. Can also manage
-        the organization's membership.""",
-    ),
-    (
-        "owner",
-        """Has unrestricted access to the organization, its data, and its
-        settings. Can add, modify, and delete projects and members, as well as
-        make billing and plan changes.""",
-    ),
-]
-
 
 class RelaxedMemberPermission(OrganizationPermission):
     scope_map = {
         "GET": ["member:read", "member:write", "member:admin"],
         "POST": ["member:write", "member:admin"],
-        "PUT": ["member:write", "member:admin"],
+        "PUT": ["member:invite", "member:write", "member:admin"],
         # DELETE checks for role comparison as you can either remove a member
         # with a lower access role, or yourself, without having the req. scope
         "DELETE": ["member:read", "member:write", "member:admin"],
@@ -131,7 +117,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Retrieve an Organization Member",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the organization member."),
         ],
         responses={
@@ -140,6 +126,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=OrganizationExamples.UPDATE_ORG_MEMBER,
     )
     def get(
         self,
@@ -150,7 +137,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         Retrieve an organization member's details.
 
-        Will return a pending invite as long as it's already approved.
+        Response will be a pending invite if it has been approved by organization owners or managers but is waiting to be accepted by the invitee.
         """
         allowed_roles = get_allowed_org_roles(request, organization, member)
         return Response(
@@ -164,7 +151,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Update an Organization Member's Roles",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
@@ -199,10 +186,18 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
     ) -> Response:
         """
-        Update a member's organization and team-level roles.
+        Update a member's [organization-level](https://docs.sentry.io/organization/membership/#organization-level-roles) and [team-level](https://docs.sentry.io/organization/membership/#team-level-roles) roles.
+
+        Note that for changing organization-roles, this endpoint is restricted to
+        [user auth tokens](https://docs.sentry.io/account/auth-tokens/#user-auth-tokens).
+        Additionally, both the original and desired organization role must have
+        the same or lower permissions than the role of the organization user making the request
+
+        For example, an organization Manager may change someone's role from
+        Member to Manager, but not to Owner.
         """
         allowed_roles = get_allowed_org_roles(request, organization)
-        serializer = OrganizationMemberSerializer(
+        serializer = OrganizationMemberRequestSerializer(
             data=request.data,
             partial=True,
             context={
@@ -225,6 +220,26 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 },
                 status=403,
             )
+
+        is_member = not (
+            request.access.has_scope("member:invite") and request.access.has_scope("member:admin")
+        )
+        enable_member_invite = (
+            features.has("organizations:members-invite-teammates", organization)
+            and not organization.flags.disable_member_invite
+        )
+        # Members can only resend invites
+        reinvite_request_only = set(result.keys()).issubset({"reinvite", "regenerate"})
+        # Members can only resend invites that they sent
+        is_invite_from_user = member.inviter_id == request.user.id
+
+        if is_member:
+            if not enable_member_invite or not member.is_pending:
+                raise PermissionDenied
+            if not reinvite_request_only:
+                return Response({"detail": ERR_MEMBER_REINVITE}, status=403)
+            if not is_invite_from_user:
+                return Response({"detail": ERR_MEMBER_INVITE}, status=403)
 
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
         # access level
@@ -372,10 +387,36 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 tags={"target_org_role": role, "count": omt_update_count},
             )
 
+    def _handle_deletion_by_member(
+        self,
+        request: Request,
+        organization: Organization,
+        member: OrganizationMember,
+        acting_member: OrganizationMember,
+    ) -> Response:
+        # Members can only delete invitations
+        if not member.is_pending:
+            return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
+        # Members can only delete invitations that they sent
+        if member.inviter_id != acting_member.user_id:
+            return Response({"detail": ERR_MEMBER_INVITE}, status=400)
+
+        audit_data = member.get_audit_log_data()
+        member.delete()
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=member.id,
+            target_user_id=member.user_id,
+            event=audit_log.get_event_id("MEMBER_REMOVE"),
+            data=audit_data,
+        )
+        return Response(status=204)
+
     @extend_schema(
         operation_id="Delete an Organization Member",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to delete."),
         ],
         responses={
@@ -407,6 +448,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             else:
                 if acting_member != member:
                     if not request.access.has_scope("member:admin"):
+                        if (
+                            features.has("organizations:members-invite-teammates", organization)
+                            and not organization.flags.disable_member_invite
+                            and request.access.has_scope("member:invite")
+                        ):
+                            return self._handle_deletion_by_member(
+                                request, organization, member, acting_member
+                            )
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                     else:
                         can_manage = roles.can_manage(acting_member.role, member.role)
@@ -457,6 +506,18 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 lambda: user_option_service.delete_options(option_ids=[uo.id for uo in uos]),
                 using=router.db_for_write(Project),
             )
+
+        with transaction.atomic(router.db_for_write(OrganizationMember)):
+            if member.user_id:
+                # Delete any invite requests and pending invites by the deleted member
+                existing_invites = OrganizationMember.objects.filter(
+                    Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+                    | Q(token__isnull=False),
+                    inviter_id=member.user_id,
+                    organization=organization,
+                )
+                for om in existing_invites:
+                    om.delete()
 
         self.create_audit_entry(
             request=request,

@@ -50,7 +50,7 @@ describe('IssueDiff', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('is loading when initially rendering', function () {
+  it('is loading when initially rendering', async function () {
     render(
       <IssueDiff
         api={api}
@@ -58,9 +58,19 @@ describe('IssueDiff', function () {
         targetIssueId="target"
         orgId="org-slug"
         project={project}
+        location={{
+          pathname: '',
+          query: {cursor: '0:1:1', statsPeriod: '14d'},
+          search: '',
+          hash: '',
+          state: null,
+          action: 'PUSH',
+          key: 'default',
+        }}
       />
     );
     expect(screen.queryByTestId('split-diff')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
   });
 
   it('can dynamically import SplitDiff', async function () {
@@ -73,6 +83,15 @@ describe('IssueDiff', function () {
         project={project}
         organization={organization}
         shouldBeGrouped="Yes"
+        location={{
+          pathname: '',
+          query: {cursor: '0:1:1', statsPeriod: '14d'},
+          search: '',
+          hash: '',
+          state: null,
+          action: 'PUSH',
+          key: 'default',
+        }}
       />
     );
 
@@ -102,6 +121,15 @@ describe('IssueDiff', function () {
         targetIssueId="target"
         orgId="org-slug"
         project={project}
+        location={{
+          pathname: '',
+          query: {cursor: '0:1:1', statsPeriod: '14d'},
+          search: '',
+          hash: '',
+          state: null,
+          action: 'PUSH',
+          key: 'default',
+        }}
       />
     );
 

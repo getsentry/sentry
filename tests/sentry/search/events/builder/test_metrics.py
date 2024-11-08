@@ -9,15 +9,15 @@ import pytest
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.search.events import constants
-from sentry.search.events.builder import (
+from sentry.search.events import constants, fields
+from sentry.search.events.builder.metrics import (
     AlertMetricsQueryBuilder,
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
 )
-from sentry.search.events.types import HistogramParams, QueryBuilderConfig
+from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -105,7 +105,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             hour=10, minute=0, second=0, microsecond=0
         )
         self.projects = [self.project.id]
-        self.params = {
+        self.params: ParamsType = {
             "organization_id": self.organization.id,
             "project_id": self.projects,
             "start": self.start,
@@ -170,6 +170,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
 
 
 class MetricQueryBuilderTest(MetricBuilderBaseTest):
+    @pytest.mark.querybuilder
     def test_default_conditions(self):
         query = MetricsQueryBuilder(
             self.params, query="", dataset=Dataset.PerformanceMetrics, selected_columns=[]
@@ -1602,8 +1603,81 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 selected_columns=[],
             )
 
+    @mock.patch(
+        "sentry.search.events.datasets.metrics.MetricsDatasetConfig.function_converter",
+        new_callable=mock.PropertyMock,
+        return_value={
+            "count_unique": fields.MetricsFunction(
+                "count_unique",
+                required_args=[fields.MetricArg("column", allowed_columns=["mocked_gauge"])],
+                snql_set=lambda args, alias: None,  # Doesn't matter what this returns
+            )
+        },
+    )
+    @mock.patch.dict(
+        "sentry.search.events.builder.metrics.constants.METRICS_MAP",
+        {"mocked_gauge": "g:mock/mocked_gauge@none"},
+    )
+    def test_missing_function_implementation_for_metric_type(self, _mocked_function_converter):
+        # Mocks count_unique to allow the mocked_gauge column
+        # but the metric type does not have a gauge implementation
+        with pytest.raises(IncompatibleMetricsQuery) as err:
+            MetricsQueryBuilder(
+                self.params,
+                dataset=Dataset.PerformanceMetrics,
+                query="",
+                selected_columns=[
+                    "count_unique(mocked_gauge)",
+                ],
+            )
+
+        assert str(err.value) == "The functions provided do not match the requested metric type"
+
+    def test_free_text_search(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            dataset=None,
+            query="foo",
+            selected_columns=["count()"],
+        )
+
+        self.maxDiff = 100000
+
+        transaction_key = indexer.resolve(
+            UseCaseID.TRANSACTIONS, self.organization.id, "transaction"
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(
+                    Function(
+                        "positionCaseInsensitive",
+                        [
+                            Column(f"tags[{transaction_key}]"),
+                            "foo",
+                        ],
+                    ),
+                    Op.NEQ,
+                    0,
+                ),
+                Condition(
+                    Column("metric_id"),
+                    Op.IN,
+                    [
+                        indexer.resolve(
+                            UseCaseID.TRANSACTIONS,
+                            self.organization.id,
+                            "d:transactions/duration@millisecond",
+                        )
+                    ],
+                ),
+                *self.default_conditions,
+            ],
+        )
+
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
+    @pytest.mark.querybuilder
     def test_get_query(self):
         orig_query = TimeseriesMetricQueryBuilder(
             self.params,
@@ -1639,13 +1713,15 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_granularity(self):
         # Need to pick granularity based on the period and interval for timeseries
         def get_granularity(start, end, interval):
-            params = {
-                "organization_id": self.organization.id,
-                "project_id": self.projects,
-                "start": start,
-                "end": end,
-            }
-            query = TimeseriesMetricQueryBuilder(params, interval=interval)
+            query = TimeseriesMetricQueryBuilder(
+                {
+                    "organization_id": self.organization.id,
+                    "project_id": self.projects,
+                    "start": start,
+                    "end": end,
+                },
+                interval=interval,
+            )
             return query.granularity.granularity
 
         # If we're doing atleast day and its midnight we should use the daily bucket
@@ -2127,7 +2203,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
         query = TimeseriesMetricQueryBuilder(
-            {**self.params, "environment": ["prod"]},  # type:ignore
+            {**self.params, "environment": ["prod"]},
             dataset=Dataset.PerformanceMetrics,
             interval=3600,
             query=query_s,
@@ -3074,6 +3150,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             self.params,
             granularity=3600,
+            time_range_window=3600,
             query=query_s,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
@@ -3129,6 +3206,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
             query = AlertMetricsQueryBuilder(
                 params,
                 granularity=3600,
+                time_range_window=3600,
                 query=query_s,
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[field],
@@ -3181,6 +3259,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             self.params,
             granularity=3600,
+            time_range_window=3600,
             query=query_s,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
@@ -3226,6 +3305,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             self.params,
             granularity=3600,
+            time_range_window=3600,
             query=query_s,
             dataset=Dataset.PerformanceMetrics,
             selected_columns=[field],
@@ -3254,6 +3334,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             params,
             granularity=3600,
+            time_range_window=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
@@ -3280,6 +3361,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             params,
             granularity=3600,
+            time_range_window=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["p75(measurements.fp)"],
@@ -3338,6 +3420,7 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         query = AlertMetricsQueryBuilder(
             self.params,
             granularity=3600,
+            time_range_window=3600,
             query="transaction.duration:>=100",
             dataset=Dataset.PerformanceMetrics,
             selected_columns=["count(transaction.duration)"],
@@ -3388,6 +3471,60 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert start_time_clause in snql_query.where
         assert end_time_clause in snql_query.where
         assert query_hash_clause in snql_query.where
+
+    def test_run_query_with_spm_and_time_range_not_required_and_not_supplied(self):
+        params = {
+            "organization_id": self.organization.id,
+            "project_id": self.projects,
+        }
+        query = AlertMetricsQueryBuilder(
+            params,
+            granularity=60,
+            time_range_window=3600,
+            query="span.module:db",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["spm()"],
+            offset=None,
+            config=QueryBuilderConfig(
+                skip_time_conditions=True,
+                use_metrics_layer=True,
+                insights_metrics_override_metric_layer=True,
+            ),
+        )
+
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "generic_metrics"
+        snql_query = snql_request.query
+
+        self.assertCountEqual(
+            [
+                Function(
+                    "divide",
+                    [
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        indexer.resolve(
+                                            UseCaseID.SPANS,
+                                            1,
+                                            "d:spans/exclusive_time@millisecond",
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        Function("divide", [3600, 60]),
+                    ],
+                    "spm",
+                )
+            ],
+            snql_query.select,
+        )
 
 
 class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
@@ -3595,6 +3732,7 @@ class CustomMetricsWithMetricsLayerTest(MetricBuilderBaseTest):
             query = AlertMetricsQueryBuilder(
                 {**self.params, "environment": self.environment.name},
                 granularity=3600,
+                time_range_window=3600,
                 query="phone:iPhone",
                 dataset=Dataset.PerformanceMetrics,
                 selected_columns=[f"{aggregate}({mri})"],

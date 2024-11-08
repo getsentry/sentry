@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -24,6 +23,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
@@ -33,7 +33,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 
 import {
   Accordion,
@@ -98,7 +97,7 @@ export function FunctionTrendsWidget({
   }, [trendsQuery.data]);
 
   const hasTrends = (trendsQuery.data?.length || 0) > 0;
-  const isLoading = trendsQuery.isLoading;
+  const isLoading = trendsQuery.isPending;
   const isError = trendsQuery.isError;
 
   return (
@@ -322,7 +321,6 @@ interface FunctionTrendsChartProps {
 
 function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
   const {selection} = usePageFilters();
-  const router = useRouter();
   const theme = useTheme();
 
   const series: Series[] = useMemo(() => {
@@ -457,7 +455,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
   }, [theme.chartLabel]);
 
   return (
-    <ChartZoom router={router} {...selection.datetime}>
+    <ChartZoom {...selection.datetime}>
       {zoomRenderProps => (
         <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
       )}

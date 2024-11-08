@@ -5,13 +5,11 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectkey import ProjectKey
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.models import Monitor, MonitorType
-from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
+from sentry.quotas.base import Quota, QuotaConfig, QuotaScope, SeatAssignmentResult
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
 class QuotaTest(TestCase):
     def setUp(self):
         self.backend = Quota()
@@ -76,18 +74,24 @@ class QuotaTest(TestCase):
 
     def test_get_organization_quota_with_no_account_limit_and_system_limit(self):
         org = self.create_organization()
-        with self.settings(
-            SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE="50%", SENTRY_SINGLE_ORGANIZATION=False
-        ), self.options({"system.rate-limit": 10}):
+        with (
+            self.settings(
+                SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE="50%", SENTRY_SINGLE_ORGANIZATION=False
+            ),
+            self.options({"system.rate-limit": 10}),
+        ):
             assert self.backend.get_organization_quota(org) == (5, 60)
 
     def test_get_organization_quota_with_no_account_limit_and_relative_system_limit_single_org(
         self,
     ):
         org = self.create_organization()
-        with self.settings(
-            SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE="50%", SENTRY_SINGLE_ORGANIZATION=True
-        ), self.options({"system.rate-limit": 10}):
+        with (
+            self.settings(
+                SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE="50%", SENTRY_SINGLE_ORGANIZATION=True
+            ),
+            self.options({"system.rate-limit": 10}),
+        ):
             assert self.backend.get_organization_quota(org) == (10, 60)
 
     def test_get_blended_sample_rate(self):
@@ -171,3 +175,10 @@ class QuotaTest(TestCase):
 )
 def test_quotas_to_json(obj, json):
     assert obj.to_json() == json
+
+
+def test_seat_assignable_must_have_reason():
+    with pytest.raises(ValueError):
+        SeatAssignmentResult(assignable=False)
+    SeatAssignmentResult(assignable=False, reason="because I said so")
+    SeatAssignmentResult(assignable=True)

@@ -10,18 +10,16 @@ from rest_framework.response import Response
 
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.webhooks.base import JiraTokenError, JiraWebhookBase
-from sentry.integrations.mixins import IssueSyncMixin
-from sentry.integrations.utils import AtlassianConnectValidationError
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.silo import region_silo_test
 
 TOKEN = "JWT anexampletoken"
 
 
-@region_silo_test
 class JiraIssueUpdatedWebhookTest(APITestCase):
     endpoint = "sentry-extensions-jira-issue-updated"
     method = "post"
@@ -130,7 +128,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                 self.integration, None, "APP-123", assign=False
             )
 
-    @patch.object(IssueSyncMixin, "sync_status_inbound")
+    @patch.object(IssueSyncIntegration, "sync_status_inbound")
     def test_simple_status_sync_inbound(self, mock_sync_status_inbound):
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
@@ -225,9 +223,9 @@ class JiraWebhookBaseTest(TestCase):
         mock_endpoint = MockErroringJiraEndpoint.as_view(error=MethodNotAllowed("GET"))
 
         request = self.make_request(method="GET")
-        request.META[
-            "HTTP_USER_AGENT"
-        ] = "CSRT (github.com/atlassian-labs/connect-security-req-tester)"
+        request.META["HTTP_USER_AGENT"] = (
+            "CSRT (github.com/atlassian-labs/connect-security-req-tester)"
+        )
         response = mock_endpoint(request)
 
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED

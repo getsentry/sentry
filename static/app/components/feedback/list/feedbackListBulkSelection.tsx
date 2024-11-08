@@ -1,14 +1,14 @@
-import Button from 'sentry/components/actions/button';
+import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useBulkEditFeedbacks from 'sentry/components/feedback/list/useBulkEditFeedbacks';
 import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
-import {Flex} from 'sentry/components/profiling/flex';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {GroupStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props
@@ -26,9 +26,7 @@ export default function FeedbackListBulkSelection({
   deselectAll,
 }: Props) {
   const organization = useOrganization();
-  const hasSpamFeature = organization.features.includes('user-feedback-spam-filter-ui');
-
-  const {onToggleResovled, onMarkAsRead, onMarkUnread} = useBulkEditFeedbacks({
+  const {onDelete, onToggleResolved, onMarkAsRead, onMarkUnread} = useBulkEditFeedbacks({
     selectedIds,
     deselectAll,
   });
@@ -39,6 +37,10 @@ export default function FeedbackListBulkSelection({
   // reuse the issues ignored category for spam feedbacks
   const newMailboxSpam =
     mailbox === 'ignored' ? GroupStatus.UNRESOLVED : GroupStatus.IGNORED;
+
+  const hasDelete =
+    organization.features.includes('issue-platform-deletion-ui') && selectedIds !== 'all';
+  const disableDelete = !organization.access.includes('event:admin');
 
   return (
     <Flex gap={space(1)} align="center" justify="space-between" flex="1 0 auto">
@@ -51,24 +53,26 @@ export default function FeedbackListBulkSelection({
       </span>
       <Flex gap={space(1)} justify="flex-end">
         <ErrorBoundary mini>
-          <Button onClick={() => onToggleResovled({newMailbox: newMailboxResolve})}>
+          <Button
+            size="xs"
+            onClick={() => onToggleResolved({newMailbox: newMailboxResolve})}
+          >
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
           </Button>
         </ErrorBoundary>
-        {hasSpamFeature && (
-          <ErrorBoundary mini>
-            <Button
-              onClick={() =>
-                onToggleResovled({
-                  newMailbox: newMailboxSpam,
-                  moveToInbox: mailbox === 'ignored',
-                })
-              }
-            >
-              {mailbox === 'ignored' ? t('Move to inbox') : t('Mark as Spam')}
-            </Button>
-          </ErrorBoundary>
-        )}
+        <ErrorBoundary mini>
+          <Button
+            size="xs"
+            onClick={() =>
+              onToggleResolved({
+                newMailbox: newMailboxSpam,
+                moveToInbox: mailbox === 'ignored',
+              })
+            }
+          >
+            {mailbox === 'ignored' ? t('Move to inbox') : t('Mark as Spam')}
+          </Button>
+        </ErrorBoundary>
         <ErrorBoundary mini>
           <DropdownMenu
             position="bottom-end"
@@ -88,6 +92,14 @@ export default function FeedbackListBulkSelection({
                 key: 'mark unread',
                 label: t('Mark Unread'),
                 onAction: onMarkUnread,
+              },
+              {
+                key: 'delete',
+                priority: 'danger' as const,
+                label: t('Delete'),
+                hidden: !hasDelete,
+                disabled: disableDelete,
+                onAction: onDelete,
               },
             ]}
           />

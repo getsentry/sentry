@@ -1,10 +1,10 @@
-import {browserHistory} from 'react-router';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -18,8 +18,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
+import ConfigStore from 'sentry/stores/configStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
+import {handleUpdateDashboardSplit} from 'sentry/views/dashboards/detail';
+import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -147,7 +152,6 @@ describe('Dashboards > Detail', function () {
       initialData = initializeOrg({
         organization: OrganizationFixture({
           features: ['global-views', 'dashboards-basic', 'discover-query'],
-          projects: [ProjectFixture()],
         }),
       });
 
@@ -163,7 +167,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       expect(await screen.findByText('Default Widget 1')).toBeInTheDocument();
@@ -183,7 +187,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </CreateDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await waitFor(() => {
@@ -224,6 +228,15 @@ describe('Dashboards > Detail', function () {
           location: LocationFixture(),
         },
       });
+      PageFiltersStore.init();
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [],
+          environments: [],
+          datetime: {start: null, end: null, period: '14d', utc: null},
+        },
+        new Set()
+      );
       widgets = [
         WidgetFixture({
           queries: [
@@ -312,6 +325,7 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
           filters: {},
+          createdBy: UserFixture({id: '1'}),
         }),
       });
       mockPut = MockApiClient.addMockResponse({
@@ -389,7 +403,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       await waitFor(() => expect(mockVisit).toHaveBeenCalledTimes(1));
@@ -398,8 +412,12 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
 
       // Remove the second and third widgets
-      await userEvent.click(screen.getAllByRole('button', {name: 'Delete Widget'})[1]);
-      await userEvent.click(screen.getAllByRole('button', {name: 'Delete Widget'})[1]);
+      await userEvent.click(
+        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]
+      );
+      await userEvent.click(
+        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]
+      );
 
       // Save changes
       await userEvent.click(screen.getByRole('button', {name: 'Save and Finish'}));
@@ -445,7 +463,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       await waitFor(() =>
@@ -453,7 +471,8 @@ describe('Dashboards > Detail', function () {
           '/organizations/org-slug/events-stats/',
           expect.objectContaining({
             query: expect.objectContaining({
-              query: 'event.type:transaction transaction:/api/cats release:"abc@1.2.0" ',
+              query:
+                '(event.type:transaction transaction:/api/cats) release:"abc@1.2.0" ',
             }),
           })
         )
@@ -473,12 +492,88 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       // Enter edit mode.
       await userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
       expect(await screen.findByRole('button', {name: 'Add widget'})).toBeInTheDocument();
+    });
+
+    it('shows add widget option with dataset selector flag', async function () {
+      initialData = initializeOrg({
+        organization: OrganizationFixture({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'custom-metrics',
+            'performance-discover-dataset-selector',
+          ],
+        }),
+      });
+      render(
+        <OrganizationContext.Provider value={initialData.organization}>
+          <ViewEditDashboard
+            {...RouteComponentPropsFixture()}
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          >
+            {null}
+          </ViewEditDashboard>
+        </OrganizationContext.Provider>,
+        {router: initialData.router}
+      );
+
+      await userEvent.click(screen.getAllByText('Add Widget')[0]);
+      const menuOptions = await screen.findAllByTestId('menu-list-item-label');
+      expect(menuOptions.map(e => e.textContent)).toEqual([
+        'Errors',
+        'Transactions',
+        'Issues',
+        'Releases',
+        'Metrics',
+      ]);
+    });
+
+    it('shows add widget option without dataset selector flag', async function () {
+      initialData = initializeOrg({
+        organization: OrganizationFixture({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'custom-metrics',
+          ],
+        }),
+      });
+      render(
+        <OrganizationContext.Provider value={initialData.organization}>
+          <ViewEditDashboard
+            {...RouteComponentPropsFixture()}
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          >
+            {null}
+          </ViewEditDashboard>
+        </OrganizationContext.Provider>,
+        {router: initialData.router}
+      );
+
+      await userEvent.click(screen.getAllByText('Add Widget')[0]);
+      const menuOptions = await screen.findAllByTestId('menu-list-item-label');
+      expect(menuOptions.map(e => e.textContent)).toEqual([
+        'Errors and Transactions',
+        'Issues',
+        'Releases',
+        'Metrics',
+      ]);
     });
 
     it('shows top level release filter', async function () {
@@ -495,7 +590,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-query',
           ],
-          projects: [ProjectFixture()],
         }),
       });
 
@@ -511,10 +605,10 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
-      expect(mockReleases).toHaveBeenCalledTimes(1);
+      expect(mockReleases).toHaveBeenCalledTimes(2); // Called once when PageFiltersStore is initialized
     });
 
     it('hides add widget option', async function () {
@@ -533,7 +627,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       // Enter edit mode.
@@ -593,7 +687,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       expect(await screen.findByText('First Widget')).toBeInTheDocument();
@@ -636,7 +730,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
@@ -682,13 +776,13 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
-      const widget = screen
-        .getByText('First Widget')
-        .closest('.react-grid-item') as HTMLElement;
+      const widget = (await screen.findByText('First Widget')).closest(
+        '.react-grid-item'
+      ) as HTMLElement;
       const resizeHandle = within(widget).getByTestId('custom-resize-handle');
 
       expect(resizeHandle).toBeVisible();
@@ -730,7 +824,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
@@ -772,7 +866,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await waitFor(() => {
@@ -802,7 +896,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
@@ -841,7 +935,7 @@ describe('Dashboards > Detail', function () {
           {null}
         </CreateDashboard>,
         {
-          context: initialData.routerContext,
+          router: initialData.router,
           organization: initialData.organization,
         }
       );
@@ -884,7 +978,7 @@ describe('Dashboards > Detail', function () {
           {null}
         </CreateDashboard>,
         {
-          context: initialData.routerContext,
+          router: initialData.router,
           organization: initialData.organization,
         }
       );
@@ -923,7 +1017,7 @@ describe('Dashboards > Detail', function () {
           {null}
         </CreateDashboard>,
         {
-          context: initialData.routerContext,
+          router: initialData.router,
           organization: initialData.organization,
         }
       );
@@ -955,7 +1049,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await waitFor(() => {
@@ -990,7 +1084,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await waitFor(() => {
@@ -1041,7 +1135,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await userEvent.click(await screen.findByText('Save'));
@@ -1104,7 +1198,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await screen.findByText('7D');
@@ -1155,7 +1249,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await userEvent.click(await screen.findByText('Save'));
@@ -1211,7 +1305,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await screen.findByText('7D');
@@ -1273,7 +1367,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
@@ -1330,7 +1424,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await waitFor(() => expect(screen.queryAllByText('Loading\u2026')).toEqual([]));
@@ -1378,7 +1472,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await screen.findByText(/not-selected-1/);
@@ -1425,7 +1519,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await screen.findByText(/not-selected-1/);
@@ -1479,7 +1573,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await userEvent.click(await screen.findByText('All Releases'));
@@ -1544,7 +1638,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await userEvent.click(await screen.findByText('All Releases'));
@@ -1554,6 +1648,258 @@ describe('Dashboards > Detail', function () {
       // Validate that after search is cleared, search result still appears
       expect(await screen.findByText('Latest Release(s)')).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'search-result'})).toBeInTheDocument();
+    });
+
+    it('renders edit access selector', async function () {
+      render(
+        <EditAccessSelector
+          dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
+          onChangeEditAccess={jest.fn()}
+        />,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access'],
+            ...initialData.organization,
+          },
+        }
+      );
+
+      await userEvent.click(await screen.findByText('Edit Access:'));
+      expect(screen.getByText('Creator')).toBeInTheDocument();
+      expect(screen.getByText('Everyone')).toBeInTheDocument();
+    });
+
+    it('creates and updates new permissions for dashboard with no edit perms initialized', async function () {
+      const mockPUT = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors'}),
+      });
+
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          }}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          },
+        }
+      );
+      await userEvent.click(await screen.findByText('Edit Access:'));
+
+      // deselects 'Everyone' so only creator has edit access
+      expect(await screen.findByText('Everyone')).toBeEnabled();
+      expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Everyone'}));
+      expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+
+      // clicks out of dropdown to trigger onClose()
+      await userEvent.click(await screen.findByText('Edit Access:'));
+
+      await waitFor(() => {
+        expect(mockPUT).toHaveBeenCalledTimes(1);
+        expect(mockPUT).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/',
+          expect.objectContaining({
+            data: expect.objectContaining({
+              permissions: {isCreatorOnlyEditable: true},
+            }),
+          })
+        );
+      });
+    });
+
+    it('creator can update permissions for dashboard', async function () {
+      const mockPUT = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors'}),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          createdBy: UserFixture({id: '781629'}),
+          permissions: {isCreatorOnlyEditable: true},
+        }),
+      });
+
+      const currentUser = UserFixture({id: '781629'});
+      ConfigStore.set('user', currentUser);
+
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          }}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          },
+        }
+      );
+      await userEvent.click(await screen.findByText('Edit Access:'));
+
+      // selects 'Everyone' so everyone has edit access
+      expect(await screen.findByText('Everyone')).toBeEnabled();
+      expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Everyone'}));
+      expect(await screen.findByRole('option', {name: 'Everyone'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+
+      // clicks out of dropdown to trigger onClose()
+      await userEvent.click(await screen.findByText('Edit Access:'));
+
+      await waitFor(() => {
+        expect(mockPUT).toHaveBeenCalledTimes(1);
+        expect(mockPUT).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/',
+          expect.objectContaining({
+            data: expect.objectContaining({
+              permissions: {isCreatorOnlyEditable: false},
+            }),
+          })
+        );
+      });
+    });
+
+    it('disables edit dashboard and add widget button if user cannot edit dashboard', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [
+          DashboardFixture([], {
+            id: '1',
+            title: 'Custom Errors',
+            createdBy: UserFixture({id: '238900'}),
+            permissions: {isCreatorOnlyEditable: true},
+          }),
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          createdBy: UserFixture({id: '238900'}),
+          permissions: {isCreatorOnlyEditable: true},
+        }),
+      });
+
+      const currentUser = UserFixture({id: '781629'});
+      ConfigStore.set('user', currentUser);
+
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          }}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          },
+        }
+      );
+
+      await screen.findByText('Edit Access:');
+      expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+    });
+
+    describe('discover split', function () {
+      it('calls the dashboard callbacks with the correct widgetType for discover split', function () {
+        const widget = {
+          displayType: types.DisplayType.TABLE,
+          interval: '1d',
+          queries: [
+            {
+              name: 'Test Widget',
+              fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+              columns: ['project'],
+              aggregates: ['count()', 'count_unique(user)', 'epm()'],
+              conditions: '',
+              orderby: '',
+            },
+          ],
+          title: 'Transactions',
+          id: '1',
+          widgetType: types.WidgetType.DISCOVER,
+        };
+        const mockDashboard = DashboardFixture([widget], {
+          id: '1',
+          title: 'Custom Errors',
+        });
+        const mockModifiedDashboard = DashboardFixture([widget], {
+          id: '1',
+          title: 'Custom Errors',
+        });
+
+        const mockOnDashboardUpdate = jest.fn();
+        const mockStateSetter = jest
+          .fn()
+          .mockImplementation(fn => fn({modifiedDashboard: mockModifiedDashboard}));
+
+        handleUpdateDashboardSplit({
+          widgetId: '1',
+          splitDecision: types.WidgetType.ERRORS,
+          dashboard: mockDashboard,
+          modifiedDashboard: mockModifiedDashboard,
+          onDashboardUpdate: mockOnDashboardUpdate,
+          stateSetter: mockStateSetter,
+        });
+
+        expect(mockOnDashboardUpdate).toHaveBeenCalledWith({
+          ...mockDashboard,
+          widgets: [{...widget, widgetType: types.WidgetType.ERRORS}],
+        });
+        expect(mockStateSetter).toHaveReturnedWith({
+          modifiedDashboard: {
+            ...mockModifiedDashboard,
+            widgets: [{...widget, widgetType: types.WidgetType.ERRORS}],
+          },
+        });
+      });
     });
   });
 });

@@ -4,19 +4,19 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.users.api.bases.user import UserEndpoint
+from sentry.users.services.user.service import user_service
 
 
 @control_silo_endpoint
 class UserOrganizationIntegrationsEndpoint(UserEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, user) -> Response:

@@ -2,7 +2,7 @@ import {doEventsRequest} from 'sentry/actionCreators/events';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {t} from 'sentry/locale';
-import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types';
+import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 
 export class OnDemandMetricRequest extends EventsRequest {
   fetchExtrapolatedData = async (): Promise<EventsStats> => {

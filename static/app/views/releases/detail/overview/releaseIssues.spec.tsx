@@ -11,10 +11,10 @@ import ReleaseIssues from 'sentry/views/releases/detail/overview/releaseIssues';
 import {getReleaseBounds} from 'sentry/views/releases/utils';
 
 describe('ReleaseIssues', function () {
-  let newIssuesEndpoint,
-    resolvedIssuesEndpoint,
-    unhandledIssuesEndpoint,
-    allIssuesEndpoint;
+  let newIssuesEndpoint: jest.Mock;
+  let resolvedIssuesEndpoint: jest.Mock;
+  let unhandledIssuesEndpoint: jest.Mock;
+  let allIssuesEndpoint: jest.Mock;
 
   const props = {
     orgId: 'org',
@@ -114,9 +114,9 @@ describe('ReleaseIssues', function () {
   });
 
   it('can switch issue filters', async function () {
-    const {routerContext} = initializeOrg();
+    const {router} = initializeOrg();
 
-    const {rerender} = render(<ReleaseIssues {...props} />, {context: routerContext});
+    const {rerender} = render(<ReleaseIssues {...props} />, {router});
 
     // New
     expect(await screen.findByRole('radio', {name: 'New Issues 0'})).toBeChecked();
@@ -163,7 +163,7 @@ describe('ReleaseIssues', function () {
         location={LocationFixture({query: {issuesType: 'all'}})}
       />
     );
-    expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
@@ -176,9 +176,9 @@ describe('ReleaseIssues', function () {
       body: [GroupFixture({id: '123'})],
     });
 
-    const {routerContext} = initializeOrg();
+    const {router} = initializeOrg();
 
-    render(<ReleaseIssues {...props} />, {context: routerContext});
+    render(<ReleaseIssues {...props} />, {router});
 
     await userEvent.click(screen.getByRole('radio', {name: /New Issues/}));
 

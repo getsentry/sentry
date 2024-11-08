@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
@@ -13,8 +12,9 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 

@@ -1,15 +1,14 @@
 import pytest
 from django.test import override_settings
 
-from sentry.models.organizationmember import OrganizationMember
-from sentry.services.hybrid_cloud.region import (
+from sentry.hybridcloud.rpc.resolvers import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
-    ByOrganizationObject,
     ByOrganizationSlug,
     RequireSingleOrganization,
 )
-from sentry.silo import SiloMode
+from sentry.models.organizationmember import OrganizationMember
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -23,29 +22,23 @@ _TEST_REGIONS = (
 
 @control_silo_test(regions=_TEST_REGIONS)
 class RegionResolutionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.target_region = _TEST_REGIONS[0]
         self.organization = self.create_organization(region=self.target_region)
 
-    def test_by_organization_object(self):
-        region_resolution = ByOrganizationObject()
-        arguments = {"organization": self.organization}
-        actual_region = region_resolution.resolve(arguments)
-        assert actual_region == self.target_region
-
-    def test_by_organization_id(self):
+    def test_by_organization_id(self) -> None:
         region_resolution = ByOrganizationId()
         arguments = {"organization_id": self.organization.id}
         actual_region = region_resolution.resolve(arguments)
         assert actual_region == self.target_region
 
-    def test_by_organization_slug(self):
+    def test_by_organization_slug(self) -> None:
         region_resolution = ByOrganizationSlug()
         arguments = {"slug": self.organization.slug}
         actual_region = region_resolution.resolve(arguments)
         assert actual_region == self.target_region
 
-    def test_by_organization_id_attribute(self):
+    def test_by_organization_id_attribute(self) -> None:
         region_resolution = ByOrganizationIdAttribute("organization_member")
         with assume_test_silo_mode(SiloMode.REGION):
             org_member = OrganizationMember.objects.create(
@@ -56,17 +49,19 @@ class RegionResolutionTest(TestCase):
         actual_region = region_resolution.resolve(arguments)
         assert actual_region == self.target_region
 
-    def test_require_single_organization(self):
+    def test_require_single_organization(self) -> None:
         region_resolution = RequireSingleOrganization()
 
-        with override_regions([self.target_region]), override_settings(
-            SENTRY_SINGLE_ORGANIZATION=True
+        with (
+            override_regions([self.target_region]),
+            override_settings(SENTRY_SINGLE_ORGANIZATION=True),
         ):
             actual_region = region_resolution.resolve({})
             assert actual_region == self.target_region
 
-        with override_regions([self.target_region]), override_settings(
-            SENTRY_SINGLE_ORGANIZATION=False
+        with (
+            override_regions([self.target_region]),
+            override_settings(SENTRY_SINGLE_ORGANIZATION=False),
         ):
             with pytest.raises(RegionResolutionError):
                 region_resolution.resolve({})

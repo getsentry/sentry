@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -32,7 +34,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     type = DetectorType.CONSECUTIVE_HTTP_OP
     settings_key = DetectorType.CONSECUTIVE_HTTP_OP
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems: dict[str, PerformanceProblem] = {}
         self.consecutive_http_spans: list[Span] = []
         self.lcp = None
@@ -64,7 +68,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     def _add_problem_span(self, span: Span) -> None:
         self.consecutive_http_spans.append(span)
 
-    def _validate_and_store_performance_problem(self):
+    def _validate_and_store_performance_problem(self) -> None:
         exceeds_count_threshold = len(self.consecutive_http_spans) >= self.settings.get(
             "consecutive_count_threshold"
         )

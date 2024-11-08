@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Link from 'sentry/components/links/link';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -9,7 +9,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t, tn} from 'sentry/locale';
-import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types';
+import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types/release';
 import useOrganization from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
@@ -64,10 +64,10 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
               <Link
                 to={
                   isArtifactBundle
-                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/artifact-bundles/?query=${encodeURIComponent(
+                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/?query=${encodeURIComponent(
                         version
                       )}`
-                    : `/settings/${orgSlug}/projects/${projectSlug}/source-maps/release-bundles/${encodeURIComponent(
+                    : `/settings/${orgSlug}/projects/${projectSlug}/source-maps/${encodeURIComponent(
                         version
                       )}/`
                 }

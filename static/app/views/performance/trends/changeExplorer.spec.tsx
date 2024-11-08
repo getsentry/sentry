@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -287,8 +287,8 @@ const functionResults: EventsResultsDataRow<FunctionsField>[] = [
 ];
 
 describe('Performance > Trends > Performance Change Explorer', function () {
-  let eventsMockBefore;
-  let spansMock;
+  let eventsMockBefore: jest.Mock;
+  let spansMock: jest.Mock;
   beforeEach(function () {
     eventsMockBefore = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -363,7 +363,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
         location={data.location}
       />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );

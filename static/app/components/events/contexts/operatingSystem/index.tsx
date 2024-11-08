@@ -1,50 +1,57 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {
+  getContextMeta,
+  getKnownData,
+  getKnownStructuredData,
+  getUnknownData,
+} from '../utils';
 
 import {getOperatingSystemKnownDataDetails} from './getOperatingSystemKnownDataDetails';
 import type {OperatingSystemKnownData} from './types';
-import {OperatingSystemIgnoredDataType, OperatingSystemKnownDataType} from './types';
+import {OperatingSystemKnownDataType} from './types';
 
 type Props = {
   data: OperatingSystemKnownData;
   event: Event;
+  meta?: Record<string, any>;
 };
 
-export const operatingSystemKnownDataValues = [
-  OperatingSystemKnownDataType.NAME,
-  OperatingSystemKnownDataType.VERSION,
-  OperatingSystemKnownDataType.KERNEL_VERSION,
-  OperatingSystemKnownDataType.ROOTED,
-];
+export function getKnownOperatingSystemContextData({
+  data,
+  meta,
+}: Pick<Props, 'data' | 'meta'>) {
+  return getKnownData<OperatingSystemKnownData, OperatingSystemKnownDataType>({
+    data,
+    meta,
+    knownDataTypes: Object.values(OperatingSystemKnownDataType),
+    onGetKnownDataDetails: v => getOperatingSystemKnownDataDetails(v),
+  });
+}
 
-const operatingSystemIgnoredDataValues = [OperatingSystemIgnoredDataType.BUILD];
+export function getUnknownOperatingSystemContextData({
+  data,
+  meta,
+}: Pick<Props, 'data' | 'meta'>) {
+  return getUnknownData({
+    allData: data,
+    knownKeys: Object.values(OperatingSystemKnownDataType),
+    meta,
+  });
+}
 
-export function OperatingSystemEventContext({data, event}: Props) {
-  const meta = event._meta?.contexts?.os ?? {};
+export function OperatingSystemEventContext({data, event, meta: propsMeta}: Props) {
+  const meta = propsMeta ?? getContextMeta(event, 'os');
+  const knownData = getKnownOperatingSystemContextData({data, meta});
+  const knownStructuredData = getKnownStructuredData(knownData, meta);
+  const unknownData = getUnknownOperatingSystemContextData({data, meta});
   return (
     <Fragment>
-      <ContextBlock
-        data={getKnownData<OperatingSystemKnownData, OperatingSystemKnownDataType>({
-          data,
-          meta,
-          knownDataTypes: operatingSystemKnownDataValues,
-          onGetKnownDataDetails: v => getOperatingSystemKnownDataDetails(v),
-        })}
-      />
-      <ContextBlock
-        data={getUnknownData({
-          allData: data,
-          knownKeys: [
-            ...operatingSystemKnownDataValues,
-            ...operatingSystemIgnoredDataValues,
-          ],
-          meta,
-        })}
-      />
+      <ContextBlock data={knownStructuredData} />
+      <ContextBlock data={unknownData} />
     </Fragment>
   );
 }

@@ -2,22 +2,20 @@ from typing import Protocol
 
 from snuba_sdk import Column
 
-from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
+from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.builder.discover import TimeseriesQueryBuilder
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.types import SnubaParams
 
 
 class ProfilesQueryBuilderProtocol(Protocol):
     @property
-    def config(self) -> ProfilesDatasetConfig:
-        ...
+    def config(self) -> ProfilesDatasetConfig: ...
 
     @property
-    def params(self) -> SnubaParams:
-        ...
+    def params(self) -> SnubaParams: ...
 
-    def column(self, name: str) -> Column:
-        ...
+    def column(self, name: str) -> Column: ...
 
 
 class ProfilesQueryBuilderMixin:
@@ -35,9 +33,9 @@ class ProfilesQueryBuilderMixin:
         return resolved
 
 
-class ProfilesQueryBuilder(ProfilesQueryBuilderMixin, QueryBuilder):
-    pass
+class ProfilesQueryBuilder(ProfilesQueryBuilderMixin, BaseQueryBuilder):
+    config_class = ProfilesDatasetConfig
 
 
 class ProfilesTimeseriesQueryBuilder(ProfilesQueryBuilderMixin, TimeseriesQueryBuilder):
-    pass
+    config_class = ProfilesDatasetConfig

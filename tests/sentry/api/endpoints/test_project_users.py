@@ -4,12 +4,9 @@ from unittest import mock
 from django.utils import timezone
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.eventuser import EventUser
 
 
-@region_silo_test
 class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-project-users"
     method = "get"
@@ -20,7 +17,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
             organization=self.organization, date_added=(timezone.now() - timedelta(hours=2))
         )
 
-        timestamp = iso_format(timezone.now() - timedelta(hours=1))
+        timestamp = (timezone.now() - timedelta(hours=1)).isoformat()
         self.event1 = self.store_event(
             project_id=self.project.id,
             data={

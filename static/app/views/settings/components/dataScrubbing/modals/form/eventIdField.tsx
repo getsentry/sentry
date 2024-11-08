@@ -148,7 +148,7 @@ export default EventIdField;
 
 const StyledInput = styled(Input)`
   flex: 1;
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   input {
     padding-right: ${space(1.5)};
   }

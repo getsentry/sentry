@@ -1,5 +1,8 @@
+import {Fragment} from 'react';
+
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import tracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -9,15 +12,22 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
+  getProfilingDocumentHeaderConfigurationStep,
+  MaybeBrowserProfilingBetaWarning,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
+import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
 export enum VueVersion {
@@ -48,22 +58,28 @@ type Params = DocsParams<PlatformOptions>;
 
 const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   return `Sentry.init({
-    ${siblingOption === VueVersion.VUE2 ? `Vue,` : ''}dsn: "${params.dsn}",
+    ${siblingOption === VueVersion.VUE2 ? 'Vue,' : 'app,'}
+    dsn: "${params.dsn.public}",
     integrations: [${
       params.isPerformanceSelected
         ? `
-          Sentry.browserTracingIntegration(),`
+          Sentry.browserTracingIntegration({ router }),`
         : ''
     }${
       params.isReplaySelected
         ? `
           Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
         : ''
+    }${
+      params.isProfilingSelected
+        ? `
+          Sentry.browserProfilingIntegration(),`
+        : ''
     }
   ],${
     params.isPerformanceSelected
       ? `
-        // Performance Monitoring
+        // Tracing
         tracesSampleRate: 1.0, //  Capture 100% of the transactions
         // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
         tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
@@ -74,6 +90,12 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
         // Session Replay
         replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
         replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
+      : ''
+  }${
+    params.isProfilingSelected
+      ? `
+        // Profiling
+        profilesSampleRate: 1.0, // Profile 100% of the transactions. This value is relative to tracesSampleRate`
       : ''
   }
   });`;
@@ -99,41 +121,26 @@ const getInstallConfig = () => [
   },
 ];
 
-const getNextStep = (
-  params: Params
-): {
-  description: string;
-  id: string;
-  link: string;
-  name: string;
-}[] => {
-  let nextStepDocs = [...nextSteps];
-
-  if (params.isPerformanceSelected) {
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.PERFORMANCE_MONITORING
-    );
-  }
-
-  if (params.isReplaySelected) {
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.SESSION_REPLAY
-    );
-  }
-  return nextStepDocs;
-};
-
 const onboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+          strong: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
       description: (
         <p>
           {tct(
-            `Install the Sentry Capacitor SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry Vue SDK:`,
+            `Install the Sentry Vue SDK as a dependency using [code:npm] or [code:yarn], alongside the Sentry Vue SDK:`,
             {
-              codeYarn: <code />,
-              codeNpm: <code />,
+              code: <code />,
             }
           )}
         </p>
@@ -144,8 +151,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
+      description: tct(
+        "Initialize Sentry as early as possible in your application's lifecycle, usually your Vue app's entry point ([code:main.ts/js]).",
+        {code: <code />}
       ),
       configurations: getSetupConfiguration(params),
     },
@@ -168,39 +176,23 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  nextSteps: params => getNextStep(params),
+  nextSteps: () => [
+    {
+      id: 'vue-features',
+      name: t('Vue Features'),
+      description: t('Learn about our first class integration with the Vue framework.'),
+      link: 'https://docs.sentry.io/platforms/javascript/guides/vue/features/',
+    },
+  ],
 };
-
-export const nextSteps = [
-  {
-    id: 'vue-features',
-    name: t('Vue Features'),
-    description: t('Learn about our first class integration with the Vue framework.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/features/',
-  },
-  {
-    id: 'performance-monitoring',
-    name: t('Performance Monitoring'),
-    description: t(
-      'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/performance/',
-  },
-  {
-    id: 'session-replay',
-    name: t('Session Replay'),
-    description: t(
-      'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
-  },
-];
 
 function getSiblingImportsSetupConfiguration(siblingOption: string): string {
   switch (siblingOption) {
     case VueVersion.VUE3:
       return `import {createApp} from "vue";
-          import {createRouter} from "vue-router";`;
+          import {createRouter} from "vue-router";
+          import router from "./router";
+          `;
     case VueVersion.VUE2:
     default:
       return `import Vue from "vue";
@@ -227,9 +219,6 @@ function getVueConstSetup(siblingOption: string): string {
     case VueVersion.VUE3:
       return `
           const app = createApp({
-            // ...
-          });
-          const router = createRouter({
             // ...
           });
           `;
@@ -259,6 +248,9 @@ function getSetupConfiguration(params: Params) {
 
           ${getSiblingSuffix(siblingOption)}`,
     },
+    ...(params.isProfilingSelected
+      ? [getProfilingDocumentHeaderConfigurationStep()]
+      : []),
   ];
 
   return configuration;
@@ -284,10 +276,10 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
         link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
       }),
       configurations: getSetupConfiguration(params),
-      additionalInfo: tracePropagationMessage,
+      additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
@@ -308,7 +300,10 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.CONFIGURE,
       description: getFeedbackConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/',
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/#bring-your-own-button',
       }),
       configurations: [
         {
@@ -319,7 +314,8 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/vue";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
+                feedbackOptions: params.feedbackOptions,
               }),
             },
           ],
@@ -334,12 +330,37 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
+const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/configuration/#crash-report-modal',
+      }),
+      additionalInfo: widgetCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/user-feedback/#user-feedback-widget',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
+const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
+  ...onboarding,
+  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+  crashReportOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;

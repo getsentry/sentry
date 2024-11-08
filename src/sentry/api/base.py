@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import functools
 import logging
 import time
@@ -8,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import quote as urlquote
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
@@ -22,17 +24,20 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, features, options, tsdb
+from sentry import analytics, options, tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.exceptions import StaffRequired, SuperuserRequired
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
+from sentry.auth.staff import has_staff_option
+from sentry.middleware import is_frontend_request
 from sentry.models.environment import Environment
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
+from sentry.snuba.query_sources import QuerySource
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -44,7 +49,6 @@ from sentry.utils.http import (
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
-from ..services.hybrid_cloud import rpcmetrics
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
     clamp_pagination_per_page,
@@ -55,15 +59,15 @@ from .authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
+    update_token_access_record,
 )
-from .paginator import BadPaginationError, Paginator
+from .paginator import BadPaginationError, MissingPaginationError, Paginator
 from .permissions import (
     NoPermission,
     StaffPermission,
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
 )
-from .utils import generate_organization_url
 
 __all__ = [
     "Endpoint",
@@ -128,6 +132,20 @@ def apply_cors_headers(
     if allowed_methods is None:
         allowed_methods = []
     allow = ", ".join(allowed_methods)
+    if not allow or "*" in allow:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_level("warning")
+            scope.set_context(
+                "cors_headers",
+                {
+                    "url": request.path,
+                    "method": request.method,
+                    "origin": request.META.get("HTTP_ORIGIN", ""),
+                    "allow": allow,
+                },
+            )
+            sentry_sdk.capture_message("api.cors.no_methods")
+
     response["Allow"] = allow
     response["Access-Control-Allow-Methods"] = allow
     response["Access-Control-Allow-Headers"] = (
@@ -136,7 +154,7 @@ def apply_cors_headers(
         "sentry-trace, baggage, X-CSRFToken"
     )
     response["Access-Control-Expose-Headers"] = (
-        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, " "Endpoint, Retry-After, Link"
+        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
     )
 
     if request.META.get("HTTP_ORIGIN") == "null":
@@ -164,6 +182,38 @@ def apply_cors_headers(
     return response
 
 
+class BaseEndpointMixin(abc.ABC):
+    """
+    Inherit from this class when adding mixin classes that call `Endpoint` methods. This allows typing to
+    work correctly
+    """
+
+    @abc.abstractmethod
+    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def respond(self, context: object | None = None, **kwargs: Any) -> Response:
+        pass
+
+    @abc.abstractmethod
+    def paginate(
+        self,
+        request,
+        on_results=None,
+        paginator=None,
+        paginator_cls=Paginator,
+        default_per_page: int | None = None,
+        max_per_page: int | None = None,
+        cursor_cls=Cursor,
+        response_cls=Response,
+        response_kwargs=None,
+        count_hits=None,
+        **paginator_kwargs,
+    ):
+        pass
+
+
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
     authentication_classes: tuple[type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
@@ -173,10 +223,13 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
-    rate_limits: RateLimitConfig | dict[
-        str, dict[RateLimitCategory, RateLimit]
-    ] = DEFAULT_RATE_LIMIT_CONFIG
+    rate_limits: (
+        RateLimitConfig
+        | dict[str, dict[RateLimitCategory, RateLimit]]
+        | Callable[..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]]
+    ) = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
+    snuba_methods: list[HTTP_METHOD_NAME] = []
 
     def build_link_header(self, request: Request, path: str, rel: str):
         # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`
@@ -222,9 +275,7 @@ class Endpoint(APIView):
         permissions = self.get_permissions()
         if request.user.is_authenticated and len(permissions) == 1:
             permission_cls = permissions[0]
-            enforce_staff_permission = features.has(
-                "auth:enterprise-staff-cookie", actor=request.user
-            )
+            enforce_staff_permission = has_staff_option(request.user)
 
             # TODO(schew2381): Remove SuperuserOrStaffFeatureFlaggedPermission
             # from isinstance checks once feature flag is removed.
@@ -310,8 +361,8 @@ class Endpoint(APIView):
             return
 
         try:
-            request.json_body = json.loads(request.body)
-        except json.JSONDecodeError:
+            request.json_body = orjson.loads(request.body)
+        except orjson.JSONDecodeError:
             return
 
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
@@ -332,6 +383,10 @@ class Endpoint(APIView):
                 rv.user = orig_user
         return rv
 
+    def has_pagination(self, response: Response) -> bool:
+        # If response is paginated, it will have a "Link" header
+        return response.headers.get("Link") is not None
+
     @csrf_exempt
     @allow_cors_options
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
@@ -339,7 +394,7 @@ class Endpoint(APIView):
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
         """
-        with sentry_sdk.start_span(op="base.dispatch.setup", description=type(self).__name__):
+        with sentry_sdk.start_span(op="base.dispatch.setup", name=type(self).__name__):
             self.args = args
             self.kwargs = kwargs
             request = self.initialize_request(request, *args, **kwargs)
@@ -360,7 +415,7 @@ class Endpoint(APIView):
             origin = None
 
         try:
-            with sentry_sdk.start_span(op="base.dispatch.request", description=type(self).__name__):
+            with sentry_sdk.start_span(op="base.dispatch.request", name=type(self).__name__):
                 if origin:
                     if request.auth:
                         allowed_origins = request.auth.get_allowed_origins()
@@ -370,6 +425,9 @@ class Endpoint(APIView):
                         response = Response(f"Invalid origin: {origin}", status=400)
                         self.response = self.finalize_response(request, response, *args, **kwargs)
                         return self.response
+
+                if request.auth:
+                    update_token_access_record(request.auth)
 
                 self.initial(request, *args, **kwargs)
 
@@ -391,12 +449,11 @@ class Endpoint(APIView):
 
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
-                description=".".join(
+                name=".".join(
                     getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
                 ),
             ) as span:
-                with rpcmetrics.wrap_sdk_span(span):
-                    response = handler(request, *args, **kwargs)
+                response = handler(request, *args, **kwargs)
 
         except Exception as exc:
             response = self.handle_exception(request, exc)
@@ -412,11 +469,29 @@ class Endpoint(APIView):
             if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
                 with sentry_sdk.start_span(
                     op="base.dispatch.sleep",
-                    description=type(self).__name__,
+                    name=type(self).__name__,
                 ) as span:
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
+        # Only enforced in dev environment
+        if settings.ENFORCE_PAGINATION:
+            if request.method.lower() == "get":
+                status = getattr(self.response, "status_code", 0)
+                # Response can either be Response or HttpResponse, check if
+                # it's value is an array and that it was an OK response
+                if (
+                    200 <= status < 300
+                    and hasattr(self.response, "data")
+                    and isinstance(self.response.data, list)
+                ):
+                    # if not paginated and not in  settings.SENTRY_API_PAGINATION_ALLOWLIST, raise error
+                    if (
+                        handler.__self__.__class__.__name__
+                        not in settings.SENTRY_API_PAGINATION_ALLOWLIST
+                        and not self.has_pagination(self.response)
+                    ):
+                        raise MissingPaginationError(handler.__func__.__qualname__)
         return self.response
 
     def add_cors_headers(self, request: Request, response):
@@ -481,7 +556,7 @@ class Endpoint(APIView):
             cursor = self.get_cursor_from_request(request, cursor_cls)
             with sentry_sdk.start_span(
                 op="base.paginate.get_result",
-                description=type(self).__name__,
+                name=type(self).__name__,
             ) as span:
                 annotate_span_with_pagination_args(span, per_page)
                 paginator = get_paginator(paginator, paginator_cls, paginator_kwargs)
@@ -501,7 +576,7 @@ class Endpoint(APIView):
         if on_results:
             with sentry_sdk.start_span(
                 op="base.paginate.on_results",
-                description=type(self).__name__,
+                name=type(self).__name__,
             ):
                 results = on_results(cursor_result.results)
         else:
@@ -510,6 +585,15 @@ class Endpoint(APIView):
         response = response_cls(results, **response_kwargs)
         self.add_cursor_headers(request, response, cursor_result)
         return response
+
+    def get_request_source(self, request: Request) -> QuerySource:
+        """
+        This is an estimate of query source. Treat it more like a good guess and
+        don't write logic that depends on it. Used for monitoring only atm.
+        """
+        if is_frontend_request(request):
+            return QuerySource.FRONTEND
+        return QuerySource.API
 
 
 class EnvironmentMixin:
@@ -558,11 +642,13 @@ class StatsMixin:
         rollups that may put strain on the system.
         """
         try:
-            resolution = request.GET.get("resolution")
-            if resolution:
-                resolution = self._parse_resolution(resolution)
+            resolution_s = request.GET.get("resolution")
+            if resolution_s:
+                resolution = self._parse_resolution(resolution_s)
                 if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
+            else:
+                resolution = None
         except ValueError:
             raise ParseError(detail="Invalid resolution")
 
@@ -597,7 +683,7 @@ class StatsMixin:
             "environment_ids": environment_id and [environment_id],
         }
 
-    def _parse_resolution(self, value):
+    def _parse_resolution(self, value: str) -> int:
         if value.endswith("h"):
             return int(value[:-1]) * ONE_HOUR
         elif value.endswith("d"):

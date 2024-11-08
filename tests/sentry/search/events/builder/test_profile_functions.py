@@ -49,6 +49,7 @@ def params(now, today):
             'package:""',
             Condition(Column("package"), Op("="), ""),
             id="empty package",
+            marks=pytest.mark.querybuilder,
         ),
         pytest.param(
             '!package:""',

@@ -9,6 +9,10 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportApiIntroduction,
+  getCrashReportInstallDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -110,10 +114,10 @@ const getConfigureSnippet = (params: Params) => `
 import io.sentry.Sentry
 
 Sentry.init { options ->
-  options.dsn = "${params.dsn}"${
+  options.dsn = "${params.dsn.public}"${
     params.isPerformanceSelected
       ? `
-  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+  // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
   // We recommend adjusting this value in production.
   options.tracesSampleRate = 1.0`
       : ''
@@ -135,7 +139,7 @@ try {
 const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
-      "Sentry supports Kotlin for both JVM and Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong2:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
+      "Sentry supports Kotlin for both JVM and Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
       {
         gettingStartedWithAndroidLink: (
           <ExternalLink href="https://docs.sentry.io/platforms/android/" />
@@ -144,7 +148,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           <ExternalLink href="https://docs.sentry.io/platforms/java/" />
         ),
         strong: <strong />,
-        strong2: <strong />,
       }
     ),
   install: params => [
@@ -260,19 +263,48 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: t('Check out our sample applications.'),
       link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
     },
+  ],
+};
+
+const feedbackOnboardingCrashApi: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
     {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
-      ),
-      link: 'https://docs.sentry.io/platforms/java/performance/',
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Kotlin',
+              value: 'kotlin',
+              language: 'kotlin',
+              code: `import io.sentry.kotlin.multiplatform.Sentry
+import io.sentry.kotlin.multiplatform.protocol.UserFeedback
+
+val sentryId = Sentry.captureMessage("My message")
+
+val userFeedback = UserFeedback(sentryId).apply {
+  comments = "It broke."
+  email = "john.doe@example.com"
+  name = "John Doe"
+}
+Sentry.captureUserFeedback(userFeedback)`,
+            },
+          ],
+        },
+      ],
     },
   ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
 };
 
 const docs: Docs<PlatformOptions> = {
   platformOptions,
+  feedbackOnboardingCrashApi,
+  crashReportOnboarding: feedbackOnboardingCrashApi,
   onboarding,
 };
 

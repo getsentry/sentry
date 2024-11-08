@@ -25,7 +25,8 @@ from django.views.generic import View
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
+from sentry.api.exceptions import DataSecrecyError
+from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
@@ -33,16 +34,16 @@ from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationSummary,
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloLimit
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.region import subdomain_is_region
+from sentry.users.services.user.service import user_service
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import construct_link_with_query, is_valid_redirect
@@ -124,8 +125,7 @@ class _HasRespond(Protocol):
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200
-    ) -> HttpResponseBase:
-        ...
+    ) -> HttpResponseBase: ...
 
 
 class OrganizationMixin:
@@ -249,10 +249,12 @@ class OrganizationMixin:
         return is_member_disabled_from_limit(request, organization)
 
     def get_active_project(
-        self, request: HttpRequest, organization: RpcOrganization, project_slug: str
+        self, request: HttpRequest, organization: RpcOrganization, project_id_or_slug: int | str
     ) -> Project | None:
         try:
-            project = Project.objects.get(slug=project_slug, organization=organization)
+            project = Project.objects.get(
+                slug__id_or_slug=project_id_or_slug, organization=organization
+            )
         except Project.DoesNotExist:
             return None
 
@@ -362,12 +364,6 @@ class BaseView(View, OrganizationMixin):
             if response:
                 return response
 
-        if self.is_auth_required(request, *args, **kwargs):
-            return self.handle_auth_required(request, *args, **kwargs)
-
-        if self.is_sudo_required(request):
-            return self.handle_sudo_required(request, *args, **kwargs)
-
         if (
             is_using_customer_domain(request)
             and "organization_slug" in inspect.signature(self.convert_args).parameters
@@ -376,9 +372,23 @@ class BaseView(View, OrganizationMixin):
             # In customer domain contexts, we will need to pre-populate the organization_slug keyword argument.
             kwargs["organization_slug"] = organization_slug
 
+        if self.is_auth_required(request, *args, **kwargs):
+            return self.handle_auth_required(request, *args, **kwargs)
+
+        if self.is_sudo_required(request):
+            return self.handle_sudo_required(request, *args, **kwargs)
+
         args, kwargs = self.convert_args(request, *args, **kwargs)
 
-        request.access = self.get_access(request, *args, **kwargs)
+        try:
+            request.access = self.get_access(request, *args, **kwargs)
+        except DataSecrecyError:
+            return render_to_response(
+                "sentry/data-secrecy.html",
+                context={"organization_slug": organization_slug},
+                status=403,
+                request=request,
+            )
 
         if not self.has_permission(request, *args, **kwargs):
             return self.handle_permission_required(request, *args, **kwargs)
@@ -469,7 +479,7 @@ class BaseView(View, OrganizationMixin):
 
         return render_to_response(template, default_context, self.request, status=status)
 
-    def redirect(self, url: str, headers: Mapping[str, str] | None = None) -> HttpResponse:
+    def redirect(self, url: str, headers: Mapping[str, str] | None = None) -> HttpResponseRedirect:
         res = HttpResponseRedirect(url)
         if headers:
             for k, v in headers.items():
@@ -671,7 +681,7 @@ class ControlSiloOrganizationView(AbstractOrganizationView):
 class ProjectView(OrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
-    matching URL pattern must pass 'org_slug' as well as 'project_slug'.
+    matching URL pattern must pass 'org_slug' as well as 'project_id_or_slug'.
 
     Three keyword arguments are added to the resulting dispatch:
 
@@ -710,7 +720,7 @@ class ProjectView(OrganizationView):
             return False
         return True
 
-    def convert_args(self, request: HttpRequest, organization_slug: str, project_slug: str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
+    def convert_args(self, request: HttpRequest, organization_slug: str, project_id_or_slug: int | str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:
@@ -718,7 +728,9 @@ class ProjectView(OrganizationView):
 
             if organization:
                 active_project = self.get_active_project(
-                    request=request, organization=organization, project_slug=project_slug
+                    request=request,
+                    organization=organization,
+                    project_id_or_slug=project_id_or_slug,
                 )
 
         kwargs["project"] = active_project

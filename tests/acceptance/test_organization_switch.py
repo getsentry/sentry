@@ -1,9 +1,12 @@
+import pytest
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.retries import TimedRetryPolicy
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 @no_silo_test
@@ -52,8 +55,9 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
             for page in ["issues", "releases", "discover", "user-feedback"]
         ]
 
-        with self.settings(SENTRY_SINGLE_ORGANIZATION=False), self.feature(
-            "organizations:discover"
+        with (
+            self.settings(SENTRY_SINGLE_ORGANIZATION=False),
+            self.feature("organizations:discover"),
         ):
             for transition_url in transition_urls:
                 navigate_to_issues_page(self.organization.slug)

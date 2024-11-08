@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
-import tracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
+import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
+import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -10,13 +11,17 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {getProfilingDocumentHeaderConfigurationStep} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
-  getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -29,7 +34,7 @@ import sentry from "@sentry/astro";
 export default defineConfig({
   integrations: [
     sentry({
-      dsn: "${params.dsn}",${
+      dsn: "${params.dsn.public}",${
         params.isPerformanceSelected
           ? ''
           : `
@@ -50,21 +55,26 @@ export default defineConfig({
 });
 `;
 
-const getVerifyAstroSnippet = () => `
+const getVerifySnippet = () => `
 <!-- your-page.astro -->
-<button onclick="throw new Error('This is a test error')">
-  Throw test error
-</button>
+---
+---
+<button id="error-button">Throw test error</button>
+<script>
+  function handleClick () {
+    throw new Error('This is a test error');
+  }
+  document.querySelector("#error-button").addEventListener("click", handleClick);
+</script>
 `;
 
 const getInstallConfig = () => [
   {
     type: StepType.INSTALL,
     description: tct(
-      'Install the [sentryAstroPkg:@sentry/astro] package with the [astroCli:astro] CLI:',
+      'Install the [code:@sentry/astro] package with the [code:astro] CLI:',
       {
-        sentryAstroPkg: <code />,
-        astroCli: <code />,
+        code: <code />,
       }
     ),
     configurations: [
@@ -84,10 +94,23 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct("Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.", {
-      astroLink: <ExternalLink href="https://astro.build/" />,
-    }),
+  introduction: () => (
+    <Fragment>
+      <p>
+        {tct(
+          "Sentry's integration with [astroLink:Astro] supports Astro 3.0.0 and above.",
+          {
+            astroLink: <ExternalLink href="https://astro.build/" />,
+          }
+        )}
+      </p>
+      <p>
+        {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
+          astrocli: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => getInstallConfig(),
   configure: (params: Params) => [
     {
@@ -152,7 +175,7 @@ const onboarding: OnboardingConfig = {
               label: 'Astro',
               value: 'html',
               language: 'html',
-              code: getVerifyAstroSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -182,54 +205,102 @@ const onboarding: OnboardingConfig = {
       ),
       link: 'https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/',
     },
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/astro/performance/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/',
-    },
   ],
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: () => getInstallConfig(),
+  install: () => [
+    {
+      ...getInstallConfig()[0],
+      additionalInfo:
+        'Session Replay is enabled by default when you install the Astro SDK!',
+    },
+  ],
   configure: (params: Params) => [
     {
-      type: StepType.CONFIGURE,
-      description: getReplayConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/',
-      }),
+      title: 'Configure Session Replay (Optional)',
+      description: tct(
+        'There are several privacy and sampling options available. Learn more about configuring Session Replay by reading the [link:configuration docs].',
+        {
+          link: (
+            <ExternalLink
+              href={
+                'https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/'
+              }
+            />
+          ),
+        }
+      ),
       configurations: [
+        {
+          description: tct(
+            'You can set sample rates directly in your [code:astro.config.js] file:',
+            {
+              code: <code />,
+            }
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              filename: 'astro.config.js',
+              code: `
+import { defineConfig } from "astro/config";
+import sentry from "@sentry/astro";
+
+export default defineConfig({
+  integrations: [
+    sentry({
+      dsn: "${params.dsn.public}",
+      replaysSessionSampleRate: 0.2, // defaults to 0.1
+      replaysOnErrorSampleRate: 1.0, // defaults to 1.0
+    }),
+  ],
+});
+              `,
+            },
+          ],
+          additionalInfo: tct(
+            'Further Replay options, like privacy settings, can be set in a [code:sentry.client.config.js] file:',
+            {
+              code: <code />,
+            }
+          ),
+        },
         {
           code: [
             {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
+              filename: 'sentry.client.config.js',
               code: getReplaySDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/astro";`,
-                dsn: params.dsn,
+                importStatement: `// This file overrides \`astro.config.mjs\` for the browser-side.
+// SDK options from \`astro.config.mjs\` will not apply.
+import * as Sentry from "@sentry/astro";`,
+                dsn: params.dsn.public,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,
               }),
             },
           ],
+          additionalInfo: tct(
+            `Note that creating your own [code:sentry.client.config.js] file will override the default settings in your [code:astro.config.js] file. Learn more about this [link:here].`,
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/#manual-sdk-initialization" />
+              ),
+            }
+          ),
         },
       ],
-      additionalInfo: tracePropagationMessage,
+      additionalInfo: <TracePropagationMessage />,
+      collapsible: true,
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
@@ -250,7 +321,10 @@ const feedbackOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getFeedbackConfigureDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/',
+        linkConfig:
+          'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/configuration/#bring-your-own-button',
       }),
       configurations: [
         {
@@ -261,7 +335,8 @@ const feedbackOnboarding: OnboardingConfig = {
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/astro";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
+                feedbackOptions: params.feedbackOptions,
               }),
             },
           ],
@@ -276,11 +351,33 @@ const feedbackOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/configuration/#crash-report-modal',
+      }),
+      additionalInfo: widgetCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/astro/user-feedback/#user-feedback-widget',
+      }),
+      ...(params.isProfilingSelected
+        ? [getProfilingDocumentHeaderConfigurationStep()]
+        : []),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+  crashReportOnboarding,
 };
 
 export default docs;

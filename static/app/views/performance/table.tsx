@@ -1,5 +1,4 @@
-import {Component, Fragment} from 'react';
-import {browserHistory} from 'react-router';
+import {Component, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
@@ -15,8 +14,10 @@ import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -26,8 +27,15 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {
+  type DomainViewFilters,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
+import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 
 import {getMEPQueryParams} from './landing/widgets/utils';
 import type {TransactionThresholdMetric} from './transactionSummary/transactionThresholdModal';
@@ -55,6 +63,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   withStaticFilters: boolean;
   columnTitles?: string[];
+  domainViewFilters?: DomainViewFilters;
   summaryConditions?: string;
 };
 
@@ -77,6 +86,33 @@ function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
   }
   return '>30d';
 }
+
+function _TrackHasDataAnalytics({
+  children,
+  isLoading,
+  tableData,
+}: {
+  children: React.ReactNode;
+  isLoading: boolean;
+  tableData: TableData | null;
+}): React.ReactNode {
+  const organization = useOrganization();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!isLoading) {
+      trackAnalytics('performance_views.overview.has_data', {
+        table_data_state:
+          !!tableData?.data && tableData.data.length > 0 ? 'has_data' : 'no_data',
+        tab: getLandingDisplayFromParam(location)?.field,
+        organization,
+      });
+    }
+  }, [isLoading, organization, tableData?.data, location]);
+
+  return children;
+}
+
 class _Table extends Component<Props, State> {
   state: State = {
     widths: [],
@@ -245,6 +281,8 @@ class _Table extends Component<Props, State> {
         this.sendUnparameterizedAnalytic(project);
         this.unparameterizedMetricSet = true;
       }
+      const {isInDomainView, view} = this.props.domainViewFilters ?? {};
+
       const target = isUnparameterizedRow
         ? createUnnamedTransactionsDiscoverTarget({
             organization,
@@ -255,6 +293,7 @@ class _Table extends Component<Props, State> {
             transaction: String(dataRow.transaction) || '',
             query: summaryView.generateQueryStringObject(),
             projectID,
+            view: (isInDomainView && view) || undefined,
           });
 
       return (
@@ -434,7 +473,7 @@ class _Table extends Component<Props, State> {
             <TeamKeyTransactionWrapper>
               <IconStar
                 key="keyTransaction"
-                color="yellow400"
+                color="yellow300"
                 isSolid
                 data-test-id="team-key-transaction-header"
               />
@@ -518,7 +557,7 @@ class _Table extends Component<Props, State> {
                   queryExtras={getMEPQueryParams(value)}
                 >
                   {({pageLinks, isLoading, tableData}) => (
-                    <Fragment>
+                    <_TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
                       <VisuallyCompleteWithData
                         id="PerformanceTable"
                         hasData={
@@ -542,14 +581,13 @@ class _Table extends Component<Props, State> {
                             ) as any,
                             prependColumnWidths,
                           }}
-                          location={location}
                         />
                       </VisuallyCompleteWithData>
                       <Pagination
                         pageLinks={pageLinks}
                         paginationAnalyticsEvent={this.paginationAnalyticsEvent}
                       />
-                    </Fragment>
+                    </_TrackHasDataAnalytics>
                   )}
                 </DiscoverQuery>
               );
@@ -565,7 +603,15 @@ function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: st
   const summaryConditions =
     props.summaryConditions ?? props.eventView.getQueryWithAdditionalConditions();
 
-  return <_Table {...props} summaryConditions={summaryConditions} />;
+  const domainViewFilters = useDomainViewFilters();
+
+  return (
+    <_Table
+      {...props}
+      summaryConditions={summaryConditions}
+      domainViewFilters={domainViewFilters}
+    />
+  );
 }
 
 // Align the contained IconStar with the IconStar buttons in individual table

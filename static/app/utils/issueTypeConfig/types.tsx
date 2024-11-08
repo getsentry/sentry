@@ -1,4 +1,5 @@
-import type {IssueType, PlatformKey} from 'sentry/types';
+import type {IssueType} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/project';
 
 export type ResourceLink = {
   link: string;
@@ -24,9 +25,17 @@ export type IssueTypeConfig = {
     share: DisabledWithReasonConfig;
   };
   /**
+   * Should show AI Suggested Fix for this issue type
+   */
+  aiSuggestedSolution: boolean;
+  /**
    * Is the Attachments tab shown for this issue
    */
   attachments: DisabledWithReasonConfig;
+  /**
+   * Should show Autofix for this issue type
+   */
+  autofix: boolean;
   /**
    * Is the "Open in Discover" button available for this issue
    */
@@ -42,6 +51,10 @@ export type IssueTypeConfig = {
     title: string;
     helpText?: string;
   } | null;
+  /**
+   * Is the Issue Summary available for this issue
+   */
+  issueSummary: DisabledWithReasonConfig;
   /**
    * Is the Merged Issues tab shown for this issue
    */

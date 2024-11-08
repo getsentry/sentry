@@ -24,6 +24,7 @@ from sentry.issues.grouptype import (
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
     PerformanceUncompressedAssetsGroupType,
+    ProfileFunctionRegressionType,
 )
 from sentry.utils.performance_issues.performance_detection import get_merged_settings
 
@@ -49,10 +50,12 @@ class InternalProjectOptions(Enum):
     SLOW_DB_QUERY = "slow_db_queries_detection_enabled"
     HTTP_OVERHEAD = "http_overhead_detection_enabled"
     TRANSACTION_DURATION_REGRESSION = "transaction_duration_regression_detection_enabled"
+    FUNCTION_DURATION_REGRESSION = "function_duration_regression_detection_enabled"
 
 
 class ConfigurableThresholds(Enum):
     N_PLUS_ONE_DB_DURATION = "n_plus_one_db_duration_threshold"
+    N_PLUS_ONE_DB_COUNT = "n_plus_one_db_count"
     UNCOMPRESSED_ASSET_DURATION = "uncompressed_asset_duration_threshold"
     UNCOMPRESSED_ASSET_SIZE = "uncompressed_asset_size_threshold"
     LARGE_HTTP_PAYLOAD_SIZE = "large_http_payload_size_threshold"
@@ -79,10 +82,12 @@ internal_only_project_settings_to_group_map: dict[str, type[GroupType]] = {
     InternalProjectOptions.SLOW_DB_QUERY.value: PerformanceSlowDBQueryGroupType,
     InternalProjectOptions.HTTP_OVERHEAD.value: PerformanceHTTPOverheadGroupType,
     InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
+    InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: ProfileFunctionRegressionType,
 }
 
 configurable_thresholds_to_internal_settings_map: dict[str, str] = {
     ConfigurableThresholds.N_PLUS_ONE_DB_DURATION.value: InternalProjectOptions.N_PLUS_ONE_DB.value,
+    ConfigurableThresholds.N_PLUS_ONE_DB_COUNT.value: InternalProjectOptions.N_PLUS_ONE_DB.value,
     ConfigurableThresholds.UNCOMPRESSED_ASSET_DURATION.value: InternalProjectOptions.UNCOMPRESSED_ASSET.value,
     ConfigurableThresholds.UNCOMPRESSED_ASSET_SIZE.value: InternalProjectOptions.UNCOMPRESSED_ASSET.value,
     ConfigurableThresholds.LARGE_HTTP_PAYLOAD_SIZE.value: InternalProjectOptions.LARGE_HTTP_PAYLOAD.value,
@@ -101,6 +106,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     n_plus_one_db_duration_threshold = serializers.IntegerField(
         required=False, min_value=50, max_value=TEN_SECONDS
     )
+    n_plus_one_db_count = serializers.IntegerField(required=False, min_value=5, max_value=100)
     slow_db_query_duration_threshold = serializers.IntegerField(
         required=False, min_value=100, max_value=TEN_SECONDS
     )
@@ -146,6 +152,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     slow_db_queries_detection_enabled = serializers.BooleanField(required=False)
     http_overhead_detection_enabled = serializers.BooleanField(required=False)
     transaction_duration_regression_detection_enabled = serializers.BooleanField(required=False)
+    function_duration_regression_detection_enabled = serializers.BooleanField(required=False)
 
 
 def get_disabled_threshold_options(payload, current_settings):
@@ -166,9 +173,9 @@ def get_disabled_threshold_options(payload, current_settings):
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
     owner = ApiOwner.PERFORMANCE
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectSettingPermission,)
 
@@ -184,9 +191,9 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
 
         Return settings for performance issues
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           project belongs to.
-        :pparam string project_slug: the slug of the project to configure.
+        :pparam string project_id_or_slug: the id or slug of the project to configure.
         :auth: required
         """
 

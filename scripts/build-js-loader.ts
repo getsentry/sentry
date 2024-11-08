@@ -69,7 +69,7 @@ async function run() {
 function replacePlaceholders(str: string): string {
   return str
     .replace('__LOADER__PUBLIC_KEY__', "'{{ publicKey|safe }}'")
-    .replace('__LOADER_SDK_URL__', "'{{ jsSdkUrl|safe }}'")
+    .replace('__LOADER__SDK_URL__', "'{{ jsSdkUrl|safe }}'")
     .replace('__LOADER__CONFIG__', '{{ config|to_json|safe }}')
     .replace('__LOADER__IS_LAZY__', '{{ isLazy|safe|lower }}');
 }

@@ -12,12 +12,8 @@ import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
-import type {
-  Choices,
-  IntegrationIssueConfig,
-  IssueConfigField,
-  SelectValue,
-} from 'sentry/types';
+import type {Choices, SelectValue} from 'sentry/types/core';
+import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import type {FormField} from 'sentry/views/alerts/rules/issue/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
@@ -168,7 +164,7 @@ export default class AbstractExternalIssueForm<
    * searching in an async select field without selecting one of the returned choices will
    * result in a value saved to the form, and no associated label; appearing empty.
    * @param field The field being examined
-   * @param result The result from it's asynchronous query
+   * @param result The result from its asynchronous query
    * @returns The result with a tooltip attached to the current option
    */
   ensureCurrentOption = (
@@ -187,7 +183,7 @@ export default class AbstractExternalIssueForm<
         <Fragment>
           <QuestionTooltip
             title={tct('This is your current [label].', {
-              label: field.label,
+              label: field.label as React.ReactNode,
             })}
             size="xs"
           />{' '}

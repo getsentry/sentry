@@ -1,31 +1,26 @@
-import type {CSSProperties, MouseEvent} from 'react';
+import type {CSSProperties} from 'react';
 import {useCallback} from 'react';
-import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import type {Extraction} from 'sentry/utils/replays/extractHtml';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
-import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 
 interface Props {
   extraction: Extraction | undefined;
   frame: ReplayFrame;
   index: number;
   onClick: ReturnType<typeof useCrumbHandlers>['onClickTimestamp'];
-  onDimensionChange: (index: number) => void;
   onInspectorExpanded: (
     index: number,
     path: string,
-    expandedState: Record<string, boolean>,
-    event: MouseEvent<HTMLDivElement>
+    expandedState: Record<string, boolean>
   ) => void;
-  projectSlug: string | undefined;
   startTimestampMs: number;
   style: CSSProperties;
-  traces: ReplayTraceRow | undefined;
   breadcrumbIndex?: number[][];
   expandPaths?: string[];
 }
@@ -36,22 +31,17 @@ export default function BreadcrumbRow({
   frame,
   index,
   onClick,
-  onDimensionChange,
   onInspectorExpanded,
-  projectSlug,
   startTimestampMs,
   style,
-  traces,
 }: Props) {
-  const {currentTime, currentHoverTime} = useReplayContext();
+  const {currentTime} = useReplayContext();
+  const [currentHoverTime] = useCurrentHoverTime();
 
   const {onMouseEnter, onMouseLeave} = useCrumbHandlers();
-  const handleDimensionChange = useCallback(
-    () => onDimensionChange(index),
-    [onDimensionChange, index]
-  );
+
   const handleObjectInspectorExpanded = useCallback(
-    (path, expandedState, e) => onInspectorExpanded?.(index, path, expandedState, e),
+    (path, expandedState) => onInspectorExpanded?.(index, path, expandedState),
     [index, onInspectorExpanded]
   );
 
@@ -60,7 +50,7 @@ export default function BreadcrumbRow({
     currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
   return (
-    <StyledTimeBorder
+    <BreadcrumbItem
       className={classNames({
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -68,26 +58,14 @@ export default function BreadcrumbRow({
         afterHoverTime: currentHoverTime !== undefined ? !isBeforeHover : undefined,
       })}
       style={style}
-    >
-      <BreadcrumbItem
-        frame={frame}
-        traces={traces}
-        extraction={extraction}
-        onClick={onClick}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        projectSlug={projectSlug}
-        startTimestampMs={startTimestampMs}
-        expandPaths={expandPaths}
-        onDimensionChange={handleDimensionChange}
-        onInspectorExpanded={handleObjectInspectorExpanded}
-      />
-    </StyledTimeBorder>
+      frame={frame}
+      extraction={extraction}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      startTimestampMs={startTimestampMs}
+      expandPaths={expandPaths}
+      onInspectorExpanded={handleObjectInspectorExpanded}
+    />
   );
 }
-
-const StyledTimeBorder = styled('div')`
-  /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
-  border-top: 1px solid transparent;
-  border-bottom: 1px solid transparent;
-`;

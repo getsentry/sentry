@@ -7,7 +7,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
@@ -101,7 +101,6 @@ function FunctionsTable(props: FunctionsTableProps) {
         }),
         renderBodyCell: renderFunctionsTableCell,
       }}
-      location={location}
     />
   );
 }
@@ -168,16 +167,13 @@ function ProfilingFunctionsTableCell({
   }
 }
 
-const FIELDS = [
-  'function',
-  'package',
-  'count()',
-  'p75()',
-  'sum()',
-  'examples()',
-] as const;
-
-type TableColumnKey = (typeof FIELDS)[number];
+type TableColumnKey =
+  | 'function'
+  | 'package'
+  | 'count()'
+  | 'p75()'
+  | 'sum()'
+  | 'examples()';
 
 type TableDataRow = Record<TableColumnKey, any>;
 

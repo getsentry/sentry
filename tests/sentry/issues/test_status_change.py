@@ -1,15 +1,93 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import patch
 
-from sentry.issues.status_change import handle_status_update
+from sentry.issues.ignored import IGNORED_CONDITION_FIELDS
+from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+
+
+class InferSubstatusTest(TestCase):
+    def test_ignore_until_escalating(self) -> None:
+        assert (
+            infer_substatus(
+                new_status=GroupStatus.IGNORED,
+                new_substatus=None,
+                status_details={"untilEscalating": True},
+                group_list=[],
+            )
+            == GroupSubStatus.UNTIL_ESCALATING
+        )
+
+    def test_ignore_condition_met(self) -> None:
+        for condition in IGNORED_CONDITION_FIELDS:
+            assert (
+                infer_substatus(
+                    new_status=GroupStatus.IGNORED,
+                    new_substatus=None,
+                    status_details={condition: 50},
+                    group_list=[],
+                )
+                == GroupSubStatus.UNTIL_CONDITION_MET
+            )
+
+    def test_ignore_forever(self) -> None:
+        assert (
+            infer_substatus(
+                new_status=GroupStatus.IGNORED,
+                new_substatus=None,
+                status_details={"status": "ignored"},
+                group_list=[],
+            )
+            == GroupSubStatus.FOREVER
+        )
+
+    def test_unresolve_new_group(self) -> None:
+        assert (
+            infer_substatus(
+                new_status=GroupStatus.UNRESOLVED,
+                new_substatus=None,
+                status_details={},
+                group_list=[self.create_group(status=GroupStatus.IGNORED)],
+            )
+            == GroupSubStatus.NEW
+        )
+
+    def test_unresolve_ongoing_group(self) -> None:
+        assert (
+            infer_substatus(
+                new_status=GroupStatus.UNRESOLVED,
+                new_substatus=None,
+                status_details={},
+                group_list=[
+                    self.create_group(first_seen=datetime.now(timezone.utc) - timedelta(days=10))
+                ],
+            )
+            == GroupSubStatus.ONGOING
+        )
+
+    def test_unresolve_regressed_group(self) -> None:
+        assert (
+            infer_substatus(
+                new_status=GroupStatus.UNRESOLVED,
+                new_substatus=None,
+                status_details={},
+                group_list=[
+                    self.create_group(
+                        status=GroupStatus.RESOLVED,
+                        first_seen=datetime.now(timezone.utc) - timedelta(days=10),
+                    )
+                ],
+            )
+            == GroupSubStatus.REGRESSED
+        )
 
 
 class HandleStatusChangeTest(TestCase):
@@ -33,13 +111,10 @@ class HandleStatusChangeTest(TestCase):
             new_status=GroupStatus.UNRESOLVED,
             new_substatus=GroupSubStatus.ONGOING,
             sender=self,
-            activity_type=None,
         )
 
         assert issue_unignored.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_UNRESOLVED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_UNRESOLVED.value)
         assert activity.data == {}
 
         assert GroupHistory.objects.filter(
@@ -59,13 +134,10 @@ class HandleStatusChangeTest(TestCase):
             is_bulk=True,
             status_details={},
             sender=self,
-            activity_type=None,
         )
 
         assert issue_unresolved.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_UNRESOLVED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_UNRESOLVED.value)
         assert activity.data == {}
 
         assert GroupHistory.objects.filter(
@@ -85,13 +157,10 @@ class HandleStatusChangeTest(TestCase):
             is_bulk=True,
             status_details={"ignoreDuration": 30},
             sender=self,
-            activity_type=None,
         )
 
         assert issue_ignored.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_IGNORED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_IGNORED.value)
         assert activity.data.get("ignoreDuration") == 30
 
         assert GroupHistory.objects.filter(
@@ -111,13 +180,10 @@ class HandleStatusChangeTest(TestCase):
             is_bulk=True,
             status_details={"ignoreUntilEscalating": True},
             sender=self,
-            activity_type=None,
         )
 
         assert issue_ignored.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_IGNORED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_IGNORED.value)
         assert activity.data.get("ignoreUntilEscalating")
 
         assert GroupHistory.objects.filter(

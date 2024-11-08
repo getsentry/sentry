@@ -1,4 +1,4 @@
-import type {IntegrationType, SentryAppStatus} from 'sentry/types';
+import type {IntegrationType, SentryAppStatus} from 'sentry/types/integrations';
 
 import type {PlatformEventParameters} from './platformAnalyticsEvents';
 import {platformEventMap} from './platformAnalyticsEvents';
@@ -13,6 +13,7 @@ export type IntegrationView = {
     | 'stacktrace_link'
     | 'stacktrace_issue_details'
     | 'integration_configuration_detail'
+    | 'messaging_integration_onboarding'
     | 'onboarding'
     | 'project_creation'
     | 'developer_settings'

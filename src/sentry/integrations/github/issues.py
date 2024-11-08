@@ -8,19 +8,23 @@ from typing import Any
 from django.urls import reverse
 
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicMixin
+from sentry.integrations.mixins.issues import MAX_CHAR
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
+from sentry.integrations.source_code_management.metrics import (
+    SourceCodeIssueIntegrationInteractionType,
+)
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization.service import organization_service
-from sentry.services.hybrid_cloud.util import all_silo_function
+from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.silo.base import all_silo_function
+from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
 
-class GitHubIssueBasic(IssueBasicMixin):
+class GitHubIssuesSpec(SourceCodeIssueIntegration):
     def make_external_key(self, data: Mapping[str, Any]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
 
@@ -169,33 +173,34 @@ class GitHubIssueBasic(IssueBasicMixin):
         ]
 
     def create_issue(self, data: Mapping[str, Any], **kwargs: Any) -> Mapping[str, Any]:
-        client = self.get_client()
+        with self.record_event(SourceCodeIssueIntegrationInteractionType.CREATE_ISSUE).capture():
+            client = self.get_client()
 
-        repo = data.get("repo")
+            repo = data.get("repo")
 
-        if not repo:
-            raise IntegrationError("repo kwarg must be provided")
+            if not repo:
+                raise IntegrationError("repo kwarg must be provided")
 
-        try:
-            issue = client.create_issue(
-                repo=repo,
-                data={
-                    "title": data["title"],
-                    "body": data["description"],
-                    "assignee": data.get("assignee"),
-                    "labels": data.get("labels"),
-                },
-            )
-        except ApiError as e:
-            raise IntegrationError(self.message_from_error(e))
+            try:
+                issue = client.create_issue(
+                    repo=repo,
+                    data={
+                        "title": data["title"],
+                        "body": data["description"],
+                        "assignee": data.get("assignee"),
+                        "labels": data.get("labels"),
+                    },
+                )
+            except ApiError as e:
+                raise IntegrationError(self.message_from_error(e))
 
-        return {
-            "key": issue["number"],
-            "title": issue["title"],
-            "description": issue["body"],
-            "url": issue["html_url"],
-            "repo": repo,
-        }
+            return {
+                "key": issue["number"],
+                "title": issue["title"],
+                "description": issue["body"],
+                "url": issue["html_url"],
+                "repo": repo,
+            }
 
     def get_link_issue_config(self, group: Group, **kwargs: Any) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})
@@ -232,7 +237,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             },
             {
                 "name": "externalIssue",
-                "label": "Issue",
+                "label": "Issue Number or Title",
                 "default": "",
                 "choices": [],
                 "type": "select",

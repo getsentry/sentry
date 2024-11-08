@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING
 
-from sentry.services.hybrid_cloud import ValueEqualityEnum
+from sentry.hybridcloud.rpc import ValueEqualityEnum
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -15,17 +15,25 @@ class NotificationSettingEnum(ValueEqualityEnum):
     ISSUE_ALERTS = "alerts"
     WORKFLOW = "workflow"
     APPROVAL = "approval"
+    # Notifications for when 100% reserved quota is reached
     QUOTA = "quota"
+    # Notifications for when 80% reserved quota is reached
+    QUOTA_WARNINGS = "quotaWarnings"
+    # Notifications for when a specific threshold is reached
+    # If set, this overrides any notification preferences for QUOTA and QUOTA_WARNINGS.
+    QUOTA_THRESHOLDS = "quotaThresholds"
     QUOTA_ERRORS = "quotaErrors"
     QUOTA_TRANSACTIONS = "quotaTransactions"
     QUOTA_ATTACHMENTS = "quotaAttachments"
     QUOTA_REPLAYS = "quotaReplays"
     QUOTA_MONITOR_SEATS = "quotaMonitorSeats"
-    QUOTA_WARNINGS = "quotaWarnings"
+    QUOTA_SPANS = "quotaSpans"
+    QUOTA_PROFILE_DURATION = "quotaProfileDuration"
     QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
     SPIKE_PROTECTION = "spikeProtection"
     MISSING_MEMBERS = "missingMembers"
     REPORTS = "reports"
+    BROKEN_MONITORS = "brokenMonitors"
 
 
 class NotificationSettingsOptionEnum(ValueEqualityEnum):
@@ -52,7 +60,7 @@ class NotificationScopeEnum(ValueEqualityEnum):
     TEAM = "team"
 
 
-class FineTuningAPIKey(Enum):
+class FineTuningAPIKey(StrEnum):
     ALERTS = "alerts"
     APPROVAL = "approval"
     DEPLOY = "deploy"
@@ -106,11 +114,23 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
+    NotificationSettingEnum.QUOTA_SPANS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUOTA_PROFILE_DURATION: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
     NotificationSettingEnum.QUOTA_WARNINGS: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
     NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUOTA_THRESHOLDS: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
@@ -124,6 +144,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.NEVER,
     },
     NotificationSettingEnum.REPORTS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.BROKEN_MONITORS: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },

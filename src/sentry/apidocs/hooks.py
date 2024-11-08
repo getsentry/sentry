@@ -41,50 +41,6 @@ EXCLUSION_PATH_PREFIXES = [
 ]
 
 
-def __get_explicit_endpoints() -> list[tuple[str, str, str, Any]]:
-    """
-    We have a few endpoints which are wrapped by `method_dispatch`, which DRF
-    will ignore (see [0]). To still have these endpoints properly included in
-    our docs, we explicitly define them here.
-
-    XXX: This is currently just used for monitors. In the future we'll remove
-         the legacy monitor endpoints that require us to have method_dispatch
-         and we can probably remove this too.
-
-    [0]: https://github.com/encode/django-rest-framework/blob/3f8ab538c1a7e6f887af9fec41847e2d67ff674f/rest_framework/schemas/generators.py#L117-L118
-    """
-    from sentry.monitors.endpoints.monitor_ingest_checkin_details import (
-        MonitorIngestCheckInDetailsEndpoint,
-    )
-    from sentry.monitors.endpoints.monitor_ingest_checkin_index import (
-        MonitorIngestCheckInIndexEndpoint,
-    )
-    from sentry.monitors.endpoints.organization_monitor_checkin_index import (
-        OrganizationMonitorCheckInIndexEndpoint,
-    )
-
-    return [
-        (
-            "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/checkins/",
-            r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
-            "GET",
-            OrganizationMonitorCheckInIndexEndpoint.as_view(),
-        ),
-        (
-            "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/checkins/",
-            r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
-            "POST",
-            MonitorIngestCheckInIndexEndpoint.as_view(),
-        ),
-        (
-            "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/checkins/{checkin_id}/",
-            r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-            "PUT",
-            MonitorIngestCheckInDetailsEndpoint.as_view(),
-        ),
-    ]
-
-
 def __get_line_count_for_team_stats(team_stats: Mapping):
     """
     Returns number of lines it takes to write ownership for each team.
@@ -205,8 +161,6 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         )
 
     __write_ownership_data(ownership_data)
-    # Register explicit endpoints
-    filtered.extend(__get_explicit_endpoints())
     return filtered
 
 
@@ -270,6 +224,8 @@ def _validate_request_body(
 
 
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
+    _fix_issue_paths(result)
+
     # Fetch schema component references
     schema_components = result["components"]["schemas"]
 
@@ -327,3 +283,40 @@ def _check_tag(method_info: Mapping[str, Any], endpoint_name: str) -> None:
 def _check_description(json_body: Mapping[str, Any], err_str: str) -> None:
     if json_body.get("description") is None:
         raise SentryApiBuildError(err_str)
+
+
+def _fix_issue_paths(result: Any) -> Any:
+    """
+    The way we define `/issues/` paths causes some problems with drf-spectacular:
+    - The path may be defined twice, with `/organizations/{organization_id_slug}` prefix and without
+    - The `/issues/` part of the path is defined as `issues|groups` for compatibility reasons,
+      but we only want to use `issues` in the docs
+
+    This function removes duplicate paths, removes the `issues|groups` path parameter and
+    replaces it with `issues` in the path.
+    """
+    items = list(result["paths"].items())
+
+    modified_paths = []
+
+    for path, endpoint in items:
+        if "{var}/{issue_id}" in path:
+            modified_paths.append(path)
+
+    for path in modified_paths:
+        updated_path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
+        if path.startswith("/api/0/organizations/{organization_id_or_slug}/"):
+            updated_path = updated_path.replace(
+                "/api/0/organizations/{organization_id_or_slug}/", "/api/0/"
+            )
+        endpoint = result["paths"][path]
+        for method in endpoint.keys():
+            endpoint[method]["parameters"] = [
+                param
+                for param in endpoint[method]["parameters"]
+                if not (
+                    param["in"] == "path" and param["name"] in ("var", "organization_id_or_slug")
+                )
+            ]
+        result["paths"][updated_path] = endpoint
+        del result["paths"][path]

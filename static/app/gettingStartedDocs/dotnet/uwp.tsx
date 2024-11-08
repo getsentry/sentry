@@ -1,7 +1,5 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -11,7 +9,13 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportGenericInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -35,12 +39,16 @@ sealed partial class App : Application
         SentrySdk.Init(o =>
         {
             // Tells which project in Sentry to send events to:
-            o.Dsn = "${params.dsn}";
+            o.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
-            o.Debug = true;
-            // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            o.Debug = true;${
+              params.isPerformanceSelected
+                ? `
+            // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
-            o.TracesSampleRate = 1.0;
+            o.TracesSampleRate = 1.0;`
+                : ''
+            }
         });
         Current.UnhandledException += UnhandledExceptionHandler;
     }
@@ -105,14 +113,6 @@ const onboarding: OnboardingConfig = {
           ],
         },
       ],
-      additionalInfo: (
-        <AlertWithoutMarginBottom type="info">
-          {tct(
-            '[strong:Using .NET Framework prior to 4.6.1?] Our legacy SDK supports .NET Framework as early as 3.5.',
-            {strong: <strong />}
-          )}
-        </AlertWithoutMarginBottom>
-      ),
     },
   ],
   configure: params => [
@@ -153,7 +153,7 @@ const onboarding: OnboardingConfig = {
       ),
     },
     {
-      title: t('Performance Monitoring'),
+      title: t('Tracing'),
       description: t(
         'You can measure the performance of your code by capturing transactions and spans.'
       ),
@@ -167,7 +167,7 @@ const onboarding: OnboardingConfig = {
         'Check out [link:the documentation] to learn more about the API and automatic instrumentations.',
         {
           link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/performance/instrumentation/" />
+            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/tracing/instrumentation/" />
           ),
         }
       ),
@@ -226,13 +226,26 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportGenericInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/dotnet/guides/uwp/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
   customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry'}),
+  crashReportOnboarding,
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

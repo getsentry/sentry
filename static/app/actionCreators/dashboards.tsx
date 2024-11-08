@@ -5,7 +5,7 @@ import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -27,7 +27,7 @@ export function fetchDashboards(api: Client, orgSlug: string) {
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to fetch dashboards'));
     }
@@ -42,8 +42,18 @@ export function createDashboard(
   newDashboard: DashboardDetails,
   duplicate?: boolean
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end, filters, utc} =
-    newDashboard;
+  const {
+    title,
+    widgets,
+    projects,
+    environment,
+    period,
+    start,
+    end,
+    filters,
+    utc,
+    permissions,
+  } = newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
     `/organizations/${orgSlug}/dashboards/`,
@@ -60,6 +70,7 @@ export function createDashboard(
         end,
         filters,
         utc,
+        permissions,
       },
       query: {
         project: projects,
@@ -73,7 +84,7 @@ export function createDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to create dashboard'));
     }
@@ -114,7 +125,7 @@ export function fetchDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to load dashboard'));
     }
@@ -127,8 +138,18 @@ export function updateDashboard(
   orgId: string,
   dashboard: DashboardDetails
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end, filters, utc} =
-    dashboard;
+  const {
+    title,
+    widgets,
+    projects,
+    environment,
+    period,
+    start,
+    end,
+    filters,
+    utc,
+    permissions,
+  } = dashboard;
   const data = {
     title,
     widgets: widgets.map(widget => omit(widget, ['tempId'])),
@@ -139,6 +160,7 @@ export function updateDashboard(
     end,
     filters,
     utc,
+    permissions,
   };
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
@@ -161,7 +183,7 @@ export function updateDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to update dashboard'));
     }
@@ -187,7 +209,7 @@ export function deleteDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to delete dashboard'));
     }

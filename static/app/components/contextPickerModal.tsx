@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 import {findDOMNode} from 'react-dom';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
+import type {Query} from 'history';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
@@ -15,7 +16,9 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {space} from 'sentry/styles/space';
-import type {Integration, Organization, Project} from 'sentry/types';
+import type {Integration} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import Projects from 'sentry/utils/projects';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import IntegrationIcon from 'sentry/views/settings/organizationIntegrations/integrationIcon';
@@ -39,12 +42,13 @@ type Props = ModalRenderProps & {
   /**
    * The destination route
    */
-  nextPath: string;
+  nextPath: string | {pathname: string; query?: Query};
 
   /**
    * Finish callback
+   * @param path type will match nextPath's type {@link Props.nextPath}
    */
-  onFinish: (path: string) => number | void;
+  onFinish: (path: string | {pathname: string; query?: Query}) => number | void;
   /**
    * Callback for when organization is selected
    */
@@ -141,14 +145,18 @@ class ContextPickerModal extends Component<Props> {
     }
 
     window.clearTimeout(this.onFinishTimeout);
+    const pathname = typeof nextPath === 'string' ? nextPath : nextPath.pathname;
 
     // If there is only one org and we don't need a project slug, then call finish callback
     if (!needProject) {
+      const newPathname = replaceRouterParams(pathname, {
+        orgId: organizations[0].slug,
+      });
       this.onFinishTimeout =
         onFinish(
-          replaceRouterParams(nextPath, {
-            orgId: organizations[0].slug,
-          })
+          typeof nextPath === 'string'
+            ? newPathname
+            : {...nextPath, pathname: newPathname}
         ) ?? undefined;
       return;
     }
@@ -159,13 +167,14 @@ class ContextPickerModal extends Component<Props> {
       org = organizations[0].slug;
     }
 
+    const newPathname = replaceRouterParams(pathname, {
+      orgId: org,
+      projectId: projects[0].slug,
+      project: this.props.projects.find(p => p.slug === projects[0].slug)?.id,
+    });
     this.onFinishTimeout =
       onFinish(
-        replaceRouterParams(nextPath, {
-          orgId: org,
-          projectId: projects[0].slug,
-          project: this.props.projects.find(p => p.slug === projects[0].slug)?.id,
-        })
+        typeof nextPath === 'string' ? newPathname : {...nextPath, pathname: newPathname}
       ) ?? undefined;
   };
 
@@ -210,8 +219,14 @@ class ContextPickerModal extends Component<Props> {
     if (!value) {
       return;
     }
-
-    onFinish(`${nextPath}${value}/`);
+    const newPath =
+      typeof nextPath === 'string'
+        ? `${nextPath}${value}/`
+        : {
+            ...nextPath,
+            pathname: `${nextPath.pathname}${value}/`,
+          };
+    onFinish(newPath);
     return;
   };
 

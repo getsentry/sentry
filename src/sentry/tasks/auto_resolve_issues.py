@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from time import time
+from typing import Any
 
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
+from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues import grouptype
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -15,10 +16,10 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.silo import SiloMode
+from sentry.signals import issue_resolved
+from sentry.silo.base import SiloMode
 from sentry.tasks.auto_ongoing_issues import log_error_if_queue_has_items
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
 
 ONE_HOUR = 3600
@@ -33,11 +34,11 @@ ONE_HOUR = 3600
 )
 @log_error_if_queue_has_items
 def schedule_auto_resolution():
-    options = ProjectOption.objects.filter(
+    options_qs = ProjectOption.objects.filter(
         key__in=["sentry:resolve_age", "sentry:_last_auto_resolve"]
     )
-    opts_by_project: Mapping[int, dict] = defaultdict(dict)
-    for opt in options:
+    opts_by_project: dict[int, dict[str, Any]] = defaultdict(dict)
+    for opt in options_qs:
         opts_by_project[opt.project_id][opt.key] = opt.value
 
     cutoff = time() - ONE_HOUR
@@ -94,7 +95,11 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     might_have_more = len(queryset) == chunk_size
 
     for group in queryset:
-        happened = Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
+        happened = Group.objects.filter(
+            id=group.id,
+            status=GroupStatus.UNRESOLVED,
+            last_seen__lte=cutoff,
+        ).update(
             status=GroupStatus.RESOLVED,
             resolved_at=django_timezone.now(),
             substatus=None,
@@ -121,6 +126,17 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
                 group_id=group.id,
                 issue_type=group.issue_type.slug,
                 issue_category=group.issue_category.name.lower(),
+            )
+            # auto-resolve is a kind of resolve and this signal makes
+            # sure all things that need to happen after resolve are triggered
+            # examples are analytics and webhooks
+            issue_resolved.send_robust(
+                organization_id=project.organization_id,
+                user=None,
+                group=group,
+                project=project,
+                resolution_type="autoresolve",
+                sender="auto_resolve_issues",
             )
 
     if might_have_more:

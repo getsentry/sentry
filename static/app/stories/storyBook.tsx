@@ -2,7 +2,7 @@ import type {JSXElementConstructor, ReactNode} from 'react';
 import {Children} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/profiling/flex';
+import {Flex} from 'sentry/components/container/flex';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import {space} from 'sentry/styles/space';
 

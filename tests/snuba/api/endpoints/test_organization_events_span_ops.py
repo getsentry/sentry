@@ -4,12 +4,10 @@ import pytest
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 
-@region_silo_test
 class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -17,7 +15,7 @@ class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-events-span-ops",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
@@ -47,8 +45,8 @@ class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
                     "same_process_as_parent": True,
                     "parent_span_id": "a" * 16,
                     "span_id": x * 16,
-                    "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
-                    "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                    "start_timestamp": self.min_ago + timedelta(seconds=1),
+                    "timestamp": self.min_ago + timedelta(seconds=4),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "hash": "cd" * 8,
@@ -61,8 +59,8 @@ class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
                     "same_process_as_parent": True,
                     "parent_span_id": "a" * 16,
                     "span_id": x * 16,
-                    "start_timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
-                    "timestamp": iso_format(self.min_ago + timedelta(seconds=5)),
+                    "start_timestamp": self.min_ago + timedelta(seconds=4),
+                    "timestamp": self.min_ago + timedelta(seconds=5),
                     "op": "django.view",
                     "description": "view span",
                     "hash": "ef" * 8,

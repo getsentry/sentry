@@ -1,6 +1,6 @@
 import re
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timezone
 from re import Match
@@ -38,6 +38,7 @@ from sentry.search.events.constants import (
     SEARCH_MAP,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TYPED_TAG_KEY_RE,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
@@ -95,7 +96,9 @@ class PseudoField:
         ), f"{self.name}: only one of expression, expression_fn is allowed"
 
 
-def project_threshold_config_expression(organization_id, project_ids):
+def project_threshold_config_expression(
+    organization_id: int | None, project_ids: list[int] | None
+) -> list[object]:
     """
     This function returns a column with the threshold and threshold metric
     for each transaction based on project level settings. If no project level
@@ -179,7 +182,7 @@ def project_threshold_config_expression(organization_id, project_ids):
         PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
     ]
 
-    project_config_query = (
+    project_config_query: list[object] = (
         [
             "if",
             [
@@ -457,30 +460,37 @@ def format_column_arguments(column_args, arguments):
             column_args[i] = arguments[column_args[i].arg]
 
 
-def parse_arguments(function: str, columns: str) -> list[str]:
+def _lookback(columns, j, string):
+    """For parse_arguments, check that the current character is preceeded by string"""
+    if j < len(string):
+        return False
+    return columns[j - len(string) : j] == string
+
+
+def parse_arguments(_function: str, columns: str) -> list[str]:
     """
     Some functions take a quoted string for their arguments that may contain commas,
     which requires special handling.
     This function attempts to be identical with the similarly named parse_arguments
     found in static/app/utils/discover/fields.tsx
     """
-    if (function != "to_other" and function != "count_if" and function != "spans_histogram") or len(
-        columns
-    ) == 0:
-        return [c.strip() for c in columns.split(",") if len(c.strip()) > 0]
-
     args = []
 
     quoted = False
+    in_tag = False
     escaped = False
 
     i, j = 0, 0
 
     while j < len(columns):
-        if i == j and columns[j] == '"':
+        if not in_tag and i == j and columns[j] == '"':
             # when we see a quote at the beginning of
             # an argument, then this is a quoted string
             quoted = True
+        elif not quoted and columns[j] == "[" and _lookback(columns, j, "tags"):
+            # when the argument begins with tags[,
+            # then this is the beginning of the tag that may contain commas
+            in_tag = True
         elif i == j and columns[j] == " ":
             # argument has leading spaces, skip over them
             i += 1
@@ -492,12 +502,16 @@ def parse_arguments(function: str, columns: str) -> list[str]:
             # when we see a non-escaped quote while inside
             # of a quoted string, we should end it
             quoted = False
+        elif in_tag and not escaped and columns[j] == "]":
+            # when we see a non-escaped quote while inside
+            # of a quoted string, we should end it
+            in_tag = False
         elif quoted and escaped:
             # when we are inside a quoted string and have
             # begun an escape character, we should end it
             escaped = False
-        elif quoted and columns[j] == ",":
-            # when we are inside a quoted string and see
+        elif (quoted or in_tag) and columns[j] == ",":
+            # when we are inside a quoted string or tag and see
             # a comma, it should not be considered an
             # argument separator
             pass
@@ -647,7 +661,7 @@ def parse_function(field, match=None, err_msg=None):
     )
 
 
-def is_function(field: str) -> Match[str] | None:
+def is_function(field: NormalizedArg) -> Match[str] | None:
     function_match = FUNCTION_PATTERN.search(field)
     if function_match:
         return function_match
@@ -694,7 +708,7 @@ def get_json_meta_type(field_alias, snuba_type, builder=None):
         return alias_definition.result_type
 
     snuba_json = get_json_type(snuba_type)
-    if snuba_json != "string":
+    if snuba_json not in ["string", "null"]:
         if function is not None:
             result_type = function.instance.get_result_type(function.field, function.arguments)
             if result_type is not None:
@@ -1111,7 +1125,12 @@ class NumericColumn(ColumnArg):
         # this even in child classes where `normalize` have been overridden.
         # Shortcutting this for now
         # TODO: handle different datasets better here
-        if self.spans and value in ["span.duration", "span.self_time"]:
+        if self.spans and value in [
+            "span.duration",
+            "span.self_time",
+            "ai.total_tokens.used",
+            "ai.total_cost",
+        ]:
             return value
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):
@@ -1119,6 +1138,9 @@ class NumericColumn(ColumnArg):
         if not snuba_column and is_span_op_breakdown(value):
             return value
         if not snuba_column and is_mri(value):
+            return value
+        match = TYPED_TAG_KEY_RE.search(value)
+        if match and match.group("type") == "number":
             return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
@@ -1365,7 +1387,7 @@ class DiscoverFunction:
         columns: list[str],
         params: ParamsType,
         combinator: Combinator | None = None,
-    ) -> Mapping[str, NormalizedArg]:
+    ) -> dict[str, NormalizedArg]:
         columns = self.add_default_arguments(field, columns, params)
 
         arguments = {}
@@ -1455,14 +1477,16 @@ class DiscoverFunction:
         if args_count != total_args_count:
             required_args_count = self.required_args_count
             if required_args_count == total_args_count:
-                raise InvalidSearchQuery(f"{field}: expected {total_args_count:g} argument(s)")
+                raise InvalidSearchQuery(
+                    f"{field}: expected {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
+                )
             elif args_count < required_args_count:
                 raise InvalidSearchQuery(
-                    f"{field}: expected at least {required_args_count:g} argument(s)"
+                    f"{field}: expected at least {required_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
             elif args_count > total_args_count:
                 raise InvalidSearchQuery(
-                    f"{field}: expected at most {total_args_count:g} argument(s)"
+                    f"{field}: expected at most {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
 
     def validate_result_type(self, result_type):
@@ -1625,9 +1649,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0
-                    if args["satisfaction"] is not None
-                    else None,
+                    "fn": lambda args: (
+                        args["satisfaction"] * 4.0 if args["satisfaction"] is not None else None
+                    ),
                 }
             ],
             conditional_transform=ConditionalFunction(
@@ -1666,9 +1690,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0
-                    if args["satisfaction"] is not None
-                    else None,
+                    "fn": lambda args: (
+                        args["satisfaction"] * 4.0 if args["satisfaction"] is not None else None
+                    ),
                 },
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
@@ -2111,6 +2135,29 @@ def normalize_percentile_alias(args: Mapping[str, str]) -> str:
     return f"{match.group(1)}({aggregate_arg})"
 
 
+def custom_time_processor(interval, time_column):
+    """For when snuba doesn't have a time processor for a dataset"""
+    return Function(
+        "toDateTime",
+        [
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "intDiv",
+                        [
+                            time_column,
+                            interval,
+                        ],
+                    ),
+                    interval,
+                ],
+            ),
+        ],
+        "time",
+    )
+
+
 class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs) -> None:
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
@@ -2142,7 +2189,7 @@ class MetricArg(FunctionArg):
     def __init__(
         self,
         name: str,
-        allowed_columns: Sequence[str] | None = None,
+        allowed_columns: Iterable[str] | None = None,
         allow_custom_measurements: bool | None = True,
         validate_only: bool | None = True,
         allow_mri: bool = True,
@@ -2193,6 +2240,7 @@ class MetricsFunction(SnQLFunction):
         self.snql_distribution = kwargs.pop("snql_distribution", None)
         self.snql_set = kwargs.pop("snql_set", None)
         self.snql_counter = kwargs.pop("snql_counter", None)
+        self.snql_gauge = kwargs.pop("snql_gauge", None)
         self.snql_metric_layer = kwargs.pop("snql_metric_layer", None)
         self.is_percentile = kwargs.pop("is_percentile", False)
         super().__init__(*args, **kwargs)
@@ -2210,11 +2258,12 @@ class MetricsFunction(SnQLFunction):
                     self.snql_distribution is not None,
                     self.snql_set is not None,
                     self.snql_counter is not None,
+                    self.snql_gauge is not None,
                     self.snql_column is not None,
                     self.snql_metric_layer is not None,
                 ]
             )
-            == 1
+            >= 1
         )
 
         # assert that no duplicate argument names are used
@@ -2232,3 +2281,39 @@ class FunctionDetails(NamedTuple):
     field: str
     instance: DiscoverFunction
     arguments: Mapping[str, NormalizedArg]
+
+
+def resolve_datetime64(
+    raw_value: datetime | str | float | None, precision: int = 6
+) -> Function | None:
+    """
+    This is normally handled by the snuba-sdk but it assumes that the underlying
+    table uses DateTime. Because we use DateTime64(6) as the underlying column,
+    we need to cast to the same type or we risk truncating the timestamp which
+    can lead to subtle errors.
+
+    raw_value - Can be one of several types
+        - None: Resolves to `None`
+        - float: Assumed to be a epoch timestamp in seconds with fractional parts
+        - str: Assumed to be isoformat timestamp in UTC time (without timezone info)
+        - datetime: Will be formatted as a isoformat timestamp in UTC time
+    """
+
+    value: str | float | None = None
+
+    if isinstance(raw_value, datetime):
+        if raw_value.tzinfo is not None:
+            # This is adapted from snuba-sdk
+            # See https://github.com/getsentry/snuba-sdk/blob/2f7f014920b4f527a87f18c05b6aa818212bec6e/snuba_sdk/visitors.py#L168-L172
+            delta = raw_value.utcoffset()
+            assert delta is not None
+            raw_value -= delta
+            raw_value = raw_value.replace(tzinfo=None)
+        value = raw_value.isoformat()
+    elif isinstance(raw_value, float):
+        value = raw_value
+
+    if value is None:
+        return None
+
+    return Function("toDateTime64", [value, precision])

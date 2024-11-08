@@ -4,7 +4,7 @@ import pytest
 from django.test import override_settings
 
 from sentry.models.projectkey import ProjectKey, ProjectKeyManager, ProjectKeyStatus
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import create_test_regions, region_silo_test
@@ -103,11 +103,16 @@ class ProjectKeyTest(TestCase):
                 == f"http://testserver/api/{self.project.id}/minidump/?sentry_key=abc"
             )
             assert key.unreal_endpoint == f"http://testserver/api/{self.project.id}/unreal/abc/"
+            assert (
+                key.crons_endpoint
+                == f"http://testserver/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
+            )
             assert key.js_sdk_loader_cdn_url == "http://testserver/js-sdk-loader/abc.min.js"
 
     def test_get_dsn_org_subdomain(self):
-        with self.feature("organizations:org-subdomains"), self.options(
-            {"system.region-api-url-template": ""}
+        with (
+            self.feature("organizations:org-ingest-subdomains"),
+            self.options({"system.region-api-url-template": ""}),
         ):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             host = f"o{key.project.organization_id}.ingest.testserver"
@@ -123,6 +128,10 @@ class ProjectKeyTest(TestCase):
                 == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
             )
             assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
+            assert (
+                key.crons_endpoint
+                == f"http://{host}/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
+            )
 
     @override_settings(SENTRY_REGION="us")
     def test_get_dsn_multiregion(self):
@@ -136,10 +145,14 @@ class ProjectKeyTest(TestCase):
             key.minidump_endpoint == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
         )
         assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
+        assert (
+            key.crons_endpoint
+            == f"http://{host}/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
+        )
 
     @override_settings(SENTRY_REGION="us")
     def test_get_dsn_org_subdomain_and_multiregion(self):
-        with self.feature("organizations:org-subdomains"):
+        with self.feature("organizations:org-ingest-subdomains"):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             host = f"o{key.project.organization_id}.ingest." + (
                 "us.testserver" if SiloMode.get_current_mode() == SiloMode.REGION else "testserver"
@@ -156,6 +169,10 @@ class ProjectKeyTest(TestCase):
                 == f"http://{host}/api/{self.project.id}/minidump/?sentry_key=abc"
             )
             assert key.unreal_endpoint == f"http://{host}/api/{self.project.id}/unreal/abc/"
+            assert (
+                key.crons_endpoint
+                == f"http://{host}/api/{self.project.id}/cron/___MONITOR_SLUG___/abc/"
+            )
 
 
 @mock.patch("sentry.models.projectkey.schedule_invalidate_project_config")
@@ -177,6 +194,6 @@ def test_key_saved_projconfig_invalidated(inv_proj_config, default_project):
 
     key = ProjectKey.objects.get(project=default_project)
     manager = ProjectKeyManager()
-    manager.post_save(key)
+    manager.post_save(instance=key, created=False)
 
     assert inv_proj_config.call_count == 1

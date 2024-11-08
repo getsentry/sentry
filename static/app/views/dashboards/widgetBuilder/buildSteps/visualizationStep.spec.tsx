@@ -1,13 +1,24 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization} from 'sentry/types';
-import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
+import type {Organization} from 'sentry/types/organization';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+import {VisualizationStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/visualizationStep';
+
+import {DashboardsMEPProvider} from '../../widgetCard/dashboardsMEPContext';
+import WidgetLegendSelectionState from '../../widgetLegendSelectionState';
 
 jest.unmock('lodash/debounce');
 
@@ -71,13 +82,23 @@ function mockRequests(orgSlug: Organization['slug']) {
     body: [],
   });
 
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/recent-searches/',
+    method: 'GET',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/spans/fields/`,
+    body: [],
+  });
+
   return {eventsMock};
 }
 
 describe('VisualizationStep', function () {
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, projects, router} = initializeOrg({
     organization: {
-      features: ['dashboards-edit', 'global-views', 'dashboards-mep'],
+      features: ['performance-view', 'dashboards-edit', 'global-views', 'dashboards-mep'],
     },
     router: {
       location: {
@@ -88,14 +109,19 @@ describe('VisualizationStep', function () {
     },
   });
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
+    organization,
+    router,
+  });
+
   beforeEach(function () {
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
   });
 
   it('debounce works as expected and requests are not triggered often', async function () {
     const {eventsMock} = mockRequests(organization.slug);
-
-    jest.useFakeTimers();
 
     render(
       <WidgetBuilder
@@ -118,9 +144,10 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
+        widgetLegendState={widgetLegendState}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -130,8 +157,6 @@ describe('VisualizationStep', function () {
     await userEvent.type(await screen.findByPlaceholderText('Alias'), 'abc', {
       delay: null,
     });
-    act(() => jest.advanceTimersByTime(DEFAULT_DEBOUNCE_DURATION + 1));
-    jest.useRealTimers();
 
     await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
   });
@@ -169,9 +194,10 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
+        widgetLegendState={widgetLegendState}
       />,
       {
-        context: routerContext,
+        router,
         organization: {
           ...organization,
           features: [...organization.features, 'dynamic-sampling', 'mep-rollout-flag'],
@@ -211,9 +237,10 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
+        widgetLegendState={widgetLegendState}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -257,9 +284,10 @@ describe('VisualizationStep', function () {
           orgId: organization.slug,
           dashboardId: 'new',
         }}
+        widgetLegendState={widgetLegendState}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -268,5 +296,55 @@ describe('VisualizationStep', function () {
 
     // Only called once on the initial render
     await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('makes a request to the spans dataset for a table widget', async function () {
+    const {eventsMock} = mockRequests(organization.slug);
+    const mockSpanWidget = {
+      interval: '1d',
+      title: 'Title',
+      widgetType: WidgetType.SPANS,
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          conditions: '',
+          name: '',
+          aggregates: ['count()'],
+          columns: [],
+          fields: [],
+          orderby: '',
+        },
+      ],
+    };
+
+    render(
+      <MEPSettingProvider>
+        <DashboardsMEPProvider>
+          <VisualizationStep
+            organization={organization}
+            pageFilters={PageFiltersFixture()}
+            displayType={DisplayType.TABLE}
+            error={undefined}
+            onChange={jest.fn()}
+            widget={mockSpanWidget}
+            isWidgetInvalid={false}
+            location={router.location}
+            widgetLegendState={widgetLegendState}
+          />
+        </DashboardsMEPProvider>
+      </MEPSettingProvider>,
+      {organization}
+    );
+
+    await waitFor(() =>
+      expect(eventsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'spans',
+          }),
+        })
+      )
+    );
   });
 });

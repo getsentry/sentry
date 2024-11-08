@@ -8,13 +8,17 @@ import {
   profiling as PROFILING_PLATFORMS,
 } from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {EventTransaction, Group, Organization, PlatformKey} from 'sentry/types';
-import {IssueCategory, IssueType} from 'sentry/types';
-import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
+import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {platformToCategory} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
@@ -36,7 +40,7 @@ function AllEventsTable(props: Props) {
   const config = getConfigForIssueType(props.group, group.project);
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
-  const {fields, columnTitles} = getColumns(group, organization);
+  const {fields, columnTitles} = useEventColumns(group, organization);
   const now = useMemo(() => Date.now(), []);
 
   const endpointUrl = makeGroupPreviewRequestUrl({
@@ -44,7 +48,7 @@ function AllEventsTable(props: Props) {
   });
 
   const queryEnabled = group.issueCategory === IssueCategory.PERFORMANCE;
-  const {data, isLoading, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
+  const {data, isPending, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
     staleTime: 60000,
     enabled: queryEnabled,
   });
@@ -55,15 +59,14 @@ function AllEventsTable(props: Props) {
   const groupIsOccurrenceBacked = !!data?.occurrence;
 
   const eventView: EventView = EventView.fromLocation(props.location);
-  if (
-    config.usesIssuePlatform ||
-    (group.issueCategory === IssueCategory.PERFORMANCE && groupIsOccurrenceBacked)
-  ) {
+  if (config.usesIssuePlatform) {
     eventView.dataset = DiscoverDatasets.ISSUE_PLATFORM;
   }
   eventView.fields = fields.map(fieldName => ({field: fieldName}));
 
-  eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
+  eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
+    fields.includes(sort.field)
+  );
 
   useEffect(() => {
     setError('');
@@ -122,62 +125,66 @@ function AllEventsTable(props: Props) {
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
-      isEventLoading={queryEnabled ? isLoading : false}
+      isEventLoading={queryEnabled ? isPending : false}
     />
   );
 }
 
 type ColumnInfo = {columnTitles: string[]; fields: string[]};
 
-const getColumns = (group: Group, organization: Organization): ColumnInfo => {
-  const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
-  const isReplayEnabled =
-    organization.features.includes('session-replay') &&
-    projectCanLinkToReplay(group.project);
+export const useEventColumns = (group: Group, organization: Organization): ColumnInfo => {
+  return useMemo(() => {
+    const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
+    const isReplayEnabled =
+      organization.features.includes('session-replay') &&
+      projectCanLinkToReplay(organization, group.project);
 
-  // profiles only exist on transactions, so this only works with
-  // performance issues, and not errors
-  const isProfilingEnabled = isPerfIssue && organization.features.includes('profiling');
+    // profiles only exist on transactions, so this only works with
+    // performance issues, and not errors
+    const isProfilingEnabled = isPerfIssue && organization.features.includes('profiling');
 
-  const {fields: platformSpecificFields, columnTitles: platformSpecificColumnTitles} =
-    getPlatformColumns(group.project.platform ?? group.platform, {
-      isProfilingEnabled,
-      isReplayEnabled,
-    });
+    const {fields: platformSpecificFields, columnTitles: platformSpecificColumnTitles} =
+      getPlatformColumns(group.project.platform ?? group.platform, {
+        isProfilingEnabled,
+        isReplayEnabled,
+      });
 
-  const fields: string[] = [
-    'id',
-    'transaction',
-    'title',
-    'release',
-    'environment',
-    'user.display',
-    'device',
-    'os',
-    ...platformSpecificFields,
-    ...(isPerfIssue ? ['transaction.duration'] : []),
-    'timestamp',
-  ];
+    const fields: string[] = [
+      'id',
+      'timestamp',
+      'title',
+      'transaction',
+      'release',
+      'environment',
+      'user.display',
+      'device',
+      'os',
+      ...platformSpecificFields,
+      'trace',
+      ...(isPerfIssue ? ['transaction.duration'] : []),
+    ];
 
-  const columnTitles: string[] = [
-    t('event id'),
-    t('transaction'),
-    t('title'),
-    t('release'),
-    t('environment'),
-    t('user'),
-    t('device'),
-    t('os'),
-    ...platformSpecificColumnTitles,
-    ...(isPerfIssue ? [t('total duration')] : []),
-    t('timestamp'),
-    t('minidump'),
-  ];
+    const columnTitles: string[] = [
+      t('Event ID'),
+      t('Timestamp'),
+      t('Title'),
+      t('Transaction'),
+      t('Release'),
+      t('Environment'),
+      t('User'),
+      t('Device'),
+      t('OS'),
+      ...platformSpecificColumnTitles,
+      t('Trace'),
+      ...(isPerfIssue ? [t('Total Duration')] : []),
+      t('Minidump'),
+    ];
 
-  return {
-    fields,
-    columnTitles,
-  };
+    return {
+      fields,
+      columnTitles,
+    };
+  }, [group, organization]);
 };
 
 const getPlatformColumns = (
@@ -186,7 +193,7 @@ const getPlatformColumns = (
 ): ColumnInfo => {
   const backendServerlessColumnInfo = {
     fields: ['url', 'runtime'],
-    columnTitles: [t('url'), t('runtime')],
+    columnTitles: [t('URL'), t('Runtime')],
   };
 
   const categoryToColumnMap: Record<PlatformCategory, ColumnInfo> = {
@@ -194,11 +201,11 @@ const getPlatformColumns = (
     [PlatformCategory.SERVERLESS]: backendServerlessColumnInfo,
     [PlatformCategory.FRONTEND]: {
       fields: ['url', 'browser'],
-      columnTitles: [t('url'), t('browser')],
+      columnTitles: [t('URL'), t('Browser')],
     },
     [PlatformCategory.MOBILE]: {
       fields: ['url'],
-      columnTitles: [t('url')],
+      columnTitles: [t('URL')],
     },
     [PlatformCategory.DESKTOP]: {
       fields: [],
@@ -215,11 +222,11 @@ const getPlatformColumns = (
 
   if (options.isReplayEnabled) {
     platformColumns.fields.push('replayId');
-    platformColumns.columnTitles.push(t('replay'));
+    platformColumns.columnTitles.push(t('Replay'));
   }
 
   if (options.isProfilingEnabled && platform && PROFILING_PLATFORMS.includes(platform)) {
-    platformColumns.columnTitles.push(t('profile'));
+    platformColumns.columnTitles.push(t('Profile'));
     platformColumns.fields.push('profile.id');
   }
 

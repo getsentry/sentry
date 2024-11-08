@@ -2,7 +2,7 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -13,11 +13,12 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import marked from 'sentry/utils/marked';
+import {limitedMarked} from 'sentry/utils/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -56,9 +57,9 @@ function ErrorDescription({
         action={
           <ButtonBar gap={2}>
             <Button onClick={onHideSuggestion}>{t('Dismiss')}</Button>
-            <Button priority="primary" to={`/settings/${organizationSlug}/legal/`}>
+            <LinkButton priority="primary" to={`/settings/${organizationSlug}/legal/`}>
               {t('Accept in Settings')}
-            </Button>
+            </LinkButton>
           </ButtonBar>
         }
       />
@@ -104,11 +105,12 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const [suggestedSolutionLocalConfig, setSuggestedSolutionLocalConfig] =
     useOpenAISuggestionLocalStorage();
   const [piiCertified, setPiiCertified] = useState(false);
+  const [feedbackProvided, setFeedbackProvided] = useState(false);
   const isSentryEmployee = useIsSentryEmployee();
 
   const {
     data,
-    isLoading: dataIsLoading,
+    isPending: dataIsLoading,
     isError: dataIsError,
     refetch: dataRefetch,
     error,
@@ -131,6 +133,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
 
   const handleFeedbackClick = useCallback(() => {
     addSuccessMessage('Thank you for your feedback!');
+    setFeedbackProvided(true);
   }, []);
 
   if (isSentryEmployee && !piiCertified) {
@@ -182,7 +185,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
         ) : (
           <Content
             dangerouslySetInnerHTML={{
-              __html: marked(data.suggestion, {
+              __html: limitedMarked(data.suggestion, {
                 gfm: true,
                 breaks: true,
               }),
@@ -190,7 +193,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
           />
         )}
       </PanelBody>
-      {!dataIsLoading && !dataIsError && (
+      {!dataIsLoading && !dataIsError && !feedbackProvided && (
         <PanelFooter>
           <Feedback>
             <strong>{t('Was this helpful?')}</strong>

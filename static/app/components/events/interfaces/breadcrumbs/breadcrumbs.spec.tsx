@@ -13,17 +13,6 @@ jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useReplayReader');
 jest.mock('sentry/utils/useProjects');
 
-jest.mock('screenfull', () => ({
-  enabled: true,
-  isFullscreen: false,
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
-
-jest.mock('sentry/utils/useProjects');
-
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
 
@@ -36,6 +25,7 @@ describe('Breadcrumbs', () => {
       hasMore: false,
       initiallyLoaded: false,
       onSearch: () => Promise.resolve(),
+      reloadProjects: jest.fn(),
       placeholders: [],
       projects: [project],
     });
@@ -148,13 +138,13 @@ describe('Breadcrumbs', () => {
   });
 
   describe('render', function () {
-    it('should display the correct number of crumbs with no filter', function () {
+    it('should display the correct number of crumbs with no filter', async function () {
       props.data.values = props.data.values.slice(0, 4);
 
       render(<Breadcrumbs {...props} />);
 
       // data.values + virtual crumb
-      expect(screen.getAllByTestId('crumb')).toHaveLength(4);
+      expect(await screen.findAllByTestId('crumb')).toHaveLength(4);
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
@@ -173,7 +163,7 @@ describe('Breadcrumbs', () => {
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
 
-    it('should not crash if data contains a toString attribute', function () {
+    it('should not crash if data contains a toString attribute', async function () {
       // Regression test: A "toString" property in data should not falsely be
       // used to coerce breadcrumb data to string. This would cause a TypeError.
       const data = {nested: {toString: 'hello'}};
@@ -191,12 +181,13 @@ describe('Breadcrumbs', () => {
       render(<Breadcrumbs {...props} />);
 
       // data.values + virtual crumb
-      expect(screen.getByTestId('crumb')).toBeInTheDocument();
+      expect(await screen.findByTestId('crumb')).toBeInTheDocument();
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
 
     it('should render Sentry Transactions crumb', async function () {
+      props.organization.features = ['performance-view'];
       props.data.values = [
         {
           message: '12345678123456781234567812345678',

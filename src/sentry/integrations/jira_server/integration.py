@@ -18,24 +18,22 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import features
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.jira_server.utils.choice import build_user_choice
-from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.mixins import ResolveSyncAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization.service import organization_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -43,7 +41,10 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
-from sentry.tasks.integrations import migrate_issues
+from sentry.silo.base import all_silo_function
+from sentry.users.models.identity import Identity
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -267,7 +268,7 @@ JIRA_CUSTOM_FIELD_TYPES = {
 }
 
 
-class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
+class JiraServerIntegration(IssueSyncIntegration):
     """
     IntegrationInstallation implementation for Jira-Server
     """
@@ -278,14 +279,19 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
     issues_ignored_fields_key = "issues_ignored_fields"
+    resolution_strategy_key = "resolution_strategy"
 
     default_identity = None
 
     def get_client(self):
+        try:
+            self.default_identity = self.get_default_identity()
+        except Identity.DoesNotExist:
+            raise IntegrationError("Identity not found.")
+
         return JiraServerClient(
             integration=self.model,
-            identity_id=self.org_integration.default_auth_id,
-            org_integration_id=self.org_integration.id,
+            identity=self.default_identity,
         )
 
     def get_organization_config(self):
@@ -343,6 +349,20 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "label": _("Sync Jira Server Assignment to Sentry"),
                 "help": _(
                     "When a ticket is assigned in Jira Server, assign its linked Sentry issue to the same user."
+                ),
+            },
+            {
+                "name": self.resolution_strategy_key,
+                "label": "Resolve",
+                "type": "select",
+                "placeholder": "Resolve",
+                "choices": [
+                    ("resolve", "Resolve"),
+                    ("resolve_current_release", "Resolve in Current Release"),
+                    ("resolve_next_release", "Resolve in Next Release"),
+                ],
+                "help": _(
+                    "Select what action to take on Sentry Issue when Jira ticket is marked Done."
                 ),
             },
             {
@@ -498,7 +518,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
         return fields
 
-    def get_issue_url(self, key, **kwargs):
+    def get_issue_url(self, key: str) -> str:
         return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self) -> Sequence[str]:
@@ -524,7 +544,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_issue(self, issue_id, **kwargs):
         """
-        Jira installation's implementation of IssueSyncMixin's `get_issue`.
+        Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
         client = self.get_client()
         issue = client.get_issue(issue_id)
@@ -552,9 +572,11 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             issue_id, group_note.data["external_id"], quoted_comment
         )
 
-    def search_issues(self, query):
+    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
         try:
-            return self.get_client().search_issues(query)
+            resp = self.get_client().search_issues(query)
+            assert isinstance(resp, dict)
+            return resp
         except ApiError as e:
             self.raise_error(e)
 

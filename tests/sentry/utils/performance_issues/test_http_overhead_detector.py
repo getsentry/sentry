@@ -11,7 +11,6 @@ from sentry.testutils.performance_issues.event_generators import (
     create_span,
     modify_span_start,
 )
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.http_overhead_detector import HTTPOverheadDetector
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
@@ -67,7 +66,6 @@ def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
     return list(detector.stored_problems.values())
 
 
-@region_silo_test
 @pytest.mark.django_db
 class HTTPOverheadDetectorTest(TestCase):
     def setUp(self):
@@ -262,3 +260,23 @@ class HTTPOverheadDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
+
+    def test_none_request_start(self):
+        url = "https://example.com/api/endpoint/123"
+        event = _valid_http_overhead_event("/api/endpoint/123")
+
+        # Include an invalid span to ensure it's not processed
+        span = create_span(
+            "http.client",
+            desc=url,
+            duration=1000,
+            data={
+                "url": url,
+                "network.protocol.version": "1.1",
+                "http.request.request_start": None,
+            },
+        )
+
+        event["spans"] = [span]
+
+        assert self.find_problems(event) == []

@@ -6,18 +6,20 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import ObjectStatus
-from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_jwt
-from sentry.models.integrations.integration import Integration
-from sentry.models.organization import Organization
-from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.repository import repository_service
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_integration_from_jwt,
+)
 
 
 @control_silo_endpoint
 class BitbucketUninstalledEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()
@@ -44,15 +46,12 @@ class BitbucketUninstalledEndpoint(Endpoint):
         org_integrations = integration_service.get_organization_integrations(
             integration_id=integration.id
         )
-        organizations = Organization.objects.filter(
-            id__in=[oi.organization_id for oi in org_integrations]
-        )
 
-        # TODO: Replace with repository_service; support status write
-        Repository.objects.filter(
-            organization_id__in=organizations.values_list("id", flat=True),
-            provider="integrations:bitbucket",
-            integration_id=integration.id,
-        ).update(status=ObjectStatus.DISABLED)
+        for oi in org_integrations:
+            repository_service.disable_repositories_for_integration(
+                organization_id=oi.organization_id,
+                integration_id=integration.id,
+                provider="integrations:bitbucket",
+            )
 
         return self.respond()

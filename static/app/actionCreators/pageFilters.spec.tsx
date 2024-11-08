@@ -17,7 +17,7 @@ import localStorage from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
 
-const {organization} = initializeOrg({
+const {organization, projects} = initializeOrg({
   projects: [
     {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
     {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
@@ -59,7 +59,7 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         router,
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         shouldEnforceSingleProject: false,
       });
@@ -91,7 +91,7 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         skipLoadLastUsed: true,
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         router,
@@ -115,7 +115,7 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {},
         shouldPersist: false,
         router,
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         shouldEnforceSingleProject: false,
       });
@@ -152,7 +152,7 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         router,
@@ -177,7 +177,7 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         defaultSelection: {
@@ -211,7 +211,7 @@ describe('PageFilters ActionCreators', function () {
           statsPeriod: '1h',
           project: '1',
         },
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         defaultSelection: {
@@ -244,7 +244,7 @@ describe('PageFilters ActionCreators', function () {
           end: '2020-04-21T00:53:38',
           project: '1',
         },
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         defaultSelection: {
@@ -276,7 +276,7 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         router,
@@ -312,7 +312,7 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '-1',
         },
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         router,
@@ -339,7 +339,7 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '-1',
         },
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         // User does not have access to global views
         shouldEnforceSingleProject: true,
@@ -382,7 +382,7 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         router,
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         shouldEnforceSingleProject: false,
       });
@@ -414,7 +414,7 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         router,
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         shouldEnforceSingleProject: false,
       });
@@ -448,7 +448,7 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         router,
-        memberProjects: organization.projects,
+        memberProjects: projects,
         nonMemberProjects: [],
         shouldEnforceSingleProject: false,
         storageNamespace: 'starfish',

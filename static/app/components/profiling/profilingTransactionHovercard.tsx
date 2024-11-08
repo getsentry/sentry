@@ -1,8 +1,9 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import {Hovercard} from 'sentry/components/hovercard';
-import {Flex} from 'sentry/components/profiling/flex';
 import {
   FunctionsMiniGrid,
   FunctionsMiniGridEmptyState,
@@ -11,7 +12,8 @@ import {
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useProfilingTransactionQuickSummary} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
@@ -20,8 +22,8 @@ import {
   generateProfileSummaryRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
+import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 
-import {Button} from '../button';
 import Link from '../links/link';
 import LoadingIndicator from '../loadingIndicator';
 import PerformanceDuration from '../performanceDuration';
@@ -36,49 +38,72 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
   const {project, transaction, organization} = props;
   const {query} = useLocation();
 
-  const linkToSummary = generateProfileSummaryRouteWithQuery({
+  if (!organization.features.includes('continuous-profiling-ui')) {
+    const linkToSummary = generateProfileSummaryRouteWithQuery({
+      query,
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      transaction,
+    });
+
+    const triggerLink = (
+      <Link
+        to={linkToSummary}
+        onClick={() =>
+          trackAnalytics('profiling_views.go_to_transaction', {
+            organization,
+            source: 'transaction_hovercard.trigger',
+          })
+        }
+      >
+        {transaction}
+      </Link>
+    );
+
+    return (
+      <StyledHovercard
+        delay={250}
+        header={
+          <Flex justify="space-between" align="center">
+            <TextTruncateOverflow>{transaction}</TextTruncateOverflow>
+            <LinkButton to={linkToSummary} size="xs">
+              {t('View Profiles')}
+            </LinkButton>
+          </Flex>
+        }
+        body={
+          <ProfilingTransactionHovercardBody
+            transaction={transaction}
+            project={project}
+            organization={organization}
+          />
+        }
+        showUnderline
+      >
+        {triggerLink}
+      </StyledHovercard>
+    );
+  }
+
+  const linkToSummary = profilesRouteWithQuery({
     query,
     orgSlug: organization.slug,
-    projectSlug: project.slug,
+    projectID: project.id,
     transaction,
   });
 
-  const triggerLink = (
+  return (
     <Link
       to={linkToSummary}
       onClick={() =>
         trackAnalytics('profiling_views.go_to_transaction', {
           organization,
-          source: 'transaction_hovercard.trigger',
+          source: 'profiling.landing.transaction_table',
         })
       }
     >
       {transaction}
     </Link>
-  );
-
-  return (
-    <StyledHovercard
-      delay={250}
-      header={
-        <Flex justify="space-between" align="center">
-          <TextTruncateOverflow>{transaction}</TextTruncateOverflow>
-          <Button to={linkToSummary} size="xs">
-            {t('View Profiles')}
-          </Button>
-        </Flex>
-      }
-      body={
-        <ProfilingTransactionHovercardBody
-          transaction={transaction}
-          project={project}
-          organization={organization}
-        />
-      }
-      showUnderline
-    >
-      {triggerLink}
-    </StyledHovercard>
   );
 }
 
@@ -124,7 +149,7 @@ export function ProfilingTransactionHovercardBody({
       <Flex justify="space-between">
         <ContextDetail
           title={t('Latest profile')}
-          isLoading={latestProfileQuery.isLoading}
+          isLoading={latestProfileQuery.isPending}
         >
           {latestProfile ? (
             <Link
@@ -145,7 +170,7 @@ export function ProfilingTransactionHovercardBody({
 
         <ContextDetail
           title={t('Slowest profile')}
-          isLoading={slowestProfileQuery.isLoading}
+          isLoading={slowestProfileQuery.isPending}
         >
           {slowestProfile ? (
             <Flex gap={space(1)}>
@@ -176,7 +201,7 @@ export function ProfilingTransactionHovercardBody({
 
       <Flex column h={125}>
         <ProfilingTransactionHovercardFunctions
-          isLoading={functionsQuery.isLoading}
+          isLoading={functionsQuery.isPending}
           functions={functions ?? []}
           organization={organization}
           project={project}
@@ -236,7 +261,7 @@ function ContextDetail(props: ContextDetailProps) {
 const UppercaseTitle = styled('span')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 `;
 

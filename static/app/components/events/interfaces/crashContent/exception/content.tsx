@@ -14,10 +14,11 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ExceptionType, Project} from 'sentry/types';
-import type {Event, ExceptionValue} from 'sentry/types/event';
+import type {Event, ExceptionType, ExceptionValue} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
@@ -34,10 +35,7 @@ type Props = {
   stackView?: StackTraceProps['stackView'];
   threadId?: number;
 } & Pick<ExceptionType, 'values'> &
-  Pick<
-    React.ComponentProps<typeof StackTrace>,
-    'groupingCurrentLevel' | 'hasHierarchicalGrouping'
-  >;
+  Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
 
 type CollapsedExceptionMap = {[exceptionId: number]: boolean};
 
@@ -126,7 +124,6 @@ export function Content({
   event,
   stackView,
   groupingCurrentLevel,
-  hasHierarchicalGrouping,
   projectSlug,
   values,
   type,
@@ -137,6 +134,8 @@ export function Content({
     useCollapsedExceptions(values);
 
   const sourceMapDebuggerData = useSourceMapDebuggerData(event, projectSlug);
+
+  const isSampleError = useIsSampleEvent();
 
   // Organization context may be unavailable for the shared event view, so we
   // avoid using the `useOrganization` hook here and directly useContext
@@ -181,7 +180,7 @@ export function Content({
         ) : (
           <Title id={id}>{exc.type}</Title>
         )}
-        <StyledPre className="exc-message">
+        <StyledPre>
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
             <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
           ) : (
@@ -200,7 +199,7 @@ export function Content({
           newestFirst={newestFirst}
           onExceptionClick={expandException}
         />
-        {exc.stacktrace && isTopException && (
+        {exc.stacktrace && isTopException && !isSampleError && (
           <ErrorBoundary customComponent={null}>
             <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
           </ErrorBoundary>
@@ -218,7 +217,6 @@ export function Content({
           newestFirst={newestFirst}
           event={event}
           chainedException={values.length > 1}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta?.[excIdx]?.stacktrace}
           threadId={threadId}
@@ -237,8 +235,11 @@ export function Content({
 }
 
 const StyledPre = styled('pre')`
-  margin-bottom: ${space(1)};
-  margin-top: 0;
+  padding: 0;
+  margin: 0;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  background-color: inherit;
 `;
 
 const Title = styled('h5')`

@@ -1,18 +1,27 @@
-import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
-import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
-import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
-import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import WidgetBuilder, {
+  type WidgetBuilderProps,
+} from 'sentry/views/dashboards/widgetBuilder';
+
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -47,7 +56,7 @@ function renderTestComponent({
   params?: Partial<WidgetBuilderProps['params']>;
   query?: Record<string, any>;
 } = {}) {
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, projects, router} = initializeOrg({
     organization: {
       features: orgFeatures ?? defaultOrgFeatures,
     },
@@ -61,7 +70,14 @@ function renderTestComponent({
     },
   });
 
-  ProjectsStore.loadInitialData(organization.projects);
+  ProjectsStore.loadInitialData(projects);
+
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
+    organization,
+    router,
+  });
 
   render(
     <WidgetBuilder
@@ -86,9 +102,10 @@ function renderTestComponent({
         dashboardId: dashboard?.id ?? 'new',
         ...params,
       }}
+      widgetLegendState={widgetLegendState}
     />,
     {
-      context: routerContext,
+      router,
       organization,
     }
   );
@@ -219,6 +236,10 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/releases/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/spans/fields/`,
+      body: [],
+    });
 
     TagStore.reset();
   });
@@ -241,7 +262,9 @@ describe('WidgetBuilder', function () {
       // Selector "sortDirection"
       expect(screen.getByText('High to low')).toBeInTheDocument();
       // Selector "sortBy"
-      expect(screen.getAllByText('count()')).toHaveLength(3);
+      await waitFor(() => {
+        expect(screen.getAllByText('count()')).toHaveLength(3);
+      });
     });
 
     it('sortBy defaults to the first field value when changing display type to table', async function () {
@@ -378,10 +401,12 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
 
       // Selector "sortDirection"
-      expect(screen.getByText('Low to high')).toBeInTheDocument();
+      expect(await screen.findByText('Low to high')).toBeInTheDocument();
 
       // Selector "sortBy"
-      expect(screen.getAllByText('title')).toHaveLength(2);
+      await waitFor(() => {
+        expect(screen.getAllByText('title')).toHaveLength(2);
+      });
 
       // Saves the widget
       await userEvent.click(screen.getByText('Add Widget'));
@@ -553,7 +578,7 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
       await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
-      selectEvent.openMenu(screen.getByPlaceholderText('Enter Equation'));
+      await selectEvent.openMenu(screen.getByPlaceholderText('Enter Equation'));
 
       await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
 
@@ -904,6 +929,53 @@ describe('WidgetBuilder', function () {
           }),
         })
       );
+    });
+  });
+
+  describe('spans dataset timeseries', function () {
+    it('returns only the selected aggregates and group by as options', async function () {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        interval: '5m',
+        displayType: DisplayType.LINE,
+        widgetType: WidgetType.SPANS,
+        queries: [
+          {
+            name: '',
+            conditions: '',
+            fields: ['count(span.duration)', 'avg(span.duration)', 'transaction'],
+            aggregates: ['count(span.duration)', 'avg(span.duration)'],
+            columns: ['transaction'],
+            orderby: '-count(span.duration)',
+          },
+        ],
+      };
+
+      const dashboard = mockDashboard({widgets: [widget]});
+
+      renderTestComponent({
+        dashboard,
+        params: {
+          widgetIndex: '0',
+        },
+        orgFeatures: [...defaultOrgFeatures, 'dashboards-eap'],
+      });
+
+      await screen.findByText('Sort by a y-axis');
+      await selectEvent.openMenu(await screen.findByText('count(span.duration)'));
+
+      // 3 options in the dropdown
+      expect(screen.queryAllByTestId('menu-list-item-label')).toHaveLength(3);
+
+      // Appears once in the dropdown and once in the sort by field
+      expect(await screen.findAllByText('count(span.duration)')).toHaveLength(2);
+
+      // Appears once in the dropdown
+      expect(await screen.findAllByText('avg(span.duration)')).toHaveLength(1);
+
+      // Appears once in the dropdown and once in the group by field
+      expect(await screen.findAllByText('transaction')).toHaveLength(2);
     });
   });
 });

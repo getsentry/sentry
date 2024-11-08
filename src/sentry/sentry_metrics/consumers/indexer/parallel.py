@@ -27,7 +27,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     RoutingProducerStep,
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
-from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka import delay_kafka_rebalance
 
 logger = logging.getLogger(__name__)
@@ -170,7 +170,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             slicing_router=self.__slicing_router,
         )
 
-        parallel_strategy = RunTaskWithMultiprocessing(
+        parallel_strategy = run_task_with_multiprocessing(
             function=MessageProcessor(self.config).process_messages,
             next_step=Unbatcher(next_step=producer),
             pool=self.__pool,

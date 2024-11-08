@@ -1,20 +1,22 @@
-import abc
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, Self
 
 from django.core import exceptions
 from django.core.exceptions import EmptyResultSet
 from django.db import connections, router, transaction
 from django.db.models import QuerySet, sql
 
+from sentry.db.models.manager.types import M, R
 from sentry.signals import post_update
 
 
-class BaseQuerySet(QuerySet, abc.ABC):
-    def __init__(self, *args, **kwargs):
+class BaseQuerySet(QuerySet[M, R]):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._with_post_update_signal = False
 
-    def with_post_update_signal(self, enable: bool) -> "BaseQuerySet":
+    def with_post_update_signal(self, enable: bool) -> Self:
         """
         Enables sending a `post_update` signal after this queryset runs an update command. Note that this is less
         efficient than just running the update. To get the list of group ids affected, we first run the query to
@@ -24,12 +26,12 @@ class BaseQuerySet(QuerySet, abc.ABC):
         qs._with_post_update_signal = enable
         return qs
 
-    def _clone(self) -> "BaseQuerySet":
+    def _clone(self) -> Self:
         qs = super()._clone()  # type: ignore[misc]
         qs._with_post_update_signal = self._with_post_update_signal
         return qs
 
-    def update_with_returning(self, returned_fields: list[str], **kwargs):
+    def update_with_returning(self, returned_fields: list[str], **kwargs: Any) -> list[tuple[int]]:
         """
         Copied and modified from `Queryset.update()` to support `RETURNING <returned_fields>`
         """
@@ -86,17 +88,17 @@ class BaseQuerySet(QuerySet, abc.ABC):
         else:
             return super().update(**kwargs)
 
-    def using_replica(self) -> "BaseQuerySet":
+    def using_replica(self) -> Self:
         """
         Use read replica for this query. Database router is expected to use the
         `replica=True` hint to make routing decision.
         """
         return self.using(router.db_for_read(self.model, replica=True))
 
-    def defer(self, *args: Any, **kwargs: Any) -> "BaseQuerySet":
+    def defer(self, *args: Any, **kwargs: Any) -> Self:
         raise NotImplementedError("Use ``values_list`` instead [performance].")
 
-    def only(self, *args: Any, **kwargs: Any) -> "BaseQuerySet":
+    def only(self, *args: Any, **kwargs: Any) -> Self:
         # In rare cases Django can use this if a field is unexpectedly deferred. This
         # mostly can happen if a field is added to a model, and then an old pickle is
         # passed to a process running the new code. So if you see this error after a

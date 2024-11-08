@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 
 from snuba_sdk import Column as SnQLColumn
@@ -11,7 +12,7 @@ from snuba_sdk.function import Function, Identifier, Lambda
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events import builder
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import EQUALITY_OPERATORS, PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -25,7 +26,7 @@ from sentry.search.events.fields import (
     TimestampArg,
     with_default,
 )
-from sentry.search.events.types import NormalizedArg, ParamsType, SelectType, WhereType
+from sentry.search.events.types import ParamsType, SelectType, WhereType
 
 
 class Kind(Enum):
@@ -97,9 +98,7 @@ AGG_STATE_COLUMNS = [
 
 
 class ProfileFunctionColumnArg(ColumnArg):
-    def normalize(
-        self, value: str, params: ParamsType, combinator: Combinator | None
-    ) -> NormalizedArg:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         column = COLUMN_MAP.get(value)
 
         # must be a known column or field alias
@@ -145,7 +144,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         "platform.name",
     }
 
-    def __init__(self, builder: builder.QueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder
 
     @property
@@ -172,36 +171,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
             )
 
     def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
-        value = search_filter.value.value
-        if search_filter.value.is_wildcard():
-            # XXX: We don't want the '^$' values at the beginning and end of
-            # the regex since we want to find the pattern anywhere in the
-            # message. Strip off here
-            value = search_filter.value.value[1:-1]
-            return Condition(
-                Function("match", [self.builder.column("message"), f"(?i){value}"]),
-                Op(search_filter.operator),
-                1,
-            )
-        elif value == "":
-            operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
-            return Condition(
-                Function("equals", [self.builder.column("message"), value]), operator, 1
-            )
-        else:
-            if search_filter.is_in_filter:
-                return Condition(
-                    self.builder.column("message"),
-                    Op(search_filter.operator),
-                    value,
-                )
-
-            # make message search case insensitive
-            return Condition(
-                Function("positionCaseInsensitive", [self.builder.column("message"), value]),
-                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
-                0,
-            )
+        return filter_aliases.message_filter_converter(self.builder, search_filter)
 
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
@@ -328,6 +298,84 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                                                         [SnQLColumn("examples")],
                                                     ),
                                                     Function("argMaxMerge", [SnQLColumn("worst")]),
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="string",  # TODO: support array type
+                ),
+                SnQLFunction(
+                    "all_examples",
+                    snql_aggregate=lambda _, alias: Function(
+                        # The worst may collide with one of the examples, so make sure to filter it out.
+                        "arrayDistinct",
+                        [
+                            Function(
+                                "arrayFilter",
+                                [
+                                    # Filter out the profile ids for processed profiles
+                                    Lambda(
+                                        ["x"],
+                                        Function(
+                                            "notEquals",
+                                            [
+                                                Function("tupleElement", [Identifier("x"), 1]),
+                                                uuid.UUID(int=0).hex,
+                                            ],
+                                        ),
+                                    ),
+                                    Function(
+                                        "arrayMap",
+                                        [
+                                            # TODO: should this transform be moved to snuba?
+                                            Lambda(
+                                                ["x"],
+                                                Function(
+                                                    "tuple",
+                                                    [
+                                                        Function(
+                                                            "replaceAll",
+                                                            [
+                                                                Function(
+                                                                    "toString",
+                                                                    [
+                                                                        Function(
+                                                                            "tupleElement",
+                                                                            [Identifier("x"), 1],
+                                                                        )
+                                                                    ],
+                                                                ),
+                                                                "-",
+                                                                "",
+                                                            ],
+                                                        ),
+                                                        Function(
+                                                            "tupleElement", [Identifier("x"), 2]
+                                                        ),
+                                                        Function(
+                                                            "tupleElement", [Identifier("x"), 3]
+                                                        ),
+                                                        Function(
+                                                            "tupleElement", [Identifier("x"), 4]
+                                                        ),
+                                                    ],
+                                                ),
+                                            ),
+                                            Function(
+                                                "arrayPushFront",
+                                                [
+                                                    Function(
+                                                        "groupUniqArrayMerge(5)",
+                                                        [SnQLColumn("examples_v2")],
+                                                    ),
+                                                    Function(
+                                                        "argMaxMerge", [SnQLColumn("worst_v2")]
+                                                    ),
                                                 ],
                                             ),
                                         ],
@@ -592,6 +640,9 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
     ) -> SelectType:
+        assert (
+            self.builder.params.end is not None and self.builder.params.start is not None
+        ), f"params.end: {self.builder.params.end} - params.start: {self.builder.params.start}"
         interval = (self.builder.params.end - self.builder.params.start).total_seconds()
 
         return Function(
@@ -609,10 +660,17 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         alias: str | None,
         cond: str,
     ) -> SelectType:
+        timestamp = args["timestamp"]
         if cond == "greater":
-            interval = (self.builder.params.end - args["timestamp"]).total_seconds()
+            assert isinstance(self.builder.params.end, datetime) and isinstance(
+                timestamp, datetime
+            ), f"params.end: {self.builder.params.end} - timestamp: {timestamp}"
+            interval = (self.builder.params.end - timestamp).total_seconds()
         elif cond == "less":
-            interval = (args["timestamp"] - self.builder.params.start).total_seconds()
+            assert isinstance(self.builder.params.start, datetime) and isinstance(
+                timestamp, datetime
+            ), f"params.start: {self.builder.params.start} - timestamp: {timestamp}"
+            interval = (timestamp - self.builder.params.start).total_seconds()
         else:
             raise InvalidSearchQuery(f"Unsupported condition for cpm: {cond}")
 

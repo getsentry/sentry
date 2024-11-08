@@ -1,7 +1,7 @@
 import os
 
 
-def reload_on_change(path):
+def reload_on_change(path: str) -> None:
     """
     Set up uwsgi file monitoring hooks for reloading on change
     """

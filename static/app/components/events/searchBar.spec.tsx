@@ -1,12 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SearchBar from 'sentry/components/events/searchBar';
 import TagStore from 'sentry/stores/tagStore';
-import type {Organization as TOrganization} from 'sentry/types';
+import type {Organization as TOrganization} from 'sentry/types/organization';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {datasetSupportedTags} from 'sentry/views/alerts/wizard/options';
 
 const selectNthAutocompleteItem = async index => {
   await userEvent.click(screen.getByTestId('smart-search-input'), {delay: null});
@@ -29,7 +30,6 @@ async function setQuery(query) {
 }
 
 describe('Events > SearchBar', function () {
-  let options;
   let tagValuesMock;
   let organization: TOrganization;
   let props: React.ComponentProps<typeof SearchBar>;
@@ -47,8 +47,6 @@ describe('Events > SearchBar', function () {
       {totalValues: 0, key: 'browser', name: 'Browser'},
     ]);
 
-    options = RouterContextFixture();
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       method: 'POST',
@@ -57,6 +55,18 @@ describe('Events > SearchBar', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/is/values/',
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/error.handled/values/',
+      method: 'GET',
       body: [],
     });
 
@@ -77,7 +87,7 @@ describe('Events > SearchBar', function () {
       },
     });
     props.organization = initializationObj.organization;
-    render(<SearchBar {...props} />, {context: options});
+    render(<SearchBar {...props} />);
     await setQuery('fcp');
 
     const autocomplete = await screen.findByTestId('search-autocomplete-item');
@@ -88,7 +98,7 @@ describe('Events > SearchBar', function () {
   it('autocompletes release semver queries', async function () {
     const initializationObj = initializeOrg();
     props.organization = initializationObj.organization;
-    render(<SearchBar {...props} />, {context: options});
+    render(<SearchBar {...props} />);
     await setQuery('release.');
 
     const autocomplete = await screen.findAllByTestId('search-autocomplete-item');
@@ -98,7 +108,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('autocomplete has suggestions correctly', async function () {
-    render(<SearchBar {...props} />, {context: options});
+    render(<SearchBar {...props} />);
     await setQuery('has:');
 
     const autocomplete = await screen.findAllByTestId('search-autocomplete-item');
@@ -115,7 +125,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('searches and selects an event field value', async function () {
-    render(<SearchBar {...props} />, {context: options});
+    render(<SearchBar {...props} />);
     await setQuery('gpu:');
 
     expect(tagValuesMock).toHaveBeenCalledWith(
@@ -136,8 +146,7 @@ describe('Events > SearchBar', function () {
     const onBlur = jest.fn();
     const onSearch = jest.fn();
     render(
-      <SearchBar {...props} useFormWrapper={false} onSearch={onSearch} onBlur={onBlur} />,
-      {context: options}
+      <SearchBar {...props} useFormWrapper={false} onSearch={onSearch} onBlur={onBlur} />
     );
 
     await setQuery('gpu:');
@@ -159,7 +168,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('filters dropdown to accommodate for num characters left in query', async function () {
-    render(<SearchBar {...props} maxQueryLength={5} />, {context: options});
+    render(<SearchBar {...props} maxQueryLength={5} />);
 
     await setQuery('g');
 
@@ -169,7 +178,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('returns zero dropdown suggestions if out of characters', async function () {
-    render(<SearchBar {...props} maxQueryLength={2} />, {context: options});
+    render(<SearchBar {...props} maxQueryLength={2} />);
 
     await setQuery('g');
 
@@ -177,12 +186,12 @@ describe('Events > SearchBar', function () {
   });
 
   it('sets maxLength property', function () {
-    render(<SearchBar {...props} maxQueryLength={10} />, {context: options});
+    render(<SearchBar {...props} maxQueryLength={10} />);
     expect(screen.getByTestId('smart-search-input')).toHaveAttribute('maxLength', '10');
   });
 
   it('does not requery for event field values if query does not change', async function () {
-    render(<SearchBar {...props} />, {context: options});
+    render(<SearchBar {...props} />);
 
     await setQuery('gpu:');
 
@@ -193,7 +202,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('removes highlight when query is empty', async function () {
-    render(<SearchBar {...props} />, {context: options});
+    render(<SearchBar {...props} />);
 
     await setQuery('gpu');
 
@@ -208,7 +217,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('ignores negation ("!") at the beginning of search term', async function () {
-    render(<SearchBar {...props} />, {context: options});
+    render(<SearchBar {...props} />);
 
     await setQuery('!gp');
 
@@ -218,7 +227,7 @@ describe('Events > SearchBar', function () {
   });
 
   it('ignores wildcard ("*") at the beginning of tag value query', async function () {
-    render(<SearchBar {...props} />, {context: options});
+    render(<SearchBar {...props} />);
 
     await setQuery('!gpu:*');
 
@@ -238,7 +247,7 @@ describe('Events > SearchBar', function () {
       body: [],
     });
 
-    render(<SearchBar {...props} />, {context: options});
+    render(<SearchBar {...props} />);
 
     // Do 3 searches, the first will find nothing, so no more requests should be made
     await setQuery('browser:Nothing');
@@ -261,7 +270,7 @@ describe('Events > SearchBar', function () {
       body: [],
     });
 
-    render(<SearchBar {...props} />, {context: options});
+    render(<SearchBar {...props} />);
 
     await setQuery('browser:Nothing');
     expect(emptyTagValuesMock).toHaveBeenCalled();
@@ -354,5 +363,33 @@ describe('Events > SearchBar', function () {
         'Invalid duration. Expected number followed by duration unit suffix'
       )
     ).toBeInTheDocument();
+  });
+
+  it('is query works for metric alert search bar', async function () {
+    const OrganizationIs = OrganizationFixture();
+    render(
+      <SearchBar
+        {...props}
+        supportedTags={datasetSupportedTags(Dataset.ERRORS, OrganizationIs)}
+      />
+    );
+    await setQuery('is:');
+
+    const autocomplete = await screen.findAllByTestId('search-autocomplete-item');
+    expect(autocomplete.at(0)).toHaveTextContent('is:');
+  });
+
+  it('handled query works for metric alert search bar', async function () {
+    const OrganizationIs = OrganizationFixture();
+    render(
+      <SearchBar
+        {...props}
+        supportedTags={datasetSupportedTags(Dataset.ERRORS, OrganizationIs)}
+      />
+    );
+    await setQuery('error.handled:');
+
+    const autocomplete = await screen.findAllByTestId('search-autocomplete-item');
+    expect(autocomplete.at(0)).toHaveTextContent('handled:');
   });
 });

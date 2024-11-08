@@ -1,7 +1,5 @@
 import itertools
 
-from sentry.utils.dates import to_timestamp
-
 
 def value_from_row(row, tagkey):
     return tuple(row[k] for k in tagkey)
@@ -11,8 +9,8 @@ def zerofill(data, start, end, rollup, allow_partial_buckets=False, fill_default
     if fill_default is None:
         fill_default = []
     rv = []
-    end = int(to_timestamp(end))
-    rollup_start = (int(to_timestamp(start)) // rollup) * rollup
+    end = int(end.timestamp())
+    rollup_start = (int(start.timestamp()) // rollup) * rollup
     rollup_end = (end // rollup) * rollup
 
     # Fudge the end value when we're only getting a single window.
@@ -45,8 +43,8 @@ def zerofill(data, start, end, rollup, allow_partial_buckets=False, fill_default
 
 
 def calculate_time_frame(start, end, rollup):
-    rollup_start = (int(to_timestamp(start)) // rollup) * rollup
-    rollup_end = (int(to_timestamp(end)) // rollup) * rollup
+    rollup_start = (int(start.timestamp()) // rollup) * rollup
+    rollup_end = (int(end.timestamp()) // rollup) * rollup
     if rollup_end - rollup_start == rollup:
         rollup_end += 1
     return {"start": rollup_start, "end": rollup_end}
@@ -83,7 +81,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             (key, list(group))
             for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
         ]
-        attrs = None
+        attrs = {}
         if self.lookup:
             attrs = self.get_attrs(
                 [value_from_row(r, self.lookup.columns) for _, v in data for r in v]
@@ -103,15 +101,17 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             rv.append((k, row))
 
         res = {
-            "data": zerofill(
-                rv,
-                result.start,
-                result.end,
-                result.rollup,
-                allow_partial_buckets=allow_partial_buckets,
+            "data": (
+                zerofill(
+                    rv,
+                    result.start,
+                    result.end,
+                    result.rollup,
+                    allow_partial_buckets=allow_partial_buckets,
+                )
+                if zerofill_results
+                else rv
             )
-            if zerofill_results
-            else rv
         }
 
         if result.data.get("totals"):

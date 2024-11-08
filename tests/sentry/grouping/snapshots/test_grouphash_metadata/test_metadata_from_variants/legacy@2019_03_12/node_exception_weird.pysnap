@@ -1,0 +1,104 @@
+---
+created: '2024-10-28T14:02:56.637919+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  app*
+    hash: "bc6bc0f8bfa8a2fe5f0e4034384bfec1"
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "hub"
+              context-line*
+                "     */"
+            frame*
+              module*
+                "onunhandledrejection.ts"
+              function*
+                "null.<anonymous>"
+            frame*
+              module*
+                "hub.ts"
+              context-line*
+                "    if (maxBreadcrumbs <= 0) {"
+            frame*
+              module*
+                "hub"
+              context-line*
+                "     * @returns Scope, the new cloned scope"
+            frame*
+              module*
+                "baseclient.ts"
+              context-line*
+                "    promisedEvent"
+            frame*
+              module*
+                "backend.ts"
+              function*
+                "NodeBackend.Object.<anonymous>.NodeBackend.eventFromException"
+          type*
+            "Error"
+  system*
+    hash: "6a3275e56067560bf20cb311f724f897"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "hub"
+              context-line*
+                "     */"
+            frame*
+              module*
+                "onunhandledrejection.ts"
+              function*
+                "null.<anonymous>"
+            frame*
+              module*
+                "jest-mock.build:index"
+              context-line*
+                "        return fn.apply(this, arguments);"
+            frame*
+              module*
+                "jest-mock.build:index"
+              context-line*
+                "          })();"
+            frame*
+              module*
+                "jest-mock.build:index"
+              context-line*
+                "                return specificMockImpl.apply(this, arguments);"
+            frame*
+              module*
+                "jest-mock.build:index"
+              context-line*
+                "        return original.apply(this, arguments);"
+            frame*
+              module*
+                "hub.ts"
+              context-line*
+                "    if (maxBreadcrumbs <= 0) {"
+            frame*
+              module*
+                "hub"
+              context-line*
+                "     * @returns Scope, the new cloned scope"
+            frame*
+              module*
+                "baseclient.ts"
+              context-line*
+                "    promisedEvent"
+            frame*
+              module*
+                "backend.ts"
+              function*
+                "NodeBackend.Object.<anonymous>.NodeBackend.eventFromException"
+          type*
+            "Error"

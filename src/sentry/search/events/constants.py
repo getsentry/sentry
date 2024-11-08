@@ -8,6 +8,10 @@ TIMEOUT_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
 filter on the transaction field if you're filtering performance data.
 """
+TIMEOUT_SPAN_ERROR_MESSAGE = """
+Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
+filter on the transaction field or tags.
+"""
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
@@ -20,6 +24,8 @@ PROJECT_ALIAS = "project"
 PROJECT_NAME_ALIAS = "project.name"
 PROJECT_DOT_ID_ALIAS = "project.id"
 PROJECT_ID_ALIAS = "project_id"
+PRECISE_START_TS = "precise.start_ts"
+PRECISE_FINISH_TS = "precise.finish_ts"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
@@ -47,6 +53,10 @@ SPAN_DOMAIN_ALIAS = "span.domain"
 SPAN_DOMAIN_SEPARATOR = ","
 UNIQUE_SPAN_DOMAIN_ALIAS = "unique.span_domains"
 SPAN_IS_SEGMENT_ALIAS = "span.is_segment"
+SPAN_OP = "span.op"
+SPAN_DESCRIPTION = "span.description"
+SPAN_STATUS = "span.status"
+SPAN_CATEGORY = "span.category"
 
 
 class ThresholdDict(TypedDict):
@@ -82,7 +92,22 @@ VITAL_THRESHOLDS: dict[str, ThresholdDict] = {
     },
 }
 
+WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
+    "lcp": 0.30,
+    "fcp": 0.15,
+    "cls": 0.15,
+    "ttfb": 0.10,
+    "inp": 0.30,
+}
+
+MAX_TAG_KEY_LENGTH = 200
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
+
+TYPED_TAG_KEY_RE = re.compile(
+    r"^(sentry_tags|tags)\[(?P<tag>.{0,200}),\s{0,200}(?P<type>.{0,200})\]$"
+)
+
+
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
@@ -187,6 +212,8 @@ HTTP_SERVER_ERROR_STATUS = {
     "511",
 }
 
+CACHE_HIT_STATUS = {"true", "false"}
+
 CONFIGURABLE_AGGREGATES = {
     "apdex()": "apdex({threshold}) as apdex",
     "user_misery()": "user_misery({threshold}) as user_misery",
@@ -242,6 +269,8 @@ FUNCTION_ALIASES = {
 
 METRICS_FUNCTION_ALIASES: dict[str, str] = {}
 
+SPAN_MODULE_CATEGORY_VALUES = ["cache", "db", "http", "queue", "resource"]
+
 SPAN_FUNCTION_ALIASES = {
     "sps": "eps",
     "spm": "epm",
@@ -280,6 +309,9 @@ METRICS_MAP = {
     "measurements.score.weight.cls": "d:transactions/measurements.score.weight.cls@ratio",
     "measurements.score.weight.fcp": "d:transactions/measurements.score.weight.fcp@ratio",
     "measurements.score.weight.ttfb": "d:transactions/measurements.score.weight.ttfb@ratio",
+    "measurements.inp": "d:spans/webvital.inp@millisecond",
+    "measurements.score.inp": "d:spans/webvital.score.inp@ratio",
+    "measurements.score.weight.inp": "d:spans/webvital.score.weight.inp@ratio",
     "spans.browser": "d:transactions/breakdowns.span_ops.ops.browser@millisecond",
     "spans.db": "d:transactions/breakdowns.span_ops.ops.db@millisecond",
     "spans.http": "d:transactions/breakdowns.span_ops.ops.http@millisecond",
@@ -295,6 +327,7 @@ DEFAULT_METRIC_TAGS = {
     "device.class",
     "environment",
     "geo.country_code",
+    "user.geo.subregion",
     "has_profile",
     "histogram_outlier",
     "http.method",
@@ -304,6 +337,7 @@ DEFAULT_METRIC_TAGS = {
     "query_hash",
     "release",
     "resource.render_blocking_status",
+    "cache.hit",
     "satisfaction",
     "sdk",
     "session.status",
@@ -311,16 +345,31 @@ DEFAULT_METRIC_TAGS = {
     "transaction.method",
     "transaction.op",
     "transaction.status",
+    "span.op",
+    "trace.status",
+    "messaging.destination.name",
 }
+SPAN_MESSAGING_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
+SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",
     "span.self_time": "d:spans/exclusive_time@millisecond",
     "span.duration": "d:spans/duration@millisecond",
+    "ai.total_tokens.used": "c:spans/ai.total_tokens.used@none",
+    "ai.total_cost": "c:spans/ai.total_cost@usd",
     "http.response_content_length": "d:spans/http.response_content_length@byte",
     "http.decoded_response_content_length": "d:spans/http.decoded_response_content_length@byte",
     "http.response_transfer_size": "d:spans/http.response_transfer_size@byte",
+    "cache.item_size": "d:spans/cache.item_size@byte",
+    "mobile.slow_frames": "g:spans/mobile.slow_frames@none",
+    "mobile.frozen_frames": "g:spans/mobile.frozen_frames@none",
+    "mobile.total_frames": "g:spans/mobile.total_frames@none",
+    "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
+    "messaging.message.receive.latency": SPAN_MESSAGING_LATENCY,
 }
-SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
+PROFILE_METRICS_MAP = {
+    "function.duration": "d:profiles/function.duration@millisecond",
+}
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
 
@@ -340,7 +389,15 @@ METRIC_DURATION_COLUMNS = {
 SPAN_METRIC_DURATION_COLUMNS = {
     key
     for key, value in SPAN_METRICS_MAP.items()
-    if value.endswith("@millisecond") and value.startswith("d:")
+    if value.endswith("@millisecond") or value.endswith("@second")
+}
+SPAN_METRIC_SUMMABLE_COLUMNS = SPAN_METRIC_DURATION_COLUMNS.union(
+    {"ai.total_tokens.used", "ai.total_cost"}
+)
+SPAN_METRIC_COUNT_COLUMNS = {
+    key
+    for key, value in SPAN_METRICS_MAP.items()
+    if value.endswith("@none") and value.startswith("g:")
 }
 SPAN_METRIC_BYTES_COLUMNS = {
     key
@@ -380,4 +437,22 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
         "user_misery",
         "count_unique",
     ],
+}
+
+# The limit in snuba currently for a single query is 131,535bytes, including room for other parameters picking 120,000
+# for now
+MAX_PARAMETERS_IN_ARRAY = 120_000
+
+SPANS_METRICS_TAGS = {SPAN_MODULE_ALIAS, SPAN_DESCRIPTION, SPAN_OP, SPAN_CATEGORY}
+
+SPANS_METRICS_FUNCTIONS = {
+    "spm",
+    "cache_miss_rate",
+    "http_response_rate",
+}
+
+METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS = {
+    "performance_score",
+    "weighted_performance_score",
+    "count_scores",
 }

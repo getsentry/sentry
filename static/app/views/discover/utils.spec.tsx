@@ -1,10 +1,10 @@
-import {browserHistory} from 'react-router';
 import {EventFixture} from 'sentry-fixture/event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -265,14 +265,14 @@ describe('pushEventViewToLocation', function () {
           id: '1234',
           name: 'best query',
           field: ['count()', 'project.id'],
-          widths: [420],
-          sort: ['-count'],
+          widths: '420',
+          sort: '-count',
           query: 'event.type:error',
-          project: [42],
+          project: '42',
           start: '2019-10-01T00:00:00',
           end: '2019-10-02T00:00:00',
           statsPeriod: '14d',
-          environment: ['staging'],
+          environment: 'staging',
           yAxis: 'count()',
         }),
       })
@@ -296,14 +296,14 @@ describe('pushEventViewToLocation', function () {
           id: '1234',
           name: 'best query',
           field: ['count()', 'project.id'],
-          widths: [420],
-          sort: ['-count'],
+          widths: '420',
+          sort: '-count',
           query: 'event.type:error',
-          project: [42],
+          project: '42',
           start: '2019-10-01T00:00:00',
           end: '2019-10-02T00:00:00',
           statsPeriod: '14d',
-          environment: ['staging'],
+          environment: 'staging',
           cursor: 'some cursor',
           yAxis: 'count()',
         }),
@@ -869,6 +869,38 @@ describe('generateFieldOptions', function () {
           dataType: 'number',
           functions: ['p99'],
           name: 'measurements.custom.measurement',
+        },
+      },
+    });
+  });
+
+  it('disambiguates tags that are also fields', function () {
+    expect(
+      generateFieldOptions({
+        organization: initializeOrg().organization,
+        tagKeys: ['environment'],
+        fieldKeys: ['environment'],
+        aggregations: {},
+      })
+    ).toEqual({
+      'field:environment': {
+        label: 'environment',
+        value: {
+          kind: 'field',
+          meta: {
+            dataType: 'string',
+            name: 'environment',
+          },
+        },
+      },
+      'tag:environment': {
+        label: 'environment',
+        value: {
+          kind: 'tag',
+          meta: {
+            dataType: 'string',
+            name: 'tags[environment]',
+          },
         },
       },
     });

@@ -2,26 +2,19 @@ import type {CSSProperties, SyntheticEvent} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Flex} from 'sentry/components/profiling/flex';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 
-const functionsFields = [
-  'package',
-  'function',
-  'count()',
-  'sum()',
-  'examples()',
-] as const;
-
-type FunctionsField = (typeof functionsFields)[number];
+type FunctionsField = 'package' | 'function' | 'count()' | 'sum()' | 'examples()';
 
 interface FunctionsMiniGridProps {
   functions: EventsResults<FunctionsField>['data'];
@@ -126,7 +119,7 @@ export const FunctionsMiniGridHeader = styled('span')<{
 }>`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
   text-align: ${p => p.align};
 `;

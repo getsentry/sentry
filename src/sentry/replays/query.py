@@ -25,6 +25,7 @@ from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import all_values_for_tag_key
 from sentry.replays.usecases.query import (
+    PREFERRED_SOURCE,
     Paginators,
     execute_query,
     make_full_aggregation_query,
@@ -41,10 +42,10 @@ ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 
 # Compatibility function for getsentry code.
 def query_replays_collection(*args, **kwargs):
-    return query_replays_collection_raw(*args, **kwargs)[0]
+    return query_replays_collection_paginated(*args, **kwargs).response
 
 
-def query_replays_collection_raw(
+def query_replays_collection_paginated(
     project_ids: list[int],
     start: datetime,
     end: datetime,
@@ -54,6 +55,7 @@ def query_replays_collection_raw(
     limit: int,
     offset: int,
     search_filters: Sequence[SearchFilter],
+    preferred_source: PREFERRED_SOURCE,
     organization: Organization | None = None,
     actor: Any | None = None,
 ):
@@ -70,6 +72,8 @@ def query_replays_collection_raw(
         project_ids=project_ids,
         period_start=start,
         period_stop=end,
+        request_user_id=actor.id if actor else None,
+        preferred_source=preferred_source,
     )
 
 
@@ -79,6 +83,7 @@ def query_replay_instance(
     start: datetime,
     end: datetime,
     organization: Organization | None = None,
+    request_user_id: int | None = None,
 ):
     """Query aggregated replay instance."""
     if isinstance(project_id, list):
@@ -93,9 +98,38 @@ def query_replay_instance(
             project_ids=project_ids,
             period_start=start,
             period_end=end,
+            request_user_id=request_user_id,
         ),
         tenant_id={"organization_id": organization.id} if organization else {},
         referrer="replays.query.details_query",
+    )["data"]
+
+
+def query_replay_viewed_by_ids(
+    project_id: int | list[int],
+    replay_id: str,
+    start: datetime,
+    end: datetime,
+    request_user_id: int | None,
+    organization: Organization | None = None,
+) -> list[dict[str, Any]]:
+    """Query unique user ids who viewed a given replay."""
+    if isinstance(project_id, list):
+        project_ids = project_id
+    else:
+        project_ids = [project_id]
+
+    return execute_query(
+        query=make_full_aggregation_query(
+            fields=["viewed_by_ids"],
+            replay_ids=[replay_id],
+            project_ids=project_ids,
+            period_start=start,
+            period_end=end,
+            request_user_id=request_user_id,
+        ),
+        tenant_id={"organization_id": organization.id} if organization else {},
+        referrer="replays.query.viewed_by_query",
     )["data"]
 
 
@@ -158,12 +192,17 @@ def query_replays_dataset_tagkey_values(
     end: datetime,
     environment: str | None,
     tag_key: str,
+    tag_substr_query: str | None,
     tenant_ids: dict[str, Any] | None,
 ):
-    """Query replay tagkey values. Like our other tag functionality, aggregates do not work here."""
+    """
+    Query replay tagkey values. Like our other tag functionality, aggregates do not work here.
+    This function is used by the tagstore backend, which expects a `tag_value` key in each result object.
+
+    @param tag_substr_query: used to filter tag values with a case-insensitive substring.
+    """
 
     where = []
-
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
@@ -183,6 +222,15 @@ def query_replays_dataset_tagkey_values(
         # using identity to alias the column
         aggregated_column = Function("identity", parameters=[grouped_column], alias="tag_value")
 
+    if tag_substr_query:
+        where.append(
+            Condition(
+                Function("positionCaseInsensitive", parameters=[grouped_column, tag_substr_query]),
+                Op.NEQ,
+                0,
+            )
+        )
+
     snuba_request = Request(
         dataset="replays",
         app_id="replay-backend-web",
@@ -195,6 +243,7 @@ def query_replays_dataset_tagkey_values(
                 aggregated_column,
             ],
             where=[
+                *where,
                 Condition(Column("project_id"), Op.IN, project_ids),
                 Condition(Column("timestamp"), Op.LT, end),
                 Condition(Column("timestamp"), Op.GTE, start),
@@ -204,7 +253,6 @@ def query_replays_dataset_tagkey_values(
                         Condition(Column("is_archived"), Op.IS_NULL),
                     ]
                 ),
-                *where,
             ],
             orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
             groupby=[grouped_column],
@@ -471,7 +519,7 @@ def _filter_empty_uuids(column_name):
 FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "id": ["replay_id"],
     "replay_type": ["replay_type"],
-    "project_id": ["project_id"],
+    "project_id": ["agg_project_id"],
     "project": ["project_id"],
     "platform": ["platform"],
     "environment": ["agg_environment"],
@@ -556,6 +604,8 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "info_ids": ["info_ids"],
     "count_warnings": ["count_warnings"],
     "count_infos": ["count_infos"],
+    "viewed_by_ids": ["viewed_by_ids"],
+    "has_viewed": ["viewed_by_ids"],
 }
 
 
@@ -564,7 +614,11 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
 
 QUERY_ALIAS_COLUMN_MAP = {
     "replay_id": Column("replay_id"),
-    "project_id": Column("project_id"),
+    "agg_project_id": Function(
+        "anyIf",
+        parameters=[Column("project_id"), Function("equals", parameters=[Column("segment_id"), 0])],
+        alias="agg_project_id",
+    ),
     "trace_ids": Function(
         "arrayMap",
         parameters=[
@@ -703,6 +757,14 @@ QUERY_ALIAS_COLUMN_MAP = {
         parameters=[Column("count_info_events")],
         alias="count_infos",
     ),
+    "viewed_by_ids": Function(
+        "groupUniqArrayIf",
+        parameters=[
+            Column("viewed_by_id"),
+            Function("greater", parameters=[Column("viewed_by_id"), 0]),
+        ],
+        alias="viewed_by_ids",
+    ),
 }
 
 
@@ -736,7 +798,7 @@ TAG_QUERY_ALIAS_COLUMN_MAP = {
 def collect_aliases(fields: list[str]) -> list[str]:
     """Return a unique list of aliases required to satisfy the fields."""
     # Required fields.
-    result = {"is_archived", "finished_at", "agg_environment"}
+    result = {"is_archived", "finished_at", "agg_environment", "agg_project_id"}
 
     saw_tags = False
     for field in fields:
@@ -754,14 +816,41 @@ def collect_aliases(fields: list[str]) -> list[str]:
     return list(result)
 
 
-def select_from_fields(fields: list[str]) -> list[Column | Function]:
+def select_from_fields(fields: list[str], user_id: int | None) -> list[Column | Function]:
     """Return a list of columns to select."""
-    return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
+    selection = []
+    for alias in collect_aliases(fields):
+        if alias == "has_viewed":
+            selection.append(compute_has_viewed(user_id))
+        else:
+            selection.append(QUERY_ALIAS_COLUMN_MAP[alias])
+
+    return selection
 
 
-def _extract_children(expression: ParenExpression) -> Generator[SearchFilter, None, None]:
+def _extract_children(expression: ParenExpression) -> Generator[SearchFilter]:
     for child in expression.children:
         if isinstance(child, SearchFilter):
             yield child
         elif isinstance(child, ParenExpression):
             yield from _extract_children(child)
+
+
+def compute_has_viewed(viewed_by_id: int | None) -> Function:
+    if viewed_by_id is None:
+        # Return the literal "false" if no user-id was specified.
+        return Function("equals", parameters=[1, 2])
+
+    return Function(
+        "greater",
+        parameters=[
+            Function(
+                "sum",
+                parameters=[
+                    Function("equals", parameters=[Column("viewed_by_id"), viewed_by_id]),
+                ],
+            ),
+            0,
+        ],
+        alias="has_viewed",
+    )

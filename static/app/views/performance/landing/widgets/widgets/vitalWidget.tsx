@@ -2,8 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import Accordion from 'sentry/components/accordion/accordion';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import Truncate from 'sentry/components/truncate';
@@ -37,6 +36,7 @@ import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
+import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,
@@ -47,7 +47,12 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
-import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import type {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from '../types';
 import {
   eventsRequestQueryProps,
   getMEPQueryParams,
@@ -61,6 +66,10 @@ type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToVitals>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
+
+type ComponentData = React.ComponentProps<
+  GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
+>;
 
 function getVitalFields(baseField: string) {
   const poorCountField = `count_web_vitals(${baseField}, poor)`;
@@ -231,133 +240,128 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     // TODO(k-fish): Add analytics.
   };
 
-  const assembleAccordionItems = provided =>
+  const assembleAccordionItems = (provided: ComponentData) =>
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
-  const getChart = provided =>
-    function () {
+  const getChart = (provided: ComponentData) => (
+    <_VitalChart
+      {...provided.widgetData.chart}
+      {...provided}
+      field={field}
+      vitalFields={vitalFields}
+      grid={provided.grid}
+    />
+  );
+
+  const getItems = (provided: ComponentData) =>
+    provided.widgetData.list.data.slice(0, QUERY_LIMIT_PARAM).map((listItem, i) => {
+      const transaction = (listItem?.transaction as string | undefined) ?? '';
+      const _eventView = eventView.clone();
+
+      const initialConditions = new MutableSearch(_eventView.query);
+      initialConditions.addFilterValues('transaction', [transaction]);
+
+      const vital = settingToVital[props.chartSetting];
+
+      _eventView.query = initialConditions.formatString();
+
+      const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
+      const transactionTarget = transactionSummaryRouteWithQuery({
+        orgSlug: props.organization.slug,
+        projectID: listItem['project.id'] as string,
+        transaction: listItem.transaction as string,
+        query: _eventView.generateQueryStringObject(),
+        display: DisplayModes.VITALS,
+      });
+
+      const target = isUnparameterizedRow
+        ? createUnnamedTransactionsDiscoverTarget({
+            organization,
+            location,
+          })
+        : transactionTarget;
+
+      const data = {
+        [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+          listItem,
+          vital,
+          false
+        ),
+      };
+
       return (
-        <_VitalChart
-          {...provided.widgetData.chart}
-          {...provided}
-          field={field}
-          vitalFields={vitalFields}
-          grid={provided.grid}
-        />
+        <Fragment key={i}>
+          <GrowLink to={target}>
+            <Truncate value={transaction} maxLength={40} />
+          </GrowLink>
+          <VitalBarCell>
+            <VitalBar
+              isLoading={provided.widgetData.list?.isLoading}
+              vital={settingToVital[props.chartSetting]}
+              data={data}
+              showBar
+              showDurationDetail={false}
+              showDetail={false}
+              showTooltip
+              barHeight={20}
+            />
+          </VitalBarCell>
+          {!props.withStaticFilters && (
+            <ListClose
+              setSelectListIndex={setSelectListIndex}
+              onClick={() =>
+                excludeTransaction(listItem.transaction, {
+                  eventView: props.eventView,
+                  location,
+                })
+              }
+            />
+          )}
+        </Fragment>
       );
-    };
+    });
 
-  const getItems = provided =>
-    provided.widgetData.list.data.slice(0, QUERY_LIMIT_PARAM).map(
-      listItem =>
-        function () {
-          const transaction = (listItem?.transaction as string | undefined) ?? '';
-          const _eventView = eventView.clone();
-
-          const initialConditions = new MutableSearch(_eventView.query);
-          initialConditions.addFilterValues('transaction', [transaction]);
-
-          const vital = settingToVital[props.chartSetting];
-
-          _eventView.query = initialConditions.formatString();
-
-          const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
-          const transactionTarget = transactionSummaryRouteWithQuery({
-            orgSlug: props.organization.slug,
-            projectID: listItem['project.id'],
-            transaction: listItem.transaction,
-            query: _eventView.generateQueryStringObject(),
-            display: DisplayModes.VITALS,
-          });
-
-          const target = isUnparameterizedRow
-            ? createUnnamedTransactionsDiscoverTarget({
-                organization,
-                location,
-              })
-            : transactionTarget;
-
-          const data = {
-            [settingToVital[props.chartSetting]]: getVitalDataForListItem(
-              listItem,
-              vital,
-              false
+  const visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] =
+    organization.features.includes('performance-new-widget-designs')
+      ? [
+          {
+            component: provided => (
+              <Accordion
+                expandedIndex={selectedListIndex}
+                setExpandedIndex={setSelectListIndex}
+                items={assembleAccordionItems(provided)}
+              />
             ),
-          };
-
-          return (
-            <Fragment>
-              <GrowLink to={target}>
-                <Truncate value={transaction} maxLength={40} />
-              </GrowLink>
-              <VitalBarCell>
-                <VitalBar
-                  isLoading={provided.widgetData.list?.isLoading}
-                  vital={settingToVital[props.chartSetting]}
-                  data={data}
-                  showBar
-                  showDurationDetail={false}
-                  showDetail={false}
-                  showTooltip
-                  barHeight={20}
-                />
-              </VitalBarCell>
-              {!props.withStaticFilters && (
-                <ListClose
-                  setSelectListIndex={setSelectListIndex}
-                  onClick={() =>
-                    excludeTransaction(listItem.transaction, {
-                      eventView: props.eventView,
-                      location,
-                    })
-                  }
-                />
-              )}
-            </Fragment>
-          );
-        }
-    );
-
-  const visualizations = organization.features.includes('performance-new-widget-designs')
-    ? [
-        {
-          component: provided => (
-            <Accordion
-              expandedIndex={selectedListIndex}
-              setExpandedIndex={setSelectListIndex}
-              items={assembleAccordionItems(provided)}
-            />
-          ),
-          // accordion items height + chart height
-          height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
-          noPadding: true,
-        },
-      ]
-    : [
-        {
-          component: provided => (
-            <_VitalChart
-              {...provided.widgetData.chart}
-              {...provided}
-              field={field}
-              vitalFields={vitalFields}
-              grid={provided.grid}
-            />
-          ),
-          height: props.chartHeight,
-        },
-        {
-          component: provided => (
-            <SelectableList
-              selectedIndex={selectedListIndex}
-              setSelectedIndex={setSelectListIndex}
-              items={getItems(provided)}
-            />
-          ),
-          height: 30,
-          noPadding: true,
-        },
-      ];
+            // accordion items height + chart height
+            height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
+            noPadding: true,
+          },
+        ]
+      : [
+          {
+            component: provided => (
+              <_VitalChart
+                {...provided.widgetData.chart}
+                {...provided}
+                field={field}
+                vitalFields={vitalFields}
+                grid={provided.grid}
+              />
+            ),
+            height: props.chartHeight,
+          },
+          {
+            component: provided => (
+              <SelectableList
+                selectedIndex={selectedListIndex}
+                setSelectedIndex={setSelectListIndex}
+                items={getItems(provided)}
+              />
+            ),
+            height: 30,
+            noPadding: true,
+          },
+        ];
 
   return (
     <GenericPerformanceWidget<DataType>
@@ -411,14 +415,14 @@ export function VitalWidget(props: PerformanceWidgetProps) {
         return (
           <Fragment>
             <div>
-              <Button
+              <LinkButton
                 onClick={handleViewAllClick}
                 to={target}
                 size="sm"
                 data-test-id="view-all-button"
               >
                 {t('View All')}
-              </Button>
+              </LinkButton>
             </div>
             {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
           </Fragment>

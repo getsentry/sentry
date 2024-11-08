@@ -3,7 +3,8 @@ import {Component} from 'react';
 import {getProjectRelease, getReleaseDeploys} from 'sentry/actionCreators/release';
 import type {Client} from 'sentry/api';
 import ReleaseStore from 'sentry/stores/releaseStore';
-import type {Deploy, Organization, Release} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Deploy, Release} from 'sentry/types/release';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 type DependentProps = {

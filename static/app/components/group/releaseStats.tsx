@@ -2,16 +2,21 @@ import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {CurrentRelease, Group, Organization, Project, Release} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {CurrentRelease, Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import QuestionTooltip from '../questionTooltip';
 
@@ -55,9 +60,11 @@ function GroupReleaseStats({
     ],
     {
       staleTime: 30000,
-      cacheTime: 30000,
+      gcTime: 30000,
     }
   );
+
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const firstRelease = groupReleaseData?.firstRelease;
   const lastRelease = groupReleaseData?.lastRelease;
@@ -102,57 +109,58 @@ function GroupReleaseStats({
               lastSeen={group.lastSeen}
             />
           </GraphContainer>
-
-          <SidebarSection.Wrap>
-            <SidebarSection.Title>
-              {t('Last Seen')}
-              <QuestionTooltip
-                title={t('When the most recent event in this issue was captured.')}
-                size="xs"
-              />
-            </SidebarSection.Title>
-            <StyledSidebarSectionContent>
-              <SeenInfo
-                organization={organization}
-                projectId={projectId}
-                projectSlug={projectSlug}
-                date={getDynamicText({
-                  value: group.lastSeen,
-                  fixed: '2016-01-13T03:08:25Z',
-                })}
-                dateGlobal={allEnvironments.lastSeen}
-                hasRelease={hasRelease}
-                environment={shortEnvironmentLabel}
-                release={lastRelease}
-                title={t('Last Seen')}
-              />
-            </StyledSidebarSectionContent>
-          </SidebarSection.Wrap>
-          <SidebarSection.Wrap>
-            <SidebarSection.Title>
-              {t('First Seen')}
-              <QuestionTooltip
-                title={t('When the first event in this issue was captured.')}
-                size="xs"
-              />
-            </SidebarSection.Title>
-            <StyledSidebarSectionContent>
-              <SeenInfo
-                organization={organization}
-                projectId={projectId}
-                projectSlug={projectSlug}
-                date={getDynamicText({
-                  value: group.firstSeen,
-                  fixed: '2015-08-13T03:08:25Z',
-                })}
-                dateGlobal={allEnvironments.firstSeen}
-                hasRelease={hasRelease}
-                environment={shortEnvironmentLabel}
-                release={firstRelease}
-                title={t('First seen')}
-              />
-            </StyledSidebarSectionContent>
-          </SidebarSection.Wrap>
+          {!hasStreamlinedUI && (
+            <div>
+              <SidebarSection.Wrap>
+                <SidebarSection.Title>
+                  <GuideAnchor target="issue_sidebar_releases" position="left">
+                    {t('Last Seen')}
+                  </GuideAnchor>
+                  <QuestionTooltip
+                    title={t('When the most recent event in this issue was captured.')}
+                    size="xs"
+                  />
+                </SidebarSection.Title>
+                <StyledSidebarSectionContent>
+                  <SeenInfo
+                    organization={organization}
+                    projectId={projectId}
+                    projectSlug={projectSlug}
+                    date={getDynamicText({
+                      value: group.lastSeen,
+                      fixed: '2016-01-13T03:08:25Z',
+                    })}
+                    dateGlobal={allEnvironments.lastSeen}
+                    environment={shortEnvironmentLabel}
+                    release={lastRelease}
+                  />
+                </StyledSidebarSectionContent>
+              </SidebarSection.Wrap>
+              <SidebarSection.Wrap>
+                <SidebarSection.Title>
+                  {t('First Seen')}
+                  <QuestionTooltip
+                    title={t('When the first event in this issue was captured.')}
+                    size="xs"
+                  />
+                </SidebarSection.Title>
+                <StyledSidebarSectionContent>
+                  <SeenInfo
+                    organization={organization}
+                    projectId={projectId}
+                    projectSlug={projectSlug}
+                    date={getDynamicText({
+                      value: group.firstSeen,
+                      fixed: '2015-08-13T03:08:25Z',
+                    })}
+                    dateGlobal={allEnvironments.firstSeen}
+                    environment={shortEnvironmentLabel}
+                    release={firstRelease}
+                  />
+                </StyledSidebarSectionContent>
+              </SidebarSection.Wrap>
+            </div>
+          )}
           {!hasRelease ? (
             <SidebarSection.Wrap>
               <SidebarSection.Title>{t('Releases')}</SidebarSection.Title>

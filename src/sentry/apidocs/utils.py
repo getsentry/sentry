@@ -64,7 +64,7 @@ class SentryApiBuildError(UnableToProceedError):
 
 def reload_module_with_type_checking_enabled(module_name: str) -> None:
     @contextmanager
-    def _patch_type_checking_const() -> Generator[None, None, None]:
+    def _patch_type_checking_const() -> Generator[None]:
         try:
             setattr(typing, "TYPE_CHECKING", True)
             yield

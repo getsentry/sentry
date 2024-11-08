@@ -1,16 +1,21 @@
 // eslint-disable-next-line simple-import-sort/imports
-import {browserHistory, createRoutes, match} from 'react-router';
-import {extraErrorDataIntegration} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
-import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import type {Event} from '@sentry/types';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
-import type {Config} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {getErrorDebugIds} from 'sentry/utils/getErrorDebugIds';
+import {
+  createRoutesFromChildren,
+  matchRoutes,
+  useLocation,
+  useNavigationType,
+} from 'react-router-dom';
+import {useEffect} from 'react';
+import FeatureObserver from 'sentry/utils/featureObserver';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -24,6 +29,12 @@ const SPA_MODE_TRACE_PROPAGATION_TARGETS = [
   'dev.getsentry.net',
   'sentry.dev',
 ];
+
+let lastEventId: string | undefined;
+
+export function getLastEventId(): string | undefined {
+  return lastEventId;
+}
 
 // We don't care about recording breadcrumbs for these hosts. These typically
 // pollute our breadcrumbs since they may occur a LOT.
@@ -44,29 +55,24 @@ const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  * having routing instrumentation in order to have a smaller bundle size.
  * (e.g.  `static/views/integrationPipeline`)
  */
-function getSentryIntegrations(routes?: Function) {
+function getSentryIntegrations() {
   const integrations = [
-    extraErrorDataIntegration({
+    Sentry.extraErrorDataIntegration({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    Sentry.metrics.metricsAggregatorIntegration(),
-    new BrowserTracing({
-      ...(typeof routes === 'function'
-        ? {
-            routingInstrumentation: Sentry.reactRouterV3Instrumentation(
-              browserHistory as any,
-              createRoutes(routes()),
-              match
-            ),
-          }
-        : {}),
-      _experiments: {
-        enableInteractions: true,
-        onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
-      },
+    Sentry.reactRouterV6BrowserTracingIntegration({
+      useEffect: useEffect,
+      useLocation: useLocation,
+      useNavigationType: useNavigationType,
+      createRoutesFromChildren: createRoutesFromChildren,
+      matchRoutes: matchRoutes,
     }),
-    new Sentry.BrowserProfilingIntegration(),
+    Sentry.browserProfilingIntegration(),
+    Sentry.thirdPartyErrorFilterIntegration({
+      filterKeys: ['sentry-spa'],
+      behaviour: 'apply-tag-if-contains-third-party-frames',
+    }),
   ];
 
   return integrations;
@@ -78,7 +84,7 @@ function getSentryIntegrations(routes?: Function) {
  * If `routes` is passed, we will instrument react-router. Not all
  * entrypoints require this.
  */
-export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}) {
+export function initializeSdk(config: Config) {
   const {apmSampling, sentryConfig, userIdentity} = config;
   const tracesSampleRate = apmSampling ?? 0;
   const extraTracePropagationTargets = SPA_DSN
@@ -99,12 +105,13 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
-    integrations: getSentryIntegrations(routes),
+    integrations: getSentryIntegrations(),
     tracesSampleRate,
     profilesSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
-      if (context.transactionContext.op?.startsWith('ui.action')) {
+      const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP] || '';
+      if (op.startsWith('ui.action')) {
         return tracesSampleRate / 100;
       }
       return tracesSampleRate;
@@ -113,11 +120,19 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       addExtraMeasurements(event);
       addUIElementTag(event);
 
-      event.spans = event.spans?.filter(span => {
+      const filteredSpans = event.spans?.filter(span => {
         return IGNORED_SPANS_BY_DESCRIPTION.every(
           partialDesc => !span.description?.includes(partialDesc)
         );
       });
+
+      // If we removed any spans at the end above, the end timestamp needs to be adjusted again.
+      if (filteredSpans && filteredSpans?.length !== event.spans?.length) {
+        event.spans = filteredSpans;
+        const newEndTimestamp = Math.max(...event.spans.map(span => span.timestamp ?? 0));
+        event.timestamp = newEndTimestamp;
+      }
+
       if (event.transaction) {
         event.transaction = normalizeUrl(event.transaction, {forceCustomerDomain: true});
       }
@@ -158,7 +173,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       return crumb;
     },
 
-    beforeSend(event, _hint) {
+    beforeSend(event, hint) {
       if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
         return null;
       }
@@ -166,13 +181,27 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       handlePossibleUndefinedResponseBodyErrors(event);
       addEndpointTagToRequestError(event);
 
+      lastEventId = event.event_id || hint.event_id;
+
+      // attach feature flags to the event context
+      if (event.contexts) {
+        const flags = FeatureObserver.singleton({}).getFeatureFlags();
+        event.contexts.flags = flags;
+      }
+
       return event;
     },
   });
 
   if (process.env.NODE_ENV !== 'production') {
-    if (sentryConfig.environment === 'development') {
+    if (
+      sentryConfig.environment === 'development' &&
+      process.env.SENTRY_SPOTLIGHT &&
+      !['false', 'f', 'n', 'no', 'off', '0'].includes(process.env.SENTRY_SPOTLIGHT)
+    ) {
       import('@spotlightjs/spotlight').then(Spotlight => {
+        // TODO: use the value of `process.env.SENTRY_SPOTLIGHT` for the `sidecarUrl` below when it is not "truthy"
+        //       Truthy is defined in https://github.com/getsentry/sentry-javascript/pull/13325/files#diff-a139d0f6c10ca33f2b0264da406662f90061cd7e8f707c197a02460a7f666e87R2
         /* #__PURE__ */ Spotlight.init();
       });
     }
@@ -208,10 +237,10 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   };
   debugIdPolyfillEventProcessor.id = 'debugIdPolyfillEventProcessor';
 
-  Sentry.addGlobalEventProcessor(debugIdPolyfillEventProcessor);
+  Sentry.addEventProcessor(debugIdPolyfillEventProcessor);
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
-  Sentry.addGlobalEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
+  Sentry.addEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
     event.tags = event.tags || {};
     event.tags['timeOrigin.mode'] = _browserPerformanceTimeOriginMode;
     return event;

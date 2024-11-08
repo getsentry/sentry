@@ -1,7 +1,9 @@
 import {useMemo} from 'react';
 
+import type {Group} from 'sentry/types/group';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   orgSlug: string;
@@ -10,25 +12,68 @@ type Props = {
     endTimestampMs: number;
     startTimestampMs: number;
   };
+  group?: Group;
 };
 
-export default function useReplayReader({orgSlug, replaySlug, clipWindow}: Props) {
+interface ReplayReaderResult extends ReturnType<typeof useReplayData> {
+  replay: ReplayReader | null;
+  replayId: string;
+}
+
+export default function useReplayReader({
+  orgSlug,
+  replaySlug,
+  clipWindow,
+  group,
+}: Props): ReplayReaderResult {
   const replayId = parseReplayId(replaySlug);
 
-  const {attachments, errors, replayRecord, ...replayData} = useReplayData({
+  const {attachments, errors, replayRecord, fetching, ...replayData} = useReplayData({
     orgSlug,
     replayId,
   });
 
+  // get first error matching our group
+  const firstMatchingError = useMemo(
+    () => group && errors.find(error => error['issue.id'].toString() === group.id),
+    [errors, group]
+  );
+
+  // if we don't have a clip window, we'll use the error time to create a clip window
+  const memoizedClipWindow = useMemo(() => {
+    const errorTime = firstMatchingError
+      ? new Date(firstMatchingError.timestamp)
+      : undefined;
+
+    return (
+      clipWindow ??
+      (errorTime && {
+        startTimestampMs: errorTime.getTime() - 1000 * 5,
+        endTimestampMs: errorTime.getTime() + 1000 * 5,
+      })
+    );
+  }, [clipWindow, firstMatchingError]);
+
+  const featureFlags = useOrganization().features;
+
   const replay = useMemo(
-    () => ReplayReader.factory({attachments, errors, replayRecord, clipWindow}),
-    [attachments, clipWindow, errors, replayRecord]
+    () =>
+      ReplayReader.factory({
+        attachments,
+        clipWindow: memoizedClipWindow,
+        errors,
+        featureFlags,
+        fetching,
+        replayRecord,
+      }),
+    [attachments, memoizedClipWindow, errors, featureFlags, fetching, replayRecord]
   );
 
   return {
     ...replayData,
     attachments,
     errors,
+    fetching,
     replay,
     replayId,
     replayRecord,

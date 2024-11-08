@@ -37,17 +37,19 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     set_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source, log_skipped_job
+from sentry.dynamic_sampling.tasks.logging import log_sample_rate_source
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
-    has_dynamic_sampling,
+    sample_function,
 )
+from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
@@ -137,7 +139,10 @@ def boost_low_volume_transactions(context: TaskContext) -> None:
         for project_transactions in transactions_zip(
             totals_it, big_transactions_it, small_transactions_it
         ):
-            boost_low_volume_transactions_of_project.delay(project_transactions)
+            boost_low_volume_transactions_of_project.apply_async(
+                kwargs={"project_transactions": project_transactions},
+                headers={"sentry-propagate-traces": False},
+            )
 
 
 @instrumented_task(
@@ -167,28 +172,32 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
 
     # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
     if not has_dynamic_sampling(organization):
-        log_skipped_job(org_id, "boost_low_volume_transactions")
         return
 
-    # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
-    # resort to the blended sample rate of the org.
-    sample_rate, success = get_boost_low_volume_projects_sample_rate(
+    if is_project_mode_sampling(organization):
+        sample_rate = ProjectOption.objects.get_value(project_id, "sentry:target_sample_rate")
+        source = "project_setting"
+    else:
+        # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
+        # resort to the blended sample rate of the org.
+        sample_rate, success = get_boost_low_volume_projects_sample_rate(
+            org_id=org_id,
+            project_id=project_id,
+            error_sample_rate_fallback=quotas.backend.get_blended_sample_rate(
+                organization_id=org_id
+            ),
+        )
+        source = "boost_low_volume_projects" if success else "blended_sample_rate"
+
+    sample_function(
+        function=log_sample_rate_source,
+        _sample_rate=0.1,
         org_id=org_id,
         project_id=project_id,
-        error_sample_rate_fallback=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+        used_for="boost_low_volume_transactions",
+        source=source,
+        sample_rate=sample_rate,
     )
-    if success:
-        log_sample_rate_source(
-            org_id,
-            project_id,
-            "boost_low_volume_transactions",
-            "boost_low_volume_projects",
-            sample_rate,
-        )
-    else:
-        log_sample_rate_source(
-            org_id, project_id, "boost_low_volume_transactions", "blended_sample_rate", sample_rate
-        )
 
     if sample_rate is None:
         sentry_sdk.capture_message(
@@ -650,9 +659,9 @@ def merge_transactions(
         "org_id": left["org_id"],
         "project_id": left["project_id"],
         "transaction_counts": merged_transactions,
-        "total_num_transactions": totals.get("total_num_transactions")
-        if totals is not None
-        else None,
+        "total_num_transactions": (
+            totals.get("total_num_transactions") if totals is not None else None
+        ),
         "total_num_classes": totals.get("total_num_classes") if totals is not None else None,
     }
 

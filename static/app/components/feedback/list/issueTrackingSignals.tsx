@@ -8,7 +8,8 @@ import type {
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event, Group} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {
   getIntegrationDisplayName,
   getIntegrationIcon,

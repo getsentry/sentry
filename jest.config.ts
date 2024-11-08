@@ -203,7 +203,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = [];
+const ESM_NODE_MODULES = ['screenfull'];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -215,7 +215,7 @@ const config: Config.InitialOptions = {
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
     '^sentry/(.*)': '<rootDir>/static/app/$1',
-    '^sentry-fixture/(.*)': '<rootDir>/fixtures/js-stubs/$1',
+    '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
@@ -233,7 +233,6 @@ const config: Config.InitialOptions = {
   setupFilesAfterEnv: [
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
-    '@testing-library/jest-dom/extend-expect',
   ],
   testMatch: testMatch || ['<rootDir>/static/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
@@ -253,7 +252,7 @@ const config: Config.InitialOptions = {
       : '/node_modules/',
   ],
 
-  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
+  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
   globals: {},
 
   testResultsProcessor: JEST_TEST_BALANCER
@@ -275,16 +274,19 @@ const config: Config.InitialOptions = {
    */
   clearMocks: true,
 
-  testEnvironment: 'jsdom',
+  // To disable the sentry jest integration, set this to 'jsdom'
+  testEnvironment: '@sentry/jest-environment/jsdom',
   testEnvironmentOptions: {
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)
-        dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
+        dsn: CI
+          ? 'https://3fe1dce93e3a4267979ebad67f3de327@o1.ingest.us.sentry.io/4857230'
+          : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
-        tracesSampleRate: CI ? 1 : 0.5,
-        profilesSampleRate: 0.1,
+        tracesSampleRate: CI ? 0.75 : 0,
+        profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },
       transactionOptions: {

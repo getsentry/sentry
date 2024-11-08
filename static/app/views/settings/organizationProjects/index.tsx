@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useRef} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -17,8 +16,9 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
-import {sortProjects} from 'sentry/utils';
+import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -44,7 +44,7 @@ function OrganizationProjects() {
   const {
     data: projectList,
     getResponseHeader,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<Project[]>(
     [
@@ -60,19 +60,22 @@ function OrganizationProjects() {
     {staleTime: 0}
   );
 
-  const {data: projectStats, isLoading: isLoadingStats} = useApiQuery<ProjectStats>(
+  const {data: projectStats, isPending: isLoadingStats} = useApiQuery<ProjectStats>(
     [
       `/organizations/${organization.slug}/stats/`,
       {
         query: {
+          projectID: projectList?.map(p => p.id),
           since: time.current / 1000 - 3600 * 24,
           stat: 'generated',
           group: 'project',
-          per_page: ITEMS_PER_PAGE,
         },
       },
     ],
-    {staleTime: 0}
+    {
+      staleTime: 60_000,
+      enabled: !!projectList,
+    }
   );
 
   const projectListPageLinks = getResponseHeader?.('Link');
@@ -84,7 +87,7 @@ function OrganizationProjects() {
         (searchQuery: string) =>
           browserHistory.replace({
             pathname: location.pathname,
-            query: {...location.query, query: searchQuery},
+            query: {...location.query, query: searchQuery, cursor: undefined},
           }),
         DEFAULT_DEBOUNCE_DURATION
       ),
@@ -107,7 +110,7 @@ function OrganizationProjects() {
       <Panel>
         <PanelHeader>{t('Projects')}</PanelHeader>
         <PanelBody>
-          {isLoading && <LoadingIndicator />}
+          {isPending && <LoadingIndicator />}
           {isError && <LoadingError />}
           {projectList &&
             sortProjects(projectList).map(project => (

@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import isInteger from 'lodash/isInteger';
@@ -16,6 +15,7 @@ import {
 } from 'sentry/components/organizations/pageFilters/persistence';
 import type {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {
   ALL_ACCESS_PROJECTS,
   DATE_TIME_KEYS,
@@ -23,17 +23,14 @@ import {
 } from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import type {
-  DateString,
-  Environment,
-  MinimalProject,
-  Organization,
-  PageFilters,
-  PinnedPageFilter,
-  Project,
-} from 'sentry/types';
-import {defined, valueIsEqual} from 'sentry/utils';
+import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Environment, MinimalProject, Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {DAY} from 'sentry/utils/formatters';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 type EnvironmentId = Environment['id'];
 
@@ -126,6 +123,10 @@ export type InitializeUrlStateParams = {
   shouldEnforceSingleProject: boolean;
   defaultSelection?: Partial<PageFilters>;
   forceProject?: MinimalProject | null;
+  /**
+   * When set, the stats period will fallback to the `maxPickableDays` days if the stored selection exceeds the limit.
+   */
+  maxPickableDays?: number;
   shouldForceProject?: boolean;
   /**
    * Whether to save changes to local storage. This setting should be page-specific:
@@ -168,6 +169,7 @@ export function initializeUrlState({
   nonMemberProjects,
   skipLoadLastUsed,
   skipLoadLastUsedEnvironment,
+  maxPickableDays,
   shouldPersist = true,
   shouldForceProject,
   shouldEnforceSingleProject,
@@ -332,6 +334,31 @@ export function initializeUrlState({
     project = newProject;
   }
 
+  let shouldUseMaxPickableDays = false;
+
+  if (maxPickableDays && pageFilters.datetime) {
+    let {start, end} = pageFilters.datetime;
+
+    if (pageFilters.datetime.period) {
+      const parsedPeriod = parseStatsPeriod(pageFilters.datetime.period);
+      start = parsedPeriod.start;
+      end = parsedPeriod.end;
+    }
+
+    if (start && end) {
+      const difference = new Date(end).getTime() - new Date(start).getTime();
+      if (difference > maxPickableDays * DAY) {
+        shouldUseMaxPickableDays = true;
+        pageFilters.datetime = {
+          period: `${maxPickableDays}d`,
+          start: null,
+          end: null,
+          utc: datetime.utc,
+        };
+      }
+    }
+  }
+
   const pinnedFilters = organization.features.includes('new-page-filter')
     ? new Set<PinnedPageFilter>(['projects', 'environments', 'datetime'])
     : storedPageFilters?.pinnedFilters ?? new Set();
@@ -348,14 +375,21 @@ export function initializeUrlState({
     PageFiltersStore.updateDesyncedFilters(new Set());
   }
 
-  const newDatetime = {
-    ...datetime,
-    period:
-      parsed.start || parsed.end || parsed.period || shouldUsePinnedDatetime
-        ? datetime.period
-        : null,
-    utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
-  };
+  const newDatetime = shouldUseMaxPickableDays
+    ? {
+        period: `${maxPickableDays}d`,
+        start: null,
+        end: null,
+        utc: datetime.utc,
+      }
+    : {
+        ...datetime,
+        period:
+          parsed.start || parsed.end || parsed.period || shouldUsePinnedDatetime
+            ? datetime.period
+            : null,
+        utc: parsed.utc || shouldUsePinnedDatetime ? datetime.utc : null,
+      };
 
   if (!skipInitializeUrlParams) {
     updateParams({project, environment, ...newDatetime}, router, {
@@ -481,7 +515,7 @@ function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options
  * Pinned state is always persisted.
  */
 async function persistPageFilters(filter: PinnedPageFilter | null, options?: Options) {
-  if (!options?.save || !PageFiltersStore.shouldPersist) {
+  if (!options?.save || !PageFiltersStore.getState().shouldPersist) {
     return;
   }
 
@@ -515,7 +549,7 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
  */
 async function checkDesyncedUrlState(router?: Router, shouldForceProject?: boolean) {
   // Cannot compare URL state without the router
-  if (!router || !PageFiltersStore.shouldPersist) {
+  if (!router || !PageFiltersStore.getState().shouldPersist) {
     return;
   }
 
@@ -595,7 +629,7 @@ async function checkDesyncedUrlState(router?: Router, shouldForceProject?: boole
  * Commits the new desynced filter values and clears the desynced filters list.
  */
 export function saveDesyncedFilters() {
-  const {desyncedFilters} = PageFiltersStore;
+  const {desyncedFilters} = PageFiltersStore.getState();
   [...desyncedFilters].forEach(filter => persistPageFilters(filter, {save: true}));
   PageFiltersStore.updateDesyncedFilters(new Set());
 }

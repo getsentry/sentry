@@ -1,11 +1,8 @@
 import {Fragment, PureComponent} from 'react';
-import type {WithRouterProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
-import moment from 'moment';
-import momentTimezone from 'moment-timezone';
+import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -38,20 +35,24 @@ import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {DateString, Organization, Project} from 'sentry/types';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {DateString} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import toArray from 'sentry/utils/array/toArray';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getDuration} from 'sentry/utils/formatters';
+import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
-import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import theme from 'sentry/utils/theme';
-import toArray from 'sentry/utils/toArray';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
@@ -65,8 +66,9 @@ import {
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
-import type {Incident} from '../../../types';
+import type {Anomaly, Incident} from '../../../types';
 import {
   alertDetailsLink,
   alertTooltipValueFormatter,
@@ -91,6 +93,8 @@ type Props = WithRouterProps & {
   query: string;
   rule: MetricRule;
   timePeriod: TimePeriodType;
+  anomalies?: Anomaly[];
+  formattedAggregate?: string;
   incidents?: Incident[];
   isOnDemandAlert?: boolean;
   selectedIncident?: Incident | null;
@@ -102,7 +106,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
     options: {timezone},
   } = ConfigStore.get('user');
-  return momentTimezone.tz(date, timezone).format(format);
+  return moment.tz(date, timezone).format(format);
 }
 
 function getRuleChangeSeries(
@@ -146,16 +150,8 @@ function getRuleChangeSeries(
   ];
 }
 
-function shouldUseErrorsDataset(
-  organization: Organization,
-  dataset: Dataset,
-  query: string
-): boolean {
-  return (
-    dataset === Dataset.ERRORS &&
-    /\bis:unresolved\b/.test(query) &&
-    organization.features.includes('metric-alert-ignore-archived')
-  );
+function shouldUseErrorsDataset(dataset: Dataset, query: string): boolean {
+  return dataset === Dataset.ERRORS && /\bis:unresolved\b/.test(query);
 }
 
 class MetricChart extends PureComponent<Props, State> {
@@ -181,17 +177,30 @@ class MetricChart extends PureComponent<Props, State> {
     const {rule, organization, project, timePeriod, query} = this.props;
 
     let dataset: DiscoverDatasets | undefined = undefined;
-    if (shouldUseErrorsDataset(organization, rule.dataset, query)) {
+    if (shouldUseErrorsDataset(rule.dataset, query)) {
       dataset = DiscoverDatasets.ERRORS;
     }
 
+    let openInDiscoverDataset: SavedQueryDatasets | undefined = undefined;
+    if (hasDatasetSelector(organization)) {
+      if (rule.dataset === Dataset.ERRORS) {
+        openInDiscoverDataset = SavedQueryDatasets.ERRORS;
+      } else if (
+        rule.dataset === Dataset.TRANSACTIONS ||
+        rule.dataset === Dataset.GENERIC_METRICS
+      ) {
+        openInDiscoverDataset = SavedQueryDatasets.TRANSACTIONS;
+      }
+    }
+
     const {buttonText, ...props} = makeDefaultCta({
-      orgSlug: organization.slug,
+      organization,
       projects: [project],
       rule,
       timePeriod,
       query,
       dataset,
+      openInDiscoverDataset,
     });
 
     const resolvedPercent =
@@ -263,6 +272,7 @@ class MetricChart extends PureComponent<Props, State> {
     comparisonTimeseriesData?: Series[]
   ) {
     const {
+      anomalies,
       router,
       selectedIncident,
       interval,
@@ -271,6 +281,7 @@ class MetricChart extends PureComponent<Props, State> {
       rule,
       organization,
       timePeriod: {start, end},
+      formattedAggregate,
     } = this.props;
     const {dateModified, timeWindow} = rule;
 
@@ -296,7 +307,9 @@ class MetricChart extends PureComponent<Props, State> {
     } = getMetricAlertChartOption({
       timeseriesData,
       rule,
+      seriesName: formattedAggregate,
       incidents,
+      anomalies,
       selectedIncident,
       showWaitingForData:
         shouldShowOnDemandMetricAlertUI(organization) && this.props.isOnDemandAlert,
@@ -337,7 +350,7 @@ class MetricChart extends PureComponent<Props, State> {
           </ChartHeader>
           <ChartFilters>
             <StyledCircleIndicator size={8} />
-            <Filters>{formatMRIField(rule.aggregate)}</Filters>
+            <Filters>{formattedAggregate ?? rule.aggregate}</Filters>
             <Tooltip
               title={queryFilter}
               isHoverable
@@ -351,7 +364,6 @@ class MetricChart extends PureComponent<Props, State> {
           {getDynamicText({
             value: (
               <ChartZoom
-                router={router}
                 start={start}
                 end={end}
                 onZoom={zoomArgs => this.handleZoom(zoomArgs.start, zoomArgs.end)}
@@ -367,11 +379,13 @@ class MetricChart extends PureComponent<Props, State> {
                       formatter: seriesParams => {
                         // seriesParams can be object instead of array
                         const pointSeries = toArray(seriesParams);
-                        const {marker, data: pointData, seriesName} = pointSeries[0];
+                        const {marker, data: pointData} = pointSeries[0];
+                        const seriesName =
+                          formattedAggregate ?? pointSeries[0].seriesName ?? '';
                         const [pointX, pointY] = pointData as [number, number];
                         const pointYFormatted = alertTooltipValueFormatter(
                           pointY,
-                          seriesName ?? '',
+                          seriesName,
                           rule.aggregate
                         );
 
@@ -405,7 +419,7 @@ class MetricChart extends PureComponent<Props, State> {
                           comparisonPointY !== undefined
                             ? alertTooltipValueFormatter(
                                 comparisonPointY,
-                                seriesName ?? '',
+                                seriesName,
                                 rule.aggregate
                               )
                             : undefined;
@@ -515,6 +529,7 @@ class MetricChart extends PureComponent<Props, State> {
       query,
       location,
       isOnDemandAlert,
+      selectedIncident,
     } = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
@@ -544,6 +559,27 @@ class MetricChart extends PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
+    let activationFilter = '';
+    if (
+      rule.monitorType === MonitorType.ACTIVATED &&
+      selectedIncident &&
+      selectedIncident.activation
+    ) {
+      const {activation} = selectedIncident;
+      const {activator, conditionType} = activation;
+      switch (conditionType) {
+        case String(ActivationConditionType.RELEASE_CREATION):
+          activationFilter = ` AND (release:${activator})`;
+          break;
+        case String(ActivationConditionType.DEPLOY_CREATION):
+          activationFilter = ` AND (deploy:${activator})`;
+          break;
+        default:
+          break;
+      }
+    }
+
+    const alertType = getAlertTypeFromAggregateDataset(rule);
     const queryExtras: Record<string, string> = {
       ...getMetricDatasetQueryExtras({
         organization,
@@ -552,10 +588,10 @@ class MetricChart extends PureComponent<Props, State> {
         newAlertOrQuery: false,
         useOnDemandMetrics: isOnDemandAlert,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset),
+      ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
     };
 
-    if (shouldUseErrorsDataset(organization, dataset, query)) {
+    if (shouldUseErrorsDataset(dataset, query)) {
       queryExtras.dataset = 'errors';
     }
 
@@ -567,7 +603,7 @@ class MetricChart extends PureComponent<Props, State> {
         environment={environment ? [environment] : undefined}
         start={viableStartDate}
         end={viableEndDate}
-        query={query}
+        query={query + activationFilter}
         interval={interval}
         field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
         groupBy={['session.status']}
@@ -584,7 +620,7 @@ class MetricChart extends PureComponent<Props, State> {
       <EventsRequest
         api={api}
         organization={organization}
-        query={query}
+        query={query + activationFilter}
         environment={environment ? [environment] : undefined}
         project={project.id ? [Number(project.id)] : []}
         interval={interval}

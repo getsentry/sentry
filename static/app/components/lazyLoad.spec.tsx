@@ -1,3 +1,5 @@
+import {lazy} from 'react';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import LazyLoad from 'sentry/components/lazyLoad';
@@ -15,7 +17,6 @@ function BarComponent({}: TestProps) {
 }
 
 type ResolvedComponent = {default: React.ComponentType<TestProps>};
-type GetComponent = () => Promise<ResolvedComponent>;
 
 describe('LazyLoad', function () {
   afterEach(() => {
@@ -25,7 +26,7 @@ describe('LazyLoad', function () {
   it('renders with a loading indicator when promise is not resolved yet', function () {
     const importTest = new Promise<ResolvedComponent>(() => {});
     const getComponent = () => importTest;
-    render(<LazyLoad component={getComponent} />);
+    render(<LazyLoad LazyComponent={lazy(getComponent)} />);
 
     // Should be loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -37,7 +38,7 @@ describe('LazyLoad', function () {
       doResolve = resolve;
     });
 
-    render(<LazyLoad component={() => importFoo} />);
+    render(<LazyLoad LazyComponent={lazy(() => importFoo)} />);
 
     // Should be loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -50,21 +51,14 @@ describe('LazyLoad', function () {
   it('renders with error message when promise is rejected', async function () {
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
-    const getComponent = jest.fn(
-      () =>
-        new Promise<ResolvedComponent>((_resolve, reject) =>
-          reject(new Error('Could not load component'))
-        )
-    );
+    const getComponent = () => Promise.reject(new Error('Could not load component'));
 
-    try {
-      render(<LazyLoad component={getComponent} />);
-    } catch (err) {
-      // ignore
-    }
+    render(<LazyLoad LazyComponent={lazy(getComponent)} />);
 
     expect(
-      await screen.findByText('There was an error loading a component.')
+      await screen.findByText('There was an error loading a component.', undefined, {
+        timeout: 5000,
+      })
     ).toBeInTheDocument();
 
     // eslint-disable-next-line no-console
@@ -78,7 +72,7 @@ describe('LazyLoad', function () {
     });
 
     // First render Foo
-    const {rerender} = render(<LazyLoad component={() => importFoo} />);
+    const {rerender} = render(<LazyLoad LazyComponent={lazy(() => importFoo)} />);
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     // resolve with foo
@@ -90,7 +84,7 @@ describe('LazyLoad', function () {
       doResolve = resolve;
     });
 
-    rerender(<LazyLoad component={() => importBar} />);
+    rerender(<LazyLoad LazyComponent={lazy(() => importBar)} />);
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     // resolve with bar
@@ -98,14 +92,13 @@ describe('LazyLoad', function () {
     expect(await screen.findByText('my bar component')).toBeInTheDocument();
 
     // Update component prop to a mock to make sure it isn't re-called
-    const getComponent2: GetComponent = jest.fn(
-      () => new Promise<ResolvedComponent>(() => {})
-    );
-    rerender(<LazyLoad component={getComponent2} />);
+    const getComponent2 = jest.fn(() => new Promise<ResolvedComponent>(() => {}));
+    const LazyGet = lazy(getComponent2);
+    rerender(<LazyLoad LazyComponent={LazyGet} />);
     expect(getComponent2).toHaveBeenCalledTimes(1);
 
     // Does not refetch on other prop changes
-    rerender(<LazyLoad component={getComponent2} testProp />);
+    rerender(<LazyLoad LazyComponent={LazyGet} testProp />);
     expect(getComponent2).toHaveBeenCalledTimes(1);
   });
 });

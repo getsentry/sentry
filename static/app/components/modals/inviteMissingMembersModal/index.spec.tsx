@@ -1,29 +1,29 @@
-import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
 import {MissingMembersFixture} from 'sentry-fixture/missingMembers';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 import type {InviteMissingMembersModalProps} from 'sentry/components/modals/inviteMissingMembersModal';
 import InviteMissingMembersModal from 'sentry/components/modals/inviteMissingMembersModal';
 import TeamStore from 'sentry/stores/teamStore';
-import type {OrgRole} from 'sentry/types';
+import type {OrgRole} from 'sentry/types/organization';
 
 const roles = [
   {
     id: 'admin',
     name: 'Admin',
     desc: 'This is the admin role',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'member',
     name: 'Member',
     desc: 'This is the member role',
-    allowed: true,
+    isAllowed: true,
   },
 ] as OrgRole[];
 
@@ -33,7 +33,7 @@ const mockRefObject = {
 
 describe('InviteMissingMembersModal', function () {
   const team = TeamFixture();
-  const org = OrganizationFixture({access: ['member:write'], teams: [team]});
+  const org = OrganizationFixture({access: ['member:write']});
   TeamStore.loadInitialData([team]);
   const missingMembers = MissingMembersFixture();
 
@@ -166,7 +166,7 @@ describe('InviteMissingMembersModal', function () {
     render(
       <InviteMissingMembersModal
         {...modalProps}
-        organization={OrganizationFixture({defaultRole: 'member', teams: [team]})}
+        organization={OrganizationFixture({defaultRole: 'member'})}
         missingMembers={missingMembers}
         allowedRoles={roles}
       />

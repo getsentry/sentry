@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -16,9 +18,12 @@ describe('express onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
 
     // Includes import statement
-    expect(
-      screen.getByText(textWithMarkupMatcher(/import \* as Sentry from "@sentry\/node"/))
-    ).toBeInTheDocument();
+    const allMatches = screen.getAllByText(
+      textWithMarkupMatcher(/import \* as Sentry from "@sentry\/node"/)
+    );
+    allMatches.forEach(match => {
+      expect(match).toBeInTheDocument();
+    });
   });
 
   it('displays sample rates by default', () => {
@@ -57,7 +62,49 @@ describe('express onboarding docs', function () {
     });
 
     expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+        )
+      )
+    ).toBeInTheDocument();
+    expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+  });
+
+  it('continuous profiling', () => {
+    const organization = OrganizationFixture({
+      features: ['continuous-profiling'],
+    });
+
+    renderWithOnboardingLayout(
+      docs,
+      {},
+      {
+        organization,
+      }
+    );
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+        )
+      )
+    ).toBeInTheDocument();
+
+    // Profiles sample rate should not be set for continuous profiling
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+    ).not.toBeInTheDocument();
+
+    // Should have start and stop profiling calls
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/Sentry.profiler.startProfiling/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiling/))
     ).toBeInTheDocument();
   });
 });

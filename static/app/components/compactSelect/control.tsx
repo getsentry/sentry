@@ -16,7 +16,7 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
-import Badge from 'sentry/components/badge';
+import Badge from 'sentry/components/badge/badge';
 import {Button} from 'sentry/components/button';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -31,7 +31,7 @@ import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
-import type {SelectOption} from './types';
+import type {SelectKey, SelectOption} from './types';
 
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
@@ -63,7 +63,7 @@ export interface SelectContextValue {
    */
   saveSelectedOptions: (
     index: number,
-    newSelectedOptions: SelectOption<React.Key> | SelectOption<React.Key>[]
+    newSelectedOptions: SelectOption<SelectKey> | SelectOption<SelectKey>[]
   ) => void;
   /**
    * Search string to determine whether an option should be rendered in the select list.
@@ -88,7 +88,7 @@ export interface ControlProps
       React.BaseHTMLAttributes<HTMLDivElement>,
       // omit keys from SingleListProps because those will be passed to <List /> instead
       keyof Omit<
-        SingleListProps<React.Key>,
+        SingleListProps<SelectKey>,
         'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
       >
     >,
@@ -121,7 +121,7 @@ export interface ControlProps
   /**
    * Message to be displayed when all options have been filtered out (via search).
    */
-  emptyMessage?: string;
+  emptyMessage?: React.ReactNode;
   /**
    * Whether to render a grid list rather than a list box.
    *
@@ -148,7 +148,7 @@ export interface ControlProps
   /**
    * Optional content to display below the menu's header and above the options.
    */
-  menuBody?: React.ReactNode | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  menuBody?: React.ReactNode | ((actions: {closeOverlay: () => void}) => JSX.Element);
   /**
    * Footer to be rendered at the bottom of the menu.
    */
@@ -171,6 +171,10 @@ export interface ControlProps
    * true).
    */
   onClear?: () => void;
+  /**
+   * Called when the menu is opened or closed.
+   */
+  onOpenChange?: (newOpenState: boolean) => void;
   /**
    * Called when the search input's value changes (applicable only when `searchable`
    * is true).
@@ -211,6 +215,7 @@ export interface ControlProps
  */
 export function Control({
   // Control props
+  autoFocus,
   trigger,
   triggerLabel: triggerLabelProp,
   triggerProps,
@@ -233,6 +238,7 @@ export function Control({
   menuHeaderTrailingItems,
   menuBody,
   menuFooter,
+  onOpenChange,
 
   // Select props
   size = 'md',
@@ -247,6 +253,7 @@ export function Control({
   children,
   ...wrapperProps
 }: ControlProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   // Set up list states (in composite selects, each region has its own state, that way
   // selection values are contained within each region).
   const [listStates, setListStates] = useState<ListState<any>[]>([]);
@@ -291,6 +298,11 @@ export function Control({
           ?.focus();
       }
 
+      // Prevent form submissions on Enter key press in search box
+      if (e.key === 'Enter') {
+        e.preventDefault();
+      }
+
       // Continue propagation, otherwise the overlay won't close on Esc key press
       e.continuePropagation();
     },
@@ -326,6 +338,8 @@ export function Control({
     preventOverflowOptions,
     flipOptions,
     onOpenChange: open => {
+      onOpenChange?.(open);
+
       nextFrameCallback(() => {
         if (open) {
           // Focus on search box if present
@@ -358,7 +372,14 @@ export function Control({
         setSearchInputValue('');
         setSearch('');
 
-        triggerRef.current?.focus();
+        // Only restore focus if it's already here or lost to the body.
+        // This prevents focus from being stolen from other elements.
+        if (
+          document.activeElement === document.body ||
+          wrapperRef.current?.contains(document.activeElement)
+        ) {
+          triggerRef.current?.focus();
+        }
       });
     },
   });
@@ -379,6 +400,20 @@ export function Control({
     updateOverlay?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuBody, hideOptions]);
+
+  const wasRefAvailable = useRef(false);
+  useEffect(() => {
+    // Trigger ref is set by a setState in useOverlay, so we need to wait for it to be available
+    // We also need to make sure we only focus once
+    if (!triggerRef.current || wasRefAvailable.current) {
+      return;
+    }
+    wasRefAvailable.current = true;
+
+    if (autoFocus && !disabled) {
+      triggerRef.current.focus();
+    }
+  }, [autoFocus, disabled, triggerRef]);
 
   /**
    * The menu's full width, before any option has been filtered out. Used to maintain a
@@ -402,7 +437,7 @@ export function Control({
    * trigger label.
    */
   const [selectedOptions, setSelectedOptions] = useState<
-    Array<SelectOption<React.Key> | SelectOption<React.Key>[]>
+    Array<SelectOption<SelectKey> | SelectOption<SelectKey>[]>
   >([]);
   const saveSelectedOptions = useCallback<SelectContextValue['saveSelectedOptions']>(
     (index, newSelectedOptions) => {
@@ -444,6 +479,8 @@ export function Control({
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault(); // Prevent scroll
         overlayState.open();
+      } else {
+        e.continuePropagation();
       }
     },
   });
@@ -595,7 +632,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;
@@ -610,7 +647,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};

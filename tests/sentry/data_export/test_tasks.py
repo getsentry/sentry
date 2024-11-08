@@ -9,8 +9,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import (
     DatasetSelectionError,
@@ -29,7 +28,6 @@ from sentry.utils.snuba import (
 )
 
 
-@region_silo_test
 class AssembleDownloadTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -40,7 +38,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar"},
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "environment": "dev",
             },
             project_id=self.project.id,
@@ -49,7 +47,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar2"},
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "environment": "prod",
             },
             project_id=self.project.id,
@@ -58,7 +56,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar2"},
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "environment": "prod",
             },
             project_id=self.project.id,
@@ -393,7 +391,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         assert emailer.called
 
-    @patch("sentry.search.events.builder.discover.raw_snql_query")
+    @patch("sentry.search.events.builder.base.raw_snql_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_outside_retention(self, emailer, mock_query):
         """
@@ -443,7 +441,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Invalid query. Please fix the query and try again."
 
-    @patch("sentry.search.events.builder.discover.raw_snql_query")
+    @patch("sentry.search.events.builder.base.raw_snql_query")
     def test_retries_on_recoverable_snuba_errors(self, mock_query):
         de = ExportedData.objects.create(
             user_id=self.user.id,
@@ -472,7 +470,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         with file.getfile() as f:
             header, row = f.read().strip().split(b"\r\n")
 
-    @patch("sentry.search.events.builder.discover.raw_snql_query")
+    @patch("sentry.search.events.builder.base.raw_snql_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_snuba_error(self, emailer, mock_query):
         de = ExportedData.objects.create(
@@ -611,7 +609,6 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
 
-@region_silo_test
 class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -635,8 +632,8 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
             event.update(
                 {
                     "transaction": f"/event/{i:03d}/",
-                    "timestamp": iso_format(before_now(minutes=1, seconds=i)),
-                    "start_timestamp": iso_format(before_now(minutes=1, seconds=i + 1)),
+                    "timestamp": before_now(minutes=1, seconds=i).isoformat(),
+                    "start_timestamp": before_now(minutes=1, seconds=i + 1).isoformat(),
                 }
             )
             self.store_event(event, project_id=self.project.id)
@@ -666,8 +663,8 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
             event.update(
                 {
                     "transaction": string,
-                    "timestamp": iso_format(before_now(minutes=1, seconds=0)),
-                    "start_timestamp": iso_format(before_now(minutes=1, seconds=1)),
+                    "timestamp": before_now(minutes=1, seconds=0).isoformat(),
+                    "start_timestamp": before_now(minutes=1, seconds=1).isoformat(),
                 }
             )
             self.store_event(event, project_id=self.project.id)

@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import type {Location} from 'history';
 
 import Count from 'sentry/components/count';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import type {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -11,10 +11,14 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -24,6 +28,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {ProfilingTransactionHovercard} from './profilingTransactionHovercard';
 
@@ -42,6 +51,7 @@ export function ProfileEventsTable<F extends FieldType>(
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const domainViewFilters = useDomainViewFilters();
 
   const generateSortLink = useCallback(
     (column: F) => () => {
@@ -76,10 +86,9 @@ export function ProfileEventsTable<F extends FieldType>(
         }),
         renderBodyCell: renderTableBody(
           props.data?.meta ?? ({fields: {}, units: {}} as EventsResults<F>['meta']),
-          {location, organization, projects}
+          {location, organization, projects, view: domainViewFilters?.view}
         ),
       }}
-      location={location}
     />
   );
 }
@@ -88,6 +97,7 @@ type RenderBagger = {
   location: Location;
   organization: Organization;
   projects: Project[];
+  view?: DomainView;
 };
 
 function renderTableBody<F extends FieldType>(
@@ -119,7 +129,9 @@ interface ProfileEventsCellProps<F extends FieldType> {
   baggage: RenderBagger;
   column: GridColumnOrder<F>;
   columnIndex: number;
-  dataRow: Record<F, any>;
+  dataRow: {
+    [key: string]: any;
+  };
   meta: EventsResults<F>['meta'];
   rowIndex: number;
 }
@@ -152,14 +164,29 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
   }
 
   if (key === 'trace') {
-    const traceId = getShortEventId(props.dataRow[key] ?? '');
+    const traceId = props.dataRow[key] ?? '';
     if (!traceId) {
       return <Container>{t('n/a')}</Container>;
     }
+    const timestamp = getTimeStampFromTableDateField(props.dataRow.timestamp);
+    const dataSelection = EventView.fromLocation(
+      props.baggage.location
+    ).normalizeDateSelection(props.baggage.location);
 
     return (
       <Container>
-        <Link to={`/performance/trace/${props.dataRow[key]}`}>{traceId}</Link>
+        <Link
+          to={getTraceDetailsUrl({
+            organization: props.baggage.organization,
+            traceSlug: traceId,
+            dateSelection: dataSelection,
+            timestamp,
+            location: props.baggage.location,
+            view: props.baggage.view,
+          })}
+        >
+          {getShortEventId(traceId)}
+        </Link>
       </Container>
     );
   }
@@ -173,7 +200,17 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
 
     return (
       <Container>
-        <Link to={`/performance/${project.slug}:${props.dataRow[key]}`}>
+        <Link
+          to={generateLinkToEventInTraceView({
+            projectSlug: project.slug,
+            eventId: props.dataRow[key],
+            traceSlug: props.dataRow.trace,
+            timestamp: props.dataRow.timestamp,
+            location: props.baggage.location,
+            transactionName: props.dataRow.transaction,
+            organization: props.baggage.organization,
+          })}
+        >
           {transactionId}
         </Link>
       </Container>
@@ -286,42 +323,45 @@ function getProjectForRow<F extends FieldType>(
   return project ?? null;
 }
 
-const FIELDS = [
-  'id',
-  'profile.id',
-  'trace.transaction',
-  'trace',
-  'transaction',
-  'transaction.duration',
-  'profile.duration',
-  'project',
-  'project.id',
-  'project.name',
-  'environment',
-  'timestamp',
-  'release',
-  'platform.name',
-  'device.arch',
-  'device.classification',
-  'device.locale',
-  'device.manufacturer',
-  'device.model',
-  'os.build',
-  'os.name',
-  'os.version',
-  'last_seen()',
-  'p75()',
-  'p95()',
-  'p99()',
-  'count()',
-  'user_misery()',
-] as const;
-
-type FieldType = (typeof FIELDS)[number];
+type FieldType =
+  | 'id'
+  | 'profile.id'
+  | 'profiler.id'
+  | 'thread.id'
+  | 'trace.transaction'
+  | 'trace'
+  | 'transaction'
+  | 'transaction.duration'
+  | 'precise.start_ts'
+  | 'precise.finish_ts'
+  | 'profile.duration'
+  | 'project'
+  | 'project.id'
+  | 'project.name'
+  | 'environment'
+  | 'timestamp'
+  | 'release'
+  | 'platform.name'
+  | 'device.arch'
+  | 'device.classification'
+  | 'device.locale'
+  | 'device.manufacturer'
+  | 'device.model'
+  | 'os.build'
+  | 'os.name'
+  | 'os.version'
+  | 'last_seen()'
+  | 'p50()'
+  | 'p75()'
+  | 'p95()'
+  | 'p99()'
+  | 'count()'
+  | 'user_misery()';
 
 const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
   'transaction.duration',
   'profile.duration',
+  'p50()',
   'p75()',
   'p95()',
   'p99()',
@@ -338,6 +378,16 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   'profile.id': {
     key: 'profile.id',
     name: t('Profile ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'profiler.id': {
+    key: 'profiler.id',
+    name: t('Profiler ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'thread.id': {
+    key: 'thread.id',
+    name: t('Thread ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   transaction: {
@@ -358,6 +408,16 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   'trace.transaction': {
     key: 'trace.transaction',
     name: t('Transaction ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'precise.start_ts': {
+    key: 'precise.start_ts',
+    name: t('Precise Start Timestamp'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'precise.finish_ts': {
+    key: 'precise.finish_ts',
+    name: t('Precise Finish Timestamp'),
     width: COL_WIDTH_UNDEFINED,
   },
   'profile.duration': {
@@ -443,6 +503,11 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   'last_seen()': {
     key: 'last_seen()',
     name: t('Last Seen'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'p50()': {
+    key: 'p50()',
+    name: t('P50()'),
     width: COL_WIDTH_UNDEFINED,
   },
   'p75()': {

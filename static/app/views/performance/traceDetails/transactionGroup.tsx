@@ -9,7 +9,7 @@ import type {
   SpanGeneratedBoundsType,
   VerticalMark,
 } from 'sentry/components/events/interfaces/spans/utils';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {
   TraceError,
   TraceFullDetailed,

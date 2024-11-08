@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.core.cache import cache
@@ -9,15 +9,15 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 
 
 class OnboardingTask:
@@ -35,6 +35,8 @@ class OnboardingTask:
     METRIC_ALERT = 12
     INTEGRATIONS = 13
     SESSION_REPLAY = 14
+    REAL_TIME_NOTIFICATIONS = 15
+    LINK_SENTRY_TO_SOURCE_CODE = 16
 
 
 class OnboardingTaskStatus:
@@ -101,17 +103,19 @@ class AbstractOnboardingTask(Model):
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
-    data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
+    # INVITE_MEMBER { invited_member: user.id }
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
-    # fields for typing
+    # abstract
     TASK_LOOKUP_BY_KEY: dict[str, int]
     SKIPPABLE_TASKS: frozenset[int]
+    NEW_SKIPPABLE_TASKS: frozenset[int]
 
     class Meta:
         abstract = True
 
 
-@region_silo_only_model
+@region_silo_model
 class OrganizationOnboardingTask(AbstractOnboardingTask):
     """
     Onboarding tasks walk new Sentry orgs through basic features of Sentry.
@@ -126,12 +130,16 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         (OnboardingTask.RELEASE_TRACKING, "setup_release_tracking"),
         (OnboardingTask.SOURCEMAPS, "setup_sourcemaps"),
         (OnboardingTask.USER_REPORTS, "setup_user_reports"),
+        # TODO(Telemety Experience): This task is no longer shown
+        # in the new experience and shall remove it from code
         (OnboardingTask.ISSUE_TRACKER, "setup_issue_tracker"),
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
         (OnboardingTask.METRIC_ALERT, "setup_metric_alert_rules"),
         (OnboardingTask.INTEGRATIONS, "setup_integrations"),
         (OnboardingTask.SESSION_REPLAY, "setup_session_replay"),
+        (OnboardingTask.REAL_TIME_NOTIFICATIONS, "setup_real_time_notifications"),
+        (OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE, "link_sentry_to_source_code"),
     )
 
     # Used in the API to map IDs to string keys. This keeps things
@@ -141,7 +149,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
 
     task = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in TASK_CHOICES])
 
-    # Tasks which must be completed for the onboarding to be considered
+    # Tasks which should be completed for the onboarding to be considered
     # complete.
     REQUIRED_ONBOARDING_TASKS = frozenset(
         [
@@ -149,15 +157,38 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.FIRST_EVENT,
             OnboardingTask.INVITE_MEMBER,
             OnboardingTask.SECOND_PLATFORM,
+            # TODO(Telemety Experience): This task is no longer shown
+            # in the new experience and shall be removed after GA
             OnboardingTask.USER_CONTEXT,
             OnboardingTask.RELEASE_TRACKING,
             OnboardingTask.SOURCEMAPS,
-            OnboardingTask.ISSUE_TRACKER,
             OnboardingTask.ALERT_RULE,
             OnboardingTask.FIRST_TRANSACTION,
+            # TODO(Telemety Experience): This task is no longer shown
+            # in the new experience and shall be removed after GA
             OnboardingTask.METRIC_ALERT,
             OnboardingTask.INTEGRATIONS,
             OnboardingTask.SESSION_REPLAY,
+        ]
+    )
+
+    NEW_REQUIRED_ONBOARDING_TASKS = frozenset(
+        [
+            OnboardingTask.FIRST_PROJECT,
+            OnboardingTask.FIRST_EVENT,
+            OnboardingTask.INVITE_MEMBER,
+            OnboardingTask.SECOND_PLATFORM,
+            OnboardingTask.RELEASE_TRACKING,
+            # TODO(Telemetry Experience): This task is shown conditionally
+            # according to the platform.
+            # Check if we can do the same here and mark onboarding as
+            # complete if platform does not support sourcemaps
+            OnboardingTask.SOURCEMAPS,
+            OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
+            OnboardingTask.SESSION_REPLAY,
+            OnboardingTask.REAL_TIME_NOTIFICATIONS,
+            OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
         ]
     )
 
@@ -168,6 +199,8 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.USER_CONTEXT,
             OnboardingTask.RELEASE_TRACKING,
             OnboardingTask.SOURCEMAPS,
+            # TODO(Telemetry Experience): This task is not shown in the quick start
+            # but it is still used in the frontend, check if we can remove it from code
             OnboardingTask.USER_REPORTS,
             OnboardingTask.ISSUE_TRACKER,
             OnboardingTask.ALERT_RULE,
@@ -175,6 +208,20 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.METRIC_ALERT,
             OnboardingTask.INTEGRATIONS,
             OnboardingTask.SESSION_REPLAY,
+        ]
+    )
+
+    NEW_SKIPPABLE_TASKS = frozenset(
+        [
+            OnboardingTask.INVITE_MEMBER,
+            OnboardingTask.SECOND_PLATFORM,
+            OnboardingTask.RELEASE_TRACKING,
+            OnboardingTask.SOURCEMAPS,
+            OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
+            OnboardingTask.SESSION_REPLAY,
+            OnboardingTask.REAL_TIME_NOTIFICATIONS,
+            OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
         ]
     )
 

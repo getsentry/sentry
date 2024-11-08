@@ -4,11 +4,15 @@ import pytest
 from django.conf import settings
 from django.test import override_settings
 
-from sentry.silo import SiloMode
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.team import Team
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
+from sentry.users.models.user import User
 from sentry.utils import snowflake
 from sentry.utils.snowflake import (
     _TTL,
@@ -16,11 +20,18 @@ from sentry.utils.snowflake import (
     SnowflakeBitSegment,
     generate_snowflake_id,
     get_redis_cluster,
+    uses_snowflake_id,
 )
 
 
 class SnowflakeUtilsTest(TestCase):
     CURRENT_TIME = datetime(2022, 7, 21, 6, 0)
+
+    def test_uses_snowflake_id(self):
+        assert uses_snowflake_id(Organization)
+        assert uses_snowflake_id(Project)
+        assert uses_snowflake_id(Team)
+        assert not uses_snowflake_id(User)
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self):

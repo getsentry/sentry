@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -7,6 +8,9 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
+from django.apps import apps
+from redis.client import StrictRedis
+from rediscluster import RedisCluster
 
 from sentry import features
 from sentry.features.base import OrganizationFeature
@@ -17,7 +21,12 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.models.user import User
+    from sentry.users.models.user import User
+    from sentry.workflow_engine.processors.detector import DetectorHandler
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class GroupCategory(Enum):
@@ -27,9 +36,15 @@ class GroupCategory(Enum):
     CRON = 4
     REPLAY = 5
     FEEDBACK = 6
+    UPTIME = 7
+    METRIC_ALERT = 8
 
 
-GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
+GROUP_CATEGORIES_CUSTOM_EMAIL = (
+    GroupCategory.ERROR,
+    GroupCategory.PERFORMANCE,
+    GroupCategory.FEEDBACK,
+)
 # GroupCategories which have customized email templates. If not included here, will fall back to a generic template.
 
 DEFAULT_IGNORE_LIMIT: int = 3
@@ -133,13 +148,17 @@ class GroupType:
     # If True this group type should be released everywhere. If False, fall back to features to
     # decide if this is released.
     released: bool = False
+    # If False this group is excluded from default searches, when there are no filters on issue.category or issue.type.
+    in_default_search: bool = True
 
     # Allow automatic resolution of an issue type, using the project-level option.
     enable_auto_resolve: bool = True
     # Allow escalation forecasts and detection
     enable_escalation_detection: bool = True
+    # Quota around many of these issue types can be created per project in a given time window
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
     notification_config: NotificationConfig = NotificationConfig()
+    detector_handler: type[DetectorHandler] | None = None
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -177,11 +196,9 @@ class GroupType:
         return features.has(cls.build_post_process_group_feature_name(), organization)
 
     @classmethod
-    def should_detect_escalation(cls, organization: Organization) -> bool:
+    def should_detect_escalation(cls) -> bool:
         """
-        If the feature is enabled and enable_escalation_detection=True, then escalation detection is enabled.
-
-        When the feature flag is removed, we can remove the organization parameter from this method.
+        If enable_escalation_detection=True, then escalation detection is enabled.
         """
         return cls.enable_escalation_detection
 
@@ -239,10 +256,6 @@ class ErrorGroupType(GroupType):
 # used as an additional superclass for Performance GroupType defaults
 class PerformanceGroupTypeDefaults:
     noise_config = NoiseConfig()
-
-
-class CronGroupTypeDefaults:
-    notification_config = NotificationConfig(context=[])
 
 
 class ReplayGroupTypeDefaults:
@@ -383,6 +396,7 @@ class PerformanceDurationRegressionGroupType(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.LOW
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 @dataclass(frozen=True)
@@ -395,7 +409,7 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     enable_escalation_detection = False
     default_priority = PriorityLevel.MEDIUM
     released = True
-    notification_config = NotificationConfig(context=["Users Affected", "State", "Regressed Date"])
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 # experimental
@@ -495,6 +509,7 @@ class ProfileFunctionRegressionExperimentalType(GroupType):
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
     default_priority = PriorityLevel.LOW
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
 
 
 @dataclass(frozen=True)
@@ -506,40 +521,36 @@ class ProfileFunctionRegressionType(GroupType):
     enable_auto_resolve = False
     released = True
     default_priority = PriorityLevel.MEDIUM
+    notification_config = NotificationConfig(context=["Approx. Start Time"])
+
+
+@dataclass(frozen=True)
+class MonitorIncidentType(GroupType):
+    type_id = 4001
+    slug = "monitor_check_in_failure"
+    description = "Crons Monitor Failed"
+    category = GroupCategory.CRON.value
+    released = True
+    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.HIGH
     notification_config = NotificationConfig(context=[])
 
 
-@dataclass(frozen=True)
-class MonitorCheckInFailure(CronGroupTypeDefaults, GroupType):
-    type_id = 4001
-    slug = "monitor_check_in_failure"
-    description = "Monitor Check In Failed"
-    category = GroupCategory.CRON.value
-    released = True
-    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
+# XXX(epurkhiser): We renamed this group type but we keep the alias since we
+# store group type in pickles
+MonitorCheckInFailure = MonitorIncidentType
 
 
 @dataclass(frozen=True)
-class MonitorCheckInTimeout(CronGroupTypeDefaults, GroupType):
+class MonitorCheckInTimeout(MonitorIncidentType):
+    # This is deprecated, only kept around for it's type_id
     type_id = 4002
-    slug = "monitor_check_in_timeout"
-    description = "Monitor Check In Timeout"
-    category = GroupCategory.CRON.value
-    released = True
-    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
 
 
 @dataclass(frozen=True)
-class MonitorCheckInMissed(CronGroupTypeDefaults, GroupType):
+class MonitorCheckInMissed(MonitorIncidentType):
+    # This is deprecated, only kept around for it's type_id
     type_id = 4003
-    slug = "monitor_check_in_missed"
-    description = "Monitor Check In Missed"
-    category = GroupCategory.CRON.value
-    released = True
-    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
 
 
 @dataclass(frozen=True)
@@ -559,6 +570,19 @@ class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     description = "Rage Click Detected"
     category = GroupCategory.REPLAY.value
     default_priority = PriorityLevel.MEDIUM
+    notification_config = NotificationConfig()
+    released = True
+
+
+@dataclass(frozen=True)
+class ReplayHydrationErrorType(ReplayGroupTypeDefaults, GroupType):
+    type_id = 5003
+    slug = "replay_hydration_error"
+    description = "Hydration Error Detected"
+    category = GroupCategory.REPLAY.value
+    default_priority = PriorityLevel.MEDIUM
+    notification_config = NotificationConfig()
+    released = True
 
 
 @dataclass(frozen=True)
@@ -570,12 +594,26 @@ class FeedbackGroup(GroupType):
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig(context=[])
+    released = True
+    in_default_search = False  # hide from issues stream
+    released = True
 
 
-@metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
+@dataclass(frozen=True)
+class UptimeDomainCheckFailure(GroupType):
+    type_id = 7001
+    slug = "uptime_domain_failure"
+    description = "Uptime Domain Monitor Failure"
+    category = GroupCategory.UPTIME.value
+    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.HIGH
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
 def should_create_group(
     grouptype: type[GroupType],
-    client: Any,
+    client: RedisCluster | StrictRedis,
     grouphash: str,
     project: Project,
 ) -> bool:
@@ -603,3 +641,19 @@ def should_create_group(
     else:
         client.expire(key, noise_config.expiry_seconds)
         return False
+
+
+def import_grouptype():
+    """
+    Ensures that grouptype.py is imported in any apps that implement it. We do this to make sure that all implemented
+    grouptypes are loaded and registered.
+    """
+    for app_config in apps.get_app_configs():
+        grouptype_module = f"{app_config.name}.grouptype"
+        try:
+            # Try to import the module
+            importlib.import_module(grouptype_module)
+            logger.debug("Imported module", extra={"module_name": grouptype_module})
+        except ModuleNotFoundError:
+            # If the module is not found, continue without any issues
+            logger.debug("No grouptypes found for app", extra={"app": app_config.name})

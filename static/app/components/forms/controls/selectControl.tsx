@@ -19,10 +19,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Chevron} from 'sentry/components/chevron';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Choices, SelectValue} from 'sentry/types';
+import type {Choices, SelectValue} from 'sentry/types/core';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 import PanelProvider from 'sentry/utils/panelProvider';
 import type {FormSize} from 'sentry/utils/theme';
@@ -45,9 +47,12 @@ function isGroupedOptions<OptionType extends OptionTypeBase>(
 function ClearIndicator(
   props: React.ComponentProps<typeof selectComponents.ClearIndicator>
 ) {
+  // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
+  // now we manually add aria labels to these interactive elements to help with
+  // testing
   return (
     <selectComponents.ClearIndicator {...props}>
-      <IconClose legacySize="10px" />
+      <IconClose aria-label={t('Clear choices')} legacySize="10px" />
     </selectComponents.ClearIndicator>
   );
 }
@@ -57,7 +62,7 @@ function DropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <IconChevron direction="down" legacySize="14px" />
+      <Chevron light color="subText" direction="down" size="medium" />
     </selectComponents.DropdownIndicator>
   );
 }
@@ -65,9 +70,12 @@ function DropdownIndicator(
 function MultiValueRemove(
   props: React.ComponentProps<typeof selectComponents.MultiValueRemove>
 ) {
+  // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
+  // now we manually add aria labels to these interactive elements to help with
+  // testing
   return (
     <selectComponents.MultiValueRemove {...props}>
-      <IconClose legacySize="8px" />
+      <IconClose aria-label={t('Remove item')} legacySize="8px" />
     </selectComponents.MultiValueRemove>
   );
 }
@@ -217,6 +225,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           cursor: 'pointer',
         }),
         ...omit(theme.form[size ?? 'md'], 'height'),
+        ...(state.isMulti && {
+          maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
+          overflow: 'hidden',
+        }),
       }),
 
       menu: provided => ({
@@ -253,7 +265,12 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         paddingRight: space(0.5),
         // offset horizontal margin/padding from multiValue (space(0.25)) &
         // multiValueLabel (space(0.75))
-        ...(state.isMulti && {marginLeft: `-${space(1)}`}),
+        ...(state.isMulti && {
+          marginLeft: `-${space(1)}`,
+          maxHeight: 'inherit',
+          overflowY: 'auto',
+          scrollbarColor: `${theme.purple200} ${theme.background}`,
+        }),
       }),
       input: provided => ({
         ...provided,

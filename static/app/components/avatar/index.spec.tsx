@@ -1,13 +1,16 @@
+import {ActorFixture} from 'sentry-fixture/actor';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AvatarComponent from 'sentry/components/avatar';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Avatar} from 'sentry/types';
+import MemberListStore from 'sentry/stores/memberListStore';
+import type {Avatar} from 'sentry/types/core';
 
 describe('Avatar', function () {
   const avatar: Avatar = {
@@ -16,14 +19,14 @@ describe('Avatar', function () {
     avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
   };
 
-  const user = {
+  const user = UserFixture({
     id: '1',
     name: 'Jane Bloggs',
     username: 'janebloggs@example.com',
     email: 'janebloggs@example.com',
     ip_address: '127.0.0.1',
     avatar,
-  };
+  });
 
   window.__initialData = {
     links: {sentryUrl: 'https://sentry.io'},
@@ -54,7 +57,7 @@ describe('Avatar', function () {
       const avatarImage = await screen.findByRole('img');
       expect(avatarImage).toHaveAttribute(
         'src',
-        `${gravatarBaseUrl}/avatar/a94c88e18c44e553497bf642449b6398?d=404&s=120`
+        `${gravatarBaseUrl}/avatar/4af0e27cabbfd1860ab7985e5becc4dedeaf5e00deec23a2d92d5f8bb1191ccb?d=404&s=120`
       );
     });
 
@@ -120,7 +123,12 @@ describe('Avatar', function () {
     });
 
     it('should show a gravatar when no avatar type is set and user has an email address', async function () {
-      render(<AvatarComponent gravatar user={{...user, avatar: undefined}} />);
+      render(
+        <AvatarComponent
+          gravatar
+          user={{...user, options: undefined, avatar: undefined}}
+        />
+      );
       await screen.findByRole('img');
 
       const avatarElement = screen.getByTestId(`gravatar-avatar`);
@@ -172,6 +180,16 @@ describe('Avatar', function () {
         'src',
         'https://us.sentry.io/organization-avatar/abc123def/?s=120'
       );
+    });
+
+    it('can display a actor Avatar', async function () {
+      const actor = ActorFixture();
+      MemberListStore.loadInitialData([user]);
+
+      render(<AvatarComponent actor={actor} />);
+
+      expect(await screen.findByTestId(`letter_avatar-avatar`)).toBeInTheDocument();
+      expect(screen.getByText('JB')).toBeInTheDocument();
     });
 
     it('displays platform list icons for project Avatar', function () {

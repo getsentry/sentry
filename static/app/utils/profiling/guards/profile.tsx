@@ -30,3 +30,33 @@ export function isSentrySampledProfile(
     'frames' in profile.profile
   );
 }
+
+export function isSentryContinuousProfile(
+  profile: any
+): profile is Profiling.ContinuousProfile {
+  return (
+    'samples' in profile &&
+    'stacks' in profile &&
+    'frames' in profile &&
+    !('type' in profile) &&
+    !Array.isArray(profile.resources)
+  );
+}
+
+export function isSentryContinuousProfileChunk(
+  profile: any
+): profile is Profiling.SentryContinousProfileChunk {
+  return 'chunk_id' in profile;
+}
+
+export function isContinuousProfileReference(
+  ref: Profiling.ProfileReference
+): ref is Profiling.ContinuousProfileReference {
+  return typeof ref !== 'string' && 'profiler_id' in ref;
+}
+
+export function isTransactionProfileReference(
+  ref: Profiling.ProfileReference
+): ref is Profiling.TransactionProfileReference {
+  return typeof ref !== 'string' && 'profile_id' in ref;
+}

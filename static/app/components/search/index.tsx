@@ -178,15 +178,7 @@ function Search({
                 searchOptions={searchOptions}
                 query={searchQuery}
                 params={params}
-                sources={
-                  sources ??
-                  ([
-                    ApiSource,
-                    FormSource,
-                    RouteSource,
-                    CommandSource,
-                  ] as React.ComponentType[])
-                }
+                sources={sources ?? [ApiSource, FormSource, RouteSource, CommandSource]}
               >
                 {({isLoading, results, hasAnyResults}) => (
                   <List

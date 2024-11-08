@@ -7,19 +7,20 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, integrations
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
-from sentry.api.serializers import IntegrationSerializer, serialize
-from sentry.integrations import IntegrationFeatures
+from sentry.api.serializers import serialize
+from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs
+from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
+from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.manager import default_manager as integrations
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs
-from sentry.utils.json import JSONData
+from sentry.users.models.user import User
 
 
 class IntegrationIssueSerializer(IntegrationSerializer):
@@ -63,7 +64,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
 
     def serialize(
         self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])
         return data

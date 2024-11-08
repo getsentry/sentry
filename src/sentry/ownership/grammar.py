@@ -3,24 +3,30 @@ from __future__ import annotations
 import re
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
-from parsimonious.nodes import Node, NodeVisitor
+from parsimonious.nodes import Node
+from parsimonious.nodes import NodeVisitor as BaseNodeVisitor
 from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
-from sentry.models.actor import ActorTuple
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.types.actor import Actor, ActorType
+from sentry.users.services.user.service import user_service
 from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
-from sentry.utils.safe import PathSearchable, get_path
+from sentry.utils.safe import get_path
 
 __all__ = ("parse_rules", "dump_schema", "load_schema")
+
+if TYPE_CHECKING:
+    NodeVisitor = BaseNodeVisitor[str]
+else:
+    NodeVisitor = BaseNodeVisitor
 
 VERSION = 1
 
@@ -80,15 +86,19 @@ class Rule(namedtuple("Rule", "matcher owners")):
         )
         return f"{self.matcher} {owners_str}"
 
-    def dump(self) -> Mapping[str, Sequence[Owner]]:
+    def dump(self) -> dict[str, Sequence[Owner]]:
         return {"matcher": self.matcher.dump(), "owners": [o.dump() for o in self.owners]}
 
     @classmethod
     def load(cls, data: Mapping[str, Any]) -> Rule:
         return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
-    def test(self, data: Mapping[str, Any]) -> bool | Any:
-        return self.matcher.test(data)
+    def test(
+        self,
+        data: Mapping[str, Any],
+        munged_data: tuple[Sequence[Mapping[str, Any]], Sequence[str]],
+    ) -> bool | Any:
+        return self.matcher.test(data, munged_data)
 
 
 class Matcher(namedtuple("Matcher", "type pattern")):
@@ -109,7 +119,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     def __str__(self) -> str:
         return f"{self.type}:{self.pattern}"
 
-    def dump(self) -> Mapping[str, str]:
+    def dump(self) -> dict[str, str]:
         return {"type": self.type, "pattern": self.pattern}
 
     @classmethod
@@ -117,7 +127,9 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return cls(data["type"], data["pattern"])
 
     @staticmethod
-    def munge_if_needed(data: PathSearchable) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
+    def munge_if_needed(
+        data: Mapping[str, Any]
+    ) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
         keys = ["filename", "abs_path"]
         platform = data.get("platform")
         sdk_name = get_sdk_name(data)
@@ -130,30 +142,32 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
         return frames, keys
 
-    def test(self, data: PathSearchable) -> bool:
+    def test(
+        self,
+        data: Mapping[str, Any],
+        munged_data: tuple[Sequence[Mapping[str, Any]], Sequence[str]],
+    ) -> bool:
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
-            return self.test_frames(*self.munge_if_needed(data))
+            return self.test_frames(*munged_data)
         elif self.type == MODULE:
             return self.test_frames(find_stack_frames(data), ["module"])
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         elif self.type == CODEOWNERS:
             return self.test_frames(
-                *self.munge_if_needed(data),
+                *munged_data,
                 # Codeowners has a slightly different syntax compared to issue owners
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
                 # https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
                 match_frame_value_func=lambda val, pattern: bool(codeowners_match(val, pattern)),
+                match_frame_func=lambda frame: frame.get("in_app") is not False,
             )
         return False
 
-    def test_url(self, data: PathSearchable) -> bool:
-        if not isinstance(data, Mapping):
-            return False
-
+    def test_url(self, data: Mapping[str, Any]) -> bool:
         url = get_path(data, "request", "url")
         return url and bool(glob_match(url, self.pattern, ignorecase=True))
 
@@ -164,8 +178,12 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         match_frame_value_func: Callable[[str | None, str], bool] = lambda val, pattern: bool(
             glob_match(val, pattern, ignorecase=True, path_normalize=True)
         ),
+        match_frame_func: Callable[[Mapping[str, Any]], bool] = lambda _: True,
     ) -> bool:
-        for frame in (f for f in frames if isinstance(f, Mapping)):
+        for frame in frames:
+            if not match_frame_func(frame):
+                continue
+
             for key in keys:
                 value = frame.get(key)
                 if not value:
@@ -176,7 +194,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
         return False
 
-    def test_tag(self, data: PathSearchable) -> bool:
+    def test_tag(self, data: Mapping[str, Any]) -> bool:
         tag = self.type[5:]
 
         # inspect the event-payload User interface first before checking tags.user
@@ -206,7 +224,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return False
 
 
-class Owner(namedtuple("Owner", "type identifier")):
+class Owner(NamedTuple):
     """
     An Owner represents a User or Team who owns this Rule.
 
@@ -217,7 +235,10 @@ class Owner(namedtuple("Owner", "type identifier")):
         #team
     """
 
-    def dump(self) -> Mapping[str, str]:
+    type: str
+    identifier: str
+
+    def dump(self) -> dict[str, str]:
         return {"type": self.type, "identifier": self.identifier}
 
     @classmethod
@@ -228,7 +249,7 @@ class Owner(namedtuple("Owner", "type identifier")):
 class OwnershipVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
 
-    def visit_ownership(self, node: Node, children: Sequence[Rule | None]) -> Sequence[Rule]:
+    def visit_ownership(self, node: Node, children: Sequence[Rule | None]) -> list[Rule]:
         return [_f for _f in children if _f]
 
     def visit_line(self, node: Node, children: tuple[Node, Sequence[Rule | None], Any]) -> Any:
@@ -252,9 +273,9 @@ class OwnershipVisitor(NodeVisitor):
         type, _ = tag
         return str(type[0].text)
 
-    def visit_owners(self, node: Node, children: tuple[Any, Sequence[Owner]]) -> Sequence[Owner]:
+    def visit_owners(self, node: Node, children: tuple[Any, Sequence[Owner]]) -> list[Owner]:
         _, owners = children
-        return owners
+        return list(owners)
 
     def visit_owner(self, node: Node, children: tuple[Node, bool, str]) -> Owner:
         _, is_team, pattern = children
@@ -277,8 +298,8 @@ class OwnershipVisitor(NodeVisitor):
     def visit_quoted_identifier(self, node: Node, children: Sequence[Any]) -> str:
         return str(node.text[1:-1].encode("ascii", "backslashreplace").decode("unicode-escape"))
 
-    def generic_visit(self, node: Node, children: Sequence[Any]) -> Sequence[Node] | Node:
-        return children or node
+    def generic_visit(self, node: Node, children: Sequence[Any]) -> list[Node] | Node:
+        return list(children) or node
 
 
 def parse_rules(data: str) -> Any:
@@ -287,12 +308,12 @@ def parse_rules(data: str) -> Any:
     return OwnershipVisitor().visit(tree)
 
 
-def dump_schema(rules: Sequence[Rule]) -> Mapping[str, Any]:
+def dump_schema(rules: Sequence[Rule]) -> dict[str, Any]:
     """Convert a Rule tree into a JSON schema"""
     return {"$version": VERSION, "rules": [r.dump() for r in rules]}
 
 
-def load_schema(schema: Mapping[str, Any]) -> Sequence[Rule]:
+def load_schema(schema: Mapping[str, Any]) -> list[Rule]:
     """Convert a JSON schema into a Rule tree"""
     if schema["$version"] != VERSION:
         raise RuntimeError("Invalid schema $version: %r" % schema["$version"])
@@ -345,6 +366,14 @@ def get_codeowners_path_and_owners(rule: str) -> tuple[str, Sequence[str]]:
     # Regex does a negative lookbehind for a backslash. Matches on whitespace without a preceding backslash.
     pattern = re.compile(r"(?<!\\)\s")
     path, *code_owners = (i for i in pattern.split(rule.strip()) if i)
+
+    # Find index of # in code_owners, assume everything after is a comment
+    try:
+        comment_index = code_owners.index("#")
+        code_owners = code_owners[:comment_index]
+    except ValueError:
+        pass
+
     return path, code_owners
 
 
@@ -412,13 +441,11 @@ def convert_codeowners_syntax(
     return result
 
 
-def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, ActorTuple]:
+def resolve_actors(owners: Iterable[Owner], project_id: int) -> dict[Owner, Actor | None]:
     """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
     as None."""
-    from sentry.models.actor import ActorTuple
     from sentry.models.team import Team
-    from sentry.models.user import User
 
     if not owners:
         return {}
@@ -457,7 +484,7 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
 
         actors.update(
             {
-                ("user", email.lower()): ActorTuple(u_id, User)
+                ("user", email.lower()): Actor(id=u_id, actor_type=ActorType.USER)
                 # This will need to be broken in hybrid cloud world, querying users from region silo won't be possible
                 # without an explicit service call.
                 for u_id, email in user_id_email_tuples
@@ -467,7 +494,7 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
     if teams:
         actors.update(
             {
-                ("team", slug): ActorTuple(t_id, Team)
+                ("team", slug): Actor(id=t_id, actor_type=ActorType.TEAM, slug=slug)
                 for t_id, slug in Team.objects.filter(
                     slug__in=[o.identifier for o in teams], projectteam__project_id=project_id
                 ).values_list("id", "slug")
@@ -508,15 +535,16 @@ def create_schema_from_issue_owners(
     issue_owners: str | None,
     add_owner_ids: bool = False,
     remove_deleted_owners: bool = False,
-) -> Mapping[str, Any] | None:
+) -> dict[str, Any] | None:
     if issue_owners is None:
         return None
 
     try:
         rules = parse_rules(issue_owners)
     except ParseError as e:
+        rule_name = e.expr.name if e.expr else str(e.expr)
         raise ValidationError(
-            {"raw": f"Parse error: {e.expr.name} (line {e.line()}, column {e.column()})"}
+            {"raw": f"Parse error: {rule_name} (line {e.line()}, column {e.column()})"}
         )
 
     schema = dump_schema(rules)
@@ -533,7 +561,7 @@ def create_schema_from_issue_owners(
             elif owner.type == "team":
                 bad_actors.append(f"#{owner.identifier}")
         elif add_owner_ids:
-            owners_id[owner.identifier] = actor[0]
+            owners_id[owner.identifier] = actor.id
 
     if bad_actors and remove_deleted_owners:
         remove_deleted_owners_from_schema(schema["rules"], owners_id)

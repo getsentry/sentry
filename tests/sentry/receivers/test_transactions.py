@@ -6,9 +6,9 @@ from django.db import router
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.signals import event_processed, transaction_processed
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -17,7 +17,7 @@ pytestmark = [requires_snuba]
 class RecordFirstTransactionTest(TestCase):
     @cached_property
     def min_ago(self):
-        return iso_format(before_now(minutes=1))
+        return before_now(minutes=1).isoformat()
 
     def test_transaction_processed(self):
         assert not self.project.flags.has_transactions

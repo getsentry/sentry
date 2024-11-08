@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -9,33 +8,34 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorForm from './components/monitorForm';
 import type {Monitor} from './types';
 
 export default function EditMonitor() {
-  const {monitorSlug} = useParams();
+  const {monitorSlug, projectId} = useParams<{monitorSlug: string; projectId: string}>();
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const queryKey = makeMonitorDetailsQueryKey(organization, monitorSlug, {
+  const queryKey = makeMonitorDetailsQueryKey(organization, projectId, monitorSlug, {
     expand: ['alertRule'],
   });
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: monitor,
     refetch,
   } = useApiQuery<Monitor>(queryKey, {
-    cacheTime: 0,
+    gcTime: 0,
     staleTime: 0,
   });
 
@@ -43,7 +43,7 @@ export default function EditMonitor() {
     setApiQueryData(queryClient, queryKey, data);
     browserHistory.push(
       normalizeUrl({
-        pathname: `/organizations/${organization.slug}/crons/${data.slug}/`,
+        pathname: `/organizations/${organization.slug}/crons/${data.project.slug}/${data.slug}/`,
         query: {
           environment: selection.environments,
           project: selection.projects,
@@ -59,7 +59,7 @@ export default function EditMonitor() {
     return `Crons - ${organization.slug}`;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -92,7 +92,7 @@ export default function EditMonitor() {
                     </MonitorBreadcrumb>
                   ),
                   to: normalizeUrl(
-                    `/organizations/${organization.slug}/crons/${monitor.slug}/`
+                    `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`
                   ),
                 },
                 {
@@ -108,7 +108,7 @@ export default function EditMonitor() {
             <MonitorForm
               monitor={monitor}
               apiMethod="PUT"
-              apiEndpoint={`/organizations/${organization.slug}/monitors/${monitor.slug}/`}
+              apiEndpoint={`/projects/${organization.slug}/${projectId}/monitors/${monitor.slug}/`}
               onSubmitSuccess={onSubmitSuccess}
             />
           </Layout.Main>

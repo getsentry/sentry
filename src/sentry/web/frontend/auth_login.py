@@ -7,7 +7,7 @@ from typing import Any
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -17,18 +17,18 @@ from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
-from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
+from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.user import User
-from sentry.services.hybrid_cloud import coerce_id_from
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.models.user import User
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
     construct_link_with_query,
@@ -84,12 +84,14 @@ class AuthLoginView(BaseView):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(20, 1),  # 20 GET requests per second per IP
+            RateLimitCategory.IP: RateLimit(
+                limit=20, window=1
+            ),  # 20 GET requests per second per IP
         }
     }
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, *args, **kwargs) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         """
         Hooks in to the django view dispatch which delegates request to GET/POST/PUT/DELETE.
         Base view overwrites dispatch to include functionality for csrf, superuser, customer domains, etc.
@@ -211,7 +213,7 @@ class AuthLoginView(BaseView):
         )
         return self.respond_login(request=request, context=context, **kwargs)
 
-    def post(self, request: Request, **kwargs) -> HttpResponse:
+    def post(self, request: Request, **kwargs) -> HttpResponseBase:
         op = request.POST.get("op")
         if op == "sso" and request.POST.get("organization"):
             return self.redirect_post_to_sso(request=request)
@@ -263,7 +265,7 @@ class AuthLoginView(BaseView):
 
     def handle_register_form_submit(
         self, request: Request, organization: RpcOrganization, **kwargs
-    ) -> HttpResponse:
+    ) -> HttpResponseBase:
         """
         Validates a completed register form, redirecting to the next
         step or returning the form with its errors displayed.
@@ -455,11 +457,7 @@ class AuthLoginView(BaseView):
             self.refresh_organization_status(request=request, user=user, organization=organization)
         # On login, redirect to onboarding
         if self.active_organization:
-            if features.has(
-                "organizations:customer-domains",
-                self.active_organization.organization,
-                actor=user,
-            ):
+            if features.has("system:multi-region"):
                 setattr(request, "subdomain", self.active_organization.organization.slug)
         return self.redirect(url=get_login_redirect(request=request))
 
@@ -506,10 +504,11 @@ class AuthLoginView(BaseView):
         """
         Returns True if the organization passed in a request exists.
         """
-        return bool(
+        return request.subdomain is not None and (
             organization_service.check_organization_by_slug(
                 slug=request.subdomain, only_visible=True
             )
+            is not None
         )
 
     def can_register(self, request: Request) -> bool:
@@ -565,13 +564,7 @@ class AuthLoginView(BaseView):
         op = request.POST.get("op")
         organization = kwargs.pop("organization", None)
 
-        org_exists = bool(
-            organization_service.check_organization_by_slug(
-                slug=request.subdomain, only_visible=True
-            )
-        )
-
-        if request.method == "GET" and request.subdomain and org_exists:
+        if request.method == "GET" and request.subdomain and self.org_exists(request):
             urls = [
                 reverse("sentry-auth-organization", args=[request.subdomain]),
                 reverse("sentry-register"),
@@ -703,11 +696,7 @@ class AuthLoginView(BaseView):
 
                 # On login, redirect to onboarding
                 if self.active_organization:
-                    if features.has(
-                        "organizations:customer-domains",
-                        self.active_organization.organization,
-                        actor=user,
-                    ):
+                    if features.has("system:multi-region"):
                         setattr(request, "subdomain", self.active_organization.organization.slug)
                 return self.redirect(get_login_redirect(request))
             else:

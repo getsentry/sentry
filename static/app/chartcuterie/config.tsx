@@ -11,6 +11,7 @@
 // eslint-disable-next-line import/no-named-default
 import {discoverCharts} from './discover';
 import {metricAlertCharts} from './metricAlert';
+import {performanceCharts} from './performance';
 import type {
   ChartcuterieConfig,
   ChartType,
@@ -39,5 +40,6 @@ const register = (renderDescriptor: RenderDescriptor<ChartType>) =>
 
 discoverCharts.forEach(register);
 metricAlertCharts.forEach(register);
+performanceCharts.forEach(register);
 
 export default config;

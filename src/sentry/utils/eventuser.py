@@ -6,8 +6,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
-from typing import Any
+from ipaddress import IPv4Address, IPv6Address, ip_address
+from typing import Any, TypedDict
 
+from django.db.models import QuerySet
 from snuba_sdk import (
     BooleanCondition,
     BooleanOp,
@@ -23,7 +25,7 @@ from snuba_sdk import (
 )
 
 from sentry import analytics
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.utils.avatar import get_gravatar_url
@@ -35,14 +37,14 @@ logger = logging.getLogger(__name__)
 
 REFERRER = "sentry.utils.eventuser"
 
-SNUBA_KEYWORD_MAP = BidirectionalMapping(
-    {
-        ("user_id"): "id",
-        ("user_name"): "username",
-        ("user_email"): "email",
-        ("ip_address_v4", "ip_address_v6"): "ip",
-    }
-)
+
+SNUBA_KEYWORD_SET = {"id", "username", "email", "ip"}
+# Keyword 'ip' is a special case since we need to handle IPv4/IPv6 differently
+SNUBA_KEYWORD_COLUMN_MAP = {
+    "id": "user_id",
+    "username": "user_name",
+    "email": "user_email",
+}
 
 # The order of these keys are significant to also indicate priority
 # when used in hashing and determining uniqueness. If you change the order
@@ -55,11 +57,43 @@ KEYWORD_MAP = BidirectionalMapping(
         "ip_address": "ip",
     }
 )
-
-SNUBA_COLUMN_COALASCE = {"ip_address_v4": "toIPv4", "ip_address_v6": "toIPv6"}
 MAX_QUERY_TRIES = 5
 OVERFETCH_FACTOR = 10
 MAX_FETCH_SIZE = 10_000
+
+
+def get_ip_address_conditions(ip_addresses: list[str]) -> list[Condition]:
+    """
+    Returns a list of Snuba Conditions for filtering a list of mixed IPv4/IPv6 addresses.
+    Silently ignores invalid IP addresses, and applies `Op.IN` to the `ip_address_v4` and/or `ip_address_v6` columns.
+    """
+    ipv4_addresses = []
+    ipv6_addresses = []
+    for ip in ip_addresses:
+        try:
+            valid_ip = ip_address(ip)
+        except ValueError:
+            continue
+        if type(valid_ip) is IPv4Address:
+            ipv4_addresses.append(Function("toIPv4", parameters=[ip]))
+        elif type(valid_ip) is IPv6Address:
+            ipv6_addresses.append(Function("toIPv6", parameters=[ip]))
+
+    conditions = []
+    if len(ipv4_addresses) > 0:
+        conditions.append(Condition(Column("ip_address_v4"), Op.IN, ipv4_addresses))
+    if len(ipv6_addresses) > 0:
+        conditions.append(Condition(Column("ip_address_v6"), Op.IN, ipv6_addresses))
+    return conditions
+
+
+class SerializedEventUser(TypedDict):
+    id: str
+    username: str | None
+    email: str | None
+    name: str | None
+    ipAddress: str | None
+    avatarUrl: str | None
 
 
 @dataclass
@@ -76,7 +110,7 @@ class EventUser:
         return hash(self.hash)
 
     @staticmethod
-    def from_event(event: Event) -> EventUser:
+    def from_event(event: Event | GroupEvent) -> EventUser:
         return EventUser(
             id=None,
             project_id=event.project_id if event else None,
@@ -93,7 +127,7 @@ class EventUser:
     @classmethod
     def for_projects(
         self,
-        projects: list[Project],
+        projects: QuerySet[Project] | list[Project],
         keyword_filters: Mapping[str, list[Any]],
         filter_boolean: BooleanOp = BooleanOp.AND,
         result_offset: int = 0,
@@ -114,32 +148,15 @@ class EventUser:
         ]
 
         keyword_where_conditions = []
-        for keyword, value in keyword_filters.items():
-            if not isinstance(value, list):
+        for keyword, filter_list in keyword_filters.items():
+            if not isinstance(filter_list, list):
                 raise ValueError(f"{keyword} filter must be a list of values")
-
-            snuba_column = SNUBA_KEYWORD_MAP.get_key(keyword)
-            if isinstance(snuba_column, tuple):
-                for filter_value in value:
-                    keyword_where_conditions.append(
-                        BooleanCondition(
-                            BooleanOp.OR,
-                            [
-                                Condition(
-                                    Column(column),
-                                    Op.IN,
-                                    value
-                                    if SNUBA_COLUMN_COALASCE.get(column, None) is None
-                                    else Function(
-                                        SNUBA_COLUMN_COALASCE.get(column), parameters=[filter_value]
-                                    ),
-                                )
-                                for column in snuba_column
-                            ],
-                        )
-                    )
-            else:
-                keyword_where_conditions.append(Condition(Column(snuba_column), Op.IN, value))
+            if keyword not in SNUBA_KEYWORD_SET:
+                continue
+            if (snuba_column := SNUBA_KEYWORD_COLUMN_MAP.get(keyword)) is not None:
+                keyword_where_conditions.append(Condition(Column(snuba_column), Op.IN, filter_list))
+            elif keyword == "ip":
+                keyword_where_conditions.extend(get_ip_address_conditions(filter_list))
 
         if len(keyword_where_conditions) > 1:
             where_conditions.append(
@@ -326,9 +343,9 @@ class EventUser:
         for key in KEYWORD_MAP.keys():
             yield key, getattr(self, key)
 
-    def serialize(self):
+    def serialize(self) -> SerializedEventUser:
         return {
-            "id": str(self.id),
+            "id": str(self.id) if self.id else str(self.user_ident),
             "username": self.username,
             "email": self.email,
             "name": self.get_display_name(),

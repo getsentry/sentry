@@ -1,19 +1,22 @@
 import {useCallback} from 'react';
+import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {OrganizationSummary} from 'sentry/types';
+import HookStore from 'sentry/stores/hookStore';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 export const DATA_STORAGE_DOCS_LINK =
   'https://docs.sentry.io/product/accounts/choose-your-data-center';
@@ -26,6 +29,11 @@ function removeDataStorageLocationFromFormData(
   return shallowFormDataClone;
 }
 
+const DataConsentCheck = HookOrDefault({
+  hookName: 'component:data-consent-org-creation-checkbox',
+  defaultComponent: null,
+});
+
 function OrganizationCreate() {
   const termsUrl = ConfigStore.get('termsUrl');
   const privacyUrl = ConfigStore.get('privacyUrl');
@@ -33,6 +41,9 @@ function OrganizationCreate() {
   const relocationUrl = normalizeUrl(`/relocation/`);
   const regionChoices = getRegionChoices();
   const client = useApi();
+
+  const hasDataConsent =
+    HookStore.get('component:data-consent-org-creation-checkbox').length !== 0;
 
   // This is a trimmed down version of the logic in ApiForm. It validates the
   // form data prior to submitting the request, and overrides the request host
@@ -43,6 +54,9 @@ function OrganizationCreate() {
         return;
       }
       const regionUrl = data.dataStorageLocation;
+
+      addLoadingMessage(t('Creating Organization\u2026'));
+      formModel.setFormSaving();
 
       client.request('/organizations/', {
         method: 'POST',
@@ -72,7 +86,8 @@ function OrganizationCreate() {
           apiMethod="POST"
           onSubmit={submitOrganizationCreate}
           onSubmitSuccess={(createdOrg: OrganizationSummary) => {
-            const hasCustomerDomain = createdOrg?.features.includes('customer-domains');
+            const hasCustomerDomain =
+              ConfigStore.get('features').has('system:multi-region');
             let nextUrl = normalizeUrl(
               `/organizations/${createdOrg.slug}/projects/new/`,
               {forceCustomerDomain: hasCustomerDomain}
@@ -116,23 +131,26 @@ function OrganizationCreate() {
             />
           )}
           {termsUrl && privacyUrl && (
-            <CheckboxField
-              name="agreeTerms"
-              label={tct(
-                'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
-                {
-                  termsLink: <a href={termsUrl} />,
-                  privacyLink: <a href={privacyUrl} />,
-                }
-              )}
-              inline={false}
-              stacked
-              required
-            />
+            <TermsWrapper hasDataConsent={hasDataConsent}>
+              <CheckboxField
+                name="agreeTerms"
+                label={tct(
+                  'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
+                  {
+                    termsLink: <a href={termsUrl} />,
+                    privacyLink: <a href={privacyUrl} />,
+                  }
+                )}
+                inline={false}
+                stacked
+                required
+              />
+            </TermsWrapper>
           )}
-          {!isSelfHosted && (
+          <DataConsentCheck />
+          {!isSelfHosted && ConfigStore.get('features').has('relocation:enabled') && (
             <div>
-              {tct('Relocating from self-hosted? Click [relocationLink:here]', {
+              {tct('[relocationLink:Relocating from self-hosted?]', {
                 relocationLink: <a href={relocationUrl} />,
               })}
             </div>
@@ -144,3 +162,7 @@ function OrganizationCreate() {
 }
 
 export default OrganizationCreate;
+
+const TermsWrapper = styled('div')<{hasDataConsent?: boolean}>`
+  margin-bottom: ${p => (p.hasDataConsent ? '0' : '16px')};
+`;

@@ -44,7 +44,7 @@ describe('Hovercard', () => {
     expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
   });
 
-  it('Always displays card', () => {
+  it('Always displays card', async () => {
     render(
       <Hovercard
         position="top"
@@ -57,7 +57,7 @@ describe('Hovercard', () => {
       </Hovercard>
     );
 
-    expect(screen.getByText(/Hovercard Body/)).toBeInTheDocument();
+    expect(await screen.findByText(/Hovercard Body/)).toBeInTheDocument();
     expect(screen.getByText(/Hovercard Header/)).toBeInTheDocument();
   });
 

@@ -1,18 +1,19 @@
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {
   getIssueTypeFromOccurrenceType,
   isOccurrenceBased,
   isTransactionBased,
-} from 'sentry/types';
+} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -50,9 +51,9 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
   const hasSetting = isTransactionBased(typeId) && isOccurrenceBased(typeId);
 
   return (
-    <EventDataSection
+    <InterimSection
+      type={SectionKey.SPAN_EVIDENCE}
       title={t('Span Evidence')}
-      type="span-evidence"
       help={t(
         'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
       )}
@@ -61,11 +62,15 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         hasSetting && (
           <LinkButton
             data-test-id="span-evidence-settings-btn"
-            to={`/settings/projects/${projectSlug}/performance/?issueType=${issueType}#${sanitizedIssueTitle}`}
+            to={{
+              pathname: `/settings/${organization.slug}/projects/${projectSlug}/performance/`,
+              query: {issueType},
+              hash: sanitizedIssueTitle,
+            }}
             size="xs"
+            icon={<IconSettings />}
           >
-            <StyledSettingsIcon size="xs" />
-            Threshold Settings
+            {t('Threshold Settings')}
           </LinkButton>
         )
       }
@@ -116,15 +121,11 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
           />
         </TraceViewWrapper>
       )}
-    </EventDataSection>
+    </InterimSection>
   );
 }
 
 const TraceViewWrapper = styled('div')`
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
-`;
-
-const StyledSettingsIcon = styled(IconSettings)`
-  margin-right: ${space(0.5)};
 `;

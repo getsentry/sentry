@@ -1,0 +1,175 @@
+{% comment %}
+Template returned for requests to /iframe. The iframe serves as a proxy for Sentry API requests.
+Required context variables:
+- referrer:           string.       HTTP header from the request object.
+- state:              string.       One of: `logged-out`, `missing-project`, `invalid-domain` or `success`.
+- logging:            any.          If the value is truthy in JavaScript then debug logging will be enabled.
+- organization_slug:  string.       The org named in the url params
+- project_id_or_slug: string | int. The project named in the url params
+{% endcomment %}
+{% load sentry_helpers %}
+{% load sentry_assets %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Sentry DevToolbar iFrame</title>
+    <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
+  </head>
+  <body>
+    {% script %}
+    <script>
+      (function() {
+        const referrer = '{{ referrer|escapejs }}';
+        const state = '{{ state|escapejs }}';
+        const logging = '{{ logging|escapejs }}';
+        const organizationSlug = '{{ organization_slug|escapejs }}';
+        const projectIdOrSlug = '{{ project_id_or_slug|escapejs }}';
+
+        function log(...args) {
+          if (logging) {
+            console.log('/toolbar/:org/:project/iframe/', ...args);
+          }
+        }
+
+        function requestAuthn(delay_ms) {
+          const origin = window.location.origin.endsWith('.sentry.io')
+            ? 'https://sentry.io'
+            : window.location.origin;
+
+          window.open(
+            `${origin}/toolbar/${organizationSlug}/${projectIdOrSlug}/login-success/?delay=${delay_ms ?? '0'}`,
+            'sentry-toolbar-auth-popup',
+            'popup=true,innerWidth=800,innerHeight=550,noopener=false'
+          );
+        }
+
+        function sendStateMessage(state) {
+          log('sendStateMessage(state)', { state });
+          window.parent.postMessage({
+            source: 'sentry-toolbar',
+            message: state
+          }, referrer);
+        }
+
+        function listenForLoginSuccess() {
+          window.addEventListener('message', messageEvent => {
+            if (messageEvent.origin !== document.location.origin || messageEvent.data.source !== 'sentry-toolbar') {
+              return;
+            }
+
+            log('window.onMessage', messageEvent.data, messageEvent);
+            if (messageEvent.data.message === 'did-login') {
+              saveAccessToken(messageEvent.data);
+              sendStateMessage('logged-in');
+            }
+          });
+        }
+
+        function getCookieValue(cookie) {
+          return `${cookie}; domain=${window.location.hostname}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
+        }
+
+        function saveAccessToken(data) {
+          log('saveAccessToken', data)
+          if (data.cookie) {
+            document.cookie = getCookieValue(data.cookie);
+            log('Saved a cookie', document.cookie.indexOf(data.cookie) >= 0);
+          }
+          if (data.token) {
+            localStorage.setItem('accessToken', data.token);
+            log('Saved an accessToken to localStorage');
+          }
+          if (!data.cookie && !data.token) {
+            log('Unexpected: No access token found!');
+          }
+        }
+
+        function clearAuthn() {
+          document.cookie = getCookieValue(document.cookie.split('=').at(0) + '=');
+          log('Cleared the current cookie');
+          const accessToken = localStorage.removeItem('accessToken')
+          log('Removed accessToken from localStorage');
+
+          sendStateMessage('logged-out');
+        }
+
+        async function fetchProxy(url, init) {
+          // If we have an accessToken lets use it. Otherwise we presume a cookie will be set.
+          const accessToken = localStorage.getItem('accessToken');
+          const bearer = accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {};
+
+          // If either of these is invalid, or both are missing, we will
+          // forward the resulting 401 to the application, which will request
+          // tokens be destroyed and reload the iframe in an unauth state.
+          log('Has access info', { cookie: Boolean(document.cookie), accessToken: Boolean(accessToken) });
+
+          const initWithCreds = {
+            ...init,
+            headers: { ...init.headers, ...bearer },
+            credentials: 'same-origin',
+          };
+          log({ initWithCreds });
+
+          const response = await fetch(url, initWithCreds);
+          return {
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            url: response.url,
+            headers: Object.fromEntries(response.headers.entries()),
+            text: await response.text(),
+          };
+        }
+
+        function setupMessageChannel() {
+          log('setupMessageChannel()');
+          const { port1, port2 } = new MessageChannel();
+
+          const messageDispatch = {
+            'log': log,
+            'request-authn': requestAuthn,
+            'clear-authn': clearAuthn,
+            'fetch': fetchProxy,
+          };
+
+          port1.addEventListener('message', messageEvent => {
+            log('port.onMessage', messageEvent.data);
+
+            const { $id, message } = messageEvent.data;
+            if (!$id) {
+              return; // MessageEvent is malformed, missing $id
+            }
+
+            if (!message.$function || !(Object.hasOwn(messageDispatch, message.$function))) {
+              return; // No-op without a $function to call
+            }
+
+            Promise.resolve(messageDispatch[message.$function]
+              .apply(undefined, message.$args || []))
+              .then($result => port1.postMessage({ $id, $result }))
+              .catch(error => port1.postMessage({ $id, $error: error }));
+          });
+          port1.start();
+
+          window.parent.postMessage({
+            source: 'sentry-toolbar',
+            message: 'port-connect',
+          }, referrer, [port2]);
+
+          log('Sent', { message: 'port-connect', referrer });
+        }
+
+        log('Init', { referrer, state });
+
+        setupMessageChannel();
+        listenForLoginSuccess();
+        // enum of: logged-out, missing-project, invalid-domain, logged-in
+        sendStateMessage(state === 'success' ? 'logged-in' : state);
+      })();
+    </script>
+    {% endscript %}
+
+{% comment %}
+No need to close `body`. If we do then middleware will inject some extra markup
+we don't need. Browsers can figure out when it missing and deal with it.
+{% endcomment %}

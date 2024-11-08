@@ -4,12 +4,12 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {CompositeSelect} from 'sentry/components/compactSelect/composite';
+import ReplayPreferenceDropdown from 'sentry/components/replays/preferences/replayPreferenceDropdown';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
-import {IconNext, IconRewind10, IconSettings} from 'sentry/icons';
+import {IconNext, IconRewind10} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
@@ -20,10 +20,12 @@ const COMPACT_WIDTH_BREAKPOINT = 500;
 
 interface Props {
   toggleFullscreen: () => void;
+  hideFastForward?: boolean;
+  isLoading?: boolean;
   speedOptions?: number[];
 }
 
-function ReplayPlayPauseBar() {
+function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
   const {currentTime, replay, setCurrentTime} = useReplayContext();
 
   return (
@@ -34,9 +36,11 @@ function ReplayPlayPauseBar() {
         icon={<IconRewind10 size="sm" />}
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
         aria-label={t('Rewind 10 seconds')}
+        disabled={isLoading}
       />
-      <ReplayPlayPauseButton />
+      <ReplayPlayPauseButton isLoading={isLoading} />
       <Button
+        disabled={isLoading}
         size="sm"
         title={t('Next breadcrumb')}
         icon={<IconNext size="sm" />}
@@ -59,52 +63,11 @@ function ReplayPlayPauseBar() {
   );
 }
 
-function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
-  const {setSpeed, speed, isSkippingInactive, toggleSkipInactive} = useReplayContext();
-  const SKIP_OPTION_VALUE = 'skip';
-
-  return (
-    <CompositeSelect
-      trigger={triggerProps => (
-        <Button
-          {...triggerProps}
-          size="sm"
-          title={t('Settings')}
-          aria-label={t('Settings')}
-          icon={<IconSettings size="sm" />}
-        />
-      )}
-    >
-      <CompositeSelect.Region
-        label={t('Playback Speed')}
-        value={speed}
-        onChange={opt => setSpeed(opt.value)}
-        options={speedOptions.map(option => ({
-          label: `${option}x`,
-          value: option,
-        }))}
-      />
-      <CompositeSelect.Region
-        aria-label={t('Fast-Forward Inactivity')}
-        multiple
-        value={isSkippingInactive ? [SKIP_OPTION_VALUE] : []}
-        onChange={opts => {
-          toggleSkipInactive(opts.length > 0);
-        }}
-        options={[
-          {
-            label: t('Fast-forward inactivity'),
-            value: SKIP_OPTION_VALUE,
-          },
-        ]}
-      />
-    </CompositeSelect>
-  );
-}
-
-function ReplayControls({
+export default function ReplayController({
   toggleFullscreen,
+  hideFastForward = false,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
+  isLoading,
 }: Props) {
   const barRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
@@ -124,12 +87,16 @@ function ReplayControls({
 
   return (
     <ButtonGrid ref={barRef} isCompact={isCompact}>
-      <ReplayPlayPauseBar />
+      <ReplayPlayPauseBar isLoading={isLoading} />
       <Container>
-        <TimeAndScrubberGrid isCompact={isCompact} showZoom />
+        <TimeAndScrubberGrid isCompact={isCompact} showZoom isLoading={isLoading} />
       </Container>
       <ButtonBar gap={1}>
-        <ReplayOptionsMenu speedOptions={speedOptions} />
+        <ReplayPreferenceDropdown
+          isLoading={isLoading}
+          speedOptions={speedOptions}
+          hideFastForward={hideFastForward}
+        />
         <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
       </ButtonBar>
     </ButtonGrid>
@@ -150,5 +117,3 @@ const Container = styled('div')`
   flex: 1 1;
   justify-content: center;
 `;
-
-export default ReplayControls;

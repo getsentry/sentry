@@ -7,14 +7,14 @@ from typing import TYPE_CHECKING, Any
 from django.utils.encoding import force_str
 
 from sentry.db.models import Model
+from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.participants import ParticipantMap
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.types.integrations import ExternalProviders
+from sentry.types.actor import Actor
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -36,7 +36,7 @@ class UserReportNotification(ProjectNotification):
         email_participants = data_by_provider.get_participants_by_provider(ExternalProviders.EMAIL)
 
         result = ParticipantMap()
-        for (actor, reason) in email_participants:
+        for actor, reason in email_participants:
             result.add(ExternalProviders.EMAIL, actor, reason)
         return result
 
@@ -79,7 +79,7 @@ class UserReportNotification(ProjectNotification):
         }
 
     def get_recipient_context(
-        self, recipient: RpcActor, extra_context: Mapping[str, Any]
+        self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
         return {**context, **get_reason_context(context)}

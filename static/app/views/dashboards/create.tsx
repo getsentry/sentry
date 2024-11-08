@@ -1,16 +1,16 @@
 import {useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {DASHBOARDS_TEMPLATES, EMPTY_DASHBOARD} from './data';
+import {EMPTY_DASHBOARD, getDashboardTemplates} from './data';
 import DashboardDetail from './detail';
 import type {Widget} from './types';
 import {DashboardState} from './types';
@@ -22,7 +22,7 @@ type Props = RouteComponentProps<{templateId?: string; widgetId?: string}, {}> &
 };
 
 function CreateDashboard(props: Props) {
-  const {location} = props;
+  const {location, organization} = props;
   const {templateId} = props.params;
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
   function renderDisabled() {
@@ -34,7 +34,9 @@ function CreateDashboard(props: Props) {
   }
 
   const template = templateId
-    ? DASHBOARDS_TEMPLATES.find(dashboardTemplate => dashboardTemplate.id === templateId)
+    ? getDashboardTemplates(organization).find(
+        dashboardTemplate => dashboardTemplate.id === templateId
+      )
     : undefined;
   const dashboard = template ? cloneDashboard(template) : cloneDashboard(EMPTY_DASHBOARD);
   const initialState = template ? DashboardState.PREVIEW : DashboardState.CREATE;

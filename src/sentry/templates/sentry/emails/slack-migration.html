@@ -6,7 +6,7 @@
 
 {% block main %}
   <h3>You're All Upgraded</h3>
-    Well, you're looking fresh. Your organization <strong>{{organization.name}}</strong>'s Sentry-Slack Integration for your workspace
+    Well, you're looking fresh. Your organization <strong>{{organization.name|sanitize_periods}}</strong>'s Sentry-Slack Integration for your workspace
     <strong>{{integration.name}}</strong> is all up to date and ready to report errors. If you're confused, curious, or just looking
     for some light reading, see <a href="{{ doc_link }}">our docs</a>.
   <br />

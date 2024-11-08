@@ -8,12 +8,13 @@ import responses
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.utils import ACTION_TYPE
-from sentry.models.identity import Identity
-from sentry.models.integrations.integration import Integration
-from sentry.silo import SiloMode
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.identity import Identity
 from sentry.utils import jwt
 
 from .test_helpers import (
@@ -34,7 +35,6 @@ team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
 kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 
 
-@region_silo_test
 class MsTeamsWebhookTest(APITestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
@@ -397,9 +397,10 @@ class MsTeamsWebhookTest(APITestCase):
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
-    def test_help_command(self, mock_time, mock_decode):
+    def test_help_command(self, mock_time, mock_decode, mock_record):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "Help"
         access_json = {"expires_in": 86399, "access_token": "my_token"}
@@ -428,6 +429,11 @@ class MsTeamsWebhookTest(APITestCase):
             3
         ].request.body.decode("utf-8")
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
 
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")

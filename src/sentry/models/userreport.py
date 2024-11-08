@@ -2,10 +2,10 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
 
 
-@region_silo_only_model
+@region_silo_model
 class UserReport(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -15,7 +15,9 @@ class UserReport(Model):
     environment_id = BoundedBigIntegerField(null=True, db_index=True)
     name = models.CharField(max_length=128)
     email = models.EmailField(max_length=75)
-    comments = models.TextField()
+    comments = models.TextField(
+        max_length=4096
+    )  # Keep max_length <= "feedback.message.max-size" sentry option.
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:

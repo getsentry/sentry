@@ -1,6 +1,7 @@
 import importlib.metadata
 import os.path
 import types
+from typing import Any
 
 DEFAULT_SETTINGS_MODULE = "sentry.conf.server"
 SENTRY_CONF_PY = os.path.expanduser("~/.sentry/sentry.conf.py")
@@ -31,7 +32,7 @@ def _load_settings(filename: str, settings: types.ModuleType) -> None:
     _add_settings(conf, settings=settings)
 
 
-def install_plugin_apps(entry_point, settings):
+def install_plugin_apps(entry_point: str, settings: Any) -> None:
     # entry_points={
     #    'sentry.apps': [
     #         'phabricator = sentry_phabricator'
@@ -51,7 +52,7 @@ def install_plugin_apps(entry_point, settings):
 def _add_settings(mod: types.ModuleType, settings: types.ModuleType) -> None:
     """
     Adds all settings that are part of ``mod`` to the global settings object.
-    Special cases ``EXTRA_APPS`` to append the specified applications to the
+    Special cases ``EXTRA_INSTALLED_APPS`` to append the specified applications to the
     list of ``INSTALLED_APPS``.
     """
 
@@ -60,8 +61,6 @@ def _add_settings(mod: types.ModuleType, settings: types.ModuleType) -> None:
             continue
 
         setting_value = getattr(mod, setting)
-        if setting == "INSTALLED_APPS" and isinstance(setting_value, str):
-            setting_value = (setting_value,)  # In case the user forgot the comma.
 
         # Any setting that starts with EXTRA_ and matches a setting that is a list or tuple
         # will automatically append the values to the current setting.

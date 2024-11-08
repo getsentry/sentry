@@ -5,21 +5,17 @@ import {doReleaseHealthRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {
-  MetricsApiResponse,
-  Organization,
-  PageFilters,
-  SelectValue,
-  SessionApiResponse,
-  SessionsMeta,
-} from 'sentry/types';
-import {SessionField} from 'sentry/types';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {MetricsApiResponse} from 'sentry/types/metrics';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {SessionsMeta} from 'sentry/types/sessions';
+import {SessionField} from 'sentry/types/sessions';
 import {defined} from 'sentry/utils';
-import {statsPeriodToDays} from 'sentry/utils/dates';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
@@ -295,6 +291,7 @@ export function transformSessionsResponseToTable(
   const singleRow = rows[0];
   const meta = {
     ...changeObjectValuesToTypes(omit(singleRow, 'id')),
+    fields: changeObjectValuesToTypes(omit(singleRow, 'id')),
   };
   return {meta, data: rows};
 }

@@ -12,13 +12,14 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.integrations.mixins import IssueSyncMixin
-from sentry.integrations.utils import sync_group_assignee_inbound
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.constants import ObjectStatus
+from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.utils.email import parse_email
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
+    from sentry.integrations.services.integration import RpcIntegration
 
 
 UNSET = object()
@@ -35,7 +36,7 @@ def get_vsts_external_id(data: Mapping[str, Any]) -> str:
 class WorkItemWebhook(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()
@@ -52,7 +53,7 @@ class WorkItemWebhook(Endpoint):
         # https://docs.microsoft.com/en-us/azure/devops/service-hooks/events?view=azure-devops#workitem.updated
         if event_type == "workitem.updated":
             integration = integration_service.get_integration(
-                provider=PROVIDER_KEY, external_id=external_id
+                provider=PROVIDER_KEY, external_id=external_id, status=ObjectStatus.ACTIVE
             )
             if integration is None:
                 logger.info(
@@ -136,7 +137,7 @@ def handle_status_change(
 
     for org_integration in org_integrations:
         installation = integration.get_installation(organization_id=org_integration.organization_id)
-        if isinstance(installation, IssueSyncMixin):
+        if isinstance(installation, IssueSyncIntegration):
             installation.sync_status_inbound(
                 external_issue_key,
                 {

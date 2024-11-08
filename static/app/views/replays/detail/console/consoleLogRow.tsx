@@ -1,5 +1,5 @@
 import type {CSSProperties} from 'react';
-import {memo, useCallback} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -12,20 +12,23 @@ import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
-import type {OnDimensionChange} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 interface Props extends ReturnType<typeof useCrumbHandlers> {
   currentHoverTime: number | undefined;
   currentTime: number;
   frame: BreadcrumbFrame;
   index: number;
+  onDimensionChange: (
+    index: number,
+    path: string,
+    expandedState: Record<string, boolean>
+  ) => void;
   startTimestampMs: number;
   style: CSSProperties;
   expandPaths?: string[];
-  onDimensionChange?: OnDimensionChange;
 }
 
-function UnmemoizedConsoleLogRow({
+export default function ConsoleLogRow({
   currentHoverTime,
   currentTime,
   expandPaths,
@@ -39,7 +42,7 @@ function UnmemoizedConsoleLogRow({
   style,
 }: Props) {
   const handleDimensionChange = useCallback(
-    (path, expandedState, e) => onDimensionChange?.(index, path, expandedState, e),
+    (path, expandedState) => onDimensionChange?.(index, path, expandedState),
     [onDimensionChange, index]
   );
 
@@ -99,10 +102,6 @@ const ConsoleLog = styled('div')<{
       ? p.theme.alert[String(p.level)].backgroundLight
       : 'inherit'};
 
-  /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
-  border-top: 1px solid transparent;
-  border-bottom: 1px solid transparent;
-
   color: ${p => p.theme.gray400};
 
   /*
@@ -151,6 +150,3 @@ const Message = styled('div')`
   white-space: pre-wrap;
   word-break: break-word;
 `;
-
-const ConsoleLogRow = memo(UnmemoizedConsoleLogRow);
-export default ConsoleLogRow;

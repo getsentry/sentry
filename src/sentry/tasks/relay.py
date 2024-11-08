@@ -6,7 +6,7 @@ from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
@@ -14,7 +14,6 @@ from sentry.utils.sdk import set_current_event_project
 logger = logging.getLogger(__name__)
 
 
-# TODO(hybrid-cloud): Add silo_mode for region once testing is adjusted
 # The time_limit here should match the `debounce_ttl` of the projectconfig_debounce_cache
 # service.
 @instrumented_task(
@@ -190,7 +189,7 @@ def compute_projectkey_config(key):
     if key.status != ProjectKeyStatus.ACTIVE:
         return {"disabled": True}
     else:
-        return get_project_config(key.project, project_keys=[key], full_config=True).to_dict()
+        return get_project_config(key.project, project_keys=[key]).to_dict()
 
 
 @instrumented_task(
@@ -245,6 +244,7 @@ def invalidate_project_config(
     projectconfig_cache.backend.set_many(updated_configs)
 
 
+@sentry_sdk.tracing.trace
 def schedule_invalidate_project_config(
     *,
     trigger,

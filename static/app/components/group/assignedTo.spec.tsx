@@ -14,23 +14,20 @@ import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {
-  Event,
-  Group,
-  Organization as TOrganization,
-  Project,
-  Team as TeamType,
-  User as UserType,
-} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 
 describe('Group > AssignedTo', () => {
-  let USER_1!: UserType;
-  let USER_2!: UserType;
-  let TEAM_1!: TeamType;
+  let USER_1!: User;
+  let USER_2!: User;
+  let TEAM_1!: Team;
   let PROJECT_1!: Project;
   let GROUP_1!: Group;
   let event!: Event;
-  let organization!: TOrganization;
+  let organization!: Organization;
   const project = ProjectFixture();
 
   beforeEach(() => {
@@ -146,7 +143,11 @@ describe('Group > AssignedTo', () => {
         })
       )
     );
-    expect(onAssign).toHaveBeenCalledWith('team', TEAM_1, undefined);
+    expect(onAssign).toHaveBeenCalledWith(
+      'team',
+      {id: `team:${TEAM_1.id}`, name: TEAM_1.slug, type: 'team'},
+      undefined
+    );
 
     // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
@@ -189,7 +190,7 @@ describe('Group > AssignedTo', () => {
     // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
     await openMenu();
-    await userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
 
     // api was called with empty string, clearing assignment
     await waitFor(() =>
@@ -242,7 +243,7 @@ describe('Group > AssignedTo', () => {
     await openMenu();
 
     expect(screen.getByText('Suspect commit author')).toBeInTheDocument();
-    expect(screen.getByText('Owner of codeowners:/./app/components')).toBeInTheDocument();
+    expect(screen.getByText('Codeowners:/./app/components')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Suspect commit author'));
 
@@ -255,7 +256,7 @@ describe('Group > AssignedTo', () => {
       )
     );
     expect(onAssign).toHaveBeenCalledWith(
-      'member',
+      'user',
       USER_2,
       expect.objectContaining({
         suggestedReason: 'suspectCommit',

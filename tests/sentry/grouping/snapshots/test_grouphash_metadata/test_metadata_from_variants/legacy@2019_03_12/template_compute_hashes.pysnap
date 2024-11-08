@@ -1,0 +1,17 @@
+---
+created: '2024-10-28T14:02:57.641441+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: template
+---
+contributing variants:
+  default*
+    hash: "826f66ef602835f68030c04c634df320"
+    component:
+      default*
+        template*
+          filename*
+            "foo.html"
+          context-line*
+            "hello world"

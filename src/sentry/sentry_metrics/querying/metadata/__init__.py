@@ -1,9 +1,12 @@
+from .metrics import get_metrics_meta
 from .metrics_code_locations import MetricCodeLocations, get_metric_code_locations
-from .metrics_correlations import MetricCorrelations, get_metric_correlations
+from .tags import get_tag_values
+from .utils import convert_metric_names_to_mris
 
 __all__ = [
     "MetricCodeLocations",
+    "convert_metric_names_to_mris",
     "get_metric_code_locations",
-    "MetricCorrelations",
-    "get_metric_correlations",
+    "get_metrics_meta",
+    "get_tag_values",
 ]

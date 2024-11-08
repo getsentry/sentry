@@ -15,7 +15,7 @@ import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMail, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
@@ -38,6 +38,9 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
   };
   const notificationFields = NOTIFICATION_SETTINGS_TYPES.filter(type => {
     const notificationFlag = NOTIFICATION_FEATURE_MAP[type];
+    if (Array.isArray(notificationFlag)) {
+      return notificationFlag.some(flag => checkFeatureFlag(flag));
+    }
     if (notificationFlag) {
       return checkFeatureFlag(notificationFlag);
     }
@@ -45,12 +48,17 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
   });
 
   const renderOneSetting = (type: string) => {
+    // TODO(isabella): Once GA, remove this
     const field = NOTIFICATION_SETTING_FIELDS[type];
+    if (type === 'quota' && checkFeatureFlag('spend-visibility-notifications')) {
+      field.label = t('Spend');
+      field.help = t('Notifications that help avoid surprise invoices.');
+    }
     return (
       <FieldWrapper key={type}>
         <div>
-          <FieldLabel>{field.label}</FieldLabel>
-          <FieldHelp>{field.help}</FieldHelp>
+          <FieldLabel>{field.label as React.ReactNode}</FieldLabel>
+          <FieldHelp>{field.help as React.ReactNode}</FieldHelp>
         </div>
         <IconWrapper>
           <LinkButton
@@ -73,7 +81,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
   // use 0 as stale time because we change the values elsewhere
   const {
     data: initialLegacyData,
-    isLoading,
+    isPending,
     isError,
     isSuccess,
     refetch,
@@ -94,7 +102,7 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
         <PanelBody>{notificationFields.map(renderOneSetting)}</PanelBody>
       </PanelNoBottomMargin>
       <BottomFormWrapper>
-        {isLoading && (
+        {isPending && (
           <Panel>
             {new Array(2).fill(0).map((_, idx) => (
               <PanelItem key={idx}>

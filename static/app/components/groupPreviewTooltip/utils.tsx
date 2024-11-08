@@ -1,12 +1,12 @@
 import {useCallback, useState} from 'react';
 
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTimeout from 'sentry/utils/useTimeout';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {
-  getGroupDetailsQueryData,
   getGroupEventDetailsQueryData,
   useDefaultIssueEvent,
 } from 'sentry/views/issueDetails/utils';
@@ -59,21 +59,11 @@ export function usePreviewEvent<T = Event>({
         }),
       },
     ],
-    {staleTime: 30000, cacheTime: 30000}
+    {staleTime: 30000, gcTime: 30000}
   );
 
   // Prefetch the group as well, but don't use the result
-  useApiQuery(
-    [
-      `/organizations/${organization.slug}/issues/${groupId}/`,
-      {query: getGroupDetailsQueryData()},
-    ],
-    {
-      staleTime: 30000,
-      cacheTime: 30000,
-      enabled: defined(groupId),
-    }
-  );
+  useGroup({groupId, options: {enabled: defined(groupId)}});
 
   return eventQuery;
 }

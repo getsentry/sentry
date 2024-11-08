@@ -17,12 +17,9 @@ import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCateg
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  OnboardingSelectedSDK,
-  Organization,
-  PlatformIntegration,
-  PlatformKey,
-} from 'sentry/types';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -38,21 +35,24 @@ export enum SupportedLanguages {
 const topGoFrameworks: PlatformKey[] = [
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
   'go-gin',
   'go-http',
   'go-iris',
-  'go-martini',
   'go-negroni',
 ];
 
 export const topJavascriptFrameworks: PlatformKey[] = [
-  'javascript-react',
   'javascript-nextjs',
+  'javascript-react',
   'javascript-vue',
+  'javascript-nuxt',
   'javascript-angular',
+  'javascript-solid',
+  'javascript-solidstart',
+  'javascript-remix',
   'javascript-svelte',
   'javascript-sveltekit',
-  'javascript-remix',
   'javascript-astro',
 ];
 
@@ -66,9 +66,9 @@ const topPythonFrameworks: PlatformKey[] = [
 
 const topNodeFrameworks: PlatformKey[] = [
   'node-express',
+  'node-nestjs',
   'node-awslambda',
   'node-gcpfunctions',
-  'node-serverlesscloud',
   'node-koa',
 ];
 
@@ -133,7 +133,7 @@ export function FrameworkSuggestionModal({
 }: Props) {
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
-  >(undefined);
+  >(selectedPlatform);
 
   const frameworks = platforms.filter(
     platform =>
@@ -210,15 +210,7 @@ export function FrameworkSuggestionModal({
     );
 
     onConfigure(selectedFramework);
-    closeModal();
-  }, [
-    selectedPlatform,
-    selectedFramework,
-    organization,
-    onConfigure,
-    closeModal,
-    newOrg,
-  ]);
+  }, [selectedPlatform, selectedFramework, organization, onConfigure, newOrg]);
 
   const handleSkip = useCallback(() => {
     trackAnalytics(
@@ -231,10 +223,23 @@ export function FrameworkSuggestionModal({
       }
     );
     onSkip();
-    closeModal();
-  }, [selectedPlatform, organization, closeModal, onSkip, newOrg]);
+  }, [selectedPlatform, organization, onSkip, newOrg]);
 
-  const listEntries = [...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically];
+  const listEntries: PlatformIntegration[] = [
+    ...topFrameworksOrdered,
+    ...otherFrameworksSortedAlphabetically,
+  ];
+
+  const listEntriesWithVanilla: PlatformIntegration[] = [
+    {
+      id: selectedPlatform.key,
+      type: selectedPlatform.type,
+      name: t('Nope, Vanilla'),
+      language: selectedPlatform.key,
+      link: selectedPlatform.link,
+    },
+    ...listEntries,
+  ];
 
   return (
     <Fragment>
@@ -247,53 +252,52 @@ export function FrameworkSuggestionModal({
         <Description>{languageDescriptions[selectedPlatform.key]}</Description>
         <StyledPanel>
           <StyledPanelBody>
-            <Frameworks>
-              {listEntries.map((framework, index) => {
-                const frameworkCategory =
+            <PlatformList>
+              {listEntriesWithVanilla.map((platform, index) => {
+                const platformCategory =
                   categoryList.find(category => {
-                    return category.platforms?.has(framework.id);
+                    return category.platforms?.has(platform.id);
                   })?.id ?? 'all';
 
                 return (
-                  <Framework key={framework.id}>
+                  <PlatformListItem key={platform.id}>
                     <RadioLabel
                       index={index}
                       onClick={() =>
                         setSelectedFramework({
-                          key: framework.id,
-                          type: framework.type,
-                          language: framework.language,
-                          category: frameworkCategory,
+                          key: platform.id,
+                          type: platform.type,
+                          language: platform.language,
+                          category: platformCategory,
+                          link: platform.link,
+                          name: platform.name,
                         })
                       }
                     >
                       <RadioBox
                         radioSize="small"
-                        checked={selectedFramework?.key === framework.id}
+                        checked={selectedFramework?.key === platform.id}
                         readOnly
                       />
-                      <FrameworkIcon size={24} platform={framework.id} />
-                      {framework.name}
+                      <PlatformListItemIcon size={24} platform={platform.id} />
+                      {platform.name}
                     </RadioLabel>
-                  </Framework>
+                  </PlatformListItem>
                 );
               })}
-            </Frameworks>
+            </PlatformList>
           </StyledPanelBody>
         </StyledPanel>
       </Body>
       <Footer>
-        <Actions>
-          <Button onClick={handleSkip}>{t('Skip')}</Button>
-          <Button
-            priority="primary"
-            onClick={handleConfigure}
-            disabled={!selectedFramework}
-            title={!selectedFramework ? t('Select a framework to configure') : undefined}
-          >
-            {t('Configure SDK')}
-          </Button>
-        </Actions>
+        <Button
+          priority="primary"
+          onClick={
+            selectedFramework?.key === selectedPlatform.key ? handleSkip : handleConfigure
+          }
+        >
+          {t('Configure SDK')}
+        </Button>
       </Footer>
     </Fragment>
   );
@@ -372,7 +376,7 @@ const Description = styled(TextBlock)`
   text-align: center;
 `;
 
-const Frameworks = styled(List)`
+const PlatformList = styled(List)`
   display: block; /* Needed to prevent list item from stretching if the list is scrollable (Safari) */
   overflow-y: auto;
   max-height: 550px;
@@ -390,7 +394,7 @@ const StyledPanelBody = styled(PanelBody)`
   min-height: 0;
 `;
 
-const Framework = styled(ListItem)`
+const PlatformListItem = styled(ListItem)`
   min-height: 40px;
   display: grid;
   text-align: left;
@@ -400,7 +404,7 @@ const Framework = styled(ListItem)`
   }
 `;
 
-const FrameworkIcon = styled(PlatformIcon)`
+const PlatformListItemIcon = styled(PlatformIcon)`
   border: 1px solid ${p => p.theme.innerBorder};
 `;
 
@@ -417,13 +421,6 @@ const RadioLabel = styled(RadioLineItem)`
 
 const RadioBox = styled(Radio)`
   padding: ${space(0.5)};
-`;
-
-const Actions = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${space(1)};
-  width: 100%;
 `;
 
 // Style the modals document and section elements as flex containers

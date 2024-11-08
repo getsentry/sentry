@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -17,11 +19,14 @@ describe('gcpfunctions onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
     // Includes import statement
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/const Sentry = require\("@sentry\/serverless"\);/)
+    const allMatches = screen.getAllByText(
+      textWithMarkupMatcher(
+        /const Sentry = require\("@sentry\/google-cloud-serverless"\);/
       )
-    ).toBeInTheDocument();
+    );
+    allMatches.forEach(match => {
+      expect(match).toBeInTheDocument();
+    });
   });
 
   it('displays sample rates by default', () => {
@@ -60,7 +65,49 @@ describe('gcpfunctions onboarding docs', function () {
     });
 
     expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+        )
+      )
+    ).toBeInTheDocument();
+    expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+  });
+
+  it('continuous profiling', () => {
+    const organization = OrganizationFixture({
+      features: ['continuous-profiling'],
+    });
+
+    renderWithOnboardingLayout(
+      docs,
+      {},
+      {
+        organization,
+      }
+    );
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+        )
+      )
+    ).toBeInTheDocument();
+
+    // Profiles sample rate should not be set for continuous profiling
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+    ).not.toBeInTheDocument();
+
+    // Should have start and stop profiling calls
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/Sentry.profiler.startProfiling/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiling/))
     ).toBeInTheDocument();
   });
 });

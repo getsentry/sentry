@@ -10,7 +10,7 @@ class UserAgentPlugin(TagPlugin):
     author_url = "https://github.com/getsentry/sentry"
     project_default_enabled = True
 
-    def get_tag_values(self, event):
+    def get_tag_values(self, event) -> list[str]:
         contexts = event.interfaces.get("contexts")
         # disable tagging if contexts are present
         if contexts:

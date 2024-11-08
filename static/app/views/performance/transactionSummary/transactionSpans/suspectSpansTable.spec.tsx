@@ -14,7 +14,7 @@ const initializeData = () => {
     features: ['performance-view'],
   });
 
-  act(() => ProjectsStore.loadInitialData(data.organization.projects));
+  act(() => ProjectsStore.loadInitialData(data.projects));
   return data;
 };
 
@@ -34,7 +34,7 @@ describe('SuspectSpansTable', () => {
         totals={{'count()': 100}}
         sort={SpanSortOthers.SUM_EXCLUSIVE_TIME}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     const frequencyHeader = await screen.findByTestId('grid-editable');

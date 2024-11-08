@@ -10,18 +10,17 @@ import {
   NativeProcessingErrors,
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
-import {tct} from 'sentry/locale';
-import type {Project} from 'sentry/types';
+import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {Image} from 'sentry/types/debugImage';
 import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {semverCompare} from 'sentry/utils/versions';
-import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
+import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
@@ -36,6 +35,8 @@ export type ActionableItemTypes =
 export const ActionableItemWarning = [
   ProguardProcessingErrors.PROGUARD_MISSING_LINENO,
   NativeProcessingErrors.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+  NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED,
+  NativeProcessingErrors.NATIVE_INTERNAL_FAILURE,
   GenericSchemaErrors.FUTURE_TIMESTAMP,
   GenericSchemaErrors.CLOCK_DRIFT,
   GenericSchemaErrors.PAST_TIMESTAMP,
@@ -65,6 +66,14 @@ interface NativeMissingDSYMError extends BaseActionableItem {
 }
 interface NativeBadDSYMError extends BaseActionableItem {
   type: NativeProcessingErrors.NATIVE_BAD_DSYM;
+}
+
+interface NativeSymbolicatorFailedError extends BaseActionableItem {
+  type: NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED;
+}
+
+interface NativeInternalFailureError extends BaseActionableItem {
+  type: NativeProcessingErrors.NATIVE_INTERNAL_FAILURE;
 }
 
 interface JSMissingSourcesContentError extends BaseActionableItem {
@@ -110,6 +119,8 @@ export type ActionableItemErrors =
   | NativeMissingOptionalBundledDSYMError
   | NativeMissingDSYMError
   | NativeBadDSYMError
+  | NativeSymbolicatorFailedError
+  | NativeInternalFailureError
   | JSMissingSourcesContentError
   | FetchGenericError
   | RestrictedIpError
@@ -212,7 +223,7 @@ export const useFetchProguardMappingFiles = ({
   const {
     data: proguardMappingFiles,
     isSuccess,
-    isLoading,
+    isPending,
   } = useApiQuery<DebugFile[]>(
     [
       `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
@@ -243,7 +254,7 @@ export const useFetchProguardMappingFiles = ({
       return [
         {
           type: 'proguard_missing_mapping',
-          message: projectProcessingIssuesMessages.proguard_missing_mapping,
+          message: t('A proguard mapping file was missing.'),
           data: {mapping_uuid: proGuardImageUuid},
         },
       ];
@@ -288,7 +299,7 @@ export const useFetchProguardMappingFiles = ({
   }
 
   return {
-    proguardErrorsLoading: shouldFetch && isLoading,
+    proguardErrorsLoading: shouldFetch && isPending,
     proguardErrors: getProguardErrorsFromMappingFiles(),
   };
 };

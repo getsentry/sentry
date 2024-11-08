@@ -2,7 +2,7 @@ from django.urls import reverse
 
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
@@ -238,8 +238,8 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
     def test_get_expired_query(self):
         query = {
-            "start": iso_format(before_now(days=90)),
-            "end": iso_format(before_now(days=61)),
+            "start": before_now(days=90),
+            "end": before_now(days=61),
         }
         DiscoverSavedQuery.objects.create(
             organization=self.org,
@@ -295,8 +295,8 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data["name"] == "New query"
         assert response.data["projects"] == self.project_ids
         assert response.data["range"] == "24h"
-        assert not hasattr(response.data, "start")
-        assert not hasattr(response.data, "end")
+        assert "start" not in response.data
+        assert "end" not in response.data
 
     def test_post_invalid_projects(self):
         with self.feature(self.feature_name):

@@ -1,6 +1,7 @@
 import {Component} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -8,7 +9,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 import withApi from 'sentry/utils/withApi';
@@ -23,6 +25,7 @@ type DefaultProps = typeof defaultProps;
 type Props = {
   api: Client;
   baseIssueId: string;
+  location: Location;
   orgId: string;
   project: Project;
   targetIssueId: string;
@@ -66,10 +69,11 @@ class IssueDiff extends Component<Props, State> {
       organization,
       project,
       shouldBeGrouped,
+      location,
     } = this.props;
-    const hasSimilarityEmbeddingsFeature = project.features.includes(
-      'similarity-embeddings'
-    );
+    const hasSimilarityEmbeddingsFeature =
+      project.features.includes('similarity-embeddings') ||
+      location.query.similarityEmbeddings === '1';
 
     // Fetch component and event data
     const asyncFetch = async () => {
@@ -83,8 +87,8 @@ class IssueDiff extends Component<Props, State> {
         ]);
 
         const [baseEvent, targetEvent] = await Promise.all([
-          getStacktraceBody(baseEventData),
-          getStacktraceBody(targetEventData),
+          getStacktraceBody(baseEventData, hasSimilarityEmbeddingsFeature),
+          getStacktraceBody(targetEventData, hasSimilarityEmbeddingsFeature),
         ]);
 
         this.setState({

@@ -1,10 +1,18 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
+import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
@@ -22,10 +30,10 @@ const getConfigureSnippet = (params: Params) => `
 import * as Sentry from "@sentry/bun";
 
 Sentry.init({
-  dsn: "${params.dsn}",${
+  dsn: "${params.dsn.public}",${
     params.isPerformanceSelected
       ? `
-  // Performance Monitoring
+  // Tracing
   tracesSampleRate: 1.0, // Capture 100% of the transactions`
       : ''
   }
@@ -39,15 +47,12 @@ const getVerifySnippet = () => `try {
 
 const getMetricsConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
-  dsn: "${params.dsn}",
-  _experiments: {
-    metricsAggregator: true,
-  },
+  dsn: "${params.dsn.public}",
+  // Only needed for SDK versions < 8.0.0
+  // _experiments: {
+  //   metricsAggregator: true,
+  // },
 });`;
-
-const getMetricsVerifySnippet = () => `
-// Add 4 to a counter named 'hits'
-Sentry.metrics.increment('hits', 4);`;
 
 const onboarding: OnboardingConfig = {
   install: () => [
@@ -87,19 +92,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: params =>
-    params.isPerformanceSelected
-      ? []
-      : [
-          {
-            id: 'performance-monitoring',
-            name: t('Performance Monitoring'),
-            description: t(
-              'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-            ),
-            link: 'https://docs.sentry.io/platforms/javascript/guides/bun/performance/',
-          },
-        ],
+  nextSteps: () => [],
 };
 
 const customMetricsOnboarding: OnboardingConfig = {
@@ -107,10 +100,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:7.91.0] of [codePackage:@sentry/bun].',
+        'You need a minimum version [code:7.91.0] of [code:@sentry/bun].',
         {
-          codeVersion: <code />,
-          codePackage: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
@@ -119,23 +111,13 @@ const customMetricsOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To enable capturing metrics, you first need to add the [codeIntegration:metricsAggregator] experiment to your [codeNamespace:Sentry.init] call in your main process.',
-        {
-          codeIntegration: <code />,
-          codeNamespace: <code />,
-        }
+      description: t(
+        'With the default snippet in place, there is no need for any further configuration.'
       ),
       configurations: [
         {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getMetricsConfigureSnippet(params),
-            },
-          ],
+          code: getMetricsConfigureSnippet(params),
+          language: 'javascript',
         },
       ],
     },
@@ -144,29 +126,47 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. This API is available in both renderer and main processes. Try out this example:",
+        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:Sentry.metrics] namespace. This API is available in both renderer and main processes.",
         {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
+          code: <code />,
         }
       ),
       configurations: [
         {
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
+              label: 'Counter',
+              value: 'counter',
               language: 'javascript',
-              code: getMetricsVerifySnippet(),
+              code: exampleSnippets.javascript.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'javascript',
+              code: exampleSnippets.javascript.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'javascript',
+              code: exampleSnippets.javascript.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'javascript',
+              code: exampleSnippets.javascript.gauge,
             },
           ],
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -184,10 +184,29 @@ const customMetricsOnboarding: OnboardingConfig = {
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/bun/user-feedback/configuration/#crash-report-modal',
+      }),
+      additionalInfo: widgetCallout({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/bun/user-feedback/#user-feedback-widget',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   customMetricsOnboarding,
+  crashReportOnboarding,
 };
 
 export default docs;

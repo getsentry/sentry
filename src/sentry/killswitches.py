@@ -7,7 +7,6 @@ This is similar to existing featureflagging systems we have, but with less
 features and more performant.
 """
 
-import copy
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Optional, Union
@@ -218,6 +217,28 @@ ALL_KILLSWITCH_OPTIONS = {
         """,
         fields={"organization_id": "An organization ID to disable check-ins for."},
     ),
+    "seer.similarity.grouping_killswitch_projects": KillswitchInfo(
+        description="""
+        Prevent project from using LLM embeddings for grouping new hashes.
+        In case project has too many new events, spike of events from that
+        project can cause seer to be overloaded or ingestion to slow down.
+        """,
+        fields={
+            "project_id": "A project ID to filter events by.",
+        },
+    ),
+    "issues.severity.skip-seer-requests": KillswitchInfo(
+        description="""
+        Do not make requests to Seer.
+
+        This is intended as a hard stop on making calls to Seer where Seer
+        may be broken and otherwise causing interruptions or delays to ingestion.
+        Skipping the dependencies on Seer should remove it from the critical path.
+        """,
+        fields={
+            "project_id": "A project ID to filter events by.",
+        },
+    ),
 }
 
 
@@ -251,15 +272,19 @@ def normalize_value(
     return rv
 
 
-def killswitch_matches_context(killswitch_name: str, context: Context) -> bool:
+def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=True) -> bool:
     assert killswitch_name in ALL_KILLSWITCH_OPTIONS
     assert set(ALL_KILLSWITCH_OPTIONS[killswitch_name].fields) == set(context)
     option_value = options.get(killswitch_name)
     rv = _value_matches(killswitch_name, option_value, context)
-    metrics.incr(
-        "killswitches.run",
-        tags={"killswitch_name": killswitch_name, "decision": "matched" if rv else "passed"},
-    )
+
+    if emit_metrics:
+        # metrics can have a meaningful performance impact, so allow caller to opt out
+        # TODO: re-evaluate after we make metric collection aysnc.
+        metrics.incr(
+            "killswitches.run",
+            tags={"killswitch_name": killswitch_name, "decision": "matched" if rv else "passed"},
+        )
 
     return rv
 
@@ -300,19 +325,3 @@ def print_conditions(killswitch_name: str, raw_option_value: LegacyKillswitchCon
         + ")"
         for condition in option_value
     )
-
-
-def add_condition(
-    killswitch_name: str, raw_option_value: LegacyKillswitchConfig, condition: Condition
-) -> KillswitchConfig:
-    option_value = copy.deepcopy(normalize_value(killswitch_name, raw_option_value))
-    option_value.append(condition)
-    return normalize_value(killswitch_name, option_value)
-
-
-def remove_condition(
-    killswitch_name: str, raw_option_value: LegacyKillswitchConfig, condition: Condition
-) -> KillswitchConfig:
-    option_value = copy.deepcopy(normalize_value(killswitch_name, raw_option_value))
-    option_value = [m for m in option_value if m != condition]
-    return normalize_value(killswitch_name, option_value)

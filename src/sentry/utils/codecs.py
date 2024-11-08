@@ -1,11 +1,10 @@
 import zlib
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 import zstandard
 
 from sentry.utils import json
-from sentry.utils.json import JSONData
 
 T = TypeVar("T")
 
@@ -66,16 +65,16 @@ class BytesCodec(Codec[str, bytes]):
         return value.decode(self.encoding)
 
 
-class JSONCodec(Codec[JSONData, str]):
+class JSONCodec(Codec[Any, str]):
     """
     Encode/decode Python data structures to/from JSON-encoded strings.
     """
 
-    def encode(self, value: JSONData) -> str:
+    def encode(self, value: Any) -> str:
         return str(json.dumps(value))
 
-    def decode(self, value: str) -> JSONData:
-        return json.loads(value, skip_trace=True)
+    def decode(self, value: str) -> Any:
+        return json.loads(value)
 
 
 class ZlibCodec(Codec[bytes, bytes]):

@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment} from 'react';
+import {Component, createRef, Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Query} from 'history';
@@ -12,13 +12,13 @@ import {
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
 import type {Guide} from 'sentry/components/assistant/types';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t, tct} from 'sentry/locale';
 import type {GuideStoreState} from 'sentry/stores/guideStore';
 import GuideStore from 'sentry/stores/guideStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 type Props = {
   target: string;
@@ -43,6 +43,25 @@ type Props = {
   };
 };
 
+function ScrollToGuide({children}: {children: React.ReactNode}) {
+  const containerElement = createRef<HTMLSpanElement>();
+
+  useEffect(() => {
+    if (containerElement.current) {
+      try {
+        const {top} = containerElement.current.getBoundingClientRect();
+        const scrollTop = window.pageYOffset;
+        const centerElement = top + scrollTop - window.innerHeight / 2;
+        window.scrollTo({top: centerElement});
+      } catch (err) {
+        Sentry.captureException(err);
+      }
+    }
+  }, [containerElement]);
+
+  return <span ref={containerElement}>{children}</span>;
+}
+
 type State = {
   active: boolean;
   org: Organization | null;
@@ -64,33 +83,20 @@ class BaseGuideAnchor extends Component<Props, State> {
   componentDidMount() {
     const {target} = this.props;
     registerAnchor(target);
-  }
-
-  componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (this.containerElement.current && !prevState.active && this.state.active) {
-      try {
-        const {top} = this.containerElement.current.getBoundingClientRect();
-        const scrollTop = window.pageYOffset;
-        const centerElement = top + scrollTop - window.innerHeight / 2;
-        window.scrollTo({top: centerElement});
-      } catch (err) {
-        Sentry.captureException(err);
-      }
-    }
+    this.unsubscribe = GuideStore.listen(
+      (data: GuideStoreState) => this.onGuideStateChange(data),
+      undefined
+    );
   }
 
   componentWillUnmount() {
     const {target} = this.props;
     unregisterAnchor(target);
-    this.unsubscribe();
+    this.unsubscribe?.();
   }
 
-  unsubscribe = GuideStore.listen(
-    (data: GuideStoreState) => this.onGuideStateChange(data),
-    undefined
-  );
-
-  containerElement = createRef<HTMLSpanElement>();
+  // TODO(TS): Reflux returns "Function" instead of () => void
+  unsubscribe: Function | undefined;
 
   onGuideStateChange(data: GuideStoreState) {
     const active =
@@ -234,7 +240,7 @@ class BaseGuideAnchor extends Component<Props, State> {
         offset={offset}
         containerClassName={containerClassName}
       >
-        <span ref={this.containerElement}>{children}</span>
+        <ScrollToGuide>{children}</ScrollToGuide>
       </StyledHovercard>
     );
   }
@@ -292,7 +298,7 @@ const GuideContent = styled('div')`
 `;
 
 const GuideTitle = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
@@ -311,7 +317,9 @@ const StyledButton = styled(Button)`
   min-width: 40%;
 `;
 
-const DismissButton = styled(StyledButton)`
+const DismissButton = styled(LinkButton)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  min-width: 40%;
   margin-left: ${space(1)};
 
   &:hover,
@@ -324,7 +332,7 @@ const DismissButton = styled(StyledButton)`
 
 const StepCount = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
 `;
 

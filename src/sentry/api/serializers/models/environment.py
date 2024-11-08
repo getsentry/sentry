@@ -1,5 +1,6 @@
 from collections import namedtuple
 from datetime import timedelta
+from typing import TypedDict
 
 from django.utils import timezone
 
@@ -11,15 +12,28 @@ from sentry.tsdb.base import TSDBModel
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 
+class EnvironmentSerializerResponse(TypedDict):
+    id: str
+    name: str
+
+
+class EnvironmentProjectSerializerResponse(TypedDict):
+    id: str
+    name: str
+    isHidden: bool
+
+
 @register(Environment)
 class EnvironmentSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj: Environment, attrs, user, **kwargs) -> EnvironmentSerializerResponse:
         return {"id": str(obj.id), "name": obj.name}
 
 
 @register(EnvironmentProject)
 class EnvironmentProjectSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(
+        self, obj: EnvironmentProject, attrs, user, **kwargs
+    ) -> EnvironmentProjectSerializerResponse:
         return {
             "id": str(obj.id),
             "name": obj.environment.name,
@@ -38,7 +52,7 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
         self.since = since
         self.until = until
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         attrs = {item: {"stats": {}} for item in item_list}
         items = {self.group.id: []}
         for item in item_list:
@@ -67,7 +81,7 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
                 ]
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         result = super().serialize(obj, attrs, user)
         result["stats"] = attrs["stats"]
         return result

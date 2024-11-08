@@ -117,6 +117,7 @@ MetricUnit = Literal[
     "terabyte",
     "petabyte",
     "exabyte",
+    "none",
 ]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal[
@@ -193,8 +194,14 @@ USE_CASE_ID_TO_ENTITY_KEYS = {
         EntityKey.GenericMetricsCounters,
         EntityKey.GenericMetricsSets,
         EntityKey.GenericMetricsDistributions,
+        EntityKey.GenericMetricsGauges,
     },
     UseCaseID.TRANSACTIONS: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsSets,
+        EntityKey.GenericMetricsDistributions,
+    },
+    UseCaseID.PROFILES: {
         EntityKey.GenericMetricsCounters,
         EntityKey.GenericMetricsSets,
         EntityKey.GenericMetricsDistributions,
@@ -203,6 +210,10 @@ USE_CASE_ID_TO_ENTITY_KEYS = {
         EntityKey.GenericMetricsCounters,
         EntityKey.GenericMetricsSets,
         EntityKey.GenericMetricsDistributions,
+        EntityKey.GenericMetricsGauges,
+    },
+    UseCaseID.METRIC_STATS: {
+        EntityKey.GenericMetricsCounters,
         EntityKey.GenericMetricsGauges,
     },
 }
@@ -420,49 +431,45 @@ def combine_dictionary_of_list_values(main_dict, other_dict):
 
 
 class MetricDoesNotExistException(Exception):
-    ...
+    pass
 
 
 class MetricDoesNotExistInIndexer(Exception):
-    ...
+    pass
 
 
 class DerivedMetricException(Exception, ABC):
-    ...
+    pass
 
 
 class DerivedMetricParseException(DerivedMetricException):
-    ...
+    pass
 
 
 class NotSupportedOverCompositeEntityException(DerivedMetricException):
-    ...
+    pass
 
 
 class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeEntityException):
-    ...
+    pass
 
 
 @overload
-def to_intervals(start: None, end: datetime, interval_seconds: int) -> tuple[None, None, int]:
-    ...
+def to_intervals(start: None, end: datetime, interval_seconds: int) -> tuple[None, None, int]: ...
 
 
 @overload
-def to_intervals(start: datetime, end: None, interval_seconds: int) -> tuple[None, None, int]:
-    ...
+def to_intervals(start: datetime, end: None, interval_seconds: int) -> tuple[None, None, int]: ...
 
 
 @overload
-def to_intervals(start: None, end: None, interval_seconds: int) -> tuple[None, None, int]:
-    ...
+def to_intervals(start: None, end: None, interval_seconds: int) -> tuple[None, None, int]: ...
 
 
 @overload
 def to_intervals(
     start: datetime, end: datetime, interval_seconds: int
-) -> tuple[datetime, datetime, int]:
-    ...
+) -> tuple[datetime, datetime, int]: ...
 
 
 def to_intervals(
@@ -476,7 +483,7 @@ def to_intervals(
     assert interval_seconds > 0
 
     # horrible hack for backward compatibility
-    # TODO Try to fix this upstream
+    # TODO: Try to fix this upstream
     if start is None or end is None:
         return None, None, 0
 
@@ -530,7 +537,7 @@ def get_num_intervals(
 
 def get_intervals(
     start: datetime, end: datetime, granularity: int, interval: int | None = None
-) -> Generator[datetime, None, None]:
+) -> Generator[datetime]:
     if interval is None:
         interval = granularity
 

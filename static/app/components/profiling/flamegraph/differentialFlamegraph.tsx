@@ -5,6 +5,7 @@ import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import type {
   CanvasPoolManager,
@@ -66,25 +67,6 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
           configSpaceTransform: undefined,
         },
       });
-
-      // Find p75 of the graphtree depth and set the view to 3/4 of that
-      const depths: number[] = [];
-      for (const frame of props.differentialFlamegraph.frames) {
-        if (frame.children.length > 0) {
-          continue;
-        }
-        depths.push(frame.depth);
-      }
-
-      if (depths.length > 0) {
-        depths.sort();
-        const d = depths[Math.floor(depths.length - 1 * 0.75)];
-        const depth = Math.max(d, 0);
-
-        newView.setConfigView(
-          newView.configView.withY(depth - (newView.configView.height * 3) / 4)
-        );
-      }
 
       return newView;
     },
@@ -194,6 +176,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
 
   return (
     <FlamegraphZoomView
+      scheduler={props.scheduler}
       profileGroup={props.profileGroup}
       disableGrid
       disableCallOrderSort
@@ -208,6 +191,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
       flamegraphView={flamegraphView}
       setFlamegraphCanvasRef={setFlamegraphCanvasRef}
       setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
+      contextMenu={FlamegraphContextMenu}
     />
   );
 }

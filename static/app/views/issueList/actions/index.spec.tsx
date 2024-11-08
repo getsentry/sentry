@@ -3,12 +3,19 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
+import {DEFAULT_QUERY} from 'sentry/constants';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
@@ -65,13 +72,13 @@ describe('IssueListActions', function () {
       it('after checking "Select all" checkbox, displays bulk select message', async function () {
         render(<WrappedComponent queryCount={1500} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
       });
 
       it('can bulk select', async function () {
         render(<WrappedComponent queryCount={1500} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
       });
 
@@ -82,11 +89,11 @@ describe('IssueListActions', function () {
         });
 
         render(<WrappedComponent queryCount={1500} />);
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
         await screen.findByRole('dialog');
 
@@ -109,16 +116,11 @@ describe('IssueListActions', function () {
           method: 'PUT',
         });
 
-        render(<WrappedComponent queryCount={1500} />, {
-          organization: OrganizationFixture({features: ['issue-priority-ui']}),
-        });
+        render(<WrappedComponent queryCount={1500} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-        await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-        await userEvent.hover(
-          screen.getByRole('menuitemradio', {name: 'Set Priority to...'})
-        );
+        await userEvent.click(await screen.findByRole('button', {name: 'Set Priority'}));
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
 
         expect(
@@ -147,14 +149,9 @@ describe('IssueListActions', function () {
       it('after checking "Select all" checkbox, displays bulk select message', async function () {
         render(<WrappedComponent queryCount={15} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
-      });
-
-      it('can bulk select', async function () {
-        render(<WrappedComponent queryCount={15} />);
-
-        await userEvent.click(screen.getByRole('checkbox'));
-
+        const checkbox = screen.getByRole('checkbox', {name: 'Select all'});
+        await userEvent.click(checkbox);
+        expect(checkbox).toBeChecked();
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
       });
 
@@ -166,11 +163,11 @@ describe('IssueListActions', function () {
 
         render(<WrappedComponent queryCount={15} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
         const modal = screen.getByRole('dialog');
 
@@ -226,14 +223,9 @@ describe('IssueListActions', function () {
     });
     jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
-    render(<WrappedComponent {...defaultProps} />, {
-      organization: OrganizationFixture({features: ['issue-priority-ui']}),
-    });
+    render(<WrappedComponent {...defaultProps} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-    await userEvent.hover(
-      screen.getByRole('menuitemradio', {name: 'Set Priority to...'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Set Priority'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
 
     expect(apiMock).toHaveBeenCalledWith(
@@ -305,7 +297,7 @@ describe('IssueListActions', function () {
     );
   });
 
-  it('can resolve but not merge issues from different projects', function () {
+  it('can resolve but not merge issues from different projects', async function () {
     jest
       .spyOn(SelectedGroupStore, 'getSelectedIds')
       .mockImplementation(() => new Set(['1', '2', '3']));
@@ -321,8 +313,54 @@ describe('IssueListActions', function () {
     render(<WrappedComponent />);
 
     // Can resolve but not merge issues from multiple projects
-    expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
-    expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+    expect(screen.getByRole('menuitemradio', {name: 'Merge'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('sets the project ID when My Projects is selected', async function () {
+    jest
+      .spyOn(SelectedGroupStore, 'getSelectedIds')
+      .mockImplementation(() => new Set(['1']));
+    jest
+      .spyOn(GroupStore, 'get')
+      .mockImplementation(id =>
+        GroupFixture({id, project: ProjectFixture({id: '123', slug: 'project-1'})})
+      );
+
+    const apiMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      method: 'PUT',
+    });
+
+    render(
+      <WrappedComponent
+        selection={{
+          // No selected projects => My Projects
+          projects: [],
+          environments: [],
+          datetime: {start: null, end: null, period: null, utc: true},
+        }}
+      />
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+
+    // API request should have project ID set to 123
+    await waitFor(() => {
+      expect(apiMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {
+            id: ['1'],
+            project: ['123'],
+          },
+        })
+      );
+    });
   });
 
   describe('mark reviewed', function () {
@@ -349,21 +387,24 @@ describe('IssueListActions', function () {
       });
       render(<WrappedComponent onActionTaken={mockOnActionTaken} />);
 
-      const reviewButton = screen.getByRole('button', {name: 'Mark Reviewed'});
-      expect(reviewButton).toBeEnabled();
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+      const reviewButton = screen.getByRole('menuitemradio', {name: 'Mark Reviewed'});
       await userEvent.click(reviewButton);
 
       expect(mockOnActionTaken).toHaveBeenCalledWith(['1', '2', '3'], {inbox: false});
     });
 
-    it('mark reviewed disabled for group that is already reviewed', function () {
+    it('mark reviewed disabled for group that is already reviewed', async function () {
       SelectedGroupStore.add(['1']);
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([GroupFixture({id: '1', inbox: null})]);
 
       render(<WrappedComponent {...defaultProps} />);
 
-      expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Mark Reviewed'})
+      ).toHaveAttribute('aria-disabled', 'true');
     });
   });
 
@@ -404,11 +445,14 @@ describe('IssueListActions', function () {
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
 
-      // Merge is not supported and should be disabled
-      expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
-
       // Open overflow menu
       await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+
+      // Merge is not supported and should be disabled
+      expect(screen.getByRole('menuitemradio', {name: 'Merge'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
 
       // 'Add to Bookmarks' is supported
       expect(
@@ -436,16 +480,18 @@ describe('IssueListActions', function () {
         render(
           <Fragment>
             <GlobalModal />
-            <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
+            <IssueListActions {...defaultProps} query={DEFAULT_QUERY} queryCount={100} />
           </Fragment>,
           {organization: orgWithPerformanceIssues}
         );
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'More issue actions'})
+        );
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
 
         const modal = screen.getByRole('dialog');
@@ -462,7 +508,7 @@ describe('IssueListActions', function () {
           expect.anything(),
           expect.objectContaining({
             query: expect.objectContaining({
-              query: 'is:unresolved issue.category:error',
+              query: DEFAULT_QUERY + ' issue.category:error',
             }),
           })
         );
@@ -482,18 +528,20 @@ describe('IssueListActions', function () {
         render(
           <Fragment>
             <GlobalModal />
-            <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
+            <IssueListActions {...defaultProps} query={DEFAULT_QUERY} queryCount={100} />
           </Fragment>,
           {organization: orgWithPerformanceIssues}
         );
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
         await userEvent.click(
-          screen.getByRole('button', {name: 'Merge Selected Issues'})
+          await screen.findByRole('button', {name: 'More issue actions'})
         );
+
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Merge'}));
 
         const modal = screen.getByRole('dialog');
 
@@ -509,7 +557,7 @@ describe('IssueListActions', function () {
           expect.anything(),
           expect.objectContaining({
             query: expect.objectContaining({
-              query: 'is:unresolved issue.category:error',
+              query: DEFAULT_QUERY + ' issue.category:error',
             }),
           })
         );

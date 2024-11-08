@@ -1,27 +1,30 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingError from 'sentry/components/loadingError';
 import Pagination from 'sentry/components/pagination';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import ShortId from 'sentry/components/shortId';
-import StatusIndicator from 'sentry/components/statusIndicator';
+import {
+  StatusIndicator,
+  type StatusIndicatorProps,
+} from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {CheckIn, Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
@@ -34,9 +37,9 @@ type Props = {
   orgSlug: string;
 };
 
-const checkStatusToIndicatorStatus: Record<
+export const checkStatusToIndicatorStatus: Record<
   CheckInStatus,
-  'success' | 'error' | 'muted' | 'warning'
+  StatusIndicatorProps['status']
 > = {
   [CheckInStatus.OK]: 'success',
   [CheckInStatus.ERROR]: 'error',
@@ -46,10 +49,11 @@ const checkStatusToIndicatorStatus: Record<
 };
 
 function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
+  const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
   const queryKey = [
-    `/organizations/${orgSlug}/monitors/${monitor.slug}/checkins/`,
+    `/projects/${orgSlug}/${monitor.project.slug}/monitors/${monitor.slug}/checkins/`,
     {
       query: {
         per_page: '10',
@@ -63,7 +67,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   const {
     data: checkInList,
     getResponseHeader,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<CheckIn[]>(queryKey, {staleTime: 0});
 
@@ -92,14 +96,13 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   ];
 
   const customTimezone =
-    monitor.config.timezone &&
-    monitor.config.timezone !== ConfigStore.get('user').options.timezone;
+    monitor.config.timezone && monitor.config.timezone !== user.options.timezone;
 
   return (
     <Fragment>
       <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
       <PanelTable headers={headers}>
-        {isLoading
+        {isPending
           ? [...new Array(headers.length)].map((_, i) => (
               <RowPlaceholder key={i}>
                 <Placeholder height="2rem" />
@@ -110,7 +113,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 <Status>
                   <StatusIndicator
                     status={checkStatusToIndicatorStatus[checkIn.status]}
-                    tooltipTitle={tct('Check In Status: [status]', {
+                    tooltipTitle={tct('Check-in Status: [status]', {
                       status: statusToText[checkIn.status],
                     })}
                   />
@@ -175,13 +178,13 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 )}
                 {!hasAttachments ? null : checkIn.attachmentId ? (
                   <div>
-                    <Button
+                    <LinkButton
                       size="xs"
                       icon={<IconDownload />}
                       href={generateDownloadUrl(checkIn)}
                     >
                       {t('Attachment')}
-                    </Button>
+                    </LinkButton>
                   </div>
                 ) : (
                   emptyCell

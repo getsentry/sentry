@@ -5,10 +5,10 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
   group: Group;
@@ -27,7 +27,7 @@ function IssueReplayCount({group}: Props) {
   }
 
   const countDisplay = count > 50 ? '50+' : count;
-  const titleOver50 = t('This issue has 50+ replay available to view');
+  const titleOver50 = t('This issue has 50+ replays available to view');
   const title50OrLess = tn(
     'This issue has %s replay available to view',
     'This issue has %s replays available to view',
@@ -35,12 +35,12 @@ function IssueReplayCount({group}: Props) {
   );
 
   return (
-    <Tooltip title={count > 50 ? titleOver50 : title50OrLess}>
+    <Tooltip title={count > 50 ? titleOver50 : title50OrLess} skipWrapper>
       <ReplayCountLink
         to={normalizeUrl(
           `/organizations/${organization.slug}/issues/${group.id}/replays/`
         )}
-        aria-label="replay-count"
+        aria-label={t('replay-count')}
       >
         <IconPlay size="xs" />
         {countDisplay}
@@ -54,6 +54,11 @@ const ReplayCountLink = styled(Link)`
   color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeSmall};
   gap: 0 ${space(0.5)};
+  position: relative;
+
+  &:hover {
+    color: ${p => p.theme.linkHoverColor};
+  }
 `;
 
 export default IssueReplayCount;

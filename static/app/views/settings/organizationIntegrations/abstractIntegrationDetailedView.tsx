@@ -1,16 +1,15 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
 import type {AlertProps} from 'sentry/components/alert';
 import {Alert} from 'sentry/components/alert';
+import Tag from 'sentry/components/badge/tag';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
-import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -20,8 +19,9 @@ import type {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
-  Organization,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import type {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
@@ -421,7 +421,7 @@ const NameContainer = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: 1.4em;
   margin-bottom: ${space(0.5)};
 `;
@@ -496,7 +496,7 @@ const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
   color: ${p => p.theme.gray300};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: 12px;
 `;
 

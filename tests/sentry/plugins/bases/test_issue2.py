@@ -3,13 +3,12 @@ from unittest import mock
 import pytest
 
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.user import User
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
+from sentry.users.models.user import User
 from sentry.utils import json
 
 pytestmark = [requires_snuba]
@@ -27,13 +26,7 @@ class PluginWithoutFields(IssueTrackingPlugin2):
     issue_fields = None
 
 
-@region_silo_test
 class IssueTrackingPlugin2Test(TestCase):
-    def test_issue_label_as_dict(self):
-        plugin = PluginWithFields()
-        result = plugin.get_issue_label(mock.Mock(), {"id": "1"})
-        assert result == "#1"
-
     def test_issue_label_legacy(self):
         plugin = PluginWithoutFields()
         result = plugin.get_issue_label(mock.Mock(), "1")
@@ -54,7 +47,6 @@ class IssueTrackingPlugin2Test(TestCase):
         assert result == {"id": "test-plugin-without-fields:tid"}
 
 
-@region_silo_test
 class GetAuthForUserTest(TestCase):
     def _get_mock_user(self):
         user = mock.Mock(spec=User(id=1))
@@ -80,13 +72,12 @@ class GetAuthForUserTest(TestCase):
         self.assertEqual(p.get_auth_for_user(user).id, auth.id)
 
 
-@region_silo_test
 class IssuePlugin2GroupActionTest(TestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project()
         self.plugin_instance = plugins.get(slug="issuetrackingplugin2")
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.event = self.store_event(
             data={"timestamp": min_ago, "fingerprint": ["group-1"]}, project_id=self.project.id
         )

@@ -7,16 +7,17 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import builder, constants, fields
+from sentry.search.events import constants, fields
+from sentry.search.events.builder import metrics
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.types import SelectType, WhereType
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, SpanMRI, TransactionMRI
 from sentry.utils.numbers import format_grouped_length
 
 
 class MetricsLayerDatasetConfig(MetricsDatasetConfig):
-    def __init__(self, builder: builder.MetricsQueryBuilder):
+    def __init__(self, builder: metrics.MetricsQueryBuilder):
         self.builder = builder
 
     @property
@@ -392,6 +393,20 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         "rate",
                         [
                             Column(TransactionMRI.DURATION.value),
+                            args["interval"],
+                            60,
+                        ],
+                        alias,
+                    ),
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                fields.MetricsFunction(
+                    "spm",
+                    snql_metric_layer=lambda args, alias: Function(
+                        "rate",
+                        [
+                            Column(SpanMRI.SELF_TIME.value),
                             args["interval"],
                             60,
                         ],

@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -6,13 +5,17 @@ import {VercelProviderFixture} from 'sentry-fixture/vercelIntegration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
+import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import IntegrationOrganizationLink from 'sentry/views/integrationOrganizationLink';
 
 describe('IntegrationOrganizationLink', () => {
-  let org1, org2, getOrgsMock;
+  let org1: Organization;
+  let org2: Organization;
+  let getOrgsMock: jest.Mock;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     window.location.assign = jest.fn();
@@ -31,7 +34,7 @@ describe('IntegrationOrganizationLink', () => {
     const org2Lite = pick(org2, ['slug', 'name', 'id']);
 
     getOrgsMock = MockApiClient.addMockResponse({
-      url: '/organizations/',
+      url: '/organizations/?include_feature_flags=1',
       body: [org1Lite, org2Lite],
     });
   });
@@ -109,7 +112,7 @@ describe('IntegrationOrganizationLink', () => {
         params={{integrationSlug: 'vercel'}}
       />,
       {
-        context: initialData.routerContext,
+        router: initialData.router,
       }
     );
 

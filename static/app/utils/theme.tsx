@@ -3,13 +3,9 @@ import color from 'color';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {Outcome} from 'sentry/types';
+import {Outcome} from 'sentry/types/core';
 
-/**
- * Exporting for use in Storybook only. Do not import this
- * anywhere else! Instead, use the theme prop or import useTheme.
- */
-export const lightColors = {
+const lightColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
@@ -20,6 +16,9 @@ export const lightColors = {
   surface200: '#FAF9FB',
   surface300: '#FFFFFF',
   surface400: '#FFFFFF',
+
+  translucentSurface100: '#F5F3F7B6',
+  translucentSurface200: '#FAF9FBE6',
 
   /**
    * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
@@ -41,42 +40,38 @@ export const lightColors = {
   translucentGray200: 'rgba(58, 17, 95, 0.14)',
   translucentGray100: 'rgba(45, 0, 85, 0.06)',
 
-  purple400: '#584AC0',
+  purple400: '#6559C5',
   purple300: '#6C5FC7',
   purple200: 'rgba(108, 95, 199, 0.5)',
-  purple100: 'rgba(108, 95, 199, 0.08)',
+  purple100: 'rgba(108, 95, 199, 0.09)',
 
   blue400: '#2562D4',
   blue300: '#3C74DD',
   blue200: 'rgba(60, 116, 221, 0.5)',
   blue100: 'rgba(60, 116, 221, 0.09)',
 
-  green400: '#268D75',
+  green400: '#207964',
   green300: '#2BA185',
   green200: 'rgba(43, 161, 133, 0.55)',
-  green100: 'rgba(43, 161, 133, 0.13)',
+  green100: 'rgba(43, 161, 133, 0.11)',
 
-  yellow400: '#E5A500',
-  yellow300: '#F5B000',
-  yellow200: 'rgba(245, 176, 0, 0.55)',
-  yellow100: 'rgba(245, 176, 0, 0.08)',
+  yellow400: '#856C00',
+  yellow300: '#EBC000',
+  yellow200: 'rgba(235, 192, 0, 0.7)',
+  yellow100: 'rgba(235, 192, 0, 0.14)',
 
-  red400: '#DF3338',
+  red400: '#CF2126',
   red300: '#F55459',
   red200: 'rgba(245, 84, 89, 0.5)',
-  red100: 'rgba(245, 84, 89, 0.09)',
+  red100: 'rgba(245, 84, 89, 0.1)',
 
-  pink400: '#E50675',
+  pink400: '#D1056B',
   pink300: '#F14499',
   pink200: 'rgba(249, 26, 138, 0.5)',
-  pink100: 'rgba(249, 26, 138, 0.1)',
+  pink100: 'rgba(249, 26, 138, 0.09)',
 };
 
-/**
- * Exporting for use in Storybook only. Do not import this
- * anywhere else! Instead, use the theme prop or import useTheme.
- */
-export const darkColors = {
+const darkColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
@@ -87,6 +82,9 @@ export const darkColors = {
   surface200: '#1A141F',
   surface300: '#241D2A',
   surface400: '#2C2433',
+
+  translucentSurface100: '#18121CB3',
+  translucentSurface200: '#1A141FB3',
 
   /**
    * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
@@ -108,40 +106,39 @@ export const darkColors = {
   translucentGray200: 'rgba(218, 184, 245, 0.16)',
   translucentGray100: 'rgba(208, 168, 240, 0.07)',
 
-  purple400: '#A397F7',
+  purple400: '#ABA0F8',
   purple300: '#7669D3',
   purple200: 'rgba(118, 105, 211, 0.27)',
-  purple100: 'rgba(118, 105, 211, 0.12)',
+  purple100: 'rgba(118, 105, 211, 0.11)',
 
-  blue400: '#70A2FF',
+  blue400: '#80ACFF',
   blue300: '#3070E8',
   blue200: 'rgba(48, 112, 232, 0.25)',
   blue100: 'rgba(48, 112, 232, 0.12)',
 
-  green400: '#1AB792',
+  green400: '#1CC49D',
   green300: '#1D876E',
   green200: 'rgba(29, 135, 110, 0.3)',
-  green100: 'rgba(29, 135, 110, 0.14)',
+  green100: 'rgba(29, 135, 110, 0.12)',
 
-  yellow400: '#E5A500',
-  yellow300: '#B28000',
-  yellow200: 'rgba(178, 128, 0, 0.25)',
-  yellow100: 'rgba(178, 128, 0, 0.1)',
+  yellow400: '#C7B000',
+  yellow300: '#A89500',
+  yellow200: 'rgba(168, 149, 0, 0.25)',
+  yellow100: 'rgba(168, 149, 0, 0.09)',
 
-  red400: '#F87277',
+  red400: '#F98A8F',
   red300: '#E12D33',
   red200: 'rgba(225, 45, 51, 0.25)',
-  red100: 'rgba(225, 45, 51, 0.12)',
+  red100: 'rgba(225, 45, 51, 0.15)',
 
-  pink400: '#E674AD',
+  pink400: '#EB8FBC',
   pink300: '#CE3B85',
   pink200: 'rgba(206, 59, 133, 0.25)',
-  pink100: 'rgba(206, 59, 133, 0.1)',
+  pink100: 'rgba(206, 59, 133, 0.13)',
 };
 
 const prismLight = {
   '--prism-base': '#332B3B',
-  '--prism-selected': '#F5F3F7',
   '--prism-inline-code': '#332B3B',
   '--prism-inline-code-background': '#F5F3F7',
   '--prism-highlight-background': '#5C78A31C',
@@ -158,7 +155,6 @@ const prismLight = {
 
 const prismDark = {
   '--prism-base': '#D6D0DC',
-  '--prism-selected': '#393041',
   '--prism-inline-code': '#D6D0DC',
   '--prism-inline-code-background': '#18121C',
   '--prism-highlight-background': '#A8A2C31C',
@@ -428,9 +424,12 @@ const dataCategory = {
  * Default colors for data usage outcomes
  */
 const outcome = {
-  [Outcome.ACCEPTED]: CHART_PALETTE[0][0],
-  [Outcome.FILTERED]: CHART_PALETTE[1][1],
-  [Outcome.DROPPED]: CHART_PALETTE[5][3],
+  [Outcome.ACCEPTED]: CHART_PALETTE[5][0], // #444674 - chart 100
+  [Outcome.FILTERED]: CHART_PALETTE[5][2], // #B85586 - chart 300
+  [Outcome.RATE_LIMITED]: CHART_PALETTE[5][3], // #E9626E - chart 400
+  [Outcome.INVALID]: CHART_PALETTE[5][4], // #F58C46 - chart 500
+  [Outcome.CLIENT_DISCARD]: CHART_PALETTE[5][5], // #F2B712 - chart 600
+  [Outcome.DROPPED]: CHART_PALETTE[5][3], // #F58C46 - chart 500
 };
 
 const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
@@ -439,40 +438,35 @@ const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
     backgroundLight: alias.backgroundSecondary,
     border: alias.border,
     borderHover: alias.border,
-    iconColor: 'inherit',
-    iconHoverColor: 'inherit',
+    color: 'inherit',
   },
   info: {
     background: colors.blue300,
     backgroundLight: colors.blue100,
     border: colors.blue200,
     borderHover: colors.blue300,
-    iconColor: colors.blue400,
-    iconHoverColor: colors.blue400,
+    color: colors.blue400,
   },
   warning: {
     background: colors.yellow300,
     backgroundLight: colors.yellow100,
     border: colors.yellow200,
     borderHover: colors.yellow300,
-    iconColor: colors.yellow400,
-    iconHoverColor: colors.yellow400,
+    color: colors.yellow400,
   },
   success: {
     background: colors.green300,
     backgroundLight: colors.green100,
     border: colors.green200,
     borderHover: colors.green300,
-    iconColor: colors.green400,
-    iconHoverColor: colors.green400,
+    color: colors.green400,
   },
   error: {
     background: colors.red300,
     backgroundLight: colors.red100,
     border: colors.red200,
     borderHover: colors.red300,
-    iconColor: colors.red400,
-    iconHoverColor: colors.red400,
+    color: colors.red400,
     textLight: colors.red200,
   },
 });
@@ -503,9 +497,19 @@ const generateBadgeTheme = (colors: BaseColors) => ({
     indicatorColor: colors.gray100,
     color: colors.gray500,
   },
+  internal: {
+    background: colors.gray100,
+    indicatorColor: colors.gray100,
+    color: colors.gray500,
+  },
   warning: {
     background: colors.yellow300,
     indicatorColor: colors.yellow300,
+    color: colors.gray500,
+  },
+  gray: {
+    background: `rgba(43, 34, 51, 0.08)`,
+    indicatorColor: `rgba(43, 34, 51, 0.08)`,
     color: colors.gray500,
   },
 });
@@ -513,48 +517,48 @@ const generateBadgeTheme = (colors: BaseColors) => ({
 const generateTagTheme = (colors: BaseColors) => ({
   default: {
     background: colors.surface400,
-    border: colors.gray200,
-    iconColor: colors.gray300,
+    border: colors.translucentGray200,
+    color: colors.gray400,
   },
   promotion: {
     background: colors.pink100,
-    border: colors.pink200,
-    iconColor: colors.pink400,
+    border: colors.pink100,
+    color: colors.pink400,
   },
   highlight: {
     background: colors.purple100,
-    border: colors.purple200,
-    iconColor: colors.purple400,
+    border: colors.purple100,
+    color: colors.purple400,
   },
   warning: {
     background: colors.yellow100,
-    border: colors.yellow200,
-    iconColor: colors.yellow400,
+    border: colors.yellow100,
+    color: colors.yellow400,
   },
   success: {
     background: colors.green100,
-    border: colors.green200,
-    iconColor: colors.green400,
+    border: colors.green100,
+    color: colors.green400,
   },
   error: {
     background: colors.red100,
-    border: colors.red200,
-    iconColor: colors.red400,
+    border: colors.red100,
+    color: colors.red400,
   },
   info: {
     background: colors.purple100,
-    border: colors.purple200,
-    iconColor: colors.purple400,
+    border: colors.purple100,
+    color: colors.purple400,
   },
   white: {
     background: colors.white,
     border: colors.white,
-    iconColor: colors.black,
+    color: colors.black,
   },
   black: {
     background: colors.black,
     border: colors.black,
-    iconColor: colors.white,
+    color: colors.white,
   },
 });
 
@@ -644,6 +648,16 @@ const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   }),
+  // https://css-tricks.com/inclusively-hidden/
+  visuallyHidden: css({
+    clip: 'rect(0 0 0 0)',
+    clipPath: 'inset(50%)',
+    height: '1px',
+    overflow: 'hidden',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    width: '1px',
+  }),
 });
 
 const generatePrismVariables = (
@@ -656,17 +670,27 @@ const generatePrismVariables = (
     ...prismColors,
   });
 
+const iconNumberSizes = {
+  xs: 12,
+  sm: 14,
+  md: 18,
+  lg: 24,
+  xl: 32,
+  xxl: 72,
+} as const;
+
 const iconSizes = {
-  xs: '12px',
-  sm: '14px',
-  md: '18px',
-  lg: '24px',
-  xl: '32px',
-  xxl: '72px',
-};
+  xs: `${iconNumberSizes.xs}px`,
+  sm: `${iconNumberSizes.sm}px`,
+  md: `${iconNumberSizes.md}px`,
+  lg: `${iconNumberSizes.lg}px`,
+  xl: `${iconNumberSizes.xl}px`,
+  xxl: `${iconNumberSizes.xxl}px`,
+} as const;
 
 const commonTheme = {
   breakpoints: {
+    xsmall: '500px',
     small: '800px',
     medium: '992px',
     large: '1200px',
@@ -679,6 +703,7 @@ const commonTheme = {
   ...lightShadows,
 
   iconSizes,
+  iconNumberSizes,
 
   iconDirections: {
     up: '0',
@@ -729,6 +754,7 @@ const commonTheme = {
 
     // If you change modal also update shared-components.less
     // as the z-index for bootstrap modals lives there.
+    drawer: 9999,
     modal: 10000,
     toast: 10001,
 
@@ -738,9 +764,9 @@ const commonTheme = {
 
     // On mobile views issue list dropdowns overlap
     issuesList: {
-      stickyHeader: 1,
-      sortOptions: 2,
-      displayOptions: 3,
+      stickyHeader: 2,
+      sortOptions: 3,
+      displayOptions: 4,
     },
   },
 
@@ -762,13 +788,16 @@ const commonTheme = {
   // Relative font sizes
   fontSizeRelativeSmall: '0.9em',
 
-  fontSizeExtraSmall: '11px',
-  fontSizeSmall: '12px',
-  fontSizeMedium: '14px',
-  fontSizeLarge: '16px',
-  fontSizeExtraLarge: '18px',
-  codeFontSize: '13px',
-  headerFontSize: '22px',
+  fontSizeExtraSmall: '11px' as const,
+  fontSizeSmall: '12px' as const,
+  fontSizeMedium: '14px' as const,
+  fontSizeLarge: '16px' as const,
+  fontSizeExtraLarge: '18px' as const,
+  codeFontSize: '13px' as const,
+  headerFontSize: '22px' as const,
+
+  fontWeightNormal: 400 as const,
+  fontWeightBold: 600 as const,
 
   settings: {
     // Max-width for settings breadcrumbs
@@ -787,7 +816,9 @@ const commonTheme = {
     badgeSize: '22px',
     smallBadgeSize: '11px',
     collapsedWidth: '70px',
+    semiCollapsedWidth: '100px',
     expandedWidth: '220px',
+    mobileHeightNumber: 54,
     mobileHeight: '54px',
     menuSpacing: '15px',
   },
@@ -950,6 +981,9 @@ export const lightTheme = {
   sidebar: {
     ...commonTheme.sidebar,
     background: sidebarBackground.light,
+    scrollbarWidth: 'thin',
+    scrollbarThumbColor: '#A0A0A0',
+    scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
   },
   sidebarGradient: `linear-gradient(294.17deg,${sidebarBackground.light} 35.57%,#452650 92.42%,#452650 92.42%)`,
   sidebarBorder: 'transparent',
@@ -978,6 +1012,9 @@ export const darkTheme: Theme = {
   sidebar: {
     ...commonTheme.sidebar,
     background: sidebarBackground.dark,
+    scrollbarWidth: 'thin',
+    scrollbarThumbColor: '#808080',
+    scrollbarColorTrack: '#1B1825', // end of the gradient which is used for background
   },
   sidebarGradient: `linear-gradient(180deg, ${sidebarBackground.dark} 0%, #1B1825 100%)`,
   sidebarBorder: darkAliases.border,
@@ -1004,6 +1041,3 @@ declare module '@emotion/react' {
   // eslint-disable-next-line @typescript-eslint/no-shadow
   export interface Theme extends SentryTheme {}
 }
-
-// This should never be used directly (except in storybook)
-export {lightAliases as aliases};

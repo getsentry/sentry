@@ -1,24 +1,21 @@
-import {Button} from 'sentry/components/button';
+import type {Location} from 'history';
+
+import type {KnownDataDetails} from 'sentry/components/events/contexts/utils';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TraceKnownData} from './types';
 import {TraceKnownDataType} from './types';
 
-type Output = {
-  subject: string;
-  value: React.ReactNode;
-  actionButton?: React.ReactNode;
-};
-
 type Props = {
   data: TraceKnownData;
   event: Event;
+  location: Location;
   organization: Organization;
-  type: TraceKnownDataType;
+  type: TraceKnownDataType | 'transaction_name';
 };
 
 export function getTraceKnownDataDetails({
@@ -26,7 +23,8 @@ export function getTraceKnownDataDetails({
   event,
   organization,
   type,
-}: Props): Output | undefined {
+  location,
+}: Props): KnownDataDetails {
   switch (type) {
     case TraceKnownDataType.TRACE_ID: {
       const traceId = data.trace_id || '';
@@ -35,21 +33,11 @@ export function getTraceKnownDataDetails({
         return undefined;
       }
 
-      if (!organization.features.includes('discover-basic')) {
-        return {
-          subject: t('Trace ID'),
-          value: traceId,
-        };
-      }
-
+      const link = generateTraceTarget(event, organization, location);
       return {
         subject: t('Trace ID'),
         value: traceId,
-        actionButton: (
-          <Button size="xs" to={generateTraceTarget(event, organization)}>
-            {t('Search by Trace')}
-          </Button>
-        ),
+        action: {link},
       };
     }
 
@@ -81,7 +69,38 @@ export function getTraceKnownDataDetails({
       };
     }
 
-    case TraceKnownDataType.TRANSACTION_NAME: {
+    case TraceKnownDataType.EXCLUSIVE_TIME: {
+      return {
+        subject: t('Exclusive Time (ms)'),
+        value: data.exclusive_time,
+      };
+    }
+    case TraceKnownDataType.CLIENT_SAMPLE_RATE: {
+      return {
+        subject: t('Client Sample Rate'),
+        value: data.client_sample_rate,
+      };
+    }
+    case TraceKnownDataType.DYNAMIC_SAMPLING_CONTEXT: {
+      return {
+        subject: t('Dynamic Sampling Context'),
+        value: data.dynamic_sampling_context,
+      };
+    }
+    case TraceKnownDataType.ORIGIN: {
+      return {
+        subject: t('Origin'),
+        value: data.origin,
+      };
+    }
+    case TraceKnownDataType.DATA: {
+      return {
+        subject: t('Data'),
+        value: data.data,
+      };
+    }
+
+    case 'transaction_name': {
       const eventTag = event?.tags.find(tag => {
         return tag.key === 'transaction';
       });
@@ -91,13 +110,6 @@ export function getTraceKnownDataDetails({
       }
       const transactionName = eventTag.value;
 
-      const to = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
-        transaction: transactionName,
-        projectID: event.projectID,
-        query: {},
-      });
-
       if (!organization.features.includes('performance-view')) {
         return {
           subject: t('Transaction'),
@@ -105,14 +117,17 @@ export function getTraceKnownDataDetails({
         };
       }
 
+      const link = transactionSummaryRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction: transactionName,
+        projectID: event.projectID,
+        query: {},
+      });
+
       return {
         subject: t('Transaction'),
         value: transactionName,
-        actionButton: (
-          <Button size="xs" to={to}>
-            {t('View Summary')}
-          </Button>
-        ),
+        action: {link},
       };
     }
 

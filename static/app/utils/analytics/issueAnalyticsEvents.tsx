@@ -1,6 +1,8 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import type {FieldValue} from 'sentry/components/forms/model';
-import type {IntegrationType, PriorityLevel} from 'sentry/types';
+import type {PriorityLevel} from 'sentry/types/group';
+import type {IntegrationType} from 'sentry/types/integrations';
+import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
@@ -46,6 +48,16 @@ interface SetPriorityParams extends CommonGroupAnalyticsData {
 
 export type IssueEventParameters = {
   'actionable_items.expand_clicked': ActionableItemDebugParam;
+  'autofix.setup_modal_viewed': {
+    groupId: string;
+    projectId: string;
+    setup_gen_ai_consent: boolean;
+    setup_integration: boolean;
+    setup_write_integration: boolean;
+  };
+  'breadcrumbs.drawer.action': {control: string; value?: string};
+  'breadcrumbs.issue_details.change_time_display': {value: string};
+  'breadcrumbs.issue_details.drawer_opened': {control: string};
   'device.classification.high.end.android.device': {
     processor_count: number;
     processor_frequency: number;
@@ -63,6 +75,16 @@ export type IssueEventParameters = {
     platform?: string;
     project_id?: string;
   };
+  'highlights.edit_modal.add_context_key': {};
+  'highlights.edit_modal.add_tag': {};
+  'highlights.edit_modal.cancel_clicked': {};
+  'highlights.edit_modal.remove_context_key': {};
+  'highlights.edit_modal.remove_tag': {};
+  'highlights.edit_modal.save_clicked': {};
+  'highlights.edit_modal.use_default_clicked': {};
+  'highlights.issue_details.edit_clicked': {};
+  'highlights.issue_details.view_all_clicked': {};
+  'highlights.project_settings.updated_manually': {};
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
@@ -88,6 +110,13 @@ export type IssueEventParameters = {
   'issue_details.issue_status_docs_clicked': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
+  'issue_details.related_trace_issue.trace_issue_clicked': {
+    group_id: number;
+  };
+  'issue_details.section_fold': {
+    open: boolean;
+    sectionKey: string;
+  };
   'issue_details.set_priority': SetPriorityParams;
   'issue_details.similar_issues.diff_clicked': {
     error_message?: string;
@@ -111,6 +140,9 @@ export type IssueEventParameters = {
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
+  'issue_details.streamline_ui_toggle': {
+    isEnabled: boolean;
+  };
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
     user_org_role?: string;
@@ -189,6 +221,32 @@ export type IssueEventParameters = {
     search_source: string;
     search_type: string;
   };
+  'issue_views.add_view.all_saved_searches_saved': {};
+  'issue_views.add_view.banner_dismissed': {};
+  'issue_views.add_view.clicked': {};
+  'issue_views.add_view.custom_query_saved': {
+    query: string;
+  };
+  'issue_views.add_view.recommended_view_saved': {
+    label: string;
+    persisted: boolean;
+    query: string;
+  };
+  'issue_views.add_view.saved_search_saved': {
+    query: string;
+  };
+  'issue_views.deleted_view': {};
+  'issue_views.discarded_changes': {};
+  'issue_views.duplicated_view': {};
+  'issue_views.renamed_view': {};
+  'issue_views.reordered_views': {};
+  'issue_views.saved_changes': {};
+  'issue_views.shared_view_opened': {
+    query: string;
+  };
+  'issue_views.switched_views': {};
+  'issue_views.temp_view_discarded': {};
+  'issue_views.temp_view_saved': {};
   'issues_stream.archived': {
     action_status_details?: string;
     action_substatus?: string | null;
@@ -212,7 +270,11 @@ export type IssueEventParameters = {
   'issues_stream.sort_changed': {
     sort: string;
   };
+  'issues_stream.updated_priority': {
+    priority: PriorityLevel;
+  };
   'issues_tab.viewed': {
+    issue_views_enabled: boolean;
     num_issues: number;
     num_new_issues: number;
     num_old_issues: number;
@@ -220,6 +282,7 @@ export type IssueEventParameters = {
     page: number;
     query: string;
     sort: string;
+    total_issues_count: number | null;
     tab?: string;
   };
   'project_modal.created': {
@@ -261,15 +324,33 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
+  'whats_new.link_clicked': Pick<Broadcast, 'title'> &
+    Partial<Pick<Broadcast, 'category'>>;
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
+  'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
+  'breadcrumbs.issue_details.change_time_display': 'Breadcrumb Time Display Toggled',
+  'breadcrumbs.issue_details.drawer_opened': 'Breadcrumb Drawer Opened',
+  'breadcrumbs.drawer.action': 'Breadcrumb Drawer Action Taken',
   'event_cause.viewed': null,
   'event_cause.docs_clicked': 'Event Cause Docs Clicked',
   'event_cause.snoozed': 'Event Cause Snoozed',
   'event_cause.dismissed': 'Event Cause Dismissed',
+  'highlights.edit_modal.add_context_key': 'Highlights: Add Context in Edit Modal',
+  'highlights.edit_modal.add_tag': 'Highlights: Add Tag in Edit Modal',
+  'highlights.edit_modal.cancel_clicked': 'Highlights: Cancel from Edit Modal',
+  'highlights.edit_modal.remove_context_key': 'Highlights: Remove Context in Edit Modal',
+  'highlights.edit_modal.remove_tag': 'Highlights: Remove Tag in Edit Modal',
+  'highlights.edit_modal.save_clicked': 'Highlights: Save from Edit Modal',
+  'highlights.edit_modal.use_default_clicked':
+    'Highlights: Defaults Applied from Edit Modal',
+  'highlights.issue_details.edit_clicked': 'Highlights: Open Edit Modal',
+  'highlights.issue_details.view_all_clicked': 'Highlights: View All Clicked',
+  'highlights.project_settings.updated_manually':
+    'Highlights: Updated Manually from Settings',
   'issue_details.escalating_feedback_received':
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':
@@ -278,12 +359,15 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
     'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
+  'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.view_hierarchy.hover_rendering_system':
     'View Hierarchy: Hovered rendering system icon',
   'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
   'issue_details.view_hierarchy.select_from_wireframe':
     'View Hierarchy: Selection from wireframe',
   'issue_details.issue_status_docs_clicked': 'Issue Details: Issue Status Docs Clicked',
+  'issue_details.related_trace_issue.trace_issue_clicked':
+    'Related Issue: Trace Issue Clicked',
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
   'issue_error_banner.proguard_misconfigured.displayed':
     'Proguard Potentially Misconfigured Issue Error Banner Displayed',
@@ -292,10 +376,29 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_error_banner.proguard_misconfigured.clicked':
     'Proguard Potentially Misconfigured Issue Error Banner Link Clicked',
   'issues_tab.viewed': 'Viewed Issues Tab',
+  'issue_views.switched_views': 'Issue Views: Switched Views',
+  'issue_views.saved_changes': 'Issue Views: Updated View',
+  'issue_views.discarded_changes': 'Issue Views: Discarded Changes',
+  'issue_views.renamed_view': 'Issue Views: Renamed View',
+  'issue_views.duplicated_view': 'Issue Views: Duplicated View',
+  'issue_views.deleted_view': 'Issue Views: Deleted View',
+  'issue_views.reordered_views': 'Issue Views: Views Reordered',
+  'issue_views.add_view.clicked': 'Issue Views: Add View Clicked',
+  'issue_views.add_view.custom_query_saved':
+    'Issue Views: Custom Query Saved From Add View',
+  'issue_views.add_view.saved_search_saved': 'Issue Views: Saved Search Saved',
+  'issue_views.add_view.all_saved_searches_saved':
+    'Issue Views: All Saved Searches Saved',
+  'issue_views.add_view.recommended_view_saved': 'Issue Views: Recommended View Saved',
+  'issue_views.add_view.banner_dismissed': 'Issue Views: Add View Banner Dismissed',
+  'issue_views.shared_view_opened': 'Issue Views: Shared View Opened',
+  'issue_views.temp_view_discarded': 'Issue Views: Temporary View Discarded',
+  'issue_views.temp_view_saved': 'Issue Views: Temporary View Saved',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
+  'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.merged': 'Merged Issues from Issues Stream',
@@ -354,4 +457,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.sourcemap_wizard_learn_more':
     'Issue Details: Sourcemap Wizard Learn More',
   'issue_details.set_priority': 'Issue Details: Set Priority',
+  'issue_details.section_fold': 'Issue Details: Section Fold',
+  'whats_new.link_clicked': "What's New: Link Clicked",
 };

@@ -1,6 +1,7 @@
 from collections.abc import Mapping, Sequence
 from typing import Any, TypeVar, cast
 
+from django.db.models import Model
 from django.db.models.fields import BigIntegerField
 
 from bitfield.query import BitQueryExactLookupStub
@@ -77,8 +78,8 @@ class BitFieldCreator:
 
 
 class BitField(BigIntegerField):
-    def contribute_to_class(self, cls, name, **kwargs):
-        super().contribute_to_class(cls, name, **kwargs)
+    def contribute_to_class(self, cls: type[Model], name: str, private_only: bool = False) -> None:
+        super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, self.name, BitFieldCreator(self))
 
     def __init__(self, flags, default=None, *args, **kwargs):

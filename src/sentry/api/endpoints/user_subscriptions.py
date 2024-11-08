@@ -6,9 +6,9 @@ from sentry import newsletter
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
+from sentry.users.api.bases.user import UserEndpoint
+from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 
 
 class DefaultNewsletterValidator(serializers.Serializer):
@@ -26,11 +26,11 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class UserSubscriptionsEndpoint(UserEndpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.UNOWNED
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, user) -> Response:

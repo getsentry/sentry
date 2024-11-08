@@ -9,8 +9,9 @@ from django.urls import reverse
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
@@ -394,12 +395,18 @@ class AnotherClassInSameFile {
 
 @pytest.mark.django_db(transaction=True)
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
+    @pytest.fixture(autouse=True)
+    def initialize(self, set_sentry_option, live_server):
+        with set_sentry_option("system.url-prefix", live_server.url):
+            # Run test case
+            yield
+
     def upload_proguard_mapping(self, uuid, mapping_file_content):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -424,6 +431,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert response.status_code == 201, response.content
         assert len(response.json()) == 1
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_basic_resolving(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -460,7 +469,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -497,6 +506,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
         )
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_resolving_does_not_fail_when_no_value(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -532,7 +543,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -553,6 +564,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_resolving_does_not_fail_when_no_module_or_function(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -600,7 +613,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -621,6 +634,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_sets_inapp_after_resolving(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -687,7 +702,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -716,6 +731,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[3].in_app is False
         assert frames[4].in_app is True
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_resolving_inline(self):
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
@@ -752,7 +769,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -790,6 +807,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[3].filename == "MainActivity.java"
         assert frames[3].module == "io.sentry.sample.MainActivity"
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_resolving_inline_with_native_frames(self):
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
@@ -845,7 +864,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -889,12 +908,14 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[5].function == "__start_thread"
         assert frames[5].package == "/apex/com.android.art/lib64/libart.so"
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_error_on_resolving(self):
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -949,16 +970,15 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
 
         assert len(event.data["errors"]) == 1
-        assert event.data["errors"][0] == {
-            "mapping_uuid": "071207ac-b491-4a74-957c-2c94fd9594f2",
-            "type": "proguard_missing_lineno",
-        }
+        error = event.data["errors"][0]
+        assert error["mapping_uuid"] == "071207ac-b491-4a74-957c-2c94fd9594f2"
+        assert error["type"] == "proguard_missing_lineno"
 
     def upload_jvm_bundle(self, debug_id, source_files):
         files = {}
@@ -973,14 +993,18 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "files": files,
         }
 
-        file_like = BytesIO()
-        with zipfile.ZipFile(file_like, "w") as zip:
-            for source_file in source_files:
-                zip.writestr(f"files/_/_/{source_file}", source_files[source_file])
+        file_like = BytesIO(b"SYSB")
+        with zipfile.ZipFile(file_like, "a") as zip:
+            for path, contents in source_files.items():
+                zip.writestr(f"files/_/_/{path}", contents)
             zip.writestr("manifest.json", json.dumps(manifest))
         file_like.seek(0)
 
-        file = File.objects.create(name="bundle.zip", type="artifact.bundle")
+        file = File.objects.create(
+            name="bundle.zip",
+            type="sourcebundle",
+            headers={"Content-Type": "application/x-sentry-bundle+zip"},
+        )
         file.putfile(file_like)
 
         ProjectDebugFile.objects.create(
@@ -989,6 +1013,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             file=file,
         )
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_basic_source_lookup(self):
         debug_id = str(uuid4())
         self.upload_jvm_bundle(debug_id, {"io/sentry/samples/MainActivity.jvm": JVM_SOURCE})
@@ -1061,7 +1087,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -1190,6 +1216,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         ]
         assert frames[6].post_context == ["        }", "    }", "}", ""]
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_source_lookup_with_proguard(self):
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)
         debug_id1 = str(uuid4())
@@ -1377,7 +1405,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -1495,3 +1523,127 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[24].context_line is None
         assert frames[24].pre_context is None
         assert frames[24].post_context is None
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_invalid_exception(self):
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {},
+            "exception": {
+                "values": [
+                    {"type": "PlatformException"},
+                    {"type": "SecurityException", "module": "java.lang"},
+                    {"type": "RemoteException", "module": "android.os"},
+                ]
+            },
+            "timestamp": before_now(seconds=1).isoformat(),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+        expected = [
+            {"type": e.get("type", None), "module": e.get("module", None)}
+            for e in event_data["exception"]["values"]
+        ]
+        received = [
+            {"type": e.type, "module": e.module} for e in event.interfaces["exception"].values
+        ]
+
+        assert received == expected
+
+    def test_is_jvm_event(self):
+        from sentry.lang.java.utils import is_jvm_event
+
+        event = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "jvm", "debug_id": PROGUARD_INLINE_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
+                            ]
+                        },
+                        "module": "io.sentry.samples",
+                        "type": "RuntimeException",
+                        "value": "whoops",
+                    }
+                ]
+            },
+            "timestamp": before_now(seconds=1),
+        }
+        assert is_jvm_event(event)
+
+        event = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "debug_meta": {"images": [{"type": "jvm", "debug_id": PROGUARD_INLINE_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
+                            ]
+                        },
+                        "module": "io.sentry.samples",
+                        "type": "RuntimeException",
+                        "value": "whoops",
+                    }
+                ]
+            },
+            "timestamp": before_now(seconds=1),
+        }
+        # has no platform
+        assert is_jvm_event(event)
+
+        event = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
+                            ]
+                        },
+                        "module": "io.sentry.samples",
+                        "type": "RuntimeException",
+                        "value": "whoops",
+                    }
+                ]
+            },
+            "timestamp": before_now(seconds=1),
+        }
+        # has no modules
+        assert not is_jvm_event(event)

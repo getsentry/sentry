@@ -1,7 +1,6 @@
-import type {PlatformKey} from 'sentry/types/project';
-
 import type {TimeseriesValue} from './core';
 import type {Commit} from './integrations';
+import type {PlatformKey} from './project';
 import type {User} from './user';
 
 export enum ReleaseStatus {
@@ -41,7 +40,7 @@ interface RawVersion {
   raw: string;
 }
 
-export interface SemverVerison extends RawVersion {
+export interface SemverVersion extends RawVersion {
   buildCode: string | null;
   components: number;
   major: number;
@@ -54,7 +53,7 @@ export type VersionInfo = {
   buildHash: string | null;
   description: string;
   package: string | null;
-  version: RawVersion | SemverVerison;
+  version: RawVersion | SemverVersion;
 };
 
 export interface BaseRelease {

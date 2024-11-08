@@ -6,7 +6,7 @@ from collections.abc import Callable
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
 

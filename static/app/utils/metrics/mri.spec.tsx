@@ -1,6 +1,12 @@
-import type {MetricType, MRI} from 'sentry/types';
-import type {ParsedMRI, UseCase} from 'sentry/types/metrics';
-import {getUseCaseFromMRI, parseField, parseMRI, toMRI} from 'sentry/utils/metrics/mri';
+import type {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
+import {
+  formatMRI,
+  getUseCaseFromMRI,
+  isExtractedCustomMetric,
+  parseField,
+  parseMRI,
+  toMRI,
+} from 'sentry/utils/metrics/mri';
 
 describe('parseMRI', () => {
   it('should handle falsy values', () => {
@@ -24,7 +30,7 @@ describe('parseMRI', () => {
     }
   );
 
-  it.each(['transactions', 'custom'])(
+  it.each(['spans', 'transactions', 'custom'])(
     'should correctly parse a valid MRI string - use case %s',
     useCase => {
       const mri: MRI = `c:${useCase as UseCase}/xyz@test`;
@@ -38,7 +44,7 @@ describe('parseMRI', () => {
     }
   );
 
-  it.each(['sessions', 'spans'])(
+  it.each(['sessions'])(
     'should correctly parse a valid MRI string - use case %s',
     useCase => {
       const mri: MRI = `c:${useCase as UseCase}/xyz@test`;
@@ -79,6 +85,15 @@ describe('parseMRI', () => {
       expect(parseMRI(mri)).toEqual(parsedMRI);
     }
   );
+
+  it.each([
+    ['d:transactions/duration@millisecond', 'transaction.duration'],
+    ['d:spans/duration@millisecond', 'span.duration'],
+    ['d:spans/exclusive_time@millisecond', 'span.exclusive_time'],
+    ['g:spans/self_time@millisecond', 'span.self_time'],
+  ])('should remap certain mri names', (mri, name) => {
+    expect(parseMRI(mri)?.name).toEqual(name);
+  });
 });
 
 describe('getUseCaseFromMRI', () => {
@@ -108,14 +123,14 @@ describe('getUseCaseFromMRI', () => {
 });
 
 describe('parseField', () => {
-  it('should return the correct mri and op from field', () => {
-    const field = 'op(c:test/project)';
+  it('should return the correct mri and aggregation from field', () => {
+    const field = 'aggregation(c:test/project)';
 
     const result = parseField(field);
 
     expect(result).toEqual({
       mri: 'c:test/project',
-      op: 'op',
+      aggregation: 'aggregation',
     });
   });
 
@@ -125,7 +140,7 @@ describe('parseField', () => {
     const result = parseField(field);
 
     expect(result?.mri).toBe('my-metric');
-    expect(result?.op).toBe('sum');
+    expect(result?.aggregation).toBe('sum');
   });
 
   it('should return null mri invalid field', () => {
@@ -195,4 +210,27 @@ describe('toMRI', () => {
       expect(toMRI(parsedMRI)).toEqual(mri);
     }
   );
+});
+
+describe('formatMRI', () => {
+  it('returns the metric name', () => {
+    expect(formatMRI('c:custom/foo@none')).toEqual('foo');
+    expect(formatMRI('c:custom/bar@ms')).toEqual('bar');
+    expect(formatMRI('d:transactions/baz@ms')).toEqual('baz');
+  });
+});
+
+describe('isExtractedCustomMetric', () => {
+  it('should return true if the metric name is prefixed', () => {
+    expect(isExtractedCustomMetric({mri: 'c:custom/span_attribute_123@none'})).toBe(true);
+    expect(isExtractedCustomMetric({mri: 's:custom/span_attribute_foo@none'})).toBe(true);
+    expect(isExtractedCustomMetric({mri: 'g:custom/span_attribute_baz@none'})).toBe(true);
+  });
+
+  it('should return false if the metric name is not prefixed', () => {
+    expect(isExtractedCustomMetric({mri: 'c:custom/12span_attribute_@none'})).toBe(false);
+    expect(isExtractedCustomMetric({mri: 's:custom/foo@none'})).toBe(false);
+    expect(isExtractedCustomMetric({mri: 'd:custom/_span_attribute_@none'})).toBe(false);
+    expect(isExtractedCustomMetric({mri: 'g:custom/span_attributebaz@none'})).toBe(false);
+  });
 });

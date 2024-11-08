@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator, Iterable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import sentry_sdk
@@ -25,6 +25,7 @@ from snuba_sdk import (
     OrderBy,
     Query,
     Request,
+    Storage,
 )
 
 from sentry import features, options, projectoptions
@@ -34,11 +35,13 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
 from sentry.profiles.utils import get_from_profiling_service
-from sentry.seer.utils import BreakpointData
+from sentry.search.events.fields import resolve_datetime64
+from sentry.search.events.types import SnubaParams
+from sentry.seer.breakpoints import BreakpointData
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
@@ -96,7 +99,7 @@ def get_performance_issue_settings(projects: list[Project]):
     return project_settings
 
 
-def all_projects_with_flags() -> Generator[tuple[int, int], None, None]:
+def all_projects_with_flags() -> Generator[tuple[int, int]]:
     yield from RangeQuerySetWrapper(
         Project.objects.filter(status=ObjectStatus.ACTIVE).values_list("id", "flags"),
         result_value_getter=lambda item: item[0],
@@ -145,9 +148,9 @@ def compute_delay(
 
 
 def dispatch_performance_projects(
-    all_projects: Generator[tuple[int, int], None, None],
+    all_projects: Generator[tuple[int, int]],
     timestamp: datetime,
-) -> Generator[tuple[int, int], None, None]:
+) -> Generator[tuple[int, int]]:
     projects = []
     count = 0
 
@@ -189,9 +192,9 @@ def dispatch_performance_projects(
 
 
 def dispatch_profiling_projects(
-    all_projects: Generator[tuple[int, int], None, None],
+    all_projects: Generator[tuple[int, int]],
     timestamp: datetime,
-) -> Generator[tuple[int, int], None, None]:
+) -> Generator[tuple[int, int]]:
     projects = []
     count = 0
 
@@ -410,6 +413,7 @@ def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwa
 
     projects = get_detector_enabled_projects(
         project_ids,
+        project_option=InternalProjectOptions.FUNCTION_DURATION_REGRESSION,
     )
 
     trends = FunctionRegressionDetector.detect_trends(projects, start)
@@ -502,12 +506,11 @@ def emit_function_regression_issue(
     project_ids = [int(regression["project"]) for regression in regressions]
     projects = [projects_by_id[project_id] for project_id in project_ids]
 
-    params: dict[str, Any] = {
-        "start": start,
-        "end": start + timedelta(minutes=1),
-        "project_id": project_ids,
-        "project_objects": projects,
-    }
+    params = SnubaParams(
+        start=start,
+        end=start + timedelta(minutes=1),
+        projects=projects,
+    )
 
     conditions = [
         And(
@@ -520,9 +523,9 @@ def emit_function_regression_issue(
     ]
 
     result = functions.query(
-        selected_columns=["project.id", "fingerprint", "examples()"],
+        selected_columns=["project.id", "fingerprint", "all_examples()"],
         query="is_application:1",
-        params=params,
+        snuba_params=params,
         orderby=["project.id"],
         limit=len(regressions),
         referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE.value,
@@ -532,30 +535,46 @@ def emit_function_regression_issue(
         conditions=conditions if len(conditions) <= 1 else [Or(conditions)],
     )
 
-    examples = {
-        (row["project.id"], row["fingerprint"]): row["examples()"][0]
-        for row in result["data"]
-        if row["examples()"]
-    }
+    transaction_examples = {}
+    raw_continuous_examples = {}
+    for row in result["data"]:
+        # Split this into 2 loops here to bias towards transaction based profiles
+
+        key = (row["project.id"], row["fingerprint"])
+        for example in row["all_examples()"]:
+            if "profile_id" in example:
+                transaction_examples[key] = example
+
+        if key in transaction_examples:
+            continue
+
+        for example in row["all_examples()"]:
+            if "profiler_id" in example:
+                raw_continuous_examples[key] = example
+
+    continuous_examples = fetch_continuous_examples(raw_continuous_examples)
 
     payloads = []
 
     for regression in regressions:
         project_id = int(regression["project"])
         fingerprint = int(regression["transaction"])
-        example = examples.get((project_id, fingerprint))
-        if example is None:
-            continue
 
         project = projects_by_id.get(project_id)
         if project is None:
+            continue
+
+        key = (project_id, fingerprint)
+        example = transaction_examples.get(key) or continuous_examples.get(key)
+
+        if example is None:
             continue
 
         payloads.append(
             {
                 "organization_id": project.organization_id,
                 "project_id": project_id,
-                "profile_id": example,
+                "example": example,
                 "fingerprint": fingerprint,
                 "absolute_percentage_change": regression["absolute_percentage_change"],
                 "aggregate_range_1": regression["aggregate_range_1"],
@@ -574,6 +593,96 @@ def emit_function_regression_issue(
 
     data = json.loads(response.data)
     return data.get("occurrences")
+
+
+def fetch_continuous_examples(raw_examples):
+    if not raw_examples:
+        return raw_examples
+
+    project_condition = Condition(
+        Column("project_id"),
+        Op.IN,
+        list({project_id for project_id, _ in raw_examples.keys()}),
+    )
+
+    conditions = [project_condition]
+
+    example_conditions: list[BooleanCondition | Condition] = []
+
+    for (project_id, _), example in raw_examples.items():
+        example_conditions.append(
+            And(
+                [
+                    Condition(Column("project_id"), Op.EQ, project_id),
+                    Condition(Column("profiler_id"), Op.EQ, example["profiler_id"]),
+                    Condition(
+                        Column("start_timestamp"), Op.LTE, resolve_datetime64(example["end"])
+                    ),
+                    Condition(
+                        Column("end_timestamp"), Op.GTE, resolve_datetime64(example["start"])
+                    ),
+                ]
+            )
+        )
+
+    if len(example_conditions) >= 2:
+        conditions.append(Or(example_conditions))
+    else:
+        conditions.extend(example_conditions)
+
+    query = Query(
+        match=Storage(StorageKey.ProfileChunks.value),
+        select=[
+            Column("project_id"),
+            Column("profiler_id"),
+            Column("chunk_id"),
+            Column("start_timestamp"),
+            Column("end_timestamp"),
+        ],
+        where=conditions,
+        limit=Limit(len(raw_examples)),
+    )
+
+    request = Request(
+        dataset=Dataset.Profiles.value,
+        app_id="default",
+        query=query,
+        tenant_ids={
+            "referrer": Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS.value,
+            "cross_org_query": 1,
+        },
+    )
+
+    data = raw_snql_query(
+        request,
+        referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS.value,
+    )["data"]
+
+    for row in data:
+        row["start"] = (
+            datetime.fromisoformat(row["start_timestamp"]).replace(tzinfo=UTC).timestamp()
+        )
+        row["end"] = datetime.fromisoformat(row["end_timestamp"]).replace(tzinfo=UTC).timestamp()
+
+    examples = {}
+
+    for key, example in raw_examples.items():
+        for row in data:
+            if example["profiler_id"] != row["profiler_id"]:
+                continue
+            if example["start"] > row["end"]:
+                continue
+            if example["end"] < row["start"]:
+                continue
+            examples[key] = {
+                "profiler_id": row["profiler_id"],
+                "chunk_id": row["chunk_id"],
+                "thread_id": example["thread_id"],
+                "start": row["start"],
+                "end": row["end"],
+            }
+
+    return examples
 
 
 BACKEND_TRANSACTION_OPS = [
@@ -717,7 +826,7 @@ def query_transactions_timeseries(
     transactions: list[tuple[Project, int | str]],
     start: datetime,
     agg_function: str,
-) -> Generator[tuple[int, int | str, SnubaTSResult], None, None]:
+) -> Generator[tuple[int, int | str, SnubaTSResult]]:
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     days_to_query = options.get("statistical_detectors.query.transactions.timeseries_days")
     start = end - timedelta(days=days_to_query)
@@ -859,7 +968,7 @@ def query_transactions_timeseries(
                     start,
                     end,
                     interval,
-                    "time",
+                    ["time"],
                 ),
                 "project": project_id,
             },
@@ -877,12 +986,11 @@ def query_functions(projects: list[Project], start: datetime) -> list[DetectorPa
     # we just need to query for the 1 minute of data.
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
-    params: dict[str, Any] = {
-        "start": start,
-        "end": start + timedelta(minutes=1),
-        "project_id": [project.id for project in projects],
-        "project_objects": projects,
-    }
+    params = SnubaParams(
+        start=start,
+        end=start + timedelta(minutes=1),
+        projects=projects,
+    )
 
     # TODOs: handle any errors
     query_results = functions.query(
@@ -894,7 +1002,7 @@ def query_functions(projects: list[Project], start: datetime) -> list[DetectorPa
             "p95()",
         ],
         query="is_application:1",
-        params=params,
+        snuba_params=params,
         orderby=["project.id", "-count()"],
         limitby=("project.id", FUNCTIONS_PER_PROJECT),
         limit=FUNCTIONS_PER_PROJECT * len(projects),
@@ -921,18 +1029,16 @@ def query_functions_timeseries(
     functions_list: list[tuple[Project, int | str]],
     start: datetime,
     agg_function: str,
-) -> Generator[tuple[int, int | str, SnubaTSResult], None, None]:
+) -> Generator[tuple[int, int | str, SnubaTSResult]]:
     projects = [project for project, _ in functions_list]
-    project_ids = [project.id for project in projects]
 
-    # take the last 14 days as our window
+    days_to_query = options.get("statistical_detectors.query.functions.timeseries_days")
     end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    params: dict[str, Any] = {
-        "start": end - timedelta(days=14),
-        "end": end,
-        "project_id": project_ids,
-        "project_objects": projects,
-    }
+    params = SnubaParams(
+        start=end - timedelta(days=days_to_query),
+        end=end,
+        projects=projects,
+    )
     interval = 3600  # 1 hour
 
     chunk: list[dict[str, Any]] = [
@@ -947,7 +1053,7 @@ def query_functions_timeseries(
         timeseries_columns=[agg_function],
         selected_columns=["project.id", "fingerprint"],
         user_query="is_application:1",
-        params=params,
+        snuba_params=params,
         orderby=None,  # unused because top events is specified
         rollup=interval,
         limit=len(chunk),
@@ -974,14 +1080,14 @@ def get_detector_enabled_projects(
     feature_name: str | None = None,
     project_option: InternalProjectOptions | None = None,
 ) -> list[Project]:
-    projects = Project.objects.filter(id__in=project_ids)
+    projects_qs = Project.objects.filter(id__in=project_ids)
 
     if feature_name is None:
-        projects = [project for project in projects]
+        projects = list(projects_qs)
     else:
         projects = [
             project
-            for project in projects.select_related("organization")
+            for project in projects_qs.select_related("organization")
             if features.has(feature_name, project.organization)
         ]
 

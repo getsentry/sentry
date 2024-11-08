@@ -9,6 +9,10 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportApiIntroduction,
+  getCrashReportInstallDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -29,7 +33,7 @@ void Verify()
 const getCrashReporterConfigSnippet = (params: Params) => `
 [CrashReportClient]
 CrashReportClientVersion=1.0
-DataRouterUrl="${params.dsn}"`;
+DataRouterUrl="${params.dsn.unreal}"`;
 
 const onboarding: OnboardingConfig = {
   install: () => [
@@ -78,7 +82,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'url',
-          code: params.dsn,
+          code: params.dsn.public,
         },
       ],
     },
@@ -168,8 +172,8 @@ const onboarding: OnboardingConfig = {
               additionalInfo: (
                 <p>
                   {tct(
-                    'If a [crashReportCode:CrashReportClient] section already exists, simply changing the value of [dataRouterUrlCode:DataRouterUrl] is enough.',
-                    {crashReportCode: <code />, dataRouterUrlCode: <code />}
+                    'If a [code:CrashReportClient] section already exists, simply changing the value of [code:DataRouterUrl] is enough.',
+                    {code: <code />}
                   )}
                 </p>
               ),
@@ -184,11 +188,9 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              'To allow Sentry to fully process native crashes and provide you with symbolicated stack traces, you need to upload [debugInformationItalic:debug information files] (sometimes also referred to as [debugSymbolsItalic:debug symbols] or just [symbolsItalic:symbols]). We recommend uploading debug information during your build or release process.',
+              'To allow Sentry to fully process native crashes and provide you with symbolicated stack traces, you need to upload [italic:debug information files] (sometimes also referred to as [italic:debug symbols] or just [italic:symbols]). We recommend uploading debug information during your build or release process.',
               {
-                debugInformationItalic: <i />,
-                symbolsItalic: <i />,
-                debugSymbolsItalic: <i />,
+                italic: <i />,
               }
             )}
           </p>
@@ -222,8 +224,49 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const feedbackOnboardingCrashApi: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'C++',
+              value: 'cpp',
+              language: 'cpp',
+              code: `USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
+
+USentryId* EventId = SentrySubsystem->CaptureMessage(TEXT("Message with feedback"));
+
+USentryUserFeedback* UserFeedback = NewObject<USentryUserFeedback>();
+User->Initialize(EventId);
+User->SetEmail("test@sentry.io");
+User->SetName("Name");
+User->SetComment("Some comment");
+
+SentrySubsystem->CaptureUserFeedback(UserFeedback);
+
+// OR
+
+SentrySubsystem->CaptureUserFeedbackWithParams(EventId, "test@sentry.io", "Some comment", "Name");`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi,
+  crashReportOnboarding: feedbackOnboardingCrashApi,
 };
 
 export default docs;

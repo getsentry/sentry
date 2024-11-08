@@ -3,18 +3,19 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Mapping
 
+import orjson
 from cryptography.exceptions import InvalidSignature
 from rest_framework import status
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.services.hybrid_cloud.identity import RpcIdentityProvider
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.identity.service import identity_service
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils import json
+from sentry.constants import ObjectStatus
+from sentry.identity.services.identity import RpcIdentityProvider
+from sentry.identity.services.identity.model import RpcIdentity
+from sentry.identity.services.identity.service import identity_service
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 
 from ..utils import logger, verify_signature
 
@@ -55,8 +56,8 @@ class DiscordRequest:
 
     def __init__(self, request: Request):
         self.request = request
-        self._body = self.request.body.decode("utf-8")
-        self._data: Mapping[str, object] = json.loads(self._body)
+        self._body = self.request.body.decode()
+        self._data: Mapping[str, object] = orjson.loads(self.request.body)
         self._integration: RpcIntegration | None = None
         self._provider: RpcIdentityProvider | None = None
         self._identity: RpcIdentity | None = None
@@ -95,7 +96,7 @@ class DiscordRequest:
             user_source = self._data.get("member", None)
             if user_source is None:
                 user_source = self._data
-            return user_source["user"]["id"]  # type: ignore
+            return user_source["user"]["id"]  # type: ignore[index]
         except (AttributeError, TypeError, KeyError):
             return None
 
@@ -224,7 +225,7 @@ class DiscordRequest:
     def validate_integration(self) -> None:
         if not self._integration:
             self._integration = integration_service.get_integration(
-                provider="discord", external_id=self.guild_id
+                provider="discord", external_id=self.guild_id, status=ObjectStatus.ACTIVE
             )
         self._info("discord.validate.integration")
 
@@ -276,4 +277,4 @@ class DiscordRequest:
             "discord.interaction.component.get_selected_options",
             extra={"data": self.data, "values": values},
         )
-        return values  # type: ignore
+        return values  # type: ignore[return-value]

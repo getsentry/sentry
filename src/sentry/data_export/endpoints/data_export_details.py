@@ -19,9 +19,9 @@ from ..models import ExportedData
 @region_silo_endpoint
 class DataExportDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.DISCOVER_N_DASHBOARDS
+    owner = ApiOwner.PERFORMANCE
     permission_classes = (OrganizationDataExportPermission,)
 
     def get(self, request: Request, organization: Organization, data_export_id: str) -> Response:

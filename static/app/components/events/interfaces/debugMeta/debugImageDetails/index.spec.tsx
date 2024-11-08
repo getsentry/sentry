@@ -3,7 +3,7 @@ import {EntryDebugMetaFixture} from 'sentry-fixture/eventEntry';
 import {ImageFixture} from 'sentry-fixture/image';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
+import {act, renderGlobalModal, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {DebugImageDetails} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
@@ -30,7 +30,7 @@ describe('Debug Meta - Image Details', function () {
     });
   });
 
-  it('Candidates correctly sorted', function () {
+  it('Candidates correctly sorted', async function () {
     renderGlobalModal();
 
     act(() =>
@@ -44,6 +44,10 @@ describe('Debug Meta - Image Details', function () {
           onReprocessEvent={jest.fn()}
         />
       ))
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
     );
 
     // Check status order.

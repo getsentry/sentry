@@ -1,35 +1,40 @@
 import {Component, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
-import type {Incident} from 'sentry/views/alerts/types';
+import {
+  AlertRuleComparisonType,
+  TimePeriod,
+} from 'sentry/views/alerts/rules/metric/types';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {
   fetchAlertRule,
+  fetchAnomaliesForRule,
   fetchIncident,
   fetchIncidentsForRule,
 } from 'sentry/views/alerts/utils/apiCalls';
 
 import MetricDetailsBody from './body';
 import type {TimePeriodType} from './constants';
-import {TIME_OPTIONS, TIME_WINDOWS} from './constants';
+import {ALERT_RULE_STATUS, TIME_OPTIONS, TIME_WINDOWS} from './constants';
 import DetailsHeader from './header';
 import {buildMetricGraphDateRange} from './utils';
 
@@ -46,8 +51,10 @@ interface State {
   hasError: boolean;
   isLoading: boolean;
   selectedIncident: Incident | null;
+  anomalies?: Anomaly[];
   incidents?: Incident[];
   rule?: MetricRule;
+  warning?: string;
 }
 
 class MetricAlertDetails extends Component<Props, State> {
@@ -94,7 +101,18 @@ class MetricAlertDetails extends Component<Props, State> {
 
   getTimePeriod(selectedIncident: Incident | null): TimePeriodType {
     const {location} = this.props;
-    const period = (location.query.period as string) ?? TimePeriod.SEVEN_DAYS;
+    const {rule} = this.state;
+    let period = location.query.period as string | undefined;
+    if (!period) {
+      // Default to 28d view for dynamic alert rules! Anomaly detection
+      // is evaluated against 28d of historical data, so incidents should
+      // be presented in that same context for clarity
+      if (rule?.detectionType === AlertRuleComparisonType.DYNAMIC) {
+        period = TimePeriod.TWENTY_EIGHT_DAYS;
+      } else {
+        period = TimePeriod.SEVEN_DAYS;
+      }
+    }
 
     if (location.query.start && location.query.end) {
       return {
@@ -198,13 +216,27 @@ class MetricAlertDetails extends Component<Props, State> {
     const timePeriod = this.getTimePeriod(selectedIncident);
     const {start, end} = timePeriod;
     try {
-      const [incidents, rule] = await Promise.all([
+      const [incidents, rule, anomalies] = await Promise.all([
         fetchIncidentsForRule(organization.slug, ruleId, start, end),
         rulePromise,
+        organization.features.includes('anomaly-detection-alerts-charts')
+          ? fetchAnomaliesForRule(organization.slug, ruleId, start, end)
+          : undefined, // NOTE: there's no way for us to determine the alert rule detection type here.
+        // proxy API will need to determine whether to fetch anomalies or not
       ]);
+      // NOTE: 'anomaly-detection-alerts-charts' flag does not exist
+      // Flag can be enabled IF we want to enable marked lines/areas for anomalies in the future
+      // For now, we defer to incident lines as indicators for anomalies
+      let warning;
+      if (rule.status === ALERT_RULE_STATUS.NOT_ENOUGH_DATA) {
+        warning =
+          'Insufficient data for anomaly detection. This feature will enable automatically when more data is available.';
+      }
       this.setState({
+        anomalies,
         incidents,
         rule,
+        warning,
         selectedIncident,
         isLoading: false,
         hasError: false,
@@ -229,7 +261,7 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 
   render() {
-    const {rule, incidents, hasError, selectedIncident} = this.state;
+    const {rule, incidents, hasError, selectedIncident, anomalies, warning} = this.state;
     const {organization, projects, loadingProjects} = this.props;
     const timePeriod = this.getTimePeriod(selectedIncident);
 
@@ -249,6 +281,11 @@ class MetricAlertDetails extends Component<Props, State> {
         shouldForceProject={isGlobalSelectionReady}
         forceProject={project}
       >
+        {warning && (
+          <Alert type="warning" showIcon>
+            {warning}
+          </Alert>
+        )}
         <SentryDocumentTitle title={rule?.name ?? ''} />
 
         <DetailsHeader
@@ -263,6 +300,7 @@ class MetricAlertDetails extends Component<Props, State> {
           rule={rule}
           project={project}
           incidents={incidents}
+          anomalies={anomalies}
           timePeriod={timePeriod}
           selectedIncident={selectedIncident}
         />

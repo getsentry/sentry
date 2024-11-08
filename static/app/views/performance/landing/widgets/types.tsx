@@ -3,7 +3,8 @@ import type {Location} from 'history';
 import type {Client} from 'sentry/api';
 import type BaseChart from 'sentry/components/charts/baseChart';
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
-import type {DateString, Organization, OrganizationSummary} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 
 import type {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
@@ -26,6 +27,8 @@ export enum GenericPerformanceWidgetDataType {
   PERFORMANCE_SCORE = 'performance_score',
   SLOW_SCREENS_BY_TTID = 'slow_screens_by_ttid',
   PERFORMANCE_SCORE_LIST = 'performance_score_list',
+  SLOW_SCREENS_BY_COLD_START = 'slow_screens_by_cold_start',
+  SLOW_SCREENS_BY_WARM_START = 'slow_screens_by_warm_start',
 }
 
 export type PerformanceWidgetProps = {

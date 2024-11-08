@@ -6,16 +6,16 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
-from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
+from sentry.integrations.services.integration import integration_service
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.users.services.user import RpcUser
+from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
+from sentry.users.services.usersocialauth.service import usersocialauth_service
 
 
 class ProviderMixin:
     auth_provider: str | None = None
-    logger: logging.Logger | None = None
+    logger = logging.getLogger(__name__)
 
     def link_auth(self, user, organization, data):
         usa = usersocialauth_service.get_one_or_none(
@@ -118,8 +118,8 @@ class ProviderMixin:
             filter={"user_id": user.id, "provider": self.auth_provider}
         )
 
-    def handle_api_error(self, e):
-        context = {"error_type": "unknown"}
+    def handle_api_error(self, e: Exception) -> Response:
+        context: dict[str, object] = {"error_type": "unknown"}
         if isinstance(e, InvalidIdentity):
             if self.auth_provider is None:
                 context.update(
@@ -140,7 +140,6 @@ class ProviderMixin:
             context.update({"error_type": "validation", "errors": {"__all__": str(e)}})
             status = 400
         else:
-            if self.logger:
-                self.logger.exception(str(e))
+            self.logger.exception(str(e))
             status = 500
         return Response(context, status=status)

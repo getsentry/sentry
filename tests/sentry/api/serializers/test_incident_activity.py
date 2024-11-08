@@ -5,14 +5,12 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.incidents.logic import create_incident_activity
-from sentry.incidents.models import IncidentActivityType
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.incidents.models.incident import IncidentActivityType
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.users.services.user.service import user_service
 
 
-@region_silo_test
 class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
     def test_simple(self):
         activity = create_incident_activity(
@@ -61,7 +59,7 @@ class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
                     data={
                         "event_id": uuid4().hex,
                         "fingerprint": ["group1"],
-                        "timestamp": iso_format(before_now(seconds=1)),
+                        "timestamp": before_now(seconds=1).isoformat(),
                     },
                     project_id=self.project.id,
                 )

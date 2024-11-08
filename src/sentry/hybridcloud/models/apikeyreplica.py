@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 
@@ -6,7 +8,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -14,7 +16,7 @@ from sentry.models.apikey import ApiKeyStatus
 from sentry.models.apiscopes import HasApiScopes
 
 
-@region_silo_only_model
+@region_silo_model
 class ApiKeyReplica(Model, HasApiScopes):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -38,15 +40,15 @@ class ApiKeyReplica(Model, HasApiScopes):
         return self.apikey_id
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return self.status == ApiKeyStatus.ACTIVE
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> list[str]:
         if not self.allowed_origins:
             return []
         return list(filter(bool, self.allowed_origins.split("\n")))
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {
             "label": self.label,
             "key": self.key,

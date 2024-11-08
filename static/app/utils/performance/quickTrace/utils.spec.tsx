@@ -74,6 +74,7 @@ function generateTransactionLite({
     parent_span_id: generation <= 0 ? null : generateSpanId(parentPosition),
     performance_issues: [],
     errors: [],
+    timestamp: 112312412,
   };
 }
 
@@ -97,6 +98,7 @@ function generateTransaction(opts: {depth: number; index: number}): TraceFull {
      * the type checking.
      */
     'transaction.duration': 0,
+    timestamp: 112312412,
   };
 }
 

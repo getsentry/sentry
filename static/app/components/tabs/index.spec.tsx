@@ -1,5 +1,3 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
@@ -204,12 +202,11 @@ describe('Tabs', () => {
   });
 
   it('renders tab links', async () => {
-    const routerContext = RouterContextFixture();
     render(
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <TabList.Item key={tab.key} to="#some-link">
+            <TabList.Item key={tab.key} to="/#some-link">
               {tab.label}
             </TabList.Item>
           ))}
@@ -219,15 +216,14 @@ describe('Tabs', () => {
             <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
-      </Tabs>,
-      {context: routerContext}
+      </Tabs>
     );
 
     TABS.forEach(tab => {
       const tabEl = screen.getByRole('tab', {name: tab.label});
       expect(within(tabEl).getByRole('link', {hidden: true})).toHaveAttribute(
         'href',
-        '#some-link'
+        '/#some-link'
       );
     });
 

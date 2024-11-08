@@ -3,7 +3,10 @@ The number of logical partitions used to distinguish between where records
 should be stored. These do not require individual physical slices but allow
 for repartitioning with less code changes per physical change.
 """
-from typing import Literal
+
+from __future__ import annotations
+
+from typing import Literal, TypeGuard
 
 from django.conf import settings
 
@@ -25,7 +28,7 @@ def map_logical_partition_to_slice(sliceable: Sliceable, logical_partition: int)
 
     assert is_sliced(sliceable), f"cannot retrieve slice of non-partitioned sliceable {sliceable}"
 
-    for ((logical_part_lo_incl, logical_part_hi_excl), slice_id) in settings.SENTRY_SLICING_CONFIG[
+    for (logical_part_lo_incl, logical_part_hi_excl), slice_id in settings.SENTRY_SLICING_CONFIG[
         sliceable
     ].items():
         if logical_partition >= logical_part_lo_incl and logical_partition < logical_part_hi_excl:
@@ -34,7 +37,7 @@ def map_logical_partition_to_slice(sliceable: Sliceable, logical_partition: int)
     assert False, f"no mapping for sliceable {sliceable} for logical_partition {logical_partition}"
 
 
-def is_sliced(sliceable: Sliceable) -> bool:
+def is_sliced(sliceable: str) -> TypeGuard[Sliceable]:
     """
     Returns whether the sliceable is sliced (environment-specific).
     """

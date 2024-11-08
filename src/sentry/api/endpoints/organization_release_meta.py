@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from collections import defaultdict
+from typing import TypedDict
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,14 +13,24 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release import expose_version_info
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.projectplatform import ProjectPlatform
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releases.release_project import ReleaseProject
+
+
+class _ProjectDict(TypedDict):
+    id: int
+    slug: str | None
+    name: str
+    newGroups: int | None
+    platform: str | None
+    platforms: list[str]
 
 
 @region_silo_endpoint
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization, version) -> Response:
@@ -27,7 +40,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
 
         The data returned from here is auxiliary meta data that the UI uses.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :auth: required
@@ -69,7 +82,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
             platforms_by_project[project_id].append(platform)
 
         # This must match what is returned from the `Release` serializer
-        projects = [
+        projects: list[_ProjectDict] = [
             {
                 "id": pr["project__id"],
                 "slug": pr["project__slug"],
@@ -98,9 +111,11 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "commitFilesChanged": commit_files_changed,
                 # In case there is no artifact bundle that is weakly associated with this release, we check if there is
                 # the old "ReleaseFile". In case the old "ReleaseFile" is not present, we will return 0.
-                "releaseFileCount": weakly_associated_count[1]
-                if weakly_associated_count is not None
-                else release.count_artifacts(),
+                "releaseFileCount": (
+                    weakly_associated_count[1]
+                    if weakly_associated_count is not None
+                    else release.count_artifacts()
+                ),
                 "isArtifactBundle": weakly_associated_count is not None,
             }
         )

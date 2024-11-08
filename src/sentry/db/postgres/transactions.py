@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db import connections, transaction
 from django.db.transaction import Atomic, get_connection
 
-from sentry.silo import SiloMode, SingleProcessSiloModeState
+from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.utils.env import in_test_environment
 
 
@@ -43,9 +43,9 @@ def django_test_transaction_water_mark(using: str | None = None):
         connection = transaction.get_connection(using)
 
     prev = hybrid_cloud.simulated_transaction_watermarks.state.get(using, 0)
-    hybrid_cloud.simulated_transaction_watermarks.state[
-        using
-    ] = hybrid_cloud.simulated_transaction_watermarks.get_transaction_depth(connection)
+    hybrid_cloud.simulated_transaction_watermarks.state[using] = (
+        hybrid_cloud.simulated_transaction_watermarks.get_transaction_depth(connection)
+    )
     old_run_on_commit = connection.run_on_commit
     connection.run_on_commit = []
     try:

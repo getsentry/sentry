@@ -1,20 +1,16 @@
+import type {KnownDataDetails} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {UnityContext} from 'sentry/types/event';
 import {UnityContextKey} from 'sentry/types/event';
 
 export const unityKnownDataValues = Object.values(UnityContextKey);
 
-type Output = {
-  subject: string;
-  value: React.ReactNode | null;
-};
-
 type Props = {
   data: UnityContext;
   type: (typeof unityKnownDataValues)[number];
 };
 
-export function getUnityKnownDataDetails({data, type}: Props): Output | undefined {
+export function getUnityKnownDataDetails({data, type}: Props): KnownDataDetails {
   switch (type) {
     case UnityContextKey.COPY_TEXTURE_SUPPORT:
       return {

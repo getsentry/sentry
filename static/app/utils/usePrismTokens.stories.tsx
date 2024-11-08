@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ObjectInspector from 'sentry/components/objectInspector';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
+import StructuredEventData from 'sentry/components/structuredEventData';
 import storyBook from 'sentry/stories/storyBook';
-import {prismStyles} from 'sentry/styles/prism';
 import {space} from 'sentry/styles/space';
 import type {SyntaxHighlightLine} from 'sentry/utils/usePrismTokens';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
@@ -14,6 +13,12 @@ const JS_CODE = `function foo() {
   // Returns 'bar'
   return 'bar';
 }`;
+
+const config = {
+  isString: (v: any) => {
+    return typeof v === 'string';
+  },
+};
 
 function TestComponent({
   languange,
@@ -71,13 +76,11 @@ export default storyBook('usePrismTokens', story => {
           <tr>
             <th>Output</th>
             <td>
-              <ObjectInspector
+              <StructuredEventData
                 data={lines}
-                expandLevel={2}
-                theme={{
-                  TREENODE_FONT_SIZE: '0.7rem',
-                  ARROW_FONT_SIZE: '0.5rem',
-                }}
+                forceDefaultExpand
+                maxDefaultDepth={2}
+                config={config}
               />
             </td>
           </tr>
@@ -107,10 +110,6 @@ export default storyBook('usePrismTokens', story => {
 });
 
 const Wrapper = styled('div')`
-  background: var(--prism-block-background);
-
-  ${p => prismStyles(p.theme)}
-
   pre {
     margin: 0;
     padding: 0;

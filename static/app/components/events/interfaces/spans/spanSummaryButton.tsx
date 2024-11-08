@@ -1,14 +1,18 @@
 import {LinkButton} from 'sentry/components/button';
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
-import {t} from 'sentry/locale';
-import type {EventTransaction, Organization} from 'sentry/types';
+import {t, tct} from 'sentry/locale';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
+import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {ModuleName} from 'sentry/views/insights/types';
 import {
   querySummaryRouteWithQuery,
   resourceSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
 interface Props {
   event: Readonly<EventTransaction>;
@@ -18,6 +22,7 @@ interface Props {
 
 function SpanSummaryButton(props: Props) {
   const location = useLocation();
+  const resourceBaseUrl = useModuleURL(ModuleName.RESOURCE);
 
   const {event, organization, span} = props;
 
@@ -29,7 +34,7 @@ function SpanSummaryButton(props: Props) {
   const resolvedModule = resolveSpanModule(sentryTags.op, sentryTags.category);
 
   if (
-    organization.features.includes('performance-database-view') &&
+    organization.features.includes('insights-initial-modules') &&
     resolvedModule === ModuleName.DB
   ) {
     return (
@@ -41,6 +46,12 @@ function SpanSummaryButton(props: Props) {
           group: sentryTags.group,
           projectID: event.projectID,
         })}
+        onClick={() => {
+          trackAnalytics('trace.trace_layout.view_in_insight_module', {
+            organization,
+            module: ModuleName.DB,
+          });
+        }}
       >
         {t('View Query Summary')}
       </LinkButton>
@@ -48,7 +59,7 @@ function SpanSummaryButton(props: Props) {
   }
 
   if (
-    organization.features.includes('starfish-browser-resource-module-ui') &&
+    organization.features.includes('insights-initial-modules') &&
     resolvedModule === ModuleName.RESOURCE &&
     resourceSummaryAvailable(sentryTags.op)
   ) {
@@ -56,13 +67,19 @@ function SpanSummaryButton(props: Props) {
       <LinkButton
         size="xs"
         to={resourceSummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          baseUrl: resourceBaseUrl,
           query: location.query,
           group: sentryTags.group,
           projectID: event.projectID,
         })}
+        onClick={() => {
+          trackAnalytics('trace.trace_layout.view_in_insight_module', {
+            organization,
+            module: ModuleName.RESOURCE,
+          });
+        }}
       >
-        {t('View Resource Summary')}
+        {tct('View [dataType] Summary', {dataType: DATA_TYPE})}
       </LinkButton>
     );
   }

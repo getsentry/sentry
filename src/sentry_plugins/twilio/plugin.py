@@ -8,7 +8,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 import sentry
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry_plugins.base import CorePluginMixin
 
@@ -135,7 +135,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
         ),
     ]
 
-    def is_configured(self, project, **kwargs):
+    def is_configured(self, project) -> bool:
         return all(
             [
                 self.get_option(o, project)
@@ -156,7 +156,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
             return error_message
         return None
 
-    def notify_users(self, group, event, **kwargs):
+    def notify_users(self, group, event, triggering_rules) -> None:
         if not self.is_configured(group.project):
             return
         project = group.project

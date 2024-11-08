@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {IssueType} from 'sentry/types';
+import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 
 const performanceConfig: IssueCategoryConfigMapping = {
@@ -23,13 +23,15 @@ const performanceConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     attachments: {enabled: false},
+    autofix: false,
     mergedIssues: {enabled: false},
     replays: {enabled: true},
     similarIssues: {enabled: false},
     userFeedback: {enabled: false},
     // Performance issues render a custom SpanEvidence component
     evidence: null,
-    usesIssuePlatform: false,
+    usesIssuePlatform: true,
+    issueSummary: {enabled: false},
   },
   [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: {
     resources: {

@@ -1,13 +1,15 @@
+from collections.abc import Generator
 from contextlib import contextmanager
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db import router
 from django.test import RequestFactory, override_settings
 
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.silo import SiloLimit, SiloMode, unguarded_write
+from sentry.organizations.services.organization import organization_service
+from sentry.silo.base import SiloLimit, SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import get_test_env_directory
 from sentry.types.region import (
@@ -67,11 +69,11 @@ class RegionDirectoryTest(TestCase):
 
     @staticmethod
     @contextmanager
-    def _in_global_state(directory: RegionDirectory):
+    def _in_global_state(directory: RegionDirectory) -> Generator[None, None, None]:
         with get_test_env_directory().swap_state(tuple(directory.regions)):
             yield
 
-    def test_region_config_parsing_in_monolith(self):
+    def test_region_config_parsing_in_monolith(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS)
         assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
@@ -83,7 +85,7 @@ class RegionDirectoryTest(TestCase):
             with pytest.raises(RegionResolutionError):
                 get_region_by_name("nowhere")
 
-    def test_region_config_parsing_in_control(self):
+    def test_region_config_parsing_in_control(self) -> None:
         with (
             override_settings(SILO_MODE=SiloMode.CONTROL),
             override_settings(SENTRY_MONOLITH_REGION="us"),
@@ -92,19 +94,19 @@ class RegionDirectoryTest(TestCase):
         assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_json_config_injection(self):
+    def test_json_config_injection(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(json.dumps(self._INPUTS))
         assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
 
     @override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us")
-    def test_get_local_region(self):
+    def test_get_local_region(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS)
         with self._in_global_state(directory):
             assert get_local_region() == self._EXPECTED_OUTPUTS[0]
 
-    def test_get_generated_monolith_region(self):
+    def test_get_generated_monolith_region(self) -> None:
         with (
             override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_MONOLITH_REGION="defaultland"),
             self._in_global_state(load_from_config(())),
@@ -116,7 +118,7 @@ class RegionDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @unguarded_write(using=router.db_for_write(OrganizationMapping))
-    def test_get_region_for_organization(self):
+    def test_get_region_for_organization(self) -> None:
         mapping = OrganizationMapping.objects.get(slug=self.organization.slug)
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS)
@@ -139,11 +141,11 @@ class RegionDirectoryTest(TestCase):
                 # OrganizationMapping does not exist
                 get_region_for_organization(self.organization.slug)
 
-    def test_validate_region(self):
+    def test_validate_region(self) -> None:
         for region in self._EXPECTED_OUTPUTS:
             region.validate()
 
-    def test_region_to_url(self):
+    def test_region_to_url(self) -> None:
         region = Region("us", 1, "http://192.168.1.99", RegionCategory.MULTI_TENANT)
         with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
             assert region.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
@@ -153,20 +155,20 @@ class RegionDirectoryTest(TestCase):
             assert region.to_url("/avatar/abcdef/") == "http://testserver/avatar/abcdef/"
 
     @patch("sentry.types.region.sentry_sdk")
-    def test_invalid_config(self, sentry_sdk_mock):
+    def test_invalid_config(self, sentry_sdk_mock: MagicMock) -> None:
         region_config = ["invalid"]
         assert sentry_sdk_mock.capture_exception.call_count == 0
         with pytest.raises(RegionConfigurationError):
             load_from_config(region_config)
         assert sentry_sdk_mock.capture_exception.call_count == 1
 
-    def test_invalid_historic_region_setting(self):
+    def test_invalid_historic_region_setting(self) -> None:
         with pytest.raises(RegionConfigurationError):
             with override_settings(SENTRY_MONOLITH_REGION="nonexistent"):
                 load_from_config(self._INPUTS)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_find_regions_for_user(self):
+    def test_find_regions_for_user(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS)
         with self._in_global_state(directory):
@@ -188,7 +190,7 @@ class RegionDirectoryTest(TestCase):
             find_regions_for_user(user_id=user.id)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_find_all_region_names(self):
+    def test_find_all_region_names(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS)
         with self._in_global_state(directory):
@@ -196,7 +198,7 @@ class RegionDirectoryTest(TestCase):
             assert set(result) == {"us", "eu", "acme"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_find_all_multitenant_region_names(self):
+    def test_find_all_multitenant_region_names(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS)
         with self._in_global_state(directory):
@@ -204,7 +206,25 @@ class RegionDirectoryTest(TestCase):
             assert set(result) == {"us", "eu"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_subdomain_is_region(self):
+    def test_find_all_multitenant_region_names_non_visible(self) -> None:
+        inputs = [
+            *self._INPUTS,
+            {
+                "name": "ja",
+                "snowflake_id": 4,
+                "address": "https://ja.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+                "visible": False,
+            },
+        ]
+        with override_settings(SENTRY_MONOLITH_REGION="us"):
+            directory = load_from_config(inputs)
+        with self._in_global_state(directory):
+            result = find_all_multitenant_region_names()
+            assert set(result) == {"us", "eu"}
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_subdomain_is_region(self) -> None:
         regions = [
             Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
         ]

@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -10,9 +9,10 @@ import {
   screen,
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import TeamStore from 'sentry/stores/teamStore';
-import type {OrgRole} from 'sentry/types';
+import type {OrgRole} from 'sentry/types/organization';
 import InviteRequestRow from 'sentry/views/settings/organizationMembers/inviteRequestRow';
 
 const roles: OrgRole[] = [
@@ -21,21 +21,21 @@ const roles: OrgRole[] = [
     name: 'Admin',
     desc: 'This is the admin role',
     minimumTeamRole: '',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'member',
     name: 'Member',
     desc: 'This is the member role',
     minimumTeamRole: '',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'owner',
     name: 'Owner',
     desc: 'This is the owner role',
     minimumTeamRole: '',
-    allowed: false,
+    isAllowed: false,
   },
 ];
 

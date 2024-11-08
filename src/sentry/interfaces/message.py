@@ -1,8 +1,8 @@
 __all__ = ("Message",)
 
+import orjson
 
 from sentry.interfaces.base import Interface
-from sentry.utils import json
 from sentry.utils.json import prune_empty_keys
 
 
@@ -11,7 +11,7 @@ def stringify(value):
         return value
 
     if isinstance(value, (int, float, bool)):
-        return json.dumps(value)
+        return orjson.dumps(value)
 
     return None
 
@@ -47,5 +47,5 @@ class Message(Interface):
             {"message": self.message, "formatted": self.formatted, "params": self.params or None}
         )
 
-    def to_string(self, event, is_public=False, **kwargs):
+    def to_string(self, event) -> str:
         return self.formatted or self.message

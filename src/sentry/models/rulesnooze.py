@@ -5,14 +5,9 @@ from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    Model,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 
 
 class RuleSnoozeManager(BaseManager["RuleSnooze"]):
@@ -27,7 +22,7 @@ class RuleSnoozeManager(BaseManager["RuleSnooze"]):
         return RuleSnooze.objects.filter(user_id=user_id, rule=rule, alert_rule=alert_rule).exists()
 
 
-@region_silo_only_model
+@region_silo_model
 class RuleSnooze(Model):
     """
     Duration an issue alert or metric alert is snoozed for a user.
@@ -55,7 +50,7 @@ class RuleSnooze(Model):
         )
         constraints = [
             CheckConstraint(
-                check=Q(rule__isnull=False, alert_rule__isnull=True)
+                condition=Q(rule__isnull=False, alert_rule__isnull=True)
                 | Q(rule__isnull=True, alert_rule__isnull=False),
                 name="rule_or_alert_rule",
             ),

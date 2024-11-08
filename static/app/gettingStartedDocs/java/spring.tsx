@@ -9,6 +9,8 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getJavaMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -130,7 +132,7 @@ import io.sentry.spring${
   params.platformOptions.springVersion === SpringVersion.V6 ? '.jakarta' : ''
 }.EnableSentry;
 
-@EnableSentry(dsn = "${params.dsn}")
+@EnableSentry(dsn = "${params.dsn.public}")
 @Configuration
 class SentryConfiguration {
 }`;
@@ -142,7 +144,7 @@ import io.sentry.spring${
 import org.springframework.core.Ordered
 
 @EnableSentry(
-  dsn = "${params.dsn}",
+  dsn = "${params.dsn.public}",
   exceptionResolverOrder = Ordered.LOWEST_PRECEDENCE
 )`;
 
@@ -300,7 +302,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   code: getJavaConfigSnippet(params),
                 },
                 {
-                  language: 'java',
+                  language: 'kotlin',
                   label: 'Kotlin',
                   value: 'kotlin',
                   code: getKotlinConfigSnippet(params),
@@ -328,7 +330,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               code: getJavaVerifySnippet(),
             },
             {
-              language: 'java',
+              language: 'kotlin',
               label: 'Kotlin',
               value: 'kotlin',
               code: getKotlinVerifySnippet(),
@@ -359,21 +361,15 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: t('Check out our sample applications.'),
       link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
     },
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
-      ),
-      link: 'https://docs.sentry.io/platforms/java/guides/spring/performance/',
-    },
   ],
 };
 
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  crashReportOnboarding: feedbackOnboardingCrashApiJava,
   replayOnboardingJsLoader,
+  customMetricsOnboarding: getJavaMetricsOnboarding(),
 };
 
 export default docs;

@@ -1,4 +1,6 @@
-import type {MinimalProject, PlatformKey} from 'sentry/types';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import type {MinimalProject, PlatformKey} from 'sentry/types/project';
 import projectSupportsReplay, {
   projectCanLinkToReplay,
 } from 'sentry/utils/replays/projectSupportsReplay';
@@ -12,6 +14,8 @@ function mockProjectFixture(platform: PlatformKey): MinimalProject {
 }
 
 describe('projectSupportsReplay & projectCanLinkToReplay', () => {
+  const organization = OrganizationFixture();
+
   it.each([
     'javascript-angular' as PlatformKey,
     'javascript-nextjs' as PlatformKey,
@@ -21,7 +25,7 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
   ])('should SUPPORT & LINK frontend platform %s', platform => {
     const project = mockProjectFixture(platform);
     expect(projectSupportsReplay(project)).toBeTruthy();
-    expect(projectCanLinkToReplay(project)).toBeTruthy();
+    expect(projectCanLinkToReplay(organization, project)).toBeTruthy();
   });
 
   it.each(['javascript-angularjs' as PlatformKey])(
@@ -29,7 +33,7 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
     platform => {
       const project = mockProjectFixture(platform);
       expect(projectSupportsReplay(project)).toBeFalsy();
-      expect(projectCanLinkToReplay(project)).toBeFalsy();
+      expect(projectCanLinkToReplay(organization, project)).toBeFalsy();
     }
   );
 
@@ -42,7 +46,7 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
   ])('should SUPPORT Backend framework %s', platform => {
     const project = mockProjectFixture(platform);
     expect(projectSupportsReplay(project)).toBeTruthy();
-    expect(projectCanLinkToReplay(project)).toBeTruthy();
+    expect(projectCanLinkToReplay(organization, project)).toBeTruthy();
   });
 
   it.each(['java' as PlatformKey, 'rust' as PlatformKey, 'python' as PlatformKey])(
@@ -50,17 +54,16 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
     platform => {
       const project = mockProjectFixture(platform);
       expect(projectSupportsReplay(project)).toBeFalsy();
-      expect(projectCanLinkToReplay(project)).toBeTruthy();
+      expect(projectCanLinkToReplay(organization, project)).toBeTruthy();
     }
   );
 
-  it.each([
-    'apple-macos' as PlatformKey,
-    'flutter' as PlatformKey,
-    'unity' as PlatformKey,
-  ])('should FAIL for Desktop framework %s', platform => {
-    const project = mockProjectFixture(platform);
-    expect(projectSupportsReplay(project)).toBeFalsy();
-    expect(projectCanLinkToReplay(project)).toBeFalsy();
-  });
+  it.each(['apple-macos' as PlatformKey, 'unreal' as PlatformKey])(
+    'should FAIL for Desktop framework %s',
+    platform => {
+      const project = mockProjectFixture(platform);
+      expect(projectSupportsReplay(project)).toBeFalsy();
+      expect(projectCanLinkToReplay(organization, project)).toBeFalsy();
+    }
+  );
 });

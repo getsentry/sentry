@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -7,6 +6,8 @@ import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
+import HighlightsSettingsForm from 'sentry/components/events/highlights/highlightsSettingsForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -18,7 +19,8 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagWithTopValues} from 'sentry/types';
+import type {TagWithTopValues} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {
   setApiQueryData,
   useApiQuery,
@@ -44,14 +46,14 @@ function ProjectTags(props: Props) {
   const {projects} = useProjects();
   const {projectId} = props.params;
 
-  const project = projects.find(p => p.id === projectId);
+  const project = projects.find(p => p.slug === projectId);
 
   const api = useApi();
   const queryClient = useQueryClient();
 
   const {
     data: tags,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<TagWithTopValues[]>(
     [`/projects/${organization.slug}/${projectId}/tags/`],
@@ -75,7 +77,7 @@ function ProjectTags(props: Props) {
     },
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -86,21 +88,19 @@ function ProjectTags(props: Props) {
   const isEmpty = !tags || !tags.length;
   return (
     <Fragment>
-      <SentryDocumentTitle title={routeTitleGen(t('Tags'), projectId, false)} />
-      <SettingsPageHeader title={t('Tags')} />
+      <SentryDocumentTitle title={routeTitleGen(t('Tags & Context'), projectId, false)} />
+      <SettingsPageHeader title={t('Tags & Context')} />
+      <PermissionAlert project={project} />
+      <HighlightsSettingsForm projectSlug={projectId} />
       <TextBlock>
         {tct(
           `Each event in Sentry may be annotated with various tags (key and value pairs).
                  Learn how to [link:add custom tags].`,
           {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags/" />
-            ),
+            link: <ExternalLink href={TAGS_DOCS_LINK} />,
           }
         )}
       </TextBlock>
-
-      <PermissionAlert project={project} />
       <Panel>
         <PanelHeader>{t('Tags')}</PanelHeader>
         <PanelBody>

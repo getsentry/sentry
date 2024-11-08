@@ -1,0 +1,13 @@
+Your Cron Monitors Aren't Working
+
+We've noticed the cron monitors below have not processed a successful check-in for multiple days:
+{% for monitor_name, project_slug, monitor_url, earliest_incident_start_date in broken_monitors %}
+* {{monitor_name}}
+{{project_slug}} {{monitor_url}} | Failing since {{earliest_incident_start_date|date:"N j, Y, g:i:s a e"}}
+{% endfor %}
+
+To bring your monitors back to a healthy status, we recommend checking out our troubleshooting guide and our FAQs: "https://docs.sentry.io/product/crons/troubleshooting/". Otherwise, we'll automatically mute or disable them for you in a few days.
+
+View Monitors: {{ view_monitors_link }}
+
+Still facing issues? Reach our to our support team "https://sentry.zendesk.com/hc/en-us/requests/new".

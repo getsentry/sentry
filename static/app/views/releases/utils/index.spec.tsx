@@ -105,12 +105,12 @@ describe('releases/utils', () => {
   });
 
   describe('getReleaseParams', () => {
-    const {routerContext} = initializeOrg();
+    const {router} = initializeOrg();
     const releaseBounds = getReleaseBounds(ReleaseFixture());
 
     it('returns params related to a release', () => {
       const location = {
-        ...routerContext.location,
+        ...router.location,
         query: {
           pageStatsPeriod: '30d',
           project: ['456'],
@@ -134,7 +134,7 @@ describe('releases/utils', () => {
     it('returns release start/end if no other datetime is present', () => {
       expect(
         getReleaseParams({
-          location: {...routerContext.location, query: {}},
+          location: {...router.location, query: {}},
           releaseBounds,
         })
       ).toEqual({
@@ -147,7 +147,7 @@ describe('releases/utils', () => {
       expect(
         getReleaseParams({
           location: {
-            ...routerContext.location,
+            ...router.location,
             query: {pageStart: '2021-03-23T01:02:30Z', pageEnd: '2022-03-23T01:02:30Z'},
           },
           releaseBounds,

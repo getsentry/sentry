@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 from typing import Any
 
 import requests
@@ -29,8 +31,8 @@ class WebhookPresenter(OptionsPresenter):
         self.invalid_type_options: list[tuple[str, type, type]] = []
 
     @staticmethod
-    def is_webhook_enabled():
-        return (
+    def is_webhook_enabled() -> bool:
+        return bool(
             options.get("options_automator_slack_webhook_enabled")
             and settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL
         )
@@ -51,9 +53,7 @@ class WebhookPresenter(OptionsPresenter):
         region: str | None = (
             settings.SENTRY_REGION
             if settings.SENTRY_REGION
-            else settings.CUSTOMER_ID
-            if settings.CUSTOMER_ID
-            else settings.SILO_MODE
+            else settings.CUSTOMER_ID if settings.CUSTOMER_ID else settings.SILO_MODE
         )
 
         json_data = {
@@ -123,11 +123,22 @@ class WebhookPresenter(OptionsPresenter):
     ) -> None:
         self.invalid_type_options.append((key, got_type, expected_type))
 
-    def _send_to_webhook(self, json_data: dict) -> None:
+    def _send_to_webhook(self, json_data: dict[str, Any]) -> None:
         if settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL:
-            headers = {"Content-Type": "application/json"}
+            headers = {
+                "Content-Type": "application/json",
+            }
+            payload = json.dumps(json_data).encode("utf-8")
+            webhook_secret = settings.OPTIONS_AUTOMATOR_HMAC_SECRET
+            # If the webhook secret is set, we need to sign the payload
+            if webhook_secret is not None:
+                signature = hmac.new(
+                    webhook_secret.encode("utf-8"), payload, hashlib.sha256
+                ).hexdigest()
+                headers["x-sentry-options-signature"] = signature
+
             requests.post(
                 settings.OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL,
-                data=json.dumps(json_data),
+                data=payload,
                 headers=headers,
             ).raise_for_status()

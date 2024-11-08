@@ -1,11 +1,12 @@
 import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import type {Event, Group, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
@@ -16,6 +17,8 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
 import {EventRegressionTable} from './eventRegressionTable';
@@ -265,8 +268,8 @@ function EventAffectedTransactionsInner({
   }, [organization, project, frameName, framePackage]);
 
   return (
-    <EventDataSection
-      type="most-affected"
+    <InterimSection
+      type={SectionKey.REGRESSION_AFFECTED_TRANSACTIONS}
       title={t('Most Affected')}
       actions={
         <SegmentedControl
@@ -288,11 +291,11 @@ function EventAffectedTransactionsInner({
         causeType={causeType}
         columns={ADDITIONAL_COLUMNS}
         data={tableData || []}
-        isLoading={transactionsDeltaQuery.isLoading}
+        isLoading={transactionsDeltaQuery.isPending}
         isError={transactionsDeltaQuery.isError}
         options={options}
       />
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

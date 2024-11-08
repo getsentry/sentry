@@ -12,7 +12,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
 def _create_rule_for_env(
@@ -32,7 +31,6 @@ def _create_rule_for_env(
 
 
 @freeze_time("2023-09-18")
-@region_silo_test()
 class TestCustomDynamicSamplingRuleProject(TestCase):
     def setUp(self):
         super().setUp()

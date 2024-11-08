@@ -1,17 +1,19 @@
+import hashlib
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
 from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.hybridcloud.models import ApiTokenReplica
-from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.silo import SiloMode
+from sentry.models.apitoken import ApiToken, NotSupported, PlaintextSecretAlreadyRead
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.types.token import AuthTokenType
 
 
 @control_silo_test
@@ -62,17 +64,75 @@ class ApiTokenTest(TestCase):
             assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id is None
         assert token.organization_id is None
 
-    @override_options({"apitoken.auto-add-last-chars": True})
     def test_last_chars_are_set(self):
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id)
         assert token.token_last_characters == token.token[-4:]
 
-    @override_options({"apitoken.auto-add-last-chars": False})
-    def test_last_chars_are_not_set(self):
+    def test_hash_exists_on_token(self):
         user = self.create_user()
         token = ApiToken.objects.create(user_id=user.id)
-        assert token.token_last_characters is None
+        assert token.hashed_token is not None
+        assert token.hashed_refresh_token is not None
+
+    def test_hash_exists_on_user_token(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
+        assert token.hashed_token is not None
+        assert len(token.hashed_token) == 64  # sha256 hash
+        assert token.hashed_refresh_token is None  # user auth tokens don't have refresh tokens
+
+    def test_plaintext_values_only_available_immediately_after_create(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+        assert token.plaintext_token is not None
+        assert token.plaintext_refresh_token is not None
+
+        # we accessed the tokens above when we asserted it was not None
+        # accessing them again should throw an exception
+        with pytest.raises(PlaintextSecretAlreadyRead):
+            _ = token.plaintext_token
+
+        with pytest.raises(PlaintextSecretAlreadyRead):
+            _ = token.plaintext_refresh_token
+
+    def test_error_when_accessing_refresh_token_on_user_token(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
+
+        with pytest.raises(NotSupported):
+            assert token.plaintext_refresh_token is not None
+
+    def test_user_auth_token_refresh_raises_error(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
+
+        with pytest.raises(NotSupported):
+            token.refresh()
+
+    def test_user_auth_token_sha256_hash(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id, token_type=AuthTokenType.USER)
+        expected_hash = hashlib.sha256(token.plaintext_token.encode()).hexdigest()
+        assert expected_hash == token.hashed_token
+
+    def test_hash_updated_when_calling_update(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+        initial_expected_hash = hashlib.sha256(token.plaintext_token.encode()).hexdigest()
+        assert initial_expected_hash == token.hashed_token
+
+        new_token = "abc1234"
+        new_token_expected_hash = hashlib.sha256(new_token.encode()).hexdigest()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            with outbox_runner():
+                token.update(token=new_token)
+
+        token.refresh_from_db()
+
+        assert token.token_last_characters == "1234"
+        assert token.hashed_token == new_token_expected_hash
 
 
 @control_silo_test

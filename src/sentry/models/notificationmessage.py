@@ -1,4 +1,8 @@
-from django.db.models import DateTimeField, IntegerField, Q
+from __future__ import annotations
+
+from typing import Any
+
+from django.db.models import DateTimeField, Field, IntegerField, Q
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.utils import timezone
 
@@ -8,12 +12,12 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 
 
-@region_silo_only_model
+@region_silo_model
 class NotificationMessage(Model):
     """
     Data model represents the aggregate for an entire notification message.
@@ -36,7 +40,7 @@ class NotificationMessage(Model):
 
     # Related information regarding failed notifications.
     # Leveraged to help give the user visibility into notifications that are consistently failing.
-    error_details = JSONField(null=True)
+    error_details: Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     error_code = IntegerField(null=True, db_index=True)
 
     # Resulting identifier from the vendor that can be leveraged for future interaction with the notification.
@@ -60,7 +64,7 @@ class NotificationMessage(Model):
         # A notification message should exist for either issue or metric alert, but never both
         constraints = [
             CheckConstraint(
-                check=(
+                condition=(
                     (
                         Q(incident__isnull=False, trigger_action__isnull=False)
                         & Q(rule_fire_history__isnull=True, rule_action_uuid__isnull=True)

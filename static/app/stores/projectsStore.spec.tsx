@@ -165,4 +165,10 @@ describe('ProjectsStore', function () {
       });
     });
   });
+
+  it('should return a stable reference from getState', function () {
+    ProjectsStore.loadInitialData([projectFoo, projectBar]);
+    const state = ProjectsStore.getState();
+    expect(Object.is(state, ProjectsStore.getState())).toBe(true);
+  });
 });

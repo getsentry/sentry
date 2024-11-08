@@ -1,11 +1,14 @@
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import styled from '@emotion/styled';
+
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types';
-import {EntryType} from 'sentry/types';
-import {objectIsEmpty} from 'sentry/utils';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type Props = {
   data: {
@@ -16,7 +19,7 @@ type Props = {
 };
 
 function renderParams(params: Props['data']['params'], meta: any) {
-  if (!params || objectIsEmpty(params)) {
+  if (!params || isEmptyObject(params)) {
     return null;
   }
 
@@ -57,13 +60,20 @@ export function Message({data, event}: Props) {
     : null;
 
   return (
-    <EventDataSection type="message" title={t('Message')}>
-      {meta?.data?.formatted?.[''] ? (
+    <InterimSection title={t('Message')} type={SectionKey.MESSAGE}>
+      <PlainPre>
         <AnnotatedText value={messageData} meta={meta?.data?.formatted?.['']} />
-      ) : (
-        <pre className="plain">{messageData}</pre>
-      )}
+      </PlainPre>
       {renderParams(data.params, meta)}
-    </EventDataSection>
+    </InterimSection>
   );
 }
+
+const PlainPre = styled('pre')`
+  background-color: inherit;
+  padding: 0;
+  border: 0;
+  margin-bottom: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+`;

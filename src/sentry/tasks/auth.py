@@ -3,24 +3,23 @@ from __future__ import annotations
 import abc
 import logging
 
-from django.urls import reverse
+from django.db import router
+from django.db.models import F
 
-from sentry import audit_log, features, options
+from sentry import audit_log, options
 from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.organization.service import organization_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.organizations.services.organization.service import organization_service
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.region import RegionMappingNotFound
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.email import MessageBuilder
-from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
 
@@ -60,7 +59,9 @@ def _email_missing_links(org_id: int, sending_user_id: int, provider_key: str) -
 @instrumented_task(
     name="sentry.tasks.email_unlink_notifications", queue="auth", silo_mode=SiloMode.REGION
 )
-def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
+def email_unlink_notifications(
+    org_id: int, sending_user_email: str, provider_key: str, actor_id: int | None = None
+):
     try:
         org = Organization.objects.get(id=org_id)
         provider = manager.get(provider_key)
@@ -68,10 +69,13 @@ def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
         logger.warning("Could not send SSO unlink emails: %s", e)
         return
 
-    user = user_service.get_user(user_id=actor_id)
-    if not user:
-        logger.warning("sso.unlink.email_failure.could_not_find_user", extra={"user_id": actor_id})
-        return
+    with unguarded_write(using=router.db_for_write(OrganizationMember)):
+        # Flags are not replicated -- these updates are safe to skip outboxes
+        OrganizationMember.objects.filter(organization_id=org_id).update(
+            flags=F("flags")
+            .bitand(~OrganizationMember.flags["sso:linked"])
+            .bitand(~OrganizationMember.flags["sso:invalid"])
+        )
 
     # Email all organization users, even if they never linked their accounts.
     # This provides a better experience in the case where SSO is enabled and
@@ -80,7 +84,7 @@ def email_unlink_notifications(org_id: int, actor_id: int, provider_key: str):
     # intermittently -- force an ordering in your test!
     members = OrganizationMember.objects.filter(organization=org, user_id__isnull=False)
     for member in members:
-        member.send_sso_unlink_email(user, provider)
+        member.send_sso_unlink_email(sending_user_email, provider)
 
 
 class OrganizationComplianceTask(abc.ABC):
@@ -141,9 +145,7 @@ class OrganizationComplianceTask(abc.ABC):
         org_members = OrganizationMember.objects.filter(
             organization_id=org_id, user_id__isnull=False
         )
-        rpc_users = user_service.get_many(
-            filter=dict(user_ids=[member.user_id for member in org_members])
-        )
+        rpc_users = user_service.get_many_by_id(ids=[member.user_id for member in org_members])
         rpc_users_dict = {user.id: user for user in rpc_users}
         for member in org_members:
             user = rpc_users_dict.get(member.user_id, None)
@@ -190,64 +192,3 @@ def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, i
     TwoFactorComplianceTask().remove_non_compliant_members(
         org_id, actor_id, actor_key_id, ip_address
     )
-
-
-class VerifiedEmailComplianceTask(OrganizationComplianceTask):
-    log_label = "verified email"
-
-    def is_compliant(self, user: RpcUser) -> bool:
-        if user:
-            return UserEmail.objects.get_primary_email(user).is_verified
-        return False
-
-    def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember):
-        import django.contrib.auth.models
-
-        if isinstance(user, django.contrib.auth.models.User):
-            # TODO(RyanSkonnord): Add test to repro this case (or delete check if unable)
-            logger.warning(
-                "Could not send verified email compliance notification (non-Sentry User model)"
-            )
-            return
-        elif not isinstance(user, User):
-            raise TypeError(user)
-
-        # TODO(hybridcloud) This compliance task is using data from both silos.
-        email = UserEmail.objects.get_primary_email(user)
-        email_context = {
-            "confirm_url": absolute_uri(
-                reverse("sentry-account-confirm-email", args=[user.id, email.validation_hash])
-            ),
-            "invite_url": member.get_invite_link(),
-            "email": email.email,
-            "organization": org,
-        }
-        subject = "{} {} Mandatory: Verify Email Address".format(
-            options.get("mail.subject-prefix"), org.name.capitalize()
-        )
-        message = MessageBuilder(
-            subject=subject,
-            template="sentry/emails/setup_email.txt",
-            html_template="sentry/emails/setup_email.html",
-            type="user.setup_email",
-            context=email_context,
-        )
-        message.send_async([email])
-
-
-@instrumented_task(
-    name="sentry.tasks.remove_email_verification_non_compliant_members",
-    queue="auth",
-    default_retry_delay=60 * 5,
-    max_retries=5,
-    silo_mode=SiloMode.REGION,
-)
-@retry
-def remove_email_verification_non_compliant_members(
-    org_id, actor_id=None, actor_key_id=None, ip_address=None
-):
-    org = Organization.objects.get_from_cache(id=org_id)
-    if features.has("organizations:required-email-verification", org):
-        VerifiedEmailComplianceTask().remove_non_compliant_members(
-            org_id, actor_id, actor_key_id, ip_address
-        )

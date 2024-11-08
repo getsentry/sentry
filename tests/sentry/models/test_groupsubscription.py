@@ -2,29 +2,28 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import link_team
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.actor import Actor
+from sentry.users.models.user import User
+from sentry.users.services.user.service import user_service
 
 
-@region_silo_test
 class SubscribeTest(TestCase):
     def test_simple(self):
         group = self.create_group()
@@ -190,7 +189,6 @@ class SubscribeTest(TestCase):
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 
 
-@region_silo_test
 class GetParticipantsTest(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -333,7 +331,7 @@ class GetParticipantsTest(TestCase):
         for provider in ExternalProviders:
             actual = dict(all_participants.get_participants_by_provider(provider))
             expected = {
-                RpcActor.from_object(user): reason
+                Actor.from_object(user): reason
                 for (user, reason) in (all_expected.get(provider) or {}).items()
             }
             assert actual == expected
