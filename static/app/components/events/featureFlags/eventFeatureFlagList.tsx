@@ -97,7 +97,7 @@ export function EventFeatureFlagList({
     // Reverse the flags to show newest at the top by default
     const rawFlags: FeatureFlag[] = event.contexts?.flags?.values.toReversed() ?? [];
 
-    // Filter out ill-formatted flags, which come from wrongly-configured SDKs or user-provided context.
+    // Filter out ill-formatted flags, which come from SDK developer error or user-provided contexts.
     const flags = rawFlags.filter(
       f => f && typeof f === 'object' && 'flag' in f && 'result' in f,
       rawFlags
