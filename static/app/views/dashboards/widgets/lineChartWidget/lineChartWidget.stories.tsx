@@ -85,13 +85,13 @@ export default storyBook(LineChartWidget, story => {
     );
   });
 
-  story('Colours', () => {
+  story('Colors', () => {
     const theme = useTheme();
 
     return (
       <Fragment>
         <p>
-          You can control the colour of each timeseries by setting the <code>color</code>{' '}
+          You can control the color of each timeseries by setting the <code>color</code>{' '}
           attribute to a string that contains a valid hex color code.
         </p>
 
