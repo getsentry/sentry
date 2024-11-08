@@ -64,7 +64,7 @@ import {space} from 'sentry/styles/space';
 import type {Entry, EntryException, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory, IssueType} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {
@@ -232,7 +232,7 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      {!hasStreamlinedUI && (
+      {!hasStreamlinedUI && issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       )}
       {showPossibleSolutionsHigher && (
@@ -259,16 +259,17 @@ export function EventDetailsContent({
           />
         </EntryErrorBoundary>
       )}
-      {defined(eventEntries[EntryType.STACKTRACE]) && (
-        <EntryErrorBoundary type={EntryType.STACKTRACE}>
-          <StackTrace
-            event={event}
-            data={eventEntries[EntryType.STACKTRACE].data}
-            projectSlug={projectSlug}
-            groupingCurrentLevel={groupingCurrentLevel}
-          />
-        </EntryErrorBoundary>
-      )}
+      {issueTypeConfig.stacktrace.enabled &&
+        defined(eventEntries[EntryType.STACKTRACE]) && (
+          <EntryErrorBoundary type={EntryType.STACKTRACE}>
+            <StackTrace
+              event={event}
+              data={eventEntries[EntryType.STACKTRACE].data}
+              projectSlug={projectSlug}
+              groupingCurrentLevel={groupingCurrentLevel}
+            />
+          </EntryErrorBoundary>
+        )}
       {defined(eventEntries[EntryType.THREADS]) && (
         <EntryErrorBoundary type={EntryType.THREADS}>
           <Threads
@@ -300,12 +301,63 @@ export function EventDetailsContent({
           }}
         </QuickTraceQuery>
       )}
-      {group.issueCategory === IssueCategory.PERFORMANCE && (
+      {issueTypeConfig.spanEvidence.enabled && (
         <SpanEvidenceSection
           event={event as EventTransaction}
           organization={organization}
           projectSlug={project.slug}
         />
+      )}
+      {issueTypeConfig.regression.enabled && (
+        <ErrorBoundary mini>
+          <EventRegressionSummary event={event} group={group} />
+        </ErrorBoundary>
+      )}
+      {issueTypeConfig.performanceDurationRegression.enabled && (
+        <Fragment>
+          <ErrorBoundary mini>
+            <EventBreakpointChart event={event} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <AggregateSpanDiff event={event} project={project} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <EventComparison event={event} project={project} />
+          </ErrorBoundary>
+        </Fragment>
+      )}
+      {issueTypeConfig.profilingDurationRegression.enabled && (
+        <Fragment>
+          <TransactionsDeltaProvider event={event} project={project}>
+            <ErrorBoundary mini>
+              <EventFunctionBreakpointChart event={event} />
+            </ErrorBoundary>
+            <ErrorBoundary mini>
+              <EventAffectedTransactions event={event} group={group} project={project} />
+            </ErrorBoundary>
+            <ErrorBoundary mini>
+              <InterimSection
+                type={SectionKey.REGRESSION_FLAMEGRAPH}
+                title={t('Regression Flamegraph')}
+              >
+                <b>{t('Largest Changes in Call Stack Frequency')}</b>
+                <p>
+                  {t(`See which functions changed the most before and after the regression. The
+              frame with the largest increase in call stack population likely
+              contributed to the cause for the duration regression.`)}
+                </p>
+                <EventDifferentialFlamegraph event={event} />
+              </InterimSection>
+            </ErrorBoundary>
+            <ErrorBoundary mini>
+              <EventFunctionComparisonList
+                event={event}
+                group={group}
+                project={project}
+              />
+            </ErrorBoundary>
+          </TransactionsDeltaProvider>
+        </Fragment>
       )}
       <EventHydrationDiff event={event} group={group} />
       {issueTypeConfig.replays.enabled && (
@@ -372,16 +424,28 @@ export function EventDetailsContent({
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />
         </EntryErrorBoundary>
       )}
-      {hasStreamlinedUI ? (
+      {issueTypeConfig.tags.enabled ? (
         <Fragment>
-          <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
-          <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
+          {hasStreamlinedUI ? (
+            <Fragment>
+              <HighlightsDataSection
+                event={event}
+                project={project}
+                viewAllRef={tagsRef}
+              />
+              <EventTagsDataSection
+                event={event}
+                projectSlug={project.slug}
+                ref={tagsRef}
+              />
+            </Fragment>
+          ) : (
+            <div ref={tagsRef}>
+              <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+            </div>
+          )}
         </Fragment>
-      ) : (
-        <div ref={tagsRef}>
-          <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
-        </div>
-      )}
+      ) : null}
       <EventContexts group={group} event={event} />
       {hasFeatureFlagSection && (
         <EventFeatureFlagList group={group} project={project} event={event} />
@@ -429,96 +493,6 @@ function ResourcesAndPossibleSolutionsIssueDetailsContent({
   );
 }
 
-const GroupContent = styled('div')`
-  border: 1px solid ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  position: relative;
-`;
-
-const GroupContentPadding = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
-`;
-
-// TODO: Merge regression issues with the other event details
-function RegressionEventContainer({children}: {children: React.ReactNode}) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
-  if (!hasStreamlinedUI) {
-    return children;
-  }
-
-  return (
-    <GroupContent>
-      <GroupContentPadding>{children}</GroupContentPadding>
-    </GroupContent>
-  );
-}
-
-function PerformanceDurationRegressionIssueDetailsContent({
-  group,
-  event,
-  project,
-}: Required<EventDetailsContentProps>) {
-  return (
-    <RegressionEventContainer>
-      <ErrorBoundary mini>
-        <EventRegressionSummary event={event} group={group} />
-      </ErrorBoundary>
-      <ErrorBoundary mini>
-        <EventBreakpointChart event={event} />
-      </ErrorBoundary>
-      <ErrorBoundary mini>
-        <AggregateSpanDiff event={event} project={project} />
-      </ErrorBoundary>
-      <ErrorBoundary mini>
-        <EventComparison event={event} project={project} />
-      </ErrorBoundary>
-    </RegressionEventContainer>
-  );
-}
-
-function ProfilingDurationRegressionIssueDetailsContent({
-  group,
-  event,
-  project,
-}: Required<EventDetailsContentProps>) {
-  return (
-    <RegressionEventContainer>
-      <TransactionsDeltaProvider event={event} project={project}>
-        <Fragment>
-          <ErrorBoundary mini>
-            <EventRegressionSummary event={event} group={group} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <EventFunctionBreakpointChart event={event} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <EventAffectedTransactions event={event} group={group} project={project} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <InterimSection
-              type={SectionKey.REGRESSION_FLAMEGRAPH}
-              title={t('Regression Flamegraph')}
-            >
-              <b>{t('Largest Changes in Call Stack Frequency')}</b>
-              <p>
-                {t(`See which functions changed the most before and after the regression. The
-              frame with the largest increase in call stack population likely
-              contributed to the cause for the duration regression.`)}
-              </p>
-              <EventDifferentialFlamegraph event={event} />
-            </InterimSection>
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <EventFunctionComparisonList event={event} group={group} project={project} />
-          </ErrorBoundary>
-        </Fragment>
-      </TransactionsDeltaProvider>
-    </RegressionEventContainer>
-  );
-}
-
 export default function GroupEventDetailsContent({
   group,
   event,
@@ -534,35 +508,11 @@ export default function GroupEventDetailsContent({
     );
   }
 
-  switch (group.issueType) {
-    case IssueType.PERFORMANCE_DURATION_REGRESSION:
-    case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
-      return (
-        <PerformanceDurationRegressionIssueDetailsContent
-          group={group}
-          event={event}
-          project={project}
-        />
-      );
-    }
-    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL:
-    case IssueType.PROFILE_FUNCTION_REGRESSION: {
-      return (
-        <ProfilingDurationRegressionIssueDetailsContent
-          group={group}
-          event={event}
-          project={project}
-        />
-      );
-    }
-    default: {
-      return hasStreamlinedUI ? (
-        <EventDetails event={event} group={group} project={project} />
-      ) : (
-        <EventDetailsContent group={group} event={event} project={project} />
-      );
-    }
-  }
+  return hasStreamlinedUI ? (
+    <EventDetails event={event} group={group} project={project} />
+  ) : (
+    <EventDetailsContent group={group} event={event} project={project} />
+  );
 }
 
 /**

@@ -132,7 +132,7 @@ export function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.TAGS}
-        hidden={!issueTypeConfig.tags.enabled}
+        hidden={!issueTypeConfig.tagsTab.enabled}
         disabled={disabledTabs.includes(Tab.TAGS)}
         to={{pathname: `${baseUrl}tags/`, query: queryParams}}
       >

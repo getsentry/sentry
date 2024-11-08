@@ -282,7 +282,7 @@ export default function GroupSidebar({
         </ErrorBoundary>
       )}
       {!hasStreamlinedUI && renderPluginIssue()}
-      {issueTypeConfig.tags.enabled && (
+      {issueTypeConfig.tagsTab.enabled && (
         <TagFacets
           environments={environments}
           groupId={group.id}
