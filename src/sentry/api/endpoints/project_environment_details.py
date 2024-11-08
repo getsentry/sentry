@@ -1,5 +1,4 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -19,12 +18,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.environment_examples import EnvironmentExamples
 from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
 from sentry.models.environment import Environment, EnvironmentProject
-
-
-class ProjectEnvironmentDetailsPutSerializer(serializers.Serializer):
-    isHidden = serializers.BooleanField(
-        help_text="Specify `true` to make the environment visible or `false` to make the environment hidden."
-    )
 
 
 @extend_schema(tags=["Environments"])
@@ -71,7 +64,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
             EnvironmentParams.ENVIRONMENT,
         ],
-        request=ProjectEnvironmentDetailsPutSerializer,
+        request=EnvironmentSerializer,
         responses={
             200: EnvironmentProjectSerializer,
             400: RESPONSE_BAD_REQUEST,

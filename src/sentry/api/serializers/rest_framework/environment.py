@@ -22,4 +22,6 @@ class EnvironmentField(serializers.Field):
 
 
 class EnvironmentSerializer(serializers.Serializer):
-    isHidden = serializers.BooleanField()
+    isHidden = serializers.BooleanField(
+        help_text="Specify `true` to make the environment visible or `false` to make the environment hidden."
+    )
