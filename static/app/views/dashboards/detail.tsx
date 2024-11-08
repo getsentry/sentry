@@ -29,7 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -174,17 +174,24 @@ export function handleUpdateDashboardSplit({
 export function checkUserHasEditAccess(
   dashboard: DashboardDetails,
   currentUser: User,
+  userTeams: Team[],
   organization: Organization
 ): boolean {
   if (
     !organization.features.includes('dashboards-edit-access') ||
-    !dashboard.permissions
+    !dashboard.permissions ||
+    dashboard.permissions.isEditableByEveryone ||
+    dashboard.createdBy?.id === currentUser.id
   ) {
     return true;
   }
-  return dashboard.permissions.isEditableByEveryone
-    ? dashboard.permissions.isEditableByEveryone
-    : dashboard.createdBy?.id === currentUser.id;
+  if (dashboard.permissions.teamsWithEditAccess?.length) {
+    const userTeamIds = userTeams.map(team => Number(team.id));
+    dashboard.permissions.teamsWithEditAccess.some(teamId =>
+      userTeamIds.includes(teamId)
+    );
+  }
+  return false;
 }
 
 class DashboardDetail extends Component<Props, State> {

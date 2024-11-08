@@ -174,10 +174,14 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         size="sm"
         onClick={() => {
           setMenuOpen(false);
+          if (isMenuOpen) {
+            setSelectedOptions(getSelectedOptions());
+            setHasUnsavedChanges(false);
+          }
         }}
         disabled={!isCurrentUserDashboardOwner}
       >
-        {t('Cancel')}{' '}
+        {t('Cancel')}
       </Button>
       <Button
         size="sm"

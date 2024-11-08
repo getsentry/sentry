@@ -222,10 +222,8 @@ export function updateDashboardPermissions(
   orgId: string,
   dashboard: DashboardDetails
 ): Promise<DashboardDetails> {
-  const {projects, environment, permissions} = dashboard;
+  const {permissions} = dashboard;
   const data = {
-    projects,
-    environment,
     permissions,
   };
   const promise: Promise<DashboardDetails> = api.requestPromise(
@@ -233,10 +231,6 @@ export function updateDashboardPermissions(
     {
       method: 'PUT',
       data,
-      query: {
-        project: projects,
-        environment,
-      },
     }
   );
 
