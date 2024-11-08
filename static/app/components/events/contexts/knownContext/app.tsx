@@ -21,7 +21,7 @@ enum AppContextKeys {
   VIEW_NAMES = 'view_names',
 }
 
-export type AppContext = {
+export interface AppContext {
   // Any custom keys users may set
   [key: string]: any;
   [AppContextKeys.BUILD]?: string;
@@ -35,7 +35,7 @@ export type AppContext = {
   [AppContextKeys.IN_FOREGROUND]?: boolean;
   [AppContextKeys.MEMORY]?: number;
   [AppContextKeys.VIEW_NAMES]?: string[];
-};
+}
 
 // https://github.com/getsentry/relay/blob/24.10.0/relay-event-schema/src/protocol/contexts/app.rs#L37
 function formatMemory(memoryInBytes: number) {
