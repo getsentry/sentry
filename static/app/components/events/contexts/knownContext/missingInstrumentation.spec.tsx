@@ -6,7 +6,7 @@ import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {
   getMissingInstrumentationContextData,
   type MissingInstrumentationContext,
-} from 'sentry/components/events/contexts/missingInstrumentation';
+} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 
 const MOCK_MISSING_INSTRUMENTATION_CONTEXT: MissingInstrumentationContext = {
   package: 'express',
