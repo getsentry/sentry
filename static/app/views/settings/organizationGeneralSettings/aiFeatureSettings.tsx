@@ -21,5 +21,5 @@ export const makeHideAiFeaturesField = (organization: Organization): FieldObject
       : isDeRegion
         ? t('Generative AI features are currently not supported for the EU')
         : null,
-  }
+  };
 };
