@@ -72,12 +72,9 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
 
   if (
     isSelfHostedErrorsOnly ||
-    (!config.resources && !(displayAiSuggestedSolution || displayAiAutofix))
+    (!config.resources && !(displayAiSuggestedSolution || displayAiAutofix)) ||
+    (hasStreamlinedUI && !config.autofix)
   ) {
-    return null;
-  }
-
-  if (hasStreamlinedUI && !config.autofix) {
     return null;
   }
 
