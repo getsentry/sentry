@@ -32,6 +32,8 @@ interface Props extends Omit<React.ComponentProps<typeof StyledPanelTable>, 'hea
   onChange?: (projectId: string, value: string) => void;
 }
 
+const COLUMN_COUNT = 4;
+
 export function ProjectsTable({
   items,
   inactiveItems = [],
@@ -57,9 +59,10 @@ export function ProjectsTable({
       headers={[
         t('Project'),
         <SortableHeader type="button" key="spans" onClick={handleTableSort}>
-          {t('Spans')}
+          {t('Sent Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
+        t('Stored Spans'),
         canEdit ? t('Target Rate') : t('Projected Rate'),
       ]}
     >
@@ -140,10 +143,11 @@ function SectionHeader({
         <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
         {title}
       </SectionHeaderCell>
-      {/* As the main element spans 3 grid colums we need to ensure that nth child css selectors of other elements
+      {/* As the main element spans COLUMN_COUNT grid colums we need to ensure that nth child css selectors of other elements
         remain functional by adding hidden elements */}
-      <div style={{display: 'none'}} />
-      <div style={{display: 'none'}} />
+      {Array.from({length: COLUMN_COUNT - 1}).map((_, i) => (
+        <div key={i} style={{display: 'none'}} />
+      ))}
     </Fragment>
   );
 }
@@ -243,6 +247,12 @@ const TableRow = memo(function TableRow({
     [onChange, project.id]
   );
 
+  const getStoredSpans = (rate: number) => {
+    return Math.floor((count * rate) / 100);
+  };
+  const storedSpans = getStoredSpans(Number(sampleRate));
+  const initialStoredSpans = getStoredSpans(Number(initialSampleRate));
+
   return (
     <Fragment key={project.slug}>
       <Cell>
@@ -275,6 +285,18 @@ const TableRow = memo(function TableRow({
         <SubSpans>{subSpansContent}</SubSpans>
       </Cell>
       <Cell>
+        <FirstCellLine data-align="right">
+          {formatAbbreviatedNumber(storedSpans)}
+        </FirstCellLine>
+        <SubSpans>
+          {sampleRate !== initialSampleRate ? (
+            <SmallPrint>
+              {t('previous: %s', formatAbbreviatedNumber(initialStoredSpans))}
+            </SmallPrint>
+          ) : null}
+        </SubSpans>
+      </Cell>
+      <Cell>
         <FirstCellLine>
           <Tooltip
             disabled={canEdit}
@@ -302,7 +324,7 @@ const TableRow = memo(function TableRow({
 });
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content max-content;
+  grid-template-columns: 1fr repeat(${COLUMN_COUNT - 1}, max-content);
 `;
 
 const SmallPrint = styled('span')`
@@ -337,7 +359,7 @@ const Cell = styled('div')`
 
 const SectionHeaderCell = styled('div')`
   display: flex;
-  grid-column: span 3;
+  grid-column: span ${COLUMN_COUNT};
   padding: ${space(1.5)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
