@@ -22,7 +22,7 @@ const replayConfig: IssueCategoryConfigMapping = {
     stats: {enabled: true},
     similarIssues: {enabled: false},
     showFeedbackWidget: true,
-    tags: {enabled: true},
+    tagsTab: {enabled: true},
     userFeedback: {enabled: true},
     discover: {enabled: true},
     evidence: {title: t('Evidence')},
