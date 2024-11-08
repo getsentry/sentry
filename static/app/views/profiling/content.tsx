@@ -32,6 +32,7 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {useHasProfilingChunks} from 'sentry/utils/profiling/hooks/useHasProfileChunks';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -200,7 +201,7 @@ function ProfilingContentLegacy({location}: ProfilingContentProps) {
                             <h3>{t('Function level insights')}</h3>
                             <p>
                               {t(
-                                'Discover slow-to-execute or resource intensive functions within your application'
+                                'Discover slow-to-execute or resource intensive functions within your application.'
                               )}
                             </p>
                           </Fragment>
@@ -371,6 +372,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
               <ProfilingTransactionsContent
                 tab={tab}
                 shouldShowProfilingOnboardingPanel={shouldShowProfilingOnboardingPanel}
+                onSeeFlamegraphTabClick={() => onTabChange('flamegraph')}
               />
             </Layout.Body>
           ) : null}
@@ -383,6 +385,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
 interface ProfilingTabContentProps {
   shouldShowProfilingOnboardingPanel: boolean;
   tab: 'flamegraph' | 'transactions';
+  onSeeFlamegraphTabClick?: () => void;
 }
 
 function ProfilingFlamegraphTabContent(props: ProfilingTabContentProps) {
@@ -397,7 +400,10 @@ function ProfilingFlamegraphTabContent(props: ProfilingTabContentProps) {
       </FlamegraphActionBar>
       <FlamegraphLayout>
         {props.shouldShowProfilingOnboardingPanel ? (
-          <ProfilingOnboardingCTA />
+          <ProfilingOnboardingCTA
+            tab="flamegraph"
+            onSeeFlamegraphTabClick={props.onSeeFlamegraphTabClick}
+          />
         ) : (
           <LandingAggregateFlamegraphContainer>
             <LandingAggregateFlamegraph />
@@ -482,7 +488,10 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
         )}
       </ActionBar>
       {props.shouldShowProfilingOnboardingPanel ? (
-        <ProfilingOnboardingCTA />
+        <ProfilingOnboardingCTA
+          tab="transactions"
+          onSeeFlamegraphTabClick={props.onSeeFlamegraphTabClick}
+        />
       ) : (
         <Fragment>
           {organization.features.includes('continuous-profiling-ui') ? (
@@ -563,7 +572,10 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
   );
 }
 
-function ProfilingOnboardingCTA() {
+function ProfilingOnboardingCTA(props: {
+  tab: 'flamegraph' | 'transactions';
+  onSeeFlamegraphTabClick?: () => void;
+}) {
   const organization = useOrganization();
   // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
@@ -572,6 +584,10 @@ function ProfilingOnboardingCTA() {
     });
     SidebarPanelStore.activatePanel(SidebarPanelKey.PROFILING_ONBOARDING);
   }, [organization]);
+
+  const hasChunks = useHasProfilingChunks();
+  const hintToAggregateFlamegraph =
+    props.tab === 'transactions' && hasChunks.isSuccess && hasChunks.data;
 
   return (
     <Fragment>
@@ -585,7 +601,7 @@ function ProfilingOnboardingCTA() {
                 <h3>{t('Function level insights')}</h3>
                 <p>
                   {t(
-                    'Discover slow-to-execute or resource intensive functions within your application'
+                    'Discover slow-to-execute or resource intensive functions within your application.'
                   )}
                 </p>
               </Fragment>
@@ -597,14 +613,29 @@ function ProfilingOnboardingCTA() {
           data-test-id="profiling-upgrade"
           organization={organization}
           priority="primary"
-          onClick={onSetupProfilingClick}
+          onClick={
+            hintToAggregateFlamegraph
+              ? props.onSeeFlamegraphTabClick
+              : onSetupProfilingClick
+          }
           fallback={
-            <Button onClick={onSetupProfilingClick} priority="primary">
-              {t('Set Up Profiling')}
+            <Button
+              onClick={
+                hintToAggregateFlamegraph
+                  ? props.onSeeFlamegraphTabClick
+                  : onSetupProfilingClick
+              }
+              priority="primary"
+            >
+              {hintToAggregateFlamegraph
+                ? t('Open Aggregate Flamegraph')
+                : t('Set Up Profiling')}
             </Button>
           }
         >
-          {t('Set Up Profiling')}
+          {hintToAggregateFlamegraph
+            ? t('Open Aggregate Flamegraph')
+            : t('Set Up Profiling')}
         </ProfilingUpgradeButton>
         <LinkButton href="https://docs.sentry.io/product/profiling/" external>
           {t('Read Docs')}

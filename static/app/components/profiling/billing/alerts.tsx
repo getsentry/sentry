@@ -20,7 +20,7 @@ export const ProfilingAM1OrMMXUpgrade = HookOrDefault({
       <h3>{t('Function level insights')}</h3>
       <p>
         {t(
-          'Discover slow-to-execute or resource intensive functions within your application'
+          'Discover slow-to-execute or resource intensive functions within your application.'
         )}
       </p>
     </Fragment>
