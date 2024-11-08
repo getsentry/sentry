@@ -30,30 +30,30 @@ interface State {
   url: string | undefined;
 }
 
-async function useGenerateAuthToken(state: State) {
+function useGenerateAuthToken(state: State) {
   const api = useApi();
   const date = new Date().toISOString();
 
-  const newToken: any = await api.requestPromise(`/api-tokens/`, {
-    method: 'POST',
-    data: {
-      name: `${state.provider} Token ${date}`,
-      scopes: [
-        'project:read',
-        'project:write',
-        'project:admin',
-        'event:read',
-        'event:write',
-        'event:admin',
-        'org:read',
-        'org:write',
-        'org:admin',
-      ],
-    },
-  });
+  const createToken = async () =>
+    await api.requestPromise(`/api-tokens/`, {
+      method: 'POST',
+      data: {
+        name: `${state.provider} Token ${date}`,
+        scopes: [
+          'project:read',
+          'project:write',
+          'project:admin',
+          'event:read',
+          'event:write',
+          'event:admin',
+          'org:read',
+          'org:write',
+          'org:admin',
+        ],
+      },
+    });
 
-  const token = newToken.token;
-  return token;
+  return {createToken};
 }
 
 export function SetupIntegrationModal<T extends Data>({
@@ -67,7 +67,7 @@ export function SetupIntegrationModal<T extends Data>({
     url: undefined,
   });
   const {organization} = useLegacyStore(OrganizationStore);
-  const token = useGenerateAuthToken(state);
+  const {createToken} = useGenerateAuthToken(state);
 
   const handleSubmit = useCallback(() => {
     addSuccessMessage(t('Integration set up successfully'));
@@ -138,9 +138,9 @@ export function SetupIntegrationModal<T extends Data>({
             priority="default"
             title={!defined(state.provider) && t('You must select a provider first.')}
             onClick={async () => {
-              const newToken = await token;
+              const newToken = await createToken();
+              const encodedToken = encodeURI(newToken.token);
               const provider = state.provider.toLowerCase();
-              const encodedToken = encodeURI(newToken);
 
               setState(prevState => {
                 return {
