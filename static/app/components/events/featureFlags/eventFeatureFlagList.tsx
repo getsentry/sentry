@@ -95,7 +95,14 @@ export function EventFeatureFlagList({
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component
     // Reverse the flags to show newest at the top by default
-    const flags: FeatureFlag[] = event.contexts?.flags?.values.toReversed() ?? [];
+    const rawFlags: FeatureFlag[] = event.contexts?.flags?.values.toReversed() ?? [];
+
+    // Filter out ill-formatted flags, which come from wrongly-configured SDKs or user-provided context.
+    const flags = rawFlags.filter(
+      f => f && typeof f === 'object' && 'flag' in f && 'result' in f,
+      rawFlags
+    );
+
     return flags.map(f => {
       return {
         item: {
