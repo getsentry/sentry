@@ -194,10 +194,21 @@ class OrganizationIntegrationSerializer(Serializer):
         return serialized_integration
 
 
+class IntegrationProviderResponse(TypedDict):
+    key: str
+    slug: str
+    name: str
+    metadata: Any
+    canAdd: bool
+    canDisable: bool
+    features: list[str]
+    setupDialog: dict[str, Any]
+
+
 class IntegrationProviderSerializer(Serializer):
     def serialize(
         self, obj: IntegrationProvider, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> IntegrationProviderResponse:
         org_slug = kwargs.pop("organization").slug
         metadata: Any = obj.metadata
         metadata = metadata and metadata.asdict() or None
