@@ -44,7 +44,7 @@ export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
     });
   }, [debouncedTargetSampleRate, balancingItems]);
 
-  const initialSampleRatesBySlug = useMemo(() => {
+  const initialSampleRateById = useMemo(() => {
     const targetRate = Math.min(100, Math.max(0, Number(initialTargetSampleRate) || 0));
     const {balancedItems: initialBalancedItems} = balanceSampleRate({
       targetSampleRate: targetRate / 100,
@@ -61,11 +61,11 @@ export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
       ...item,
       sampleRate: formatNumberWithDynamicDecimalPoints(item.sampleRate * 100, 2),
       initialSampleRate: formatNumberWithDynamicDecimalPoints(
-        initialSampleRatesBySlug[item.project.slug] * 100,
+        initialSampleRateById[item.id] * 100,
         2
       ),
     }));
-  }, [balancedItems, initialSampleRatesBySlug]);
+  }, [balancedItems, initialSampleRateById]);
 
   return (
     <ProjectsTable
