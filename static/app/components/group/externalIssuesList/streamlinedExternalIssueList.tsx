@@ -38,7 +38,7 @@ function getActionLabelAndTextValue({
   if (action.name === integrationDisplayName) {
     return {
       label: action.nameSubText,
-      textValue: `${action.name} - ${action.nameSubText}`,
+      textValue: `${action.name} ${action.nameSubText}`,
     };
   }
 
@@ -47,10 +47,10 @@ function getActionLabelAndTextValue({
     label: (
       <div>
         <strong>{action.name}</strong>
-        <MenuSubtext>{action.nameSubText}</MenuSubtext>
+        <div>{action.nameSubText}</div>
       </div>
     ),
-    textValue: `${action.name} - ${action.nameSubText}`,
+    textValue: `${action.name} ${action.nameSubText}`,
   };
 }
 
@@ -190,10 +190,6 @@ const LinkedIssue = styled(LinkButton)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   font-weight: normal;
-`;
-
-const MenuSubtext = styled('div')`
-  ${p => p.theme.subText}
 `;
 
 const IssueActionButton = styled(Button)`
