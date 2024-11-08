@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
 import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
@@ -145,7 +146,11 @@ export function StreamlinedExternalIssueList({
                 <ErrorBoundary key={integration.key} mini>
                   <DropdownMenu
                     trigger={triggerProps => (
-                      <IssueActionButton {...sharedButtonProps} {...triggerProps} />
+                      <IssueActionDropdownMenu
+                        {...sharedButtonProps}
+                        {...triggerProps}
+                        showChevron={false}
+                      />
                     )}
                     items={integration.actions.map(action => ({
                       key: action.id,
@@ -199,6 +204,19 @@ const IssueActionButton = styled(Button)`
   border: 1px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   font-weight: normal;
+`;
+
+const IssueActionDropdownMenu = styled(DropdownButton)`
+  display: flex;
+  align-items: center;
+  padding: ${space(0.5)} ${space(0.75)};
+  border: 1px dashed ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  font-weight: normal;
+
+  &[aria-expanded='true'] {
+    border: 1px solid ${p => p.theme.border};
+  }
 `;
 
 const IssueActionName = styled('div')`
