@@ -43,19 +43,19 @@ export default storyBook(LineChartWidget, story => {
     const {datetime} = selection;
     const {start, end} = datetime;
 
-    const throughputTimeSeries = filterTimeSeriesToSelection(
+    const throughputTimeSeries = toTimeSeriesSelection(
       sampleThroughputTimeSeries as unknown as TimeseriesData,
       start,
       end
     );
 
-    const durationTimeSeries1 = filterTimeSeriesToSelection(
+    const durationTimeSeries1 = toTimeSeriesSelection(
       sampleDurationTimeSeries as unknown as TimeseriesData,
       start,
       end
     );
 
-    const durationTimeSeries2 = filterTimeSeriesToSelection(
+    const durationTimeSeries2 = toTimeSeriesSelection(
       sampleDurationTimeSeries2,
       start,
       end
