@@ -154,7 +154,6 @@ class CodecovData(TypedDict):
 
 def fetch_codecov_data(config: CodecovConfig) -> CodecovData:
     data: CodecovData = {}
-    message = ""
     try:
         repo = config["repository"].name
         service = config["config"]["provider"]["key"]
@@ -175,7 +174,7 @@ def fetch_codecov_data(config: CodecovConfig) -> CodecovData:
 
         # Do not report an error when coverage is not found
         if error.response.status_code != status.HTTP_404_NOT_FOUND:
-            message = f"Codecov HTTP error: {error.response.status_code}. Continuing execution."
+            logger.exception("Codecov HTTP error: %s", error.response.status_code)
     except requests.Timeout:
         scope = Scope.get_isolation_scope()
         scope.set_tag("codecov.timeout", True)
@@ -184,9 +183,6 @@ def fetch_codecov_data(config: CodecovConfig) -> CodecovData:
         data = {"status": status.HTTP_408_REQUEST_TIMEOUT}
     except Exception as error:
         data = {"status": status.HTTP_500_INTERNAL_SERVER_ERROR}
-        message = f"{error}. Continuing execution."
-
-    if message:
-        logger.error(message)
+        logger.exception(str(error))
 
     return data
