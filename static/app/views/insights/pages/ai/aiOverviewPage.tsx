@@ -1,6 +1,8 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
@@ -28,7 +30,10 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
-import {AI_LANDING_TITLE} from 'sentry/views/insights/pages/ai/settings';
+import {
+  AI_LANDING_TITLE,
+  AI_RELEASE_LEVEL,
+} from 'sentry/views/insights/pages/ai/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {generateGenericPerformanceEventView} from 'sentry/views/performance/data';
 import {TripleChartRow} from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
@@ -135,7 +140,15 @@ function AiOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <AiHeader headerTitle={AI_LANDING_TITLE} headerActions={<ViewTrendsButton />} />
+      <AiHeader
+        headerTitle={
+          <Fragment>
+            {AI_LANDING_TITLE}
+            <FeatureBadge type={AI_RELEASE_LEVEL} />
+          </Fragment>
+        }
+        headerActions={<ViewTrendsButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
