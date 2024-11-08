@@ -416,6 +416,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "duration": 60_100,
                 "start": timestamps[0],
                 "end": timestamps[0] + 60_100,
+                "rootDuration": 60_100,
                 "breakdowns": [],
             },
             {
@@ -429,6 +430,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "duration": 90_123,
                 "start": timestamps[4],
                 "end": timestamps[4] + 90_123,
+                "rootDuration": 90_123,
                 "breakdowns": [],
             },
         ]
@@ -496,6 +498,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
+                "rootDuration": 60100,
             },
         ]
 
@@ -582,6 +585,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
+                "rootDuration": 60000,
             },
         ]
 
@@ -644,6 +648,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
+                "rootDuration": 60100,
             },
         ]
 
@@ -742,6 +747,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "duration": 60_100,
                         "start": timestamps[0],
                         "end": timestamps[0] + 60_100,
+                        "rootDuration": 60_100,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
@@ -780,6 +786,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "duration": 90_123,
                         "start": timestamps[4],
                         "end": timestamps[4] + 90_123,
+                        "rootDuration": 90_123,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
@@ -865,6 +872,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "duration": 40_000,
                         "start": timestamps[10],
                         "end": timestamps[10] + 40_000,
+                        "rootDuration": 40_000,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
@@ -2602,6 +2610,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                 "duration": 60_100,
                 "start": timestamps[0],
                 "end": timestamps[0] + 60_100,
+                "rootDuration": 60_100,
                 "breakdowns": [
                     {
                         "project": project_1.slug,
@@ -2640,6 +2649,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                 "duration": 90_123,
                 "start": timestamps[4],
                 "end": timestamps[4] + 90_123,
+                "rootDuration": 90_123,
                 "breakdowns": [
                     {
                         "project": project_1.slug,
