@@ -420,15 +420,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         allow_partial_buckets: bool = False,
         zerofill_results: bool = True,
         comparison_delta: timedelta | None = None,
-        additional_query_column: str | None = None,
+        additional_query_columns: list[str] | None = None,
         dataset: Any | None = None,
     ) -> dict[str, Any]:
         with handle_query_errors():
             with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_query_creation"):
                 _columns = [query_column]
                 # temporary change to make topN query work for multi-axes requests
-                if additional_query_column is not None:
-                    _columns.append(additional_query_column)
+                if additional_query_columns is not None:
+                    _columns.extend(additional_query_columns)
 
                 columns = request.GET.getlist("yAxis", _columns)
 
