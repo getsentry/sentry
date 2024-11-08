@@ -1,5 +1,5 @@
 import datetime
-from typing import Literal
+from typing import Any, Literal, TypeVar
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers, status
@@ -15,6 +15,7 @@ from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import BadRequest
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.db.models.base import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
@@ -74,6 +75,9 @@ class RuleSnoozeSerializer(Serializer):
         return result
 
 
+T = TypeVar("T", bound=Model)
+
+
 @region_silo_endpoint
 class BaseRuleSnoozeEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
@@ -97,7 +101,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
         return (args, kwargs)
 
-    def post(self, request: Request, project: Project, rule: Rule | AlertRule) -> Response:
+    def post(self, request: Request, project: Project, rule: T) -> Response:
         serializer = RuleSnoozeValidator(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -109,20 +113,8 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
 
         user_id = request.user.id if data.get("target") == "me" else None
 
-        # Due to mypy requiring keyword arguments to not be kwargs, we need to check the type of rule and query accordingly
-        # In RuleSnooze, rule and alert_rule are mutually exclusive (cannot both be not null)
-        rule_parameter = rule if isinstance(rule, Rule) else None
-        alert_rule_parameter = None if isinstance(rule, Rule) else rule
-
-        rule_snooze, created = RuleSnooze.objects.get_or_create(
-            user_id=user_id,
-            rule=rule_parameter,
-            alert_rule=alert_rule_parameter,
-            defaults={
-                "owner_id": request.user.id,
-                "until": data.get("until"),
-                "date_added": datetime.datetime.now(datetime.UTC),
-            },
+        rule_snooze, created = self.fetch_instance(
+            user_id=user_id, rule=rule, request=request, data=data
         )
         # don't allow editing of a rulesnooze object for a given rule and user (or no user)
         if not created:
@@ -132,16 +124,7 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             )
 
         if not user_id:
-            # create an audit log entry if the rule is snoozed for everyone
-            audit_log_event = "RULE_SNOOZE" if self.rule_model == Rule else "ALERT_RULE_SNOOZE"
-
-            self.create_audit_entry(
-                request=request,
-                organization=project.organization,
-                target_object=rule.id,
-                event=audit_log.get_event_id(audit_log_event),
-                data=rule.get_audit_log_data(),
-            )
+            self.create_audit_log_entry(request=request, project=project, rule=rule)
 
         analytics.record(
             "rule.snoozed",
@@ -159,18 +142,12 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             status=status.HTTP_201_CREATED,
         )
 
-    def delete(self, request: Request, project: Project, rule: Rule | AlertRule) -> Response:
+    def delete(self, request: Request, project: Project, rule: T) -> Response:
         # find if there is a mute for all that I can remove
         shared_snooze = None
         deletion_type = None
         try:
-            # Due to mypy requiring keyword arguments to not be kwargs, we need to check the type of rule and query accordingly
-            # In RuleSnooze, rule and alert_rule are mutually exclusive (cannot both be not null)
-            rule_parameter = rule if isinstance(rule, Rule) else None
-            alert_rule_parameter = None if isinstance(rule, Rule) else rule
-            shared_snooze = RuleSnooze.objects.get(
-                rule=rule_parameter, alert_rule=alert_rule_parameter, user_id=None
-            )
+            shared_snooze = RuleSnooze.objects.get(rule=rule, alert_rule=rule, user_id=None)
         except RuleSnooze.DoesNotExist:
             pass
 
@@ -218,6 +195,17 @@ class BaseRuleSnoozeEndpoint(ProjectEndpoint):
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    def create_audit_log_entry(self, rule: T, request: Request, project: Project) -> None:
+        raise NotImplementedError()
+
+    def fetch_instance(
+        self, user_id: int, rule: T, request: Request, data: dict[str, Any]
+    ) -> tuple[RuleSnooze, bool]:
+        raise NotImplementedError()
+
+    def create_instance(self):
+        raise NotImplementedError()
+
 
 @region_silo_endpoint
 class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
@@ -229,6 +217,40 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
     rule_model = Rule
     rule_field = "rule"
 
+    def fetch_instance(
+        self, user_id: int | None, rule: Rule, request: Request, data: dict[str, Any]
+    ) -> tuple[RuleSnooze, bool]:
+        rule_snooze, created = RuleSnooze.objects.get_or_create(
+            user_id=user_id,
+            rule=rule,
+            defaults={
+                "owner_id": request.user.id,
+                "until": data.get("until"),
+                "date_added": datetime.datetime.now(datetime.UTC),
+            },
+        )
+
+    def create_instance(self, rule, user_id, request, data):
+        rule_snooze = RuleSnooze.objects.create(
+            user_id=user_id,
+            rule=rule,
+            owner_id=request.user.id,
+            until=data.get("until"),
+            date_added=datetime.datetime.now(datetime.UTC),
+        )
+
+        return rule_snooze
+
+    def create_audit_log_entry(self, request: Request, project: Project, rule: Rule) -> None:
+        # create an audit log entry if the rule is snoozed for everyone
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=rule.id,
+            event=audit_log.get_event_id("RULE_SNOOZE"),
+            data=rule.get_audit_log_data(),
+        )
+
 
 @region_silo_endpoint
 class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
@@ -239,3 +261,28 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint):
     }
     rule_model = AlertRule
     rule_field = "alert_rule"
+
+    def fetch_instance(
+        self, user_id: int | None, rule: AlertRule, request: Request, data: dict[str, Any]
+    ) -> tuple[RuleSnooze, bool]:
+        rule_snooze, created = RuleSnooze.objects.get_or_create(
+            user_id=user_id,
+            rule=rule,
+            defaults={
+                "owner_id": request.user.id,
+                "until": data.get("until"),
+                "date_added": datetime.datetime.now(datetime.UTC),
+            },
+        )
+
+        return rule_snooze, created
+
+    def create_audit_log_entry(self, request: Request, project: Project, rule: AlertRule) -> None:
+        # create an audit log entry if the rule is snoozed for everyone
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=rule.id,
+            event=audit_log.get_event_id("ALERT_RULE_SNOOZE"),
+            data=rule.get_audit_log_data(),
+        )
