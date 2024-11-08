@@ -44,6 +44,9 @@ class ProfileFunctionsQueryBuilderMixin:
         return resolved
 
     def process_profiling_function_columns(self, row: SnubaRow):
+        # We need to check both the aliased and non aliased names
+        # as not all use cases enable `transform_alias_to_input_format`
+        # and the events-stats endpoint does not actually apply it.
         if "all_examples()" in row:
             key = "all_examples()"
         elif "all_examples" in row:
@@ -115,9 +118,9 @@ class ProfileFunctionsTimeseriesQueryBuilder(
         return custom_time_processor(self.interval, Function("toUInt32", [Column("timestamp")]))
 
     def process_results(self, results: Any) -> EventsResponse:
-        # Not sure why exactly but calling `super().process_results(results)`
-        # on the timeseries data mutates the data in such a way that breaks
-        # the zerofill later
+        # Calling `super().process_results(results)` on the timeseries data
+        # mutates the data in such a way that breaks the zerofill later such
+        # as applying `transform_alias_to_input_format` setting.  So skip it.
         for row in results["data"]:
             self.process_profiling_function_columns(row)
         return results
