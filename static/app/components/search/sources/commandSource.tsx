@@ -69,7 +69,7 @@ const ACTIONS: Action[] = [
 ];
 
 // Add a command palette option for opening in production when using dev-ui
-if (NODE_ENV === 'development' && window?.__initialData?.isOnPremise === false) {
+if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false) {
   const customerUrl = new URL(
     USING_CUSTOMER_DOMAIN && window?.__initialData?.customerDomain?.organizationUrl
       ? window.__initialData.customerDomain.organizationUrl
