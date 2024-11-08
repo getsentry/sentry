@@ -8,15 +8,13 @@ const IconSeer = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
     <SvgIcon {...props} ref={ref} viewBox="0 0 30 30">
       <defs>
         <style>
-          {`
-        .cls-1 {
-          fill: none;
-          stroke: currentColor;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-          stroke-width: 2px;
-        }
-      `}
+          {`.cls-1 {
+            fill: none;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 2px;
+          }`}
         </style>
       </defs>
       <path
