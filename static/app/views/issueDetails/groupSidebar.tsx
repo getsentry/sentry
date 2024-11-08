@@ -40,6 +40,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
+import SolutionsSection from 'sentry/views/issueDetails/streamline/solutionsSection';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -258,6 +259,14 @@ export default function GroupSidebar({
 
   return (
     <Container>
+      {organization.features.includes('ai-summary') &&
+        issueTypeConfig.issueSummary.enabled && (
+          <ErrorBoundary mini>
+            <SolutionsSectionContainer>
+              <SolutionsSection group={group} project={project} event={event} />
+            </SolutionsSectionContainer>
+          </ErrorBoundary>
+        )}
       {hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />
@@ -330,4 +339,8 @@ const TitleNumber = styled('span')`
 // Using 22px + space(1) = space(4)
 const SmallerSidebarWrap = styled(SidebarSection.Wrap)`
   margin-bottom: 22px;
+`;
+
+const SolutionsSectionContainer = styled('div')`
+  padding-bottom: ${space(1)};
 `;

@@ -2,7 +2,6 @@ import {Fragment, lazy, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -55,7 +54,6 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import {GroupSummary} from 'sentry/components/group/groupSummary';
 import LazyLoad from 'sentry/components/lazyLoad';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
@@ -148,11 +146,6 @@ export function EventDetailsContent({
         <ActionableItems event={event} project={project} isShare={false} />
       )}
       <StyledDataSection>
-        {!hasStreamlinedUI && (
-          <Feature features={['organizations:ai-summary']}>
-            <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-          </Feature>
-        )}
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
           <SuspectCommits

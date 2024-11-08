@@ -3,6 +3,8 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
+import starBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -533,6 +535,20 @@ const CausesContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 120px;
+    height: 120px;
+    background: url(${starBanner}) no-repeat;
+    background-size: cover;
+    pointer-events: none;
+    opacity: 0.25;
+  }
 `;
 
 const PotentialCausesContainer = styled(CausesContainer)`

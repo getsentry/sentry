@@ -1,6 +1,7 @@
 import {AutofixDataFixture} from 'sentry-fixture/autofixData';
 import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 import {EventFixture} from 'sentry-fixture/event';
+import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -8,9 +9,17 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {AutofixDrawer} from 'sentry/components/events/autofix/autofixDrawer';
 import {t} from 'sentry/locale';
+import {EntryType} from 'sentry/types/event';
 
 describe('AutofixDrawer', () => {
-  const mockEvent = EventFixture();
+  const mockEvent = EventFixture({
+    entries: [
+      {
+        type: EntryType.EXCEPTION,
+        data: {values: [{stacktrace: {frames: [FrameFixture()]}}]},
+      },
+    ],
+  });
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
 
@@ -18,25 +27,55 @@ describe('AutofixDrawer', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+      method: 'POST',
+      body: {
+        hasGenAIConsent: true,
+        data: {
+          groupId: mockGroup.id,
+          headline: 'Test headline',
+          whatsWrong: 'You have a problem!',
+          trace: 'You have other problems too...',
+          possibleCause: "Maybe that's why.",
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      method: 'GET',
+      body: {
+        integration: {
+          ok: true,
+        },
+        genAIConsent: {
+          ok: true,
+        },
+        githubWriteIntegration: {
+          ok: true,
+        },
+      },
+    });
   });
 
-  it('renders properly', () => {
+  it('renders properly', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: mockAutofixData},
+      body: {autofix: null},
     });
 
     render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
 
     expect(screen.getByText(mockGroup.shortId)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'Work together with Autofix to find the root cause and fix the issue.'
+        )
+      ).toBeInTheDocument();
+    });
 
-    expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
-
-    expect(screen.getByRole('heading', {name: 'Autofix'})).toBeInTheDocument();
-
-    expect(screen.getByText('Ready to start')).toBeInTheDocument();
-
-    const startButton = screen.getByRole('button', {name: 'Start'});
+    const startButton = screen.getByRole('button', {name: 'Start Autofix'});
     expect(startButton).toBeInTheDocument();
   });
 
@@ -54,7 +93,7 @@ describe('AutofixDrawer', () => {
 
     render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
 
-    const startButton = screen.getByRole('button', {name: 'Start'});
+    const startButton = await screen.findByRole('button', {name: 'Start Autofix'});
     await userEvent.click(startButton);
 
     expect(
@@ -88,8 +127,51 @@ describe('AutofixDrawer', () => {
     await userEvent.click(startOverButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Ready to start')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Start'})).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Work together with Autofix to find the root cause and fix the issue.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Start Autofix'})).toBeInTheDocument();
+    });
+  });
+
+  it('shows setup content when autofix is not setup', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      method: 'GET',
+      body: {
+        integration: {
+          ok: false,
+          message: 'Integration not setup',
+        },
+        genAIConsent: {
+          ok: false,
+        },
+        githubWriteIntegration: {
+          ok: false,
+          message: 'GitHub integration not setup',
+          repos: [],
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
+
+    expect(screen.getByText(mockGroup.shortId)).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Work together with Autofix to find the root cause and fix the issue.'
+      )
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Start Autofix'})).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText('Set up Autofix')).toBeInTheDocument();
     });
   });
 });

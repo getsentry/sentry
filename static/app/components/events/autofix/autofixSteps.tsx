@@ -19,6 +19,7 @@ import {
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 import {space} from 'sentry/styles/space';
+import type {Group} from 'sentry/types/group';
 import testableTransition from 'sentry/utils/testableTransition';
 
 const animationProps: AnimationProps = {
@@ -39,7 +40,7 @@ interface StepProps {
 
 interface AutofixStepsProps {
   data: AutofixData;
-  groupId: string;
+  group: Group;
   onRetry: () => void;
   runId: string;
 }
@@ -113,7 +114,7 @@ export function Step({
   );
 }
 
-export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
+export function AutofixSteps({data, group, runId}: AutofixStepsProps) {
   const steps = data.steps;
   const repos = data.repositories;
 
@@ -124,7 +125,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const prevStepsLengthRef = useRef(0);
   const prevInsightsCountRef = useRef(0);
 
-  const {mutate: handleSelectFix} = useSelectCause({groupId, runId});
+  const {mutate: handleSelectFix} = useSelectCause({groupId: group.id, runId});
   const selectRootCause = (text: string, isCustom?: boolean) => {
     if (isCustom) {
       handleSelectFix({customRootCause: text});
@@ -142,7 +143,10 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     }
   };
 
-  const {mutate: sendFeedbackOnChanges} = useUpdateInsightCard({groupId, runId});
+  const {mutate: sendFeedbackOnChanges} = useUpdateInsightCard({
+    groupId: group.id,
+    runId,
+  });
   const iterateOnChangesStep = (text: string) => {
     const planStep = steps?.[steps.length - 2];
     if (!planStep || planStep.type !== AutofixStepType.DEFAULT) {
@@ -248,8 +252,8 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
               <Step
                 step={step}
                 hasStepBelow={index + 1 < steps.length && !twoInsightStepsInARow}
-                hasStepAbove={index > 0}
-                groupId={groupId}
+                hasStepAbove={index > 0 || step.type === AutofixStepType.DEFAULT}
+                groupId={group.id}
                 runId={runId}
                 repos={repos}
                 hasErroredStepBefore={previousStepErrored}
@@ -272,7 +276,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
         }
         actionText={!isRootCauseSelectionStep ? 'Send' : 'Find a Fix'}
         allowEmptyMessage={!isRootCauseSelectionStep ? false : true}
-        groupId={groupId}
+        groupId={group.id}
         runId={runId}
         primaryAction={isRootCauseSelectionStep}
         isRootCauseSelectionStep={isRootCauseSelectionStep}

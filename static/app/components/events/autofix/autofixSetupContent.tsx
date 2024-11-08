@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import {
   type AutofixSetupRepoDefinition,
@@ -18,11 +18,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-
-interface AutofixSetupModalProps extends ModalRenderProps {
-  groupId: string;
-  projectId: string;
-}
 
 const ConsentStep = HookOrDefault({
   hookName: 'component:autofix-setup-step-consent',
@@ -143,13 +138,13 @@ export function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
 function AutofixGithubIntegrationStep({
   autofixSetup,
   canStartAutofix,
-  closeModal,
   isLastStep,
+  onSetupComplete,
 }: {
   autofixSetup: AutofixSetupResponse;
   canStartAutofix: boolean;
-  closeModal: () => void;
   isLastStep?: boolean;
+  onSetupComplete?: () => void;
 }) {
   const sortedRepos = useMemo(
     () =>
@@ -186,7 +181,7 @@ function AutofixGithubIntegrationStep({
               priority="primary"
               size="sm"
               disabled={!canStartAutofix}
-              onClick={closeModal}
+              onClick={onSetupComplete}
             >
               {t("Let's Go!")}
             </Button>
@@ -227,7 +222,7 @@ function AutofixGithubIntegrationStep({
               priority="primary"
               size="sm"
               disabled={!canStartAutofix}
-              onClick={closeModal}
+              onClick={onSetupComplete}
             >
               {t('Skip & Enable Autofix')}
             </Button>
@@ -262,7 +257,7 @@ function AutofixGithubIntegrationStep({
             priority="primary"
             size="sm"
             disabled={!canStartAutofix}
-            onClick={closeModal}
+            onClick={onSetupComplete}
           >
             {t('Skip & Enable Autofix')}
           </Button>
@@ -274,14 +269,14 @@ function AutofixGithubIntegrationStep({
 
 function AutofixSetupSteps({
   autofixSetup,
-  closeModal,
   canStartAutofix,
+  onSetupComplete,
 }: {
   autofixSetup: AutofixSetupResponse;
   canStartAutofix: boolean;
-  closeModal: () => void;
   groupId: string;
   projectId: string;
+  onSetupComplete?: () => void;
 }) {
   return (
     <GuidedSteps>
@@ -302,36 +297,40 @@ function AutofixSetupSteps({
         <AutofixGithubIntegrationStep
           autofixSetup={autofixSetup}
           canStartAutofix={canStartAutofix}
-          closeModal={closeModal}
           isLastStep
+          onSetupComplete={onSetupComplete}
         />
       </GuidedSteps.Step>
     </GuidedSteps>
   );
 }
 
-function AutofixSetupContent({
+export function AutofixSetupContent({
   projectId,
   groupId,
-  closeModal,
+  onSetupComplete,
 }: {
-  closeModal: () => void;
   groupId: string;
   projectId: string;
+  onSetupComplete?: () => void;
 }) {
   const organization = useOrganization();
-  const {data, canStartAutofix, isPending, isError} = useAutofixSetup(
+  const {data, canStartAutofix, isPending, isError, refetch} = useAutofixSetup(
     {groupId},
-    // Want to check setup status whenever the user comes back to the tab
     {refetchOnWindowFocus: true}
   );
+
+  const handleSetupComplete = async () => {
+    await refetch();
+    onSetupComplete?.();
+  };
 
   useEffect(() => {
     if (!data) {
       return;
     }
 
-    trackAnalytics('autofix.setup_modal_viewed', {
+    trackAnalytics('autofix.setup_content_viewed', {
       groupId,
       projectId,
       organization,
@@ -350,38 +349,50 @@ function AutofixSetupContent({
   }
 
   return (
-    <AutofixSetupSteps
-      groupId={groupId}
-      projectId={projectId}
-      autofixSetup={data}
-      canStartAutofix={canStartAutofix}
-      closeModal={closeModal}
-    />
+    <SetupContainer>
+      <Row>
+        <Title>{t('Set up Autofix')}</Title>
+        <FeatureBadge
+          type="beta"
+          title={tct(
+            'Autofix is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+            {
+              email: <a href="mailto:autofix@sentry.io" />,
+            }
+          )}
+          tooltipProps={{isHoverable: true}}
+        />{' '}
+      </Row>
+      <SetupDescription>
+        {t(
+          "Sentry's Autofix uses all of the contextual data surrounding this error to find potential root causes and fixes."
+        )}
+      </SetupDescription>
+      <SetupDescription>
+        {t('A few additional setup steps are needed before you can use Autofix.')}
+      </SetupDescription>
+      <AutofixSetupSteps
+        groupId={groupId}
+        projectId={projectId}
+        autofixSetup={data}
+        canStartAutofix={canStartAutofix}
+        onSetupComplete={handleSetupComplete}
+      />
+    </SetupContainer>
   );
 }
 
-export function AutofixSetupModal({
-  Header,
-  Body,
-  groupId,
-  projectId,
-  closeModal,
-}: AutofixSetupModalProps) {
-  return (
-    <Fragment>
-      <Header closeButton>
-        <h3>{t('Configure Autofix')}</h3>
-      </Header>
-      <Body>
-        <AutofixSetupContent
-          projectId={projectId}
-          groupId={groupId}
-          closeModal={closeModal}
-        />
-      </Body>
-    </Fragment>
-  );
-}
+const Row = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  margin-top: ${space(2)};
+  margin-bottom: ${space(1)};
+`;
+
+const SetupContainer = styled('div')`
+  padding: ${space(2)};
+`;
 
 export const AutofixSetupDone = styled('div')`
   position: relative;
@@ -391,6 +402,16 @@ export const AutofixSetupDone = styled('div')`
   flex-direction: column;
   padding: 40px;
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const Title = styled('p')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSizeLarge};
+  margin: 0;
+`;
+
+const SetupDescription = styled('p')`
+  margin-bottom: ${space(1)};
 `;
 
 const RepoLinkUl = styled('ul')`

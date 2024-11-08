@@ -2,6 +2,7 @@ import {AutofixCodebaseChangeData} from 'sentry-fixture/autofixCodebaseChangeDat
 import {AutofixDataFixture} from 'sentry-fixture/autofixData';
 import {AutofixProgressItemFixture} from 'sentry-fixture/autofixProgressItem';
 import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
+import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -16,6 +17,12 @@ describe('AutofixSteps', () => {
     (addSuccessMessage as jest.Mock).mockClear();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+
+    MockApiClient.addMockResponse({
+      url: '/issues/1/autofix/update/',
+      method: 'POST',
+      body: {},
+    });
   });
 
   const defaultProps = {
@@ -49,7 +56,7 @@ describe('AutofixSteps', () => {
       run_id: '1',
       status: 'PROCESSING',
     }),
-    groupId: 'group1',
+    group: GroupFixture(),
     runId: 'run1',
     onRetry: jest.fn(),
   };

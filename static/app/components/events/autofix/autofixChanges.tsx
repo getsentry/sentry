@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
+import starBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
+
 import ClippedBox from 'sentry/components/clippedBox';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import type {
@@ -131,6 +133,20 @@ const ChangesContainer = styled('div')<{allChangesHavePullRequests: boolean}>`
   padding-left: ${space(2)};
   padding-right: ${space(2)};
   padding-top: ${space(1)};
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 120px;
+    height: 120px;
+    background: url(${starBanner}) no-repeat;
+    background-size: cover;
+    pointer-events: none;
+    opacity: 0.25;
+  }
 `;
 
 const Content = styled('div')`
