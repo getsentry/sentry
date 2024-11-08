@@ -247,9 +247,9 @@ export function EventFeatureFlagList({
             <KeyValueData.Card contentItems={columnTwo} />
           </CardContainer>
         ) : (
-          <EmptyStateWarning withIcon small>
+          <StyledEmptyStateWarning withIcon>
             {t('No feature flags were found for this event')}
-          </EmptyStateWarning>
+          </StyledEmptyStateWarning>
         )}
       </InterimSection>
     </ErrorBoundary>
@@ -263,4 +263,12 @@ const SuspectLabel = styled('div')`
 const ValueWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  border: ${p => p.theme.border} solid 1px;
+  border-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
