@@ -164,7 +164,7 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=25 * 60,
+    soft_time_limit=2 * 60,
     time_limit=2 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
