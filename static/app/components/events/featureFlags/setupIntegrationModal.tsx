@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Event} from '@sentry/types';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -20,19 +19,9 @@ import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 
 export type ChildrenProps<T> = {
-  Body: (props: {
-    children: React.ReactNode;
-    showSelfHostedMessage?: boolean;
-  }) => ReturnType<ModalRenderProps['Body']>;
-  Footer: (props: {
-    onBack?: () => void;
-    onNext?: () => void;
-    primaryDisabledReason?: string;
-    secondaryAction?: React.ReactNode;
-    submitEventData?: Event;
-  }) => ReturnType<ModalRenderProps['Footer']>;
+  Body: (props: {children: React.ReactNode}) => ReturnType<ModalRenderProps['Body']>;
+  Footer: () => ReturnType<ModalRenderProps['Footer']>;
   Header: (props: {children: React.ReactNode}) => ReturnType<ModalRenderProps['Header']>;
-  onFieldChange: <Field extends keyof T>(field: Field, value: T[Field]) => void;
   state: T;
 };
 

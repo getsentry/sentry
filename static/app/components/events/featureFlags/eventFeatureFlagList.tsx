@@ -237,7 +237,7 @@ export function EventFeatureFlagList({
             <KeyValueData.Card contentItems={columnTwo} />
           </CardContainer>
         ) : (
-          <EmptyStateWarning withIcon={false} small>
+          <EmptyStateWarning withIcon small>
             {t('No feature flags were found for this event')}
           </EmptyStateWarning>
         )}
