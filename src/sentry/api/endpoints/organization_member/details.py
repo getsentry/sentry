@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from django.db import router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, inline_serializer
@@ -241,9 +243,23 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             if not is_invite_from_user:
                 return Response({"detail": ERR_MEMBER_INVITE}, status=403)
 
+        logger = logging.getLogger(__name__)
+
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
         # access level
         if result.get("reinvite"):
+            logger.info(
+                "organization.member_reinvite",
+                extra={
+                    "organization_id": organization.id,
+                    "user_id": request.user.id,
+                    "member_id": member.id,
+                    "orgRole": result.get("orgRole"),
+                    "role": result.get("role"),
+                    "teams": result.get("teams"),
+                    "teamRoles": result.get("teamRoles"),
+                },
+            )
             if member.is_pending:
                 if ratelimits.for_organization_member_invite(
                     organization=organization,
