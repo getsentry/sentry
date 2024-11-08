@@ -7,6 +7,12 @@ import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
 from google.protobuf.message import Message as ProtobufMessage
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesRequest,
+    TraceItemAttributeNamesResponse,
+    TraceItemAttributeValuesRequest,
+    TraceItemAttributeValuesResponse,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
@@ -53,6 +59,20 @@ class SnubaRPCRequest(Protocol):
 def table_rpc(req: TraceItemTableRequest) -> TraceItemTableResponse:
     resp = _make_rpc_request("EndpointTraceItemTable", "v1", req)
     response = TraceItemTableResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttributeNamesResponse:
+    resp = _make_rpc_request("EndpointTraceItemAttributeNames", "v1", req)
+    response = TraceItemAttributeNamesResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttributeValuesResponse:
+    resp = _make_rpc_request("EndpointTraceItemAttributeValues", "v1", req)
+    response = TraceItemAttributeValuesResponse()
     response.ParseFromString(resp.data)
     return response
 
