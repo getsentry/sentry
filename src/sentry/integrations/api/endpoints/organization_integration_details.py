@@ -19,6 +19,7 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.integrations.api.bases.organization_integrations import (
@@ -57,7 +58,9 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             GlobalParams.INTEGRATION_ID,
         ],
         responses={
-            200: OrganizationIntegrationResponse,
+            200: inline_sentry_response_serializer(
+                "OrganizationIntegrationResponse", OrganizationIntegrationResponse
+            ),
         },
         examples=IntegrationExamples.GET_INTEGRATION,
     )
