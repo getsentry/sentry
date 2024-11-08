@@ -254,9 +254,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     "organization_id": organization.id,
                     "user_id": request.user.id,
                     "member_id": member.id,
+                    "curr_role": member.role,
                     "orgRole": result.get("orgRole"),
                     "role": result.get("role"),
+                    "curr_teams": [t.slug for t in member.get_teams()],
                     "teams": result.get("teams"),
+                    "curr_team_roles": [t for t in member.get_team_roles()],
                     "teamRoles": result.get("teamRoles"),
                 },
             )
