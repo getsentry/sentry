@@ -145,7 +145,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         # where start_sha is oldest and end_sha is most recent
         # see
         # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D
-        commits = []
+        commits: list[dict[str, Any]] = []
         done = False
 
         url = BitbucketAPIPath.repository_commits.format(repo=repo, revision=end_sha)
