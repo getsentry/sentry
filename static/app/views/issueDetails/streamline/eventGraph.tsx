@@ -19,6 +19,7 @@ import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -72,6 +73,8 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   const eventView = useIssueDetailsEventView({group});
   const hasFeatureFlagFeature = organization.features.includes('feature-flag-ui');
 
+  const config = getConfigForIssueType(group, group.project);
+
   const {
     data: groupStats = {},
     isPending: isLoadingStats,
@@ -92,7 +95,9 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       {
         query: {
           ...eventView.getEventsAPIPayload(location),
-          dataset: DiscoverDatasets.ERRORS,
+          dataset: config.usesIssuePlatform
+            ? DiscoverDatasets.ISSUE_PLATFORM
+            : DiscoverDatasets.ERRORS,
           field: 'count_unique(user)',
           per_page: 50,
           project: group.project.id,

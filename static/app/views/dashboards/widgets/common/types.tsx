@@ -14,6 +14,7 @@ type TimeSeriesItem = {
 };
 
 export type TimeseriesData = {
+  color: string;
   data: TimeSeriesItem[];
   field: string;
 };

@@ -1,11 +1,7 @@
 import logging
 from typing import Any
 
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
-    Column,
-    TraceItemTableRequest,
-    TraceItemTableResponse,
-)
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 
 from sentry.search.eap.columns import ResolvedColumn
@@ -68,7 +64,7 @@ def run_table_query(
         order_by=resolved_orderby,
         virtual_column_contexts=[context for context in contexts if context is not None],
     )
-    rpc_response = snuba_rpc.rpc(rpc_request, TraceItemTableResponse)
+    rpc_response = snuba_rpc.table_rpc(rpc_request)
 
     """Process the results"""
     final_data: SnubaData = []
