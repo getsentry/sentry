@@ -3,7 +3,11 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import Pagination from 'sentry/components/pagination';
-import {FunctionsTable} from 'sentry/components/profiling/suspectFunctions/functionsTable';
+import type {TableColumnKey as FunctionsField} from 'sentry/components/profiling/suspectFunctions/functionsTable';
+import {
+  functionsFields,
+  FunctionsTable,
+} from 'sentry/components/profiling/suspectFunctions/functionsTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -114,17 +118,6 @@ export function SuspectFunctionsTable({
     </Fragment>
   );
 }
-
-const functionsFields = [
-  'package',
-  'function',
-  'count()',
-  'p75()',
-  'sum()',
-  'examples()',
-] as const;
-
-type FunctionsField = (typeof functionsFields)[number];
 
 const TableHeader = styled('div')`
   display: flex;

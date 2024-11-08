@@ -55,9 +55,9 @@ describe('FunctionsTable', function () {
   it('renders one function', function () {
     const func = {
       'count()': 10,
-      'examples()': [
-        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      'all_examples()': [
+        {profile_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'},
+        {profile_id: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'},
       ],
       function: 'foo',
       'p75()': 10000000,
@@ -97,9 +97,9 @@ describe('FunctionsTable', function () {
   it('renders empty name', function () {
     const func = {
       'count()': 10,
-      'examples()': [
-        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      'all_examples()': [
+        {profile_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'},
+        {profile_id: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'},
       ],
       function: '',
       'p75()': 10000000,
@@ -130,9 +130,9 @@ describe('FunctionsTable', function () {
   it('renders empty package', function () {
     const func = {
       'count()': 10,
-      'examples()': [
-        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      'all_examples()': [
+        {profile_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'},
+        {profile_id: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'},
       ],
       function: 'foo',
       'p75()': 10000000,
