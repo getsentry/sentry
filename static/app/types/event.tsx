@@ -1,7 +1,7 @@
 import type {CloudResourceContext} from '@sentry/types';
 
-import type {CultureContext} from 'sentry/components/events/contexts/culture';
-import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/missingInstrumentation';
+import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
+import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {
   AggregateSpanType,
   MetricsSummary,

@@ -1,3 +1,4 @@
+import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 
@@ -27,7 +28,7 @@ export function getCultureContextData({
   data: CultureContext;
   meta?: Record<keyof CultureContext, any>;
 }): KeyValueListData {
-  return Object.keys(data).map(ctxKey => {
+  return getContextKeys(data).map(ctxKey => {
     switch (ctxKey) {
       case CultureContextKeys.CALENDAR:
         return {

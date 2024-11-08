@@ -1,3 +1,4 @@
+import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 
@@ -21,7 +22,7 @@ export function getMissingInstrumentationContextData({
   data: MissingInstrumentationContext;
   meta?: Record<keyof MissingInstrumentationContext, any>;
 }): KeyValueListData {
-  return Object.keys(data).map(ctxKey => {
+  return getContextKeys(data).map(ctxKey => {
     switch (ctxKey) {
       case MissingInstrumentationContextKeys.PACKAGE:
         return {
