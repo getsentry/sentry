@@ -207,7 +207,7 @@ describe('OrganizationSettingsForm', function () {
 
   it('disables hideAiFeatures toggle and shows tooltip for DE region', function () {
     // Mock the region util to return DE region
-    jest.spyOn(RegionUtils, 'getRegionDataFromOrganization').mockImplementation(() => ({
+    jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
       name: 'de',
       displayName: 'Europe (Frankfurt)',
       url: 'https://sentry.de.example.com',
