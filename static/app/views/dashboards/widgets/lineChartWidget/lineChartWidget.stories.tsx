@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
@@ -80,6 +81,41 @@ export default storyBook(LineChartWidget, story => {
             />
           </MediumWidget>
         </SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Colors', () => {
+    const theme = useTheme();
+
+    return (
+      <Fragment>
+        <p>
+          You can control the color of each timeseries by setting the <code>color</code>{' '}
+          attribute to a string that contains a valid hex color code.
+        </p>
+
+        <MediumWidget>
+          <LineChartWidget
+            title="error_rate()"
+            description="Rate of Errors"
+            timeseries={[
+              {
+                ...sampleThroughputTimeSeries,
+                field: 'error_rate()',
+                color: theme.error,
+              } as unknown as TimeseriesData,
+            ]}
+            meta={{
+              fields: {
+                'error_rate()': 'rate',
+              },
+              units: {
+                'error_rate()': '1/second',
+              },
+            }}
+          />
+        </MediumWidget>
       </Fragment>
     );
   });
