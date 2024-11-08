@@ -223,7 +223,7 @@ export class DeprecatedLine extends Component<Props, State> {
 
   renderExpander() {
     if (!this.isExpandable()) {
-      return null;
+      return <div style={{width: 20, height: 20}} />;
     }
 
     const {isExpanded} = this.state;
