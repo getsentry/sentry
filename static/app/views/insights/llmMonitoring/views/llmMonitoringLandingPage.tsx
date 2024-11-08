@@ -73,6 +73,7 @@ export function LLMMonitoringPage() {
                 title={t('View analytics and information about your AI pipelines')}
                 docsUrl={MODULE_DOC_LINK}
               />
+              <FeatureBadge type={RELEASE_LEVEL} />
             </Fragment>
           }
           module={ModuleName.AI}
