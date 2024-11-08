@@ -29,6 +29,7 @@ jest.mock('sentry/utils/analytics', () => ({
     })),
     endSpan: jest.fn(),
   },
+  trackAnalytics: jest.fn(),
 }));
 
 describe('Incident Rules Form', () => {
@@ -594,6 +595,32 @@ describe('Incident Rules Form', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'new name',
+          }),
+        })
+      );
+    });
+
+    it('edits query', async () => {
+      createWrapper({
+        name: 'Query Rule',
+        projects: ['project-slug'],
+        eventTypes: ['num_errors'],
+        thresholdPeriod: 10,
+        query: 'is:unresolved',
+        rule,
+        ruleId: rule.id,
+      });
+
+      await userEvent.type(screen.getByTestId('query-builder-input'), 'has:http.url');
+      await userEvent.type(screen.getByTestId('query-builder-input'), '{enter}');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            query: 'has:http.url',
           }),
         })
       );
