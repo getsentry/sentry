@@ -23,6 +23,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       series={timeseries.map(timeserie => {
         return LineSeries({
           name: timeserie.field,
+          color: timeserie.color,
           animation: false,
           data: timeserie.data.map(datum => {
             return [datum.timestamp, datum.value];
