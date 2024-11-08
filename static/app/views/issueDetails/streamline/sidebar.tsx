@@ -15,6 +15,7 @@ import {useUser} from 'sentry/utils/useUser';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/firstLastSeenSection';
 import PeopleSection from 'sentry/views/issueDetails/streamline/peopleSection';
+import ResourcesSection from 'sentry/views/issueDetails/streamline/resourcesSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/solutionsSection';
@@ -46,11 +47,16 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   return (
     <Side>
-      {((organization.features.includes('ai-summary') &&
-        issueTypeConfig.issueSummary.enabled) ||
-        issueTypeConfig.resources) && (
+      {organization.features.includes('ai-summary') &&
+        issueTypeConfig.issueSummary.enabled && (
+          <Fragment>
+            <SolutionsSection group={group} project={project} event={event} />
+            <StyledBreak />
+          </Fragment>
+        )}
+      {issueTypeConfig.resources && (
         <Fragment>
-          <SolutionsSection group={group} project={project} event={event} />
+          <ResourcesSection group={group} project={project} event={event} />
           <StyledBreak />
         </Fragment>
       )}

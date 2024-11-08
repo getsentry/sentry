@@ -27,7 +27,8 @@ export default function Resources({configResources, eventPlatform, group}: Props
       {group.issueCategory !== IssueCategory.ERROR && configResources.description}
       <LinkSection>
         {links.map(({link, text}) => (
-          <LinkButton
+          <StyledLinkButton
+            priority="link"
             onClick={() =>
               trackAnalytics('issue_details.resources_link_clicked', {
                 organization,
@@ -40,7 +41,7 @@ export default function Resources({configResources, eventPlatform, group}: Props
             external
           >
             {text}
-          </LinkButton>
+          </StyledLinkButton>
         ))}
       </LinkSection>
     </div>
@@ -49,6 +50,12 @@ export default function Resources({configResources, eventPlatform, group}: Props
 
 const LinkSection = styled('div')`
   display: flex;
+  flex-direction: column;
   gap: ${space(1)};
   margin-top: ${space(1)};
+`;
+
+const StyledLinkButton = styled(LinkButton)`
+  text-decoration: underline;
+  align-self: flex-start;
 `;
