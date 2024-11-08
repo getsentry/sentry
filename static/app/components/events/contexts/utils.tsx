@@ -17,6 +17,7 @@ import {getCloudResourceContextData} from 'sentry/components/events/contexts/kno
 import {getCultureContextData} from 'sentry/components/events/contexts/knownContext/culture';
 import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
+import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
 import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
@@ -38,7 +39,6 @@ import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
 
-import {getKnownDeviceContextData, getUnknownDeviceContextData} from './device';
 import {
   getKnownPlatformContextData,
   getPlatformContextIcon,
@@ -400,10 +400,7 @@ export function getFormattedContextData({
     case 'app':
       return getAppContextData({data: contextValue, event, meta});
     case 'device':
-      return [
-        ...getKnownDeviceContextData({data: contextValue, event, meta}),
-        ...getUnknownDeviceContextData({data: contextValue, meta}),
-      ];
+      return getDeviceContextData({data: contextValue, event, meta});
     case 'memory_info': // Current
     case 'Memory Info': // Legacy
       return getMemoryInfoContext({data: contextValue, meta});
