@@ -111,7 +111,7 @@ const MediumWidget = styled('div')`
   width: 420px;
 `;
 
-function filterTimeSeriesToSelection(
+function toTimeSeriesSelection(
   timeSeries: TimeseriesData,
   start: DateString | null,
   end: DateString | null
