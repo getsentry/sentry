@@ -63,12 +63,12 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
     .reduce((acc, item) => acc + item.sampledSpans, 0);
   const total = spansWithSampleRates.reduce((acc, item) => acc + item.sampledSpans, 0);
 
-  const getSpanPercent = spanCount => (spanCount / total) * 100;
+  const getSpanPercent = spanCount => (total === 0 ? 100 : (spanCount / total) * 100);
   const otherPercent = getSpanPercent(otherSpanCount);
 
   return (
     <div {...props}>
-      <Heading>{t('Breakdown')}</Heading>
+      <Heading>{t('Breakdown of stored spans')}</Heading>
       <Breakdown>
         {topItems.map((item, index) => {
           return (
