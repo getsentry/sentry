@@ -6,18 +6,17 @@ import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {DeviceName} from 'sentry/components/deviceName';
-import {getCloudResourceContextData} from 'sentry/components/events/contexts/cloudResource';
 import {
   ContextIcon,
   type ContextIconProps,
   getLogoImage,
 } from 'sentry/components/events/contexts/contextIcon';
-import {getCultureContextData} from 'sentry/components/events/contexts/culture';
-import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/missingInstrumentation';
+import {getCloudResourceContextData} from 'sentry/components/events/contexts/knownContext/cloudResource';
+import {getCultureContextData} from 'sentry/components/events/contexts/knownContext/culture';
+import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import plugins from 'sentry/plugins';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
@@ -27,28 +26,18 @@ import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
 
-import {AppEventContext, getKnownAppContextData, getUnknownAppContextData} from './app';
-import {
-  BrowserEventContext,
-  getKnownBrowserContextData,
-  getUnknownBrowserContextData,
-} from './browser';
-import {DefaultContext, getDefaultContextData} from './default';
-import {
-  DeviceEventContext,
-  getKnownDeviceContextData,
-  getUnknownDeviceContextData,
-} from './device';
-import {getKnownGpuContextData, getUnknownGpuContextData, GPUEventContext} from './gpu';
+import {getKnownAppContextData, getUnknownAppContextData} from './app';
+import {getKnownBrowserContextData, getUnknownBrowserContextData} from './browser';
+import {getDefaultContextData} from './default';
+import {getKnownDeviceContextData, getUnknownDeviceContextData} from './device';
+import {getKnownGpuContextData, getUnknownGpuContextData} from './gpu';
 import {
   getKnownMemoryInfoContextData,
   getUnknownMemoryInfoContextData,
-  MemoryInfoEventContext,
 } from './memoryInfo';
 import {
   getKnownOperatingSystemContextData,
   getUnknownOperatingSystemContextData,
-  OperatingSystemEventContext,
 } from './operatingSystem';
 import {
   getKnownPlatformContextData,
@@ -56,73 +45,18 @@ import {
   getUnknownPlatformContextData,
   KNOWN_PLATFORM_CONTEXTS,
 } from './platform';
-import {
-  getKnownProfileContextData,
-  getUnknownProfileContextData,
-  ProfileEventContext,
-} from './profile';
-import {getReduxContextData, ReduxContext} from './redux';
-import {
-  getKnownReplayContextData,
-  getUnknownReplayContextData,
-  ReplayEventContext,
-} from './replay';
-import {
-  getKnownRuntimeContextData,
-  getUnknownRuntimeContextData,
-  RuntimeEventContext,
-} from './runtime';
-import {
-  getKnownStateContextData,
-  getUnknownStateContextData,
-  StateEventContext,
-} from './state';
+import {getKnownProfileContextData, getUnknownProfileContextData} from './profile';
+import {getReduxContextData} from './redux';
+import {getKnownReplayContextData, getUnknownReplayContextData} from './replay';
+import {getKnownRuntimeContextData, getUnknownRuntimeContextData} from './runtime';
+import {getKnownStateContextData, getUnknownStateContextData} from './state';
 import {
   getKnownThreadPoolInfoContextData,
   getUnknownThreadPoolInfoContextData,
-  ThreadPoolInfoEventContext,
 } from './threadPoolInfo';
-import {
-  getKnownTraceContextData,
-  getUnknownTraceContextData,
-  TraceEventContext,
-} from './trace';
-import {
-  getKnownUnityContextData,
-  getUnknownUnityContextData,
-  UnityEventContext,
-} from './unity';
-import {
-  getKnownUserContextData,
-  getUnknownUserContextData,
-  UserEventContext,
-} from './user';
-
-const CONTEXT_TYPES = {
-  default: DefaultContext,
-  app: AppEventContext,
-  device: DeviceEventContext,
-  memory_info: MemoryInfoEventContext,
-  browser: BrowserEventContext,
-  os: OperatingSystemEventContext,
-  unity: UnityEventContext,
-  runtime: RuntimeEventContext,
-  user: UserEventContext,
-  gpu: GPUEventContext,
-  trace: TraceEventContext,
-  threadpool_info: ThreadPoolInfoEventContext,
-  state: StateEventContext,
-  profile: ProfileEventContext,
-  replay: ReplayEventContext,
-  // 'redux.state' will be replaced with more generic context called 'state'
-  'redux.state': ReduxContext,
-  // 'ThreadPool Info' will be replaced with 'threadpool_info' but
-  // we want to keep it here for now so it works for existing versions
-  'ThreadPool Info': ThreadPoolInfoEventContext,
-  // 'Memory Info' will be replaced with 'memory_info' but
-  // we want to keep it here for now so it works for existing versions
-  'Memory Info': MemoryInfoEventContext,
-};
+import {getKnownTraceContextData, getUnknownTraceContextData} from './trace';
+import {getKnownUnityContextData, getUnknownUnityContextData} from './unity';
+import {getKnownUserContextData, getUnknownUserContextData} from './user';
 
 /**
  * Generates the class name used for contexts
@@ -173,22 +107,6 @@ export function generateIconName(
   }
 
   return formattedName;
-}
-
-export function getContextComponent(type: string) {
-  return CONTEXT_TYPES[type] || plugins.contexts[type] || CONTEXT_TYPES.default;
-}
-
-export function getSourcePlugin(pluginContexts: Array<any>, contextType: string) {
-  if (CONTEXT_TYPES[contextType]) {
-    return null;
-  }
-  for (const plugin of pluginContexts) {
-    if (plugin.contexts.indexOf(contextType) >= 0) {
-      return plugin;
-    }
-  }
-  return null;
 }
 
 export function getRelativeTimeFromEventDateCreated(
@@ -303,6 +221,26 @@ export function getUnknownData({
     }));
 }
 
+/**
+ * Returns the type of a given context, after coercing from its type and alias.
+ * - 'type' refers the the `type` key on it's data blob. This is usually overridden by the SDK for known types, but not always.
+ * - 'alias' refers to the key on event.contexts. This can be set by the user, but we have to depend on it for some contexts.
+ */
+export function getContextType({alias, type}: {alias: string; type?: string}): string {
+  if (!defined(type)) {
+    return alias;
+  }
+  return type === 'default' ? alias : type;
+}
+
+/**
+ * Omit certain keys from ever being displayed on context items.
+ * All custom context (and some known context) has the type:default so we remove it.
+ */
+export function getContextKeys(ctxData: Record<string, any>): string[] {
+  return Object.keys(ctxData).filter(ctxKey => ctxKey !== 'type');
+}
+
 export function getContextTitle({
   alias,
   type,
@@ -316,21 +254,15 @@ export function getContextTitle({
     return value.title;
   }
 
-  if (!defined(type)) {
-    return alias;
-  }
+  const contextType = getContextType({alias, type});
 
-  switch (type) {
+  switch (contextType) {
     case 'app':
       return t('App');
     case 'device':
       return t('Device');
     case 'browser':
       return t('Browser');
-    case 'profile':
-      return t('Profile');
-    case 'replay':
-      return t('Replay');
     case 'response':
       return t('Response');
     case 'feedback':
@@ -362,21 +294,16 @@ export function getContextTitle({
     case 'threadpool_info': // Current value for thread pool info
     case 'ThreadPool Info': // Legacy value for thread pool info
       return t('Thread Pool Info');
-    case 'default':
-      switch (alias) {
-        case 'state':
-          return t('Application State');
-        case 'laravel':
-          return t('Laravel Context');
-        case 'profile':
-          return t('Profile');
-        case 'replay':
-          return t('Replay');
-        default:
-          return alias;
-      }
+    case 'state':
+      return t('Application State');
+    case 'laravel':
+      return t('Laravel Context');
+    case 'profile':
+      return t('Profile');
+    case 'replay':
+      return t('Replay');
     default:
-      return type;
+      return contextType;
   }
 }
 

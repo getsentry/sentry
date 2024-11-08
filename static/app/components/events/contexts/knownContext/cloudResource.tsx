@@ -1,3 +1,4 @@
+import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 
@@ -15,13 +16,13 @@ const enum CloudResourceContextKeys {
 export interface CloudResourceContext {
   // Any custom keys users may set
   [key: string]: any;
-  ['cloud.account.id']?: string;
-  ['cloud.availability_zone']?: string;
-  ['cloud.platform']?: string;
-  ['cloud.provider']?: string;
-  ['cloud.region']?: string;
-  ['host.id']?: string;
-  ['host.type']?: string;
+  [CloudResourceContextKeys.CLOUD_ACCOUNT_ID]?: string;
+  [CloudResourceContextKeys.CLOUD_PROVIDER]?: string;
+  [CloudResourceContextKeys.CLOUD_PLATFORM]?: string;
+  [CloudResourceContextKeys.CLOUD_REGION]?: string;
+  [CloudResourceContextKeys.CLOUD_AVAILABILITY_ZONE]?: string;
+  [CloudResourceContextKeys.HOST_ID]?: string;
+  [CloudResourceContextKeys.HOST_TYPE]?: string;
 }
 
 const CLOUD_PROVIDERS = {
@@ -40,7 +41,7 @@ export function getCloudResourceContextData({
   data: CloudResourceContext;
   meta?: Record<keyof CloudResourceContext, any>;
 }): KeyValueListData {
-  return Object.keys(data).map(ctxKey => {
+  return getContextKeys(data).map(ctxKey => {
     switch (ctxKey) {
       case CloudResourceContextKeys.CLOUD_ACCOUNT_ID:
         return {

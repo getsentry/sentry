@@ -6,7 +6,7 @@ import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {
   type CultureContext,
   getCultureContextData,
-} from 'sentry/components/events/contexts/culture';
+} from 'sentry/components/events/contexts/knownContext/culture';
 
 const MOCK_CULTURE_CONTEXT: CultureContext = {
   calendar: 'GregorianCalendar',

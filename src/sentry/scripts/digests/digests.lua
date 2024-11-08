@@ -354,7 +354,7 @@ local configuration_argument_parser = object_argument_parser({
     {"ttl", argument_parser(tonumber)},
     {"timestamp", argument_parser(tonumber)},
 }, function (configuration)
-    math.randomseed(configuration.timestamp)
+    math.randomseed(math.floor(configuration.timestamp))
 
     function configuration:get_schedule_waiting_key()
         return string.format('%s:s:w', self.namespace)
