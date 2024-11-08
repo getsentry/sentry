@@ -9,6 +9,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {
   getConfigForIssueType,
@@ -45,6 +46,24 @@ function hasStacktraceWithFrames(event: Event) {
   return false;
 }
 
+const shouldDisplayAiAutofixForOrganization = (organization: Organization) => {
+  return (
+    ((organization.features.includes('autofix') &&
+      organization.features.includes('issue-details-autofix-ui')) ||
+      organization.genAIConsent) &&
+    !organization.hideAiFeatures &&
+    getRegionDataFromOrganization(organization)?.name !== 'de'
+  );
+};
+
+const shouldDisplayAiSuggestedSolutionForOrganization = (organization: Organization) => {
+  return (
+    organization.aiSuggestedSolution &&
+    !organization.hideAiFeatures &&
+    getRegionDataFromOrganization(organization)?.name !== 'de'
+  );
+};
+
 // This section provides users with resources and possible solutions on how to resolve an issue
 export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const organization = useOrganization();
@@ -54,18 +73,17 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const displayAiAutofix =
-    ((organization.features.includes('autofix') &&
-      organization.features.includes('issue-details-autofix-ui')) ||
-      organization.genAIConsent) &&
-    !shouldShowCustomErrorResourceConfig(group, project) &&
+    shouldDisplayAiAutofixForOrganization(organization) &&
     config.autofix &&
+    !shouldShowCustomErrorResourceConfig(group, project) &&
     hasStacktraceWithFrames(event) &&
     !isSampleError;
+
   const displayAiSuggestedSolution =
-    // Skip showing AI suggested solution if the issue has a custom resource
+    shouldDisplayAiSuggestedSolutionForOrganization(organization) &&
     config.aiSuggestedSolution &&
-    organization.aiSuggestedSolution &&
     getRegionDataFromOrganization(organization)?.name !== 'de' &&
+    // Skip showing AI suggested solution if the issue has a custom resource
     !shouldShowCustomErrorResourceConfig(group, project) &&
     !displayAiAutofix &&
     !isSampleError;
