@@ -716,6 +716,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
+            # TODO: remove this attribute and evenrything connected with it
             # check if the project is in LPQ for any platform
             # XXX(joshferge): determine if the frontend needs this flag at all
             # removing redis call as was causing problematic latency issues

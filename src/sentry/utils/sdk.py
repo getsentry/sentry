@@ -449,7 +449,6 @@ def configure_sdk():
         "sync-options",
         "sync-options-control",
         "schedule-digests",
-        "check-symbolicator-lpq-project-eligibility",  # defined in getsentry
     ]
 
     enable_cache_spans = os.getenv("SENTRY_URL_PREFIX") == "sentry.my.sentry.io"
