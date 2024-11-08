@@ -45,11 +45,13 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.notifications.utils.actions import MessageAction
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
@@ -1597,6 +1599,40 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         assert (
             context_with_error_user_count
             == f"Events: *3*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
+        )
+
+    @patch("sentry.models.Group.count_users_seen")
+    def test_get_context_users_affected(self, mock_count_users):
+        users_affected = 5
+        environment_id = 3
+        mock_count_users.return_value = users_affected
+
+        rule = IssueAlertRule.objects.create(project=self.project, label="my rule")
+        event = self.store_event(
+            data={},
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        group = event.group
+        assert group
+        group.update(type=1, substatus=GroupSubStatus.ONGOING, times_seen=3)
+
+        context = get_context(group, [rule])
+        mock_count_users.assert_called_with(
+            referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value,
+            environment_ids=None,
+        )
+        assert (
+            context
+            == f"Events: *3*   Users Affected: *5*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
+        )
+
+        # filter users affected by env
+        rule.update(environment_id=environment_id)
+        get_context(group, [rule])
+        mock_count_users.assert_called_with(
+            referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value,
+            environment_ids=[environment_id],
         )
 
     def test_get_tags(self):

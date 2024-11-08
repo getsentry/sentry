@@ -4,7 +4,7 @@ import importlib
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
@@ -125,11 +125,24 @@ class NoiseConfig:
         return int(self.expiry_time.total_seconds())
 
 
+class NotificationContextField(StrEnum):
+    EVENTS = "Events"
+    USERS_AFFECTED = "Users Affected"
+    STATE = "State"
+    FIRST_SEEN = "First Seen"
+    APPROX_START_TIME = "Approx. Start Time"
+
+
 @dataclass(frozen=True)
 class NotificationConfig:
     text_code_formatted: bool = True  # TODO(cathy): user feedback wants it formatted as text
     context: list[str] = field(
-        default_factory=lambda: ["Events", "Users Affected", "State", "First Seen"]
+        default_factory=lambda: [
+            NotificationContextField.EVENTS,
+            NotificationContextField.USERS_AFFECTED,
+            NotificationContextField.STATE,
+            NotificationContextField.FIRST_SEEN,
+        ]
     )  # see SUPPORTED_CONTEXT_DATA for all possible values, order matters!
     actions: list[str] = field(default_factory=lambda: ["archive", "resolve", "assign"])
     extra_action: dict[str, str] = field(
@@ -396,7 +409,7 @@ class PerformanceDurationRegressionGroupType(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=["Approx. Start Time"])
+    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)
@@ -409,7 +422,7 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     enable_escalation_detection = False
     default_priority = PriorityLevel.MEDIUM
     released = True
-    notification_config = NotificationConfig(context=["Approx. Start Time"])
+    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 # experimental
@@ -509,7 +522,7 @@ class ProfileFunctionRegressionExperimentalType(GroupType):
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
     default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=["Approx. Start Time"])
+    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)
@@ -521,7 +534,7 @@ class ProfileFunctionRegressionType(GroupType):
     enable_auto_resolve = False
     released = True
     default_priority = PriorityLevel.MEDIUM
-    notification_config = NotificationConfig(context=["Approx. Start Time"])
+    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)
