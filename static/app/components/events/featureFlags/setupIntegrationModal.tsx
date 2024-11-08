@@ -89,7 +89,11 @@ export function SetupIntegrationModal<T extends Data>({
     return (
       <Footer>
         <StyledButtonBar gap={1}>
-          <LinkButton priority="default" href="">
+          <LinkButton
+            priority="default"
+            href="https://docs.sentry.io/product/issues/issue-details/#feature-flags"
+            external
+          >
             {t('Read Docs')}
           </LinkButton>
           <Button
