@@ -30,26 +30,21 @@ interface State {
   url: string | undefined;
 }
 
-function useGenerateAuthToken(state: State) {
+function useGenerateAuthToken({
+  state,
+  orgSlug,
+}: {
+  orgSlug: string | undefined;
+  state: State;
+}) {
   const api = useApi();
   const date = new Date().toISOString();
 
   const createToken = async () =>
-    await api.requestPromise(`/api-tokens/`, {
+    await api.requestPromise(`/organizations/${orgSlug}/org-auth-tokens/`, {
       method: 'POST',
       data: {
         name: `${state.provider} Token ${date}`,
-        scopes: [
-          'project:read',
-          'project:write',
-          'project:admin',
-          'event:read',
-          'event:write',
-          'event:admin',
-          'org:read',
-          'org:write',
-          'org:admin',
-        ],
       },
     });
 
@@ -67,7 +62,7 @@ export function SetupIntegrationModal<T extends Data>({
     url: undefined,
   });
   const {organization} = useLegacyStore(OrganizationStore);
-  const {createToken} = useGenerateAuthToken(state);
+  const {createToken} = useGenerateAuthToken({state, orgSlug: organization?.slug});
 
   const handleSubmit = useCallback(() => {
     addSuccessMessage(t('Integration set up successfully'));
