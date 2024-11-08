@@ -85,7 +85,7 @@ SENTRY_DSN="${params.dsn.public}"
             params.isPerformanceSelected || params.isProfilingSelected
               ? `
           options:`
-                : ''
+              : ''
           }${
             params.isPerformanceSelected
               ? `
