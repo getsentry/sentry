@@ -140,6 +140,7 @@ const BreakdownPanel = styled(Panel)`
   margin-bottom: ${space(3)};
   padding: ${space(2)};
 `;
+
 const ProjectedOrgRateWrapper = styled('label')`
   display: flex;
   align-items: center;
