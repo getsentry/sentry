@@ -17,12 +17,13 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {Frame} from 'sentry/utils/profiling/frame';
 import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -294,18 +295,16 @@ function SlowestFunctionEntry({
                 <TextOverflow>{t('Time Spent')}</TextOverflow>
               </TransactionsListHeader>
               {(functionTransactionsQuery.data?.data ?? []).map(transaction => {
-                const examples = transaction['examples()'] as string[];
+                const example = transaction['all_examples()']?.[0];
                 let transactionCol = <Fragment>{transaction.transaction}</Fragment>;
 
-                if (project && examples.length) {
-                  const target = generateProfileFlamechartRouteWithQuery({
+                if (project && defined(example)) {
+                  const target = generateProfileRouteFromProfileReference({
                     orgSlug: organization.slug,
                     projectSlug: project.slug,
-                    profileId: examples[0],
-                    query: {
-                      frameName: frame.name,
-                      framePackage: frame.package,
-                    },
+                    frameName: frame.name,
+                    framePackage: frame.package,
+                    reference: example,
                   });
                   transactionCol = (
                     <Link
@@ -368,19 +367,16 @@ const totalsFields = ['project.id', 'sum()'] as const;
 
 type TotalsField = (typeof totalsFields)[number];
 
-type FunctionTransactionField =
-  | BreakdownFunction
-  | 'transaction'
-  | 'count()'
-  | 'sum()'
-  | 'examples()';
-
-const functionTransactionsFields: FunctionTransactionField[] = [
+const functionTransactionsFields = [
   'transaction',
   'count()',
   'sum()',
-  'examples()',
-];
+  'all_examples()',
+] as const;
+
+type FunctionTransactionField =
+  | BreakdownFunction
+  | (typeof functionTransactionsFields)[number];
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
