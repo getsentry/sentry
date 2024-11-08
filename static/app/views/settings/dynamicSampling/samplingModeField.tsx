@@ -14,8 +14,8 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
-import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
 const switchToManualMessage = tct(
   'Switching to manual mode disables automatic adjustments. After the switch, you can configure individual sample rates for each project. Dynamic sampling priorities continue to apply within the projects. [link:Learn more]',
@@ -37,7 +37,7 @@ const switchToAutoMessage = tct(
 
 export function SamplingModeField() {
   const {samplingMode} = useOrganization();
-  const {hasAccess} = useAccess({access: ['org:write']});
+  const hasAccess = useHasDynamicSamplingWriteAccess();
 
   const {mutate: updateOrganization, isPending} = useUpdateOrganization({
     onMutate: () => {
