@@ -77,6 +77,10 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
     return null;
   }
 
+  if (hasStreamlinedUI && !config.autofix) {
+    return null;
+  }
+
   return (
     <Wrapper
       title={hasStreamlinedUI ? t('Autofix') : t('Resources and Possible Solutions')}
