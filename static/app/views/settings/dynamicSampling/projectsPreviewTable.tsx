@@ -1,9 +1,15 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
+import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
@@ -67,13 +73,40 @@ export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
     }));
   }, [balancedItems, initialSampleRateById]);
 
+  const breakdownSampleRates = balancedItems.reduce((acc, item) => {
+    acc[item.id] = item.sampleRate;
+    return acc;
+  }, {});
+
   return (
-    <ProjectsTable
-      stickyHeaders
-      emptyMessage={t('No active projects found in the selected period.')}
-      isEmpty={!sampleCounts.length}
-      isLoading={isLoading}
-      items={itemsWithFormattedNumbers}
-    />
+    <Fragment>
+      <BreakdownPanel>
+        {isLoading ? (
+          <LoadingIndicator
+            css={css`
+              margin: ${space(4)} 0;
+            `}
+          />
+        ) : (
+          <SamplingBreakdown
+            sampleCounts={sampleCounts}
+            sampleRates={breakdownSampleRates}
+          />
+        )}
+      </BreakdownPanel>
+
+      <ProjectsTable
+        stickyHeaders
+        emptyMessage={t('No active projects found in the selected period.')}
+        isEmpty={!sampleCounts.length}
+        isLoading={isLoading}
+        items={itemsWithFormattedNumbers}
+      />
+    </Fragment>
   );
 }
+
+const BreakdownPanel = styled(Panel)`
+  margin-bottom: ${space(3)};
+  padding: ${space(2)};
+`;
