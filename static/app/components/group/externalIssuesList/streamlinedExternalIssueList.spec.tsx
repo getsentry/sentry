@@ -174,7 +174,7 @@ describe('StreamlinedExternalIssueList', () => {
       await screen.findByRole('menuitemradio', {name: /GitHub sentry/})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('menuitemradio', {name: 'GitHub codecov'})
+      await screen.findByRole('menuitemradio', {name: /GitHub codecov/})
     ).toBeInTheDocument();
   });
 
