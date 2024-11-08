@@ -11,7 +11,7 @@ from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.utils import timezone
 
-from sentry import features, options, projectoptions, release_health, roles
+from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
@@ -19,8 +19,13 @@ from sentry.api.serializers.types import OrganizationSerializerResponse, Seriali
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ObjectStatus, StatsPeriod
+from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus, StatsPeriod
 from sentry.digests import backend as digests
+from sentry.dynamic_sampling.utils import (
+    has_custom_dynamic_sampling,
+    has_dynamic_sampling,
+    is_project_mode_sampling,
+)
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
@@ -1047,6 +1052,21 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "symbolSources": serialized_sources,
             }
         )
+
+        sample_rate = None
+        if has_custom_dynamic_sampling(obj.organization):
+            if is_project_mode_sampling(obj.organization):
+                sample_rate = obj.get_option("sentry:target_sample_rate")
+            else:
+                sample_rate = obj.organization.get_option(
+                    "sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT
+                )
+        elif has_dynamic_sampling(obj.organization):
+            sample_rate = quotas.backend.get_blended_sample_rate(
+                organization_id=obj.organization.id
+            )
+
+        data["isDynamicallySampled"] = sample_rate is not None and sample_rate < 1.0
 
         return data
 
