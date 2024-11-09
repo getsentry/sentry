@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Generic, Literal, TypeVar
+from typing import Any, Generic, TypeVar
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
@@ -82,7 +82,7 @@ T = TypeVar("T", bound=Model)
 @region_silo_endpoint
 class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
     permission_classes = (ProjectAlertRulePermission,)
-    rule_field: Literal["rule", "alert_rule"]  # abstract, value comes from child class
+    rule_field: str  # abstract, value comes from child class
 
     def convert_args(self, request: Request, rule_id: int, *args, **kwargs):
         (args, kwargs) = super().convert_args(request, *args, **kwargs)
