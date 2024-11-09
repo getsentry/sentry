@@ -19,7 +19,9 @@ from sentry.utils import metrics, redis
 from sentry.utils.iterators import chunked
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import (
-    get_data_group_conditions_and_group,
+    evaluate_group_conditions,
+    get_data_condition_group,
+    get_data_conditions_for_group,
 )
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
@@ -114,8 +116,11 @@ class DetectorHandler(abc.ABC, Generic[T]):
     def __init__(self, detector: Detector):
         self.detector = detector
         if detector.workflow_condition_group_id is not None:
-            results = get_data_group_conditions_and_group(detector.workflow_condition_group_id)
-            self.condition_group: DataConditionGroup | None = results[0]
+            group = get_data_condition_group(detector.workflow_condition_group_id)
+            conditions = get_data_conditions_for_group(detector.workflow_condition_group_id)
+
+            self.condition_group: DataConditionGroup | None = group
+            self.conditions = conditions
         else:
             self.condition_group = None
 
@@ -270,7 +275,9 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         # thresholds at the moment. Probably should be a field on the Detector? Could also be on the condition
         # level, but usually we want to set this at a higher level.
         new_status = DetectorPriorityLevel.OK
-        is_group_condition_met, condition_results = self.condition_group.evaluate_conditions(value)
+        is_group_condition_met, condition_results = evaluate_group_conditions(
+            self.condition_group, self.conditions, value
+        )
 
         if is_group_condition_met:
             max_result_status = max(condition_results)
