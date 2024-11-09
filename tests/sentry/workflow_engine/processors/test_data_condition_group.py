@@ -20,7 +20,7 @@ class TestGetDataConditionGroup(TestCase):
 
 class TestGetDataConditionsForGroup(TestCase):
     def test_get_data_conditions_for_group(self):
-        assert get_data_conditions_for_group(1) == []
+        assert get_data_conditions_for_group(0) == []
 
     def test_get_data_conditions_for_group__exists(self):
         data_condition_group = self.create_data_condition_group()

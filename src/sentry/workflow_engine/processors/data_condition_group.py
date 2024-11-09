@@ -20,11 +20,7 @@ def get_data_condition_group(data_condition_group_id: int) -> DataConditionGroup
     [(DataCondition, lambda condition: (condition.condition_group_id,))],
 )
 def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCondition]:
-    try:
-        conditions = list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
-    except DataConditionGroup.DoesNotExist:
-        conditions = []
-    return conditions
+    return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
 
 
 def process_data_condition_group(
