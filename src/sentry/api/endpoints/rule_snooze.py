@@ -79,7 +79,6 @@ class RuleSnoozeSerializer(Serializer):
 T = TypeVar("T", bound=Model)
 
 
-@region_silo_endpoint
 class BaseRuleSnoozeEndpoint(ProjectEndpoint, Generic[T]):
     permission_classes = (ProjectAlertRulePermission,)
     rule_field: str  # abstract, value comes from child class
