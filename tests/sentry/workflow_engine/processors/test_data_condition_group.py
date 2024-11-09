@@ -1,7 +1,7 @@
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.processors.data_condition_group import (
-    evaluate_group_conditions,
+    evaluate_condition_group,
     get_data_condition_group,
     get_data_conditions_for_group,
     process_data_condition_group,
@@ -53,7 +53,7 @@ class TestProcessDataConditionGroup(TestCase):
         )
 
 
-class TestEvaluateGroupConditionsTypeAny(TestCase):
+class TestEvaluateConditionGroupTypeAny(TestCase):
     def setUp(self):
         self.data_condition_group = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ANY
@@ -75,30 +75,30 @@ class TestEvaluateGroupConditionsTypeAny(TestCase):
 
         self.conditions = [self.data_condition, self.data_condition_two]
 
-    def test_evaluate_group_conditions__passes_all__fetches_conditions(self):
-        assert evaluate_group_conditions(self.data_condition_group, 10) == (
+    def test_evaluate_condition_group__passes_all__fetches_conditions(self):
+        assert evaluate_condition_group(self.data_condition_group, 10) == (
             True,
             [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW],
         )
 
-    def test_evaluate_group_conditions__passes_all(self):
-        assert evaluate_group_conditions(
+    def test_evaluate_condition_group__passes_all(self):
+        assert evaluate_condition_group(
             self.data_condition_group, 10, conditions=self.conditions
         ) == (
             True,
             [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW],
         )
 
-    def test_evaluate_group_conditions__passes_one(self):
-        assert evaluate_group_conditions(
+    def test_evaluate_condition_group__passes_one(self):
+        assert evaluate_condition_group(
             self.data_condition_group, 4, conditions=self.conditions
         ) == (
             True,
             [DetectorPriorityLevel.LOW],
         )
 
-    def test_evaluate_group_conditions__fails_all(self):
-        assert evaluate_group_conditions(
+    def test_evaluate_condition_group__fails_all(self):
+        assert evaluate_condition_group(
             self.data_condition_group,
             1,
             conditions=self.conditions,
@@ -108,7 +108,7 @@ class TestEvaluateGroupConditionsTypeAny(TestCase):
         )
 
 
-class TestEvaluateGroupConditionsTypeAll(TestCase):
+class TestEvaluateConditionGroupTypeAll(TestCase):
     def setUp(self):
         self.data_condition_group = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ALL
@@ -130,30 +130,30 @@ class TestEvaluateGroupConditionsTypeAll(TestCase):
 
         self.conditions = [self.data_condition, self.data_condition_two]
 
-    def test_evaluate_group_conditions__passes_all__fetches_conditions(self):
-        assert evaluate_group_conditions(self.data_condition_group, 10) == (
+    def test_evaluate_condition_group__passes_all__fetches_conditions(self):
+        assert evaluate_condition_group(self.data_condition_group, 10) == (
             True,
             [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW],
         )
 
-    def test_evaluate_group_conditions__passes_all(self):
-        assert evaluate_group_conditions(
+    def test_evaluate_condition_group__passes_all(self):
+        assert evaluate_condition_group(
             self.data_condition_group, 10, conditions=self.conditions
         ) == (
             True,
             [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW],
         )
 
-    def test_evaluate_group_conditions__passes_one(self):
-        assert evaluate_group_conditions(
+    def test_evaluate_condition_group__passes_one(self):
+        assert evaluate_condition_group(
             self.data_condition_group, 4, conditions=self.conditions
         ) == (
             False,
             [],
         )
 
-    def test_evaluate_group_conditions__fails_all(self):
-        assert evaluate_group_conditions(
+    def test_evaluate_condition_group__fails_all(self):
+        assert evaluate_condition_group(
             self.data_condition_group, 1, conditions=self.conditions
         ) == (
             False,

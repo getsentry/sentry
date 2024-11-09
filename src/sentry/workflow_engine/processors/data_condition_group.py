@@ -36,10 +36,10 @@ def process_data_condition_group(
         return False, []
 
     conditions = get_data_conditions_for_group(data_condition_group_id)
-    return evaluate_group_conditions(group, value, conditions=conditions)
+    return evaluate_condition_group(group, value, conditions=conditions)
 
 
-def evaluate_group_conditions(
+def evaluate_condition_group(
     data_condition_group: DataConditionGroup,
     value: Any,
     **kwargs,
