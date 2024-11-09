@@ -325,8 +325,9 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 ## Flags
-/src/sentry/flags/              @getsentry/replay-backend
-/tests/sentry/flags/            @getsentry/replay-backend
+/src/sentry/flags/                                          @getsentry/replay-backend
+/tests/sentry/flags/                                        @getsentry/replay-backend
+/static/app/components/events/featureFlags/                 @getsentry/replay-frontend
 ## End of Flags
 
 

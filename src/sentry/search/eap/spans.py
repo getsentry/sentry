@@ -66,6 +66,7 @@ class SearchResolver:
                 querystring,
                 params=self.params.filter_params,
                 get_field_type=self.get_field_type,
+                get_function_result_type=self.get_field_type,
             )
         except ParseError as e:
             if e.expr is not None:
@@ -196,7 +197,8 @@ class SearchResolver:
                 else:
                     raise NotImplementedError("Can't filter on aggregates yet")
             else:
-                raise NotImplementedError()
+                if self.config.use_aggregate_conditions:
+                    raise NotImplementedError("Can't filter on aggregates yet")
 
         if len(parsed_terms) > 1:
             return TraceItemFilter(and_filter=AndFilter(filters=parsed_terms))
@@ -428,11 +430,11 @@ class SearchResolver:
                 )
 
             if (
-                argument.argument_type is not None
-                and parsed_argument.search_type != argument.argument_type
+                argument.argument_types is not None
+                and parsed_argument.search_type not in argument.argument_types
             ):
                 raise InvalidSearchQuery(
-                    f"{argument} is invalid for {function}, its a {parsed_argument.search_type} type field but {function} expects a {argument.argument_type} type field"
+                    f"{argument} is invalid for {function}, its a {parsed_argument.search_type} type field but {function} expects a field that are one of these types: {argument.argument_types}"
                 )
             parsed_columns.append(parsed_argument)
 

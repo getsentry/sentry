@@ -9,14 +9,20 @@ import type {GPUData} from 'sentry/components/events/contexts/gpu/types';
 
 export const gpuMockData: GPUData = {
   name: '',
-  id: 0,
-  vendor_id: 0,
+  id: 2400,
+  vendor_id: '2400.0.0',
   vendor_name: 'Apple',
   memory_size: 4096,
   api_type: '',
   multi_threaded_rendering: true,
   version: 'Metal',
   npot_support: 'Full',
+  max_texture_size: 16384,
+  graphics_shader_level: 'OpenGL ES 3.0',
+  supports_draw_call_instancing: true,
+  supports_ray_tracing: true,
+  supports_compute_shaders: true,
+  supports_geometry_shaders: true,
 };
 
 export const gpuMetaMockData = {
