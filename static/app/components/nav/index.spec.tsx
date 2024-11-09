@@ -2,7 +2,11 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {getAllByRole, render, screen} from 'sentry-test/reactTestingLibrary';
+import * as analytics from 'sentry/utils/analytics';
+
+const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
+import {getAllByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/components/nav';
 
@@ -163,6 +167,28 @@ describe('Nav', function () {
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });
+    });
+  });
+
+  describe('analytics', function () {
+    beforeEach(() => {
+      render(<Nav />, {
+        router: RouterFixture({
+          location: LocationFixture({pathname: '/organizations/org-slug/traces/'}),
+        }),
+        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+      });
+    });
+
+    it('tracks primary sidebar item', async function () {
+      const issues = screen.getByRole('link', {name: 'Issues'});
+      await userEvent.click(issues);
+      expect(analyticsSpy).toHaveBeenCalledWith(
+        'growth.clicked_sidebar',
+        expect.objectContaining({
+          item: 'issues',
+        })
+      );
     });
   });
 });
