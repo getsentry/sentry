@@ -75,11 +75,11 @@ class HasApiScopes(models.Model):
             "org:read": bool,
             "org:write": bool,
             "org:admin": bool,
-            "org:billing": bool,
             "member:read": bool,
             "member:write": bool,
             "member:admin": bool,
             "org:integrations": bool,
+            "org:billing": bool,
         },
     )
     assert set(ScopesDict.__annotations__) == set(ApiScopes())
