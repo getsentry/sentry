@@ -35,8 +35,12 @@ interface GroupSummaryData {
   whatsWrong?: string | null;
 }
 
-const isSummaryEnabled = (hasGenAIConsent: boolean, groupCategory: IssueCategory) => {
-  return hasGenAIConsent && groupCategory === IssueCategory.ERROR;
+const isSummaryEnabled = (
+  hasGenAIConsent: boolean,
+  hideAiFeatures: boolean,
+  groupCategory: IssueCategory
+) => {
+  return hasGenAIConsent && !hideAiFeatures && groupCategory === IssueCategory.ERROR;
 };
 
 export const makeGroupSummaryQueryKey = (
@@ -57,12 +61,13 @@ export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
   } = useAutofixSetup({groupId});
 
   const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? false;
+  const hideAiFeatures = organization.hideAiFeatures;
 
   const queryData = useApiQuery<GroupSummaryData>(
     makeGroupSummaryQueryKey(organization.slug, groupId),
     {
       staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
-      enabled: isSummaryEnabled(hasGenAIConsent, groupCategory),
+      enabled: isSummaryEnabled(hasGenAIConsent, hideAiFeatures, groupCategory),
     }
   );
   return {
@@ -90,11 +95,13 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
     groupCategory
   );
 
+  const organization = useOrganization();
+
   const [expanded, setExpanded] = useState(false);
 
   const openForm = useFeedbackForm();
 
-  if (!isSummaryEnabled(hasGenAIConsent, groupCategory)) {
+  if (!isSummaryEnabled(hasGenAIConsent, organization.hideAiFeatures, groupCategory)) {
     return null;
   }
 
