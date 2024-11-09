@@ -280,7 +280,13 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         )
 
         if is_group_condition_met:
-            max_result_status = max(condition_results)
+            validated_condition_results: list[DetectorPriorityLevel] = [
+                DetectorPriorityLevel(int(result))
+                for result in condition_results
+                if result is not None
+            ]
+
+            max_result_status = max(validated_condition_results)
             new_status = max(new_status, max_result_status)
 
         # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
