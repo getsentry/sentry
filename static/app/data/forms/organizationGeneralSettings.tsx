@@ -56,7 +56,8 @@ const formGroups: JsonFormObject[] = [
             ),
           }
         ),
-        visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
+        visible: ({features}) =>
+          !ConfigStore.get('isSelfHostedErrorsOnly') && !features.has('autofix'),
       },
       {
         name: 'uptimeAutodetection',
