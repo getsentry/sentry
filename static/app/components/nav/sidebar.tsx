@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -18,8 +18,10 @@ import {
 } from 'sentry/components/nav/utils';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function Sidebar() {
   return (
@@ -98,13 +100,19 @@ interface SidebarItemProps {
 function SidebarItem({item}: SidebarItemProps) {
   const to = resolveNavItemTo(item);
   const SidebarChild = to ? SidebarLink : SidebarMenu;
+  const organization = useOrganization();
 
   const FeatureGuard = item.feature ? Feature : Fragment;
   const featureGuardProps: any = item.feature ?? {};
 
+  const recordAnalytics = useCallback(
+    () => trackAnalytics('growth.clicked_sidebar', {item: item.id, organization}),
+    [organization, item.id]
+  );
+
   return (
     <FeatureGuard {...featureGuardProps}>
-      <SidebarItemWrapper>
+      <SidebarItemWrapper onClick={recordAnalytics}>
         <SidebarChild item={item} key={item.label}>
           {item.icon}
           <span>{item.label}</span>

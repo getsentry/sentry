@@ -38,6 +38,10 @@ export interface NavSidebarItem extends NavItem {
    */
   icon: React.ReactElement;
   /**
+   * A unique identifier string, used as a key for analytics
+   */
+  id: string;
+  /**
    * dropdown menu to display when this SidebarItem is clicked
    */
   dropdown?: MenuItemProps[];
