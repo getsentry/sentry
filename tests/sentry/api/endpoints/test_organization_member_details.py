@@ -121,7 +121,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert response.data["roles"] == response.data["orgRoleList"]
 
         role_ids = [role["id"] for role in response.data["orgRoleList"]]
-        assert role_ids == ["member", "admin", "manager", "owner"]
+        assert role_ids == ["billing", "member", "admin", "manager", "owner"]
 
     @with_feature("organizations:team-roles")
     def test_hides_retired_organization_roles(self):
@@ -132,7 +132,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert response.data["roles"] == response.data["orgRoleList"]
 
         role_ids = [role["id"] for role in response.data["orgRoleList"]]
-        assert role_ids == ["member", "admin", "manager", "owner"]
+        assert role_ids == ["billing", "member", "admin", "manager", "owner"]
 
     def test_lists_team_roles(self):
         response = self.get_success_response(self.organization.slug, "me")
