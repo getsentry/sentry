@@ -17,13 +17,7 @@ from sentry.models.group import GroupStatus
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics, redis
 from sentry.utils.iterators import chunked
-from sentry.workflow_engine.models import (
-    DataCondition,
-    DataConditionGroup,
-    DataPacket,
-    Detector,
-    DetectorState,
-)
+from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import (
     get_data_group_conditions_and_group,
 )
@@ -46,6 +40,7 @@ class DetectorEvaluationResult:
     event_data: dict[str, Any] | None = None
 
 
+# TODO - Add metrics / logging here
 def process_detectors(
     data_packet: DataPacket, detectors: list[Detector]
 ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
@@ -57,6 +52,7 @@ def process_detectors(
         if not handler:
             continue
 
+        # TODO add metric here for detector processing
         detector_results = handler.evaluate(data_packet)
 
         for result in detector_results.values():
@@ -64,6 +60,7 @@ def process_detectors(
                 create_issue_occurrence_from_result(result)
 
         if detector_results:
+            # TODO - Add metrics / logging here for successful result
             results.append((detector, detector_results))
 
         # Now that we've processed all results for this detector, commit any state changes
@@ -119,10 +116,8 @@ class DetectorHandler(abc.ABC, Generic[T]):
         if detector.workflow_condition_group_id is not None:
             results = get_data_group_conditions_and_group(detector.workflow_condition_group_id)
             self.condition_group: DataConditionGroup | None = results[0]
-            self.conditions: list[DataCondition] = results[1]
         else:
             self.condition_group = None
-            self.conditions = []
 
     @abc.abstractmethod
     def evaluate(
@@ -270,18 +265,16 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
             return None
 
+        # TODO: We need to handle tracking consecutive evaluations before emitting a result here. We're able to
+        # store these in `DetectorStateData.counter_updates`, but we don't have anywhere to set the required
+        # thresholds at the moment. Probably should be a field on the Detector? Could also be on the condition
+        # level, but usually we want to set this at a higher level.
         new_status = DetectorPriorityLevel.OK
+        is_group_condition_met, condition_results = self.condition_group.evaluate_conditions(value)
 
-        for condition in self.conditions:
-            # TODO: We need to handle tracking consecutive evaluations before emitting a result here. We're able to
-            # store these in `DetectorStateData.counter_updates`, but we don't have anywhere to set the required
-            # thresholds at the moment. Probably should be a field on the Detector? Could also be on the condition
-            # level, but usually we want to set this at a higher level.
-            evaluation = condition.evaluate_value(value)
-
-            # ensures that the result is a DetectorPriorityLevel, and then uses the highest priority
-            if isinstance(evaluation, DetectorPriorityLevel):
-                new_status = max(new_status, evaluation)
+        if is_group_condition_met:
+            max_result_status = max(condition_results)
+            new_status = max(new_status, max_result_status)
 
         # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
         self.enqueue_counter_update(group_key, {})
