@@ -276,7 +276,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         # level, but usually we want to set this at a higher level.
         new_status = DetectorPriorityLevel.OK
         is_group_condition_met, condition_results = evaluate_group_conditions(
-            self.condition_group, self.conditions, value
+            self.condition_group, value, conditions=self.conditions
         )
 
         if is_group_condition_met:

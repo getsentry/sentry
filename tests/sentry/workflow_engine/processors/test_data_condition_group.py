@@ -13,15 +13,44 @@ class TestGetDataConditionGroup(TestCase):
     def test_get_data_condition_group(self):
         assert get_data_condition_group(1) is None
 
+    def test_get_data_condition_group__exists(self):
+        data_condition_group = self.create_data_condition_group()
+        assert get_data_condition_group(data_condition_group.id) == data_condition_group
+
 
 class TestGetDataConditionsForGroup(TestCase):
     def test_get_data_conditions_for_group(self):
         assert get_data_conditions_for_group(1) == []
 
+    def test_get_data_conditions_for_group__exists(self):
+        data_condition_group = self.create_data_condition_group()
+        data_condition = self.create_data_condition(condition_group=data_condition_group)
+        assert get_data_conditions_for_group(data_condition_group.id) == [data_condition]
+
 
 class TestProcessDataConditionGroup(TestCase):
     def test_process_data_condition_group(self):
         assert process_data_condition_group(1, 1) == (False, [])
+
+    def test_process_data_condition_group__exists(self):
+        data_condition_group = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=data_condition_group, condition="gt", comparison="5"
+        )
+        assert process_data_condition_group(data_condition_group.id, 1) == (False, [])
+
+    def test_process_data_condition_group__exists__passes(self):
+        data_condition_group = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=data_condition_group,
+            condition="gt",
+            comparison="5",
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        assert process_data_condition_group(data_condition_group.id, 10) == (
+            True,
+            [DetectorPriorityLevel.HIGH],
+        )
 
 
 class TestEvaluateGroupConditionsTypeAny(TestCase):
@@ -53,19 +82,27 @@ class TestEvaluateGroupConditionsTypeAny(TestCase):
         )
 
     def test_evaluate_group_conditions__passes_all(self):
-        assert evaluate_group_conditions(self.data_condition_group, 10, self.conditions) == (
+        assert evaluate_group_conditions(
+            self.data_condition_group, 10, conditions=self.conditions
+        ) == (
             True,
             [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW],
         )
 
     def test_evaluate_group_conditions__passes_one(self):
-        assert evaluate_group_conditions(self.data_condition_group, 4, self.conditions) == (
+        assert evaluate_group_conditions(
+            self.data_condition_group, 4, conditions=self.conditions
+        ) == (
             True,
             [DetectorPriorityLevel.LOW],
         )
 
     def test_evaluate_group_conditions__fails_all(self):
-        assert evaluate_group_conditions(self.data_condition_group, 1, self.conditions) == (
+        assert evaluate_group_conditions(
+            self.data_condition_group,
+            1,
+            conditions=self.conditions,
+        ) == (
             False,
             [],
         )
@@ -100,19 +137,25 @@ class TestEvaluateGroupConditionsTypeAll(TestCase):
         )
 
     def test_evaluate_group_conditions__passes_all(self):
-        assert evaluate_group_conditions(self.data_condition_group, 10, self.conditions) == (
+        assert evaluate_group_conditions(
+            self.data_condition_group, 10, conditions=self.conditions
+        ) == (
             True,
             [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW],
         )
 
     def test_evaluate_group_conditions__passes_one(self):
-        assert evaluate_group_conditions(self.data_condition_group, 4, self.conditions) == (
+        assert evaluate_group_conditions(
+            self.data_condition_group, 4, conditions=self.conditions
+        ) == (
             False,
             [],
         )
 
     def test_evaluate_group_conditions__fails_all(self):
-        assert evaluate_group_conditions(self.data_condition_group, 1, self.conditions) == (
+        assert evaluate_group_conditions(
+            self.data_condition_group, 1, conditions=self.conditions
+        ) == (
             False,
             [],
         )

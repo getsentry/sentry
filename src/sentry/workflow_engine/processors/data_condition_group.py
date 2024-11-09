@@ -31,23 +31,24 @@ def process_data_condition_group(
     data_condition_group_id: int, value
 ) -> ProcessedDataConditionResult:
     group = get_data_condition_group(data_condition_group_id)
-    conditions = get_data_conditions_for_group(data_condition_group_id)
 
     if group is None:
         return False, []
 
-    return evaluate_group_conditions(group, conditions, value)
+    conditions = get_data_conditions_for_group(data_condition_group_id)
+    return evaluate_group_conditions(group, value, conditions=conditions)
 
 
 def evaluate_group_conditions(
     data_condition_group: DataConditionGroup,
     value: Any,
-    conditions: list[DataCondition] | None = None,
+    **kwargs,
 ) -> ProcessedDataConditionResult:
     """
     Evaluate the conditions for a given group and value.
     """
     results = []
+    conditions = kwargs.get("conditions", None)
 
     if conditions is None:
         conditions = get_data_conditions_for_group(data_condition_group.id)
