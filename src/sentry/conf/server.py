@@ -1991,6 +1991,14 @@ SENTRY_DEFAULT_ROLE = "member"
 # in the chain (they still require the appropriate scope).
 SENTRY_ROLES: tuple[RoleDict, ...] = (
     {
+        "id": "billing",
+        "name": "Billing",
+        "desc": "Can manage subscription and billing details.",
+        "scopes": {"org:billing"},
+        "is_team_roles_allowed": False,
+        "is_retired": False,
+    },
+    {
         "id": "member",
         "name": "Member",
         "desc": "Members can view and act on events, as well as view most other data within the organization. By default, they can invite members to the organization unless the organization has disabled this feature.",

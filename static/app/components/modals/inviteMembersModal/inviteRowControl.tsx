@@ -92,6 +92,18 @@ function InviteRowControl({
     }
   };
 
+  const billingRole = 'billing';
+  const billingRoleOptions = [
+    {
+      id: 'billing',
+      name: 'Billing',
+      isAllowed: true,
+      desc: 'Can manage subscription and billing details.',
+      minimumTeamRole: 'admin',
+      isTeamRolesAllowed: false,
+    },
+  ];
+
   return (
     <li className={className}>
       <SelectControl
@@ -125,9 +137,9 @@ function InviteRowControl({
       <RoleSelectControl
         aria-label={t('Role')}
         data-test-id="select-role"
-        disabled={isOverMemberLimit ? true : disabled}
-        value={isOverMemberLimit ? 'billing' : role}
-        roles={roleOptions}
+        disabled={disabled}
+        value={isOverMemberLimit ? billingRole : role}
+        roles={isOverMemberLimit ? billingRoleOptions : roleOptions}
         disableUnallowed={roleDisabledUnallowed}
         onChange={roleOption => {
           onChangeRole(roleOption);

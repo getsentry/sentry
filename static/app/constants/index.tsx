@@ -81,6 +81,14 @@ export const ALLOWED_SCOPES = [
 // different organization they are not a OrganizationMember of ).
 export const ORG_ROLES: OrgRole[] = [
   {
+    id: 'billing',
+    name: 'Billing',
+    isAllowed: true,
+    desc: 'Can manage subscription and billing details.',
+    minimumTeamRole: 'admin',
+    isTeamRolesAllowed: false,
+  },
+  {
     id: 'member',
     name: 'Member',
     isAllowed: true,
