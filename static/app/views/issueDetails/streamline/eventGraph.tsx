@@ -195,7 +195,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     'issue-details-graph-legend',
     {
       ['Feature Flags']: true,
-      ['Releases']: true,
+      ['Releases']: false,
     }
   );
 
