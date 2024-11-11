@@ -89,7 +89,7 @@ class MetricAlertComparisonConditionValidator(NumericComparisonConditionValidato
 
 
 class MetricAlertsDetectorValidator(BaseGroupTypeDetectorValidator):
-    data_source = MetricsDataSourceValidator()
+    data_source = MetricsDataSourceValidator(required=True)
     data_conditions = MetricAlertComparisonConditionValidator(many=True)
 
     def validate(self, attrs):
