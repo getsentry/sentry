@@ -211,6 +211,14 @@ class OAuthAuthorizeView(AuthLoginView):
 
         if application.requires_org_level_access:
             organization_options = user_service.get_organizations(user_id=request.user.id)
+            if not organization_options:
+                return self.respond(
+                    "sentry/oauth-error.html",
+                    {
+                        "error": "This authorization flow is only available for users who are members of an organization."
+                    },
+                    status=400,
+                )
         else:
             # If application is not org level we should not show organizations to choose from at all
             organization_options = []
