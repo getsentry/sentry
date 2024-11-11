@@ -44,7 +44,7 @@ class SeerMethod(StrEnum):
     UPDATE = "update"
 
 
-def _get_start_index(data: list[TimeSeriesPoint]) -> tuple[int, int]:
+def _get_start_index(data: list[TimeSeriesPoint]) -> int:
     """
     Helper to return the first data points that has an event count. We can assume that all
     subsequent data points without associated event counts have event counts of zero.
