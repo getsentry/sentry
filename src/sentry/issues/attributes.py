@@ -14,7 +14,6 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
-from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -91,9 +90,6 @@ def send_snapshot_values(
 def bulk_send_snapshot_values(
     group_ids: list[int] | None, groups: list[Group] | None, group_deleted: bool = False
 ) -> None:
-    if not (options.get("issues.group_attributes.send_kafka") or False):
-        return
-
     if group_ids is None and groups is None:
         raise ValueError("cannot send snapshot values when group_ids and groups are None")
 
@@ -252,7 +248,7 @@ def process_update_fields(updated_fields) -> set[str]:
         # we'll need to assume any of the attributes are updated in that case
         updated_fields = {"all"}
     else:
-        VALID_FIELDS = {"status", "substatus", "num_comments"}
+        VALID_FIELDS = {"status", "substatus", "num_comments", "priority", "first_release"}
         updated_fields = VALID_FIELDS.intersection(updated_fields or ())
     if updated_fields:
         _log_group_attributes_changed(Operation.UPDATED, "group", "-".join(sorted(updated_fields)))

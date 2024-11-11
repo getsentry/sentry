@@ -10,7 +10,6 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {trackAnalytics} from 'sentry/utils/analytics';
 import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
 
 const MockNavigate = jest.fn();
@@ -20,7 +19,7 @@ jest.mock('sentry/utils/useNavigate', () => ({
 jest.mock('sentry/utils/analytics');
 
 describe('Issues Similar View', function () {
-  let mock;
+  let mock: jest.Mock;
 
   const project = ProjectFixture({
     features: ['similarity-view'],
@@ -182,10 +181,10 @@ describe('Issues Similar Embeddings View', function () {
   });
 
   const similarEmbeddingsScores = [
-    {exception: 0.01, message: 0.3748, shouldBeGrouped: 'Yes'},
-    {exception: 0.005, message: 0.3738, shouldBeGrouped: 'Yes'},
-    {exception: 0.7384, message: 0.3743, shouldBeGrouped: 'No'},
-    {exception: 0.3849, message: 0.4738, shouldBeGrouped: 'No'},
+    {exception: 0.01, shouldBeGrouped: 'Yes'},
+    {exception: 0.005, shouldBeGrouped: 'Yes'},
+    {exception: 0.7384, shouldBeGrouped: 'No'},
+    {exception: 0.3849, shouldBeGrouped: 'No'},
   ];
 
   const mockData = {
@@ -231,7 +230,6 @@ describe('Issues Similar Embeddings View', function () {
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
-    expect(await screen.findByText('Would Group')).toBeInTheDocument();
     expect(screen.queryByText('Show 3 issues below threshold')).not.toBeInTheDocument();
   });
 
@@ -289,31 +287,6 @@ describe('Issues Similar Embeddings View', function () {
     // Correctly show "Merge (0)" when the item is un-clicked
     await selectNthSimilarItem(0);
     expect(screen.getByText('Merge (0)')).toBeInTheDocument();
-  });
-
-  it('sends issue similarity embeddings agree analytics', async function () {
-    render(
-      <GroupSimilarIssues
-        project={project}
-        params={{orgId: 'org-slug', groupId: 'group-id'}}
-        location={router.location}
-      />,
-      {router}
-    );
-    renderGlobalModal();
-
-    await selectNthSimilarItem(0);
-    await userEvent.click(await screen.findByRole('button', {name: 'Agree (1)'}));
-    expect(trackAnalytics).toHaveBeenCalledTimes(1);
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
-      expect.objectContaining({
-        projectId: project.id,
-        groupId: 'group-id',
-        value: 'Yes',
-        wouldGroup: similarEmbeddingsScores[0].shouldBeGrouped,
-      })
-    );
   });
 
   it('shows empty message', async function () {

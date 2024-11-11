@@ -47,3 +47,5 @@ export const MODULE_DOC_LINK =
   'https://docs.sentry.io/product/insights/queue-monitoring/';
 
 export const TABLE_ROWS_LIMIT = 25;
+
+export const MODULE_FEATURES = ['insights-addon-modules'];

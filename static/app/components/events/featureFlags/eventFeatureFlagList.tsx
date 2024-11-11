@@ -1,29 +1,23 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
-  ALPHA_OPTIONS,
   CardContainer,
-  EVAL_ORDER_OPTIONS,
   FeatureFlagDrawer,
-  FlagControlOptions,
-  FlagSort,
-  getDefaultFlagSort,
-  getFlagSortLabel,
-  getSortGroupLabel,
-  SORT_GROUP_OPTIONS,
-  sortedFlags,
-  SortGroup,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
+import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
+import {
+  FlagControlOptions,
+  OrderBy,
+  SortBy,
+  sortedFlags,
+} from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
-import KeyValueData, {
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
-import {IconMegaphone, IconSearch, IconSort} from 'sentry/icons';
+import KeyValueData from 'sentry/components/keyValueData';
+import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -33,6 +27,9 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/useOrganizationFlagLog';
+import useSuspectFlags from 'sentry/views/issueDetails/streamline/useSuspectFlags';
 
 export function EventFeatureFlagList({
   event,
@@ -63,29 +60,66 @@ export function EventFeatureFlagList({
     </Button>
   ) : null;
 
-  const [flagSort, setFlagSort] = useState<FlagSort>(FlagSort.NEWEST);
-  const [sortGroup, setSortGroup] = useState<SortGroup>(SortGroup.EVAL_ORDER);
+  const [sortBy, setSortBy] = useState<SortBy>(SortBy.EVAL_ORDER);
+  const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const organization = useOrganization();
+  const eventView = useIssueDetailsEventView({group});
+  const {data: rawFlagData} = useOrganizationFlagLog({
+    organization,
+    query: {
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+    },
+  });
 
-  // Transform the flags array into something readable by the key-value component
-  const hydrateFlags = (flags: FeatureFlag[] | undefined): KeyValueDataContentProps[] => {
-    if (!flags) {
-      return [];
-    }
+  const {
+    suspectFlags,
+    isError: isSuspectError,
+    isPending: isSuspectPending,
+  } = useSuspectFlags({
+    organization,
+    firstSeen: group.firstSeen,
+    rawFlagData,
+    event,
+  });
+
+  const suspectFlagNames: Set<string> = useMemo(() => {
+    return isSuspectError || isSuspectPending
+      ? new Set()
+      : new Set(suspectFlags.map(f => f.flag));
+  }, [isSuspectError, isSuspectPending, suspectFlags]);
+
+  const hydratedFlags = useMemo(() => {
+    // Transform the flags array into something readable by the key-value component
+    // Reverse the flags to show newest at the top by default
+    const rawFlags: FeatureFlag[] = event.contexts?.flags?.values.toReversed() ?? [];
+
+    // Filter out ill-formatted flags, which come from SDK developer error or user-provided contexts.
+    const flags = rawFlags.filter(
+      f => f && typeof f === 'object' && 'flag' in f && 'result' in f
+    );
+
     return flags.map(f => {
       return {
-        item: {key: f.flag, subject: f.flag, value: f.result.toString()},
+        item: {
+          key: f.flag,
+          subject: f.flag,
+          value: suspectFlagNames.has(f.flag) ? (
+            <ValueWrapper>
+              {f.result.toString()}
+              <SuspectLabel>{t('Suspect')}</SuspectLabel>
+            </ValueWrapper>
+          ) : (
+            f.result.toString()
+          ),
+        },
+        isSuspectFlag: suspectFlagNames.has(f.flag),
       };
     });
-  };
-
-  // Reverse the flags to show newest at the top by default
-  const hydratedFlags = useMemo(
-    () => hydrateFlags(event.contexts?.flags?.values.reverse()),
-    [event]
-  );
+  }, [event, suspectFlagNames]);
 
   const onViewAllFlags = useCallback(
     (focusControl?: FlagControlOptions) => {
@@ -99,8 +133,8 @@ export function EventFeatureFlagList({
             event={event}
             project={project}
             hydratedFlags={hydratedFlags}
-            initialSortGroup={sortGroup}
-            initialFlagSort={flagSort}
+            initialSortBy={sortBy}
+            initialOrderBy={orderBy}
             focusControl={focusControl}
           />
         ),
@@ -119,7 +153,7 @@ export function EventFeatureFlagList({
         }
       );
     },
-    [openDrawer, event, group, project, hydratedFlags, organization, flagSort, sortGroup]
+    [openDrawer, event, group, project, hydratedFlags, organization, sortBy, orderBy]
   );
 
   if (!hydratedFlags.length) {
@@ -129,13 +163,6 @@ export function EventFeatureFlagList({
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
-      <Button
-        aria-label={t('Open Feature Flag Search')}
-        icon={<IconSearch size="xs" />}
-        size="xs"
-        title={t('Open Search')}
-        onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
-      />
       <Button
         size="xs"
         aria-label={t('View All')}
@@ -147,46 +174,24 @@ export function EventFeatureFlagList({
       >
         {t('View All')}
       </Button>
-      <CompactSelect
-        value={sortGroup}
-        options={SORT_GROUP_OPTIONS}
-        triggerProps={{
-          'aria-label': t('Sort Group'),
-        }}
-        onChange={selection => {
-          setFlagSort(getDefaultFlagSort(selection.value));
-          setSortGroup(selection.value);
-        }}
-        trigger={triggerProps => (
-          <DropdownButton {...triggerProps} size="xs">
-            {getSortGroupLabel(sortGroup)}
-          </DropdownButton>
-        )}
+      <Button
+        aria-label={t('Open Feature Flag Search')}
+        icon={<IconSearch size="xs" />}
+        size="xs"
+        title={t('Open Search')}
+        onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
       />
-      <CompactSelect
-        value={flagSort}
-        options={sortGroup === SortGroup.EVAL_ORDER ? EVAL_ORDER_OPTIONS : ALPHA_OPTIONS}
-        triggerProps={{
-          'aria-label': t('Flag Sort Type'),
-        }}
-        onChange={selection => {
-          setFlagSort(selection.value);
-          trackAnalytics('flags.sort-flags', {
-            organization,
-            sortMethod: selection.value,
-          });
-        }}
-        trigger={triggerProps => (
-          <DropdownButton {...triggerProps} size="xs" icon={<IconSort />}>
-            {getFlagSortLabel(flagSort)}
-          </DropdownButton>
-        )}
+      <FeatureFlagSort
+        orderBy={orderBy}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        setOrderBy={setOrderBy}
       />
     </ButtonBar>
   );
 
   // Split the flags list into two columns for display
-  const truncatedItems = sortedFlags({flags: hydratedFlags, sort: flagSort}).slice(0, 20);
+  const truncatedItems = sortedFlags({flags: hydratedFlags, sort: orderBy}).slice(0, 20);
   const columnOne = truncatedItems.slice(0, 10);
   let columnTwo: typeof truncatedItems = [];
   if (truncatedItems.length > 10) {
@@ -197,7 +202,7 @@ export function EventFeatureFlagList({
     <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
       <InterimSection
         help={t(
-          "The last 10 flags evaluated in the user's session leading up to this event."
+          "The last 100 flags evaluated in the user's session leading up to this event."
         )}
         isHelpHoverable
         title={t('Feature Flags')}
@@ -212,3 +217,12 @@ export function EventFeatureFlagList({
     </ErrorBoundary>
   );
 }
+
+const SuspectLabel = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const ValueWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;

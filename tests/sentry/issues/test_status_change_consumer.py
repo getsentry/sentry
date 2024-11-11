@@ -8,6 +8,7 @@ from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprin
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -52,6 +53,7 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
         group_history_status: int,
         activity_type: ActivityType,
         priority: int | None = None,
+        group_inbox_reason: GroupInboxReason | None = None,
     ) -> None:
         self.group.refresh_from_db()
         assert self.group.status == status
@@ -66,8 +68,16 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
                 group_id=self.group.id, type=ActivityType.SET_PRIORITY.value
             ).exists()
 
+        if group_inbox_reason:
+            assert GroupInbox.objects.filter(
+                group=self.group, reason=group_inbox_reason.value
+            ).exists()
+        else:
+            assert not GroupInbox.objects.filter(group=self.group).exists()
+
     @django_db_all
-    def test_valid_payload_resolved(self) -> None:
+    @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
+    def test_valid_payload_resolved(self, mock_kick_off_status_syncs: MagicMock) -> None:
         message = get_test_message_status_change(self.project.id, fingerprint=["touch-id"])
         result = _process_message(message)
         assert result is not None
@@ -77,10 +87,19 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
         group.refresh_from_db()
 
         self._assert_statuses_set(
-            GroupStatus.RESOLVED, None, GroupHistoryStatus.RESOLVED, ActivityType.SET_RESOLVED
+            GroupStatus.RESOLVED,
+            None,
+            GroupHistoryStatus.RESOLVED,
+            ActivityType.SET_RESOLVED,
+            group_inbox_reason=None,
         )
 
-    def test_valid_payload_archived_forever(self) -> None:
+        mock_kick_off_status_syncs.apply_async.assert_called_once_with(
+            kwargs={"project_id": self.project.id, "group_id": self.group.id}
+        )
+
+    @patch("sentry.issues.status_change_consumer.kick_off_status_syncs")
+    def test_valid_payload_archived_forever(self, mock_kick_off_status_syncs: MagicMock) -> None:
         message = get_test_message_status_change(
             self.project.id,
             fingerprint=self.fingerprint,
@@ -99,9 +118,17 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             GroupSubStatus.FOREVER,
             GroupHistoryStatus.ARCHIVED_FOREVER,
             ActivityType.SET_IGNORED,
+            group_inbox_reason=None,
         )
 
-    def test_valid_payload_unresolved_escalating(self) -> None:
+        mock_kick_off_status_syncs.apply_async.assert_called_once_with(
+            kwargs={"project_id": self.project.id, "group_id": self.group.id}
+        )
+
+    @patch("sentry.integrations.tasks.kick_off_status_syncs.kick_off_status_syncs")
+    def test_valid_payload_unresolved_escalating(
+        self, mock_kick_off_status_syncs: MagicMock
+    ) -> None:
         self.group.update(
             status=GroupStatus.IGNORED,
             substatus=GroupSubStatus.UNTIL_ESCALATING,
@@ -126,6 +153,11 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             GroupHistoryStatus.ESCALATING,
             ActivityType.SET_ESCALATING,
             PriorityLevel.HIGH,
+            group_inbox_reason=GroupInboxReason.ESCALATING,
+        )
+
+        mock_kick_off_status_syncs.apply_async.assert_called_once_with(
+            kwargs={"project_id": self.project.id, "group_id": self.group.id}
         )
 
     def test_valid_payload_auto_ongoing(self) -> None:
@@ -156,6 +188,7 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             GroupHistoryStatus.ONGOING,
             ActivityType.AUTO_SET_ONGOING,
             PriorityLevel.MEDIUM,
+            group_inbox_reason=GroupInboxReason.ONGOING,
         )
 
 

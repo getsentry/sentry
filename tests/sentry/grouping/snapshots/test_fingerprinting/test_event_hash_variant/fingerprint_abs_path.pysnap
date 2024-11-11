@@ -1,5 +1,5 @@
 ---
-created: '2021-01-11T19:06:29.175447Z'
+created: '2024-11-08T22:03:15.648004+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -11,6 +11,7 @@ config:
     matchers:
     - - type
       - DatabaseUnavailable
+    text: type:"DatabaseUnavailable" -> "{{ stack.abs_path }}"
   version: 1
 fingerprint:
 - '{{ stack.abs_path }}'
@@ -21,9 +22,9 @@ variants:
       contributes: false
       hint: custom fingerprint takes precedence
     type: component
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: type:"DatabaseUnavailable" -> "{{ stack.abs_path }}"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - /foo/Application.cpp
   system:

@@ -18,13 +18,13 @@ import {type Group, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {parseCursor} from 'sentry/utils/cursor';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 interface EventListProps {
@@ -40,8 +40,41 @@ export function EventList({group}: EventListProps) {
   const routes = useRoutes();
   const [_error, setError] = useState('');
   const {fields, columnTitles} = useEventColumns(group, organization);
-  const eventView = useIssueDetailsEventView({group, queryProps: {fields}});
-  const {baseUrl} = useGroupDetailsRoute();
+  const eventView = useIssueDetailsEventView({
+    group,
+    queryProps: {
+      fields,
+      widths: fields.map(field => {
+        switch (field) {
+          case 'id':
+          case 'trace':
+          case 'replayId':
+            // Id columns can be smaller
+            return '100';
+          case 'environment':
+            // Big enough to fit "Environment"
+            return '115';
+          case 'timestamp':
+            return '220';
+          case 'url':
+            return '300';
+          case 'title':
+          case 'transaction':
+            return '200';
+          default:
+            return '150';
+        }
+      }),
+    },
+  });
+
+  eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
+    fields.includes(sort.field)
+  );
+
+  if (!eventView.sorts.length) {
+    eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
+  }
 
   const grayText = css`
     color: ${theme.subText};
@@ -79,7 +112,7 @@ export function EventList({group}: EventListProps) {
           const previousDisabled = links.previous?.results === false;
           const nextDisabled = links.next?.results === false;
           const currentCursor = parseCursor(location.query?.cursor);
-          const start = currentCursor?.offset ?? 0;
+          const start = Math.max(currentCursor?.offset ?? 1, 1);
 
           return (
             <EventListHeader>
@@ -87,9 +120,11 @@ export function EventList({group}: EventListProps) {
               <EventListHeaderItem>
                 {isPending
                   ? null
-                  : tct('Showing [start]-[end] of [count]', {
+                  : tct('Showing [start]-[end] of [count] matching events', {
                       start: start.toLocaleString(),
-                      end: (start + pageEventsCount).toLocaleString(),
+                      end: (
+                        (currentCursor?.offset ?? 0) + pageEventsCount
+                      ).toLocaleString(),
                       count: (totalEventsCount ?? 0).toLocaleString(),
                     })}
               </EventListHeaderItem>
@@ -127,20 +162,6 @@ export function EventList({group}: EventListProps) {
                   />
                 </ButtonBar>
               </EventListHeaderItem>
-
-              <EventListHeaderItem>
-                <LinkButton
-                  borderless
-                  size="xs"
-                  css={grayText}
-                  to={{
-                    pathname: baseUrl,
-                    query: location.query,
-                  }}
-                >
-                  {t('Close')}
-                </LinkButton>
-              </EventListHeaderItem>
             </EventListHeader>
           );
         }}
@@ -159,7 +180,7 @@ const EventListHeader = styled('div')`
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
   position: sticky;
   top: 0;
-  z-index: 500;
+  z-index: ${p => p.theme.zIndex.header};
   border-radius: ${p => p.theme.borderRadiusTop};
 `;
 
@@ -176,8 +197,12 @@ const EventListHeaderItem = styled('div')`
 `;
 
 const StreamlineEventsTable = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+
   ${Panel} {
     border: 0;
+    margin-bottom: 0;
   }
 
   ${GridHead} {

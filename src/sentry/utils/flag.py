@@ -4,7 +4,7 @@ from contextvars import ContextVar
 flag_manager = ContextVar("flag_manager")  # type: ignore[var-annotated]
 
 
-def initialize_flag_manager(capacity: int = 10) -> None:
+def initialize_flag_manager(capacity: int = 100) -> None:
     flag_manager.set(FlagManager(capacity=capacity))
 
 
@@ -12,7 +12,7 @@ def initialize_flag_manager(capacity: int = 10) -> None:
 def process_flag_result(flag: str, result: bool) -> None:
     try:
         _flag_manager = flag_manager.get()
-        _flag_manager.insert(flag, result)
+        _flag_manager.insert(f"feature.{flag}", result)
     except LookupError:
         return None
 

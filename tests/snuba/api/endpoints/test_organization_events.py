@@ -46,6 +46,8 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, SpanTestCase):
     viewname = "sentry-api-0-organization-events"
@@ -82,7 +84,7 @@ class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, 
         self, per_transaction_threshold: bool = False, project: Project | None = None
     ) -> None:
         _project = project or self.project
-        # If duration is > 300 * 4 then the user is fruistrated
+        # If duration is > 300 * 4 then the user is frustrated
         # There's a total of 4 users and three of them reach the frustration threshold
         events = [
             ("one", 300),
@@ -5912,6 +5914,43 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["issue"] == "unknown"
         assert response.data["data"][0]["count()"] == 1
 
+    def test_metrics_enhanced_defaults_to_transactions_with_feature_flag(self):
+        # Store an error
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "poof",
+                "timestamp": self.ten_mins_ago_iso,
+                "user": {"email": self.user.email},
+                "tags": {"notMetrics": "this makes it not metrics"},
+            },
+            project_id=self.project.id,
+        )
+
+        # Store a transaction
+        self.store_event(
+            {**self.transaction_data, "tags": {"notMetrics": "this makes it not metrics"}},
+            project_id=self.project.id,
+        )
+        features = {
+            "organizations:performance-discover-dataset-selector": True,
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+        }
+        query = {
+            "field": ["count()"],
+            "query": 'notMetrics:"this makes it not metrics"',
+            "statsPeriod": "14d",
+            "dataset": "metricsEnhanced",
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+
+        # count() is 1 because it falls back to transactions
+        assert response.data["data"][0]["count()"] == 1
+
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
@@ -6018,29 +6057,58 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
     OrganizationEventsEndpointTestBase, ProfilesSnubaTestCase
 ):
     def test_functions_dataset_simple(self):
-        self.store_functions(
+        one_hour_ago = before_now(hours=1)
+        three_hours_ago = before_now(hours=3)
+
+        stored_1 = self.store_functions(
             [
                 {
-                    "self_times_ns": [100 for _ in range(100)],
+                    "self_times_ns": [100_000_000 for _ in range(100)],
                     "package": "foo",
-                    "function": "bar",
+                    "function": "foo",
                     "in_app": True,
                 },
             ],
             project=self.project,
-            timestamp=before_now(hours=3),
+            timestamp=three_hours_ago,
         )
-        self.store_functions(
+        stored_2 = self.store_functions(
             [
                 {
-                    "self_times_ns": [150 for _ in range(100)],
+                    "self_times_ns": [150_000_000 for _ in range(100)],
                     "package": "foo",
-                    "function": "bar",
+                    "function": "foo",
                     "in_app": True,
                 },
             ],
             project=self.project,
-            timestamp=before_now(hours=1),
+            timestamp=one_hour_ago,
+        )
+        stored_3 = self.store_functions_chunk(
+            [
+                {
+                    "self_times_ns": [200_000_000 for _ in range(100)],
+                    "package": "bar",
+                    "function": "bar",
+                    "thread_id": "1",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=three_hours_ago,
+        )
+        stored_4 = self.store_functions_chunk(
+            [
+                {
+                    "self_times_ns": [250_000_000 for _ in range(100)],
+                    "package": "bar",
+                    "function": "bar",
+                    "thread_id": "1",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=one_hour_ago,
         )
 
         mid = before_now(hours=2)
@@ -6056,6 +6124,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             "release",
             "count()",
             "examples()",
+            "all_examples()",
             "p50()",
             "p75()",
             "p95()",
@@ -6071,6 +6140,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
                 "statsPeriod": "4h",
                 "project": [self.project.id],
                 "dataset": "profileFunctions",
+                "orderby": "transaction",
             },
             features={"organizations:profiling": True},
         )
@@ -6094,6 +6164,7 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             "release": None,
             "count()": None,
             "examples()": None,
+            "all_examples()": None,
             "p50()": "nanosecond",
             "p75()": "nanosecond",
             "p95()": "nanosecond",
@@ -6102,6 +6173,87 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             "sum()": "nanosecond",
             f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": None,
         }
+
+        def all_examples_sort_key(example):
+            return example.get("profile_id") or example.get("profiler_id")
+
+        for row in response.data["data"]:
+            row["examples()"].sort()
+            row["all_examples()"].sort(key=all_examples_sort_key)
+
+        transaction_examples = [
+            stored_1["transaction"]["contexts"]["profile"]["profile_id"],
+            stored_2["transaction"]["contexts"]["profile"]["profile_id"],
+        ]
+        transaction_examples.sort()
+
+        transaction_all_examples = [
+            {"profile_id": stored_1["transaction"]["contexts"]["profile"]["profile_id"]},
+            {"profile_id": stored_2["transaction"]["contexts"]["profile"]["profile_id"]},
+        ]
+        transaction_all_examples.sort(key=all_examples_sort_key)
+
+        continuous_examples = [stored_3["profiler_id"], stored_4["profiler_id"]]
+        continuous_examples.sort()
+
+        continuous_all_examples = [
+            {
+                "profiler_id": stored_3["profiler_id"],
+                "thread_id": "1",
+                "start": three_hours_ago.timestamp(),
+                "end": (three_hours_ago + timedelta(microseconds=200_000)).timestamp(),
+            },
+            {
+                "profiler_id": stored_4["profiler_id"],
+                "thread_id": "1",
+                "start": one_hour_ago.timestamp(),
+                "end": (one_hour_ago + timedelta(microseconds=250_000)).timestamp(),
+            },
+        ]
+        continuous_all_examples.sort(key=all_examples_sort_key)
+
+        assert response.data["data"] == [
+            {
+                "transaction": "",
+                "project": self.project.slug,
+                "function": "bar",
+                "package": "bar",
+                "is_application": 1,
+                "platform.name": "",
+                "environment": None,
+                "release": None,
+                "count()": 200,
+                "examples()": continuous_examples,
+                "all_examples()": continuous_all_examples,
+                "p50()": 225_000_000.0,
+                "p75()": 250_000_000.0,
+                "p95()": 250_000_000.0,
+                "p99()": 250_000_000.0,
+                "avg()": 225_000_000.0,
+                "sum()": 45_000_000_000.0,
+                f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": mock.ANY,
+            },
+            {
+                "transaction": "/country_by_code/",
+                "project": self.project.slug,
+                "function": "foo",
+                "package": "foo",
+                "is_application": 1,
+                "platform.name": "transaction",
+                "environment": None,
+                "release": None,
+                "count()": 200,
+                "examples()": transaction_examples,
+                "all_examples()": transaction_all_examples,
+                "p50()": 125_000_000.0,
+                "p75()": 150_000_000.0,
+                "p95()": 150_000_000.0,
+                "p99()": 150_000_000.0,
+                "avg()": 125_000_000.0,
+                "sum()": 25_000_000_000.0,
+                f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": mock.ANY,
+            },
+        ]
 
 
 class OrganizationEventsIssuePlatformDatasetEndpointTest(
@@ -6307,102 +6459,100 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
 
 class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     def test_status(self):
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "timestamp": self.ten_mins_ago_iso,
-                    "fingerprint": ["group1"],
-                },
-                project_id=self.project.id,
-            ).group
-            group_2 = self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "timestamp": self.ten_mins_ago_iso,
-                    "fingerprint": ["group2"],
-                },
-                project_id=self.project.id,
-            ).group
-            group_3 = self.store_event(
-                data={
-                    "event_id": "c" * 32,
-                    "timestamp": self.ten_mins_ago_iso,
-                    "fingerprint": ["group3"],
-                },
-                project_id=self.project.id,
-            ).group
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group1"],
+            },
+            project_id=self.project.id,
+        ).group
+        group_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group2"],
+            },
+            project_id=self.project.id,
+        ).group
+        group_3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group3"],
+            },
+            project_id=self.project.id,
+        ).group
 
-            query = {
-                "field": ["count()"],
-                "statsPeriod": "2h",
-                "query": "status:unresolved",
-                "dataset": "errors",
-            }
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-            assert response.data["data"][0]["count()"] == 3
-            group_2.status = GroupStatus.IGNORED
-            group_2.substatus = GroupSubStatus.FOREVER
-            group_2.save(update_fields=["status", "substatus"])
-            group_3.status = GroupStatus.IGNORED
-            group_3.substatus = GroupSubStatus.FOREVER
-            group_3.save(update_fields=["status", "substatus"])
-            # XXX: Snuba caches query results, so change the time period so that the query
-            # changes enough to bust the cache.
-            query["statsPeriod"] = "3h"
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-            assert response.data["data"][0]["count()"] == 1
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": "status:unresolved",
+            "dataset": "errors",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 3
+        group_2.status = GroupStatus.IGNORED
+        group_2.substatus = GroupSubStatus.FOREVER
+        group_2.save(update_fields=["status", "substatus"])
+        group_3.status = GroupStatus.IGNORED
+        group_3.substatus = GroupSubStatus.FOREVER
+        group_3.save(update_fields=["status", "substatus"])
+        # XXX: Snuba caches query results, so change the time period so that the query
+        # changes enough to bust the cache.
+        query["statsPeriod"] = "3h"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
 
     def test_is_status(self):
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "timestamp": self.ten_mins_ago_iso,
-                    "fingerprint": ["group1"],
-                },
-                project_id=self.project.id,
-            ).group
-            group_2 = self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "timestamp": self.ten_mins_ago_iso,
-                    "fingerprint": ["group2"],
-                },
-                project_id=self.project.id,
-            ).group
-            group_3 = self.store_event(
-                data={
-                    "event_id": "c" * 32,
-                    "timestamp": self.ten_mins_ago_iso,
-                    "fingerprint": ["group3"],
-                },
-                project_id=self.project.id,
-            ).group
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group1"],
+            },
+            project_id=self.project.id,
+        ).group
+        group_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group2"],
+            },
+            project_id=self.project.id,
+        ).group
+        group_3 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group3"],
+            },
+            project_id=self.project.id,
+        ).group
 
-            query = {
-                "field": ["count()"],
-                "statsPeriod": "2h",
-                "query": "is:unresolved",
-                "dataset": "errors",
-            }
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-            assert response.data["data"][0]["count()"] == 3
-            group_2.status = GroupStatus.IGNORED
-            group_2.substatus = GroupSubStatus.FOREVER
-            group_2.save(update_fields=["status", "substatus"])
-            group_3.status = GroupStatus.IGNORED
-            group_3.substatus = GroupSubStatus.FOREVER
-            group_3.save(update_fields=["status", "substatus"])
-            # XXX: Snuba caches query results, so change the time period so that the query
-            # changes enough to bust the cache.
-            query["statsPeriod"] = "3h"
-            response = self.do_request(query)
-            assert response.status_code == 200, response.content
-            assert response.data["data"][0]["count()"] == 1
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": "is:unresolved",
+            "dataset": "errors",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 3
+        group_2.status = GroupStatus.IGNORED
+        group_2.substatus = GroupSubStatus.FOREVER
+        group_2.save(update_fields=["status", "substatus"])
+        group_3.status = GroupStatus.IGNORED
+        group_3.substatus = GroupSubStatus.FOREVER
+        group_3.save(update_fields=["status", "substatus"])
+        # XXX: Snuba caches query results, so change the time period so that the query
+        # changes enough to bust the cache.
+        query["statsPeriod"] = "3h"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
 
     def test_short_group_id(self):
         group_1 = self.store_event(
@@ -6424,18 +6574,17 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert response.data["data"][0]["count()"] == 1
 
     def test_user_display(self):
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            group_1 = self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "timestamp": self.ten_mins_ago_iso,
-                    "fingerprint": ["group1"],
-                    "user": {
-                        "email": "hellboy@bar.com",
-                    },
+        group_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group1"],
+                "user": {
+                    "email": "hellboy@bar.com",
                 },
-                project_id=self.project.id,
-            ).group
+            },
+            project_id=self.project.id,
+        ).group
 
         features = {
             "organizations:discover-basic": True,
@@ -6540,24 +6689,23 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "ip_address": "127.0.0.1",
         }
         replay_id = uuid.uuid4().hex
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            event = self.store_event(
-                data={
-                    "timestamp": self.ten_mins_ago_iso,
-                    "fingerprint": ["group1"],
-                    "contexts": {
-                        "trace": {
-                            "trace_id": str(uuid.uuid4().hex),
-                            "span_id": "933e5c9a8e464da9",
-                            "type": "trace",
-                        },
-                        "replay": {"replay_id": replay_id},
+        event = self.store_event(
+            data={
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group1"],
+                "contexts": {
+                    "trace": {
+                        "trace_id": str(uuid.uuid4().hex),
+                        "span_id": "933e5c9a8e464da9",
+                        "type": "trace",
                     },
-                    "tags": {"device": "Mac"},
-                    "user": user_data,
+                    "replay": {"replay_id": replay_id},
                 },
-                project_id=self.project.id,
-            )
+                "tags": {"device": "Mac"},
+                "user": user_data,
+            },
+            project_id=self.project.id,
+        )
 
         query = {
             "field": [

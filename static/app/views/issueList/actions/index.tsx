@@ -593,7 +593,6 @@ const SortDropdownMargin = styled('div')`
 const AnimatedHeaderItemsContainer = styled(motion.div)`
   display: flex;
   align-items: center;
-  line-height: 1.6;
 `;
 
 const StyledAlert = styled(Alert)`

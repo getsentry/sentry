@@ -1,5 +1,5 @@
 ---
-created: '2020-12-08T17:25:04.966299Z'
+created: '2024-11-08T22:03:16.161628+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -12,15 +12,16 @@ config:
     matchers:
     - - tags.foobar
       - '*stuff*'
+    text: tags.foobar:"*stuff*" -> "foobar-matched-stuff-{{ tags.barfoo }}"
   version: 1
 fingerprint:
 - foobar-matched-stuff-
 - '{{ tags.barfoo }}'
 title: Hello my sweet Love
 variants:
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: tags.foobar:"*stuff*" -> "foobar-matched-stuff-{{ tags.barfoo }}"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - foobar-matched-stuff-
     - amazing

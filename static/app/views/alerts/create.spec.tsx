@@ -1,4 +1,5 @@
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {GroupsFixture} from 'sentry-fixture/groups';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -71,6 +72,17 @@ describe('ProjectAlertsCreate', function () {
       url: '/projects/org-slug/project-slug/rules/preview/',
       method: 'POST',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      body: [],
+    });
+    const providerKeys = ['slack', 'discord', 'msteams'];
+    providerKeys.forEach(providerKey => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/config/integrations/?provider_key=${providerKey}`,
+        body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
+      });
     });
   });
 
@@ -678,8 +690,7 @@ describe('ProjectAlertsCreate', function () {
       method: 'POST',
       body: ProjectAlertRuleFixture(),
     });
-
-    createWrapper({organization: {features: ['noisy-alert-warning']}});
+    createWrapper();
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
 
     await selectEvent.select(screen.getByText('Add action...'), [
@@ -711,7 +722,7 @@ describe('ProjectAlertsCreate', function () {
   });
 
   it('does not display noisy alert banner for legacy integrations', async function () {
-    createWrapper({organization: {features: ['noisy-alert-warning']}});
+    createWrapper();
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
 
     await selectEvent.select(screen.getByText('Add action...'), [

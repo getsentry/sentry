@@ -15,7 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -55,9 +55,8 @@ Heading.defaultProps = {
   transition: testableTransition(),
 };
 
-const completeNowText = isDemoWalkthrough() ? t('Sentry Basics') : t('Next Steps');
+const completeNowText = isDemoModeEnabled() ? t('Sentry Basics') : t('Next Steps');
 
-const customizedTasksHeading = <Heading key="customized">{t('The Basics')}</Heading>;
 const completeNowHeading = <Heading key="now">{completeNowText}</Heading>;
 const upcomingTasksHeading = (
   <Heading key="upcoming">
@@ -82,13 +81,11 @@ export const useOnboardingTasks = (
       projects,
       onboardingContext,
     }).filter(task => task.display);
-    const filteredTasks = all.filter(task => !task.renderCard);
     return {
       allTasks: all,
-      customTasks: all.filter(task => task.renderCard),
-      active: filteredTasks.filter(findActiveTasks),
-      upcoming: filteredTasks.filter(findUpcomingTasks),
-      complete: filteredTasks.filter(findCompleteTasks),
+      active: all.filter(findActiveTasks),
+      upcoming: all.filter(findUpcomingTasks),
+      complete: all.filter(findCompleteTasks),
     };
   }, [organization, projects, onboardingContext]);
 };
@@ -120,7 +117,7 @@ export default function OnboardingWizardSidebar({
     });
   }
 
-  const {allTasks, customTasks, active, upcoming, complete} = useOnboardingTasks(
+  const {allTasks, active, upcoming, complete} = useOnboardingTasks(
     organization,
     projects,
     onboardingContext
@@ -184,20 +181,7 @@ export default function OnboardingWizardSidebar({
     </CompleteList>
   );
 
-  const customizedCards = customTasks
-    .map(task =>
-      task.renderCard?.({
-        organization,
-        task,
-        onboardingContext,
-        projects,
-      })
-    )
-    .filter(card => !!card);
-
   const items = [
-    customizedCards.length > 0 && customizedTasksHeading,
-    ...customizedCards,
     active.length > 0 && completeNowHeading,
     ...active.map(renderItem),
     upcoming.length > 0 && upcomingTasksHeading,

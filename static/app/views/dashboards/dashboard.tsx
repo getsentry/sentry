@@ -25,6 +25,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {DatasetSource} from 'sentry/utils/discover/types';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -55,6 +56,7 @@ import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardWidgetSource, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
+import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -87,8 +89,10 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
+  widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   handleAddMetricWidget?: (layout?: Widget['layout']) => void;
+  handleChangeSplitDataset?: (widget: Widget, index: number) => void;
   isPreview?: boolean;
   newWidget?: Widget;
   onSetNewWidget?: () => void;
@@ -333,6 +337,29 @@ class Dashboard extends Component<Props, State> {
     }
   };
 
+  handleChangeSplitDataset = (widget: Widget, index: number) => {
+    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
+
+    const widgetCopy = cloneDeep({
+      ...widget,
+      id: undefined,
+    });
+
+    const nextList = [...dashboard.widgets];
+    const nextWidgetData = {
+      ...widgetCopy,
+      widgetType: WidgetType.TRANSACTIONS,
+      datasetSource: DatasetSource.USER,
+      id: widget.id,
+    };
+    nextList[index] = nextWidgetData;
+
+    onUpdate(nextList);
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+  };
+
   handleEditWidget = (index: number) => () => {
     const {organization, router, location, paramDashboardId} = this.props;
     const widget = this.props.dashboard.widgets[index];
@@ -388,11 +415,13 @@ class Dashboard extends Component<Props, State> {
 
     const widgetProps = {
       widget,
+      widgetLegendState: this.props.widgetLegendState,
       isEditingDashboard,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
+      onSetTransactionsDataset: () => this.handleChangeSplitDataset(widget, index),
 
       isPreview,
 

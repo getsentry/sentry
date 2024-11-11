@@ -141,13 +141,11 @@ def dumps_htmlsafe(value: object) -> SafeString:
 
 
 @overload
-def prune_empty_keys(obj: None) -> None:
-    ...
+def prune_empty_keys(obj: None) -> None: ...
 
 
 @overload
-def prune_empty_keys(obj: Mapping[TKey, TValue | None]) -> dict[TKey, TValue]:
-    ...
+def prune_empty_keys(obj: Mapping[TKey, TValue | None]) -> dict[TKey, TValue]: ...
 
 
 def prune_empty_keys(obj: Mapping[TKey, TValue | None] | None) -> dict[TKey, TValue] | None:

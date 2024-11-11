@@ -22,10 +22,15 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
+import AnomalyDetectionFeedbackBanner from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  Dataset,
+  TimePeriod,
+} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
@@ -148,12 +153,16 @@ export default function MetricDetailsBody({
   const {dataset, aggregate, query} = rule;
 
   const eventType = extractEventTypeFilterFromRule(rule);
-  const queryWithTypeFilter = (
-    query ? `(${query}) AND (${eventType})` : eventType
-  ).trim();
+  const queryWithTypeFilter =
+    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+      ? query
+      : (query ? `(${query}) AND (${eventType})` : eventType).trim();
   const relativeOptions = {
     ...SELECTOR_RELATIVE_PERIODS,
     ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
+    ...(rule.detectionType === AlertRuleComparisonType.DYNAMIC
+      ? {[TimePeriod.TWENTY_EIGHT_DAYS]: t('Last 28 days')}
+      : {}),
   };
 
   const isSnoozed = rule.snooze;
@@ -170,12 +179,11 @@ export default function MetricDetailsBody({
 
   return (
     <Fragment>
-      <StyledLayoutBody>
-        {isCustomMetricAlert(rule.aggregate) &&
-          !isInsightsMetricAlert(rule.aggregate) && (
-            <MetricsBetaEndAlert style={{marginBottom: 0}} organization={organization} />
-          )}
-      </StyledLayoutBody>
+      {isCustomMetricAlert(rule.aggregate) && !isInsightsMetricAlert(rule.aggregate) && (
+        <StyledLayoutBody>
+          <MetricsBetaEndAlert style={{marginBottom: 0}} organization={organization} />
+        </StyledLayoutBody>
+      )}
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
           <StyledAlert type="warning" showIcon>
@@ -210,7 +218,11 @@ export default function MetricDetailsBody({
               relativeOptions={relativeOptions}
               showAbsolute={false}
               disallowArbitraryRelativeRanges
-              triggerLabel={relativeOptions[timePeriod.period ?? '']}
+              triggerLabel={
+                timePeriod.custom
+                  ? timePeriod.label
+                  : relativeOptions[timePeriod.period ?? '']
+              }
             />
             {selectedIncident && (
               <Tooltip
@@ -228,6 +240,17 @@ export default function MetricDetailsBody({
               </Tooltip>
             )}
           </StyledSubHeader>
+
+          {selectedIncident?.alertRule.detectionType ===
+            AlertRuleComparisonType.DYNAMIC && (
+            <AnomalyDetectionFeedbackBanner
+              // unique key to force re-render when incident changes
+              key={selectedIncident.id}
+              id={selectedIncident.id}
+              organization={organization}
+              selectedIncident={selectedIncident}
+            />
+          )}
 
           <ErrorMigrationWarning project={project} rule={rule} />
 

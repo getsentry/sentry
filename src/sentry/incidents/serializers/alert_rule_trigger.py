@@ -86,6 +86,11 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                 else:
                     action_instance = None
 
+                if not action_data.get("target_identifier", ""):
+                    raise serializers.ValidationError(
+                        "One or more of your actions is missing a target identifier."
+                    )
+
                 action_serializer = AlertRuleTriggerActionSerializer(
                     context={
                         "alert_rule": alert_rule_trigger.alert_rule,

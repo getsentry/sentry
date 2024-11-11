@@ -2,8 +2,8 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
+import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
 import {
   getMappedThreadState,
@@ -26,7 +26,7 @@ import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useHasStreamlinedUI, useIsSampleEvent} from 'sentry/views/issueDetails/utils';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {TraceEventDataSection} from '../traceEventDataSection';
 
@@ -104,7 +104,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
   const threads = data.values ?? [];
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
-  const isSampleError = useIsSampleEvent();
 
   const stackTraceNotFound = !threads.length;
 
@@ -228,15 +227,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
   const hideThreadTags = activeThreadId === undefined || !activeThreadName;
 
   const threadComponent = (
-    <ThreadTraceWrapper
-      style={{
-        // TODO(issues): Remove on streamline issues ui GA
-        padding:
-          !hasMoreThanOneThread || hasStreamlinedUI
-            ? undefined
-            : `${space(1)} ${space(4)}`,
-      }}
-    >
+    <Fragment>
       {hasMoreThanOneThread && (
         <Fragment>
           <Grid>
@@ -337,23 +328,8 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         stackTraceNotFound={stackTraceNotFound}
       >
         {childrenProps => {
-          // TODO(scttcper): These are duplicated from renderContent, should consolidate
-          const stackType = childrenProps.display.includes('minified')
-            ? StackType.MINIFIED
-            : StackType.ORIGINAL;
-          const isRaw = childrenProps.display.includes('raw-stack-trace');
-          const stackTrace = getThreadStacktrace(
-            stackType !== StackType.ORIGINAL,
-            activeThread
-          );
-
           return (
             <Fragment>
-              {stackTrace && !isRaw && !isSampleError && (
-                <ErrorBoundary customComponent={null}>
-                  <StacktraceBanners event={event} stacktrace={stackTrace} />
-                </ErrorBoundary>
-              )}
               {renderContent(childrenProps)}
               {hasStreamlinedUI && group && (
                 <ErrorBoundary
@@ -372,20 +348,26 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
           );
         }}
       </TraceEventDataSection>
-    </ThreadTraceWrapper>
+    </Fragment>
   );
 
-  // If there is only one thread, we expect the stacktrace to wrap itself in a section
-  return hasMoreThanOneThread && hasStreamlinedUI ? (
-    <InterimSection
-      title={tn('Stack Trace', 'Stack Traces', threads.length)}
-      type={SectionKey.STACKTRACE}
-    >
-      {threadComponent}
-    </InterimSection>
-  ) : (
-    threadComponent
-  );
+  if (hasStreamlinedUI) {
+    // If there is only one thread, we expect the stacktrace to wrap itself in a section
+    return hasMoreThanOneThread ? (
+      <InterimSection
+        title={tn('Stack Trace', 'Stack Traces', threads.length)}
+        type={SectionKey.STACKTRACE}
+      >
+        <Flex column gap={space(2)}>
+          {threadComponent}
+        </Flex>
+      </InterimSection>
+    ) : (
+      threadComponent
+    );
+  }
+
+  return <ThreadTraceWrapper>{threadComponent}</ThreadTraceWrapper>;
 }
 
 const Grid = styled('div')`
@@ -422,6 +404,10 @@ const ThreadTraceWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+  padding: ${space(1)} ${space(4)};
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(1)} ${space(2)};
+  }
 `;
 
 const ThreadHeading = styled('h3')`

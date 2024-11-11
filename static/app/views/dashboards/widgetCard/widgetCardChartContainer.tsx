@@ -12,16 +12,16 @@ import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import type {DashboardFilters, Widget} from '../types';
 import {WidgetType} from '../types';
+import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import type {AugmentedEChartDataZoomHandler} from './chart';
 import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
-import IssueWidgetQueries from './issueWidgetQueries';
-import ReleaseWidgetQueries from './releaseWidgetQueries';
-import WidgetQueries from './widgetQueries';
+import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 type Props = {
   api: Client;
@@ -29,6 +29,7 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   chartZoomOptions?: DataZoomComponentOption;
   dashboardFilters?: DashboardFilters;
@@ -58,7 +59,6 @@ type Props = {
 };
 
 export function WidgetCardChartContainer({
-  api,
   organization,
   selection,
   widget,
@@ -78,20 +78,36 @@ export function WidgetCardChartContainer({
   onWidgetSplitDecision,
   chartGroup,
   shouldResize,
+  widgetLegendState,
 }: Props) {
   const location = useLocation();
-  if (widget.widgetType === WidgetType.ISSUE) {
-    return (
-      <IssueWidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        limit={tableItemLimit}
-        onDataFetched={onDataFetched}
-        dashboardFilters={dashboardFilters}
-      >
-        {({tableResults, errorMessage, loading}) => {
+
+  function keepLegendState({
+    selected,
+  }: {
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }) {
+    widgetLegendState.setWidgetSelectionState(selected, widget);
+  }
+
+  return (
+    <WidgetCardDataLoader
+      widget={widget}
+      dashboardFilters={dashboardFilters}
+      selection={selection}
+      onDataFetched={onDataFetched}
+      onWidgetSplitDecision={onWidgetSplitDecision}
+      tableItemLimit={tableItemLimit}
+    >
+      {({
+        tableResults,
+        timeseriesResults,
+        errorMessage,
+        loading,
+        timeseriesResultsTypes,
+      }) => {
+        if (widget.widgetType === WidgetType.ISSUE) {
           return (
             <Fragment>
               {typeof renderErrorMessage === 'function'
@@ -108,79 +124,19 @@ export function WidgetCardChartContainer({
               />
             </Fragment>
           );
-        }}
-      </IssueWidgetQueries>
-    );
-  }
+        }
 
-  if (widget.widgetType === WidgetType.RELEASE) {
-    return (
-      <ReleaseWidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        limit={widget.limit ?? tableItemLimit}
-        onDataFetched={onDataFetched}
-        dashboardFilters={dashboardFilters}
-      >
-        {({tableResults, timeseriesResults, errorMessage, loading}) => {
-          return (
-            <Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <WidgetCardChart
-                timeseriesResults={timeseriesResults}
-                tableResults={tableResults}
-                errorMessage={errorMessage}
-                loading={loading}
-                location={location}
-                widget={widget}
-                selection={selection}
-                organization={organization}
-                isMobile={isMobile}
-                windowWidth={windowWidth}
-                expandNumbers={expandNumbers}
-                onZoom={onZoom}
-                showSlider={showSlider}
-                noPadding={noPadding}
-                chartZoomOptions={chartZoomOptions}
-                chartGroup={chartGroup}
-                shouldResize={shouldResize}
-              />
-            </Fragment>
-          );
-        }}
-      </ReleaseWidgetQueries>
-    );
-  }
+        // Bind timeseries to widget for ability to control each widget's legend individually
+        const modifiedTimeseriesResults =
+          WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
 
-  return (
-    <WidgetQueries
-      api={api}
-      organization={organization}
-      widget={widget}
-      selection={selection}
-      limit={tableItemLimit}
-      onDataFetched={onDataFetched}
-      dashboardFilters={dashboardFilters}
-      onWidgetSplitDecision={onWidgetSplitDecision}
-    >
-      {({
-        tableResults,
-        timeseriesResults,
-        errorMessage,
-        loading,
-        timeseriesResultsTypes,
-      }) => {
         return (
           <Fragment>
             {typeof renderErrorMessage === 'function'
               ? renderErrorMessage(errorMessage)
               : null}
             <WidgetCardChart
-              timeseriesResults={timeseriesResults}
+              timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
               errorMessage={errorMessage}
               loading={loading}
@@ -190,21 +146,28 @@ export function WidgetCardChartContainer({
               organization={organization}
               isMobile={isMobile}
               windowWidth={windowWidth}
-              onZoom={onZoom}
-              onLegendSelectChanged={onLegendSelectChanged}
-              legendOptions={legendOptions}
               expandNumbers={expandNumbers}
+              onZoom={onZoom}
               showSlider={showSlider}
+              timeseriesResultsTypes={timeseriesResultsTypes}
               noPadding={noPadding}
               chartZoomOptions={chartZoomOptions}
-              timeseriesResultsTypes={timeseriesResultsTypes}
               chartGroup={chartGroup}
               shouldResize={shouldResize}
+              onLegendSelectChanged={
+                onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
+              }
+              legendOptions={
+                legendOptions
+                  ? legendOptions
+                  : {selected: widgetLegendState.getWidgetSelectionState(widget)}
+              }
+              widgetLegendState={widgetLegendState}
             />
           </Fragment>
         );
       }}
-    </WidgetQueries>
+    </WidgetCardDataLoader>
   );
 }
 

@@ -145,7 +145,7 @@ function SearchIndicator({
 
 const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNode}>(
   ({trailingItems = null}, ref) => {
-    const {dispatch, handleSearch, disabled} = useSearchQueryBuilder();
+    const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
 
     if (disabled) {
       return null;
@@ -154,16 +154,18 @@ const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNod
     return (
       <ButtonsWrapper ref={ref}>
         {trailingItems}
-        <ActionButton
-          aria-label={t('Clear search query')}
-          size="zero"
-          icon={<IconClose />}
-          borderless
-          onClick={() => {
-            dispatch({type: 'CLEAR'});
-            handleSearch('');
-          }}
-        />
+        {query === '' ? null : (
+          <ActionButton
+            aria-label={t('Clear search query')}
+            size="zero"
+            icon={<IconClose />}
+            borderless
+            onClick={() => {
+              dispatch({type: 'CLEAR'});
+              handleSearch('');
+            }}
+          />
+        )}
       </ButtonsWrapper>
     );
   }
@@ -286,15 +288,15 @@ export function SearchQueryBuilder({
 
   return (
     <SearchQueryBuilderContext.Provider value={contextValue}>
-      <PanelProvider>
-        <Wrapper
-          className={className}
-          onBlur={() =>
-            onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
-          }
-          ref={wrapperRef}
-          aria-disabled={disabled}
-        >
+      <Wrapper
+        className={className}
+        onBlur={() =>
+          onBlur?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
+        }
+        ref={wrapperRef}
+        aria-disabled={disabled}
+      >
+        <PanelProvider>
           <SearchIndicator
             initialQuery={initialQuery}
             showUnsubmittedIndicator={showUnsubmittedIndicator}
@@ -307,8 +309,8 @@ export function SearchQueryBuilder({
           {size !== 'small' && (
             <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
           )}
-        </Wrapper>
-      </PanelProvider>
+        </PanelProvider>
+      </Wrapper>
     </SearchQueryBuilderContext.Provider>
   );
 }

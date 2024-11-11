@@ -108,7 +108,7 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
         assert response.data == {"measurements": False}
 
     def test_has_event_but_no_web_measurements(self):
-        # make sure the transaction doesnt have measurements
+        # make sure the transaction doesn't have measurements
         self.transaction_data["measurements"] = {}
         self.store_event(self.transaction_data, self.project.id)
 

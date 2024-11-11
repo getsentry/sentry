@@ -47,37 +47,36 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         self.project2 = self.create_project()
         self.user = self.create_user()
         self.user2 = self.create_user()
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
-                    "fingerprint": ["group1"],
-                    "tags": {"sentry:user": self.user.email},
-                },
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "oh my",
-                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user2.email},
-                },
-                project_id=self.project2.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "c" * 32,
-                    "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user2.email},
-                },
-                project_id=self.project2.id,
-            )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "very bad",
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "oh my",
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user2.email},
+            },
+            project_id=self.project2.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "very bad",
+                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user2.email},
+            },
+            project_id=self.project2.id,
+        )
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_id_or_slug": self.project.organization.slug},
@@ -2727,47 +2726,89 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
         )
 
     def test_functions_dataset_simple(self):
-        self.store_functions(
+        transaction_function = self.store_functions(
             [
                 {
-                    "self_times_ns": [100 for _ in range(100)],
+                    "self_times_ns": [100_000_000 for _ in range(100)],
                     "package": "foo",
                     "function": "bar",
                     "in_app": True,
                 },
             ],
             project=self.project,
-            timestamp=self.two_days_ago,
+            timestamp=self.two_days_ago - timedelta(hours=12),
         )
+
+        continuous_timestamp = self.two_days_ago + timedelta(hours=12)
+        continuous_function = self.store_functions_chunk(
+            [
+                {
+                    "self_times_ns": [200_000_000 for _ in range(100)],
+                    "package": "bar",
+                    "function": "bar",
+                    "thread_id": "1",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=continuous_timestamp,
+        )
+
+        y_axes = [
+            "cpm()",
+            "p95(function.duration)",
+            "all_examples()",
+        ]
 
         data = {
             "dataset": "profileFunctions",
             "start": self.three_days_ago.isoformat(),
             "end": self.one_day_ago.isoformat(),
             "interval": "1d",
-            "yAxis": ["cpm()", "p95(function.duration)"],
+            "yAxis": y_axes,
         }
 
         response = self.client.get(self.url, data=data, format="json")
         assert response.status_code == 200, response.content
 
         assert sum(row[1][0]["count"] for row in response.data["cpm()"]["data"]) == pytest.approx(
-            100 / ((self.one_day_ago - self.three_days_ago).total_seconds() / 60), rel=1e-3
+            200 / ((self.one_day_ago - self.three_days_ago).total_seconds() / 60), rel=1e-3
         )
         assert any(
             row[1][0]["count"] > 0 for row in response.data["p95(function.duration)"]["data"]
         )
 
-        for y_axis in ["cpm()", "p95(function.duration)"]:
+        examples = [row[1][0]["count"] for row in response.data["all_examples()"]["data"]]
+        assert examples == [
+            [
+                {
+                    "profile_id": transaction_function["transaction"]["contexts"]["profile"][
+                        "profile_id"
+                    ],
+                },
+            ],
+            [
+                {
+                    "profiler_id": continuous_function["profiler_id"],
+                    "thread_id": "1",
+                    "start": continuous_timestamp.timestamp(),
+                    "end": (continuous_timestamp + timedelta(microseconds=200_000)).timestamp(),
+                },
+            ],
+        ]
+
+        for y_axis in y_axes:
             assert response.data[y_axis]["meta"]["fields"] == {
                 "time": "date",
                 "cpm": "number",
                 "p95_function_duration": "duration",
+                "all_examples": "string",
             }
             assert response.data[y_axis]["meta"]["units"] == {
                 "time": None,
                 "cpm": None,
                 "p95_function_duration": "nanosecond",
+                "all_examples": None,
             }
 
 

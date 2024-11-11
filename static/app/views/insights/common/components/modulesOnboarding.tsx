@@ -11,6 +11,7 @@ import queriesPreviewImg from 'sentry-images/insights/module-upsells/insights-qu
 import queuesPreviewImg from 'sentry-images/insights/module-upsells/insights-queues-module-charts.svg';
 import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-requests-module-charts.svg';
 import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-loads-module-charts.svg';
+import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
@@ -30,6 +31,7 @@ import {
   MODULE_DATA_TYPES,
   MODULE_DATA_TYPES_PLURAL,
   MODULE_PRODUCT_DOC_LINKS,
+  MODULE_TITLES,
 } from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import PerformanceOnboarding from 'sentry/views/performance/onboarding';
@@ -456,6 +458,26 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       t('Drill down to real user sessions.'),
     ],
     imageSrc: screenLoadsPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
+  'screen-rendering': {
+    description: t(
+      'Screen Rendering identifies slow and frozen interactions, helping you find and fix problems that might cause users to complain, or uninstall.'
+    ),
+    heading: t('Fast-loading apps can still be janky'),
+    imageSrc: screenRenderingPreviewImg,
+    valuePropDescription: tct('With [moduleTitle]:', {
+      moduleTitle: MODULE_TITLES[ModuleName.SCREEN_RENDERING],
+    }),
+    valuePropPoints: [
+      tct('Find and debug slow rendering interactions.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
+      }),
+      t('Compare render performance between releases.'),
+      tct('Correlate [dataType] performance with real-user metrics.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
+      }),
+    ],
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
 };

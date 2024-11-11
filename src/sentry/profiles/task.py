@@ -15,12 +15,10 @@ from django.conf import settings
 
 from sentry import options, quotas
 from sentry.constants import DataCategory
-from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.lang.native.utils import native_images_from_data
-from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -131,6 +129,8 @@ def process_profile_task(
         set_measurement("profile.samples", len(profile["profile"]["samples"]))
         set_measurement("profile.stacks", len(profile["profile"]["stacks"]))
         set_measurement("profile.frames", len(profile["profile"]["frames"]))
+    elif "profiler_id" in profile and profile["platform"] == "android":
+        sentry_sdk.set_tag("format", "android_chunk")
     else:
         sentry_sdk.set_tag("format", "legacy")
 
@@ -193,8 +193,36 @@ def process_profile_task(
                     _track_duration_outcome(profile=profile, project=project)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
-            if profile.get("version") != "2":
-                _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
+            if "profiler_id" not in profile:
+                if options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
+                    _track_outcome(
+                        profile=profile,
+                        project=project,
+                        outcome=Outcome.ACCEPTED,
+                        categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
+                    )
+                else:
+                    _track_outcome_legacy(
+                        profile=profile, project=project, outcome=Outcome.ACCEPTED
+                    )
+    else:
+        if (
+            options.get("profiling.emit_outcomes_in_profiling_consumer.enabled")
+            and "profiler_id" not in profile
+        ):
+            _track_outcome(
+                profile=profile,
+                project=project,
+                outcome=Outcome.ACCEPTED,
+                categories=[DataCategory.PROFILE],
+            )
+            _track_outcome(
+                profile=profile,
+                project=project,
+                outcome=Outcome.FILTERED,
+                categories=[DataCategory.PROFILE_INDEXED],
+                reason="sampled",
+            )
 
 
 JS_PLATFORMS = ["javascript", "node"]
@@ -288,12 +316,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
         except Exception as e:
             sentry_sdk.capture_exception(e)
             metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
-            _track_outcome(
-                profile=profile,
-                project=project,
-                outcome=Outcome.INVALID,
-                reason="profiling_failed_symbolication",
-            )
+            _track_failed_outcome(profile, project, "profiling_failed_symbolication")
             return False
         profile["debug_meta"]["images"] = original_images
         profile["processed_by_symbolicator"] = True
@@ -320,12 +343,7 @@ def _deobfuscate_profile(profile: Profile, project: Project) -> bool:
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            _track_outcome(
-                profile=profile,
-                project=project,
-                outcome=Outcome.INVALID,
-                reason="profiling_failed_deobfuscation",
-            )
+            _track_failed_outcome(profile, project, "profiling_failed_deobfuscation")
             return False
 
 
@@ -340,12 +358,7 @@ def _normalize_profile(profile: Profile, organization: Organization, project: Pr
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            _track_outcome(
-                profile=profile,
-                project=project,
-                outcome=Outcome.INVALID,
-                reason="profiling_failed_normalization",
-            )
+            _track_failed_outcome(profile, project, "profiling_failed_normalization")
             return False
 
 
@@ -806,7 +819,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 profile=profile,
                 modules=[
                     {
-                        "uuid": UUID(debug_file_id).hex,
+                        "uuid": debug_file_id,
                         "type": "proguard",
                     }
                 ],
@@ -841,10 +854,22 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
     return False
 
 
+def get_debug_file_id(profile: Profile) -> str | None:
+    debug_file_id = profile.get("build_id")
+
+    if debug_file_id is None or debug_file_id == "":
+        return None
+
+    try:
+        return UUID(debug_file_id).hex
+    except ValueError:
+        return None
+
+
 @metrics.wraps("process_profile.deobfuscate")
 def _deobfuscate(profile: Profile, project: Project) -> None:
-    debug_file_id = profile.get("build_id")
-    if debug_file_id is None or debug_file_id == "":
+    debug_file_id = get_debug_file_id(profile)
+    if debug_file_id is None:
         # we still need to decode signatures
         for m in profile["profile"]["methods"]:
             if m.get("signature"):
@@ -852,111 +877,18 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 m["signature"] = format_signature(types)
         return
 
-    # We re-use this option as a deny list before we remove it completely.
-    if project.id not in options.get("profiling.deobfuscate-using-symbolicator.enable-for-project"):
-        try:
-            with sentry_sdk.start_span(op="deobfuscate_with_symbolicator"):
-                success = _deobfuscate_using_symbolicator(
-                    project=project,
-                    profile=profile,
-                    debug_file_id=debug_file_id,
-                )
-                sentry_sdk.set_tag("deobfuscated_with_symbolicator_with_success", success)
-                if success:
-                    return
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-    else:
-        _deobfuscate_locally(profile=profile, project=project, debug_file_id=debug_file_id)
-
-
-@metrics.wraps("process_profile.deobfuscate.locally")
-def _deobfuscate_locally(profile: Profile, project: Project, debug_file_id: str) -> None:
-    with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
-        dif_paths = ProjectDebugFile.difcache.fetch_difs(
-            project, [debug_file_id], features=["mapping"]
-        )
-        debug_file_path = dif_paths.get(debug_file_id)
-        if debug_file_path is None:
-            return
-
-    mapper = open_proguard_mapper(debug_file_path, initialize_param_mapping=True)
-    if not mapper.has_line_info:
-        return
-
-    with sentry_sdk.start_span(op="proguard.remap"):
-        for method in profile["profile"]["methods"]:
-            method.setdefault("data", {})
-            types = None
-            if method.get("signature"):
-                types = deobfuscate_signature(method["signature"], mapper)
-                method["signature"] = format_signature(types)
-
-            # in case we don't have line numbers but we do have the signature,
-            # we do a best-effort deobfuscation exploiting function parameters
-            if (
-                method.get("source_line") is None
-                and method.get("signature") is not None
-                and types is not None
-            ):
-                param_type, _ = types
-                params = ",".join(param_type)
-                mapped = mapper.remap_frame(method["class_name"], method["name"], 0, params)
-            else:
-                mapped = mapper.remap_frame(
-                    method["class_name"], method["name"], method["source_line"] or 0
-                )
-
-            if len(mapped) >= 1:
-                new_frame = mapped[-1]
-                method["class_name"] = new_frame.class_name
-                method["name"] = new_frame.method
-                method["data"] = {
-                    "deobfuscation_status": (
-                        "deobfuscated" if method.get("signature", None) else "partial"
-                    )
-                }
-
-                if new_frame.file:
-                    method["source_file"] = new_frame.file
-
-                if new_frame.line:
-                    method["source_line"] = new_frame.line
-
-                bottom_class = mapped[-1].class_name
-
-                if method.get("source_line") is None and method.get("signature") is not None:
-                    # if we used parameters-based deobfuscation we won't have to deal with
-                    # inlines so we can just skip
-                    continue
-
-                method["inline_frames"] = [
-                    {
-                        "class_name": new_frame.class_name,
-                        "data": {"deobfuscation_status": "deobfuscated"},
-                        "name": new_frame.method,
-                        "source_file": (
-                            method["source_file"] if bottom_class == new_frame.class_name else ""
-                        ),
-                        "source_line": new_frame.line,
-                    }
-                    for new_frame in reversed(mapped)
-                ]
-
-                # vroom will only take into account frames in this list
-                # if it exists. since symbolic does not return a signature for
-                # the frame we deobfuscated, we update it to set
-                # the deobfuscated signature.
-                if len(method["inline_frames"]) > 0:
-                    method["inline_frames"][0]["data"] = method["data"]
-                    method["inline_frames"][0]["signature"] = method.get("signature", "")
-            else:
-                mapped_class = mapper.remap_class(method["class_name"])
-                if mapped_class:
-                    method["class_name"] = mapped_class
-                    method["data"]["deobfuscation_status"] = "partial"
-                else:
-                    method["data"]["deobfuscation_status"] = "missing"
+    try:
+        with sentry_sdk.start_span(op="deobfuscate_with_symbolicator"):
+            success = _deobfuscate_using_symbolicator(
+                project=project,
+                profile=profile,
+                debug_file_id=debug_file_id,
+            )
+            sentry_sdk.set_tag("deobfuscated_with_symbolicator_with_success", success)
+            if success:
+                return
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 def get_event_id(profile: Profile) -> str:
@@ -974,7 +906,7 @@ def get_data_category(profile: Profile) -> DataCategory:
 
 
 @metrics.wraps("process_profile.track_outcome")
-def _track_outcome(
+def _track_outcome_legacy(
     profile: Profile,
     project: Project,
     outcome: Outcome,
@@ -993,11 +925,59 @@ def _track_outcome(
     )
 
 
+@metrics.wraps("process_profile.track_outcome")
+def _track_outcome(
+    profile: Profile,
+    project: Project,
+    outcome: Outcome,
+    categories: list[DataCategory],
+    reason: str | None = None,
+    quantity: int = 1,
+) -> None:
+    for category in categories:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=outcome,
+            reason=reason,
+            timestamp=datetime.now(timezone.utc),
+            event_id=get_event_id(profile),
+            category=category,
+            quantity=quantity,
+        )
+
+
+def _track_failed_outcome(profile: Profile, project: Project, reason: str) -> None:
+    if options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
+        categories = []
+        if "profiler_id" not in profile:
+            categories.append(DataCategory.PROFILE)
+            if profile.get("sampled"):
+                categories.append(DataCategory.PROFILE_INDEXED)
+        else:
+            categories.append(DataCategory.PROFILE_CHUNK)
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            categories=categories,
+            reason=reason,
+        )
+    else:
+        _track_outcome_legacy(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            reason=reason,
+        )
+
+
 @metrics.wraps("process_profile.insert_vroom_profile")
 def _insert_vroom_profile(profile: Profile) -> bool:
     with sentry_sdk.start_span(op="task.profiling.insert_vroom"):
         try:
-            path = "/chunk" if profile.get("version") == "2" else "/profile"
+            path = "/chunk" if "profiler_id" in profile else "/profile"
             response = get_from_profiling_service(method="POST", path=path, json_data=profile)
 
             if response.status == 204:
@@ -1036,12 +1016,7 @@ def _insert_vroom_profile(profile: Profile) -> bool:
 def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
     if _insert_vroom_profile(profile=profile):
         return True
-    _track_outcome(
-        profile=profile,
-        project=project,
-        outcome=Outcome.INVALID,
-        reason="profiling_failed_vroom_insertion",
-    )
+    _track_failed_outcome(profile, project, "profiling_failed_vroom_insertion")
     return False
 
 
@@ -1073,7 +1048,10 @@ class _ProjectKeyKwargs(TypedDict):
 
 @lru_cache(maxsize=100)
 def get_metrics_dsn(project_id: int) -> str:
-    kwargs: _ProjectKeyKwargs = {"project_id": project_id, "use_case": UseCase.PROFILING.value}
+    kwargs: _ProjectKeyKwargs = {
+        "project_id": project_id,
+        "use_case": UseCase.PROFILING.value,
+    }
     try:
         project_key, _ = ProjectKey.objects.get_or_create(**kwargs)
     except ProjectKey.MultipleObjectsReturned:

@@ -81,7 +81,6 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
@@ -136,6 +135,7 @@ from sentry.sentry_apps.installations import (
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
@@ -439,9 +439,7 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_api_key(organization, scope_list=None, **kwargs):
-        return ApiKey.objects.create(
-            organization_id=organization.id if organization else None, scope_list=scope_list
-        )
+        return ApiKey.objects.create(organization_id=organization.id, scope_list=scope_list)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -1559,9 +1557,7 @@ class Factories:
         aggregate="count()",
         time_window=10,
         threshold_period=1,
-        include_all_projects=False,
         environment=None,
-        excluded_projects=None,
         date_added=None,
         query_type=None,
         dataset=Dataset.Events,
@@ -1597,8 +1593,6 @@ class Factories:
             query_type=query_type,
             dataset=dataset,
             environment=environment,
-            include_all_projects=include_all_projects,
-            excluded_projects=excluded_projects,
             user=user,
             event_types=event_types,
             comparison_delta=comparison_delta,
@@ -1639,13 +1633,11 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_trigger(
-        alert_rule, label=None, alert_threshold=100, excluded_projects=None
-    ):
+    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
         if not label:
             label = petname.generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects)
+        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2139,7 +2131,11 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return Detector.objects.create(
-            organization=organization, name=name, owner_user_id=owner_user_id, owner_team=owner_team
+            organization=organization,
+            name=name,
+            owner_user_id=owner_user_id,
+            owner_team=owner_team,
+            **kwargs,
         )
 
     @staticmethod

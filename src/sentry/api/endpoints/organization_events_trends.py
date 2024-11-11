@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from re import Match
 from typing import TypedDict
 
@@ -54,14 +54,14 @@ REGRESSION = "regression"
 TREND_TYPES = [IMPROVED, REGRESSION]
 
 
-# TODO move this to the builder file and introduce a top-events version instead
+# TODO: move this to the builder file and introduce a top-events version instead
 class TrendQueryBuilder(DiscoverQueryBuilder):
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
     ) -> WhereType | None:
         name = aggregate_filter.key.name
 
-        if name in self.params.aliases:
+        if self.params.aliases is not None and name in self.params.aliases:
             return self.params.aliases[name].converter(aggregate_filter)
         else:
             return super().convert_aggregate_filter_to_condition(aggregate_filter)
@@ -73,7 +73,7 @@ class TrendQueryBuilder(DiscoverQueryBuilder):
         resolve_only=False,
         overwrite_alias: str | None = None,
     ) -> SelectType:
-        if function in self.params.aliases:
+        if self.params.aliases is not None and function in self.params.aliases:
             return self.params.aliases[function].resolved_function
         else:
             return super().resolve_function(function, match, resolve_only, overwrite_alias)
@@ -261,9 +261,11 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                         if trend_type == IMPROVED
                         else aggregate_filter.operator
                     ),
-                    -1 * aggregate_filter.value.value
-                    if trend_type == IMPROVED
-                    else aggregate_filter.value.value,
+                    (
+                        -1 * aggregate_filter.value.value
+                        if trend_type == IMPROVED
+                        else aggregate_filter.value.value
+                    ),
                 ),
                 ["minus", "transaction.duration"],
                 trend_columns["trend_difference"],
@@ -276,9 +278,11 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                         if trend_type == REGRESSION
                         else aggregate_filter.operator
                     ),
-                    -1 * aggregate_filter.value.value
-                    if trend_type == REGRESSION
-                    else aggregate_filter.value.value,
+                    (
+                        -1 * aggregate_filter.value.value
+                        if trend_type == REGRESSION
+                        else aggregate_filter.value.value
+                    ),
                 ),
                 None,
                 trend_columns["t_test"],
@@ -304,9 +308,11 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             "trend_percentage()": Alias(
                 lambda aggregate_filter: [
                     "trend_percentage",
-                    CORRESPONDENCE_MAP[aggregate_filter.operator]
-                    if trend_type == IMPROVED
-                    else aggregate_filter.operator,
+                    (
+                        CORRESPONDENCE_MAP[aggregate_filter.operator]
+                        if trend_type == IMPROVED
+                        else aggregate_filter.operator
+                    ),
                     1 + (aggregate_filter.value.value * (-1 if trend_type == IMPROVED else 1)),
                 ],
                 ["percentage", "transaction.duration"],
@@ -315,12 +321,16 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             "trend_difference()": Alias(
                 lambda aggregate_filter: [
                     "trend_difference",
-                    CORRESPONDENCE_MAP[aggregate_filter.operator]
-                    if trend_type == IMPROVED
-                    else aggregate_filter.operator,
-                    -1 * aggregate_filter.value.value
-                    if trend_type == IMPROVED
-                    else aggregate_filter.value.value,
+                    (
+                        CORRESPONDENCE_MAP[aggregate_filter.operator]
+                        if trend_type == IMPROVED
+                        else aggregate_filter.operator
+                    ),
+                    (
+                        -1 * aggregate_filter.value.value
+                        if trend_type == IMPROVED
+                        else aggregate_filter.value.value
+                    ),
                 ],
                 ["minus", "transaction.duration"],
                 None,
@@ -328,12 +338,16 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             "confidence()": Alias(
                 lambda aggregate_filter: [
                     "t_test",
-                    CORRESPONDENCE_MAP[aggregate_filter.operator]
-                    if trend_type == REGRESSION
-                    else aggregate_filter.operator,
-                    -1 * aggregate_filter.value.value
-                    if trend_type == REGRESSION
-                    else aggregate_filter.value.value,
+                    (
+                        CORRESPONDENCE_MAP[aggregate_filter.operator]
+                        if trend_type == REGRESSION
+                        else aggregate_filter.operator
+                    ),
+                    (
+                        -1 * aggregate_filter.value.value
+                        if trend_type == REGRESSION
+                        else aggregate_filter.value.value
+                    ),
                 ],
                 None,
                 None,
@@ -435,18 +449,18 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             middle_date = request.GET.get("middle")
             if middle_date:
                 try:
-                    middle = parse_datetime_string(middle_date)
+                    middle_dt = parse_datetime_string(middle_date)
                 except InvalidQuery:
                     raise ParseError(detail=f"{middle_date} is not a valid date format")
-                if middle <= snuba_params.start_date or middle >= snuba_params.end_date:
+                if middle_dt <= snuba_params.start_date or middle_dt >= snuba_params.end_date:
                     raise ParseError(
                         detail="The middle date should be within the duration of the query"
                     )
             else:
-                middle = snuba_params.start_date + timedelta(
+                middle_dt = snuba_params.start_date + timedelta(
                     seconds=(snuba_params.date_range).total_seconds() * 0.5
                 )
-            middle = datetime.strftime(middle, DateArg.date_format)
+            middle = middle_dt.strftime(DateArg.date_format)
 
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
@@ -456,7 +470,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         try:
             function, columns, _ = parse_function(trend_function)
         except InvalidSearchQuery as error:
-            raise ParseError(detail=error)
+            raise ParseError(detail=str(error))
         if len(columns) == 0:
             # Default to duration
             column = "transaction.duration"
@@ -518,6 +532,18 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 default_per_page=5,
                 max_per_page=5,
             )
+
+    def build_result_handler(
+        self,
+        request,
+        organization,
+        snuba_params,
+        trend_function,
+        selected_columns,
+        orderby,
+        query,
+    ):
+        raise NotImplementedError
 
 
 @region_silo_endpoint

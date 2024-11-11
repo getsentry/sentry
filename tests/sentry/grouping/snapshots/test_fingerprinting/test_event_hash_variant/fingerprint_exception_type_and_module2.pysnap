@@ -1,5 +1,5 @@
 ---
-created: '2024-10-09T13:42:58.974458+00:00'
+created: '2024-11-08T22:03:13.965272+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -13,6 +13,7 @@ config:
       - DatabaseUnavailable
     - - module
       - invalid.databasestuff.*
+    text: type:"DatabaseUnavailable" module:"invalid.databasestuff.*" -> "database-unavailable"
   version: 1
 fingerprint:
 - my-route
@@ -26,7 +27,7 @@ variants:
     component:
       contributes: false
       hint: exception of system takes precedence
-    type: salted-component
+    type: salted_component
     values:
     - my-route
     - '{{ default }}'
@@ -37,7 +38,7 @@ variants:
     component:
       contributes: true
       hint: null
-    type: salted-component
+    type: salted_component
     values:
     - my-route
     - '{{ default }}'

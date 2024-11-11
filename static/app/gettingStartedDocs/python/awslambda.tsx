@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -10,7 +11,10 @@ import {
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -38,13 +42,23 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    _experiments={
+        # Set continuous_profiling_auto_start to True
+        # to automatically start the profiler on when
+        # possible.
+        "continuous_profiling_auto_start": True,
+    },`
+          : ''
     }
 )
 
@@ -102,13 +116,21 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           code: getSdkSetupSnippet(params),
         },
       ],
-      additionalInfo: tct(
-        "Check out Sentry's [link:AWS sample apps] for detailed examples.",
-        {
-          link: (
-            <ExternalLink href="https://github.com/getsentry/examples/tree/master/aws-lambda/python" />
-          ),
-        }
+      additionalInfo: (
+        <Fragment>
+          {params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+              <Fragment>
+                <AlternativeConfiguration />
+                <br />
+              </Fragment>
+            )}
+          {tct("Check out Sentry's [link:AWS sample apps] for detailed examples.", {
+            link: (
+              <ExternalLink href="https://github.com/getsentry/examples/tree/master/aws-lambda/python" />
+            ),
+          })}
+        </Fragment>
       ),
     },
     {

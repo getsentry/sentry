@@ -94,10 +94,10 @@ describe('BreadcrumbsDataSection', function () {
     );
 
     // From virtual crumb
-    expect(screen.getByText('06:01:48.762')).toBeInTheDocument();
+    expect(screen.getByText('06:01:48.762 PM')).toBeInTheDocument();
     expect(screen.queryByText('0ms')).not.toBeInTheDocument();
     // From event breadcrumb
-    expect(screen.getByText('06:00:48.760')).toBeInTheDocument();
+    expect(screen.getByText('06:00:48.760 PM')).toBeInTheDocument();
     expect(screen.queryByText('-1min 2ms')).not.toBeInTheDocument();
 
     const timeControl = screen.getByRole('button', {
@@ -106,16 +106,16 @@ describe('BreadcrumbsDataSection', function () {
     await userEvent.click(timeControl);
 
     expect(screen.getByText('0ms')).toBeInTheDocument();
-    expect(screen.queryByText('06:01:48.762')).not.toBeInTheDocument();
+    expect(screen.queryByText('06:01:48.762 PM')).not.toBeInTheDocument();
     expect(screen.getByText('-1min 2ms')).toBeInTheDocument();
-    expect(screen.queryByText('06:00:48.760')).not.toBeInTheDocument();
+    expect(screen.queryByText('06:00:48.760 PM')).not.toBeInTheDocument();
 
     await userEvent.click(timeControl);
 
     expect(screen.queryByText('0ms')).not.toBeInTheDocument();
-    expect(screen.getByText('06:01:48.762')).toBeInTheDocument();
+    expect(screen.getByText('06:01:48.762 PM')).toBeInTheDocument();
     expect(screen.queryByText('-1min 2ms')).not.toBeInTheDocument();
-    expect(screen.getByText('06:00:48.760')).toBeInTheDocument();
+    expect(screen.getByText('06:00:48.760 PM')).toBeInTheDocument();
   });
 
   it('opens the drawer and focuses search when the search button is pressed', async function () {

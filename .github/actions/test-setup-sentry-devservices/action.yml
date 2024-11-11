@@ -47,7 +47,7 @@ runs:
 
         ### pytest-sentry configuration ###
         if [ "$GITHUB_REPOSITORY" = "getsentry/sentry" ]; then
-          echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
+          echo "PYTEST_SENTRY_DSN=https://a748e1a557575821d36970353ef30c61@o1.ingest.us.sentry.io/4508264609415168" >> $GITHUB_ENV
           echo "PYTEST_SENTRY_TRACES_SAMPLE_RATE=0" >> $GITHUB_ENV
 
           # This records failures on master to sentry in order to detect flakey tests, as it's
@@ -78,7 +78,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
-        install-cmd: cd ${{ inputs.workdir }} && python3 -m tools.hack_pip && pip install -r requirements-dev-frozen.txt
+        install-cmd: cd ${{ inputs.workdir }} && pip install -r requirements-dev-frozen.txt
 
     - name: Set up outputs
       id: config

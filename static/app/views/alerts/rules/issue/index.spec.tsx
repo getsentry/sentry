@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfigurationFixture} from 'sentry-fixture/projectAlertRuleConfiguration';
@@ -147,6 +148,17 @@ describe('IssueRuleEditor', function () {
       body: [],
     });
     ProjectsStore.loadInitialData([ProjectFixture()]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      body: [],
+    });
+    const providerKeys = ['slack', 'discord', 'msteams'];
+    providerKeys.forEach(providerKey => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/config/integrations/?provider_key=${providerKey}`,
+        body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
+      });
+    });
   });
 
   afterEach(function () {
@@ -228,6 +240,43 @@ describe('IssueRuleEditor', function () {
       expect(browserHistory.replace).toHaveBeenCalledWith(
         '/settings/org-slug/projects/project-slug/alerts/'
       );
+    });
+
+    it('saves rule with condition value of 0', async function () {
+      const rule = ProjectAlertRuleFixture({
+        conditions: [
+          {id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'},
+          {
+            id: 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+            value: 0,
+          },
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'GET',
+        body: rule,
+      });
+      createWrapper();
+      await userEvent.click(screen.getByText('Save Rule'));
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenCalledWith(
+          endpoint,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              conditions: [
+                {id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'},
+                {
+                  id: 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+                  value: '0', // Verify that the 0 is converted to a string by the serializer
+                },
+              ],
+            }),
+          })
+        )
+      );
+      expect(addErrorMessage).toHaveBeenCalledTimes(0);
     });
 
     it('sends correct environment value', async function () {

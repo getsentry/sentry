@@ -178,7 +178,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      !['custom_metrics', 'span_metrics', 'insights_metrics'].includes(alertType)
+      !['custom_metrics', 'span_metrics', 'insights_metrics', 'eap_metrics'].includes(
+        alertType
+      )
         ? query
           ? `(${query}) AND (${eventTypeFilter})`
           : eventTypeFilter
@@ -1055,21 +1057,20 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   async fetchAnomalies() {
-    if (this.state.comparisonType !== AlertRuleComparisonType.DYNAMIC) {
+    const {comparisonType, historicalData, currentData} = this.state;
+
+    if (
+      comparisonType !== AlertRuleComparisonType.DYNAMIC ||
+      !(Array.isArray(currentData) && Array.isArray(historicalData)) ||
+      currentData.length === 0 ||
+      historicalData.length === 0
+    ) {
       return;
     }
+    this.setState({chartError: false, chartErrorMessage: ''});
+
     const {organization, project} = this.props;
-    const {
-      timeWindow,
-      sensitivity,
-      seasonality,
-      thresholdType,
-      historicalData,
-      currentData,
-    } = this.state;
-    if (!(Array.isArray(currentData) && Array.isArray(historicalData))) {
-      return;
-    }
+    const {timeWindow, sensitivity, seasonality, thresholdType} = this.state;
     const direction =
       thresholdType === AlertRuleThresholdType.ABOVE
         ? 'up'
@@ -1099,7 +1100,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     };
 
     try {
-      const [anomalies] = await this.api.requestPromise(
+      const anomalies = await this.api.requestPromise(
         `/organizations/${organization.slug}/events/anomalies/`,
         {method: 'POST', data: params}
       );

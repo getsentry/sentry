@@ -13,11 +13,12 @@ import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.batching import ValuesBatch
 from arroyo.types import BrokerValue, Message
+from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
-from sentry import features, nodestore
+from sentry import features, nodestore, options
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -28,10 +29,13 @@ from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+rate_limiter = RedisSlidingWindowRateLimiter(cluster=settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
 
 
 class InvalidEventPayloadError(Exception):
@@ -40,6 +44,37 @@ class InvalidEventPayloadError(Exception):
 
 class EventLookupError(Exception):
     pass
+
+
+def create_rate_limit_key(project_id: int, fingerprint: str) -> str:
+    rate_limit_key = f"occurrence_rate_limit:{project_id}-{fingerprint}"
+    return rate_limit_key
+
+
+def is_rate_limited(
+    project_id: int,
+    fingerprint: str,
+) -> bool:
+    try:
+        rate_limit_enabled = options.get("issues.occurrence-consumer.rate-limit.enabled")
+        if not rate_limit_enabled:
+            return False
+
+        rate_limit_key = create_rate_limit_key(project_id, fingerprint)
+        rate_limit_quota = Quota(**options.get("issues.occurrence-consumer.rate-limit.quota"))
+        granted_quota = rate_limiter.check_and_use_quotas(
+            [
+                RequestedQuota(
+                    rate_limit_key,
+                    1,
+                    [rate_limit_quota],
+                )
+            ]
+        )[0]
+        return not granted_quota.granted
+    except Exception:
+        logger.exception("Failed to check issue platform rate limiter")
+        return False
 
 
 @sentry_sdk.tracing.trace
@@ -317,6 +352,15 @@ def process_occurrence_message(
             tags=metric_tags,
         )
         txn.set_tag("result", "dropped_feature_disabled")
+        return None
+
+    if is_rate_limited(project.id, fingerprint=occurrence_data["fingerprint"][0]):
+        metrics.incr(
+            "occurrence_ingest.dropped_rate_limited",
+            sample_rate=1.0,
+            tags=metric_tags,
+        )
+        txn.set_tag("result", "dropped_rate_limited")
         return None
 
     if "event_data" in kwargs and is_buffered_spans:

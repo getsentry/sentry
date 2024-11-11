@@ -6,7 +6,7 @@ import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest, {
   type EventsRequestProps,
@@ -91,7 +91,9 @@ type Props = {
   showTotalCount?: boolean;
 };
 
-const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
+type TimePeriodMap = Omit<Record<TimePeriod, string>, TimePeriod.TWENTY_EIGHT_DAYS>;
+
+const TIME_PERIOD_MAP: TimePeriodMap = {
   [TimePeriod.SIX_HOURS]: t('Last 6 hours'),
   [TimePeriod.ONE_DAY]: t('Last 24 hours'),
   [TimePeriod.THREE_DAYS]: t('Last 3 days'),
@@ -147,7 +149,7 @@ const SESSION_AGGREGATE_TO_HEADING = {
   [SessionsAggregate.CRASH_FREE_USERS]: t('Total Users'),
 };
 
-const HISTORICAL_TIME_PERIOD_MAP: Record<TimePeriod, string> = {
+const HISTORICAL_TIME_PERIOD_MAP: TimePeriodMap = {
   [TimePeriod.SIX_HOURS]: '678h',
   [TimePeriod.ONE_DAY]: '29d',
   [TimePeriod.THREE_DAYS]: '31d',
@@ -221,6 +223,9 @@ class TriggersChart extends PureComponent<Props, State> {
       this.fetchTotalCount();
     }
   }
+
+  // Create new API Client so that historical requests aren't automatically deduplicated
+  historicalAPI = new Client();
 
   get availableTimePeriods() {
     // We need to special case sessions, because sub-hour windows are available
@@ -472,6 +477,7 @@ class TriggersChart extends PureComponent<Props, State> {
         query,
         queryExtras,
         sampleRate,
+        period,
         environment: environment ? [environment] : undefined,
         project: projects.map(({id}) => Number(id)),
         interval: `${timeWindow}m`,
@@ -480,8 +486,6 @@ class TriggersChart extends PureComponent<Props, State> {
         includePrevious: false,
         currentSeriesNames: [formattedAggregate || aggregate],
         partial: false,
-        includeTimeAggregation: false,
-        includeTransformedData: false,
         limit: 15,
         children: noop,
       };
@@ -491,15 +495,11 @@ class TriggersChart extends PureComponent<Props, State> {
           {this.props.includeHistorical ? (
             <OnDemandMetricRequest
               {...baseProps}
-              period={period}
+              api={this.historicalAPI}
               dataLoadedCallback={onHistoricalDataLoaded}
             />
           ) : null}
-          <OnDemandMetricRequest
-            {...baseProps}
-            period={period}
-            dataLoadedCallback={onDataLoaded}
-          >
+          <OnDemandMetricRequest {...baseProps} dataLoadedCallback={onDataLoaded}>
             {({
               loading,
               errored,
@@ -534,7 +534,6 @@ class TriggersChart extends PureComponent<Props, State> {
               });
             }}
           </OnDemandMetricRequest>
-          );
         </Fragment>
       );
     }
@@ -610,6 +609,7 @@ class TriggersChart extends PureComponent<Props, State> {
         {this.props.includeHistorical ? (
           <EventsRequest
             {...baseProps}
+            api={this.historicalAPI}
             period={HISTORICAL_TIME_PERIOD_MAP[period]}
             dataLoadedCallback={onHistoricalDataLoaded}
           >

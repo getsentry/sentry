@@ -398,8 +398,11 @@ class RecordErrorTest(TestCase):
             extra={"key": "dogs_are_great", "time_in_state": 20},
         )
 
+    @patch("sentry.utils.circuit_breaker2.metrics.incr")
     @patch("sentry.utils.circuit_breaker2.logger")
-    def test_handles_hitting_max_errors_in_non_broken_state(self, mock_logger: MagicMock):
+    def test_handles_hitting_max_errors_in_non_broken_state(
+        self, mock_logger: MagicMock, mock_metrics_incr: MagicMock
+    ):
         config = self.config
         breaker = self.breaker
         now = int(time.time())
@@ -431,6 +434,11 @@ class RecordErrorTest(TestCase):
                     "error_limit": limit,
                     "error_limit_window": config["error_limit_window"],
                 },
+            )
+            mock_metrics_incr.assert_called_with(
+                "circuit_breaker.dogs_are_great.error_limit_hit",
+                sample_rate=1.0,
+                tags={"current_state": state.value},
             )
 
             # Now jump to one second after the BROKEN state has expired to see that we're in
@@ -510,7 +518,10 @@ class ShouldAllowRequestTest(TestCase):
 
             assert breaker.should_allow_request() is True
 
-    def test_blocks_request_in_non_broken_state_with_no_quota_remaining(self):
+    @patch("sentry.utils.circuit_breaker2.metrics.incr")
+    def test_blocks_request_in_non_broken_state_with_no_quota_remaining(
+        self, mock_metrics_incr: MagicMock
+    ):
         breaker = self.breaker
 
         for state, quota, limit in [
@@ -522,13 +533,21 @@ class ShouldAllowRequestTest(TestCase):
             assert breaker._get_remaining_error_quota(quota) == 0
 
             assert breaker.should_allow_request() is False
+            mock_metrics_incr.assert_called_with(
+                f"circuit_breaker.{self.breaker.key}.request_blocked"
+            )
+            mock_metrics_incr.reset_mock()
 
-    def test_blocks_request_in_BROKEN_state(self):
+    @patch("sentry.utils.circuit_breaker2.metrics.incr")
+    def test_blocks_request_in_BROKEN_state(self, mock_metrics_incr: MagicMock):
         breaker = self.breaker
 
         breaker._set_breaker_state(CircuitBreakerState.BROKEN)
 
         assert breaker.should_allow_request() is False
+        mock_metrics_incr.assert_called_with(
+            f"circuit_breaker.{self.breaker.key}.request_blocked",
+        )
 
     @patch("sentry.utils.circuit_breaker2.logger")
     def test_allows_request_if_redis_call_fails(self, mock_logger: MagicMock):

@@ -537,7 +537,7 @@ class GenericOffsetPaginator:
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, has_more),
         )
-        # TODO use Cursor.value as the `end` argument to data_fn() so that
+        # TODO: use Cursor.value as the `end` argument to data_fn() so that
         # subsequent pages returned using these cursors are using the same end
         # date for queries, this should stop drift from new incoming events.
 
@@ -582,13 +582,13 @@ class CombinedQuerysetPaginator:
 
     multiplier = 1000000  # Use microseconds for date keys.
     using_dates = False
-    model_key_map = {}
 
     def __init__(self, intermediaries, desc=False, on_results=None, case_insensitive=False):
         self.desc = desc
         self.intermediaries = intermediaries
         self.on_results = on_results
         self.case_insensitive = case_insensitive
+        self.model_key_map = {}
         for intermediary in list(self.intermediaries):
             if intermediary.is_empty:
                 self.intermediaries.remove(intermediary)

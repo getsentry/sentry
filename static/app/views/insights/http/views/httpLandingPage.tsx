@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -19,10 +19,12 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
@@ -37,7 +39,6 @@ import {
   BASE_FILTERS,
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
-  MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -50,6 +51,7 @@ export function HTTPLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
   const {isInDomainView, view} = useDomainViewFilters();
+  const moduleTitle = useModuleTitle(ModuleName.HTTP);
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
@@ -63,7 +65,7 @@ export function HTTPLandingPage() {
     },
   });
 
-  const ADDITIONAL_FILTERS = {};
+  const ADDITIONAL_FILTERS: {[SpanMetricsField.USER_GEO_SUBREGION]?: string} = {};
 
   if (query[SpanMetricsField.USER_GEO_SUBREGION].length > 0) {
     ADDITIONAL_FILTERS[SpanMetricsField.USER_GEO_SUBREGION] =
@@ -164,6 +166,13 @@ export function HTTPLandingPage() {
 
   const crumbs = useModuleBreadcrumbs('http');
 
+  const headerTitle = (
+    <Fragment>
+      {moduleTitle}
+      <PageHeadingQuestionTooltip docsUrl={MODULE_DOC_LINK} title={MODULE_DESCRIPTION} />
+    </Fragment>
+  );
+
   return (
     <React.Fragment>
       {!isInDomainView && (
@@ -171,13 +180,7 @@ export function HTTPLandingPage() {
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
 
-            <Layout.Title>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Layout.Title>
+            <Layout.Title>{headerTitle}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -188,81 +191,94 @@ export function HTTPLandingPage() {
       )}
 
       {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
-        <FrontendHeader module={ModuleName.HTTP} />
+        <FrontendHeader
+          headerTitle={
+            <Fragment>
+              {moduleTitle}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Fragment>
+          }
+          module={ModuleName.HTTP}
+        />
       )}
 
       {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
-        <BackendHeader module={ModuleName.HTTP} />
+        <BackendHeader headerTitle={headerTitle} module={ModuleName.HTTP} />
       )}
 
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ToolRibbon>
-                <ModulePageFilterBar
-                  moduleName={ModuleName.HTTP}
-                  extraFilters={<SubregionSelector />}
-                />
-              </ToolRibbon>
-            </ModuleLayout.Full>
-
-            <ModulesOnboarding moduleName={ModuleName.HTTP}>
-              <ModuleLayout.Third>
-                <ThroughputChart
-                  series={throughputData['spm()']}
-                  isLoading={isThroughputDataLoading}
-                  error={throughputError}
-                  filters={chartFilters}
-                />
-              </ModuleLayout.Third>
-
-              <ModuleLayout.Third>
-                <DurationChart
-                  series={[durationData[`avg(span.self_time)`]]}
-                  isLoading={isDurationDataLoading}
-                  error={durationError}
-                  filters={chartFilters}
-                />
-              </ModuleLayout.Third>
-
-              <ModuleLayout.Third>
-                <ResponseRateChart
-                  series={[
-                    {
-                      ...responseCodeData[`http_response_rate(3)`],
-                      seriesName: t('3XX'),
-                    },
-                    {
-                      ...responseCodeData[`http_response_rate(4)`],
-                      seriesName: t('4XX'),
-                    },
-                    {
-                      ...responseCodeData[`http_response_rate(5)`],
-                      seriesName: t('5XX'),
-                    },
-                  ]}
-                  isLoading={isResponseCodeDataLoading}
-                  error={responseCodeError}
-                  filters={chartFilters}
-                />
-              </ModuleLayout.Third>
-
+      <ModuleBodyUpsellHook moduleName={ModuleName.HTTP}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ModuleLayout.Layout>
               <ModuleLayout.Full>
-                <SearchBar
-                  query={query['span.domain']}
-                  placeholder={t('Search for more domains')}
-                  onSearch={handleSearch}
-                />
+                <ToolRibbon>
+                  <ModulePageFilterBar
+                    moduleName={ModuleName.HTTP}
+                    extraFilters={<SubregionSelector />}
+                  />
+                </ToolRibbon>
               </ModuleLayout.Full>
 
-              <ModuleLayout.Full>
-                <DomainsTable response={domainsListResponse} sort={sort} />
-              </ModuleLayout.Full>
-            </ModulesOnboarding>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
+              <ModulesOnboarding moduleName={ModuleName.HTTP}>
+                <ModuleLayout.Third>
+                  <ThroughputChart
+                    series={throughputData['spm()']}
+                    isLoading={isThroughputDataLoading}
+                    error={throughputError}
+                    filters={chartFilters}
+                  />
+                </ModuleLayout.Third>
+
+                <ModuleLayout.Third>
+                  <DurationChart
+                    series={[durationData[`avg(span.self_time)`]]}
+                    isLoading={isDurationDataLoading}
+                    error={durationError}
+                    filters={chartFilters}
+                  />
+                </ModuleLayout.Third>
+
+                <ModuleLayout.Third>
+                  <ResponseRateChart
+                    series={[
+                      {
+                        ...responseCodeData[`http_response_rate(3)`],
+                        seriesName: t('3XX'),
+                      },
+                      {
+                        ...responseCodeData[`http_response_rate(4)`],
+                        seriesName: t('4XX'),
+                      },
+                      {
+                        ...responseCodeData[`http_response_rate(5)`],
+                        seriesName: t('5XX'),
+                      },
+                    ]}
+                    isLoading={isResponseCodeDataLoading}
+                    error={responseCodeError}
+                    filters={chartFilters}
+                  />
+                </ModuleLayout.Third>
+
+                <ModuleLayout.Full>
+                  <SearchBar
+                    query={query['span.domain']}
+                    placeholder={t('Search for more domains')}
+                    onSearch={handleSearch}
+                  />
+                </ModuleLayout.Full>
+
+                <ModuleLayout.Full>
+                  <DomainsTable response={domainsListResponse} sort={sort} />
+                </ModuleLayout.Full>
+              </ModulesOnboarding>
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </ModuleBodyUpsellHook>
     </React.Fragment>
   );
 }

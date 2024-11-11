@@ -1,5 +1,6 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
+import type {User} from '@sentry/types';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
@@ -8,6 +9,7 @@ import {
   createDashboard,
   deleteDashboard,
   updateDashboard,
+  updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
@@ -27,7 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -52,6 +54,7 @@ import {
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
 import {generatePerformanceEventView} from '../performance/data';
@@ -76,6 +79,7 @@ import type {
   DashboardDetails,
   DashboardFilters,
   DashboardListItem,
+  DashboardPermissions,
   Widget,
 } from './types';
 import {
@@ -85,6 +89,7 @@ import {
   MAX_WIDGETS,
   WidgetType,
 } from './types';
+import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
@@ -119,6 +124,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
+  widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
 } & WidgetViewerContextProps;
 
@@ -164,6 +170,30 @@ export function handleUpdateDashboardSplit({
   }
 }
 
+/* Checks if current user has permissions to edit dashboard */
+export function checkUserHasEditAccess(
+  dashboard: DashboardDetails,
+  currentUser: User,
+  userTeams: Team[],
+  organization: Organization
+): boolean {
+  if (
+    !organization.features.includes('dashboards-edit-access') ||
+    !dashboard.permissions ||
+    dashboard.permissions.isEditableByEveryone ||
+    dashboard.createdBy?.id === currentUser.id
+  ) {
+    return true;
+  }
+  if (dashboard.permissions.teamsWithEditAccess?.length) {
+    const userTeamIds = userTeams.map(team => Number(team.id));
+    dashboard.permissions.teamsWithEditAccess.some(teamId =>
+      userTeamIds.includes(teamId)
+    );
+  }
+  return false;
+}
+
 class DashboardDetail extends Component<Props, State> {
   state: State = {
     dashboardState: this.props.initialState,
@@ -172,6 +202,12 @@ class DashboardDetail extends Component<Props, State> {
     setData: data => {
       this.setState(data);
     },
+    widgetLegendState: new WidgetLegendSelectionState({
+      dashboard: this.props.dashboard,
+      organization: this.props.organization,
+      location: this.props.location,
+      router: this.props.router,
+    }),
   };
 
   componentDidMount() {
@@ -184,6 +220,22 @@ class DashboardDetail extends Component<Props, State> {
     if (prevProps.initialState !== this.props.initialState) {
       // Widget builder can toggle Edit state when saving
       this.setState({dashboardState: this.props.initialState});
+    }
+
+    if (
+      prevProps.organization !== this.props.organization ||
+      prevProps.location !== this.props.location ||
+      prevProps.router !== this.props.router ||
+      prevProps.dashboard !== this.props.dashboard
+    ) {
+      this.setState({
+        widgetLegendState: new WidgetLegendSelectionState({
+          organization: this.props.organization,
+          location: this.props.location,
+          router: this.props.router,
+          dashboard: this.props.dashboard,
+        }),
+      });
     }
   }
 
@@ -211,11 +263,15 @@ class DashboardDetail extends Component<Props, State> {
         openWidgetViewerModal({
           organization,
           widget,
-          seriesData,
+          seriesData: WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(
+            widget,
+            seriesData
+          ),
           seriesResultsType,
           tableData,
           pageLinks,
           totalIssuesCount,
+          widgetLegendState: this.state.widgetLegendState,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           onMetricWidgetEdit: (updatedWidget: Widget) => {
             const widgets = [...dashboard.widgets];
@@ -236,11 +292,13 @@ class DashboardDetail extends Component<Props, State> {
           onEdit: () => {
             const widgetIndex = dashboard.widgets.indexOf(widget);
             if (dashboardId) {
+              const query = omit(location.query, Object.values(WidgetViewerQueryField));
+
               router.push(
                 normalizeUrl({
                   pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
                   query: {
-                    ...location.query,
+                    ...query,
                     source: DashboardWidgetSource.DASHBOARDS,
                   },
                 })
@@ -470,17 +528,32 @@ class DashboardDetail extends Component<Props, State> {
             modifiedDashboard: null,
           });
         }
-        addSuccessMessage(t('Dashboard updated'));
+        const legendQuery =
+          this.state.widgetLegendState.setMultipleWidgetSelectionStateURL(newDashboard);
+
         if (dashboard && newDashboard.id !== dashboard.id) {
-          browserHistory.replace(
+          this.props.router.replace(
             normalizeUrl({
               pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
               query: {
                 ...location.query,
+                unselectedSeries: legendQuery,
+              },
+            })
+          );
+        } else {
+          browserHistory.replace(
+            normalizeUrl({
+              pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+              query: {
+                ...location.query,
+                unselectedSeries: legendQuery,
               },
             })
           );
         }
+        addSuccessMessage(t('Dashboard updated'));
+
         return newDashboard;
       },
       // `updateDashboard` does its own error handling
@@ -507,6 +580,7 @@ class DashboardDetail extends Component<Props, State> {
     openWidgetViewerModal({
       organization: this.props.organization,
       widget: widgetCopy,
+      widgetLegendState: this.state.widgetLegendState,
       onMetricWidgetEdit: widget => {
         const nextList = generateWidgetsAfterCompaction([...currentWidgets, widget]);
         this.onUpdateWidget(nextList);
@@ -545,6 +619,25 @@ class DashboardDetail extends Component<Props, State> {
             })
           );
         }
+      }
+    );
+  };
+
+  /* Handles POST request for Edit Access Selector Changes */
+  onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
+    const {dashboard, api, organization} = this.props;
+
+    const dashboardCopy = cloneDashboard(dashboard);
+    dashboardCopy.permissions = newDashboardPermissions;
+
+    updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
+      (newDashboard: DashboardDetails) => {
+        addSuccessMessage(t('Dashboard Edit Access updated.'));
+        this.props.onDashboardUpdate?.(newDashboard);
+        this.setState({
+          modifiedDashboard: null,
+        });
+        return newDashboard;
       }
     );
   };
@@ -712,7 +805,6 @@ class DashboardDetail extends Component<Props, State> {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
-
     return (
       <PageFiltersContainer
         disablePersistence
@@ -740,10 +832,12 @@ class DashboardDetail extends Component<Props, State> {
                   <Controls
                     organization={organization}
                     dashboards={dashboards}
+                    dashboard={dashboard}
                     onEdit={this.onEdit}
                     onCancel={this.onCancel}
                     onCommit={this.onCommit}
                     onAddWidget={this.onAddWidget}
+                    onChangeEditAccess={this.onChangeEditAccess}
                     onDelete={this.onDelete(dashboard)}
                     dashboardState={dashboardState}
                     widgetLimitReached={widgetLimitReached}
@@ -785,6 +879,7 @@ class DashboardDetail extends Component<Props, State> {
                           isPreview={this.isPreview}
                           router={router}
                           location={location}
+                          widgetLegendState={this.state.widgetLegendState}
                         />
                       </MEPSettingProvider>
                     )}
@@ -881,12 +976,14 @@ class DashboardDetail extends Component<Props, State> {
                       <Controls
                         organization={organization}
                         dashboards={dashboards}
+                        dashboard={dashboard}
                         hasUnsavedFilters={hasUnsavedFilters}
                         onEdit={this.onEdit}
                         onCancel={this.onCancel}
                         onCommit={this.onCommit}
                         onAddWidget={this.onAddWidget}
                         onDelete={this.onDelete(dashboard)}
+                        onChangeEditAccess={this.onChangeEditAccess}
                         dashboardState={dashboardState}
                         widgetLimitReached={widgetLimitReached}
                       />
@@ -1011,6 +1108,7 @@ class DashboardDetail extends Component<Props, State> {
                                   newWidget={newWidget}
                                   onSetNewWidget={onSetNewWidget}
                                   isPreview={this.isPreview}
+                                  widgetLegendState={this.state.widgetLegendState}
                                 />
                               </WidgetViewerContext.Provider>
                             </MEPSettingProvider>

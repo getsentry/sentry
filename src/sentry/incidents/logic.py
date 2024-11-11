@@ -29,7 +29,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleDetectionType,
-    AlertRuleExcludedProjects,
     AlertRuleMonitorTypeInt,
     AlertRuleProjects,
     AlertRuleSeasonality,
@@ -38,7 +37,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    AlertRuleTriggerExclusion,
 )
 from sentry.incidents.models.alert_rule_activations import (
     AlertRuleActivationCondition,
@@ -479,6 +477,7 @@ query_datasets_to_type = {
     Dataset.Transactions: SnubaQuery.Type.PERFORMANCE,
     Dataset.PerformanceMetrics: SnubaQuery.Type.PERFORMANCE,
     Dataset.Metrics: SnubaQuery.Type.CRASH_RATE,
+    Dataset.EventsAnalyticsPlatform: SnubaQuery.Type.PERFORMANCE,
 }
 
 
@@ -516,8 +515,6 @@ def create_alert_rule(
     owner: Actor | None = None,
     resolve_threshold: int | float | None = None,
     environment: Environment | None = None,
-    include_all_projects: bool = False,
-    excluded_projects: Collection[Project] | None = None,
     query_type: SnubaQuery.Type = SnubaQuery.Type.ERROR,
     dataset: Dataset = Dataset.Events,
     user: RpcUser | None = None,
@@ -535,8 +532,7 @@ def create_alert_rule(
     Creates an alert rule for an organization.
 
     :param organization:
-    :param projects: A list of projects to subscribe to the rule. This will be overridden
-    if `include_all_projects` is True
+    :param projects: A list of projects to subscribe to the rule
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
     :param owner: Actor (sentry.types.actor.Actor) or None
@@ -549,10 +545,6 @@ def create_alert_rule(
     subscription needs to exceed the threshold before triggering
     :param resolve_threshold: Optional value that the subscription needs to reach to
     resolve the alert
-    :param include_all_projects: Whether to include all current and future projects
-    from this organization
-    :param excluded_projects: List of projects to exclude if we're using
-    `include_all_projects`.
     :param query_type: The SnubaQuery.Type of the query
     :param dataset: The dataset that this query will be executed on
     :param event_types: List of `EventType` that this alert will be related to
@@ -578,10 +570,12 @@ def create_alert_rule(
         resolution = time_window
         # NOTE: we hardcode seasonality for EA
         seasonality = AlertRuleSeasonality.AUTO
-        if not (sensitivity):
+        if not sensitivity:
             raise ValidationError("Dynamic alerts require a sensitivity level")
         if time_window not in DYNAMIC_TIME_WINDOWS:
             raise ValidationError(INVALID_TIME_WINDOW)
+        if "is:unresolved" in query:
+            raise ValidationError("Dynamic alerts do not support 'is:unresolved' queries")
     else:
         resolution = get_alert_resolution(time_window, organization)
         seasonality = None
@@ -629,7 +623,6 @@ def create_alert_rule(
             threshold_type=threshold_type.value,
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
-            include_all_projects=include_all_projects,
             comparison_delta=comparison_delta,
             monitor_type=monitor_type,
             description=description,
@@ -638,20 +631,6 @@ def create_alert_rule(
             detection_type=detection_type,
             **_owner_kwargs_from_actor(owner),
         )
-
-        if include_all_projects:
-            # NOTE: This feature is not currently utilized.
-            excluded_projects = excluded_projects or ()
-            projects = list(
-                Project.objects.filter(organization=organization).exclude(
-                    id__in=[p.id for p in excluded_projects]
-                )
-            )
-            exclusions = [
-                AlertRuleExcludedProjects(alert_rule=alert_rule, project=project)
-                for project in excluded_projects
-            ]
-            AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
@@ -689,7 +668,6 @@ def create_alert_rule(
         )
 
     schedule_update_project_config(alert_rule, projects)
-
     return alert_rule
 
 
@@ -758,8 +736,6 @@ def update_alert_rule(
     threshold_type: AlertRuleThresholdType | None = None,
     threshold_period: int | None = None,
     resolve_threshold: int | float | NotSet = NOT_SET,
-    include_all_projects: bool | None = None,
-    excluded_projects: Iterable[Project] | None = None,
     user: RpcUser | None = None,
     event_types: Collection[SnubaQueryEventType.EventType] | None = None,
     comparison_delta: int | None | NotSet = NOT_SET,
@@ -774,8 +750,6 @@ def update_alert_rule(
     Updates an alert rule.
 
     :param alert_rule: The alert rule to update
-    :param excluded_projects: List of projects to subscribe to the rule. Ignored if
-    `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project.
     :param owner: Actor (sentry.types.actor.Actor) or None
@@ -788,10 +762,6 @@ def update_alert_rule(
     subscription needs to exceed the threshold before triggering
     :param resolve_threshold: Optional value that the subscription needs to reach to
     resolve the alert
-    :param include_all_projects: Whether to include all current and future projects
-    from this organization
-    :param excluded_projects: List of projects to exclude if we're using
-    `include_all_projects`. Ignored otherwise.
     :param event_types: List of `EventType` that this alert will be related to
     :param comparison_delta: An optional int representing the time delta to use to determine the
     comparison period. In minutes.
@@ -826,8 +796,6 @@ def update_alert_rule(
         updated_fields["resolve_threshold"] = resolve_threshold
     if threshold_period:
         updated_fields["threshold_period"] = threshold_period
-    if include_all_projects is not None:
-        updated_fields["include_all_projects"] = include_all_projects
     if dataset is not None:
         if dataset.value != snuba_query.dataset:
             updated_query_fields["dataset"] = dataset
@@ -917,6 +885,8 @@ def update_alert_rule(
                 raise ResourceDoesNotExist(
                     "Your organization does not have access to this feature."
                 )
+            if query and "is:unresolved" in query:
+                raise ValidationError("Dynamic alerts do not support 'is:unresolved' queries")
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
             project = projects[0] if projects else alert_rule.projects.get()
             update_rule_data(alert_rule, project, snuba_query, updated_fields, updated_query_fields)
@@ -970,47 +940,13 @@ def update_alert_rule(
             or aggregate is not None
             or time_window is not None
             or projects is not None
-            or include_all_projects is not None
-            or excluded_projects is not None
         ):
             existing_subs = snuba_query.subscriptions.all().select_related("project")
 
         new_projects: Iterable[Project] = ()
         deleted_subs: Iterable[QuerySubscription] = ()
 
-        if not alert_rule.include_all_projects:
-            # We don't want to have any exclusion rows present if we're not in
-            # `include_all_projects` mode
-            get_excluded_projects_for_alert_rule(alert_rule).delete()
-
-        if alert_rule.include_all_projects:
-            # NOTE: This feature is not currently utilized.
-            if include_all_projects or excluded_projects is not None:
-                # If we're in `include_all_projects` mode, we want to just fetch
-                # projects that aren't already subscribed, and haven't been excluded so
-                # we can add them.
-                excluded_project_ids = (
-                    {p.id for p in excluded_projects} if excluded_projects else set()
-                )
-                project_exclusions = get_excluded_projects_for_alert_rule(alert_rule)
-                project_exclusions.exclude(project_id__in=excluded_project_ids).delete()
-                existing_excluded_project_ids = {pe.project_id for pe in project_exclusions}
-                new_exclusions = [
-                    AlertRuleExcludedProjects(alert_rule=alert_rule, project_id=project_id)
-                    for project_id in excluded_project_ids
-                    if project_id not in existing_excluded_project_ids
-                ]
-                AlertRuleExcludedProjects.objects.bulk_create(new_exclusions)
-
-                new_projects = Project.objects.filter(organization=organization).exclude(
-                    id__in={sub.project_id for sub in existing_subs} | excluded_project_ids
-                )
-                # If we're subscribed to any of the excluded projects then we want to
-                # remove those subscriptions
-                deleted_subs = [
-                    sub for sub in existing_subs if sub.project_id in excluded_project_ids
-                ]
-        elif projects is not None:
+        if projects is not None:
             # All project slugs that currently exist for the alert rule
             existing_project_slugs = {sub.project.slug for sub in existing_subs}
 
@@ -1130,12 +1066,6 @@ def delete_alert_rule(
         tasks.auto_resolve_snapshot_incidents.apply_async(kwargs={"alert_rule_id": alert_rule.id})
 
 
-def get_excluded_projects_for_alert_rule(
-    alert_rule: AlertRule,
-) -> QuerySet[AlertRuleExcludedProjects]:
-    return AlertRuleExcludedProjects.objects.filter(alert_rule=alert_rule)
-
-
 class AlertRuleTriggerLabelAlreadyUsedError(Exception):
     pass
 
@@ -1153,7 +1083,6 @@ def create_alert_rule_trigger(
     alert_rule: AlertRule,
     label: str,
     alert_threshold: int | float,
-    excluded_projects: Collection[Project] = (),
 ) -> AlertRuleTrigger:
     """
     Creates a new AlertRuleTrigger
@@ -1161,7 +1090,6 @@ def create_alert_rule_trigger(
     :param label: A description of the trigger
     :param alert_threshold: Value that the subscription needs to reach to trigger the
     alert rule
-    :param excluded_projects: A list of Projects that should be excluded from this
     trigger. These projects must be associate with the alert rule already
     :return: The created AlertRuleTrigger
     """
@@ -1171,21 +1099,10 @@ def create_alert_rule_trigger(
     if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC and alert_threshold != 0:
         raise ValidationError(INVALID_ALERT_THRESHOLD)
 
-    excluded_subs: Iterable[QuerySubscription] = ()
-    if excluded_projects:
-        excluded_subs = _get_subscriptions_from_alert_rule(alert_rule, excluded_projects)
-
     with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         trigger = AlertRuleTrigger.objects.create(
             alert_rule=alert_rule, label=label, alert_threshold=alert_threshold
         )
-        if excluded_subs:
-            new_exclusions = [
-                AlertRuleTriggerExclusion(alert_rule_trigger=trigger, query_subscription=sub)
-                for sub in excluded_subs
-            ]
-            AlertRuleTriggerExclusion.objects.bulk_create(new_exclusions)
-
     return trigger
 
 
@@ -1193,15 +1110,12 @@ def update_alert_rule_trigger(
     trigger: AlertRuleTrigger,
     label: str | None = None,
     alert_threshold: int | float | None = None,
-    excluded_projects: Collection[Project] = (),
 ) -> AlertRuleTrigger:
     """
     :param trigger: The AlertRuleTrigger to update
     :param label: A description of the trigger
     :param alert_threshold: Value that the subscription needs to reach to trigger the
     alert rule
-    :param excluded_projects: A list of Projects that should be excluded from this
-    trigger. These projects must be associate with the alert rule already
     :return: The updated AlertRuleTrigger
     """
 
@@ -1221,35 +1135,9 @@ def update_alert_rule_trigger(
     if alert_threshold is not None:
         updated_fields["alert_threshold"] = alert_threshold
 
-    deleted_exclusion_ids = []
-    new_subs = []
-
-    if excluded_projects:
-        # We link projects to exclusions via QuerySubscriptions. Calculate which
-        # exclusions need to be deleted, and which need to be created.
-        excluded_subs = _get_subscriptions_from_alert_rule(trigger.alert_rule, excluded_projects)
-        existing_exclusions = AlertRuleTriggerExclusion.objects.filter(alert_rule_trigger=trigger)
-        new_sub_ids = {sub.id for sub in excluded_subs}
-        existing_sub_ids = {exclusion.query_subscription_id for exclusion in existing_exclusions}
-
-        deleted_exclusion_ids = [
-            e.id for e in existing_exclusions if e.query_subscription_id not in new_sub_ids
-        ]
-        new_subs = [sub for sub in excluded_subs if sub.id not in existing_sub_ids]
-
     with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         if updated_fields:
             trigger.update(**updated_fields)
-
-        if deleted_exclusion_ids:
-            AlertRuleTriggerExclusion.objects.filter(id__in=deleted_exclusion_ids).delete()
-
-        if new_subs:
-            new_exclusions = [
-                AlertRuleTriggerExclusion(alert_rule_trigger=trigger, query_subscription=sub)
-                for sub in new_subs
-            ]
-            AlertRuleTriggerExclusion.objects.bulk_create(new_exclusions)
 
     return trigger
 
@@ -1841,6 +1729,22 @@ INSIGHTS_FUNCTION_VALID_ARGS_MAP = {
         "measurements.score.total",
     ],
 }
+EAP_COLUMNS = [
+    "span.duration",
+    "span.self_time",
+]
+EAP_FUNCTIONS = [
+    "count",
+    "avg",
+    "p50",
+    "p75",
+    "p90",
+    "p95",
+    "p99",
+    "p100",
+    "max",
+    "min",
+]
 
 
 def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
@@ -1853,6 +1757,11 @@ def get_column_from_aggregate(aggregate: str, allow_mri: bool) -> str | None:
         or match.group("function") in METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS
     ):
         return None if match.group("columns") == "" else match.group("columns")
+
+    # Skip additional validation for EAP queries. They don't exist in the old logic.
+    if match and match.group("function") in EAP_FUNCTIONS and match.group("columns") in EAP_COLUMNS:
+        return match.group("columns")
+
     if allow_mri:
         mri_column = _get_column_from_aggregate_with_mri(aggregate)
         # Only if the column was allowed, we return it, otherwise we fallback to the old logic.
@@ -1885,7 +1794,9 @@ def _get_column_from_aggregate_with_mri(aggregate: str) -> str | None:
     return columns
 
 
-def check_aggregate_column_support(aggregate: str, allow_mri: bool = False) -> bool:
+def check_aggregate_column_support(
+    aggregate: str, allow_mri: bool = False, allow_eap: bool = False
+) -> bool:
     # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
     column = get_column_from_aggregate(aggregate, allow_mri)
     match = is_function(aggregate)
@@ -1900,6 +1811,7 @@ def check_aggregate_column_support(aggregate: str, allow_mri: bool = False) -> b
             isinstance(function, str)
             and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
         )
+        or (column in EAP_COLUMNS and allow_eap)
     )
 
 

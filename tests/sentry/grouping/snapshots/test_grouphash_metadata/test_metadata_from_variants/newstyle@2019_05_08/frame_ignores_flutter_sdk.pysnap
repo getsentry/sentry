@@ -1,0 +1,18 @@
+---
+created: '2024-10-28T14:02:42.375110+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "e0e7c4713e9092dc77635d5a0d5db31d"
+    component:
+      system*
+        stacktrace*
+          frame*
+            module*
+              "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
+            function* (trimmed javascript function)
+              "_flushPointerEventQueue"

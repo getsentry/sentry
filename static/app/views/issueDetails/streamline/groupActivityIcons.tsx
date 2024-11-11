@@ -1,14 +1,18 @@
 import {
   IconAdd,
+  IconAsana,
+  IconBitbucket,
   IconChat,
   IconCheckmark,
   IconClose,
   IconCommit,
   IconDelete,
-  IconEdit,
   IconFire,
   IconFlag,
+  IconGithub,
+  IconGitlab,
   IconGraph,
+  IconJira,
   IconLock,
   IconMute,
   IconNext,
@@ -18,11 +22,14 @@ import {
   IconUnsubscribed,
   IconUser,
 } from 'sentry/icons';
+import {IconCellSignal} from 'sentry/icons/iconCellSignal';
 import {GroupActivityType} from 'sentry/types/group';
 
 interface IconWithDefaultProps {
   Component: React.ComponentType<any> | null;
   defaultProps: {locked?: boolean; type?: string};
+  componentFunction?: (props: any) => React.ComponentType<any>;
+  propsFunction?: (props: any) => any;
 }
 
 export const groupActivityTypeIconMapping: Record<
@@ -49,7 +56,27 @@ export const groupActivityTypeIconMapping: Record<
   [GroupActivityType.SET_PUBLIC]: {Component: IconLock, defaultProps: {}},
   [GroupActivityType.SET_PRIVATE]: {Component: IconLock, defaultProps: {locked: true}},
   [GroupActivityType.SET_REGRESSION]: {Component: IconFire, defaultProps: {}},
-  [GroupActivityType.CREATE_ISSUE]: {Component: IconAdd, defaultProps: {}},
+  [GroupActivityType.CREATE_ISSUE]: {
+    Component: IconAdd,
+    componentFunction: data => {
+      const provider = data.provider;
+      switch (provider) {
+        case 'GitHub':
+          return IconGithub;
+        case 'GitLab':
+          return IconGitlab;
+        case 'Bitbucket':
+          return IconBitbucket;
+        case 'Jira':
+          return IconJira;
+        case 'Asana':
+          return IconAsana;
+        default:
+          return IconAdd;
+      }
+    },
+    defaultProps: {},
+  },
   [GroupActivityType.UNMERGE_SOURCE]: {Component: IconPrevious, defaultProps: {}},
   [GroupActivityType.UNMERGE_DESTINATION]: {Component: IconPrevious, defaultProps: {}},
   [GroupActivityType.FIRST_SEEN]: {Component: IconFlag, defaultProps: {}},
@@ -63,6 +90,22 @@ export const groupActivityTypeIconMapping: Record<
     Component: IconGraph,
     defaultProps: {type: 'area'},
   },
-  [GroupActivityType.SET_PRIORITY]: {Component: IconEdit, defaultProps: {}},
+  [GroupActivityType.SET_PRIORITY]: {
+    Component: IconCellSignal,
+    defaultProps: {},
+    propsFunction: data => {
+      const {priority} = data;
+      switch (priority) {
+        case 'high':
+          return {bars: 3};
+        case 'medium':
+          return {bars: 2};
+        case 'low':
+          return {bars: 1};
+        default:
+          return {bars: 0};
+      }
+    },
+  },
   [GroupActivityType.DELETED_ATTACHMENT]: {Component: IconDelete, defaultProps: {}},
 };

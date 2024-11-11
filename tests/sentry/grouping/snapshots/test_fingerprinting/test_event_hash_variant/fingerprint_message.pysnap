@@ -1,5 +1,5 @@
 ---
-created: '2021-01-11T19:06:29.250247Z'
+created: '2024-11-08T22:03:16.698987+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -12,15 +12,16 @@ config:
     matchers:
     - - message
       - '*love*'
+    text: message:"*love*" -> "what-is-love{{ message }}"
   version: 1
 fingerprint:
 - what-is-love
 - '{{ message }}'
 title: Hello my sweet Love
 variants:
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: message:"*love*" -> "what-is-love{{ message }}"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - what-is-love
     - Hello my sweet Love

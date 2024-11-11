@@ -12,7 +12,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -506,29 +506,29 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data["filters"]["releaseId"] == ["1"]
 
     def test_post_with_start_and_end_filter(self):
-        start = iso_format(datetime.now() - timedelta(seconds=10))
-        end = iso_format(datetime.now())
+        start = (datetime.now() - timedelta(seconds=10)).isoformat()
+        end = datetime.now().isoformat()
         response = self.do_request(
             "post",
             self.url,
             data={"title": "Dashboard from Post", "start": start, "end": end, "utc": True},
         )
         assert response.status_code == 201
-        assert response.data["start"].strftime("%Y-%m-%dT%H:%M:%S") == start
-        assert response.data["end"].strftime("%Y-%m-%dT%H:%M:%S") == end
+        assert response.data["start"].replace(tzinfo=None).isoformat() == start
+        assert response.data["end"].replace(tzinfo=None).isoformat() == end
         assert response.data["utc"]
 
     def test_post_with_start_and_end_filter_and_utc_false(self):
-        start = iso_format(datetime.now() - timedelta(seconds=10))
-        end = iso_format(datetime.now())
+        start = (datetime.now() - timedelta(seconds=10)).isoformat()
+        end = datetime.now().isoformat()
         response = self.do_request(
             "post",
             self.url,
             data={"title": "Dashboard from Post", "start": start, "end": end, "utc": False},
         )
         assert response.status_code == 201
-        assert response.data["start"].strftime("%Y-%m-%dT%H:%M:%S") == start
-        assert response.data["end"].strftime("%Y-%m-%dT%H:%M:%S") == end
+        assert response.data["start"].replace(tzinfo=None).isoformat() == start
+        assert response.data["end"].replace(tzinfo=None).isoformat() == end
         assert not response.data["utc"]
 
     def test_post_dashboard_with_invalid_project_filter(self):
@@ -779,6 +779,58 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 201, response.data
         assert response.data["title"] == f"{self.dashboard.title} copy 1"
 
+    def test_many_duplicate_dashboards(self):
+        title = "My Awesome Dashboard"
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": title, "duplicate": True},
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == "My Awesome Dashboard"
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": title, "duplicate": True},
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == "My Awesome Dashboard copy"
+
+        for i in range(1, 10):
+            response = self.do_request(
+                "post",
+                self.url,
+                data={"title": title, "duplicate": True},
+            )
+
+            assert response.status_code == 201, response.data
+            assert response.data["title"] == f"My Awesome Dashboard copy {i}"
+
+    def test_duplicate_a_duplicate(self):
+        title = "An Amazing Dashboard copy 3"
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": title, "duplicate": True},
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == "An Amazing Dashboard copy 3"
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": title, "duplicate": True},
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == "An Amazing Dashboard copy 4"
+
     def test_widget_preview_field_returns_empty_list_if_no_widgets(self):
         response = self.do_request("get", self.url, data={"query": "1"})
 
@@ -958,8 +1010,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 },
             ],
         }
-        with self.feature({"organizations:dashboards-bignumber-equations": True}):
-            response = self.do_request("post", self.url, data=data)
+        response = self.do_request("post", self.url, data=data)
         assert response.status_code == 201, response.data
 
         dashboard = Dashboard.objects.get(organization=self.organization, title="First dashboard")
@@ -972,3 +1023,23 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         queries = widgets[0].dashboardwidgetquery_set.all()
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
+
+    def test_create_new_edit_perms_with_teams(self):
+        team1 = self.create_team(organization=self.organization)
+        team2 = self.create_team(organization=self.organization)
+
+        data = {
+            "title": "New Dashboard 7",
+            "permissions": {
+                "isEditableByEveryone": "false",
+                "teamsWithEditAccess": [str(team1.id), str(team2.id)],
+            },
+            "createdBy": {"id": "23516"},
+            "id": "7136",
+        }
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.content
+        assert response.data["permissions"]["isEditableByEveryone"] is False
+        assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]

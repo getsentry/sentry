@@ -80,10 +80,16 @@ export function StackTracePreviewContent({
   };
 
   if (isNativePlatform(platform)) {
-    return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
+    return (
+      <NativeContent
+        {...commonProps}
+        groupingCurrentLevel={groupingCurrentLevel}
+        hideIcon
+      />
+    );
   }
 
-  return <StackTraceContent {...commonProps} />;
+  return <StackTraceContent {...commonProps} hideIcon />;
 }
 
 type StackTracePreviewProps = {

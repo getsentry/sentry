@@ -1,4 +1,6 @@
 import {urlEncode} from '@sentry/utils';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -10,9 +12,16 @@ import selectEvent from 'sentry-test/selectEvent';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
-import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
-import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
-import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import WidgetBuilder, {
+  type WidgetBuilderProps,
+} from 'sentry/views/dashboards/widgetBuilder';
+
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -63,6 +72,13 @@ function renderTestComponent({
 
   ProjectsStore.loadInitialData(projects);
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
+    organization,
+    router,
+  });
+
   render(
     <WidgetBuilder
       route={{}}
@@ -86,6 +102,7 @@ function renderTestComponent({
         dashboardId: dashboard?.id ?? 'new',
         ...params,
       }}
+      widgetLegendState={widgetLegendState}
     />,
     {
       router,
@@ -217,6 +234,10 @@ describe('WidgetBuilder', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/spans/fields/`,
       body: [],
     });
 
@@ -908,6 +929,53 @@ describe('WidgetBuilder', function () {
           }),
         })
       );
+    });
+  });
+
+  describe('spans dataset timeseries', function () {
+    it('returns only the selected aggregates and group by as options', async function () {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        interval: '5m',
+        displayType: DisplayType.LINE,
+        widgetType: WidgetType.SPANS,
+        queries: [
+          {
+            name: '',
+            conditions: '',
+            fields: ['count(span.duration)', 'avg(span.duration)', 'transaction'],
+            aggregates: ['count(span.duration)', 'avg(span.duration)'],
+            columns: ['transaction'],
+            orderby: '-count(span.duration)',
+          },
+        ],
+      };
+
+      const dashboard = mockDashboard({widgets: [widget]});
+
+      renderTestComponent({
+        dashboard,
+        params: {
+          widgetIndex: '0',
+        },
+        orgFeatures: [...defaultOrgFeatures, 'dashboards-eap'],
+      });
+
+      await screen.findByText('Sort by a y-axis');
+      await selectEvent.openMenu(await screen.findByText('count(span.duration)'));
+
+      // 3 options in the dropdown
+      expect(screen.queryAllByTestId('menu-list-item-label')).toHaveLength(3);
+
+      // Appears once in the dropdown and once in the sort by field
+      expect(await screen.findAllByText('count(span.duration)')).toHaveLength(2);
+
+      // Appears once in the dropdown
+      expect(await screen.findAllByText('avg(span.duration)')).toHaveLength(1);
+
+      // Appears once in the dropdown and once in the group by field
+      expect(await screen.findAllByText('transaction')).toHaveLength(2);
     });
   });
 });

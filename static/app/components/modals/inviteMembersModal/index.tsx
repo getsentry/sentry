@@ -82,7 +82,7 @@ function InviteMembersModal({
         willInvite={willInvite}
         onSendInvites={sendInvites}
       >
-        {({sendInvites: _sendInvites, canSend, headerInfo}) => {
+        {({sendInvites: inviteModalSendInvites, canSend, headerInfo}) => {
           return organization.features.includes('invite-members-new-modal') ? (
             <InviteMembersContext.Provider
               value={{
@@ -92,7 +92,7 @@ function InviteMembersModal({
                 setRole,
                 setTeams,
                 setInviteStatus,
-                sendInvites,
+                sendInvites: inviteModalSendInvites,
                 reset,
                 inviteStatus,
                 pendingInvites: pendingInvites[0],
@@ -138,7 +138,7 @@ function InviteMembersModal({
               removeInviteRow={removeInviteRow}
               reset={reset}
               sendingInvites={sendingInvites}
-              sendInvites={sendInvites}
+              sendInvites={inviteModalSendInvites}
               setEmails={setEmails}
               setRole={setRole}
               setTeams={setTeams}
