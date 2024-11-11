@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
@@ -44,6 +45,8 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.linksign import process_signature
 from sentry.utils.sdk import Scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
+
+logger = logging.getLogger("sentry.api.authentication")
 
 
 class AuthenticationSiloLimit(SiloLimit):
@@ -170,6 +173,7 @@ class QuietBasicAuthentication(BasicAuthentication):
             scope.set_tag(entity_id_tag, auth_token.entity_id)
             for k, v in tags.items():
                 scope.set_tag(k, v)
+
         return (user, auth_token)
 
 
@@ -179,11 +183,7 @@ class StandardAuthentication(QuietBasicAuthentication):
     def accepts_auth(self, auth: list[bytes]) -> bool:
         return bool(auth) and auth[0].lower() == self.token_name
 
-    def authenticate_token(
-        self,
-        request: Request,
-        token_str: str,
-    ) -> tuple[Any, Any]:
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         raise NotImplementedError
 
     def authenticate(self, request: Request):
@@ -388,7 +388,6 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
-        print("************authenticating token************")
         user: AnonymousUser | User | RpcUser | None = AnonymousUser()
 
         token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
@@ -423,21 +422,46 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
-        print("***token", token.organization_id)
         if token.organization_id:
-            resolved_url = resolve(request.path_info)
-            if resolved_url and resolved_url.kwargs["organization_id_or_slug"]:
-                # We need to make sure the organization token has access to is the same as the one in the URL
-                organization_context = organization_service.get_organization_by_id(
-                    id=token.organization_id
-                )
-                if organization_context:
-                    organization = organization_context.organization
+            # We need to make sure the organization to which the token has access is the same as the one in the URL
+            organization = None
+            organization_context = organization_service.get_organization_by_id(
+                id=token.organization_id
+            )
+            if organization_context:
+                organization = organization_context.organization
+
+            if organization:
+                resolved_url = resolve(request.path_info)
+                target_org_id_or_slug = resolved_url.kwargs.get("organization_id_or_slug")
+                if target_org_id_or_slug:
                     if (
-                        organization.slug != resolved_url.kwargs["organization_id_or_slug"]
-                        and organization.id != resolved_url.kwargs["organization_id_or_slug"]
+                        organization.slug != target_org_id_or_slug
+                        and organization.id != target_org_id_or_slug
                     ):
-                        raise AuthenticationFailed("Unauthorized organization access")
+                        # TODO (@athena): We want to raise auth excecption here but to be sure
+                        # I soft launch this by only logging the error for now
+                        # raise AuthenticationFailed("Unauthorized organization access")
+                        logger.info(
+                            "Token has access to organization %s but wants to get access to organization %s",
+                            organization.slug,
+                            target_org_id_or_slug,
+                        )
+                else:
+                    # TODO (@athena): We want to limit org level token's access to org level endpoints only
+                    # so in the future this will be an auth exception but for now we soft launch by logging an error
+                    logger.info(
+                        "Token has only access to organization %s but is calling an endpoint for multiple organizations: %s",
+                        organization.slug,
+                        request.path_info,
+                    )
+            else:
+                # TODO (@athena): If there is an organization token we should be able to fetch organization context
+                # Otherwise we should raise an exception
+                # For now adding logging to investigate if this is a valid case we need to address
+                logger.info(
+                    "Token has access to an unknown organization: %s", token.organization_id
+                )
 
         return self.transform_auth(
             user,
