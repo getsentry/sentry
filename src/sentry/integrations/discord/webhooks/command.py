@@ -91,9 +91,10 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
                     extra={
                         "reason": MessageCommandFailureReason.MISSING_DATA,
                         "has_integration": bool(self.request.integration),
-                        "has_user_id": bool(self.request.user_id),
+                        "has_user_id": self.request.user_id,
                     }
                 )
+                # TODO: remove this logger
                 logger.warning(
                     "discord.interaction.command.missing.integration",
                     extra={
