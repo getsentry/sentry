@@ -98,7 +98,7 @@ def _has_customized_fingerprint(event: Event, variants: dict[str, BaseVariant]) 
             return True
 
     # Fully customized fingerprint (from either us or the user)
-    fingerprint_variant = variants.get("custom-fingerprint") or variants.get("built-in-fingerprint")
+    fingerprint_variant = variants.get("custom_fingerprint") or variants.get("built_in_fingerprint")
 
     if fingerprint_variant:
         metrics.incr(

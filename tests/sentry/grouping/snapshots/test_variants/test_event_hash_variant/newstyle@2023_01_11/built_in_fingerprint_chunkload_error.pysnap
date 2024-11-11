@@ -1,5 +1,5 @@
 ---
-created: '2024-10-24T14:16:56.151196+00:00'
+created: '2024-11-08T18:05:13.933819+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -21,7 +21,7 @@ app:
         value*
           "ChunkLoadError: something something..."
 --------------------------------------------------------------------------
-built-in-fingerprint:
+built_in_fingerprint:
   hash: "5d731dcf8ecc4f042eeacf528d8d8da9"
   info: {"matched_rule":{"attributes":{},"fingerprint":["chunkloaderror"],"is_builtin":true,"matchers":[["family","javascript"],["type","ChunkLoadError"]],"text":"family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\""}}
   values: ["chunkloaderror"]
