@@ -78,7 +78,7 @@ export function EventDetailsHeader({
               analyticsEventKey="issue_details.sidebar_toggle"
               analyticsEventName="Issue Details: Sidebar Toggle"
               analyticsParams={{
-                open: !sidebarOpen,
+                sidebar_open: !sidebarOpen,
               }}
             >
               <LeftChevron direction={direction} />
