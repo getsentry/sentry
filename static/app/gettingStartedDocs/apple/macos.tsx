@@ -59,7 +59,7 @@ func applicationDidFinishLaunching(_ aNotification: Notification) {
     // this code will be profiled
     //
     // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
-    // your application until the process exits or stopProfiling is called.
+    // your application until the process exits or stopProfiler is called.
     SentrySDK.stopProfiler()`
         : ''
     }
