@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import AnalyticsAreaProvider from 'sentry/components/analyticsAreaProvider';
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import ArchivedBox from 'sentry/components/archivedBox';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
@@ -159,7 +159,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const MainLayoutComponent = hasStreamlinedUI ? 'div' : StyledLayoutMain;
 
   return (
-    <AnalyticsAreaProvider name="issue_details">
+    <AnalyticsArea name="issue_details">
       <TransactionProfileIdProvider
         projectId={event?.projectID}
         transactionId={event?.type === 'transaction' ? event.id : undefined}
@@ -213,7 +213,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
           </LayoutBody>
         </VisuallyCompleteWithData>
       </TransactionProfileIdProvider>
-    </AnalyticsAreaProvider>
+    </AnalyticsArea>
   );
 }
 

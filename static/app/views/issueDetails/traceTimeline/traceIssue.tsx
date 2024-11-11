@@ -1,8 +1,8 @@
-import {Fragment, useContext} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {AnalyticsAreaContext} from 'sentry/components/analyticsAreaProvider';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
@@ -23,7 +23,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   const issueId = event['issue.id'];
   const {title, subtitle, message} = getTitleSubtitleMessage(event);
   const avatarSize = parseInt(space(4), 10);
-  const area = useContext(AnalyticsAreaContext);
+  const area = useAnalyticsArea();
 
   // Referrer used to be hard-coded for this component. It's used for analytics
   // only. We'll still use the old referrer for backwards compatibility.

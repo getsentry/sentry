@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AnalyticsAreaProvider from 'sentry/components/analyticsAreaProvider';
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -217,9 +217,9 @@ describe('TraceDataSection', () => {
     // old (pre-Nov 2024) analytics are emitted. In the source code, this
     // area is located in GroupEventDetails.
     render(
-      <AnalyticsAreaProvider name="issue_details">
+      <AnalyticsArea name="issue_details">
         <TraceDataSection event={event} />
-      </AnalyticsAreaProvider>,
+      </AnalyticsArea>,
       {organization}
     );
 

@@ -1,7 +1,6 @@
-import {useContext} from 'react';
 import styled from '@emotion/styled';
 
-import {AnalyticsAreaContext} from 'sentry/components/analyticsAreaProvider';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
@@ -21,7 +20,7 @@ interface TraceLinkProps {
 export function TraceLink({event}: TraceLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const area = useContext(AnalyticsAreaContext);
+  const area = useAnalyticsArea();
   const traceTarget = generateTraceTarget(
     event,
     organization,

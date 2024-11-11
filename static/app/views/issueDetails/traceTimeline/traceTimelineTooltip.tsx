@@ -1,8 +1,7 @@
-import {useContext} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {AnalyticsAreaContext} from 'sentry/components/analyticsAreaProvider';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
@@ -24,7 +23,7 @@ interface TraceTimelineTooltipProps {
 export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineTooltipProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const area = useContext(AnalyticsAreaContext);
+  const area = useAnalyticsArea();
 
   // TODO: should handling of current event + other events look different
   if (timelineEvents.length === 1 && timelineEvents[0].id === event.id) {
@@ -98,7 +97,7 @@ function EventItem({timelineEvent, location}: EventItemProps) {
     orgId: organization.slug,
   });
   const project = projects.find(p => p.slug === timelineEvent.project);
-  const area = useContext(AnalyticsAreaContext);
+  const area = useAnalyticsArea();
 
   return (
     <EventItemRoot
@@ -189,7 +188,7 @@ const EventItemRoot = styled(Link)`
   font-size: ${p => p.theme.fontSizeSmall};
 
   &:hover {
-    background-color: ${p => p.theme.area200};
+    background-color: ${p => p.theme.surface200};
     color: ${p => p.theme.textColor};
   }
 `;

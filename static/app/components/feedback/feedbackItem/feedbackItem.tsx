@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import AnalyticsAreaProvider from 'sentry/components/analyticsAreaProvider';
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
@@ -55,7 +55,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   return (
     <Fragment>
-      <AnalyticsAreaProvider name="details">
+      <AnalyticsArea name="details">
         <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
         <OverflowPanelItem ref={overflowRef}>
           <Section>
@@ -127,7 +127,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
             </Section>
           ) : null}
         </OverflowPanelItem>
-      </AnalyticsAreaProvider>
+      </AnalyticsArea>
     </Fragment>
   );
 }

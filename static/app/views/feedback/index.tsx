@@ -1,6 +1,6 @@
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
-import AnalyticsAreaProvider from 'sentry/components/analyticsAreaProvider';
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
@@ -20,9 +20,9 @@ export default function FeedbackContainer({children}: Props) {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <AnalyticsAreaProvider name="feedback">
+      <AnalyticsArea name="feedback">
         <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
-      </AnalyticsAreaProvider>
+      </AnalyticsArea>
     </Feature>
   );
 }

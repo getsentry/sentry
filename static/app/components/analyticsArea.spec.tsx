@@ -1,16 +1,13 @@
-import {useContext} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import AnalyticsAreaProvider, {
-  AnalyticsAreaContext,
-} from 'sentry/components/analyticsAreaProvider';
+import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import type {Organization} from 'sentry/types/organization';
 import * as analytics from 'sentry/utils/analytics';
 
 function TestButton({org}: {org: Organization}) {
-  const area = useContext(AnalyticsAreaContext);
+  const area = useAnalyticsArea();
 
   return (
     <button
@@ -31,13 +28,13 @@ describe('AnalyticsAreaProvider', function () {
 
   it('Appends names when nested', async function () {
     render(
-      <AnalyticsAreaProvider name="feedback">
-        <AnalyticsAreaProvider name="details">
-          <AnalyticsAreaProvider name="activity">
+      <AnalyticsArea name="feedback">
+        <AnalyticsArea name="details">
+          <AnalyticsArea name="activity">
             <TestButton org={organization} />
-          </AnalyticsAreaProvider>
-        </AnalyticsAreaProvider>
-      </AnalyticsAreaProvider>
+          </AnalyticsArea>
+        </AnalyticsArea>
+      </AnalyticsArea>
     );
 
     const button = screen.getByTestId('my-button');
@@ -51,13 +48,13 @@ describe('AnalyticsAreaProvider', function () {
 
   it('Overrides parent area when specified', async function () {
     render(
-      <AnalyticsAreaProvider name="feedback">
-        <AnalyticsAreaProvider name="details">
-          <AnalyticsAreaProvider name="my-modal" overrideParent>
+      <AnalyticsArea name="feedback">
+        <AnalyticsArea name="details">
+          <AnalyticsArea name="my-modal" overrideParent>
             <TestButton org={organization} />
-          </AnalyticsAreaProvider>
-        </AnalyticsAreaProvider>
-      </AnalyticsAreaProvider>
+          </AnalyticsArea>
+        </AnalyticsArea>
+      </AnalyticsArea>
     );
 
     const button = screen.getByTestId('my-button');
