@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.conf import settings
 
 from sentry.eventstore.processing.base import EventProcessingStore
@@ -20,7 +21,8 @@ if (
             settings.SENTRY_TRANSACTION_PROCESSING_STORE,
             settings.SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS,
         )
-    except BaseException:
+    except BaseException as e:
+        sentry_sdk.capture_exception(e)
         transaction_processing_store = LazyServiceWrapper(
             EventProcessingStore,
             settings.SENTRY_EVENT_PROCESSING_STORE,
