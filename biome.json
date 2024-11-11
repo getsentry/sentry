@@ -19,7 +19,6 @@
       "correctness": {
         "noGlobalObjectCalls": "error",
         "noUnreachable": "error",
-        "useHookAtTopLevel": "error",
         "useIsNan": "error",
         "noUnusedPrivateClassMembers": "error",
         "noInvalidUseBeforeDeclaration": "error",
