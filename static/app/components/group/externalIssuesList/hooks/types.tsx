@@ -22,6 +22,7 @@ interface LinkedIssue extends BaseIssueAction {
 }
 
 export interface ExternalIssueAction {
+  id: string;
   name: string;
   /**
    * Usually opens a modal to create an external issue

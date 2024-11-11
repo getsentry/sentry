@@ -1,6 +1,7 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GroupFixture} from 'sentry-fixture/group';
+import {JiraIntegrationFixture} from 'sentry-fixture/jiraIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PlatformExternalIssueFixture} from 'sentry-fixture/platformExternalIssue';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -170,10 +171,10 @@ describe('StreamlinedExternalIssueList', () => {
 
     // Both items are listed inside the dropdown
     expect(
-      await screen.findByRole('menuitemradio', {name: 'GitHub sentry'})
+      await screen.findByRole('menuitemradio', {name: /GitHub sentry/})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('menuitemradio', {name: 'GitHub codecov'})
+      await screen.findByRole('menuitemradio', {name: /GitHub codecov/})
     ).toBeInTheDocument();
   });
 
@@ -194,5 +195,48 @@ describe('StreamlinedExternalIssueList', () => {
     expect(
       await screen.findByText('Track this issue in Jira, GitHub, etc.')
     ).toBeInTheDocument();
+  });
+
+  it('should render dropdown items with subtext correctly', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
+      body: [
+        JiraIntegrationFixture({
+          id: '1',
+          status: 'active',
+          externalIssues: [],
+          name: 'Jira Integration 1',
+          domainName: 'hello.com',
+        }),
+        JiraIntegrationFixture({
+          id: '2',
+          status: 'active',
+          externalIssues: [],
+          name: 'Jira',
+          domainName: 'example.com',
+        }),
+      ],
+    });
+
+    render(
+      <StreamlinedExternalIssueList event={event} group={group} project={project} />
+    );
+
+    expect(await screen.findByRole('button', {name: 'Jira'})).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', {name: 'Jira'}));
+
+    // Item with different name and subtext should show both
+    const menuItem = await screen.findByRole('menuitemradio', {
+      name: /Jira Integration 1/,
+    });
+    expect(menuItem).toHaveTextContent('hello.com');
+
+    // Item with name matching integration name should only show subtext
+    expect(screen.getByRole('menuitemradio', {name: 'example.com'})).toBeInTheDocument();
   });
 });
