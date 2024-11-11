@@ -10,7 +10,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 from ..base import (
-    DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
     PerformanceDetector,
     fingerprint_span,
@@ -66,7 +65,7 @@ class SlowDBQueryDetector(PerformanceDetector):
             spans_involved = [span_id]
 
             hash = span.get("hash", "")
-            type = DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key]
+            type = PerformanceSlowDBQueryGroupType
 
             self.stored_problems[fingerprint] = PerformanceProblem(
                 type=type,
