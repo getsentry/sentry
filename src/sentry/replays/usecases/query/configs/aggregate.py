@@ -25,7 +25,13 @@ from sentry.replays.lib.new_query.fields import (
     SumLengthField,
     UUIDColumnField,
 )
-from sentry.replays.lib.new_query.parsers import parse_int, parse_ipv4, parse_str, parse_uuid
+from sentry.replays.lib.new_query.parsers import (
+    parse_duration,
+    parse_int,
+    parse_ipv4,
+    parse_str,
+    parse_uuid,
+)
 from sentry.replays.lib.selector.parse import parse_selector
 from sentry.replays.usecases.query.conditions import (
     AggregateActivityScalar,
@@ -103,7 +109,7 @@ search_config: dict[str, FieldProtocol] = {
     "device.model": string_field("device_model"),
     "device.name": string_field("device_name"),
     "dist": string_field("dist"),
-    "duration": ComputedField(parse_int, SimpleAggregateDurationScalar),
+    "duration": ComputedField(parse_duration, SimpleAggregateDurationScalar),
     "environment": string_field("environment"),
     "error_ids": ComputedField(parse_uuid, SumOfErrorIdScalar),
     # Backwards Compat: We pass a simple string to the UUID column. Older versions of ClickHouse
