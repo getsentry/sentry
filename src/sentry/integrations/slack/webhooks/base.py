@@ -166,7 +166,12 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
         def link_user_handler(input: CommandInput, lifecycle: EventLifecycle) -> Response:
             response = self.endpoint.link_user(self.request)
             if str(response.data) in ALREADY_LINKED_MESSAGE:
-                lifecycle.record_halt()
+                lifecycle.record_halt(
+                    extra={
+                        "reason": MessageCommandHaltReason.ALREADY_LINKED,
+                        "email": self.request.identity_str,
+                    }
+                )
             return response
 
         def unlink_user_handler(input: CommandInput, lifecycle: EventLifecycle) -> Response:
