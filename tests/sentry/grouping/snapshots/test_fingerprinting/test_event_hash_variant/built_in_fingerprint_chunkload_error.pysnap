@@ -1,5 +1,5 @@
 ---
-created: '2024-10-15T17:19:43.335885+00:00'
+created: '2024-11-08T22:03:15.369457+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -15,9 +15,9 @@ variants:
       contributes: false
       hint: custom fingerprint takes precedence
     type: component
-  built-in-fingerprint:
+  built_in_fingerprint:
     matched_rule: family:"javascript" type:"ChunkLoadError" -> "chunkloaderror"
-    type: built-in-fingerprint
+    type: built_in_fingerprint
     values:
     - chunkloaderror
   system:
