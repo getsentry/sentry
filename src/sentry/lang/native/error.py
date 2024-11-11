@@ -15,6 +15,12 @@ USER_FIXABLE_ERRORS = (
     EventError.NATIVE_MISSING_DSYM,
     EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
     EventError.NATIVE_BAD_DSYM,
+    # We tried to use a debug file for a purpose it doesn't support.
+    # Currently this only happens when trying to symbolicate a
+    # CLR (.NET) event with a Windows PDB file. The tracking issue
+    # for supporting this is
+    # https://github.com/getsentry/team-ingest/issues/550.
+    EventError.NATIVE_UNSUPPORTED_DSYM,
     EventError.NATIVE_MISSING_SYMBOL,
     EventError.FETCH_GENERIC_ERROR,
     # Emitted for e.g. broken minidumps

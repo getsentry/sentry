@@ -99,6 +99,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
 def _handle_image_status(status, image, os, data):
     if status in ("found", "unused"):
         return
+    elif status == "unsupported":
+        error = SymbolicationFailed(type=EventError.NATIVE_UNSUPPORTED_DSYM)
     elif status == "missing":
         package = image.get("code_file")
         if not package:
