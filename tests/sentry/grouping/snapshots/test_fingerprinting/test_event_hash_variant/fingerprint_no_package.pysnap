@@ -1,5 +1,5 @@
 ---
-created: '2024-10-16T22:32:28.644068+00:00'
+created: '2024-11-08T22:03:14.091914+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -22,9 +22,9 @@ variants:
       contributes: false
       hint: custom fingerprint takes precedence
     type: component
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: type:"DatabaseUnavailable" -> "{{ package }}"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - <no-package>
   system:

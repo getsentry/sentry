@@ -29,7 +29,22 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         if event is None:
             raise ResourceDoesNotExist
 
-        grouping_info = get_grouping_info(request.GET.get("config", None), project, event)
+        _grouping_info = get_grouping_info(request.GET.get("config", None), project, event)
+
+        # TODO: All of the below is a temporary hack to preserve compatibility between the BE and FE as
+        # we transition from using dashes in the keys/variant types to using underscores. For now, until
+        # we change the FE, we switch back to dashes before sending the data.
+        grouping_info = {}
+
+        for key, variant_dict in _grouping_info.items():
+            new_key = key.replace("_", "-")
+            new_type = variant_dict.get("type", "").replace("_", "-")
+
+            variant_dict["key"] = new_key
+            if "type" in variant_dict:
+                variant_dict["type"] = new_type
+
+            grouping_info[new_key] = variant_dict
 
         return HttpResponse(
             orjson.dumps(grouping_info, option=orjson.OPT_UTC_Z), content_type="application/json"

@@ -1,5 +1,5 @@
 ---
-created: '2024-10-16T22:32:28.968353+00:00'
+created: '2024-11-08T22:03:14.537139+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -17,9 +17,9 @@ fingerprint:
 - sdk-nextjs
 title: Es Dee Kay
 variants:
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: sdk:"sentry.javascript.nextjs" -> "sdk-nextjs"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - sdk-nextjs
   default:
