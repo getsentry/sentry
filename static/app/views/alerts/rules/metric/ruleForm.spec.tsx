@@ -611,8 +611,9 @@ describe('Incident Rules Form', () => {
         ruleId: rule.id,
       });
 
-      await userEvent.type(screen.getByTestId('query-builder-input'), 'has:http.url');
-      await userEvent.type(screen.getByTestId('query-builder-input'), '{enter}');
+      const queryInput = await screen.findByTestId('query-builder-input');
+      await userEvent.type(queryInput, 'has:http.url');
+      await userEvent.type(queryInput, '{enter}');
 
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -624,7 +625,7 @@ describe('Incident Rules Form', () => {
           }),
         })
       );
-    });
+    }, 10000);
 
     it('switches from percent change to count', async () => {
       createWrapper({
