@@ -121,11 +121,6 @@ class MailAdapter:
         users = self.get_sendable_user_objects(project)
         return [user.id for user in users]
 
-    def get_sendable_users(self, project):
-        """@deprecated Do not change this function, it is being used in getsentry."""
-        users = self.get_sendable_user_objects(project)
-        return [user.id for user in users]
-
     @staticmethod
     def notify(
         notification,
