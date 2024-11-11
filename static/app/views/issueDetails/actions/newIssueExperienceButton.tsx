@@ -81,7 +81,9 @@ export function NewIssueExperienceButton() {
           hidden: !openForm,
           onAction: () => {
             openForm({
-              messagePlaceholder: t('How can we make this new UI work for you?'),
+              messagePlaceholder: t(
+                'What do we need to change to keep you on the new UI?'
+              ),
             });
           },
         },
