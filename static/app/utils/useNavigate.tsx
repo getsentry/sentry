@@ -29,13 +29,13 @@ export function useNavigate(): ReactRouter3Navigate {
   const legacyRouterContext = useRouteContext();
 
   if (!legacyRouterContext) {
-    // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const router6Navigate = useReactRouter6Navigate();
 
     // XXX(epurkhiser): Translate legacy LocationDescriptor to To in the
     // navigate helper.
 
-    // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const navigate = useCallback<ReactRouter3Navigate>(
       (to: LocationDescriptor | number, options: NavigateOptions = {}) =>
         typeof to === 'number'
@@ -52,15 +52,15 @@ export function useNavigate(): ReactRouter3Navigate {
 
   const {router} = legacyRouterContext;
 
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const hasMountedRef = useRef(false);
 
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     hasMountedRef.current = true;
   });
 
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const navigate = useCallback<ReactRouter3Navigate>(
     (to: LocationDescriptor | number, options: NavigateOptions = {}) => {
       if (!hasMountedRef.current) {

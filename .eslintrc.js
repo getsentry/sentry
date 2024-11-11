@@ -22,6 +22,7 @@ module.exports = {
     jest: true,
   },
   rules: {
+    'react-hooks/rules-of-hooks': 'error',
     'react-hooks/exhaustive-deps': [
       'error',
       {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},

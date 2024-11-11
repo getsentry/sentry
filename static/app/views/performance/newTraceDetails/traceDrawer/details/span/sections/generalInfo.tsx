@@ -12,7 +12,7 @@ import type {TraceTree} from '../../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
-import {getSpanAncestryAndGroupingItems} from './ancestry';
+import {useSpanAncestryAndGroupingItems} from './ancestry';
 
 type GeneralnfoProps = {
   location: Location;
@@ -134,7 +134,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
     });
   }
 
-  const ancestryAndGroupingItems = getSpanAncestryAndGroupingItems({
+  const ancestryAndGroupingItems = useSpanAncestryAndGroupingItems({
     node: props.node,
     onParentClick: props.onParentClick,
     location: props.location,

@@ -14,13 +14,13 @@ export function useRoutes(): PlainRoute<any>[] {
     return legacyRouterContext.routes;
   }
 
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const matches = useMatches();
 
   // XXX(epurkhiser): This transforms react-router 6 style matches back to old
   // style react-router 3 rroute matches.
   //
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router-6 migration
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   return useMemo(
     () =>
       matches.map<PlainRoute>(match => {
