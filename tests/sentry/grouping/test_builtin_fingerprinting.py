@@ -561,11 +561,11 @@ class BuiltInFingerprintingTest(TestCase):
             k: v.as_dict()
             for k, v in event.get_grouping_variants(force_config=GROUPING_CONFIG).items()
         }
-        assert "built-in-fingerprint" in variants
+        assert "built_in_fingerprint" in variants
 
-        assert variants["built-in-fingerprint"] == {
+        assert variants["built_in_fingerprint"] == {
             "hash": mock.ANY,  # ignore hash as it can change for unrelated reasons
-            "type": "built-in-fingerprint",
+            "type": "built_in_fingerprint",
             "description": "Sentry defined fingerprint",
             "values": ["chunkloaderror"],
             "client_values": ["my-route", "{{ default }}"],
@@ -711,7 +711,7 @@ class BuiltInFingerprintingTest(TestCase):
             ).items()
         }
 
-        assert "built-in-fingerprint" not in variants
+        assert "built_in_fingerprint" not in variants
         assert event_transaction_no_tx.data["fingerprint"] == ["my-route", "{{ default }}"]
 
     def test_hydration_rule_w_family_matcher(self):
