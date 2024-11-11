@@ -35,7 +35,7 @@ class ApiAuthorization(Model, HasApiScopes):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_apiauthorization"
-        unique_together = (("user", "application"),)
+        unique_together = (("user", "application", "organization_id"),)
 
     __repr__ = sane_repr("user_id", "application_id")
 
