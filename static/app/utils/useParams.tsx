@@ -13,7 +13,7 @@ export function useParams<P = Record<string, string>>(): P {
   let contextParams: any;
 
   if (!legacyRouterContext) {
-    // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     contextParams = useReactRouter6Params();
   } else {
     contextParams = legacyRouterContext.params;

@@ -10,10 +10,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import type {InviteStatus} from './types';
 
-function renderEmailValue<Option extends OptionTypeBase>(
-  status: InviteStatus[string],
-  valueProps: MultiValueProps<Option>
-) {
+function EmailValue<Option extends OptionTypeBase>({
+  status,
+  valueProps,
+}: {
+  status: InviteStatus[string];
+  valueProps: MultiValueProps<Option>;
+}) {
   const organization = useOrganization();
   const {children, ...props} = valueProps;
   const error = status?.error;
@@ -58,4 +61,4 @@ SendingIndicator.defaultProps = {
   size: 14,
 };
 
-export default renderEmailValue;
+export default EmailValue;
