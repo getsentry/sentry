@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {DataSection} from 'sentry/components/events/styles';
 import Anchor from 'sentry/components/links/anchor';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -22,11 +21,6 @@ export interface EventDataSectionProps {
    */
   actions?: React.ReactNode;
   className?: string;
-  /**
-   * If the section has a guide associated to it, you may specify the guide
-   * target and it will wrap the title with a GuideAnchor
-   */
-  guideTarget?: string;
   /**
    * A description shown in a QuestionTooltip
    */
@@ -75,21 +69,12 @@ export function EventDataSection({
   title,
   help,
   actions,
-  guideTarget,
   wrapTitle = true,
   showPermalink = true,
   isHelpHoverable = false,
   ...props
 }: EventDataSectionProps) {
-  let titleNode = wrapTitle ? <h3>{title}</h3> : title;
-
-  titleNode = guideTarget ? (
-    <GuideAnchor target={guideTarget} position="bottom">
-      {titleNode}
-    </GuideAnchor>
-  ) : (
-    titleNode
-  );
+  const titleNode = wrapTitle ? <h3>{title}</h3> : title;
 
   return (
     <DataSection ref={scrollToSection} className={className || ''} {...props}>

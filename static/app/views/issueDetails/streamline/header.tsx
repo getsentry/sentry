@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/container/flex';
 import Count from 'sentry/components/count';
@@ -141,7 +142,9 @@ export default function StreamlinedGroupHeader({
             <ReplayBadge group={group} project={project} />
           </Flex>
           <StatCount value={eventCount} />
-          <StatCount value={userCount} />
+          <GuideAnchor target="issue_header_stats">
+            <StatCount value={userCount} />
+          </GuideAnchor>
         </HeaderGrid>
       </Header>
       <ActionBar isComplete={isComplete}>
@@ -157,10 +160,16 @@ export default function StreamlinedGroupHeader({
             {t('Priority')}
             <GroupPriority group={group} />
           </Workflow>
-          <Workflow>
-            {t('Assignee')}
-            <GroupHeaderAssigneeSelector group={group} project={project} event={event} />
-          </Workflow>
+          <GuideAnchor target="issue_sidebar_owners" position="left">
+            <Workflow>
+              {t('Assignee')}
+              <GroupHeaderAssigneeSelector
+                group={group}
+                project={project}
+                event={event}
+              />
+            </Workflow>
+          </GuideAnchor>
         </WorkflowActions>
       </ActionBar>
     </Fragment>
