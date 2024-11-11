@@ -82,6 +82,7 @@ export function useSentryAppExternalIssues({
         disabledText: t('Unable to connect to %s', displayName),
         actions: [
           {
+            id: component.sentryApp.slug,
             name: 'Create Issue',
             onClick: () => {
               doOpenSentryAppIssueModal({
