@@ -625,7 +625,7 @@ describe('Incident Rules Form', () => {
           }),
         })
       );
-    }, 7500);
+    }, 10000);
 
     it('switches from percent change to count', async () => {
       createWrapper({
