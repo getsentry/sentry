@@ -704,6 +704,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowSuperuserAccess": False,
             "allowMemberInvite": False,
             "aiSuggestedSolution": False,
+            "hideAiFeatures": True,
             "githubOpenPRBot": False,
             "githubNudgeInvite": False,
             "githubPRBot": False,
@@ -770,6 +771,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:target_sample_rate") == 0.1
         assert options.get("sentry:sampling_mode") == "organization"
         assert options.get("sentry:rollback_enabled") is True
+        assert options.get("sentry:hide_ai_features") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -799,6 +801,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["aiSuggestedSolution"]) in log.data["aiSuggestedSolution"]
+        assert "to {}".format(data["hideAiFeatures"]) in log.data["hideAiFeatures"]
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]

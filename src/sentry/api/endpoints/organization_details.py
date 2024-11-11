@@ -48,6 +48,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    HIDE_AI_FEATURES_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
@@ -186,6 +187,12 @@ ORG_OPTIONS = (
         AI_SUGGESTED_SOLUTION,
     ),
     (
+        "hideAiFeatures",
+        "sentry:hide_ai_features",
+        bool,
+        HIDE_AI_FEATURES_DEFAULT,
+    ),
+    (
         "githubPRBot",
         "sentry:github_pr_bot",
         bool,
@@ -276,6 +283,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     aiSuggestedSolution = serializers.BooleanField(required=False)
+    hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
@@ -659,6 +667,10 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
     )
     aiSuggestedSolution = serializers.BooleanField(
         help_text="Specify `true` to opt-in to [AI Suggested Solution](/product/issues/issue-details/ai-suggested-solution/) to get AI help on how to solve an issue.",
+        required=False,
+    )
+    hideAiFeatures = serializers.BooleanField(
+        help_text="Specify `true` to hide AI features from the organization.",
         required=False,
     )
     codecovAccess = serializers.BooleanField(
