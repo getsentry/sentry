@@ -1,3 +1,7 @@
+import type {CloudResourceContext} from '@sentry/types';
+
+import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
+import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {
   AggregateSpanType,
   MetricsSummary,
@@ -404,6 +408,7 @@ export enum DeviceContextKey {
   ARCH = 'arch',
   BATTERY_LEVEL = 'battery_level',
   BATTERY_STATUS = 'battery_status',
+  BATTERY_TEMPERATURE = 'battery_temperature',
   BOOT_TIME = 'boot_time',
   BRAND = 'brand',
   CHARGING = 'charging',
@@ -450,6 +455,7 @@ export interface DeviceContext
   [DeviceContextKey.ARCH]?: string;
   [DeviceContextKey.BATTERY_LEVEL]?: number;
   [DeviceContextKey.BATTERY_STATUS]?: string;
+  [DeviceContextKey.BATTERY_TEMPERATURE]?: number;
   [DeviceContextKey.BOOT_TIME]?: string;
   [DeviceContextKey.BRAND]?: string;
   [DeviceContextKey.CHARGING]?: boolean;
@@ -640,14 +646,18 @@ export type FeatureFlag = {flag: string; result: boolean};
 export type Flags = {values: FeatureFlag[]};
 
 export type EventContexts = {
+  'Current Culture'?: CultureContext;
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
   browser?: BrowserContext;
   client_os?: OSContext;
+  cloud_resource?: CloudResourceContext;
+  culture?: CultureContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
   flags?: Flags;
   memory_info?: MemoryInfoContext;
+  missing_instrumentation?: MissingInstrumentationContext;
   os?: OSContext;
   otel?: OtelContext;
   // TODO (udameli): add better types here

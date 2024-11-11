@@ -1700,6 +1700,21 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["errors"] == 0
         assert data["performance_issues"] == 2
 
+    def test_no_team(self):
+        self.load_trace()
+        self.team.delete()
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["projects"] == 4
+        assert data["transactions"] == 8
+        assert data["errors"] == 0
+        assert data["performance_issues"] == 2
+
     def test_with_errors(self):
         self.load_trace()
         self.load_errors(self.gen1_project, self.gen1_span_ids[0])
