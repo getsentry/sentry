@@ -21,6 +21,11 @@ export default function DynamicSamplingSettings() {
       <SentryDocumentTitle title={t('Dynamic Sampling')} orgSlug={organization.slug} />
       <div>
         <SettingsPageHeader title={t('Dynamic Sampling')} />
+        <p>
+          {t(
+            'Dynamic sampling adaptively reduces the number of spans stored in Sentry without changing SDK sample rates. It allows you to keep the most relevant samples and obtain accurate high-level insights while limiting redundancy and stored span volume. You can customize sample rates and priorities in these settings to control which data is stored.'
+          )}
+        </p>
         {organization.samplingMode === 'organization' ? (
           <OrganizationSampling />
         ) : (

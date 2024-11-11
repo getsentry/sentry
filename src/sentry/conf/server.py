@@ -715,6 +715,10 @@ BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
+TASK_WORKER_ALWAYS_EAGER = False
+
+# Ensure workers run async by default
+# in Development you might want them to run in-process
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
@@ -913,28 +917,13 @@ CELERY_QUEUES_REGION = [
     Queue(
         "events.reprocessing.symbolicate_event", routing_key="events.reprocessing.symbolicate_event"
     ),
-    Queue(
-        "events.reprocessing.symbolicate_event_low_priority",
-        routing_key="events.reprocessing.symbolicate_event_low_priority",
-    ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.save_event_highcpu", routing_key="events.save_event_highcpu"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
     Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
-    Queue(
-        "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
-    ),
     Queue("events.symbolicate_js_event", routing_key="events.symbolicate_js_event"),
-    Queue(
-        "events.symbolicate_js_event_low_priority",
-        routing_key="events.symbolicate_js_event_low_priority",
-    ),
     Queue("events.symbolicate_jvm_event", routing_key="events.symbolicate_jvm_event"),
-    Queue(
-        "events.symbolicate_jvm_event_low_priority",
-        routing_key="events.symbolicate_jvm_event_low_priority",
-    ),
     Queue("files.copy", routing_key="files.copy"),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
@@ -1303,15 +1292,12 @@ PROCESSING_QUEUES = [
     "events.reprocessing.preprocess_event",
     "events.reprocessing.process_event",
     "events.reprocessing.symbolicate_event",
-    "events.reprocessing.symbolicate_event_low_priority",
     "events.save_event",
     "events.save_event_highcpu",
     "events.save_event_attachments",
     "events.save_event_transaction",
     "events.symbolicate_event",
-    "events.symbolicate_event_low_priority",
     "events.symbolicate_js_event",
-    "events.symbolicate_js_event_low_priority",
     "post_process_errors",
     "post_process_issue_platform",
     "post_process_transactions",
@@ -1335,6 +1321,14 @@ BGTASKS = {
         "roles": ["worker"],
     },
 }
+
+# Taskworker settings #
+# The list of modules that workers will import after starting up
+# Like celery, taskworkers need to import task modules to make tasks
+# accessible to the worker.
+TASKWORKER_IMPORTS: tuple[str, ...] = ()
+TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
+TASKWORKER_ROUTES: dict[str, str] = {}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
@@ -2413,7 +2407,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "bigtable": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
+            "image": "ghcr.io/getsentry/cbtemulator:d28ad6b63e461e8c05084b8c83f1c06627068c04",
             "ports": {"8086/tcp": 8086},
             # NEED_BIGTABLE is set by CI so we don't have to pass
             # --skip-only-if when compiling which services to run.
@@ -2724,13 +2718,6 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
-        # This tells Symbolicator to accept invalid SSL certs
-        # when connecting to this source. Currently Symbolicator can't deal
-        # with this source's certs because the `openssl` version we use
-        # lacks support for Authority Information Access (AIA),
-        # so we ignore the certs for now.
-        # TODO: Remove this once we can support AIA.
-        "accept_invalid_certs": True,
     },
     "chromium": {
         "type": "http",
@@ -2906,6 +2893,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-monitors": "default",
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
+    "monitors-incident-occurrences": "default",
     "uptime-configs": "default",
     "uptime-results": "default",
     "uptime-configs": "default",
@@ -2916,6 +2904,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
+    "task-worker": "default",
 }
 
 
@@ -2958,9 +2947,7 @@ SYMBOLICATOR_POLL_TIMEOUT = 5
 # The `url` of the different Symbolicator pools.
 # We want to route different workloads to a different set of Symbolicator pools.
 # This can be as fine-grained as using a different pool for normal "native"
-# symbolication, `js` symbolication, `jvm` symbolication,
-# and `lpq` variants`of each of them.
-# (See `SENTRY_LPQ_OPTIONS` and related settings)
+# symbolication, `js` symbolication, and `jvm` symbolication.
 # The keys here should match the `SymbolicatorPools` enum
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
@@ -2972,9 +2959,6 @@ SYMBOLICATOR_POOL_URLS: dict[str, str] = {
     # "default": "...",
     # "js": "...",
     # "jvm": "...",
-    # "lpq": "...",
-    # "lpq_js": "...",
-    # "lpq_jvm": "...",
 }
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
@@ -3039,67 +3023,6 @@ SENTRY_REPROCESSING_PAGE_SIZE = 10
 # How many event IDs to buffer up in Redis before sending them to Snuba. This
 # is about "remaining events" exclusively.
 SENTRY_REPROCESSING_REMAINING_EVENTS_BUF_SIZE = 500
-
-# Which backend to use for RealtimeMetricsStore.
-#
-# Currently, only redis is supported.
-SENTRY_REALTIME_METRICS_BACKEND = (
-    "sentry.processing.realtime_metrics.dummy.DummyRealtimeMetricsStore"
-)
-SENTRY_REALTIME_METRICS_OPTIONS = {
-    # The redis cluster used for the realtime store redis backend.
-    "cluster": "default",
-    # Length of the sliding symbolicate_event budgeting window, in seconds.
-    #
-    # The LPQ selection is computed based on the `SENTRY_LPQ_OPTIONS["project_budget"]`
-    # defined below.
-    "budget_time_window": 2 * 60,
-    # The bucket size of the project budget metric.
-    #
-    # The size (in seconds) of the buckets that events are sorted into.
-    "budget_bucket_size": 10,
-    # Number of seconds to wait after a project is made eligible or ineligible for the LPQ
-    # before its eligibility can be changed again.
-    #
-    # This backoff is only applied to automatic changes to project eligibility, and has zero effect
-    # on any manually-triggered changes to a project's presence in the LPQ.
-    "backoff_timer": 5 * 60,
-}
-
-# Whether badly behaving projects will be automatically
-# sent to the low priority queue
-SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
-
-# Tunable knobs for automatic LPQ eligibility.
-#
-# LPQ eligibility is based on the average spent budget in a sliding time window
-# defined in `SENTRY_REALTIME_METRICS_OPTIONS["budget_time_window"]` above.
-#
-# The `project_budget` option is defined as the average per-second
-# "symbolication time budget" a project can spend.
-# See `RealtimeMetricsStore.record_project_duration` for an explanation of how
-# this works.
-# The "regular interval" at which symbolication time is submitted is defined by
-# `SYMBOLICATOR_POLL_TIMEOUT`.
-#
-# This value is already adjusted according to the
-# `symbolicate-event.low-priority.metrics.submission-rate` option.
-SENTRY_LPQ_OPTIONS = {
-    # These are the per-project budget in per-second "symbolication time budget".
-    # There is one budget for each of the symbolication platforms: native, js, and jvm.
-    # The "project_budget" value exists for backward compatibility.
-    #
-    # This has been arbitrarily chosen as `5.0`, which means an average of:
-    # -  1x 5-second event per second, or
-    # -  5x 1-second events per second, or
-    # - 10x 0.5-second events per second
-    #
-    # Cost increases quadratically with symbolication time.
-    "project_budget": 5.0,
-    "project_budget_native": 5.0,
-    "project_budget_js": 5.0,
-    "project_budget_jvm": 5.0,
-}
 
 # XXX(meredith): Temporary metrics indexer
 SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
@@ -3345,6 +3268,7 @@ SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
     "celery": {"redis": "default"},
     "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
+    "processing-store-transactions": {},
     "processing-locks": {"redis": "default"},
     "post-process-locks": {"redis": "default"},
 }

@@ -53,6 +53,10 @@ describe('EventGraph', () => {
       body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
       method: 'GET',
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [{'count_unique(user)': 21}]},
+    });
   });
 
   it('displays allows toggling data sets', async function () {
@@ -63,6 +67,9 @@ describe('EventGraph', () => {
       name: 'Toggle graph series - Events',
     });
     const usersToggle = screen.getByRole('button', {name: 'Toggle graph series - Users'});
+
+    expect(eventsToggle).toHaveTextContent('444');
+    expect(usersToggle).toHaveTextContent('21');
 
     // Defaults to events graph
     expect(eventsToggle).toBeDisabled();
@@ -96,7 +103,7 @@ describe('EventGraph', () => {
           environment: [],
           field: expect.anything(),
           partial: 1,
-          interval: '12h',
+          interval: '4h',
           per_page: 50,
           project: [project.id],
           query: persistantQuery,
@@ -105,13 +112,6 @@ describe('EventGraph', () => {
           yAxis: ['count()', 'count_unique(user)'],
         },
       })
-    );
-
-    const discoverButton = screen.getByLabelText('Open in Discover');
-    expect(discoverButton).toBeInTheDocument();
-    expect(discoverButton).toHaveAttribute(
-      'href',
-      expect.stringContaining(`/organizations/${organization.slug}/discover/results/`)
     );
   });
 

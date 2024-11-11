@@ -28,8 +28,9 @@ import {
   type OnboardingTaskStatus,
 } from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -39,8 +40,8 @@ const orderedGettingStartedTasks = [
   OnboardingTaskKey.INVITE_MEMBER,
   OnboardingTaskKey.ALERT_RULE,
   OnboardingTaskKey.SOURCEMAPS,
-  OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
   OnboardingTaskKey.RELEASE_TRACKING,
+  OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
 ];
 
 const orderedBeyondBasicsTasks = [
@@ -57,19 +58,6 @@ function groupTasksByCompletion(tasks: OnboardingTask[]) {
   return {
     completedTasks,
     incompletedTasks,
-  };
-}
-
-function getPanelDescription(walkthrough: boolean) {
-  if (walkthrough) {
-    return {
-      title: t('Guided Tours'),
-      description: t('Take a guided tour to see what Sentry can do for you'),
-    };
-  }
-  return {
-    title: t('Quick Start'),
-    description: t('Walk through this guide to get the most out of Sentry right away.'),
   };
 }
 
@@ -97,7 +85,7 @@ function Task({task, status, hidePanel, showWaitingIndicator}: TaskProps) {
 
       e.stopPropagation();
 
-      if (isDemoWalkthrough()) {
+      if (isDemoModeEnabled()) {
         DemoWalkthroughStore.activateGuideAnchor(task.task);
       }
 
@@ -196,9 +184,7 @@ function Task({task, status, hidePanel, showWaitingIndicator}: TaskProps) {
           )}
           {status === 'pending' && (
             <Tooltip
-              title={t(
-                'You’ve invited members, and their acceptance is pending. Keep an eye out for updates!'
-              )}
+              title={task.pendingTitle ?? t('Task in progress\u2026')}
               containerDisplayMode="flex"
               css={css`
                 justify-content: center;
@@ -216,6 +202,10 @@ function Task({task, status, hidePanel, showWaitingIndicator}: TaskProps) {
 
 interface TaskGroupProps {
   description: string;
+  /**
+   * Used for analytics
+   */
+  group: 'getting_started' | 'beyond_basics';
   hidePanel: () => void;
   taskKeyForWaitingIndicator: OnboardingTaskKey | undefined;
   tasks: OnboardingTask[];
@@ -232,13 +222,39 @@ function TaskGroup({
   hidePanel,
   taskKeyForWaitingIndicator,
   toggleable = true,
+  group,
 }: TaskGroupProps) {
+  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(expanded);
   const {completedTasks, incompletedTasks} = groupTasksByCompletion(tasks);
+  const [taskGroupComplete, setTaskGroupComplete] = useLocalStorageState(
+    `quick-start:${organization.slug}:${group}-completed`,
+    false
+  );
 
   useEffect(() => {
     setIsExpanded(expanded);
   }, [expanded]);
+
+  useEffect(() => {
+    if (completedTasks.length !== tasks.length || taskGroupComplete) {
+      return;
+    }
+
+    trackAnalytics('quick_start.task_group_completed', {
+      organization,
+      group,
+    });
+
+    setTaskGroupComplete(true);
+  }, [
+    group,
+    organization,
+    completedTasks,
+    tasks,
+    setTaskGroupComplete,
+    taskGroupComplete,
+  ]);
 
   return (
     <TaskGroupWrapper>
@@ -327,8 +343,7 @@ export function NewOnboardingSidebar({
   gettingStartedTasks,
   beyondBasicsTasks,
 }: NewSidebarProps) {
-  const walkthrough = isDemoWalkthrough();
-  const {title, description} = getPanelDescription(walkthrough);
+  const walkthrough = isDemoModeEnabled();
 
   const sortedGettingStartedTasks = gettingStartedTasks.sort(
     (a, b) =>
@@ -352,35 +367,38 @@ export function NewOnboardingSidebar({
       collapsed={collapsed}
       hidePanel={onClose}
       orientation={orientation}
-      title={title}
+      title={walkthrough ? t('Guided Tour') : t('Quick Setup')}
     >
       <Content>
-        <p>{description}</p>
         <TaskGroup
           title={t('Getting Started')}
           description={t(
-            'Learn the essentials to set up monitoring, capture errors, and track releases.'
+            'Complete these essential setups to capture your first errors, add commit and release information and get alerted when something’s wrong.'
           )}
           tasks={sortedGettingStartedTasks}
           hidePanel={onClose}
           expanded={
-            groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length > 0
+            groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks.length > 0
           }
           toggleable={sortedBeyondBasicsTasks.length > 0}
           taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
+          group="getting_started"
         />
         {sortedBeyondBasicsTasks.length > 0 && (
           <TaskGroup
             title={t('Beyond the Basics')}
             description={t(
-              'Explore advanced features like release tracking, performance alerts and more to enhance your monitoring.'
+              'Ready to level-up? Get even more value out of Sentry by enabling advanced features and fine-tuning your workflow.'
             )}
             tasks={sortedBeyondBasicsTasks}
             hidePanel={onClose}
             expanded={
-              groupTasksByCompletion(gettingStartedTasks).incompletedTasks.length === 0
+              groupTasksByCompletion(sortedGettingStartedTasks).incompletedTasks
+                .length === 0 &&
+              groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
             }
             taskKeyForWaitingIndicator={taskKeyForWaitingIndicator}
+            group="beyond_basics"
           />
         )}
       </Content>

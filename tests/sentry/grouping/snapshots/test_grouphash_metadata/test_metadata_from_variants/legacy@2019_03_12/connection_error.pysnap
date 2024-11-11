@@ -1,0 +1,104 @@
+---
+created: '2024-10-28T14:02:49.361527+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  app*
+    hash: "8abb6be15864dac05d46e61bfe1dd6d3"
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry.utils.safe"
+              context-line*
+                "            result = func(*args, **kwargs)"
+            frame*
+              module*
+                "sentry.utils.services"
+              context-line*
+                "                context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+            frame*
+              module*
+                "getsentry.quotas"
+              context-line*
+                "        return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+            frame*
+              module*
+                "sentry.quotas.redis"
+              context-line*
+                "        rejections = is_rate_limited(client, keys, args)"
+            frame*
+              module*
+                "sentry.utils.redis"
+              context-line*
+                "        return script(keys, args, client)"
+          type*
+            "ConnectionError"
+  system*
+    hash: "6391c18be56c7e7c95e58be4b3eaf0bd"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "sentry.utils.safe"
+              context-line*
+                "            result = func(*args, **kwargs)"
+            frame*
+              module*
+                "sentry.utils.services"
+              context-line*
+                "                context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
+            frame*
+              module*
+                "getsentry.quotas"
+              context-line*
+                "        return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
+            frame*
+              module*
+                "sentry.quotas.redis"
+              context-line*
+                "        rejections = is_rate_limited(client, keys, args)"
+            frame*
+              module*
+                "sentry.utils.redis"
+              context-line*
+                "        return script(keys, args, client)"
+            frame*
+              module*
+                "redis.client"
+              context-line*
+                "            return client.evalsha(self.sha, len(keys), *args)"
+            frame*
+              module*
+                "redis.client"
+              context-line*
+                "        return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
+            frame*
+              module*
+                "redis.client"
+              context-line*
+                "            return self.parse_response(connection, command_name, **options)"
+            frame*
+              module*
+                "redis.client"
+              context-line*
+                "        response = connection.read_response()"
+            frame*
+              module*
+                "redis.connection"
+              context-line*
+                "            response = self._parser.read_response()"
+            frame*
+              module*
+                "redis.connection"
+              context-line*
+                "                                      (e.args,))"
+          type*
+            "ConnectionError"

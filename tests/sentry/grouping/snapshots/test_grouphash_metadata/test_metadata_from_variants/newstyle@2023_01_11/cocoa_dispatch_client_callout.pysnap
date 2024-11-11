@@ -1,0 +1,47 @@
+---
+created: '2024-10-28T13:56:47.730772+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  app*
+    hash: "7c8a196d16b94be382add324be2605ee"
+    component:
+      app*
+        threads*
+          stacktrace*
+            frame*
+              function*
+                "unicorn"
+            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              function*
+                "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+            frame*
+              function*
+                "FudgeLogTaggedError"
+            frame*
+              function*
+                "SentrySetupInteractor.setupSentry"
+  system*
+    hash: "cd7f51d716fd57adc1a5ce1c112e538f"
+    component:
+      system*
+        threads*
+          stacktrace*
+            frame*
+              function*
+                "unicorn"
+            frame*
+              function*
+                "UIApplicationMain"
+            frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+              function*
+                "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
+            frame*
+              function*
+                "FudgeLogTaggedError"
+            frame*
+              function*
+                "SentrySetupInteractor.setupSentry"

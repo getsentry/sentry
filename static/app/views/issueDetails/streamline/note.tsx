@@ -11,7 +11,9 @@ import type {
   MentionChangeEvent,
   Mentioned,
 } from 'sentry/components/activity/note/types';
+import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';
 import {useMembers} from 'sentry/utils/useMembers';
@@ -62,6 +64,7 @@ function StreamlinedNoteInput({
 
   const [memberMentions, setMemberMentions] = useState<Mentioned[]>([]);
   const [teamMentions, setTeamMentions] = useState<Mentioned[]>([]);
+  const [isSubmitVisible, setIsSubmitVisible] = useState(false);
 
   const canSubmit = value.trim() !== '';
 
@@ -84,8 +87,17 @@ function StreamlinedNoteInput({
     [existingItem, onUpdate, cleanMarkdown, finalizedMentions, onCreate]
   );
 
+  const displaySubmitButton = useCallback(() => {
+    setIsSubmitVisible(true);
+  }, []);
+
   const handleSubmit = useCallback(
-    (e: React.MouseEvent<HTMLFormElement>) => {
+    (
+      e:
+        | React.FormEvent<HTMLFormElement>
+        | React.KeyboardEvent<HTMLTextAreaElement>
+        | React.KeyboardEvent<HTMLInputElement>
+    ) => {
       e.preventDefault();
       submitForm();
     },
@@ -104,7 +116,7 @@ function StreamlinedNoteInput({
     []
   );
 
-  const handleChange: MentionsInputProps['onChange'] = useCallback(
+  const handleChange = useCallback<NonNullable<MentionsInputProps['onChange']>>(
     e => {
       setValue(e.target.value);
       onChange?.(e, {updating: existingItem});
@@ -112,7 +124,7 @@ function StreamlinedNoteInput({
     [existingItem, onChange]
   );
 
-  const handleKeyDown: MentionsInputProps['onKeyDown'] = useCallback(
+  const handleKeyDown = useCallback<NonNullable<MentionsInputProps['onKeyDown']>>(
     e => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canSubmit) {
         handleSubmit(e);
@@ -131,11 +143,16 @@ function StreamlinedNoteInput({
   return (
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
       <MentionsInput
+        aria-label={t('Add a comment')}
         aria-errormessage={errorMessage ? errorId : undefined}
-        style={mentionStyle({theme, minHeight: 14, streamlined: true})}
+        style={{
+          ...mentionStyle({theme, minHeight: 14, streamlined: true}),
+          width: '100%',
+        }}
         placeholder={placeholder}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        onFocus={displaySubmitButton}
         value={value}
         required
       >
@@ -155,6 +172,17 @@ function StreamlinedNoteInput({
           appendSpaceOnAdd
         />
       </MentionsInput>
+      {isSubmitVisible && (
+        <Button
+          priority="primary"
+          size="xs"
+          disabled={!canSubmit}
+          aria-label={t('Submit comment')}
+          type="submit"
+        >
+          {t('Comment')}
+        </Button>
+      )}
     </NoteInputForm>
   );
 }
@@ -201,6 +229,11 @@ const getNoteInputErrorStyles = (p: {theme: Theme; error?: string}) => {
 };
 
 const NoteInputForm = styled('form')<{error?: string}>`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.75)};
+  align-items: flex-end;
+  width: 100%;
   transition: padding 0.2s ease-in-out;
 
   ${p => getNoteInputErrorStyles(p)};

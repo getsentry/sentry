@@ -36,6 +36,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {
   useMetrics,
   useSpanMetrics,
@@ -220,45 +221,49 @@ export function CacheLandingPage() {
         />
       )}
 
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <PageAlert />
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ModulePageFilterBar moduleName={ModuleName.CACHE} />
-            </ModuleLayout.Full>
-            <ModulesOnboarding moduleName={ModuleName.CACHE}>
-              <ModuleLayout.Half>
-                <CacheHitMissChart
-                  series={{
-                    seriesName: DataTitles[`${CACHE_MISS_RATE}()`],
-                    data: cacheMissRateData[`${CACHE_MISS_RATE}()`]?.data,
-                  }}
-                  isLoading={isCacheMissRateLoading}
-                  error={cacheMissRateError}
-                />
-              </ModuleLayout.Half>
-              <ModuleLayout.Half>
-                <ThroughputChart
-                  series={throughputData['spm()']}
-                  isLoading={isThroughputDataLoading}
-                  error={throughputError}
-                />
-              </ModuleLayout.Half>
+      <ModuleBodyUpsellHook moduleName={ModuleName.CACHE}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <PageAlert />
+            <ModuleLayout.Layout>
               <ModuleLayout.Full>
-                <TransactionsTable
-                  data={transactionsListWithDuration}
-                  isLoading={isTransactionsListFetching || isTransactionDurationFetching}
-                  sort={sort}
-                  error={transactionsListError || transactionDurationError}
-                  meta={meta}
-                  pageLinks={transactionsListPageLinks}
-                />
+                <ModulePageFilterBar moduleName={ModuleName.CACHE} />
               </ModuleLayout.Full>
-            </ModulesOnboarding>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
+              <ModulesOnboarding moduleName={ModuleName.CACHE}>
+                <ModuleLayout.Half>
+                  <CacheHitMissChart
+                    series={{
+                      seriesName: DataTitles[`${CACHE_MISS_RATE}()`],
+                      data: cacheMissRateData[`${CACHE_MISS_RATE}()`]?.data,
+                    }}
+                    isLoading={isCacheMissRateLoading}
+                    error={cacheMissRateError}
+                  />
+                </ModuleLayout.Half>
+                <ModuleLayout.Half>
+                  <ThroughputChart
+                    series={throughputData['spm()']}
+                    isLoading={isThroughputDataLoading}
+                    error={throughputError}
+                  />
+                </ModuleLayout.Half>
+                <ModuleLayout.Full>
+                  <TransactionsTable
+                    data={transactionsListWithDuration}
+                    isLoading={
+                      isTransactionsListFetching || isTransactionDurationFetching
+                    }
+                    sort={sort}
+                    error={transactionsListError || transactionDurationError}
+                    meta={meta}
+                    pageLinks={transactionsListPageLinks}
+                  />
+                </ModuleLayout.Full>
+              </ModulesOnboarding>
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </ModuleBodyUpsellHook>
       <CacheSamplePanel />
     </React.Fragment>
   );
@@ -301,7 +306,7 @@ const combineMeta = (
 
 // TODO - this should come from the backend
 const addCustomMeta = (meta?: EventsMetaType) => {
-  if (meta) {
+  if (meta?.fields) {
     meta.fields[`avg(${CACHE_ITEM_SIZE})`] = 'size';
     meta.units[`avg(${CACHE_ITEM_SIZE})`] = 'byte';
   }

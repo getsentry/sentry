@@ -16,6 +16,7 @@ export interface BaseBadgeProps {
   // Hides the main display name
   hideAvatar?: boolean;
   hideName?: boolean;
+  onClick?: React.HTMLAttributes<HTMLDivElement>['onClick'];
 }
 
 interface AllBaseBadgeProps extends BaseBadgeProps {
@@ -35,6 +36,7 @@ export const BaseBadge = memo(
     avatarProps = {},
     avatarSize = 24,
     description,
+    onClick,
     team,
     user,
     organization,
@@ -46,7 +48,7 @@ export const BaseBadge = memo(
     const wrapperGap: ValidSize = avatarSize <= 14 ? 0.5 : avatarSize <= 20 ? 0.75 : 1;
 
     return (
-      <Wrapper className={className} style={{gap: space(wrapperGap)}}>
+      <Wrapper className={className} style={{gap: space(wrapperGap)}} onClick={onClick}>
         {!hideAvatar && (
           <Avatar
             {...avatarProps}

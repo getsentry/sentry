@@ -3,8 +3,19 @@ import type {FieldValueType} from 'sentry/utils/fields';
 
 export type Unit = keyof typeof DURATION_UNITS | keyof typeof SIZE_UNITS | null;
 
-export type EventsResultsDataRow<F extends string> = {
-  [K in F]: string[] | string | number | null;
+type BaseReference =
+  | Profiling.BaseTransactionProfileReference
+  | Profiling.BaseContinuousProfileReference;
+
+type SpecialColumns = {
+  'all_examples()': BaseReference[];
+};
+
+export type EventsResultsDataRow<F extends string> = Pick<
+  SpecialColumns,
+  Extract<keyof SpecialColumns, F>
+> & {
+  [K in Exclude<F, keyof SpecialColumns>]: string[] | string | number | null;
 };
 
 export type EventsResultsMeta<F extends string> = {

@@ -56,7 +56,9 @@ export function SpanDescriptionRenderer({span}: {span: SpanResult<Field>}) {
 
 interface ProjectsRendererProps {
   projectSlugs: string[];
+  disableLink?: boolean;
   maxVisibleProjects?: number;
+  onProjectClick?: (projectSlug: string) => void;
   visibleAvatarSize?: number;
 }
 
@@ -64,11 +66,15 @@ export function ProjectsRenderer({
   projectSlugs,
   visibleAvatarSize,
   maxVisibleProjects = 2,
+  onProjectClick,
+  disableLink,
 }: ProjectsRendererProps) {
   const organization = useOrganization();
   const {projects} = useProjects({slugs: projectSlugs, orgId: organization.slug});
-  const projectAvatars =
-    projects.length > 0 ? projects : projectSlugs.map(slug => ({slug}));
+  // ensure that projectAvatars is in the same order as the projectSlugs prop
+  const projectAvatars = projectSlugs.map(slug => {
+    return projects.find(project => project.slug === slug) ?? {slug};
+  });
   const numProjects = projectAvatars.length;
   const numVisibleProjects =
     maxVisibleProjects - numProjects >= 0 ? numProjects : maxVisibleProjects - 1;
@@ -101,8 +107,10 @@ export function ProjectsRenderer({
       )}
       {visibleProjectAvatars.map(project => (
         <StyledProjectBadge
-          key={project.slug}
           hideName
+          key={project.slug}
+          onClick={() => onProjectClick?.(project.slug)}
+          disableLink={disableLink}
           project={project}
           avatarSize={visibleAvatarSize ?? 16}
           avatarProps={{hasTooltip: true, tooltip: project.slug}}
@@ -207,14 +215,23 @@ const RectangleTraceBreakdown = styled(RowRectangle)<{
   position: relative;
   width: 100%;
   height: 15px;
-  ${p => `
+  ${p => css`
     filter: var(--highlightedSlice-${p.sliceName}-saturate, var(--defaultSlice-saturate));
   `}
-  ${p => `
-    opacity: var(--highlightedSlice-${p.sliceName ?? ''}-opacity, var(--defaultSlice-opacity, 1.0));
+  ${p => css`
+    opacity: var(
+      --highlightedSlice-${p.sliceName ?? ''}-opacity,
+      var(--defaultSlice-opacity, 1)
+    );
   `}
-  ${p => `
-    transform: var(--hoveredSlice-${p.offset}-translateY, var(--highlightedSlice-${p.sliceName ?? ''}-transform, var(--defaultSlice-transform, 1.0)));
+  ${p => css`
+    transform: var(
+      --hoveredSlice-${p.offset}-translateY,
+      var(
+        --highlightedSlice-${p.sliceName ?? ''}-transform,
+        var(--defaultSlice-transform, 1)
+      )
+    );
   `}
   transition: filter,opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;

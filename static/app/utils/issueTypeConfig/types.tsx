@@ -52,9 +52,21 @@ export type IssueTypeConfig = {
     helpText?: string;
   } | null;
   /**
+   * Is the Issue Summary available for this issue
+   */
+  issueSummary: DisabledWithReasonConfig;
+  /**
    * Is the Merged Issues tab shown for this issue
    */
   mergedIssues: DisabledWithReasonConfig;
+  /**
+   * Shows performance duration regression components
+   */
+  performanceDurationRegression: DisabledWithReasonConfig;
+  /**
+   * Shows profiling duration regression components
+   */
+  profilingDurationRegression: DisabledWithReasonConfig;
   /**
    * Enables various regression related supporting data for an issue type.
    */
@@ -86,14 +98,23 @@ export type IssueTypeConfig = {
    * Is the Similar Issues tab shown for this issue
    */
   similarIssues: DisabledWithReasonConfig;
+  spanEvidence: DisabledWithReasonConfig;
+  /**
+   * Is the Stacktrace shown for this issue
+   */
+  stacktrace: DisabledWithReasonConfig;
   /**
    * Are group stats (counts/time series) shown for this issue.
    */
   stats: DisabledWithReasonConfig;
   /**
-   * Is the Tags tab show for this issue
+   * Are event tags or highlights shown for this issue
    */
   tags: DisabledWithReasonConfig;
+  /**
+   * Is the Tags tab show for this issue
+   */
+  tagsTab: DisabledWithReasonConfig;
   /**
    * Is the User Feedback tab shown for this issue
    */
