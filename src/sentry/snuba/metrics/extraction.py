@@ -1591,6 +1591,7 @@ def _map_field_name(search_key: str) -> str:
     if resolved == "transaction_name":
         transaction_field = _SEARCH_TO_PROTOCOL_FIELDS.get("transaction")
         return f"event.{transaction_field}"
+
     if resolved.startswith("tags["):
         stripped_search_key = resolved[5:-1]
         # In case a field is identified as a tag but the stripped search key is matching
