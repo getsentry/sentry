@@ -373,7 +373,6 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   return (
     <InterimSection
       type={SectionKey.DEBUGMETA}
-      guideTarget="images-loaded"
       title={t('Images Loaded')}
       help={t(
         'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -248,39 +249,52 @@ export function EventDetailsContent({
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
         </EntryErrorBoundary>
       )}
-      {defined(eventEntries[EntryType.EXCEPTION]) && (
-        <EntryErrorBoundary type={EntryType.EXCEPTION}>
-          <Exception
-            event={event}
-            data={eventEntries[EntryType.EXCEPTION].data}
-            projectSlug={project.slug}
-            group={group}
-            groupingCurrentLevel={groupingCurrentLevel}
-          />
-        </EntryErrorBoundary>
-      )}
-      {issueTypeConfig.stacktrace.enabled &&
-        defined(eventEntries[EntryType.STACKTRACE]) && (
-          <EntryErrorBoundary type={EntryType.STACKTRACE}>
-            <StackTrace
+      {/* Wrapping all stacktrace components since multiple could appear */}
+      <GuideAnchor
+        target="stacktrace"
+        position="top"
+        disabled={
+          !(
+            defined(eventEntries[EntryType.EXCEPTION]) ||
+            defined(eventEntries[EntryType.STACKTRACE]) ||
+            defined(eventEntries[EntryType.THREADS])
+          )
+        }
+      >
+        {defined(eventEntries[EntryType.EXCEPTION]) && (
+          <EntryErrorBoundary type={EntryType.EXCEPTION}>
+            <Exception
               event={event}
-              data={eventEntries[EntryType.STACKTRACE].data}
-              projectSlug={projectSlug}
+              data={eventEntries[EntryType.EXCEPTION].data}
+              projectSlug={project.slug}
+              group={group}
               groupingCurrentLevel={groupingCurrentLevel}
             />
           </EntryErrorBoundary>
         )}
-      {defined(eventEntries[EntryType.THREADS]) && (
-        <EntryErrorBoundary type={EntryType.THREADS}>
-          <Threads
-            event={event}
-            data={eventEntries[EntryType.THREADS].data}
-            projectSlug={project.slug}
-            groupingCurrentLevel={groupingCurrentLevel}
-            group={group}
-          />
-        </EntryErrorBoundary>
-      )}
+        {issueTypeConfig.stacktrace.enabled &&
+          defined(eventEntries[EntryType.STACKTRACE]) && (
+            <EntryErrorBoundary type={EntryType.STACKTRACE}>
+              <StackTrace
+                event={event}
+                data={eventEntries[EntryType.STACKTRACE].data}
+                projectSlug={projectSlug}
+                groupingCurrentLevel={groupingCurrentLevel}
+              />
+            </EntryErrorBoundary>
+          )}
+        {defined(eventEntries[EntryType.THREADS]) && (
+          <EntryErrorBoundary type={EntryType.THREADS}>
+            <Threads
+              event={event}
+              data={eventEntries[EntryType.THREADS].data}
+              projectSlug={project.slug}
+              groupingCurrentLevel={groupingCurrentLevel}
+              group={group}
+            />
+          </EntryErrorBoundary>
+        )}
+      </GuideAnchor>
       {defined(eventEntries[EntryType.DEBUGMETA]) && (
         <EntryErrorBoundary type={EntryType.DEBUGMETA}>
           <DebugMeta

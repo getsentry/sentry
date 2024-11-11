@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -54,7 +55,9 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           <StyledBreak />
         </Fragment>
       )}
-      <FirstLastSeenSection group={group} />
+      <GuideAnchor target="issue_sidebar_releases" position="left">
+        <FirstLastSeenSection group={group} />
+      </GuideAnchor>
       <StyledBreak />
       {event && (
         <ErrorBoundary mini>

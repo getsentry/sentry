@@ -2,7 +2,6 @@ import {cloneElement, Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -308,11 +307,9 @@ function Content({
         data-test-id="stack-trace-content"
         hideIcon={hideIcon}
       >
-        <GuideAnchor target="stack_trace">
-          <StyledList data-test-id="frames">
-            {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
-          </StyledList>
-        </GuideAnchor>
+        <StyledList data-test-id="frames">
+          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+        </StyledList>
       </StackTraceContentPanel>
     </Wrapper>
   );

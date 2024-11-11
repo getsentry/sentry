@@ -362,7 +362,6 @@ export function TraceEventDataSection({
       type={type}
       showPermalink={!hasStreamlinedUI}
       title={title}
-      guideTarget={type}
       actions={
         !stackTraceNotFound && (
           <ButtonBar gap={1}>
