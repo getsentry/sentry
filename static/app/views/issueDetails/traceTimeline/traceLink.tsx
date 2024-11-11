@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
@@ -20,7 +19,6 @@ interface TraceLinkProps {
 export function TraceLink({event}: TraceLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const area = useAnalyticsArea();
   const traceTarget = generateTraceTarget(
     event,
     organization,
@@ -31,11 +29,7 @@ export function TraceLink({event}: TraceLinkProps) {
         groupId: event.groupID,
       },
     },
-    area.startsWith('feedback')
-      ? TraceViewSources.FEEDBACK_DETAILS
-      : TraceViewSources.ISSUE_DETAILS
-    // area can be leveraged for other TraceViewSources, but right now these
-    // are the only 2 that use a TraceLink.
+    TraceViewSources.ISSUE_DETAILS
   );
 
   if (!event.contexts?.trace?.trace_id) {
@@ -57,10 +51,9 @@ export function TraceLink({event}: TraceLinkProps) {
     <StyledLink
       to={traceTarget}
       onClick={() => {
-        // Source used to be hard-coded here, we keep the old value of issue details for backwards compatibility.
         trackAnalytics('quick_trace.trace_id.clicked', {
           organization,
-          source: area.includes('issue_details') ? 'issues' : area,
+          source: 'issues',
         });
       }}
     >

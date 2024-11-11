@@ -42,7 +42,6 @@ export const enum TraceViewSources {
   PERFORMANCE_TRANSACTION_SUMMARY = 'performance_transaction_summary',
   PERFORMANCE_TRANSACTION_SUMMARY_PROFILES = 'performance_transaction_summary_profiles',
   ISSUE_DETAILS = 'issue_details',
-  FEEDBACK_DETAILS = 'feedback_details',
 }
 
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.

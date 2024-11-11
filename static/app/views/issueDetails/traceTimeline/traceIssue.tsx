@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
@@ -23,13 +22,8 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   const issueId = event['issue.id'];
   const {title, subtitle, message} = getTitleSubtitleMessage(event);
   const avatarSize = parseInt(space(4), 10);
-  const area = useAnalyticsArea();
 
-  // Referrer used to be hard-coded for this component. It's used for analytics
-  // only. We'll still use the old referrer for backwards compatibility.
-  const queryReferrer = area.includes('issue_details')
-    ? 'issue_details.related_trace_issue'
-    : area;
+  const referrer = 'issue_details.related_trace_issue';
 
   return (
     <Fragment>
@@ -37,21 +31,13 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         to={{
           pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${event.id}/`,
           query: {
-            referrer: queryReferrer,
+            referrer: referrer,
           },
         }}
         onClick={() => {
-          // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
-          if (area.includes('issue_details')) {
-            trackAnalytics('issue_details.related_trace_issue.trace_issue_clicked', {
-              organization,
-              group_id: issueId,
-            });
-          }
-          trackAnalytics('one_other_related_trace_issue.clicked', {
+          trackAnalytics('issue_details.related_trace_issue.trace_issue_clicked', {
             organization,
             group_id: issueId,
-            area: area,
           });
         }}
       >
