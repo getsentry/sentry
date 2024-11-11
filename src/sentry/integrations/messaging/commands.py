@@ -2,6 +2,7 @@ import itertools
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from enum import Enum
 from typing import Generic, TypeVar
 
 from sentry.integrations.messaging.metrics import (
@@ -9,6 +10,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
+from sentry.integrations.utils.metrics import EventLifecycle
 
 
 @dataclass(frozen=True, eq=True)
@@ -99,7 +101,39 @@ MESSAGING_INTEGRATION_COMMANDS = (
     ),
 )
 
+
+class MessageCommandHaltReason(Enum):
+    """Common reasons why a messaging command may halt without success/failure."""
+
+    # Identity Linking
+    ALREADY_LINKED = "already_linked"
+    NOT_LINKED = "not_linked"
+
+    # Team Linking
+    LINK_FROM_CHANNEL = "link_from_channel"
+    LINK_USER_FIRST = "link_user_first"
+    CHANNEL_ALREADY_LINKED = "channel_already_linked"
+    TEAM_NOT_LINKED = "team_not_linked"
+    INSUFFICIENT_ROLE = "insufficient_role"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class MessageCommandFailureReason(Enum):
+    """Common reasons why a messaging command may fail."""
+
+    MISSING_DATA = "missing_data"
+    INVALID_STATE = "invalid_state"
+
+    def __str__(self) -> str:
+        return self.value
+
+
 R = TypeVar("R")  # response
+
+# Command handler type that receives lifecycle object
+CommandHandler = Callable[[CommandInput, EventLifecycle], R]
 
 
 class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
@@ -114,7 +148,11 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
     @abstractmethod
     def command_handlers(
         self,
-    ) -> Iterable[tuple[MessagingIntegrationCommand, Callable[[CommandInput], R]]]:
+    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[R]]]:
+        """Return list of (command, handler) tuples.
+
+        Each handler receives (command_input, lifecycle) and returns R.
+        """
         raise NotImplementedError
 
     def get_event(self, command: MessagingIntegrationCommand) -> MessagingInteractionEvent:
@@ -127,7 +165,7 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         class CandidateHandler:
             command: MessagingIntegrationCommand
             slug: CommandSlug
-            callback: Callable[[CommandInput], R]
+            callback: CommandHandler[R]
 
             def parsing_order(self) -> int:
                 # Sort by descending length of arg tokens. If one slug is a prefix of
@@ -145,7 +183,8 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         for handler in candidate_handlers:
             if handler.slug.does_match(cmd_input):
                 arg_input = cmd_input.adjust(handler.slug)
-                with self.get_event(handler.command).capture(assume_success=False):
-                    return handler.callback(arg_input)
+                event = self.get_event(handler.command)
+                with event.capture(assume_success=True) as lifecycle:
+                    return handler.callback(arg_input, lifecycle)
 
         raise CommandNotMatchedError(f"{cmd_input=!r}", cmd_input)

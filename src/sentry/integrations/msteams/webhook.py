@@ -24,8 +24,10 @@ from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.messaging import commands
 from sentry.integrations.messaging.commands import (
+    CommandHandler,
     CommandInput,
     CommandNotMatchedError,
+    MessageCommandHaltReason,
     MessagingIntegrationCommand,
     MessagingIntegrationCommandDispatcher,
 )
@@ -37,6 +39,7 @@ from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.msteams import parsing
 from sentry.integrations.msteams.spec import PROVIDER, MsTeamsMessagingSpec
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
@@ -655,23 +658,35 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
     @property
     def command_handlers(
         self,
-    ) -> Iterable[tuple[MessagingIntegrationCommand, Callable[[CommandInput], AdaptiveCard]]]:
-        yield commands.HELP, (lambda _: build_help_command_card())
-        yield commands.LINK_IDENTITY, self.link_identity
-        yield commands.UNLINK_IDENTITY, self.unlink_identity
+    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[AdaptiveCard]]]:
+        def help_handler(input: CommandInput, lifecycle: EventLifecycle) -> AdaptiveCard:
+            return build_help_command_card()
 
-    def link_identity(self, _: CommandInput) -> AdaptiveCard:
-        linked_identity = identity_service.get_identity(
-            filter={"identity_ext_id": self.teams_user_id}
-        )
-        has_linked_identity = linked_identity is not None
-        if has_linked_identity:
-            return build_already_linked_identity_command_card()
-        else:
-            return build_link_identity_command_card()
+        def link_identity_handler(input: CommandInput, lifecycle: EventLifecycle) -> AdaptiveCard:
+            linked_identity = identity_service.get_identity(
+                filter={"identity_ext_id": self.teams_user_id}
+            )
+            has_linked_identity = linked_identity is not None
 
-    def unlink_identity(self, _: CommandInput) -> AdaptiveCard:
-        unlink_url = build_unlinking_url(
-            self.conversation_id, self.data["serviceUrl"], self.teams_user_id
-        )
-        return build_unlink_identity_card(unlink_url)
+            if has_linked_identity:
+                lifecycle.record_halt(
+                    extra={
+                        "reason": MessageCommandHaltReason.ALREADY_LINKED,
+                        "user_id": self.teams_user_id,
+                        "identity_id": linked_identity.id if linked_identity else None,
+                    }
+                )
+                return build_already_linked_identity_command_card()
+            else:
+                return build_link_identity_command_card()
+
+        def unlink_identity_handler(input: CommandInput, lifecycle: EventLifecycle) -> AdaptiveCard:
+            unlink_url = build_unlinking_url(
+                self.conversation_id, self.data["serviceUrl"], self.teams_user_id
+            )
+            # TODO: check if the user is already unlinked
+            return build_unlink_identity_card(unlink_url)
+
+        yield commands.HELP, help_handler
+        yield commands.LINK_IDENTITY, link_identity_handler
+        yield commands.UNLINK_IDENTITY, unlink_identity_handler

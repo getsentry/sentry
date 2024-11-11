@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from rest_framework import status
@@ -11,8 +11,10 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.integrations.messaging import commands
 from sentry.integrations.messaging.commands import (
+    CommandHandler,
     CommandInput,
     CommandNotMatchedError,
+    MessageCommandHaltReason,
     MessagingIntegrationCommand,
     MessagingIntegrationCommandDispatcher,
 )
@@ -24,6 +26,14 @@ from sentry.integrations.slack.metrics import (
 )
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.slack.webhooks.command import (
+    CHANNEL_ALREADY_LINKED_MESSAGE,
+    INSUFFICIENT_ROLE_MESSAGE,
+    LINK_FROM_CHANNEL_MESSAGE,
+    LINK_USER_FIRST_MESSAGE,
+    TEAM_NOT_LINKED_MESSAGE,
+)
+from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.utils import metrics
 
 LINK_USER_MESSAGE = (
@@ -129,6 +139,29 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
     endpoint: SlackDMEndpoint
     request: SlackDMRequest
 
+    # Define mapping of messages to halt reasons
+    @property
+    def TEAM_HALT_MAPPINGS(self) -> dict[str, MessageCommandHaltReason]:
+        return {
+            LINK_FROM_CHANNEL_MESSAGE: MessageCommandHaltReason.LINK_FROM_CHANNEL,
+            LINK_USER_FIRST_MESSAGE: MessageCommandHaltReason.LINK_USER_FIRST,
+            INSUFFICIENT_ROLE_MESSAGE: MessageCommandHaltReason.INSUFFICIENT_ROLE,
+        }
+
+    @property
+    def LINK_TEAM_HALT_MAPPINGS(self) -> dict[str, MessageCommandHaltReason]:
+        return {
+            **self.TEAM_HALT_MAPPINGS,
+            CHANNEL_ALREADY_LINKED_MESSAGE: MessageCommandHaltReason.CHANNEL_ALREADY_LINKED,
+        }
+
+    @property
+    def UNLINK_TEAM_HALT_MAPPINGS(self) -> dict[str, MessageCommandHaltReason]:
+        return {
+            **self.TEAM_HALT_MAPPINGS,
+            TEAM_NOT_LINKED_MESSAGE: MessageCommandHaltReason.TEAM_NOT_LINKED,
+        }
+
     @property
     def integration_spec(self) -> MessagingIntegrationSpec:
         return SlackMessagingSpec()
@@ -136,9 +169,55 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
     @property
     def command_handlers(
         self,
-    ) -> Iterable[tuple[MessagingIntegrationCommand, Callable[[CommandInput], Response]]]:
-        yield commands.HELP, (lambda i: self.endpoint.help(i.cmd_value))
-        yield commands.LINK_IDENTITY, (lambda i: self.endpoint.link_user(self.request))
-        yield commands.UNLINK_IDENTITY, (lambda i: self.endpoint.unlink_user(self.request))
-        yield commands.LINK_TEAM, (lambda i: self.endpoint.link_team(self.request))
-        yield commands.UNLINK_TEAM, (lambda i: self.endpoint.unlink_team(self.request))
+    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[Response]]]:
+        def help_handler(input: CommandInput, lifecycle: EventLifecycle) -> Response:
+            response = self.endpoint.help(input.cmd_value)
+            return response
+
+        def link_user_handler(input: CommandInput, lifecycle: EventLifecycle) -> Response:
+            response = self.endpoint.link_user(self.request)
+            if str(response.data) in ALREADY_LINKED_MESSAGE:
+                lifecycle.record_halt(
+                    extra={
+                        "reason": MessageCommandHaltReason.ALREADY_LINKED,
+                        "email": self.request.identity_str,
+                    }
+                )
+            return response
+
+        def unlink_user_handler(input: CommandInput, lifecycle: EventLifecycle) -> Response:
+            response = self.endpoint.unlink_user(self.request)
+            if str(response.data) in NOT_LINKED_MESSAGE:
+                lifecycle.record_halt(
+                    extra={
+                        "reason": MessageCommandHaltReason.NOT_LINKED,
+                        "email": self.request.identity_str,
+                    }
+                )
+            return response
+
+        def link_team_handler(input: CommandInput, lifecycle: EventLifecycle) -> Response:
+            response = self.endpoint.link_team(self.request)
+
+            for message, reason in self.LINK_TEAM_HALT_MAPPINGS.items():
+                if str(response.data) in message:
+                    lifecycle.record_halt(extra={"reason": reason})
+                    break
+
+            return response
+
+        def unlink_team_handler(input: CommandInput, lifecycle: EventLifecycle) -> Response:
+            response = self.endpoint.unlink_team(self.request)
+
+            for message, reason in self.UNLINK_TEAM_HALT_MAPPINGS.items():
+                if str(response.data) in message:
+                    lifecycle.record_halt(extra={"reason": reason})
+                    break
+
+            return response
+
+        yield commands.HELP, help_handler
+        yield commands.LINK_IDENTITY, link_user_handler
+        yield commands.UNLINK_IDENTITY, unlink_user_handler
+        yield commands.LINK_TEAM, link_team_handler
+        yield commands.UNLINK_TEAM, unlink_team_handler
