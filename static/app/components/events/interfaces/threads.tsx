@@ -367,7 +367,11 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     );
   }
 
-  return <ThreadTraceWrapper>{threadComponent}</ThreadTraceWrapper>;
+  return hasMoreThanOneThread ? (
+    <ThreadTraceWrapper>{threadComponent}</ThreadTraceWrapper>
+  ) : (
+    threadComponent
+  );
 }
 
 const Grid = styled('div')`
