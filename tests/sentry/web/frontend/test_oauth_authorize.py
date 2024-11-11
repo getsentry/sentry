@@ -356,6 +356,8 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
 
     def setUp(self):
         super().setUp()
+        self.owner = self.create_user(email="admin@test.com")
+        self.create_member(user=self.owner, organization=self.organization, role="owner")
         self.application = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="https://example.com",
@@ -363,8 +365,22 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
             scopes=["org:read", "project:read"],
         )
 
+    def test_no_orgs(self):
+        # If the user has no organizations, this oauth flow should not be possible
+        user = self.create_user(email="user1@test.com")
+        self.login_as(user)
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org%3write&state=foo"
+        )
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert (
+            resp.context["error"]
+            == "This authorization flow is only available for users who are members of an organization."
+        )
+
     def test_rich_params(self):
-        self.login_as(self.user)
+        self.login_as(self.owner)
 
         # Putting scope in the query string to show that this will be overridden by the scopes that are stored on the application model
         resp = self.client.get(
@@ -379,7 +395,7 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
             self.path, {"op": "approve", "selected_organization_id": self.organization.id}
         )
 
-        grant = ApiGrant.objects.get(user=self.user)
+        grant = ApiGrant.objects.get(user=self.owner)
         assert grant.redirect_uri == self.application.get_default_redirect_uri()
         assert grant.application == self.application
         assert grant.get_scopes() == ["org:read", "project:read"]
@@ -394,4 +410,4 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
             f"state=foo&code={grant.code}"
         )
 
-        assert not ApiToken.objects.filter(user=self.user).exists()
+        assert not ApiToken.objects.filter(user=self.owner).exists()
