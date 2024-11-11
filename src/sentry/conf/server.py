@@ -2893,6 +2893,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-monitors": "default",
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
+    "monitors-incident-occurrences": "default",
     "uptime-configs": "default",
     "uptime-results": "default",
     "uptime-configs": "default",

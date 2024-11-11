@@ -338,6 +338,7 @@ def devserver(
 
             kafka_consumers.add("monitors-clock-tick")
             kafka_consumers.add("monitors-clock-tasks")
+            kafka_consumers.add("monitors-incident-occurrences")
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
