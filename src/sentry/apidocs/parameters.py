@@ -48,6 +48,13 @@ class GlobalParams:
         type=str,
         location="path",
     )
+    INTEGRATION_ID = OpenApiParameter(
+        name="integration_id",
+        description="The ID of the integration installed on the organization.",
+        required=True,
+        type=str,
+        location="path",
+    )
     STATS_PERIOD = OpenApiParameter(
         name="statsPeriod",
         location="query",
