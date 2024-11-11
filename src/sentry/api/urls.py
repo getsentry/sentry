@@ -27,6 +27,7 @@ from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
+from sentry.api.endpoints.organization_user_rollback import OrganizationRollbackUserEndpoint
 from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records import (
     ProjectBackfillSimilarIssuesEmbeddingsRecords,
 )
@@ -522,6 +523,7 @@ from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
     OrganizationProfilingChunksFlamegraphEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
+    OrganizationProfilingHasChunksEndpoint,
 )
 from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
@@ -1937,6 +1939,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-user-feedback",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/user-rollback/$",
+        OrganizationRollbackUserEndpoint.as_view(),
+        name="sentry-api-0-organization-user-rollback",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/user-teams/$",
         OrganizationUserTeamsEndpoint.as_view(),
         name="sentry-api-0-organization-user-teams",
@@ -2174,6 +2181,11 @@ ORGANIZATION_URLS = [
                     r"^chunks/$",
                     OrganizationProfilingChunksEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-chunks",
+                ),
+                re_path(
+                    r"^has-chunks/$",
+                    OrganizationProfilingHasChunksEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-has-chunks",
                 ),
             ],
         ),

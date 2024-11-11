@@ -26,10 +26,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
     @property
     def features(self):
-        return {
-            "organizations:session-replay": True,
-            "organizations:session-replay-materialized-view": False,
-        }
+        return {"organizations:session-replay": True}
 
     def test_feature_flag_disabled(self):
         """Test replays can be disabled."""
@@ -2173,12 +2170,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay1_id, segment_id=1))
 
         with self.feature(self.features):
-            response = self.client.get(
-                self.url, headers={"X-Preferred-Data-Source": "materialized-view"}
-            )
-            assert response.status_code == 200
-            assert response.headers["X-Data-Source"] == "materialized-view"
-
             response = self.client.get(self.url, headers={"X-Preferred-Data-Source": "scalar"})
             assert response.status_code == 200
             assert response.headers["X-Data-Source"] == "scalar-subquery"
@@ -2196,14 +2187,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id, segment_id=0))
         self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay1_id, segment_id=1))
 
-        features["organizations:session-replay-materialized-view"] = False
         with self.feature(features):
             response = self.client.get(self.url)
             assert response.status_code == 200
             assert response.headers["X-Data-Source"] == "scalar-subquery"
-
-        features["organizations:session-replay-materialized-view"] = True
-        with self.feature(features):
-            response = self.client.get(self.url)
-            assert response.status_code == 200
-            assert response.headers["X-Data-Source"] == "materialized-view"

@@ -1,48 +1,46 @@
 import {useState} from 'react';
-import LazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
-import DropdownLink from 'sentry/components/dropdownLink';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
-import Modal, {
+import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
+import {LazyRender} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getShortEventId} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
-  attachmentIndex: number;
   attachments: IssueAttachment[];
   eventAttachment: IssueAttachment;
   eventId: string;
   groupId: string;
   onDelete: (attachment: IssueAttachment) => void;
   projectSlug: Project['slug'];
-  pageLinks?: string | null | undefined;
 };
 
 export function ScreenshotCard({
   eventAttachment,
+  attachments,
+  groupId,
   projectSlug,
   eventId,
-  groupId,
   onDelete,
-  pageLinks,
-  attachmentIndex,
-  attachments,
 }: Props) {
   const organization = useOrganization();
   const [loadingImage, setLoadingImage] = useState(true);
@@ -62,18 +60,14 @@ export function ScreenshotCard({
     });
     openModal(
       modalProps => (
-        <Modal
+        <ScreenshotModal
           {...modalProps}
-          orgSlug={organization.slug}
           projectSlug={projectSlug}
+          groupId={groupId}
           eventAttachment={eventAttachment}
           downloadUrl={downloadUrl}
           onDelete={handleDelete}
-          pageLinks={pageLinks}
           attachments={attachments}
-          attachmentIndex={attachmentIndex}
-          groupId={groupId}
-          enablePagination
           onDownload={() =>
             trackAnalytics('issue_details.attachment_tab.screenshot_modal_download', {
               organization,
@@ -85,35 +79,65 @@ export function ScreenshotCard({
     );
   }
 
-  const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
   return (
-    <Card>
+    <StyledCard>
       <CardHeader>
-        <CardContent>
-          <Title
-            onClick={() =>
-              trackAnalytics('issue_details.attachment_tab.screenshot_title_clicked', {
-                organization,
-              })
-            }
-            to={`${baseEventsPath}${eventId}/`}
-          >
-            {eventId}
-          </Title>
-          <Detail>
-            <DateTime date={eventAttachment.dateCreated} />
-          </Detail>
-        </CardContent>
+        <div>
+          <AttachmentName>{eventAttachment.name}</AttachmentName>
+          <div>
+            <DateTime date={eventAttachment.dateCreated} /> &middot;{' '}
+            <Link
+              to={`/organizations/${organization.slug}/issues/${groupId}/events/${eventAttachment.event_id}/`}
+            >
+              <Tooltip skipWrapper title={t('View Event')}>
+                {getShortEventId(eventAttachment.event_id)}
+              </Tooltip>
+            </Link>
+          </div>
+        </div>
+        <DropdownMenu
+          items={[
+            {
+              key: 'download',
+              label: t('Download'),
+              onAction: () => {
+                window.open(downloadUrl, '_blank');
+              },
+            },
+            {
+              key: 'delete',
+              label: t('Delete'),
+              onAction: () => {
+                openConfirmModal({
+                  onConfirm: () => onDelete(eventAttachment),
+                  message: <h6>{t('Are you sure you want to delete this image?')}</h6>,
+                  priority: 'danger',
+                  confirmText: t('Delete'),
+                });
+              },
+            },
+          ]}
+          position="bottom-end"
+          trigger={triggerProps => (
+            <Button
+              {...triggerProps}
+              aria-label={t('Actions')}
+              size="xs"
+              borderless
+              icon={<IconEllipsis direction="down" size="sm" />}
+            />
+          )}
+        />
       </CardHeader>
       <CardBody>
         <StyledPanelBody
           onClick={() => openVisualizationModal()}
           data-test-id={`screenshot-${eventAttachment.id}`}
         >
-          <LazyLoad>
+          <LazyRender containerHeight={250} withoutContainer>
             <StyledImageVisualization
               attachment={eventAttachment}
-              orgId={organization.slug}
+              orgSlug={organization.slug}
               projectSlug={projectSlug}
               eventId={eventId}
               onLoad={() => setLoadingImage(false)}
@@ -124,83 +148,35 @@ export function ScreenshotCard({
                 <LoadingIndicator mini />
               </StyledLoadingIndicator>
             )}
-          </LazyLoad>
+          </LazyRender>
         </StyledPanelBody>
       </CardBody>
-      <CardFooter>
-        <div>{eventAttachment.name}</div>
-        <DropdownLink
-          caret={false}
-          customTitle={
-            <Button
-              aria-label={t('Actions')}
-              size="xs"
-              icon={<IconEllipsis direction="down" size="sm" />}
-              borderless
-            />
-          }
-          anchorRight
-        >
-          <MenuItemActionLink shouldConfirm={false} href={`${downloadUrl}`}>
-            {t('Download')}
-          </MenuItemActionLink>
-          <MenuItemActionLink
-            shouldConfirm
-            confirmPriority="danger"
-            confirmLabel={t('Delete')}
-            onAction={() => onDelete(eventAttachment)}
-            header={t('This image was captured around the time that the event occurred.')}
-            message={t('Are you sure you wish to delete this image?')}
-          >
-            {t('Delete')}
-          </MenuItemActionLink>
-        </DropdownLink>
-      </CardFooter>
-    </Card>
+    </StyledCard>
   );
 }
 
-const Title = styled(Link)`
-  ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightNormal};
+const StyledCard = styled(Card)`
+  margin: 0;
 `;
 
-const Detail = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+const AttachmentName = styled('div')`
+  font-weight: bold;
   ${p => p.theme.overflowEllipsis};
-  line-height: 1.5;
 `;
 
 const CardHeader = styled('div')`
   display: flex;
-  padding: ${space(1.5)} ${space(2)};
+  justify-content: space-between;
+  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(2)};
 `;
 
 const CardBody = styled('div')`
   background: ${p => p.theme.gray100};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${space(1)} ${space(1.5)};
   max-height: 250px;
   min-height: 250px;
   overflow: hidden;
   border-bottom: 1px solid ${p => p.theme.gray100};
-`;
-
-const CardFooter = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: ${space(1)} ${space(2)};
-  .dropdown {
-    height: 24px;
-  }
-`;
-
-const CardContent = styled('div')`
-  flex-grow: 1;
-  overflow: hidden;
-  margin-right: ${space(1)};
 `;
 
 const StyledPanelBody = styled(PanelBody)`
@@ -216,11 +192,7 @@ const StyledPanelBody = styled(PanelBody)`
 `;
 
 const StyledLoadingIndicator = styled('div')`
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+  align-self: center;
 `;
 
 const StyledImageVisualization = styled(ImageVisualization)`

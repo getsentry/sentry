@@ -14,6 +14,11 @@ jest.mock('sentry/utils/useNavigate', () => ({
 }));
 jest.mock('sentry/utils/analytics');
 
+const mockFeedbackForm = jest.fn();
+jest.mock('sentry/utils/useFeedbackForm', () => ({
+  useFeedbackForm: () => mockFeedbackForm(),
+}));
+
 describe('NewIssueExperienceButton', function () {
   const organization = OrganizationFixture({features: ['issue-details-streamline']});
   const user = UserFixture();
@@ -22,6 +27,7 @@ describe('NewIssueExperienceButton', function () {
 
   beforeEach(() => {
     ConfigStore.init();
+    jest.clearAllMocks();
   });
 
   it('does not appear by default', function () {
@@ -123,5 +129,45 @@ describe('NewIssueExperienceButton', function () {
       expect.objectContaining({query: {streamline: '0'}})
     );
     expect(trackAnalytics).toHaveBeenCalledTimes(2);
+  });
+
+  it('can switch back to the old UI via dropdown', async function () {
+    const mockFormCallback = jest.fn();
+    mockFeedbackForm.mockReturnValue(mockFormCallback);
+    const mockChangeUserSettings = MockApiClient.addMockResponse({
+      url: '/users/me/',
+      method: 'PUT',
+    });
+
+    render(<NewIssueExperienceButton />, {organization});
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Switch to the new issue experience',
+      })
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Switch issue experience',
+      })
+    ).toBeInTheDocument();
+
+    const dropdownButton = screen.getByRole('button', {
+      name: 'Switch issue experience',
+    });
+    await userEvent.click(dropdownButton);
+
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Give feedback on new UI'})
+    );
+    expect(mockFeedbackForm).toHaveBeenCalled();
+
+    await userEvent.click(dropdownButton);
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {
+        name: 'Switch to the old issue experience',
+      })
+    );
+    expect(mockChangeUserSettings).toHaveBeenCalledTimes(2);
   });
 });

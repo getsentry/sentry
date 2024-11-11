@@ -1,3 +1,6 @@
+import pickBy from 'lodash/pickBy';
+
+import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
@@ -9,6 +12,7 @@ import type {
 import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   type DiscoverQueryExtras,
   type DiscoverQueryRequestParams,
@@ -23,11 +27,11 @@ import {
   handleOrderByReset,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
-  getCustomEventsFieldRenderer,
   getTableSortOptions,
   transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
@@ -37,12 +41,12 @@ import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['span.op', 'avg(span.duration)'],
-  columns: ['span.op'],
+  fields: ['count(span.duration)'],
+  columns: [],
   fieldAliases: [],
-  aggregates: ['avg(span.duration)'],
+  aggregates: ['count(span.duration)'],
   conditions: '',
-  orderby: '-avg(span.duration)',
+  orderby: '',
 };
 
 const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
@@ -61,30 +65,29 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggre
   return acc;
 }, {});
 
+// getTimeseriesSortOptions is undefined because we want to restrict the
+// sort options to the same behaviour as tables. i.e. we are only able
+// to sort by fields that have already been selected
 export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
-  getCustomFieldRenderer: getCustomEventsFieldRenderer,
   SearchBar: SpansSearchBar,
-  filterSeriesSortOptions: () => () => true,
-  filterYAxisAggregateParams: () => () => true,
-  filterYAxisOptions: () => () => true,
-  getTableFieldOptions: getEventsTableFieldOptions,
-  // getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
-  //  getTimeseriesSortOptions(organization, widgetQuery, tags, getEventsTableFieldOptions),
+  filterYAxisAggregateParams: () => filterAggregateParams,
+  filterYAxisOptions,
+  getTableFieldOptions: getPrimaryFieldOptions,
   getTableSortOptions: getTableSortOptions,
-  getGroupByFieldOptions: getEventsTableFieldOptions,
+  getGroupByFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
-    // DisplayType.AREA,
-    // DisplayType.BAR,
-    // DisplayType.BIG_NUMBER,
-    // DisplayType.LINE,
+    DisplayType.AREA,
+    DisplayType.BAR,
+    DisplayType.BIG_NUMBER,
+    DisplayType.LINE,
     DisplayType.TABLE,
-    // DisplayType.TOP_N,
+    DisplayType.TOP_N,
   ],
   getTableRequest: (
     api: Client,
@@ -108,18 +111,21 @@ export const SpansConfig: DatasetConfig<
       referrer
     );
   },
-  // getSeriesRequest: getErrorsSeriesRequest,
+  getSeriesRequest,
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
   filterTableOptions,
   filterAggregateParams,
+  getCustomFieldRenderer: (field, meta, _organization) => {
+    return getFieldRenderer(field, meta, false);
+  },
 };
 
-function getEventsTableFieldOptions(
+function getPrimaryFieldOptions(
   organization: Organization,
   tags?: TagCollection,
   _customMeasurements?: CustomMeasurementCollection
-) {
+): Record<string, FieldValueOption> {
   const baseFieldOptions = generateFieldOptions({
     organization,
     tagKeys: [],
@@ -170,6 +176,12 @@ function filterAggregateParams(option: FieldValueOption) {
   return true;
 }
 
+function filterYAxisOptions() {
+  return function (option: FieldValueOption) {
+    return option.value.kind === FieldValueKind.FUNCTION;
+  };
+}
+
 function getEventsRequest(
   api: Client,
   query: WidgetQuery,
@@ -211,4 +223,45 @@ function getEventsRequest(
       },
     }
   );
+}
+
+function getGroupByFieldOptions(
+  organization: Organization,
+  tags?: TagCollection,
+  customMeasurements?: CustomMeasurementCollection
+) {
+  const primaryFieldOptions = getPrimaryFieldOptions(
+    organization,
+    tags,
+    customMeasurements
+  );
+  const yAxisFilter = filterYAxisOptions();
+
+  // The only options that should be returned as valid group by options
+  // are string tags
+  const filterGroupByOptions = (option: FieldValueOption) =>
+    filterTableOptions(option) && !yAxisFilter(option);
+
+  return pickBy(primaryFieldOptions, filterGroupByOptions);
+}
+
+function getSeriesRequest(
+  api: Client,
+  widget: Widget,
+  queryIndex: number,
+  organization: Organization,
+  pageFilters: PageFilters,
+  _onDemandControlContext?: OnDemandControlContext,
+  referrer?: string,
+  _mepSetting?: MEPState | null
+) {
+  const requestData = getSeriesRequestData(
+    widget,
+    queryIndex,
+    organization,
+    pageFilters,
+    DiscoverDatasets.SPANS_EAP,
+    referrer
+  );
+  return doEventsRequest<true>(api, requestData);
 }

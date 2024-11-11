@@ -22,7 +22,7 @@ export function useTransaction(props: UseTransactionProps) {
     ],
     {
       staleTime: 0,
-      enabled: !!props.node,
+      enabled: !!props.node?.value?.project_slug && !!props.node?.value.event_id,
     }
   );
 }

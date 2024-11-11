@@ -106,8 +106,9 @@ describe('Dashboards - DashboardList', function () {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={[]}
-        pageLinks=""
         location={router.location}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
@@ -120,8 +121,9 @@ describe('Dashboards - DashboardList', function () {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
-        pageLinks=""
         location={router.location}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
@@ -135,8 +137,9 @@ describe('Dashboards - DashboardList', function () {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
-        pageLinks=""
         location={router.location}
+        columnCount={3}
+        rowCount={3}
       />,
       {router}
     );
@@ -157,8 +160,9 @@ describe('Dashboards - DashboardList', function () {
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
-        pageLinks=""
         location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
+        columnCount={3}
+        rowCount={3}
       />,
       {router}
     );
@@ -174,9 +178,10 @@ describe('Dashboards - DashboardList', function () {
       <DashboardList
         organization={organization}
         dashboards={dashboards}
-        pageLinks=""
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
+        columnCount={3}
+        rowCount={3}
       />,
       {router}
     );
@@ -211,9 +216,10 @@ describe('Dashboards - DashboardList', function () {
       <DashboardList
         organization={organization}
         dashboards={singleDashboard}
-        pageLinks=""
         location={LocationFixture()}
         onDashboardsChange={dashboardUpdateMock}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
@@ -229,9 +235,10 @@ describe('Dashboards - DashboardList', function () {
       <DashboardList
         organization={organization}
         dashboards={dashboards}
-        pageLinks=""
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
@@ -255,9 +262,10 @@ describe('Dashboards - DashboardList', function () {
       <DashboardList
         organization={organization}
         dashboards={dashboards}
-        pageLinks=""
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
+        columnCount={3}
+        rowCount={3}
       />
     );
 
