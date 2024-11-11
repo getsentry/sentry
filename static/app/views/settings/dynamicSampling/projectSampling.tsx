@@ -81,7 +81,7 @@ export function ProjectSampling() {
     <FormProvider formState={formState}>
       <form onSubmit={event => event.preventDefault()}>
         <Panel>
-          <PanelHeader>{t('Manual Sampling')}</PanelHeader>
+          <PanelHeader>{t('General Settings')}</PanelHeader>
           <PanelBody>
             <SamplingModeField />
           </PanelBody>
@@ -90,7 +90,16 @@ export function ProjectSampling() {
           <h4>{t('Customize Projects')}</h4>
           <ProjectionPeriodControl period={period} onChange={setPeriod} />
         </HeadingRow>
-        <p>{t('Set custom rates for traces starting at each of your projects.')}</p>
+        <p>
+          {t(
+            'Configure sample rates for each of your projects. These rates stay fixed if volumes change, which can lead to a change in the overall sample rate of your organization.'
+          )}
+        </p>
+        <p>
+          {t(
+            'Rates apply to all spans in traces that start in each project, including a portion of spans in connected other projects.'
+          )}
+        </p>
         {sampleCountsQuery.isError ? (
           <LoadingError onRetry={sampleCountsQuery.refetch} />
         ) : (

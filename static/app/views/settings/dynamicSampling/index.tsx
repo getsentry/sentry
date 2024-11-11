@@ -23,7 +23,7 @@ export default function DynamicSamplingSettings() {
         <SettingsPageHeader title={t('Dynamic Sampling')} />
         <p>
           {t(
-            'Dynamic sampling allows you to send more traces within your budget by retaining the most relevant traces and reducing redundant data. Additionally, it ensures that high-level metrics and insights remain accurate. With these settings you can customize and fine-tune the sampling behavior to prioritize what matters most.'
+            'Dynamic sampling adaptively reduces the number of spans stored in Sentry without changing SDK sample rates. It allows you to keep the most relevant samples and obtain accurate high-level insights while limiting redundancy and stored span volume. You can customize sample rates and priorities in these settings to control which data is stored.'
           )}
         </p>
         {organization.samplingMode === 'organization' ? (

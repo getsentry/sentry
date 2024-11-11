@@ -74,7 +74,7 @@ export function SamplingModeField() {
           ) : (
             <p>
               {tct(
-                'By switching [strong:you will lose your manually defined sample rates].',
+                'By switching [strong:you will lose your manually configured sample rates].',
                 {
                   strong: <strong />,
                 }
@@ -95,7 +95,7 @@ export function SamplingModeField() {
     <FieldGroup
       disabled={!hasAccess}
       label={t('Sampling Mode')}
-      help={t('The current configuration mode for dynamic sampling.')}
+      help={t('The current operating mode for dynamic sampling.')}
     >
       <ControlWrapper>
         <SegmentedControl
