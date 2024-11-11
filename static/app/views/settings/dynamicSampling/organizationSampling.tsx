@@ -69,7 +69,7 @@ export function OrganizationSampling() {
     <FormProvider formState={formState}>
       <form onSubmit={event => event.preventDefault()}>
         <Panel>
-          <PanelHeader>{t('Automatic Sampling')}</PanelHeader>
+          <PanelHeader>{t('General Settings')}</PanelHeader>
           <PanelBody>
             <SamplingModeField />
             <OrganizationSampleRateField />
@@ -108,10 +108,15 @@ export function OrganizationSampling() {
         </HeadingRow>
         <p>
           {tct(
-            'This table gives you a preview of how your projects will be affected by the global sample rate. The [strong:projected rates are estimates] based on recent span volume.',
+            'This table gives you a preview of how your projects will be affected by the target sample rate. The [strong:projected rates are estimates] based on recent span volume and change continuously.',
             {
               strong: <strong />,
             }
+          )}
+        </p>
+        <p>
+          {t(
+            'Rates apply to all spans in traces that start in each project, including a portion of spans in connected other projects.'
           )}
         </p>
         {sampleCountsQuery.isError ? (
