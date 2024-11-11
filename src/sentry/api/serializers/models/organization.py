@@ -37,6 +37,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    HIDE_AI_FEATURES_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
@@ -482,6 +483,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     onboardingTasks: list[OnboardingTasksSerializerResponse]
     codecovAccess: bool
     aiSuggestedSolution: bool
+    hideAiFeatures: bool
     githubPRBot: bool
     githubOpenPRBot: bool
     githubNudgeInvite: bool
@@ -599,6 +601,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "codecovAccess": bool(obj.flags.codecov_access),
                 "aiSuggestedSolution": bool(
                     obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
+                ),
+                "hideAiFeatures": bool(
+                    obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
                 ),
                 "githubPRBot": bool(
                     obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
