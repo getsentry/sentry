@@ -93,13 +93,13 @@ def get_group_users_count(group: Group, rules: list[Rule] | None = None) -> int:
 # NOTE: if this starts getting large and functions get complicated,
 # pull things out into their own functions
 SUPPORTED_CONTEXT_DATA: dict[NotificationContextField, Callable] = {
-    NotificationContextField.EVENTS: lambda group: get_group_global_count(group),
+    NotificationContextField.EVENTS: lambda group, rules: get_group_global_count(group),
     NotificationContextField.USERS_AFFECTED: get_group_users_count,
-    NotificationContextField.STATE: lambda group: SUBSTATUS_TO_STR.get(group.substatus, "")
+    NotificationContextField.STATE: lambda group, rules: SUBSTATUS_TO_STR.get(group.substatus, "")
     .replace("_", " ")
     .title(),
-    NotificationContextField.FIRST_SEEN: lambda group: time_since(group.first_seen),
-    NotificationContextField.APPROX_START_TIME: lambda group: datetime.fromtimestamp(
+    NotificationContextField.FIRST_SEEN: lambda group, rules: time_since(group.first_seen),
+    NotificationContextField.APPROX_START_TIME: lambda group, rules: datetime.fromtimestamp(
         get_approx_start_time(group=group)
     ).strftime(
         "%Y-%m-%d %H:%M:%S"
@@ -232,10 +232,7 @@ def get_context(group: Group, rules: list[Rule] | None = None) -> str:
 
     for c in context:
         if c in SUPPORTED_CONTEXT_DATA:
-            if c == NotificationContextField.USERS_AFFECTED:
-                v = SUPPORTED_CONTEXT_DATA[c](group, rules)
-            else:
-                v = SUPPORTED_CONTEXT_DATA[c](group)
+            v = SUPPORTED_CONTEXT_DATA[c](group, rules)
             if v:
                 context_text += f"{c}: *{v}*   "
 
