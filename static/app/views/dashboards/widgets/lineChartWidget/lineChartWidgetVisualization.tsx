@@ -1,5 +1,6 @@
 import BaseChart from 'sentry/components/charts/baseChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 
 import type {Meta, TimeseriesData} from '../common/types';
 
@@ -13,6 +14,10 @@ export interface LineChartWidgetVisualizationProps {
 export function LineChartWidgetVisualization(props: LineChartWidgetVisualizationProps) {
   const {timeseries, meta} = props;
 
+  const chartZoomProps = useChartZoom({
+    saveOnZoom: true,
+  });
+
   // TODO: Raise error if attempting to plot series of different types or units
   const firstSeriesField = timeseries[0]?.field;
   const type = meta?.fields?.[firstSeriesField] ?? 'number';
@@ -23,6 +28,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       series={timeseries.map(timeserie => {
         return LineSeries({
           name: timeserie.field,
+          color: timeserie.color,
           animation: false,
           data: timeserie.data.map(datum => {
             return [datum.timestamp, datum.value];
@@ -34,7 +40,6 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
         left: 0,
       }}
       showTimeInTooltip
-      isGroupedByDate
       tooltip={{
         valueFormatter: value => {
           return formatChartValue(value, type, unit);
@@ -47,6 +52,8 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
           },
         },
       }}
+      {...chartZoomProps}
+      isGroupedByDate
     />
   );
 }

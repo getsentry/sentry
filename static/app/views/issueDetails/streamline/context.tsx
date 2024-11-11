@@ -42,6 +42,9 @@ export const enum SectionKey {
   TEMPLATE = 'template',
 
   BREADCRUMBS = 'breadcrumbs',
+  /**
+   * Also called images loaded
+   */
   DEBUGMETA = 'debugmeta',
   REQUEST = 'request',
 
