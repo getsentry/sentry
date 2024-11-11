@@ -11,6 +11,8 @@ import {
   type ContextIconProps,
   getLogoImage,
 } from 'sentry/components/events/contexts/contextIcon';
+import {getAppContextData} from 'sentry/components/events/contexts/knownContext/app';
+import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';
 import {getCloudResourceContextData} from 'sentry/components/events/contexts/knownContext/cloudResource';
 import {getCultureContextData} from 'sentry/components/events/contexts/knownContext/culture';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
@@ -26,8 +28,6 @@ import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
 
-import {getKnownAppContextData, getUnknownAppContextData} from './app';
-import {getKnownBrowserContextData, getUnknownBrowserContextData} from './browser';
 import {getDefaultContextData} from './default';
 import {getKnownDeviceContextData, getUnknownDeviceContextData} from './device';
 import {getKnownGpuContextData, getUnknownGpuContextData} from './gpu';
@@ -400,10 +400,7 @@ export function getFormattedContextData({
 
   switch (contextType) {
     case 'app':
-      return [
-        ...getKnownAppContextData({data: contextValue, event, meta}),
-        ...getUnknownAppContextData({data: contextValue, meta}),
-      ];
+      return getAppContextData({data: contextValue, event, meta});
     case 'device':
       return [
         ...getKnownDeviceContextData({data: contextValue, event, meta}),
@@ -416,10 +413,7 @@ export function getFormattedContextData({
         ...getUnknownMemoryInfoContextData({data: contextValue, meta}),
       ];
     case 'browser':
-      return [
-        ...getKnownBrowserContextData({data: contextValue, meta}),
-        ...getUnknownBrowserContextData({data: contextValue, meta}),
-      ];
+      return getBrowserContextData({data: contextValue, meta});
     case 'os':
       return [
         ...getKnownOperatingSystemContextData({data: contextValue, meta}),
