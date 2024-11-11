@@ -87,7 +87,7 @@ class IssueLinkRequester:
             )
             raise APIError(
                 f"Issue occured while trying to contact {self.sentry_app.slug} to link issue"
-            ) from e
+            )
 
         if not self._validate_response(response):
             raise ValidationError(

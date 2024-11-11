@@ -77,9 +77,12 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
         except (APIError, ValidationError, APIUnauthorized) as e:
             return Response({"error": str(e)}, status=400)
         except Exception as e:
-            capture_exception(e)
+            error_id = capture_exception(e)
             return Response(
-                {"error": "Something went wrong while trying to link issue"}, status=500
+                {
+                    "error": f"Something went wrong while trying to link issue. Sentry error ID: {error_id}"
+                },
+                status=500,
             )
 
         return Response(
