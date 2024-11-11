@@ -95,7 +95,8 @@
       "**/*.sourcemap.js",
       "**/*.min.js",
       "fixtures",
-      ".devenv"
+      ".devenv",
+      "package.json"
     ]
   },
   "css": {
