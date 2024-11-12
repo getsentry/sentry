@@ -1,4 +1,8 @@
-import {EventType, type eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
+import {
+  EventType,
+  type eventWithTime as TEventWithTime,
+  MouseInteractions,
+} from '@sentry-internal/rrweb';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';
@@ -136,7 +140,7 @@ export function isTouchStartFrame(frame: RecordingFrame) {
   return (
     frame.type === EventType.IncrementalSnapshot &&
     'type' in frame.data &&
-    frame.data.type === 7
+    frame.data.type === MouseInteractions.TouchStart
   );
 }
 
@@ -144,7 +148,7 @@ export function isTouchEndFrame(frame: RecordingFrame) {
   return (
     frame.type === EventType.IncrementalSnapshot &&
     'type' in frame.data &&
-    frame.data.type === 9
+    frame.data.type === MouseInteractions.TouchEnd
   );
 }
 
