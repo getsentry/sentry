@@ -70,7 +70,7 @@ class GroupingComponent:
             for value in c.values:
                 if isinstance(value, GroupingComponent) and value.contributes:
                     _walk_components(value, stack)
-            parts = [_f for _f in stack if _f]
+            parts = [name for name in stack if name]
             items.append(parts)
             stack.pop()
 
