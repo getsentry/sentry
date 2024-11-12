@@ -70,8 +70,7 @@ class GroupingComponent:
             for value in component.values:
                 if isinstance(value, GroupingComponent) and value.contributes:
                     _walk_components(value, current_path)
-            parts = [name for name in current_path if name]
-            paths.append(parts)
+            paths.append([name for name in current_path if name])
             current_path.pop()
 
         _walk_components(self, [])
