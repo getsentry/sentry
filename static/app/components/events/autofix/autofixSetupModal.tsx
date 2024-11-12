@@ -145,12 +145,19 @@ function AutofixGithubIntegrationStep({
   canStartAutofix,
   closeModal,
   isLastStep,
+  refetchSetup,
 }: {
   autofixSetup: AutofixSetupResponse;
   canStartAutofix: boolean;
   closeModal: () => void;
   isLastStep?: boolean;
+  refetchSetup?: () => void;
 }) {
+  const handleClose = () => {
+    refetchSetup?.();
+    closeModal();
+  };
+
   const sortedRepos = useMemo(
     () =>
       autofixSetup.githubWriteIntegration.repos.toSorted((a, b) => {
@@ -186,7 +193,7 @@ function AutofixGithubIntegrationStep({
               priority="primary"
               size="sm"
               disabled={!canStartAutofix}
-              onClick={closeModal}
+              onClick={handleClose}
             >
               {t("Let's Go!")}
             </Button>
@@ -227,7 +234,7 @@ function AutofixGithubIntegrationStep({
               priority="primary"
               size="sm"
               disabled={!canStartAutofix}
-              onClick={closeModal}
+              onClick={handleClose}
             >
               {t('Skip & Enable Autofix')}
             </Button>
@@ -262,7 +269,7 @@ function AutofixGithubIntegrationStep({
             priority="primary"
             size="sm"
             disabled={!canStartAutofix}
-            onClick={closeModal}
+            onClick={handleClose}
           >
             {t('Skip & Enable Autofix')}
           </Button>
@@ -276,12 +283,14 @@ function AutofixSetupSteps({
   autofixSetup,
   closeModal,
   canStartAutofix,
+  refetchSetup,
 }: {
   autofixSetup: AutofixSetupResponse;
   canStartAutofix: boolean;
   closeModal: () => void;
   groupId: string;
   projectId: string;
+  refetchSetup?: () => void;
 }) {
   return (
     <GuidedSteps>
@@ -304,6 +313,7 @@ function AutofixSetupSteps({
           canStartAutofix={canStartAutofix}
           closeModal={closeModal}
           isLastStep
+          refetchSetup={refetchSetup}
         />
       </GuidedSteps.Step>
     </GuidedSteps>
@@ -314,10 +324,12 @@ export function AutofixSetupContent({
   projectId,
   groupId,
   closeModal,
+  refetchSetup,
 }: {
   closeModal: () => void;
   groupId: string;
   projectId: string;
+  refetchSetup?: () => void;
 }) {
   const organization = useOrganization();
   const {data, canStartAutofix, isPending, isError} = useAutofixSetup(
@@ -363,6 +375,7 @@ export function AutofixSetupContent({
         autofixSetup={data}
         canStartAutofix={canStartAutofix}
         closeModal={closeModal}
+        refetchSetup={refetchSetup}
       />
     </Fragment>
   );

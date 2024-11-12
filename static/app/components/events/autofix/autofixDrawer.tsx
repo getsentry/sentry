@@ -88,7 +88,11 @@ interface AutofixDrawerProps {
 export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
   const {data: summaryData, isError} = useGroupSummary(group.id, group.issueCategory);
-  const {data: setupData, isPending: isSetupLoading} = useAutofixSetup({
+  const {
+    data: setupData,
+    isPending: isSetupLoading,
+    refetch: refetchSetup,
+  } = useAutofixSetup({
     groupId: group.id,
   });
 
@@ -148,7 +152,8 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
             <AutofixSetupContent
               projectId={project.id}
               groupId={group.id}
-              closeModal={() => {}} // Setup is inline, so no modal to close
+              closeModal={() => {}}
+              refetchSetup={refetchSetup}
             />
           </SetupContainer>
         ) : !autofixData ? (
