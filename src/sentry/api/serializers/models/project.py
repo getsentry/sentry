@@ -770,16 +770,14 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
-
-        if attrs["has_access"]:
-            if "stats" in attrs:
-                context.update(stats=attrs["stats"])
-            if "transactionStats" in attrs:
-                context.update(transactionStats=attrs["transactionStats"])
-            if "sessionStats" in attrs:
-                context.update(sessionStats=attrs["sessionStats"])
-            if "options" in attrs:
-                context.update(options=attrs["options"])
+        if "stats" in attrs:
+            context.update(stats=attrs["stats"])
+        if "transactionStats" in attrs:
+            context.update(transactionStats=attrs["transactionStats"])
+        if "sessionStats" in attrs:
+            context.update(sessionStats=attrs["sessionStats"])
+        if "options" in attrs:
+            context.update(options=attrs["options"])
 
         return context
 
