@@ -40,19 +40,17 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
 
   return (
     <StartBox>
-      <StarTrailContainer>
-        <StarTrail>
-          {[...Array(8)].map((_, i) => (
-            <TrailStar
-              key={i}
-              src={starImage}
-              index={i}
-              size={28 - i * 2}
-              offset={(i % 2) * 30 - 15}
-            />
-          ))}
-        </StarTrail>
-      </StarTrailContainer>
+      <StarTrail>
+        {[...Array(8)].map((_, i) => (
+          <TrailStar
+            key={i}
+            src={starImage}
+            index={i}
+            size={28 - i * 2}
+            offset={(i % 2) * 30 - 15}
+          />
+        ))}
+      </StarTrail>
       <ContentContainer>
         <Header>Autofix</Header>
         <br />
@@ -197,15 +195,6 @@ const StartBox = styled('div')`
   right: ${space(2)};
 `;
 
-const StarTrailContainer = styled('div')`
-  position: absolute;
-  bottom: 5rem;
-  left: 0;
-  right: 0;
-  z-index: -1;
-  pointer-events: none;
-`;
-
 const ContentContainer = styled('div')`
   position: relative;
   z-index: 1;
@@ -281,6 +270,7 @@ const ButtonWithStars = styled('div')`
 const StarLarge = styled('img')`
   position: absolute;
   z-index: 0;
+  filter: sepia(1) saturate(3) hue-rotate(290deg);
 `;
 
 const StarLarge1 = styled(StarLarge)`
@@ -341,7 +331,12 @@ const StarTrail = styled('div')`
   width: 100%;
   display: flex;
   justify-content: center;
-  position: relative;
+  position: absolute;
+  bottom: 5rem;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  pointer-events: none;
 `;
 
 const TrailStar = styled('img')<{index: number; offset: number; size: number}>`
@@ -351,4 +346,5 @@ const TrailStar = styled('img')<{index: number; offset: number; size: number}>`
   top: ${p => p.index * 50}px;
   transform: translateX(${p => p.offset}px) rotate(${p => p.index * 40}deg);
   opacity: ${p => Math.max(0.2, 1 - p.index * 0.1)};
+  filter: sepia(1) saturate(3) hue-rotate(290deg);
 `;

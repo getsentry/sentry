@@ -336,7 +336,7 @@ function AutofixInsightCards({
         <NoInsightsYet>
           <p>Autofix will share its discoveries here.</p>
           <p>
-            Autofix is like a new teammate with fresh eyes on your code.
+            Autofix is like an AI rubber ducky to help you debug your code.
             <br />
             Collaborate with it and share your own knowledge and opinions for the best
             results.
