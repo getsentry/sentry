@@ -132,6 +132,26 @@ export function isRecordingFrame(
   return 'type' in attachment && 'timestamp' in attachment;
 }
 
+export function isTouchStartFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.IncrementalSnapshot &&
+    'type' in frame.data &&
+    frame.data.type === 7
+  );
+}
+
+export function isTouchEndFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.IncrementalSnapshot &&
+    'type' in frame.data &&
+    frame.data.type === 9
+  );
+}
+
+export function isMetaFrame(frame: RecordingFrame) {
+  return frame.type === EventType.Meta;
+}
+
 export function isBreadcrumbFrameEvent(
   attachment: Record<string, any>
 ): attachment is BreadcrumbFrameEvent {
