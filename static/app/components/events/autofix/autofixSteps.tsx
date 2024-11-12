@@ -250,7 +250,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
               <Step
                 step={step}
                 hasStepBelow={index + 1 < steps.length && !twoInsightStepsInARow}
-                hasStepAbove={index > 0}
+                hasStepAbove
                 groupId={groupId}
                 runId={runId}
                 repos={repos}

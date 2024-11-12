@@ -96,9 +96,9 @@ describe('GroupSummary', function () {
     await userEvent.click(screen.getByText('TL;DR: Test headline'));
 
     // Verify expanded view shows the individual sections
-    expect(screen.getByText("What's wrong?")).toBeInTheDocument();
+    expect(screen.getByText("What's wrong")).toBeInTheDocument();
     expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
-    expect(screen.getByText('Trace')).toBeInTheDocument();
+    expect(screen.getByText('In the trace')).toBeInTheDocument();
     expect(screen.getByText('Test trace')).toBeInTheDocument();
     expect(screen.getByText('Possible cause')).toBeInTheDocument();
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
