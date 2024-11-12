@@ -65,9 +65,9 @@ class GroupingComponent:
     def description(self) -> str:
         items = []
 
-        def _walk_components(c: GroupingComponent, stack: list[str | None]) -> None:
-            stack.append(c.name)
-            for value in c.values:
+        def _walk_components(component: GroupingComponent, stack: list[str | None]) -> None:
+            stack.append(component.name)
+            for value in component.values:
                 if isinstance(value, GroupingComponent) and value.contributes:
                     _walk_components(value, stack)
             parts = [name for name in stack if name]
