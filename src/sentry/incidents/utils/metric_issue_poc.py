@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from uuid import uuid4
 
 from sentry.incidents.models.incident import Incident, IncidentStatus
@@ -15,7 +14,7 @@ from sentry.types.group import PriorityLevel
 def _build_occurrence_from_incident(
     project: Project,
     incident: Incident,
-    event_data: Mapping[str, str | int],
+    event_data: dict[str, str | int],
     metric_value: float,
 ) -> IssueOccurrence:
     initial_issue_priority = (
@@ -27,15 +26,15 @@ def _build_occurrence_from_incident(
     return IssueOccurrence(
         id=uuid4().hex,
         project_id=project.id,
-        event_id=event_data["event_id"],
+        event_id=str(event_data["event_id"]),
         fingerprint=fingerprint,
         issue_title=incident.title,
-        subtitle=get_incident_status_text(incident.alert_rule, metric_value),
+        subtitle=get_incident_status_text(incident.alert_rule, str(metric_value)),
         resource_id=None,
         type=MetricIssuePOC,
         detection_time=incident.date_started,
         level="error",
-        culprit=None,
+        culprit="",
         initial_issue_priority=initial_issue_priority,
         # TODO(snigdha): Add more data here as needed
         evidence_data={"metric_value": metric_value},
@@ -46,12 +45,13 @@ def _build_occurrence_from_incident(
 def create_or_update_metric_issue(
     incident: Incident,
     metric_value: float,
-) -> IssueOccurrence:
-
+) -> IssueOccurrence | None:
     project = incident.alert_rule.projects.first()
+    if not project:
+        return None
 
     # collect the data from the incident to treat as an event
-    event_data = {
+    event_data: dict[str, str | int] = {
         "event_id": uuid4().hex,
         "project_id": project.id,
         "timestamp": incident.date_started.isoformat(),

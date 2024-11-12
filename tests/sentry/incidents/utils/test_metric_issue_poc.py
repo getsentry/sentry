@@ -39,6 +39,7 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
     @django_db_all
     def test_incident_creates_metric_issue(self):
         occurrence = create_or_update_metric_issue(self.incident, 100.0)
+        assert occurrence
         occurrence.save()
 
         self.event_data["event_id"] = occurrence.event_id
@@ -60,6 +61,7 @@ class TestMetricIssuePOC(IssueOccurrenceTestBase, APITestCase):
         assert Group.objects.filter(type=MetricIssuePOC.type_id).count() == 0
         self.incident.status = IncidentStatus.CLOSED.value
         occurrence = create_or_update_metric_issue(self.incident, 0.0)
+        assert occurrence
         occurrence.save()
         self.event_data["event_id"] = occurrence.event_id
 
