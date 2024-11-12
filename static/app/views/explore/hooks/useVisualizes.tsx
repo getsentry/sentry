@@ -12,9 +12,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-export type Visualize = {
+type BaseVisualize = {
   chartType: ChartType;
   yAxes: string[];
+};
+
+export type Visualize = BaseVisualize & {
+  label: string;
 };
 
 interface Options {
@@ -24,7 +28,7 @@ interface Options {
 
 export const DEFAULT_VISUALIZATION = `${ALLOWED_EXPLORE_VISUALIZE_AGGREGATES[0]}(${ALLOWED_EXPLORE_VISUALIZE_FIELDS[0]})`;
 
-export function useVisualizes(): [Visualize[], (visualizes: Visualize[]) => void] {
+export function useVisualizes(): [Visualize[], (visualizes: BaseVisualize[]) => void] {
   const location = useLocation();
   const navigate = useNavigate();
   const options = {location, navigate};
@@ -35,25 +39,38 @@ export function useVisualizes(): [Visualize[], (visualizes: Visualize[]) => void
 function useVisualizesImpl({
   location,
   navigate,
-}: Options): [Visualize[], (visualizes: Visualize[]) => void] {
+}: Options): [Visualize[], (visualizes: BaseVisualize[]) => void] {
   const visualizes: Visualize[] = useMemo(() => {
     const rawVisualizes = decodeList(location.query.visualize);
 
     const result: Visualize[] = rawVisualizes
       .map(parseVisualizes)
       .filter(defined)
-      .filter(parsed => parsed.yAxes.length > 0);
+      .filter(parsed => parsed.yAxes.length > 0)
+      .map((parsed, i) => {
+        return {
+          chartType: parsed.chartType,
+          yAxes: parsed.yAxes,
+          label: String.fromCharCode(65 + i), // starts from 'A'
+        };
+      });
 
     return result.length
       ? result
-      : [{yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE}];
+      : [{chartType: ChartType.LINE, label: 'A', yAxes: [DEFAULT_VISUALIZATION]}];
   }, [location.query.visualize]);
 
   const setVisualizes = useCallback(
-    (newVisualizes: Visualize[]) => {
+    (newVisualizes: BaseVisualize[]) => {
       const stringified: string[] = [];
       for (const visualize of newVisualizes) {
-        stringified.push(JSON.stringify(visualize));
+        // ignore the label from visualize because it'll determined later
+        stringified.push(
+          JSON.stringify({
+            chartType: visualize.chartType,
+            yAxes: visualize.yAxes,
+          })
+        );
       }
 
       navigate({
@@ -70,7 +87,7 @@ function useVisualizesImpl({
   return [visualizes, setVisualizes];
 }
 
-function parseVisualizes(raw: string): Visualize | null {
+function parseVisualizes(raw: string): BaseVisualize | null {
   try {
     const parsed = JSON.parse(raw);
     if (!defined(parsed) || !Array.isArray(parsed.yAxes)) {
