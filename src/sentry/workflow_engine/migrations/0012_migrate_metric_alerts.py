@@ -140,7 +140,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                 condition=trigger.threshold_type,
                 comparison=trigger.alert_threshold,
                 condition_result=condition_result,
-                type=DataSourceType.SNUBA_QUERY_SUBSCRIPTION,  # is this correct?
+                type="metric_alert",  # this will probably change by the time we actually do the migration
             )
             # missing DataConditionDetails because this table doesn't exist yet
         trigger_actions = AlertRuleTriggerAction.objects.filter(
