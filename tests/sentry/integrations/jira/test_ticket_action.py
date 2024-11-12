@@ -1,28 +1,51 @@
+from typing import Any
 from unittest import mock
 
+import pytest
 from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from fixtures.integrations.jira.mock import MockJira
 from sentry.eventstore.models import Event
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.project_management.metrics import ProjectManagementActionType
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.models.rule import Rule
+from sentry.shared_integrations.exceptions import ApiInvalidRequestError, IntegrationError
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
+from sentry.utils import metrics
 
 pytestmark = [requires_snuba]
+
+
+class BrokenJiraMock(MockJira):
+    """
+    Subclass of MockJira client, which implements a broken create_issue method
+    to simulate a misconfigured alert rule for Jira.
+    """
+
+    def create_issue(self, raw_form_data):
+        raise ApiInvalidRequestError("Invalid data entered")
 
 
 class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     rule_cls = JiraCreateTicketAction
     mock_jira = None
+    broken_mock_jira = None
 
     def get_client(self):
         if not self.mock_jira:
             self.mock_jira = MockJira()
         return self.mock_jira
+
+    def get_broken_client(self):
+        if not self.broken_mock_jira:
+            self.broken_mock_jira = BrokenJiraMock()
+        return self.broken_mock_jira
 
     def setUp(self):
         super().setUp()
@@ -57,40 +80,61 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             "key", flat=True
         )[0]
 
-    def test_ticket_rules(self):
+    def configure_valid_alert_rule(self):
+        response = self.client.post(
+            reverse(
+                "sentry-api-0-project-rules",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "project_id_or_slug": self.project.slug,
+                },
+            ),
+            format="json",
+            data={
+                "name": "hello world",
+                "owner": self.user.id,
+                "environment": None,
+                "actionMatch": "any",
+                "frequency": 5,
+                "actions": [
+                    {
+                        "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                        "integration": self.integration.id,
+                        "dynamic_form_fields": [{"name": "project"}],
+                        "issuetype": "1",
+                        "name": "Create a Jira ticket in the Jira Cloud account",
+                        "project": "10000",
+                    }
+                ],
+                "conditions": [],
+            },
+        )
+        assert response.status_code == 200
+        return response
+
+    def assert_metrics_gathered(
+        self,
+        expected_metric_type: EventLifecycleOutcome,
+        domain: IntegrationDomain.PROJECT_MANAGEMENT,
+        integration_name: str,
+        interaction_type: ProjectManagementActionType,
+        metrics_mock: Any,
+    ):
+        slo_name = f"integrations.slo.{expected_metric_type}"
+        expected_tags = {
+            "integration_domain": str(domain),
+            "integration_name": integration_name,
+            "interaction_type": str(interaction_type),
+        }
+
+        metrics_mock.assert_any_call(slo_name, tags=expected_tags, sample_rate=1.0)
+
+    @mock.patch.object(metrics, "incr", autospec=True)
+    def test_ticket_rules(self, metrics_mock):
         with mock.patch(
             "sentry.integrations.jira.integration.JiraIntegration.get_client", self.get_client
         ):
-            # Create a new Rule
-            response = self.client.post(
-                reverse(
-                    "sentry-api-0-project-rules",
-                    kwargs={
-                        "organization_id_or_slug": self.organization.slug,
-                        "project_id_or_slug": self.project.slug,
-                    },
-                ),
-                format="json",
-                data={
-                    "name": "hello world",
-                    "owner": self.user.id,
-                    "environment": None,
-                    "actionMatch": "any",
-                    "frequency": 5,
-                    "actions": [
-                        {
-                            "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-                            "integration": self.integration.id,
-                            "dynamic_form_fields": [{"name": "project"}],
-                            "issuetype": "1",
-                            "name": "Create a Jira ticket in the Jira Cloud account",
-                            "project": "10000",
-                        }
-                    ],
-                    "conditions": [],
-                },
-            )
-            assert response.status_code == 200
+            response = self.configure_valid_alert_rule()
 
             # Get the rule from DB
             rule_object = Rule.objects.get(id=response.data["id"])
@@ -114,6 +158,38 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
             # assert new ticket NOT created in DB
             assert ExternalIssue.objects.count() == external_issue_count
+
+            self.assert_metrics_gathered(
+                EventLifecycleOutcome.SUCCESS,
+                "project_management",
+                "jira",
+                ProjectManagementActionType.CREATE_EXTERNAL_ISSUE,
+                metrics_mock,
+            )
+
+    @mock.patch.object(metrics, "incr", autospec=True)
+    def test_misconfigured_ticket_rule(self, metrics_mock):
+        with mock.patch(
+            "sentry.integrations.jira.integration.JiraIntegration.get_client",
+            self.get_broken_client,
+        ):
+            response = self.configure_valid_alert_rule()
+
+            rule_object = Rule.objects.get(id=response.data["id"])
+            event = self.get_event()
+
+            with pytest.raises(IntegrationError):
+                # Trigger its `after`, but with a broken client which should raise
+                # an ApiInvalidRequestError, which is reraised as an IntegrationError.
+                self.trigger(event, rule_object)
+
+            self.assert_metrics_gathered(
+                EventLifecycleOutcome.FAILURE,
+                "project_management",
+                "jira",
+                ProjectManagementActionType.CREATE_EXTERNAL_ISSUE,
+                metrics_mock,
+            )
 
     def test_fails_validation(self):
         """
