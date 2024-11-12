@@ -12,7 +12,7 @@ import type {TraceTree} from '../../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
-import {getSpanAncestryAndGroupingItems} from './ancestry';
+import {useSpanAncestryAndGroupingItems} from './ancestry';
 
 type GeneralnfoProps = {
   location: Location;
@@ -36,6 +36,7 @@ function SpanDuration({node}: {node: TraceTreeNode<TraceTree.Span>}) {
       baseDescription={t(
         'Average total time for this span group across the project associated with its parent transaction, over the last 24 hours'
       )}
+      node={node}
     />
   );
 }
@@ -56,6 +57,7 @@ function SpanSelfTime({node}: {node: TraceTreeNode<TraceTree.Span>}) {
       baseDescription={t(
         'Average self time for this span group across the project associated with its parent transaction, over the last 24 hours'
       )}
+      node={node}
     />
   ) : null;
 }
@@ -132,7 +134,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
     });
   }
 
-  const ancestryAndGroupingItems = getSpanAncestryAndGroupingItems({
+  const ancestryAndGroupingItems = useSpanAncestryAndGroupingItems({
     node: props.node,
     onParentClick: props.onParentClick,
     location: props.location,

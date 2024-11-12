@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from random import randint
 from typing import Any
 
 from django.conf import settings
@@ -536,7 +535,6 @@ class AuthLoginView(BaseView):
                 organization=organization, request=request
             ),  # NOTE: not utilized in basic login page (only org login)
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
-            "banner_choice": randint(0, 1),  # 2 possible banners
             "referrer": request.GET.get("referrer"),
         }
         default_context.update(additional_context.run_callbacks(request=request))
@@ -715,7 +713,6 @@ class AuthLoginView(BaseView):
                 organization=organization, request=request
             ),
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
-            "banner_choice": randint(0, 1),  # 2 possible banners
             "referrer": request.GET.get("referrer"),
         }
 

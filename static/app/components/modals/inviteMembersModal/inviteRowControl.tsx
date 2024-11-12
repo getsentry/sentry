@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {OrgRole} from 'sentry/types/organization';
 
-import renderEmailValue from './renderEmailValue';
+import EmailValue from './emailValue';
 import type {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;
@@ -33,13 +33,6 @@ type Props = {
   teams: string[];
   className?: string;
 };
-
-function ValueComponent(
-  props: MultiValueProps<SelectOption>,
-  inviteStatus: Props['inviteStatus']
-) {
-  return renderEmailValue(inviteStatus[props.data.value], props);
-}
 
 function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
@@ -100,7 +93,9 @@ function InviteRowControl({
         inputValue={inputValue}
         value={emails}
         components={{
-          MultiValue: props => ValueComponent(props, inviteStatus),
+          MultiValue: (props: MultiValueProps<SelectOption>) => (
+            <EmailValue status={inviteStatus[props.data.value]} valueProps={props} />
+          ),
           DropdownIndicator: () => null,
         }}
         options={mapToOptions(emails)}

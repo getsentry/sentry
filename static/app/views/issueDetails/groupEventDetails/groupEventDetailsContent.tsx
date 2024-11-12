@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -31,7 +32,7 @@ import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreen
 import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
-import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
+import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
@@ -64,7 +65,7 @@ import {space} from 'sentry/styles/space';
 import type {Entry, EntryException, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory, IssueType} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {
@@ -143,7 +144,7 @@ export function EventDetailsContent({
 
   return (
     <Fragment>
-      {hasStreamlinedUI && <HighlightsIconSummary event={event} />}
+      {hasStreamlinedUI && <HighlightsIconSummary event={event} group={group} />}
       {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
@@ -232,7 +233,7 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      {!hasStreamlinedUI && (
+      {!hasStreamlinedUI && issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       )}
       {showPossibleSolutionsHigher && (
@@ -248,35 +249,59 @@ export function EventDetailsContent({
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
         </EntryErrorBoundary>
       )}
-      {defined(eventEntries[EntryType.EXCEPTION]) && (
-        <EntryErrorBoundary type={EntryType.EXCEPTION}>
-          <Exception
+      {/* Wrapping all stacktrace components since multiple could appear */}
+      <GuideAnchor
+        target="stacktrace"
+        position="top"
+        disabled={
+          !(
+            defined(eventEntries[EntryType.EXCEPTION]) ||
+            defined(eventEntries[EntryType.STACKTRACE]) ||
+            defined(eventEntries[EntryType.THREADS])
+          )
+        }
+      >
+        {defined(eventEntries[EntryType.EXCEPTION]) && (
+          <EntryErrorBoundary type={EntryType.EXCEPTION}>
+            <Exception
+              event={event}
+              data={eventEntries[EntryType.EXCEPTION].data}
+              projectSlug={project.slug}
+              group={group}
+              groupingCurrentLevel={groupingCurrentLevel}
+            />
+          </EntryErrorBoundary>
+        )}
+        {issueTypeConfig.stacktrace.enabled &&
+          defined(eventEntries[EntryType.STACKTRACE]) && (
+            <EntryErrorBoundary type={EntryType.STACKTRACE}>
+              <StackTrace
+                event={event}
+                data={eventEntries[EntryType.STACKTRACE].data}
+                projectSlug={projectSlug}
+                groupingCurrentLevel={groupingCurrentLevel}
+              />
+            </EntryErrorBoundary>
+          )}
+        {defined(eventEntries[EntryType.THREADS]) && (
+          <EntryErrorBoundary type={EntryType.THREADS}>
+            <Threads
+              event={event}
+              data={eventEntries[EntryType.THREADS].data}
+              projectSlug={project.slug}
+              groupingCurrentLevel={groupingCurrentLevel}
+              group={group}
+            />
+          </EntryErrorBoundary>
+        )}
+      </GuideAnchor>
+      {defined(eventEntries[EntryType.DEBUGMETA]) && (
+        <EntryErrorBoundary type={EntryType.DEBUGMETA}>
+          <DebugMeta
             event={event}
-            data={eventEntries[EntryType.EXCEPTION].data}
-            projectSlug={project.slug}
-            group={group}
-            groupingCurrentLevel={groupingCurrentLevel}
-          />
-        </EntryErrorBoundary>
-      )}
-      {defined(eventEntries[EntryType.STACKTRACE]) && (
-        <EntryErrorBoundary type={EntryType.STACKTRACE}>
-          <StackTrace
-            event={event}
-            data={eventEntries[EntryType.STACKTRACE].data}
             projectSlug={projectSlug}
-            groupingCurrentLevel={groupingCurrentLevel}
-          />
-        </EntryErrorBoundary>
-      )}
-      {defined(eventEntries[EntryType.THREADS]) && (
-        <EntryErrorBoundary type={EntryType.THREADS}>
-          <Threads
-            event={event}
-            data={eventEntries[EntryType.THREADS].data}
-            projectSlug={project.slug}
-            groupingCurrentLevel={groupingCurrentLevel}
-            group={group}
+            groupId={group?.id}
+            data={eventEntries[EntryType.DEBUGMETA].data}
           />
         </EntryErrorBoundary>
       )}
@@ -300,12 +325,63 @@ export function EventDetailsContent({
           }}
         </QuickTraceQuery>
       )}
-      {group.issueCategory === IssueCategory.PERFORMANCE && (
+      {issueTypeConfig.spanEvidence.enabled && (
         <SpanEvidenceSection
           event={event as EventTransaction}
           organization={organization}
           projectSlug={project.slug}
         />
+      )}
+      {issueTypeConfig.regression.enabled && (
+        <ErrorBoundary mini>
+          <EventRegressionSummary event={event} group={group} />
+        </ErrorBoundary>
+      )}
+      {issueTypeConfig.performanceDurationRegression.enabled && (
+        <Fragment>
+          <ErrorBoundary mini>
+            <EventBreakpointChart event={event} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <AggregateSpanDiff event={event} project={project} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <EventComparison event={event} project={project} />
+          </ErrorBoundary>
+        </Fragment>
+      )}
+      {issueTypeConfig.profilingDurationRegression.enabled && (
+        <Fragment>
+          <TransactionsDeltaProvider event={event} project={project}>
+            <ErrorBoundary mini>
+              <EventFunctionBreakpointChart event={event} />
+            </ErrorBoundary>
+            <ErrorBoundary mini>
+              <EventAffectedTransactions event={event} group={group} project={project} />
+            </ErrorBoundary>
+            <ErrorBoundary mini>
+              <InterimSection
+                type={SectionKey.REGRESSION_FLAMEGRAPH}
+                title={t('Regression Flamegraph')}
+              >
+                <b>{t('Largest Changes in Call Stack Frequency')}</b>
+                <p>
+                  {t(`See which functions changed the most before and after the regression. The
+              frame with the largest increase in call stack population likely
+              contributed to the cause for the duration regression.`)}
+                </p>
+                <EventDifferentialFlamegraph event={event} />
+              </InterimSection>
+            </ErrorBoundary>
+            <ErrorBoundary mini>
+              <EventFunctionComparisonList
+                event={event}
+                group={group}
+                project={project}
+              />
+            </ErrorBoundary>
+          </TransactionsDeltaProvider>
+        </Fragment>
       )}
       <EventHydrationDiff event={event} group={group} />
       {issueTypeConfig.replays.enabled && (
@@ -357,31 +433,33 @@ export function EventDetailsContent({
           group={group}
         />
       )}
-      {defined(eventEntries[EntryType.DEBUGMETA]) && (
-        <EntryErrorBoundary type={EntryType.DEBUGMETA}>
-          <DebugMeta
-            event={event}
-            projectSlug={projectSlug}
-            groupId={group?.id}
-            data={eventEntries[EntryType.DEBUGMETA].data}
-          />
-        </EntryErrorBoundary>
-      )}
       {defined(eventEntries[EntryType.REQUEST]) && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />
         </EntryErrorBoundary>
       )}
-      {hasStreamlinedUI ? (
+      {issueTypeConfig.tags.enabled ? (
         <Fragment>
-          <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
-          <EventTagsDataSection event={event} projectSlug={project.slug} ref={tagsRef} />
+          {hasStreamlinedUI ? (
+            <Fragment>
+              <HighlightsDataSection
+                event={event}
+                project={project}
+                viewAllRef={tagsRef}
+              />
+              <EventTagsDataSection
+                event={event}
+                projectSlug={project.slug}
+                ref={tagsRef}
+              />
+            </Fragment>
+          ) : (
+            <div ref={tagsRef}>
+              <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
+            </div>
+          )}
         </Fragment>
-      ) : (
-        <div ref={tagsRef}>
-          <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
-        </div>
-      )}
+      ) : null}
       <EventContexts group={group} event={event} />
       {hasFeatureFlagSection && (
         <EventFeatureFlagList group={group} project={project} event={event} />
@@ -396,7 +474,7 @@ export function EventDetailsContent({
         <EventProcessingErrors event={event} project={project} isShare={false} />
       )}
       {event.groupID && (
-        <EventGroupingInfo
+        <EventGroupingInfoSection
           projectSlug={project.slug}
           event={event}
           showGroupingConfig={
@@ -429,96 +507,6 @@ function ResourcesAndPossibleSolutionsIssueDetailsContent({
   );
 }
 
-const GroupContent = styled('div')`
-  border: 1px solid ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  position: relative;
-`;
-
-const GroupContentPadding = styled('div')`
-  padding: ${space(1)} ${space(1.5)};
-`;
-
-// TODO: Merge regression issues with the other event details
-function RegressionEventContainer({children}: {children: React.ReactNode}) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
-  if (!hasStreamlinedUI) {
-    return children;
-  }
-
-  return (
-    <GroupContent>
-      <GroupContentPadding>{children}</GroupContentPadding>
-    </GroupContent>
-  );
-}
-
-function PerformanceDurationRegressionIssueDetailsContent({
-  group,
-  event,
-  project,
-}: Required<EventDetailsContentProps>) {
-  return (
-    <RegressionEventContainer>
-      <ErrorBoundary mini>
-        <EventRegressionSummary event={event} group={group} />
-      </ErrorBoundary>
-      <ErrorBoundary mini>
-        <EventBreakpointChart event={event} />
-      </ErrorBoundary>
-      <ErrorBoundary mini>
-        <AggregateSpanDiff event={event} project={project} />
-      </ErrorBoundary>
-      <ErrorBoundary mini>
-        <EventComparison event={event} project={project} />
-      </ErrorBoundary>
-    </RegressionEventContainer>
-  );
-}
-
-function ProfilingDurationRegressionIssueDetailsContent({
-  group,
-  event,
-  project,
-}: Required<EventDetailsContentProps>) {
-  return (
-    <RegressionEventContainer>
-      <TransactionsDeltaProvider event={event} project={project}>
-        <Fragment>
-          <ErrorBoundary mini>
-            <EventRegressionSummary event={event} group={group} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <EventFunctionBreakpointChart event={event} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <EventAffectedTransactions event={event} group={group} project={project} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <InterimSection
-              type={SectionKey.REGRESSION_FLAMEGRAPH}
-              title={t('Regression Flamegraph')}
-            >
-              <b>{t('Largest Changes in Call Stack Frequency')}</b>
-              <p>
-                {t(`See which functions changed the most before and after the regression. The
-              frame with the largest increase in call stack population likely
-              contributed to the cause for the duration regression.`)}
-              </p>
-              <EventDifferentialFlamegraph event={event} />
-            </InterimSection>
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <EventFunctionComparisonList event={event} group={group} project={project} />
-          </ErrorBoundary>
-        </Fragment>
-      </TransactionsDeltaProvider>
-    </RegressionEventContainer>
-  );
-}
-
 export default function GroupEventDetailsContent({
   group,
   event,
@@ -534,35 +522,11 @@ export default function GroupEventDetailsContent({
     );
   }
 
-  switch (group.issueType) {
-    case IssueType.PERFORMANCE_DURATION_REGRESSION:
-    case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
-      return (
-        <PerformanceDurationRegressionIssueDetailsContent
-          group={group}
-          event={event}
-          project={project}
-        />
-      );
-    }
-    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL:
-    case IssueType.PROFILE_FUNCTION_REGRESSION: {
-      return (
-        <ProfilingDurationRegressionIssueDetailsContent
-          group={group}
-          event={event}
-          project={project}
-        />
-      );
-    }
-    default: {
-      return hasStreamlinedUI ? (
-        <EventDetails event={event} group={group} project={project} />
-      ) : (
-        <EventDetailsContent group={group} event={event} project={project} />
-      );
-    }
-  }
+  return hasStreamlinedUI ? (
+    <EventDetails event={event} group={group} project={project} />
+  ) : (
+    <EventDetailsContent group={group} event={event} project={project} />
+  );
 }
 
 /**

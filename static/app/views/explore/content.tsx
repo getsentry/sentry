@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -30,10 +30,11 @@ import {
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
-import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
+
+import {useResultMode} from './hooks/useResultsMode';
 
 interface ExploreContentProps {
   location: Location;
@@ -45,14 +46,13 @@ function ExploreContentImpl({}: ExploreContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const [dataset] = useDataset();
-  const [resultsMode] = useResultMode();
+
+  const [resultMode] = useResultMode();
+  const supportedAggregates =
+    resultMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
-
-  const supportedAggregates = useMemo(() => {
-    return resultsMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
-  }, [resultsMode]);
 
   const [userQuery, setUserQuery] = useUserQuery();
 
@@ -96,7 +96,6 @@ function ExploreContentImpl({}: ExploreContentProps) {
               </StyledPageFilterBar>
               {dataset === DiscoverDatasets.SPANS_INDEXED ? (
                 <SpanSearchQueryBuilder
-                  supportedAggregates={supportedAggregates}
                   projects={selection.projects}
                   initialQuery={userQuery}
                   onSearch={setUserQuery}
@@ -104,11 +103,11 @@ function ExploreContentImpl({}: ExploreContentProps) {
                 />
               ) : (
                 <EAPSpanSearchQueryBuilder
-                  supportedAggregates={supportedAggregates}
                   projects={selection.projects}
                   initialQuery={userQuery}
                   onSearch={setUserQuery}
                   searchSource="explore"
+                  supportedAggregates={supportedAggregates}
                   numberTags={numberTags}
                   stringTags={stringTags}
                 />
@@ -143,7 +142,7 @@ const Body = styled(Layout.Body)`
     grid-template-columns: 300px minmax(100px, auto);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
     grid-template-columns: 350px minmax(100px, auto);
   }
 `;
@@ -159,7 +158,7 @@ const TopSection = styled('div')`
     margin-bottom: 0;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
     grid-template-columns: minmax(350px, auto) 1fr;
   }
 `;

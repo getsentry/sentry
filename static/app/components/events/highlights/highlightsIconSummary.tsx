@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
@@ -11,18 +10,23 @@ import {
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconReleases, IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
+import useOrganization from 'sentry/utils/useOrganization';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
 interface HighlightsIconSummaryProps {
   event: Event;
+  group?: Group;
 }
 
-export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
+export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps) {
+  const organization = useOrganization();
   // Hide device for non-native platforms since it's mostly duplicate of the client_os or os context
   const shouldDisplayDevice =
     isMobilePlatform(event.platform) || isNativePlatform(event.platform);
@@ -59,7 +63,7 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
       <IconBar>
         <ScrollCarousel gap={3}>
           {items.map((item, index) => (
-            <Flex key={index} gap={space(1)} align="center">
+            <IconContainer key={index}>
               <IconWrapper>{item.icon}</IconWrapper>
               <IconDescription>
                 <div>{item.title}</div>
@@ -69,34 +73,38 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
                   </IconSubtitle>
                 )}
               </IconDescription>
-            </Flex>
+            </IconContainer>
           ))}
           {releaseTag && (
-            <Flex key="release" gap={space(1)} align="flex-end">
+            <IconContainer key="release">
               <IconWrapper>
                 <IconReleases size="sm" color="subText" />
               </IconWrapper>
               <IconDescription>
-                {releaseTag && (
-                  <StyledVersion
-                    truncate
-                    tooltipRawVersion
-                    version={releaseTag.value}
-                    projectId={event.projectID}
-                  />
+                {group && releaseTag && (
+                  <VersionHoverCard
+                    organization={organization}
+                    projectSlug={group.project.slug}
+                    releaseVersion={releaseTag.value}
+                  >
+                    <StyledVersion
+                      version={releaseTag.value}
+                      projectId={group.project.id}
+                    />
+                  </VersionHoverCard>
                 )}
               </IconDescription>
-            </Flex>
+            </IconContainer>
           )}
           {environmentTag && (
-            <Flex key="environment" gap={space(1)} align="flex-end">
+            <IconContainer key="environment">
               <IconWrapper>
                 <IconWindow size="sm" color="subText" />
               </IconWrapper>
               <IconDescription>
                 <Tooltip title={t('Environment')}>{environmentTag.value}</Tooltip>
               </IconDescription>
-            </Flex>
+            </IconContainer>
           )}
         </ScrollCarousel>
       </IconBar>
@@ -108,6 +116,13 @@ export function HighlightsIconSummary({event}: HighlightsIconSummaryProps) {
 const IconBar = styled('div')`
   position: relative;
   padding: ${space(0.5)} ${space(0.5)};
+`;
+
+const IconContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  flex-shrink: 0;
 `;
 
 const IconDescription = styled('div')`

@@ -18,6 +18,7 @@ import {
   canUseMetricsData,
   METRIC_SEARCH_SETTING_PARAM,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -172,36 +173,38 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
   return (
     <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
       <PerformanceEventViewProvider value={{eventView}}>
-        <PageFiltersContainer
-          defaultSelection={{
-            datetime: {
-              start: null,
-              end: null,
-              utc: false,
-              period: getDefaultStatsPeriod(organization),
-            },
-          }}
-        >
-          <PerformanceLanding
-            router={router}
-            eventView={eventView}
-            setError={setError}
-            handleSearch={handleSearch}
-            handleTrendsClick={() =>
-              handleTrendsClick({
-                location,
-                organization,
-                projectPlatforms: getSelectedProjectPlatforms(location, projects),
-              })
-            }
-            onboardingProject={onboardingProject}
-            organization={organization}
-            location={location}
-            projects={projects}
-            selection={selection}
-            withStaticFilters={withStaticFilters}
-          />
-        </PageFiltersContainer>
+        <PageAlertProvider>
+          <PageFiltersContainer
+            defaultSelection={{
+              datetime: {
+                start: null,
+                end: null,
+                utc: false,
+                period: getDefaultStatsPeriod(organization),
+              },
+            }}
+          >
+            <PerformanceLanding
+              router={router}
+              eventView={eventView}
+              setError={setError}
+              handleSearch={handleSearch}
+              handleTrendsClick={() =>
+                handleTrendsClick({
+                  location,
+                  organization,
+                  projectPlatforms: getSelectedProjectPlatforms(location, projects),
+                })
+              }
+              onboardingProject={onboardingProject}
+              organization={organization}
+              location={location}
+              projects={projects}
+              selection={selection}
+              withStaticFilters={withStaticFilters}
+            />
+          </PageFiltersContainer>
+        </PageAlertProvider>
       </PerformanceEventViewProvider>
     </SentryDocumentTitle>
   );

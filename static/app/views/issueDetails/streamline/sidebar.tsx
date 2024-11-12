@@ -1,23 +1,24 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
-import {GroupSummary} from 'sentry/components/group/groupSummary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/firstLastSeenSection';
 import PeopleSection from 'sentry/views/issueDetails/streamline/peopleSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
+import SolutionsSection from 'sentry/views/issueDetails/streamline/solutionsSection';
 
 type Props = {
   group: Group;
@@ -27,6 +28,7 @@ type Props = {
 
 export default function StreamlinedSidebar({group, event, project}: Props) {
   const activeUser = useUser();
+  const organization = useOrganization();
 
   const {userParticipants, teamParticipants, viewers} = useMemo(() => {
     return {
@@ -41,15 +43,21 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   }, [group, activeUser.id]);
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   return (
     <Side>
-      <ErrorBoundary mini message={t('There was an error loading the issue summary')}>
-        <Feature features={['organizations:ai-summary']}>
-          <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-        </Feature>
-      </ErrorBoundary>
-      <FirstLastSeenSection group={group} />
+      {((organization.features.includes('ai-summary') &&
+        issueTypeConfig.issueSummary.enabled) ||
+        issueTypeConfig.resources) && (
+        <Fragment>
+          <SolutionsSection group={group} project={project} event={event} />
+          <StyledBreak />
+        </Fragment>
+      )}
+      <GuideAnchor target="issue_sidebar_releases" position="left">
+        <FirstLastSeenSection group={group} />
+      </GuideAnchor>
       <StyledBreak />
       {event && (
         <ErrorBoundary mini>
@@ -68,10 +76,18 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           />
         </Fragment>
       )}
-      <StyledBreak />
-      <SimilarIssuesSidebarSection />
-      <StyledBreak />
-      <MergedIssuesSidebarSection />
+      {issueTypeConfig.similarIssues.enabled && (
+        <Fragment>
+          <StyledBreak />
+          <SimilarIssuesSidebarSection />
+        </Fragment>
+      )}
+      {issueTypeConfig.mergedIssues.enabled && (
+        <Fragment>
+          <StyledBreak />
+          <MergedIssuesSidebarSection />
+        </Fragment>
+      )}
     </Side>
   );
 }

@@ -1,0 +1,38 @@
+---
+created: '2024-10-28T13:59:52.628733+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "7e64037e487c78ce0439f750a2ef503f"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "-[NSApplication run]"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "-[NSView displayIfNeeded]"
+            frame*
+              function*
+                "stripped_application_code"
+            frame*
+              function*
+                "CGLFlushDrawable"
+            frame*
+              function*
+                "gpusSubmitDataBuffers"
+            frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+              function*
+                "abort"

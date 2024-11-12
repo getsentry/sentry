@@ -63,11 +63,11 @@ describe('Dashboards > Detail', function () {
       organization: mockAuthorizedOrg,
     });
 
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-
     expect(await screen.findByText('Dashboards')).toBeInTheDocument();
 
     expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
+
+    expect(screen.queryAllByTestId('loading-placeholder')).toHaveLength(0);
   });
 
   it('shows error message when receiving error', async function () {

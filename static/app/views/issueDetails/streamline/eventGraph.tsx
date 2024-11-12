@@ -3,27 +3,28 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
-import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
+import {Button, type ButtonProps} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
+import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
-import {IconTelescope} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
-import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
@@ -70,6 +71,9 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     EventGraphSeries.EVENT
   );
   const eventView = useIssueDetailsEventView({group});
+  const hasFeatureFlagFeature = organization.features.includes('feature-flag-ui');
+
+  const config = getConfigForIssueType(group, group.project);
 
   const {
     data: groupStats = {},
@@ -91,7 +95,9 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       {
         query: {
           ...eventView.getEventsAPIPayload(location),
-          dataset: DiscoverDatasets.ERRORS,
+          dataset: config.usesIssuePlatform
+            ? DiscoverDatasets.ISSUE_PLATFORM
+            : DiscoverDatasets.ERRORS,
           field: 'count_unique(user)',
           per_page: 50,
           project: group.project.id,
@@ -120,11 +126,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     return createSeriesAndCount(groupStats['count_unique(user)']).series;
   }, [groupStats]);
 
-  const discoverUrl = eventView.getResultsViewUrlTarget(
-    organization.slug,
-    false,
-    hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
-  );
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
   });
@@ -173,18 +174,28 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       seriesData.push(releaseSeries as BarChartSeries);
     }
 
-    if (flagSeries.markLine) {
+    if (flagSeries.markLine && hasFeatureFlagFeature) {
       seriesData.push(flagSeries as BarChartSeries);
     }
 
     return seriesData;
-  }, [visibleSeries, userSeries, eventSeries, releaseSeries, flagSeries, theme]);
+  }, [
+    visibleSeries,
+    userSeries,
+    eventSeries,
+    releaseSeries,
+    flagSeries,
+    theme,
+    hasFeatureFlagFeature,
+  ]);
+
+  const bucketSize = eventSeries ? getBucketSize(series) : undefined;
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
     'issue-details-graph-legend',
     {
-      ['Releases']: true,
       ['Feature Flags']: true,
+      ['Releases']: false,
     }
   );
 
@@ -194,8 +205,8 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     align: 'left',
     show: true,
     top: 4,
-    right: 95,
-    data: ['Releases', 'Feature Flags'],
+    right: 8,
+    data: hasFeatureFlagFeature ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
   });
@@ -279,8 +290,30 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
             top: 20,
             bottom: 0,
           }}
+          tooltip={{
+            formatAxisLabel: (
+              value,
+              isTimestamp,
+              utc,
+              showTimeInTooltip,
+              addSecondsToTimeFormat,
+              _bucketSize,
+              _seriesParamsOrParam
+            ) =>
+              String(
+                defaultFormatAxisLabel(
+                  value,
+                  isTimestamp,
+                  utc,
+                  showTimeInTooltip,
+                  addSecondsToTimeFormat,
+                  bucketSize
+                )
+              ),
+          }}
           yAxis={{
             splitNumber: 2,
+            minInterval: 1,
             axisLabel: {
               formatter: (value: number) => {
                 return formatAbbreviatedNumber(value);
@@ -289,14 +322,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           }}
           {...chartZoomProps}
         />
-        <OpenInDiscoverButton
-          size="xs"
-          icon={<IconTelescope />}
-          to={discoverUrl}
-          aria-label={t('Open in Discover')}
-        >
-          {t('Discover')}
-        </OpenInDiscoverButton>
       </ChartContainer>
     </GraphWrapper>
   );
@@ -374,12 +399,6 @@ const ChartContainer = styled('div')`
 const LoadingChartContainer = styled('div')`
   position: relative;
   padding: ${space(1)} ${space(1)};
-`;
-
-const OpenInDiscoverButton = styled(LinkButton)`
-  position: absolute;
-  top: ${space(1)};
-  right: ${space(1)};
 `;
 
 const GraphAlert = styled(Alert)`

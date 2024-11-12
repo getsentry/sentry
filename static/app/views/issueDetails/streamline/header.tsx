@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/container/flex';
 import Count from 'sentry/components/count';
@@ -104,9 +105,17 @@ export default function StreamlinedGroupHeader({
               {secondaryTitle ?? t('No error message')}
             </SecondaryTitle>
           </Flex>
-          <StatTitle to={`${baseUrl}events/${location.search}`}>{t('Events')}</StatTitle>
-          <StatTitle to={`${baseUrl}tags/user/${location.search}`}>
-            {t('Users')}
+          <StatTitle>
+            <StatLink to={`${baseUrl}events/${location.search}`}>{t('Events')}</StatLink>
+          </StatTitle>
+          <StatTitle>
+            {userCount === 0 ? (
+              t('Users')
+            ) : (
+              <StatLink to={`${baseUrl}tags/user/${location.search}`}>
+                {t('Users')}
+              </StatLink>
+            )}
           </StatTitle>
           <Flex gap={space(1)} align="center" justify="flex-start">
             <ErrorLevel level={group.level} size={'10px'} />
@@ -133,7 +142,9 @@ export default function StreamlinedGroupHeader({
             <ReplayBadge group={group} project={project} />
           </Flex>
           <StatCount value={eventCount} />
-          <StatCount value={userCount} />
+          <GuideAnchor target="issue_header_stats">
+            <StatCount value={userCount} />
+          </GuideAnchor>
         </HeaderGrid>
       </Header>
       <ActionBar isComplete={isComplete}>
@@ -149,10 +160,16 @@ export default function StreamlinedGroupHeader({
             {t('Priority')}
             <GroupPriority group={group} />
           </Workflow>
-          <Workflow>
-            {t('Assignee')}
-            <GroupHeaderAssigneeSelector group={group} project={project} event={event} />
-          </Workflow>
+          <GuideAnchor target="issue_sidebar_owners" position="left">
+            <Workflow>
+              {t('Assignee')}
+              <GroupHeaderAssigneeSelector
+                group={group}
+                project={project}
+                event={event}
+              />
+            </Workflow>
+          </GuideAnchor>
         </WorkflowActions>
       </ActionBar>
     </Fragment>
@@ -187,14 +204,19 @@ const SecondaryTitle = styled(Tooltip)<{isDefault: boolean}>`
   font-style: ${p => (p.isDefault ? 'italic' : 'initial')};
 `;
 
-const StatTitle = styled(Link)`
+const StatTitle = styled('div')`
   display: block;
-  text-decoration: underline;
-  text-decoration-style: dotted;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
   justify-self: flex-end;
+`;
+
+const StatLink = styled(Link)`
+  color: ${p => p.theme.subText};
+  text-decoration: ${p => (p['aria-disabled'] ? 'none' : 'underline')};
+  text-decoration-style: dotted;
 `;
 
 const StatCount = styled(Count)`

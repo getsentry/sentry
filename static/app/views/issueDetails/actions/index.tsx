@@ -393,21 +393,19 @@ export function Actions(props: Props) {
           </ResolvedActionWapper>
         ) : (
           <Fragment>
-            <GuideAnchor target="resolve" position="bottom" offset={20}>
-              <ResolveActions
-                disableResolveInRelease={!resolveInReleaseCap.enabled}
-                disabled={disabled}
-                disableDropdown={disabled}
-                hasRelease={hasRelease}
-                latestRelease={project.latestRelease}
-                onUpdate={onUpdate}
-                projectSlug={project.slug}
-                isResolved={isResolved}
-                isAutoResolved={isAutoResolved}
-                size="sm"
-                priority="primary"
-              />
-            </GuideAnchor>
+            <ResolveActions
+              disableResolveInRelease={!resolveInReleaseCap.enabled}
+              disabled={disabled}
+              disableDropdown={disabled}
+              hasRelease={hasRelease}
+              latestRelease={project.latestRelease}
+              onUpdate={onUpdate}
+              projectSlug={project.slug}
+              isResolved={isResolved}
+              isAutoResolved={isAutoResolved}
+              size="sm"
+              priority="primary"
+            />
             <ArchiveActions
               className={hasStreamlinedUI ? undefined : 'hidden-xs'}
               size="sm"
@@ -435,7 +433,8 @@ export function Actions(props: Props) {
           size: 'sm',
         }}
         items={[
-          ...(isIgnored
+          // XXX: Never show for streamlined UI
+          ...(isIgnored || hasStreamlinedUI
             ? []
             : [
                 {
@@ -542,9 +541,7 @@ export function Actions(props: Props) {
                 onClick={() => trackIssueAction('open_in_discover')}
                 size="sm"
               >
-                <GuideAnchor target="open_in_discover">
-                  {t('Open in Discover')}
-                </GuideAnchor>
+                {t('Open in Discover')}
               </LinkButton>
             </Feature>
           )}

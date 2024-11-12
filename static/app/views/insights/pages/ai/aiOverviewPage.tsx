@@ -1,21 +1,20 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
-  MEPSettingProvider,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -31,8 +30,11 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
-import {AI_LANDING_TITLE} from 'sentry/views/insights/pages/ai/settings';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {
+  AI_LANDING_TITLE,
+  AI_RELEASE_LEVEL,
+} from 'sentry/views/insights/pages/ai/settings';
+import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {generateGenericPerformanceEventView} from 'sentry/views/performance/data';
 import {TripleChartRow} from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
@@ -138,7 +140,15 @@ function AiOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <AiHeader headerTitle={AI_LANDING_TITLE} headerActions={<ViewTrendsButton />} />
+      <AiHeader
+        headerTitle={
+          <Fragment>
+            {AI_LANDING_TITLE}
+            <FeatureBadge type={AI_RELEASE_LEVEL} />
+          </Fragment>
+        }
+        headerActions={<ViewTrendsButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -199,20 +209,12 @@ function AiOverviewPage() {
 }
 
 function AiOverviewPageWithProviders() {
-  const organization = useOrganization();
-  const location = useLocation();
-
   return (
-    <PageFiltersContainer>
-      <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
-        <MEPSettingProvider location={location}>
-          <AiOverviewPage />
-        </MEPSettingProvider>
-      </SentryDocumentTitle>
-    </PageFiltersContainer>
+    <DomainOverviewPageProviders>
+      <AiOverviewPage />
+    </DomainOverviewPageProviders>
   );
 }
-
 const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
   flex: 2;
 `;
