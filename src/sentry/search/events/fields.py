@@ -1940,7 +1940,7 @@ FUNCTIONS = {
                 DateArg("middle"),
             ],
             aggregate=[
-                "quantileDeterministicIf({percentile:.2f}, {QUANTILE_DETERMINISTIC_SEED})",
+                "quantileIf({percentile:.2f})",
                 [
                     ArgValue("column"),
                     # NOTE: This condition is written in this seemingly backwards way

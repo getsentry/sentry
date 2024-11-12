@@ -410,7 +410,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         SnQLDateArg("middle"),
                     ],
                     snql_aggregate=lambda args, alias: Function(
-                        f"quantileDeterministicIf({args['percentile']:.2f}, {QUANTILE_DETERMINISTIC_SEED})",
+                        f"quantileIf({args['percentile']:.2f})",
                         [
                             args["column"],
                             # This condition is written in this seemingly backwards way because of limitations
