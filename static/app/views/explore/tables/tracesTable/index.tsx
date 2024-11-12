@@ -84,7 +84,7 @@ export function TracesTable() {
             {t('Timeline')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Duration')}
+            {t('Root Duration')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
             {t('Timestamp')}
@@ -264,7 +264,11 @@ function TraceRow({
         />
       </BreakdownPanelItem>
       <StyledPanelItem align="right">
-        <PerformanceDuration milliseconds={trace.duration} abbreviation />
+        {defined(trace.rootDuration) ? (
+          <PerformanceDuration milliseconds={trace.rootDuration} abbreviation />
+        ) : (
+          <EmptyValueContainer />
+        )}
       </StyledPanelItem>
       <StyledPanelItem align="right">
         <SpanTimeRenderer timestamp={trace.end} tooltipShowSeconds />
