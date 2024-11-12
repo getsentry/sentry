@@ -6,6 +6,7 @@ from django.apps.registry import Apps
 from django.db import migrations, models
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
@@ -41,6 +42,13 @@ class DataConditionGroupType(models.TextChoices):
     NONE = "none"
 
 
+class AlertRuleStatus(Enum):
+    PENDING = 0
+    SNAPSHOT = 4
+    DISABLED = 5
+    NOT_ENOUGH_DATA = 6
+
+
 def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     AlertRule = apps.get_model("sentry", "AlertRule")
     AlertRuleProjects = apps.get_model("sentry", "AlertRuleProjects")
@@ -63,7 +71,8 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
     WorkflowDataConditionGroup = apps.get_model("sentry", "WorkflowDataConditionGroup")
 
     for rule in RangeQuerySetWrapperWithProgressBarApprox(AlertRule.objects.all()):
-        # should I skip migrating snapshotted and disabled rules?
+        if rule.status in [AlertRuleStatus.DISABLED, AlertRuleStatus.SNAPSHOT]:
+            continue
         # what about the date_added and date_updated fields? can I write to those to preserve history?
         # description column will be added to the Detector model, but at the time of writing it isn't there yet. will need to update this
         # same for threshold_period, will likely be added to the Detector model but isn't there yet
@@ -89,7 +98,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
             name=rule.name,
             data_sources=data_source,
             workflow_condition_group=data_condition_group.id,
-            type="MetricDetector",  # shouldn't this be in an enum?
+            type=MetricAlertFire.slug,
             owner_user_id=rule.user_id,
             owner_team=rule.team,
         )
@@ -112,7 +121,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
 
         DetectorState.update_or_create(
             detector=detector.id,
-            active=False,  # is this based on if there's a RuleSnooze for all?
+            active=False,  # this column is getting dropped because we can infer whether or not it's active based on the state
             state=state,
         )
         triggers = AlertRuleTrigger.objects.filter(alert_rule_id=rule.id)
