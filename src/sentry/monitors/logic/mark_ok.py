@@ -20,14 +20,22 @@ class _Params(TypedDict):
     status: NotRequired[int]
 
 
-def mark_ok(checkin: MonitorCheckIn, ts: datetime) -> None:
+def mark_ok(checkin: MonitorCheckIn, succeeded_at: datetime) -> None:
+    """
+    Given a successful check-in, attempt to resolve the active incident and
+    mark the monitor as OK.
+
+    The provided `succeeded_at` is the reference time for when the next check-in
+    time is calculated from. This typically would be when the successful
+    check-in was received.
+    """
     monitor_env = checkin.monitor_environment
 
     if monitor_env is None:
         return None
 
-    next_checkin = monitor_env.monitor.get_next_expected_checkin(ts)
-    next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(ts)
+    next_checkin = monitor_env.monitor.get_next_expected_checkin(succeeded_at)
+    next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(succeeded_at)
 
     params: _Params = {
         "last_checkin": checkin.date_added,
@@ -91,9 +99,9 @@ def mark_ok(checkin: MonitorCheckIn, ts: datetime) -> None:
                             monitor_env_id=monitor_env.id,
                         )
 
-    MonitorEnvironment.objects.filter(id=monitor_env.id).exclude(last_checkin__gt=ts).update(
-        **params
-    )
+    MonitorEnvironment.objects.filter(id=monitor_env.id).exclude(
+        last_checkin__gt=succeeded_at
+    ).update(**params)
 
 
 def resolve_incident_group(
