@@ -151,11 +151,11 @@ class SiloCacheBackedListCallable(Generic[_R]):
         return f"{self.base_key}:{object_id}"
 
     def resolve_from(
-        self, i: int, values: Mapping[str, int | str]
+        self, object_id: int, values: Mapping[str, int | str]
     ) -> Generator[None, None, list[_R]]:
         from .impl import _consume_generator, _delete_cache, _set_cache
 
-        key = self.key_from(i)
+        key = self.key_from(object_id)
         value = values[key]
         version: int
         if isinstance(value, str):
@@ -168,11 +168,11 @@ class SiloCacheBackedListCallable(Generic[_R]):
             version = value
 
         metrics.incr("hybridcloud.caching.list.rpc", tags={"base_key": self.base_key})
-        r = self.cb(i)
-        if r is not None:
-            cache_value = json.dumps([item.json() for item in r])
+        result = self.cb(object_id)
+        if result is not None:
+            cache_value = json.dumps([item.json() for item in result])
             _consume_generator(_set_cache(key, cache_value, version, self.timeout))
-        return r
+        return result
 
     def get_results(self, object_id: int) -> list[_R]:
         from .impl import _consume_generator, _get_cache
