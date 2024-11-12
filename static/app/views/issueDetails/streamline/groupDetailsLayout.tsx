@@ -6,6 +6,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -14,6 +15,7 @@ import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNa
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
+import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/toggleSidebar';
 import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 interface GroupDetailsLayoutProps {
@@ -35,6 +37,8 @@ export function GroupDetailsLayout({
   const [sidebarOpen] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
   const shouldDisplaySidebar = sidebarOpen || isScreenSmall;
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
+
   return (
     <Fragment>
       <StreamlinedGroupHeader
@@ -45,12 +49,18 @@ export function GroupDetailsLayout({
       />
       <StyledLayoutBody data-test-id="group-event-details" sidebarOpen={sidebarOpen}>
         <div>
-          <EventDetailsHeader event={event} group={group} />
+          <EventDetailsHeader event={event} group={group} project={project} />
           <GroupContent>
-            <div>
+            <NavigationSidebarWrapper
+              hasToggleSidebar={!issueTypeConfig.filterAndSearchHeader.enabled}
+            >
               <IssueEventNavigation event={event} group={group} query={searchQuery} />
-              {children}
-            </div>
+              {/* Since the event details header is disabled, display the sidebar toggle here */}
+              {!issueTypeConfig.filterAndSearchHeader.enabled && (
+                <ToggleSidebar size="sm" />
+              )}
+            </NavigationSidebarWrapper>
+            <ContentPadding>{children}</ContentPadding>
           </GroupContent>
         </div>
         {shouldDisplaySidebar ? (
@@ -72,10 +82,8 @@ const StyledLayoutBody = styled(Layout.Body)<{
   }
 `;
 
-const GroupContent = styled(Layout.Main)`
+const GroupContent = styled('section')`
   background: ${p => p.theme.backgroundSecondary};
-  min-height: 100vh;
-  padding: 10px ${space(1.5)} ${space(1.5)};
   display: flex;
   flex-direction: column;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
@@ -84,4 +92,20 @@ const GroupContent = styled(Layout.Main)`
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     border-bottom-width: 1px solid ${p => p.theme.translucentBorder};
   }
+`;
+
+const NavigationSidebarWrapper = styled('div')<{
+  hasToggleSidebar: boolean;
+}>`
+  position: relative;
+  display: flex;
+  padding: ${p =>
+    p.hasToggleSidebar
+      ? `${space(1)} 0 ${space(0.5)} ${space(1.5)}`
+      : `10px ${space(1.5)} ${space(0.25)} ${space(1.5)}`};
+`;
+
+const ContentPadding = styled('div')`
+  min-height: 100vh;
+  padding: 0 ${space(1.5)} ${space(1.5)} ${space(1.5)};
 `;

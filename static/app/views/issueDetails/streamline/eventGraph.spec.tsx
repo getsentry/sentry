@@ -23,7 +23,7 @@ describe('EventGraph', () => {
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
   const persistantQuery = `issue:${group.shortId}`;
-  const defaultProps = {group, event};
+  const defaultProps = {group, event, project};
 
   let mockEventStats: jest.Mock;
 

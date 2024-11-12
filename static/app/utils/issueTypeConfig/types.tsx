@@ -51,6 +51,7 @@ export type IssueTypeConfig = {
     title: string;
     helpText?: string;
   } | null;
+  filterAndSearchHeader: DisabledWithReasonConfig;
   /**
    * Is the Issue Summary available for this issue
    */
