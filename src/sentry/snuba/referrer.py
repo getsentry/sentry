@@ -405,6 +405,7 @@ class Referrer(Enum):
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
     API_PROFILING_PERFORMANCE_CHANGE_EXPLORER = "api.profiling.performance-change-explorer"
+    API_PROFILING_PROFILE_HAS_CHUNKS = "api.profiling.profile-has-chunks"
     API_PROFILING_PROFILE_SUMMARY_CHART = "api.profiling.profile-summary-chart"
     API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
@@ -436,6 +437,9 @@ class Referrer(Enum):
     )
     API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE = (
         "api.profiling.functions.statistical-detector.example"
+    )
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS = (
+        "api.profiling.functions.statistical-detector.chunks"
     )
     API_PROFILING_FUNCTIONS_REGRESSION_EXAMPLES = "api.profiling.functions.regression.examples"
     API_PROFILING_FUNCTIONS_REGRESSION_LIST = "api.profiling.functions.regression.list"

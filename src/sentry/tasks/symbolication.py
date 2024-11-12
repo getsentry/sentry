@@ -230,7 +230,6 @@ def _do_symbolicate_event(
 # ============ Parameterized tasks below ============
 # We have different *tasks* and associated *queues* for the following permutations:
 # - Event Type (JS vs Native)
-# - Queue Type (LPQ vs normal)
 # - Reprocessing (currently not available for JS events)
 
 

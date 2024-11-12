@@ -71,6 +71,11 @@ export function getDeviceKnownDataDetails({data, event, type}: Props): KnownData
         subject: t('Battery Status'),
         value: data.battery_status,
       };
+    case DeviceContextKey.BATTERY_TEMPERATURE:
+      return {
+        subject: t('Battery Temperature (°C)'),
+        value: data.battery_temperature,
+      };
     case DeviceContextKey.ORIENTATION:
       return {
         subject: t('Orientation'),

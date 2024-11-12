@@ -922,28 +922,13 @@ CELERY_QUEUES_REGION = [
     Queue(
         "events.reprocessing.symbolicate_event", routing_key="events.reprocessing.symbolicate_event"
     ),
-    Queue(
-        "events.reprocessing.symbolicate_event_low_priority",
-        routing_key="events.reprocessing.symbolicate_event_low_priority",
-    ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.save_event_highcpu", routing_key="events.save_event_highcpu"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
     Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
-    Queue(
-        "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
-    ),
     Queue("events.symbolicate_js_event", routing_key="events.symbolicate_js_event"),
-    Queue(
-        "events.symbolicate_js_event_low_priority",
-        routing_key="events.symbolicate_js_event_low_priority",
-    ),
     Queue("events.symbolicate_jvm_event", routing_key="events.symbolicate_jvm_event"),
-    Queue(
-        "events.symbolicate_jvm_event_low_priority",
-        routing_key="events.symbolicate_jvm_event_low_priority",
-    ),
     Queue("files.copy", routing_key="files.copy"),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
@@ -1312,15 +1297,12 @@ PROCESSING_QUEUES = [
     "events.reprocessing.preprocess_event",
     "events.reprocessing.process_event",
     "events.reprocessing.symbolicate_event",
-    "events.reprocessing.symbolicate_event_low_priority",
     "events.save_event",
     "events.save_event_highcpu",
     "events.save_event_attachments",
     "events.save_event_transaction",
     "events.symbolicate_event",
-    "events.symbolicate_event_low_priority",
     "events.symbolicate_js_event",
-    "events.symbolicate_js_event_low_priority",
     "post_process_errors",
     "post_process_issue_platform",
     "post_process_transactions",
@@ -2919,6 +2901,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-monitors": "default",
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
+    "monitors-incident-occurrences": "default",
     "uptime-configs": "default",
     "uptime-results": "default",
     "uptime-configs": "default",
@@ -2972,9 +2955,7 @@ SYMBOLICATOR_POLL_TIMEOUT = 5
 # The `url` of the different Symbolicator pools.
 # We want to route different workloads to a different set of Symbolicator pools.
 # This can be as fine-grained as using a different pool for normal "native"
-# symbolication, `js` symbolication, `jvm` symbolication,
-# and `lpq` variants`of each of them.
-# (See `SENTRY_LPQ_OPTIONS` and related settings)
+# symbolication, `js` symbolication, and `jvm` symbolication.
 # The keys here should match the `SymbolicatorPools` enum
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
@@ -2986,9 +2967,6 @@ SYMBOLICATOR_POOL_URLS: dict[str, str] = {
     # "default": "...",
     # "js": "...",
     # "jvm": "...",
-    # "lpq": "...",
-    # "lpq_js": "...",
-    # "lpq_jvm": "...",
 }
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (

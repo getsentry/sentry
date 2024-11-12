@@ -7,17 +7,15 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  formatAbbreviatedNumber,
-  formatAbbreviatedNumberWithDynamicPrecision,
-} from 'sentry/utils/formatters';
-import {useProjectSampleCounts} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
+import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const ITEMS_TO_SHOW = 5;
 const palette = CHART_PALETTE[ITEMS_TO_SHOW - 1];
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
-  period: '24h' | '30d';
+  sampleCounts: ProjectSampleCount[];
   sampleRates: Record<string, number>;
 }
 
@@ -42,10 +40,8 @@ function OthersBadge() {
   );
 }
 
-export function SamplingBreakdown({period, sampleRates, ...props}: Props) {
-  const {data} = useProjectSampleCounts({period});
-
-  const spansWithSampleRates = data
+export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) {
+  const spansWithSampleRates = sampleCounts
     ?.map(item => {
       const sampledSpans = Math.floor(item.count * (sampleRates[item.project.id] ?? 1));
       return {
@@ -65,12 +61,15 @@ export function SamplingBreakdown({period, sampleRates, ...props}: Props) {
     .reduce((acc, item) => acc + item.sampledSpans, 0);
   const total = spansWithSampleRates.reduce((acc, item) => acc + item.sampledSpans, 0);
 
-  const getSpanPercent = spanCount => (spanCount / total) * 100;
+  const getSpanPercent = spanCount => (total === 0 ? 100 : (spanCount / total) * 100);
   const otherPercent = getSpanPercent(otherSpanCount);
 
   return (
     <div {...props}>
-      <Heading>{t('Breakdown')}</Heading>
+      <Heading>
+        {t('Breakdown of stored spans')}
+        <SubText>{t('Total: %s', formatAbbreviatedNumber(total))}</SubText>
+      </Heading>
       <Breakdown>
         {topItems.map((item, index) => {
           return (
@@ -80,14 +79,8 @@ export function SamplingBreakdown({period, sampleRates, ...props}: Props) {
               title={
                 <LegendItem key={item.project.id}>
                   <ProjectBadge disableLink avatarSize={16} project={item.project} />
-                  {`${formatAbbreviatedNumberWithDynamicPrecision(getSpanPercent(item.sampledSpans))}%`}
-                  <SubText>
-                    {t(
-                      '%s of %s sampled spans',
-                      formatAbbreviatedNumber(item.sampledSpans),
-                      formatAbbreviatedNumber(total)
-                    )}
-                  </SubText>
+                  {`${formatNumberWithDynamicDecimalPoints(getSpanPercent(item.sampledSpans))}%`}
+                  <SubText>{formatAbbreviatedNumber(item.sampledSpans)}</SubText>
                 </LegendItem>
               }
               skipWrapper
@@ -107,10 +100,8 @@ export function SamplingBreakdown({period, sampleRates, ...props}: Props) {
             title={
               <LegendItem>
                 <OthersBadge />
-                {`${formatAbbreviatedNumberWithDynamicPrecision(otherPercent)}%`}
-                <SubText>
-                  {`${formatAbbreviatedNumber(otherSpanCount)} of ${formatAbbreviatedNumber(total)}`}
-                </SubText>
+                {`${formatNumberWithDynamicDecimalPoints(otherPercent)}%`}
+                <SubText>{formatAbbreviatedNumber(total)}</SubText>
               </LegendItem>
             }
             skipWrapper
@@ -129,14 +120,14 @@ export function SamplingBreakdown({period, sampleRates, ...props}: Props) {
           return (
             <LegendItem key={item.project.id}>
               <ProjectBadge avatarSize={16} project={item.project} />
-              {`${formatAbbreviatedNumberWithDynamicPrecision(getSpanPercent(item.sampledSpans))}%`}
+              {`${formatNumberWithDynamicDecimalPoints(getSpanPercent(item.sampledSpans))}%`}
             </LegendItem>
           );
         })}
         {hasOthers && (
           <LegendItem>
             <OthersBadge />
-            {`${formatAbbreviatedNumberWithDynamicPrecision(otherPercent)}%`}
+            {`${formatNumberWithDynamicDecimalPoints(otherPercent)}%`}
           </LegendItem>
         )}
       </Legend>
@@ -147,6 +138,8 @@ export function SamplingBreakdown({period, sampleRates, ...props}: Props) {
 const Heading = styled('h6')`
   margin-bottom: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
+  display: flex;
+  justify-content: space-between;
 `;
 
 const Breakdown = styled('div')`

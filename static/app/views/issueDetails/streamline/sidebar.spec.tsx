@@ -21,7 +21,9 @@ describe('StreamlinedSidebar', function () {
   const activityContent = 'test-note';
   const issueTrackingKey = 'issue-key';
 
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['ai-summary'],
+  });
   const project = ProjectFixture();
   const group = GroupFixture({
     activity: [
