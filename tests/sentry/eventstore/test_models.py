@@ -428,7 +428,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         variants = event.get_grouping_variants()
 
         assert hashes == expected_hash_values
-        assert expected_variants == expected_variants
+        assert variants == expected_variants
 
         # Since the `variants` dictionaries are equal, it suffices to only check the values in one
         assert "default" in variants
