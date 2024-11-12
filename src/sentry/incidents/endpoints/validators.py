@@ -18,7 +18,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-class MetricsDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
+class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
     query_type = serializers.IntegerField(required=True)
     dataset = serializers.CharField(required=True)
     query = serializers.CharField(required=True)
@@ -89,7 +89,7 @@ class MetricAlertComparisonConditionValidator(NumericComparisonConditionValidato
 
 
 class MetricAlertsDetectorValidator(BaseGroupTypeDetectorValidator):
-    data_source = MetricsDataSourceValidator(required=True)
+    data_source = SnubaQueryDataSourceValidator(required=True)
     data_conditions = MetricAlertComparisonConditionValidator(many=True)
 
     def validate(self, attrs):
