@@ -256,27 +256,32 @@ const ButtonWithStars = styled('div')`
 
 const StarLarge = styled('img')`
   position: absolute;
-  width: 32px;
-  height: 32px;
   z-index: 0;
 `;
 
 const StarLarge1 = styled(StarLarge)`
-  left: -10px;
-  bottom: -20px;
+  left: 45px;
+  bottom: -15px;
   transform: rotate(90deg);
+
+  width: 16px;
+  height: 16px;
 `;
 
 const StarLarge2 = styled(StarLarge)`
-  right: -15px;
-  top: -20px;
+  left: -5px;
+  top: -15px;
   transform: rotate(-30deg);
+  width: 24px;
+  height: 24px;
 `;
 
 const StarLarge3 = styled(StarLarge)`
-  right: -30px;
-  bottom: -15px;
+  right: -25px;
+  bottom: 0px;
   transform: rotate(20deg);
+  width: 28px;
+  height: 28px;
 `;
 
 const SetupContainer = styled('div')`
