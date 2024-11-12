@@ -128,7 +128,7 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
             addErrorMessage(t('Failed to delete comment'));
           },
           onSuccess: () => {
-            trackAnalytics('issue_details.activity_deleted', {organization});
+            trackAnalytics('issue_details.comment_deleted', {organization});
             addSuccessMessage(t('Comment removed'));
           },
         }
@@ -148,7 +148,7 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
         },
         onSuccess: data => {
           GroupStore.addActivity(group.id, data);
-          trackAnalytics('issue_details.activity_created', {organization});
+          trackAnalytics('issue_details.comment_created', {organization});
           addSuccessMessage(t('Comment posted'));
         },
       });
