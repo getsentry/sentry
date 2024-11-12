@@ -26,7 +26,7 @@ describe('EventDetailsHeader', () => {
   });
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
-  const defaultProps = {group, event};
+  const defaultProps = {group, event, project};
   const router = RouterFixture({
     location: LocationFixture({query: {streamline: '1'}}),
   });
@@ -79,7 +79,7 @@ describe('EventDetailsHeader', () => {
       screen.getByRole('button', {name: 'Toggle graph series - Users'})
     ).toBeInTheDocument();
     expect(screen.getByRole('figure')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Close Sidebar'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Close sidebar'})).toBeInTheDocument();
   });
 
   it('updates the query params with search tokens', async function () {
