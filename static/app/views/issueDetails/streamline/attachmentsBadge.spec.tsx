@@ -35,7 +35,9 @@ describe('AttachmentsBadge', () => {
 
     render(<AttachmentsBadge group={group} />);
 
-    expect(await screen.findByRole('button', {name: '1 Attachment'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: "View this issue's attachments"})
+    ).toBeInTheDocument();
   });
 
   it('renders 50+ when there is a next page', async () => {
@@ -50,7 +52,9 @@ describe('AttachmentsBadge', () => {
 
     render(<AttachmentsBadge group={group} />);
 
-    const button = await screen.findByRole('button', {name: '50+ Attachments'});
+    const button = await screen.findByRole('button', {
+      name: "View this issue's attachments",
+    });
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute('href', expect.stringContaining('/attachments/'));
   });

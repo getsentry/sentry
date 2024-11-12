@@ -498,7 +498,7 @@ describe('Performance > TransactionSummary', function () {
 
       //  It shows the header
       await screen.findByText('Transaction Summary');
-      expect(screen.getByRole('heading', {name: '/performance'})).toBeInTheDocument();
+      expect(screen.getByText('/performance')).toBeInTheDocument();
 
       // It shows a chart
       expect(
