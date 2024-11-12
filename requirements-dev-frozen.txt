@@ -70,7 +70,7 @@ google-resumable-media==2.7.0
 googleapis-common-protos==1.63.2
 grpc-google-iam-v1==0.13.1
 grpc-stubs==1.53.0.5
-grpcio==1.60.1
+grpcio==1.65.4
 grpcio-status==1.60.1
 h11==0.13.0
 h2==4.1.0
