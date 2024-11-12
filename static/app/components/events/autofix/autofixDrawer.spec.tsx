@@ -18,6 +18,25 @@ describe('AutofixDrawer', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: true},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+      method: 'POST',
+      body: {
+        whatsWrong: 'Test whats wrong',
+        trace: 'Test trace',
+        possibleCause: 'Test possible cause',
+        headline: 'Test headline',
+      },
+    });
   });
 
   it('renders properly', () => {
@@ -32,11 +51,9 @@ describe('AutofixDrawer', () => {
 
     expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
 
-    expect(screen.getByRole('heading', {name: 'Autofix'})).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', {name: 'Autofix'})[0]).toBeInTheDocument();
 
-    expect(screen.getByText('Ready to start')).toBeInTheDocument();
-
-    const startButton = screen.getByRole('button', {name: 'Start'});
+    const startButton = screen.getByRole('button', {name: 'Start Autofix'});
     expect(startButton).toBeInTheDocument();
   });
 
@@ -54,7 +71,7 @@ describe('AutofixDrawer', () => {
 
     render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
 
-    const startButton = screen.getByRole('button', {name: 'Start'});
+    const startButton = screen.getByRole('button', {name: 'Start Autofix'});
     await userEvent.click(startButton);
 
     expect(
@@ -88,8 +105,7 @@ describe('AutofixDrawer', () => {
     await userEvent.click(startOverButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Ready to start')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Start'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Start Autofix'})).toBeInTheDocument();
     });
   });
 });

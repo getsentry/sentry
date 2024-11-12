@@ -145,12 +145,19 @@ function AutofixGithubIntegrationStep({
   canStartAutofix,
   closeModal,
   isLastStep,
+  refetchSetup,
 }: {
   autofixSetup: AutofixSetupResponse;
   canStartAutofix: boolean;
   closeModal: () => void;
   isLastStep?: boolean;
+  refetchSetup?: () => void;
 }) {
+  const handleClose = () => {
+    refetchSetup?.();
+    closeModal();
+  };
+
   const sortedRepos = useMemo(
     () =>
       autofixSetup.githubWriteIntegration.repos.toSorted((a, b) => {
@@ -186,7 +193,7 @@ function AutofixGithubIntegrationStep({
               priority="primary"
               size="sm"
               disabled={!canStartAutofix}
-              onClick={closeModal}
+              onClick={handleClose}
             >
               {t("Let's Go!")}
             </Button>
@@ -227,7 +234,7 @@ function AutofixGithubIntegrationStep({
               priority="primary"
               size="sm"
               disabled={!canStartAutofix}
-              onClick={closeModal}
+              onClick={handleClose}
             >
               {t('Skip & Enable Autofix')}
             </Button>
@@ -262,7 +269,7 @@ function AutofixGithubIntegrationStep({
             priority="primary"
             size="sm"
             disabled={!canStartAutofix}
-            onClick={closeModal}
+            onClick={handleClose}
           >
             {t('Skip & Enable Autofix')}
           </Button>
@@ -276,12 +283,14 @@ function AutofixSetupSteps({
   autofixSetup,
   closeModal,
   canStartAutofix,
+  refetchSetup,
 }: {
   autofixSetup: AutofixSetupResponse;
   canStartAutofix: boolean;
   closeModal: () => void;
   groupId: string;
   projectId: string;
+  refetchSetup?: () => void;
 }) {
   return (
     <GuidedSteps>
@@ -304,20 +313,23 @@ function AutofixSetupSteps({
           canStartAutofix={canStartAutofix}
           closeModal={closeModal}
           isLastStep
+          refetchSetup={refetchSetup}
         />
       </GuidedSteps.Step>
     </GuidedSteps>
   );
 }
 
-function AutofixSetupContent({
+export function AutofixSetupContent({
   projectId,
   groupId,
   closeModal,
+  refetchSetup,
 }: {
   closeModal: () => void;
   groupId: string;
   projectId: string;
+  refetchSetup?: () => void;
 }) {
   const organization = useOrganization();
   const {data, canStartAutofix, isPending, isError} = useAutofixSetup(
@@ -350,13 +362,22 @@ function AutofixSetupContent({
   }
 
   return (
-    <AutofixSetupSteps
-      groupId={groupId}
-      projectId={projectId}
-      autofixSetup={data}
-      canStartAutofix={canStartAutofix}
-      closeModal={closeModal}
-    />
+    <Fragment>
+      <Header>Set up Autofix</Header>
+      <p>
+        Sentry's AI-enabled Autofix uses all of the contextual data surrounding this error
+        to work with you to find the root cause and create a fix.
+      </p>
+      <p>A few additional steps are needed before you can use Autofix.</p>
+      <AutofixSetupSteps
+        groupId={groupId}
+        projectId={projectId}
+        autofixSetup={data}
+        canStartAutofix={canStartAutofix}
+        closeModal={closeModal}
+        refetchSetup={refetchSetup}
+      />
+    </Fragment>
   );
 }
 
@@ -391,6 +412,13 @@ export const AutofixSetupDone = styled('div')`
   flex-direction: column;
   padding: 40px;
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const Header = styled('p')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  margin-bottom: ${space(2)};
+  margin-top: ${space(2)};
 `;
 
 const RepoLinkUl = styled('ul')`

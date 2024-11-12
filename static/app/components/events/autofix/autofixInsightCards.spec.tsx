@@ -125,7 +125,7 @@ describe('AutofixInsightCards', () => {
   it('renders "No insights yet" message when there are no insights', () => {
     renderComponent({insights: []});
     expect(
-      screen.getByText(/Autofix will share important conclusions here/)
+      screen.getByText(/Autofix will share its discoveries here./)
     ).toBeInTheDocument();
   });
 
