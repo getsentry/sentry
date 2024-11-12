@@ -1,7 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import bannerImage from 'sentry-images/insights/module-upsells/insights-module-upsell.svg';
 import starImage from 'sentry-images/spot/banner-star.svg';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -41,9 +40,17 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
 
   return (
     <StartBox>
-      <IllustrationContainer>
-        <Illustration src={bannerImage} />
-      </IllustrationContainer>
+      <StarTrail>
+        {[...Array(8)].map((_, i) => (
+          <TrailStar
+            key={i}
+            src={starImage}
+            index={i}
+            size={28 - i * 2}
+            offset={(i % 2) * 30 - 15}
+          />
+        ))}
+      </StarTrail>
       <Header>Autofix</Header>
       <br />
       <p>Work together with Autofix to find the root cause and fix the issue.</p>
@@ -176,21 +183,16 @@ const Row = styled('div')`
   gap: ${space(1)};
 `;
 
-const IllustrationContainer = styled('div')`
-  padding: ${space(4)} 0 ${space(4)} 0;
-  display: flex;
-  justify-content: center;
-`;
-
-const Illustration = styled('img')`
-  height: 100%;
-`;
-
 const StartBox = styled('div')`
   padding: ${space(2)};
   display: flex;
   flex-direction: column;
-  width: 100%;
+  position: absolute;
+  bottom: 0;
+  left: ${space(2)};
+  right: ${space(2)};
+  background: ${p => p.theme.background};
+  z-index: -1;
 `;
 
 const AutofixDrawerContainer = styled('div')`
@@ -227,6 +229,8 @@ const AutofixDrawerBody = styled(DrawerBody)`
   * {
     direction: ltr;
   }
+  /* Add padding at the bottom to prevent content from being hidden behind StartBox */
+  padding-bottom: 280px;
 `;
 
 const Header = styled('h3')`
@@ -315,4 +319,22 @@ const HeaderText = styled('div')`
   align-items: center;
   gap: ${space(1)};
   padding-bottom: ${space(2)};
+`;
+
+const StarTrail = styled('div')`
+  position: relative;
+  height: 280px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: ${space(4)};
+`;
+
+const TrailStar = styled('img')<{index: number; offset: number; size: number}>`
+  position: absolute;
+  width: ${p => p.size}px;
+  height: ${p => p.size}px;
+  top: ${p => p.index * 50}px;
+  transform: translateX(${p => p.offset}px) rotate(${p => p.index * 40}deg);
+  opacity: ${p => Math.max(0.2, 1 - p.index * 0.1)};
 `;
