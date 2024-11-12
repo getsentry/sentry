@@ -91,8 +91,8 @@ export type IssueEventParameters = {
   'issue-details.replay-cta-dismiss': {type: string};
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
-  'issue_details.activity_created': {};
-  'issue_details.activity_deleted': {};
+  'issue_details.comment_created': {};
+  'issue_details.comment_deleted': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
   'issue_details.escalating_feedback_received': {
     group_id: string;
@@ -460,7 +460,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Sourcemap Wizard Learn More',
   'issue_details.set_priority': 'Issue Details: Set Priority',
   'issue_details.section_fold': 'Issue Details: Section Fold',
-  'issue_details.activity_created': 'Issue Details: Activity Created',
-  'issue_details.activity_deleted': 'Issue Details: Activity Deleted',
+  'issue_details.comment_created': 'Issue Details: Comment Created',
+  'issue_details.comment_deleted': 'Issue Details: Comment Deleted',
   'whats_new.link_clicked': "What's New: Link Clicked",
 };
