@@ -19,7 +19,7 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
     >
       <ToggleButton
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+        aria-label={sidebarOpen ? t('Close sidebar') : t('Open sidebar')}
         style={{height: size === 'lg' ? '30px' : '26px'}}
         analyticsEventKey="issue_details.sidebar_toggle"
         analyticsEventName="Issue Details: Sidebar Toggle"

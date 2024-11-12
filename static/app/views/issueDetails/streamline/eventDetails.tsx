@@ -30,7 +30,7 @@ export function EventDetails({
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
       <PageErrorBoundary mini message={t('There was an error loading the event content')}>
-        <GroupContent>
+        <GroupContent role="main">
           <StickyEventNav event={event} group={group} />
           <ContentPadding>
             <EventDetailsContent group={group} event={event} project={project} />

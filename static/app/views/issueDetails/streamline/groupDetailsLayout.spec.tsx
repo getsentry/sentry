@@ -104,7 +104,7 @@ describe('GroupDetailsLayout', () => {
       await screen.findByText('Track this issue in Jira, GitHub, etc.')
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Close Sidebar'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Close sidebar'}));
     expect(await screen.findByTestId('children')).toBeInTheDocument();
     expect(
       screen.queryByText('Track this issue in Jira, GitHub, etc.')

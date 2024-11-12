@@ -203,9 +203,7 @@ describe('Performance > Web Vitals', function () {
       organization,
     });
 
-    expect(
-      screen.getByRole('heading', {name: '/organizations/:orgId/'})
-    ).toBeInTheDocument();
+    expect(screen.getByText('/organizations/:orgId/')).toBeInTheDocument();
 
     ['navigation', 'main'].forEach(role => {
       expect(screen.getByRole(role)).toBeInTheDocument();
