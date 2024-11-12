@@ -20,6 +20,7 @@ import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -127,12 +128,13 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
             addErrorMessage(t('Failed to delete comment'));
           },
           onSuccess: () => {
+            trackAnalytics('issue_details.activity_deleted', {organization});
             addSuccessMessage(t('Comment removed'));
           },
         }
       );
     },
-    [group.activity, mutators, group.id]
+    [group.activity, mutators, group.id, organization]
   );
 
   const handleCreate = useCallback(
@@ -146,11 +148,12 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
         },
         onSuccess: data => {
           GroupStore.addActivity(group.id, data);
+          trackAnalytics('issue_details.activity_created', {organization});
           addSuccessMessage(t('Comment posted'));
         },
       });
     },
-    [group.activity, mutators, group.id]
+    [group.activity, mutators, group.id, organization]
   );
 
   return (

@@ -56,7 +56,7 @@ class MarkOkTestCase(TestCase):
             status=CheckInStatus.OK,
             date_added=now,
         )
-        mark_ok(success_checkin, ts=now)
+        mark_ok(success_checkin, now)
 
         # Monitor has recovered to OK with updated upcoming timestamps
         monitor_environment.refresh_from_db()
@@ -101,7 +101,7 @@ class MarkOkTestCase(TestCase):
             status=CheckInStatus.OK,
             date_added=now,
         )
-        mark_ok(success_checkin, ts=now)
+        mark_ok(success_checkin, now)
 
         # Monitor has recovered to OK with updated upcoming timestamps
         monitor_environment.refresh_from_db()
@@ -294,7 +294,7 @@ class MarkOkTestCase(TestCase):
             status=CheckInStatus.OK,
             date_added=now,
         )
-        mark_ok(success_checkin, ts=now)
+        mark_ok(success_checkin, now)
 
         # Monitor has recovered to OK with updated upcoming timestamps
         monitor_environment.refresh_from_db()
