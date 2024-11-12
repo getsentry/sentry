@@ -246,8 +246,6 @@ const AutofixDrawerBody = styled(DrawerBody)`
   * {
     direction: ltr;
   }
-  /* Add padding at the bottom to prevent content from being hidden behind StartBox */
-  padding-bottom: 280px;
 `;
 
 const Header = styled('h3')`
