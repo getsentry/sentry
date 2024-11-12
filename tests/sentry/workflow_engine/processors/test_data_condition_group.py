@@ -107,6 +107,12 @@ class TestEvaluateConditionGroupTypeAny(TestCase):
             [],
         )
 
+    def test_evaluate_conditon_group__passes_without_conditions(self):
+        assert evaluate_condition_group(self.data_condition_group, 10, conditions=[]) == (
+            True,
+            [],
+        )
+
 
 class TestEvaluateConditionGroupTypeAll(TestCase):
     def setUp(self):
@@ -157,5 +163,52 @@ class TestEvaluateConditionGroupTypeAll(TestCase):
             self.data_condition_group, 1, conditions=self.conditions
         ) == (
             False,
+            [],
+        )
+
+    def test_evaluate_conditon_group__passes_without_conditions(self):
+        assert evaluate_condition_group(self.data_condition_group, 10, conditions=[]) == (
+            True,
+            [],
+        )
+
+
+class TestEvaluateConditionGroupTypeNone(TestCase):
+    def setUp(self):
+        self.data_condition_group = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.NONE
+        )
+
+        self.data_condition = self.create_data_condition(
+            condition="gt",
+            comparison="5",
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=self.data_condition_group,
+        )
+
+        self.data_condition_two = self.create_data_condition(
+            condition="gt",
+            comparison="3",
+            condition_result=DetectorPriorityLevel.LOW,
+            condition_group=self.data_condition_group,
+        )
+
+        self.conditions = [self.data_condition, self.data_condition_two]
+
+    def test_evaluate_condition_group__all_conditions_pass__fails(self):
+        assert evaluate_condition_group(self.data_condition_group, 10) == (
+            False,
+            [],
+        )
+
+    def test_evaluate_condition_group__one_condition_pass__fails(self):
+        assert evaluate_condition_group(self.data_condition_group, 4) == (
+            False,
+            [],
+        )
+
+    def test_evaluate_condition_group__no_conditions_pass__passes(self):
+        assert evaluate_condition_group(self.data_condition_group, 1) == (
+            True,
             [],
         )

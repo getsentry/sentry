@@ -58,14 +58,19 @@ def evaluate_condition_group(
         # TODO - Should we break once the first condition is met for ANY?
         results.append((is_condition_triggered, evaluation_result))
 
-    if data_condition_group.logic_type == data_condition_group.Type.ANY:
+    if data_condition_group.logic_type == data_condition_group.Type.NONE:
+        is_no_condition_met = all([not result[0] for result in results])
+
+        if is_no_condition_met:
+            # TODO - is this the correct list of results?
+            return is_no_condition_met, []
+    elif data_condition_group.logic_type == data_condition_group.Type.ANY:
         is_any_condition_met = any([result[0] for result in results])
 
         if is_any_condition_met:
             condition_results = [result[1] for result in results if result[0]]
             return is_any_condition_met, condition_results
-
-    if data_condition_group.logic_type == data_condition_group.Type.ALL:
+    elif data_condition_group.logic_type == data_condition_group.Type.ALL:
         conditions_met = [result[0] for result in results]
         is_all_conditions_met = all(conditions_met)
 
@@ -73,4 +78,5 @@ def evaluate_condition_group(
             condition_results = [result[1] for result in results if result[0]]
             return is_all_conditions_met, condition_results
 
-    return False, []
+    # if we don't have any conditions, we want this to evaluate as Truthy
+    return len(conditions) == 0, []
