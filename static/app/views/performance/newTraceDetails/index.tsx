@@ -123,23 +123,16 @@ function logTraceMetadata(
   }
 }
 
-export function TraceView() {
-  const params = useParams<{traceSlug?: string}>();
-  const organization = useOrganization();
-  const traceSlug = useMemo(() => {
-    const slug = params.traceSlug?.trim() ?? '';
-    // null and undefined are not valid trace slugs, but they can be passed
-    // in the URL and need to check for their string coerced values.
-    if (!slug || slug === 'null' || slug === 'undefined') {
-      Sentry.withScope(scope => {
-        scope.setFingerprint(['trace-null-slug']);
-        Sentry.captureMessage(`Trace slug is empty`);
-      });
-    }
-    return slug;
-  }, [params.traceSlug]);
+interface TraceViewQueryParams {
+  end: string | undefined;
+  start: string | undefined;
+  statsPeriod: string | undefined;
+  timestamp: number | undefined;
+  useSpans: number;
+}
 
-  const queryParams = useMemo(() => {
+function useTraceQueryParams(): TraceViewQueryParams {
+  return useMemo(() => {
     const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
       allowAbsolutePageDatetime: true,
     });
@@ -151,18 +144,18 @@ export function TraceView() {
 
     return {start, end, statsPeriod, timestamp: numberTimestamp, useSpans: 1};
   }, []);
+}
 
-  const traceEventView = useMemo(() => {
-    const {start, end, statsPeriod, timestamp} = queryParams;
-
-    let startTimeStamp = start;
-    let endTimeStamp = end;
+function useTraceEventView(traceSlug: string, params: TraceViewQueryParams): EventView {
+  return useMemo(() => {
+    let startTimeStamp = params.start;
+    let endTimeStamp = params.end;
 
     // If timestamp exists in the query params, we want to use it to set the start and end time
     // with a buffer of 1.5 days, for retrieving events belonging to the trace.
-    if (typeof timestamp === 'number') {
+    if (typeof params.timestamp === 'number') {
       const buffer = 36 * 60 * 60 * 1000; // 1.5 days in milliseconds
-      const dateFromTimestamp = new Date(timestamp * 1000);
+      const dateFromTimestamp = new Date(params.timestamp * 1000);
 
       startTimeStamp = new Date(dateFromTimestamp.getTime() - buffer).toISOString();
       endTimeStamp = new Date(dateFromTimestamp.getTime() + buffer).toISOString();
@@ -178,9 +171,30 @@ export function TraceView() {
       version: 2,
       start: startTimeStamp,
       end: endTimeStamp,
-      range: !(startTimeStamp || endTimeStamp) ? statsPeriod : undefined,
+      range: !(startTimeStamp || endTimeStamp) ? params.statsPeriod : undefined,
     });
-  }, [queryParams, traceSlug]);
+  }, [params, traceSlug]);
+}
+
+function decodeTraceSlug(maybeSlug: string | undefined): string {
+  if (!maybeSlug || maybeSlug === 'null' || maybeSlug === 'undefined') {
+    Sentry.withScope(scope => {
+      scope.setFingerprint(['trace-null-slug']);
+      Sentry.captureMessage(`Trace slug is empty`);
+    });
+
+    return '';
+  }
+
+  return maybeSlug.trim();
+}
+
+export function TraceView() {
+  const organization = useOrganization();
+  const params = useParams<{traceSlug?: string}>();
+  const traceSlug = useMemo(() => decodeTraceSlug(params.traceSlug), [params.traceSlug]);
+  const queryParams = useTraceQueryParams();
+  const traceEventView = useTraceEventView(traceSlug, queryParams);
 
   const preferences = useMemo(
     () =>
@@ -194,12 +208,11 @@ export function TraceView() {
   const rootEvent = useTraceRootEvent(trace.data ?? null);
   const tree = useTraceTree({traceSlug, trace, meta, replay: null});
 
-  const title = useMemo(() => {
-    return `${t('Trace Details')} - ${traceSlug}`;
-  }, [traceSlug]);
-
   return (
-    <SentryDocumentTitle title={title} orgSlug={organization.slug}>
+    <SentryDocumentTitle
+      title={`${t('Trace Details')} - ${traceSlug}`}
+      orgSlug={organization.slug}
+    >
       <TraceStateProvider
         initialPreferences={preferences}
         preferencesStorageKey="trace-view-preferences"
