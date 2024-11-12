@@ -430,6 +430,9 @@ class _ClientConfig:
             "isOnPremise": is_self_hosted(),
             "isSelfHosted": is_self_hosted(),
             "isSelfHostedErrorsOnly": is_self_hosted_errors_only(),
+            # sentryMode intends to supersede isSelfHosted,
+            # so we can differentiate between "SELF_HOSTED", "SINGLE_TENANT", and "SAAS".
+            "sentryMode": settings.SENTRY_MODE.name,
             "shouldPreloadData": self.should_preload_data,
             "shouldShowBeaconConsentPrompt": not self.needs_upgrade
             and should_show_beacon_consent_prompt(),

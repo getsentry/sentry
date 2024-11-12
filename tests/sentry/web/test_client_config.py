@@ -74,6 +74,13 @@ multiregion_client_config_test = control_silo_test(
 )
 
 
+@no_silo_test
+@django_db_all
+def test_client_config_default():
+    cfg = get_client_config()
+    assert cfg["sentryMode"] == "SELF_HOSTED"
+
+
 @multiregion_client_config_test
 @pytest.mark.parametrize(
     "request_factory",
