@@ -63,7 +63,7 @@ class GroupingComponent:
 
     @property
     def description(self) -> str:
-        items = []
+        paths = []
 
         def _walk_components(component: GroupingComponent, current_path: list[str | None]) -> None:
             current_path.append(component.name)
@@ -71,14 +71,14 @@ class GroupingComponent:
                 if isinstance(value, GroupingComponent) and value.contributes:
                     _walk_components(value, current_path)
             parts = [name for name in current_path if name]
-            items.append(parts)
+            paths.append(parts)
             current_path.pop()
 
         _walk_components(self, [])
-        items.sort(key=lambda x: (len(x), x))
+        paths.sort(key=lambda x: (len(x), x))
 
-        if items and items[-1]:
-            return " ".join(items[-1])
+        if paths and paths[-1]:
+            return " ".join(paths[-1])
 
         return self.name or self.id
 
