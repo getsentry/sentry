@@ -1,3 +1,6 @@
+from collections.abc import Sequence
+from typing import cast
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -33,7 +36,7 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
 
     permission_classes = (OrganizationPermission,)
 
-    def _check_feature(self, request: Request, organization: Organization):
+    def _check_feature(self, request: Request, organization: Organization) -> None:
         if not features.has(
             "organizations:dynamic-sampling-custom", organization, actor=request.user
         ):
@@ -44,7 +47,10 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
         self._check_feature(request, organization)
 
         start, end = get_date_range_from_params(request.GET)
-        projects = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+        projects = cast(
+            Sequence[Project],
+            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).all(),
+        )
         mql = "sum(c:spans/count_per_root_project@none) by (project,target_project_id)"
         query = MQLQuery(mql=mql, order=QueryOrder.DESC)
         results = run_queries(
