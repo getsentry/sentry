@@ -109,8 +109,6 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
               <PercentInput
                 type="number"
                 disabled
-                min={0}
-                max={100}
                 size="sm"
                 value={formatNumberWithDynamicDecimalPoints(projectedOrgRate, 2)}
               />
@@ -140,6 +138,7 @@ const BreakdownPanel = styled(Panel)`
   margin-bottom: ${space(3)};
   padding: ${space(2)};
 `;
+
 const ProjectedOrgRateWrapper = styled('label')`
   display: flex;
   align-items: center;

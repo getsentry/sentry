@@ -7,12 +7,13 @@ import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
+import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {
   type ProjectionSamplePeriod,
@@ -22,12 +23,14 @@ import {
   useGetSamplingProjectRates,
   useUpdateSamplingProjectRates,
 } from 'sentry/views/settings/dynamicSampling/utils/useSamplingProjectRates';
-import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
 const {useFormState, FormProvider} = projectSamplingForm;
+const UNSAVED_CHANGES_MESSAGE = t(
+  'You have unsaved changes, are you sure you want to leave?'
+);
 
 export function ProjectSampling() {
-  const {hasAccess} = useAccess({access: ['org:write']});
+  const hasAccess = useHasDynamicSamplingWriteAccess();
   const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
 
   const sampleRatesQuery = useGetSamplingProjectRates();
@@ -80,32 +83,34 @@ export function ProjectSampling() {
 
   return (
     <FormProvider formState={formState}>
-      <form onSubmit={event => event.preventDefault()}>
+      <OnRouteLeave
+        message={UNSAVED_CHANGES_MESSAGE}
+        when={locationChange =>
+          locationChange.currentLocation.pathname !==
+            locationChange.nextLocation.pathname && formState.hasChanged
+        }
+      />
+      <form onSubmit={event => event.preventDefault()} noValidate>
         <Panel>
-          <PanelHeader>{t('Manual Sampling')}</PanelHeader>
+          <PanelHeader>{t('General Settings')}</PanelHeader>
           <PanelBody>
             <SamplingModeField />
           </PanelBody>
         </Panel>
         <HeadingRow>
           <h4>{t('Customize Projects')}</h4>
-          <Tooltip
-            title={t(
-              'The time period for which the projected sample rates are calculated.'
-            )}
-          >
-            <SegmentedControl
-              label={t('Stats period')}
-              value={period}
-              onChange={setPeriod}
-              size="xs"
-            >
-              <SegmentedControl.Item key="24h">{t('24h')}</SegmentedControl.Item>
-              <SegmentedControl.Item key="30d">{t('30d')}</SegmentedControl.Item>
-            </SegmentedControl>
-          </Tooltip>
+          <ProjectionPeriodControl period={period} onChange={setPeriod} />
         </HeadingRow>
-        <p>{t('Set custom rates for traces starting at each of your projects.')}</p>
+        <p>
+          {t(
+            'Configure sample rates for each of your projects. These rates stay fixed if volumes change, which can lead to a change in the overall sample rate of your organization.'
+          )}
+        </p>
+        <p>
+          {t(
+            'Rates apply to all spans in traces that start in each project, including a portion of spans in connected other projects.'
+          )}
+        </p>
         {sampleCountsQuery.isError ? (
           <LoadingError onRetry={sampleCountsQuery.refetch} />
         ) : (

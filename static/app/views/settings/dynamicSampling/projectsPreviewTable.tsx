@@ -1,9 +1,15 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
+import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
@@ -44,7 +50,7 @@ export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
     });
   }, [debouncedTargetSampleRate, balancingItems]);
 
-  const initialSampleRatesBySlug = useMemo(() => {
+  const initialSampleRateById = useMemo(() => {
     const targetRate = Math.min(100, Math.max(0, Number(initialTargetSampleRate) || 0));
     const {balancedItems: initialBalancedItems} = balanceSampleRate({
       targetSampleRate: targetRate / 100,
@@ -61,19 +67,46 @@ export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
       ...item,
       sampleRate: formatNumberWithDynamicDecimalPoints(item.sampleRate * 100, 2),
       initialSampleRate: formatNumberWithDynamicDecimalPoints(
-        initialSampleRatesBySlug[item.project.slug] * 100,
+        initialSampleRateById[item.id] * 100,
         2
       ),
     }));
-  }, [balancedItems, initialSampleRatesBySlug]);
+  }, [balancedItems, initialSampleRateById]);
+
+  const breakdownSampleRates = balancedItems.reduce((acc, item) => {
+    acc[item.id] = item.sampleRate;
+    return acc;
+  }, {});
 
   return (
-    <ProjectsTable
-      stickyHeaders
-      emptyMessage={t('No active projects found in the selected period.')}
-      isEmpty={!sampleCounts.length}
-      isLoading={isLoading}
-      items={itemsWithFormattedNumbers}
-    />
+    <Fragment>
+      <BreakdownPanel>
+        {isLoading ? (
+          <LoadingIndicator
+            css={css`
+              margin: ${space(4)} 0;
+            `}
+          />
+        ) : (
+          <SamplingBreakdown
+            sampleCounts={sampleCounts}
+            sampleRates={breakdownSampleRates}
+          />
+        )}
+      </BreakdownPanel>
+
+      <ProjectsTable
+        stickyHeaders
+        emptyMessage={t('No active projects found in the selected period.')}
+        isEmpty={!sampleCounts.length}
+        isLoading={isLoading}
+        items={itemsWithFormattedNumbers}
+      />
+    </Fragment>
   );
 }
+
+const BreakdownPanel = styled(Panel)`
+  margin-bottom: ${space(3)};
+  padding: ${space(2)};
+`;
