@@ -1527,6 +1527,9 @@ class DiscoverFunction:
         return None
 
 
+QUANTILE_DETERMINISTIC_SEED = 1
+
+
 # When updating this list, also check if the following need to be updated:
 # - convert_search_filter_to_snuba_query
 # - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
@@ -1536,7 +1539,11 @@ FUNCTIONS = {
         DiscoverFunction(
             "percentile",
             required_args=[NumericColumn("column"), NumberRange("percentile", 0, 1)],
-            aggregate=["quantile({percentile:g})", ArgValue("column"), None],
+            aggregate=[
+                "quantileDeterministic({percentile:g}, {QUANTILE_DETERMINISTIC_SEED})",
+                ArgValue("column"),
+                None,
+            ],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -1544,7 +1551,11 @@ FUNCTIONS = {
         DiscoverFunction(
             "p50",
             optional_args=[with_default("transaction.duration", NumericColumn("column"))],
-            aggregate=["quantile(0.5)", ArgValue("column"), None],
+            aggregate=[
+                "quantileDeterministic(0.5, {QUANTILE_DETERMINISTIC_SEED})",
+                ArgValue("column"),
+                None,
+            ],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -1552,7 +1563,11 @@ FUNCTIONS = {
         DiscoverFunction(
             "p75",
             optional_args=[with_default("transaction.duration", NumericColumn("column"))],
-            aggregate=["quantile(0.75)", ArgValue("column"), None],
+            aggregate=[
+                "quantileDeterministic(0.75, {QUANTILE_DETERMINISTIC_SEED})",
+                ArgValue("column"),
+                None,
+            ],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -1560,7 +1575,11 @@ FUNCTIONS = {
         DiscoverFunction(
             "p90",
             optional_args=[with_default("transaction.duration", NumericColumn("column"))],
-            aggregate=["quantile(0.90)", ArgValue("column"), None],
+            aggregate=[
+                "quantileDeterministic(0.90, {QUANTILE_DETERMINISTIC_SEED})",
+                ArgValue("column"),
+                None,
+            ],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -1568,7 +1587,11 @@ FUNCTIONS = {
         DiscoverFunction(
             "p95",
             optional_args=[with_default("transaction.duration", NumericColumn("column"))],
-            aggregate=["quantile(0.95)", ArgValue("column"), None],
+            aggregate=[
+                "quantileDeterministic(0.95, {QUANTILE_DETERMINISTIC_SEED})",
+                ArgValue("column"),
+                None,
+            ],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -1576,7 +1599,11 @@ FUNCTIONS = {
         DiscoverFunction(
             "p99",
             optional_args=[with_default("transaction.duration", NumericColumn("column"))],
-            aggregate=["quantile(0.99)", ArgValue("column"), None],
+            aggregate=[
+                "quantileDeterministic(0.99, {QUANTILE_DETERMINISTIC_SEED})",
+                ArgValue("column"),
+                None,
+            ],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
             redundant_grouping=True,
@@ -1913,7 +1940,7 @@ FUNCTIONS = {
                 DateArg("middle"),
             ],
             aggregate=[
-                "quantileIf({percentile:.2f})",
+                "quantileDeterministicIf({percentile:.2f}, {QUANTILE_DETERMINISTIC_SEED})",
                 [
                     ArgValue("column"),
                     # NOTE: This condition is written in this seemingly backwards way

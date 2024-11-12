@@ -221,7 +221,7 @@ def resolve_snql_fieldlist(fields):
         (
             "percentile_range(transaction.duration, 0.5, greater, 2020-05-03T06:48:57) as percentile_range_1",
             Function(
-                "quantileIf(0.50)",
+                "quantileDeterministicIf(0.50, 1)",
                 [
                     Column("duration"),
                     Function(

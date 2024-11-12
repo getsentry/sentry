@@ -73,6 +73,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
+    QUANTILE_DETERMINISTIC_SEED,
     ColumnArg,
     ColumnTagArg,
     ConditionArg,
@@ -409,7 +410,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         SnQLDateArg("middle"),
                     ],
                     snql_aggregate=lambda args, alias: Function(
-                        f"quantileIf({args['percentile']:.2f})",
+                        f"quantileDeterministicIf({args['percentile']:.2f}, {QUANTILE_DETERMINISTIC_SEED})",
                         [
                             args["column"],
                             # This condition is written in this seemingly backwards way because of limitations
@@ -1659,7 +1660,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             )
             if fixed_percentile == 1
             else Function(
-                f'quantile({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+                f'quantileDeterministic({fixed_percentile if fixed_percentile is not None else args["percentile"]}, {QUANTILE_DETERMINISTIC_SEED})',
                 [args["column"]],
                 alias,
             )
