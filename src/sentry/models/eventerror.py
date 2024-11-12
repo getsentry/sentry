@@ -87,7 +87,7 @@ class EventError:
         NATIVE_NO_CRASHED_THREAD: "No crashed thread found in crash report",
         NATIVE_INTERNAL_FAILURE: "Internal failure when attempting to symbolicate",
         NATIVE_BAD_DSYM: "The debug information file used was broken.",
-        NATIVE_UNSUPPORTED_DSYM: "The debug infomation file is not supported",
+        NATIVE_UNSUPPORTED_DSYM: "The debug information file is not supported",
         NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: "An optional debug information file was missing.",
         NATIVE_MISSING_DSYM: "A required debug information file was missing.",
         NATIVE_MISSING_SYSTEM_DSYM: "A system debug information file was missing.",
