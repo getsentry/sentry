@@ -59,7 +59,7 @@ export default function ReplayDiffChooser({
           <TabPanels.Item key={DiffType.HTML}>
             <StyledAlert type="info" showIcon>
               {tct(
-                `We're currently testing this feature, please [link:let us know] if you're having any issues.`,
+                `The HTML Diff is currently in beta and has known issues (e.g. the ‘before’ is sometimes empty). We are exploring different options to replace this view, please see [link: this ticket] for more details and share your feedback.`,
                 {
                   link: (
                     <ExternalLink
