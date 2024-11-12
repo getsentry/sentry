@@ -15,7 +15,8 @@ from sentry.web.helpers import render_to_response
 # Paths to pages should not be added here, otherwise crawlers will
 # not be able to access the metadata with the 'none' directive
 # and the URL of these pages may still appear in search results
-ROBOTS_SENTRY_IO = """User-agent: *
+ROBOTS_SENTRY_IO = """\
+User-agent: *
 Disallow: /api/
 Allow: /api/*/store/
 Allow: /
@@ -26,7 +27,8 @@ Sitemap: https://sentry.io/sitemap-index.xml
 # For customer domains, like acme.us.sentry.io,
 # we want to disallow honest crawlers from accessing any page on a customer domain.
 # This should prevent a customer domain from showing up in search engine results.
-ROBOTS_DISALLOW_ALL = """User-agent: *
+ROBOTS_DISALLOW_ALL = """\
+User-agent: *
 Disallow: /
 """
 

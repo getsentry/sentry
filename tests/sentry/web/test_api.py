@@ -85,7 +85,8 @@ class RobotsTxtTest(TestCase):
             assert resp["Content-Type"] == "text/plain"
             assert (
                 resp.content
-                == b"""User-agent: *
+                == b"""\
+User-agent: *
 Disallow: /
 """
             )
@@ -98,7 +99,8 @@ Disallow: /
             # This is sentry.io/robots.txt.
             assert (
                 resp.content
-                == b"""User-agent: *
+                == b"""\
+User-agent: *
 Disallow: /api/
 Allow: /api/*/store/
 Allow: /
@@ -113,7 +115,8 @@ Sitemap: https://sentry.io/sitemap-index.xml
             assert resp["Content-Type"] == "text/plain"
             assert (
                 resp.content
-                == b"""User-agent: *
+                == b"""\
+User-agent: *
 Disallow: /
 """
             )
@@ -125,7 +128,8 @@ Disallow: /
             assert resp["Content-Type"] == "text/plain"
             assert (
                 resp.content
-                == b"""User-agent: *
+                == b"""\
+User-agent: *
 Disallow: /
 """
             )
