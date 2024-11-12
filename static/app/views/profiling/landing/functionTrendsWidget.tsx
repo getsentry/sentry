@@ -27,7 +27,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -211,7 +211,7 @@ function FunctionTrendsEntry({
   const project = projects.find(p => p.id === func.project);
 
   const [beforeExamples, afterExamples] = useMemo(() => {
-    return partition(func.worst, ([ts, _example]) => ts <= func.breakpoint);
+    return partition(func.examples, ([ts, _example]) => ts <= func.breakpoint);
   }, [func]);
 
   let before = <PerformanceDuration nanoseconds={func.aggregate_range_1} abbreviation />;
@@ -241,14 +241,12 @@ function FunctionTrendsEntry({
     // occurred within the period and eliminate confusion with picking an example in
     // the same bucket as the breakpoint.
 
-    const beforeTarget = generateProfileFlamechartRouteWithQuery({
+    const beforeTarget = generateProfileRouteFromProfileReference({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      profileId: beforeExamples[beforeExamples.length - 2][1],
-      query: {
-        frameName: func.function as string,
-        framePackage: func.package as string,
-      },
+      reference: beforeExamples[beforeExamples.length - 2][1],
+      frameName: func.function as string,
+      framePackage: func.package as string,
     });
 
     before = (
@@ -257,14 +255,12 @@ function FunctionTrendsEntry({
       </Link>
     );
 
-    const afterTarget = generateProfileFlamechartRouteWithQuery({
+    const afterTarget = generateProfileRouteFromProfileReference({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      profileId: afterExamples[afterExamples.length - 2][1],
-      query: {
-        frameName: func.function as string,
-        framePackage: func.package as string,
-      },
+      reference: afterExamples[afterExamples.length - 2][1],
+      frameName: func.function as string,
+      framePackage: func.package as string,
     });
 
     after = (

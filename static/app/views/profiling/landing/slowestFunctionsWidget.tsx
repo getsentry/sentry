@@ -1,12 +1,14 @@
-import type {CSSProperties, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -16,18 +18,16 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Series} from 'sentry/types/echarts';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {Frame} from 'sentry/utils/profiling/frame';
 import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
+import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
-import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 import {
@@ -188,12 +188,9 @@ function SlowestFunctionEntry({
   breakdownFunction,
   func,
   isExpanded,
-  query,
   setExpanded,
   totalDuration,
 }: SlowestFunctionEntryProps) {
-  const organization = useOrganization();
-
   const {projects} = useProjects();
   const project = projects.find(p => p.id === String(func['project.id']));
 
@@ -214,29 +211,6 @@ function SlowestFunctionEntry({
       'aggregate'
     );
   }, [func, project]);
-
-  const userQuery = useMemo(() => {
-    const conditions = new MutableSearch(query);
-
-    conditions.setFilterValues('project.id', [String(func['project.id'])]);
-    // it is more efficient to filter on the fingerprint
-    // than it is to filter on the package + function
-    conditions.setFilterValues('fingerprint', [String(func.fingerprint)]);
-
-    return conditions.formatString();
-  }, [func, query]);
-
-  const functionTransactionsQuery = useProfileFunctions<FunctionTransactionField>({
-    fields: [...functionTransactionsFields, breakdownFunction],
-    referrer: 'api.profiling.suspect-functions.transactions',
-    sort: {
-      key: 'sum()',
-      order: 'desc',
-    },
-    query: userQuery,
-    limit: 5,
-    enabled: isExpanded,
-  });
 
   return (
     <Fragment>
@@ -269,86 +243,79 @@ function SlowestFunctionEntry({
         />
       </StyledAccordionItem>
       {isExpanded && (
-        <Fragment>
-          {functionTransactionsQuery.isError && (
-            <StatusContainer>
-              <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
-            </StatusContainer>
-          )}
-          {functionTransactionsQuery.isPending && (
-            <StatusContainer>
-              <LoadingIndicator />
-            </StatusContainer>
-          )}
-          {functionTransactionsQuery.isFetched && (
-            <TransactionsList data-test-id="transactions-list">
-              <TransactionsListHeader>
-                <TextOverflow>{t('Transaction')}</TextOverflow>
-              </TransactionsListHeader>
-              <TransactionsListHeader align="right">
-                <TextOverflow>{t('Count')}</TextOverflow>
-              </TransactionsListHeader>
-              <TransactionsListHeader align="right">
-                <TextOverflow>{breakdownFunction.toUpperCase()}</TextOverflow>
-              </TransactionsListHeader>
-              <TransactionsListHeader align="right">
-                <TextOverflow>{t('Time Spent')}</TextOverflow>
-              </TransactionsListHeader>
-              {(functionTransactionsQuery.data?.data ?? []).map(transaction => {
-                const example = transaction['all_examples()']?.[0];
-                let transactionCol = <Fragment>{transaction.transaction}</Fragment>;
-
-                if (project && defined(example)) {
-                  const target = generateProfileRouteFromProfileReference({
-                    orgSlug: organization.slug,
-                    projectSlug: project.slug,
-                    frameName: frame.name,
-                    framePackage: frame.package,
-                    reference: example,
-                  });
-                  transactionCol = (
-                    <Link
-                      to={target}
-                      onClick={() => {
-                        trackAnalytics('profiling_views.go_to_flamegraph', {
-                          organization,
-                          source: 'profiling.global_suspect_functions',
-                        });
-                      }}
-                    >
-                      {transactionCol}
-                    </Link>
-                  );
-                }
-
-                return (
-                  <Fragment key={transaction.transaction as string}>
-                    <TransactionsListCell>
-                      <TextOverflow>{transactionCol}</TextOverflow>
-                    </TransactionsListCell>
-                    <TransactionsListCell align="right">
-                      <Count value={transaction['count()'] as number} />
-                    </TransactionsListCell>
-                    <TransactionsListCell align="right">
-                      <PerformanceDuration
-                        nanoseconds={transaction[breakdownFunction] as number}
-                        abbreviation
-                      />
-                    </TransactionsListCell>
-                    <TransactionsListCell align="right">
-                      <PerformanceDuration
-                        nanoseconds={transaction['sum()'] as number}
-                        abbreviation
-                      />
-                    </TransactionsListCell>
-                  </Fragment>
-                );
-              })}
-            </TransactionsList>
-          )}
-        </Fragment>
+        <FunctionChartContainer>
+          <FunctionChart func={func} breakdownFunction={breakdownFunction} />
+        </FunctionChartContainer>
       )}
     </Fragment>
+  );
+}
+
+interface FunctionChartProps {
+  breakdownFunction: BreakdownFunction;
+  func: EventsResultsDataRow<FunctionsField>;
+}
+
+function FunctionChart({breakdownFunction, func}: FunctionChartProps) {
+  const {selection} = usePageFilters();
+  const theme = useTheme();
+
+  const functionStats = useProfileEventsStats({
+    dataset: 'profileFunctions',
+    query: `fingerprint:${func.fingerprint}`,
+    referrer: 'api.profiling.suspect-functions.stats',
+    yAxes: [breakdownFunction],
+  });
+
+  const series: Series[] = useMemo(() => {
+    const timestamps = functionStats.data?.timestamps ?? [];
+    const allData = (functionStats.data?.data ?? []).filter(
+      data => data.axis === breakdownFunction
+    );
+
+    return allData.map(data => {
+      return {
+        data: timestamps.map((timestamp, i) => {
+          return {
+            name: timestamp * 1000,
+            value: data.values[i],
+          };
+        }),
+        seriesName: data.axis,
+      };
+    });
+  }, [breakdownFunction, functionStats]);
+
+  const chartOptions = useMemo(() => {
+    return {
+      height: 150,
+      grid: {
+        top: '10px',
+        bottom: '10px',
+        left: '10px',
+        right: '10px',
+      },
+      yAxis: {
+        axisLabel: {
+          color: theme.chartLabel,
+          formatter: (value: number) => axisLabelFormatter(value, 'duration'),
+        },
+      },
+      xAxis: {
+        type: 'time' as const,
+      },
+      tooltip: {
+        valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),
+      },
+    };
+  }, [theme.chartLabel]);
+
+  return (
+    <ChartZoom {...selection.datetime}>
+      {zoomRenderProps => (
+        <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
+      )}
+    </ChartZoom>
   );
 }
 
@@ -366,17 +333,6 @@ type FunctionsField = (typeof functionsFields)[number];
 const totalsFields = ['project.id', 'sum()'] as const;
 
 type TotalsField = (typeof totalsFields)[number];
-
-const functionTransactionsFields = [
-  'transaction',
-  'count()',
-  'sum()',
-  'all_examples()',
-] as const;
-
-type FunctionTransactionField =
-  | BreakdownFunction
-  | (typeof functionTransactionsFields)[number];
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
@@ -396,27 +352,6 @@ const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
 `;
 
-const TransactionsList = styled('div')`
+const FunctionChartContainer = styled('div')`
   flex: 1 1 auto;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
-  grid-template-rows: 18px repeat(5, min-content);
-  column-gap: ${space(1)};
-  padding: 0 ${space(2)};
-`;
-
-const TransactionsListHeader = styled('span')<{
-  align?: CSSProperties['textAlign'];
-}>`
-  text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.subText};
-  text-align: ${p => p.align};
-`;
-
-const TransactionsListCell = styled('div')<{align?: CSSProperties['textAlign']}>`
-  font-size: ${p => p.theme.fontSizeSmall};
-  text-align: ${p => p.align};
-  padding: ${space(0.5)} 0px;
 `;
