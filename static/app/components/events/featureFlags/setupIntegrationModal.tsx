@@ -65,7 +65,7 @@ export function SetupIntegrationModal<T extends Data>({
   const {organization} = useLegacyStore(OrganizationStore);
   const {createToken} = useGenerateAuthToken({state, orgSlug: organization?.slug});
 
-  const handleSubmit = useCallback(() => {
+  const handleDone = useCallback(() => {
     addSuccessMessage(t('Integration set up successfully'));
     closeModal();
   }, [closeModal]);
@@ -95,7 +95,7 @@ export function SetupIntegrationModal<T extends Data>({
           <Button
             priority="primary"
             title={!defined(state.provider) && t('Required fields must be filled out.')}
-            onClick={() => handleSubmit()}
+            onClick={handleDone}
             disabled={!defined(state.provider)}
           >
             {t('Done')}
@@ -103,7 +103,7 @@ export function SetupIntegrationModal<T extends Data>({
         </StyledButtonBar>
       </Footer>
     );
-  }, [Footer, handleSubmit, state]);
+  }, [Footer, handleDone, state]);
 
   const ModalBody = useCallback(
     ({children: bodyChildren}: Parameters<ChildrenProps<T>['Body']>[0]) => {
@@ -112,7 +112,22 @@ export function SetupIntegrationModal<T extends Data>({
     [Body]
   );
 
-  const integrations = ['LaunchDarkly'];
+  const onGenerateURL = useCallback(async () => {
+    const newToken = await createToken();
+    const encodedToken = encodeURI(newToken.token);
+    const provider = state.provider.toLowerCase();
+
+    setState(prevState => {
+      return {
+        ...prevState,
+        url: `https://sentry.io/api/0/organizations/${organization?.slug}/flags/hooks/provider/${provider}/token/${encodedToken}/`,
+      };
+    });
+
+    trackAnalytics('flags.webhook_url_generated', {organization});
+  }, [createToken, organization, state.provider]);
+
+  const providers = ['LaunchDarkly'];
 
   return (
     <Fragment>
@@ -123,7 +138,7 @@ export function SetupIntegrationModal<T extends Data>({
             label={t('Feature Flag Services')}
             name="provider"
             inline={false}
-            options={integrations.map(integration => ({
+            options={providers.map(integration => ({
               value: integration,
               label: integration,
             }))}
@@ -137,20 +152,7 @@ export function SetupIntegrationModal<T extends Data>({
           <WebhookButton
             priority="default"
             title={!defined(state.provider) && t('You must select a provider first.')}
-            onClick={async () => {
-              const newToken = await createToken();
-              const encodedToken = encodeURI(newToken.token);
-              const provider = state.provider.toLowerCase();
-
-              setState(prevState => {
-                return {
-                  ...prevState,
-                  url: `https://sentry.io/api/0/organizations/${organization?.slug}/flags/hooks/provider/${provider}/token/${encodedToken}/`,
-                };
-              });
-
-              trackAnalytics('flags.webhook_url_generated', {organization});
-            }}
+            onClick={onGenerateURL}
             disabled={!defined(state.provider) || defined(state.url)}
           >
             {t('Create Webhook URL')}

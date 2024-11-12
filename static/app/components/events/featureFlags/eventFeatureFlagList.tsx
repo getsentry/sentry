@@ -95,7 +95,7 @@ export function EventFeatureFlagList({
   const hasFlagContext = !!event.contexts.flags;
   const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values.length);
 
-  function handleClick() {
+  function handleSetupButtonClick() {
     trackAnalytics('flags.setup_modal_opened', {organization});
     openModal(modalProps => <SetupIntegrationModal {...modalProps} />, {
       modalCss,
@@ -186,7 +186,11 @@ export function EventFeatureFlagList({
       {feedbackButton}
       {hasFlagContext && (
         <Fragment>
-          <Button aria-label={t('Set Up Integration')} size="xs" onClick={handleClick}>
+          <Button
+            aria-label={t('Set Up Integration')}
+            size="xs"
+            onClick={handleSetupButtonClick}
+          >
             {t('Set Up Integration')}
           </Button>
           {hasFlags && (
