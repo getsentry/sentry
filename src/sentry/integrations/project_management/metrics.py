@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.mixins.issues import IssueBasicIntegration
+from sentry.integrations.models import Integration
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
 
 
@@ -22,10 +23,10 @@ class ProjectManagementActionType(Enum):
 @dataclass
 class ProjectManagementEvent(IntegrationEventLifecycleMetric):
     action_type: ProjectManagementActionType
-    integration: IssueBasicIntegration
+    integration: Integration | RpcIntegration
 
     def get_integration_name(self) -> str:
-        return self.integration.issue_provider_name
+        return self.integration.provider
 
     def get_integration_domain(self) -> IntegrationDomain:
         return IntegrationDomain.PROJECT_MANAGEMENT

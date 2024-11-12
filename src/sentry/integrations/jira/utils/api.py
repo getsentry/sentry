@@ -13,6 +13,7 @@ from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.shared_integrations.exceptions import ApiError
 
 from ...mixins.issues import IssueSyncIntegration
+from ...project_management.metrics import ProjectManagementActionType, ProjectManagementEvent
 from ..client import JiraCloudClient
 
 logger = logging.getLogger(__name__)
@@ -52,27 +53,34 @@ def handle_assignee_change(
     issue_key = data["issue"]["key"]
 
     log_context = {"issue_key": issue_key, "integration_id": integration.id}
-    assignee_changed = any(
-        item for item in data["changelog"]["items"] if item["field"] == "assignee"
-    )
-    if not assignee_changed:
-        logger.info("jira.assignee-not-in-changelog", extra=log_context)
-        return
 
-    # If there is no assignee, assume it was unassigned.
-    fields = data["issue"]["fields"]
-    assignee = fields.get("assignee")
+    with ProjectManagementEvent(
+        ProjectManagementActionType.INBOUND_ASSIGNMENT_SYNC, integration=integration
+    ).capture() as lifecycle:
+        assignee_changed = any(
+            item for item in data["changelog"]["items"] if item["field"] == "assignee"
+        )
+        if not assignee_changed:
+            lifecycle.record_halt()
+            logger.info("jira.assignee-not-in-changelog", extra=log_context)
+            return
 
-    if assignee is None:
-        sync_group_assignee_inbound(integration, None, issue_key, assign=False)
-        return
+        # If there is no assignee, assume it was unassigned.
+        fields = data["issue"]["fields"]
+        assignee = fields.get("assignee")
 
-    email = get_assignee_email(integration, assignee, use_email_scope)
-    if not email:
-        logger.info("jira.missing-assignee-email", extra=log_context)
-        return
+        if assignee is None:
+            lifecycle.record_halt()
+            sync_group_assignee_inbound(integration, None, issue_key, assign=False)
+            return
 
-    sync_group_assignee_inbound(integration, email, issue_key, assign=True)
+        email = get_assignee_email(integration, assignee, use_email_scope)
+        if not email:
+            lifecycle.record_halt()
+            logger.info("jira.missing-assignee-email", extra=log_context)
+            return
+
+        sync_group_assignee_inbound(integration, email, issue_key, assign=True)
 
 
 def handle_status_change(integration, data):

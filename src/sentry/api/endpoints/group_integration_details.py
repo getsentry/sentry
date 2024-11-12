@@ -174,7 +174,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         installation = integration.get_installation(organization_id=organization_id)
 
         with ProjectManagementEvent(
-            action_type=ProjectManagementActionType.LINK_EXTERNAL_ISSUE, integration=installation
+            action_type=ProjectManagementActionType.LINK_EXTERNAL_ISSUE,
+            integration=installation.model,
         ).capture() as lifecycle:
             try:
                 data = installation.get_issue(external_issue_id, data=request.data)

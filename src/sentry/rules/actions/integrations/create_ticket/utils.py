@@ -120,7 +120,8 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             return
 
         project_management_event = ProjectManagementEvent(
-            action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE, integration=integration
+            action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE,
+            integration=integration.model,
         )
 
         with project_management_event.capture() as lifecycle:
