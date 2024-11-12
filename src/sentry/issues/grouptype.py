@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
     from sentry.users.models.user import User
     from sentry.workflow_engine.processors.detector import DetectorHandler
+    from sentry.workflow_engine.endpoints.validators import BaseGroupTypeDetectorValidator
 
 import logging
 
@@ -172,6 +173,7 @@ class GroupType:
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
     notification_config: NotificationConfig = NotificationConfig()
     detector_handler: type[DetectorHandler] | None = None
+    detector_validator: type[BaseGroupTypeDetectorValidator] | None = None
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)

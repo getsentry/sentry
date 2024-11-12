@@ -569,6 +569,30 @@ default_manager.add(
         template="removed uptime monitor {name}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=210,
+        name="WORKFLOW_ENGINE_DETECTOR_ADD",
+        api_name="workflow_engine_detector.add",
+        template="added workflow engine detector {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=211,
+        name="WORKFLOW_ENGINE_DETECTOR_EDIT",
+        api_name="workflow_engine_detector.edit",
+        template="edited workflow engine detector {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=212,
+        name="WORKFLOW_ENGINE_DETECTOR_REMOVE",
+        api_name="workflow_engine_detector.remove",
+        template="removed workflow engine detector {name}",
+    )
+)
 
 default_manager.add(events.DataSecrecyWaivedAuditLogEvent())
 
