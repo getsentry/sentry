@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
@@ -83,3 +83,17 @@ class FlagAuditLogModel(Model):
         indexes = (models.Index(fields=("flag",)),)
 
     __repr__ = sane_repr("organization_id", "flag")
+
+
+@region_silo_model
+class FlagWebHookSigningSecretModel(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    organization = FlexibleForeignKey("sentry.Organization")
+    provider = models.CharField(db_index=True)
+    secret = models.CharField()
+
+    class Meta:
+        app_label = "flags"
+        db_table = "flags_webhooksigningsecret"
+        unique_together = (("organization", "provider"),)
