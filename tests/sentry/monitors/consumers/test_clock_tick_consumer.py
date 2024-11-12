@@ -25,7 +25,6 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.monitors.types import TickVolumeAnomolyResult
 from sentry.testutils.cases import TestCase
 
 partition = Partition(Topic("test"), 0)
@@ -64,10 +63,7 @@ def test_simple(
     assert mock_dispatch_check_timeout.mock_calls[0] == mock.call(ts)
 
     assert mock_dispatch_check_missing.call_count == 1
-    assert mock_dispatch_check_missing.mock_calls[0] == mock.call(
-        ts,
-        TickVolumeAnomolyResult.NORMAL,
-    )
+    assert mock_dispatch_check_missing.mock_calls[0] == mock.call(ts)
 
 
 class MonitorsClockTickEndToEndTest(TestCase):
