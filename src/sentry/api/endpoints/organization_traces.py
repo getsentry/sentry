@@ -77,6 +77,7 @@ class TraceResult(TypedDict):
     matchingSpans: int
     project: str | None
     name: str | None
+    rootDuration: float | None
     duration: int
     start: int
     end: int
@@ -872,15 +873,15 @@ class TracesExecutor:
             sentry_sdk.capture_exception(e, contexts={"bad_traces": context})
 
         # This is the name of the trace's root span without a parent span
-        traces_primary_names: MutableMapping[str, tuple[str, str]] = {}
+        traces_primary_info: MutableMapping[str, tuple[str, str, float]] = {}
 
         # This is the name of a span that can take the place of the trace's root
         # based on some heuristics for that type of trace
-        traces_fallback_names: MutableMapping[str, tuple[str, str]] = {}
+        traces_fallback_info: MutableMapping[str, tuple[str, str, float]] = {}
 
         # This is the name of the first span in the trace that will be used if
         # no other candidates names are found
-        traces_default_names: MutableMapping[str, tuple[str, str]] = {}
+        traces_default_info: MutableMapping[str, tuple[str, str, float]] = {}
 
         # Normally, the name given to a trace is the name of the first root transaction
         # found within the trace.
@@ -889,38 +890,44 @@ class TracesExecutor:
         # these traces, we try to pick out a name from the first span that is a good
         # candidate for the trace name.
         for row in traces_breakdown_projects_results["data"]:
-            if row["trace"] in traces_primary_names:
+            if row["trace"] in traces_primary_info:
                 continue
+
+            name: tuple[str, str, float] = (
+                row["project"],
+                row["transaction"],
+                row["span.duration"],
+            )
 
             # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
             # So make sure to handle both in case something changes.
             if not row["parent_span"] or int(row["parent_span"], 16) == 0:
-                traces_primary_names[row["trace"]] = (row["project"], row["transaction"])
+                traces_primary_info[row["trace"]] = name
 
-            if row["trace"] in traces_fallback_names:
+            if row["trace"] in traces_fallback_info:
                 continue
 
             # This span is a good candidate for the trace name so use it.
-            if row["trace"] not in traces_fallback_names and is_trace_name_candidate(row):
-                traces_fallback_names[row["trace"]] = (row["project"], row["transaction"])
+            if row["trace"] not in traces_fallback_info and is_trace_name_candidate(row):
+                traces_fallback_info[row["trace"]] = name
 
-            if row["trace"] in traces_default_names:
+            if row["trace"] in traces_default_info:
                 continue
 
             # This is the first span in this trace.
-            traces_default_names[row["trace"]] = (row["project"], row["transaction"])
+            traces_default_info[row["trace"]] = name
 
-        def get_trace_name(trace):
-            if trace in traces_primary_names:
-                return traces_primary_names[trace]
+        def get_trace_info(trace: str) -> tuple[str, str, float] | tuple[None, None, None]:
+            if trace in traces_primary_info:
+                return traces_primary_info[trace]
 
-            if trace in traces_fallback_names:
-                return traces_fallback_names[trace]
+            if trace in traces_fallback_info:
+                return traces_fallback_info[trace]
 
-            if trace in traces_default_names:
-                return traces_default_names[trace]
+            if trace in traces_default_info:
+                return traces_default_info[trace]
 
-            return (None, None)
+            return (None, None, None)
 
         traces_errors: Mapping[str, int] = {
             row["trace"]: row["count()"] for row in traces_errors_results["data"]
@@ -930,22 +937,29 @@ class TracesExecutor:
             row["trace"]: row["count()"] for row in traces_occurrences_results["data"]
         }
 
-        return [
-            {
+        results: list[TraceResult] = []
+
+        for row in traces_metas_results["data"]:
+            info = get_trace_info(row["trace"])
+
+            result: TraceResult = {
                 "trace": row["trace"],
                 "numErrors": traces_errors.get(row["trace"], 0),
                 "numOccurrences": traces_occurrences.get(row["trace"], 0),
                 "matchingSpans": row[MATCHING_COUNT_ALIAS],
                 "numSpans": row["count()"],
-                "project": get_trace_name(row["trace"])[0],
-                "name": get_trace_name(row["trace"])[1],
+                "project": info[0],
+                "name": info[1],
+                "rootDuration": info[2],
                 "duration": row["last_seen()"] - row["first_seen()"],
                 "start": row["first_seen()"],
                 "end": row["last_seen()"],
                 "breakdowns": traces_breakdowns[row["trace"]],
             }
-            for row in traces_metas_results["data"]
-        ]
+
+            results.append(result)
+
+        return results
 
     def process_meta_results(self, results):
         return results["meta"]
@@ -978,6 +992,7 @@ class TracesExecutor:
                 "transaction",
                 "precise.start_ts",
                 "precise.finish_ts",
+                "span.duration",
             ],
             orderby=["precise.start_ts", "-precise.finish_ts"],
             # limit the number of segments we fetch per trace so a single
@@ -1013,6 +1028,7 @@ class TracesExecutor:
                 "transaction",
                 "precise.start_ts",
                 "precise.finish_ts",
+                "span.duration",
             ],
             orderby=["precise.start_ts", "-precise.finish_ts"],
             # limit the number of segments we fetch per trace so a single
