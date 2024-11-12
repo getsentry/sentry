@@ -75,6 +75,11 @@ export function EventDetailsHeader({
             <ToggleButton
               onClick={() => setSidebarOpen(!sidebarOpen)}
               aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
+              analyticsEventKey="issue_details.sidebar_toggle"
+              analyticsEventName="Issue Details: Sidebar Toggle"
+              analyticsParams={{
+                sidebar_open: !sidebarOpen,
+              }}
             >
               <LeftChevron direction={direction} />
               <RightChevron direction={direction} />
