@@ -310,7 +310,7 @@ function AutofixSetupSteps({
   );
 }
 
-function AutofixSetupContent({
+export function AutofixSetupContent({
   projectId,
   groupId,
   closeModal,
@@ -350,13 +350,21 @@ function AutofixSetupContent({
   }
 
   return (
-    <AutofixSetupSteps
-      groupId={groupId}
-      projectId={projectId}
-      autofixSetup={data}
-      canStartAutofix={canStartAutofix}
-      closeModal={closeModal}
-    />
+    <Fragment>
+      <Header>Set up Autofix</Header>
+      <p>
+        Sentry's AI-enabled Autofix uses all of the contextual data surrounding this error
+        to work with you to find the root cause and create a fix.
+      </p>
+      <p>A few additional steps are needed before you can use Autofix.</p>
+      <AutofixSetupSteps
+        groupId={groupId}
+        projectId={projectId}
+        autofixSetup={data}
+        canStartAutofix={canStartAutofix}
+        closeModal={closeModal}
+      />
+    </Fragment>
   );
 }
 
@@ -391,6 +399,13 @@ export const AutofixSetupDone = styled('div')`
   flex-direction: column;
   padding: 40px;
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const Header = styled('p')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  margin-bottom: ${space(2)};
+  margin-top: ${space(2)};
 `;
 
 const RepoLinkUl = styled('ul')`

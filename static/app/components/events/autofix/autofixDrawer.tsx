@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import bannerImage from 'sentry-images/insights/module-upsells/insights-module-upsell.svg';
+import starImage from 'sentry-images/spot/banner-star.svg';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
@@ -10,8 +11,11 @@ import ButtonBar from 'sentry/components/buttonBar';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
+import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {GroupSummaryBody, useGroupSummary} from 'sentry/components/group/groupSummary';
 import Input from 'sentry/components/input';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -20,6 +24,8 @@ import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
+
+import {AutofixSetupContent} from './autofixSetupModal';
 
 interface AutofixStartBoxProps {
   groupId: string;
@@ -38,41 +44,36 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
       <IllustrationContainer>
         <Illustration src={bannerImage} />
       </IllustrationContainer>
-      <Header>Ready to start</Header>
+      <Header>Autofix</Header>
       <br />
-      <p>
-        We'll begin by trying to figure out the root cause of the issue. If you have any
-        instructions or helpful context before we begin, you can optionally share that
-        below.
-      </p>
+      <p>Work together with Autofix to find the root cause and fix the issue.</p>
       <Row>
         <Input
           type="text"
           value={message}
           onChange={e => setMessage(e.target.value)}
-          placeholder={'(Optional) Share any extra context or instructions here...'}
+          placeholder={'(Optional) Share helpful context here...'}
         />
-        {message ? (
+        <ButtonWithStars>
+          <StarLarge1 src={starImage} />
+          <StarLarge2 src={starImage} />
+          <StarLarge3 src={starImage} />
           <Button
             priority="primary"
             onClick={send}
-            analyticsEventKey="autofix.give_instructions_clicked"
-            analyticsEventName="Autofix: Give Instructions Clicked"
+            analyticsEventKey={
+              message ? 'autofix.give_instructions_clicked' : 'autofix.start_fix_clicked'
+            }
+            analyticsEventName={
+              message
+                ? 'Autofix: Give Instructions Clicked'
+                : 'Autofix: Start Fix Clicked'
+            }
             analyticsParams={{group_id: groupId}}
           >
-            Start
+            {message ? 'Start' : 'Start Autofix'}
           </Button>
-        ) : (
-          <Button
-            priority="primary"
-            onClick={send}
-            analyticsEventKey="autofix.start_fix_clicked"
-            analyticsEventName="Autofix: Start Fix Clicked"
-            analyticsParams={{group_id: groupId}}
-          >
-            Start
-          </Button>
-        )}
+        </ButtonWithStars>
       </Row>
     </StartBox>
   );
@@ -86,9 +87,16 @@ interface AutofixDrawerProps {
 
 export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
+  const {data: summaryData, isError} = useGroupSummary(group.id, group.issueCategory);
+  const {data: setupData, isPending: isSetupLoading} = useAutofixSetup({
+    groupId: group.id,
+  });
+
   useRouteAnalyticsParams({
     autofix_status: autofixData?.status ?? 'none',
   });
+
+  const isSetupComplete = setupData?.integration.ok && setupData?.genAIConsent.ok;
 
   return (
     <AutofixDrawerContainer>
@@ -128,7 +136,22 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
         )}
       </AutofixNavigator>
       <AutofixDrawerBody>
-        {!autofixData ? (
+        <HeaderText>
+          <IconSeer size="lg" />
+          {t('Sentry AI')}
+        </HeaderText>
+        <StyledCard>
+          <GroupSummaryBody data={summaryData} isError={isError} />
+        </StyledCard>
+        {!isSetupLoading && !isSetupComplete ? (
+          <SetupContainer>
+            <AutofixSetupContent
+              projectId={project.id}
+              groupId={group.id}
+              closeModal={() => {}} // Setup is inline, so no modal to close
+            />
+          </SetupContainer>
+        ) : !autofixData ? (
           <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
         ) : (
           <AutofixSteps
@@ -162,7 +185,6 @@ const StartBox = styled('div')`
   padding: ${space(2)};
   display: flex;
   flex-direction: column;
-  height: 100%;
   width: 100%;
 `;
 
@@ -224,4 +246,63 @@ const ShortId = styled('div')`
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
+`;
+
+const ButtonWithStars = styled('div')`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const StarLarge = styled('img')`
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  z-index: 0;
+`;
+
+const StarLarge1 = styled(StarLarge)`
+  left: -10px;
+  bottom: -20px;
+  transform: rotate(90deg);
+`;
+
+const StarLarge2 = styled(StarLarge)`
+  right: -15px;
+  top: -20px;
+  transform: rotate(-30deg);
+`;
+
+const StarLarge3 = styled(StarLarge)`
+  right: -30px;
+  bottom: -15px;
+  transform: rotate(20deg);
+`;
+
+const SetupContainer = styled('div')`
+  padding: ${space(2)};
+
+  /* Override some modal-specific styles */
+  h3 {
+    font-size: ${p => p.theme.fontSizeLarge};
+    margin-bottom: ${space(2)};
+  }
+`;
+
+const StyledCard = styled('div')`
+  background: ${p => p.theme.backgroundElevated};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  overflow: hidden;
+  box-shadow: ${p => p.theme.dropShadowMedium};
+  padding-bottom: ${space(1)};
+`;
+
+const HeaderText = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeLarge};
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  padding-bottom: ${space(2)};
 `;
