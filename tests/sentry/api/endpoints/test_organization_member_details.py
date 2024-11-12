@@ -240,7 +240,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         )
         assert (
             response.data.get("detail")
-            == "You can only reinvite members; you cannot modify other member details."
+            == "You cannot modify other member details when resending an invitation."
         )
         assert not mock_send_invite_email.mock_calls
 
@@ -263,6 +263,54 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         )
         assert response.data.get("detail") == "You do not have permission to perform this action."
         assert not mock_send_invite_email.mock_calls
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    def test_cannot_reinvite_and_modify_member(self, mock_send_invite_email):
+        member_om = self.create_member(
+            organization=self.organization, email="foo@example.com", role="member"
+        )
+
+        response = self.get_error_response(
+            self.organization.slug, member_om.id, reinvite=1, role="manager", status_code=403
+        )
+        assert (
+            response.data.get("detail")
+            == "You cannot modify other member details when resending an invitation."
+        )
+        assert not mock_send_invite_email.mock_calls
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    def test_member_details_not_modified_after_reinviting(self, mock_send_invite_email):
+        team = self.create_team(organization=self.organization, name="Moo Deng's Team")
+
+        member_om = self.create_member(
+            organization=self.organization,
+            email="foo@example.com",
+            role="member",
+            teams=[team],
+        )
+        teams = list(map(lambda team: team.slug, member_om.teams.all()))
+        roles = [t for t in member_om.get_team_roles()]
+        assert member_om.role == "member"
+        assert team.slug in teams
+        assert roles == [
+            {
+                "team": team.id,
+                "role": None,
+            }
+        ]
+
+        self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
+        teams = list(map(lambda team: team.slug, member_om.teams.all()))
+        roles = [t for t in member_om.get_team_roles()]
+        assert member_om.role == "member"
+        assert team.slug in teams
+        assert roles == [
+            {
+                "team": team.id,
+                "role": None,
+            }
+        ]
 
     @patch("sentry.ratelimits.for_organization_member_invite")
     @patch("sentry.models.OrganizationMember.send_invite_email")
