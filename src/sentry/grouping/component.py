@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Iterator, Sequence
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar
 
 from sentry.grouping.utils import hash_from_values
 
@@ -174,3 +174,141 @@ class BaseGroupingComponent:
 
 
 GroupingComponent = TypeVar("GroupingComponent", bound=BaseGroupingComponent)
+ValueType = TypeVar("ValueType", bound=(str | int))
+
+
+class ValueGroupingComponent(BaseGroupingComponent, Generic[ValueType]):
+    """
+    A component whose `values` is a list of a single actual value rather than a lit of other
+    grouping components.
+    """
+
+    values: list[ValueType]
+
+
+# Top-level components
+
+
+class MessageGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "message"
+
+
+class ExceptionGroupingComponent(BaseGroupingComponent):
+    id: str = "exception"
+    values: list[
+        ErrorTypeGroupingComponent
+        | ErrorValueGroupingComponent
+        | NSErrorGroupingComponent
+        | StacktraceGroupingComponent
+    ]
+
+
+class ChainedExceptionGroupingComponent(BaseGroupingComponent):
+    id: str = "chained-exception"
+    values: list[ExceptionGroupingComponent]
+
+
+class StacktraceGroupingComponent(BaseGroupingComponent):
+    id: str = "stacktrace"
+    values: list[FrameGroupingComponent]
+
+
+class ThreadsGroupingComponent(BaseGroupingComponent):
+    id: str = "threads"
+    values: list[StacktraceGroupingComponent]
+
+
+class CSPGroupingComponent(BaseGroupingComponent):
+    id: str = "csp"
+    values: list[SaltGroupingComponent | ViolationGroupingComponent | URIGroupingComponent]
+
+
+class ExpectCTGroupingComponent(BaseGroupingComponent):
+    id: str = "expect-ct"
+    values: list[HostnameGroupingComponent | SaltGroupingComponent]
+
+
+class ExpectStapleGroupingComponent(BaseGroupingComponent):
+    id: str = "expect-staple"
+    values: list[HostnameGroupingComponent | SaltGroupingComponent]
+
+
+class HPKPGroupingComponent(BaseGroupingComponent):
+    id: str = "hpkp"
+    values: list[HostnameGroupingComponent | SaltGroupingComponent]
+
+
+class TemplateGroupingComponent(BaseGroupingComponent):
+    id: str = "template"
+    values: list[ContextLineGroupingComponent | FilenameGroupingComponent]
+
+
+# Error-related inner components
+
+
+class FrameGroupingComponent(BaseGroupingComponent):
+    id: str = "frame"
+    values: list[
+        ContextLineGroupingComponent
+        | FilenameGroupingComponent
+        | FunctionGroupingComponent
+        | LineNumberGroupingComponent  # only in legacy config
+        | ModuleGroupingComponent
+        | SymbolGroupingComponent  # only in legacy config
+    ]
+
+
+class ContextLineGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "context-line"
+
+
+class ErrorTypeGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "type"
+
+
+class ErrorValueGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "value"
+
+
+class FilenameGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "filename"
+
+
+class FunctionGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "function"
+
+
+class LineNumberGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "lineno"
+
+
+class ModuleGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "module"
+
+
+class NSErrorGroupingComponent(ValueGroupingComponent[str | int]):
+    id: str = "ns-error"
+
+
+class SymbolGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "symbol"
+
+
+# Security-related inner components
+
+
+class HostnameGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "hostname"
+
+
+class SaltGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "salt"
+    hint: str = "a static salt"
+
+
+class ViolationGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "violation"
+
+
+class URIGroupingComponent(ValueGroupingComponent[str]):
+    id: str = "uri"
