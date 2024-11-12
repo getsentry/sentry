@@ -1,3 +1,4 @@
+from collections.abc import Mapping, MutableMapping
 from datetime import datetime
 from types import TracebackType
 from typing import Any, Self
@@ -14,9 +15,13 @@ from urllib3.response import HTTPResponse as VroomResponse
 
 from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
+from sentry.grouping.enhancer import Enhancements, keep_profiling_rules
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
 from sentry.utils.sdk import set_measurement
+
+Profile = MutableMapping[str, Any]
+CallTrees = Mapping[str, list[Any]]
 
 
 class RetrySkipTimeout(urllib3.Retry):
@@ -171,3 +176,24 @@ def parse_profile_filters(query: str) -> dict[str, str]:
         profile_filters[term.key.name] = term.value.value
 
     return profile_filters
+
+
+def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> None:
+    profiling_rules = keep_profiling_rules(rules_config)
+    if profiling_rules == "":
+        return
+    enhancements = Enhancements.from_config_string(profiling_rules)
+    if "version" in profile:
+        enhancements.apply_modifications_to_frame(
+            profile["profile"]["frames"], profile["platform"], {}
+        )
+    elif profile["platform"] == "android":
+        # set the fields that Enhancements expect
+        # with the right names.
+        for method in profile["profile"]["methods"]:
+            method["function"] = method.get("name", "")
+            method["abs_path"] = method.get("source_file", "")
+            method["module"] = method.get("class_name", "")
+        enhancements.apply_modifications_to_frame(
+            profile["profile"]["methods"], profile["platform"], {}
+        )
