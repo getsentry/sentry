@@ -218,9 +218,9 @@ def get_context(group: Group, rules: list[Rule] | None = None) -> str:
     state = None
     event_count = None
     if NotificationContextField.STATE in context:
-        state = SUPPORTED_CONTEXT_DATA[NotificationContextField.STATE](group)
+        state = SUPPORTED_CONTEXT_DATA[NotificationContextField.STATE](group, rules)
     if NotificationContextField.EVENTS in context:
-        event_count = SUPPORTED_CONTEXT_DATA[NotificationContextField.EVENTS](group)
+        event_count = SUPPORTED_CONTEXT_DATA[NotificationContextField.EVENTS](group, rules)
 
     if (state and state == "New") or (event_count and int(event_count) <= 1):
         if NotificationContextField.EVENTS in context:
