@@ -177,6 +177,9 @@ export interface Config {
     environment?: string;
     profilesSampleRate?: number;
   };
+  // sentryMode intends to supersede isSelfHosted,
+  // so we can differentiate between "SELF_HOSTED", "SINGLE_TENANT", and "SAAS".
+  sentryMode: 'SELF_HOSTED' | 'SINGLE_TENANT' | 'SAAS';
   shouldPreloadData: boolean;
   singleOrganization: boolean;
   superUserCookieDomain: string | null;
