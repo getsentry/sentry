@@ -311,7 +311,15 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           </Container>
         );
       }
-      return <Container>{nullableValue(value)}</Container>;
+
+      const content =
+        value && typeof value === 'string' ? (
+          <span title={value}>{nullableValue(value)}</span>
+        ) : (
+          nullableValue(value)
+        );
+
+      return <Container>{content}</Container>;
     },
   },
   array: {
