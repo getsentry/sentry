@@ -8,6 +8,7 @@ from django.urls import reverse
 from sentry import options
 from sentry.api.utils import generate_region_url
 from sentry.auth import superuser
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_deletion
 from sentry.models.apitoken import ApiToken
@@ -77,10 +78,61 @@ class RobotsTxtTest(TestCase):
     def path(self):
         return reverse("sentry-robots-txt")
 
-    def test_robots(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        assert resp["Content-Type"] == "text/plain"
+    def test_robots_self_hosted(self):
+        with override_settings(SENTRY_MODE=SentryMode.SELF_HOSTED):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "text/plain"
+            assert (
+                resp.content
+                == b"""\
+User-agent: *
+Disallow: /
+"""
+            )
+
+    def test_robots_saas(self):
+        with override_settings(SENTRY_MODE=SentryMode.SAAS):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "text/plain"
+            # This is sentry.io/robots.txt.
+            assert (
+                resp.content
+                == b"""\
+User-agent: *
+Disallow: /api/
+Allow: /api/*/store/
+Allow: /
+
+Sitemap: https://sentry.io/sitemap-index.xml
+"""
+            )
+
+            # SaaS customer domains should disallow all.
+            resp = self.client.get(self.path, HTTP_HOST="foo.testserver")
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "text/plain"
+            assert (
+                resp.content
+                == b"""\
+User-agent: *
+Disallow: /
+"""
+            )
+
+    def test_robots_single_tenant(self):
+        with override_settings(SENTRY_MODE=SentryMode.SINGLE_TENANT):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "text/plain"
+            assert (
+                resp.content
+                == b"""\
+User-agent: *
+Disallow: /
+"""
+            )
 
 
 @region_silo_test(regions=create_test_regions("us", "eu"), include_monolith_run=True)
