@@ -157,7 +157,7 @@ describe('groupEvents', () => {
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    const input = screen.getByPlaceholderText('Search events...');
+    const input = screen.getByPlaceholderText('Search events\u2026');
 
     await userEvent.click(input);
     await userEvent.keyboard('foo');
@@ -183,7 +183,7 @@ describe('groupEvents', () => {
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    const input = screen.getByPlaceholderText('Search events...');
+    const input = screen.getByPlaceholderText('Search events\u2026');
 
     await userEvent.click(input);
 

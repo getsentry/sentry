@@ -22,7 +22,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {
+  type GroupTag,
+  useGroupTags,
+} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {
   mergeAndSortTagValues,
   useHasStreamlinedUI,
@@ -81,7 +84,7 @@ export function useEventQuery({group}: {group: Group}): string {
   return joinQuery(validQuery, false, true);
 }
 
-function useEventSearchFilterKeys(data) {
+function useEventSearchFilterKeys(data: GroupTag[]): TagCollection {
   const filterKeys = useMemo<TagCollection>(() => {
     const tags = [
       ...data.map(tag => ({...tag, kind: FieldKind.TAG})),
@@ -190,8 +193,8 @@ export function EventSearch({
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
-      placeholder={hasStreamlinedUI ? t('Filter events...') : t('Search events...')}
-      label={hasStreamlinedUI ? t('Filter events...') : t('Search events')}
+      placeholder={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events\u2026')}
+      label={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events')}
       searchSource="issue_events_tab"
       className={className}
       showUnsubmittedIndicator

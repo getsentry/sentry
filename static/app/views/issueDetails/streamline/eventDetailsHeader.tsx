@@ -122,7 +122,7 @@ const EnvironmentFilter = styled(EnvironmentPageFilter)`
 `;
 
 const SearchFilter = styled(EventSearch)`
-  border: 0;
+  border-color: transparent;
   border-radius: 0;
   box-shadow: none;
 `;
