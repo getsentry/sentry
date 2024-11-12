@@ -279,7 +279,7 @@ describe('ProjectFilters', function () {
 
     expect(
       await screen.findByText(
-        "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
+        "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
       )
     ).toBeInTheDocument();
   });
