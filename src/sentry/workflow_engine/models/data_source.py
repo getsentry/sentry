@@ -1,3 +1,4 @@
+import builtins
 import dataclasses
 from typing import Generic, TypeVar
 
@@ -10,9 +11,11 @@ from sentry.db.models import (
     FlexibleForeignKey,
     region_silo_model,
 )
+from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 
 T = TypeVar("T")
+U = TypeVar("U")
 
 
 @dataclasses.dataclass
@@ -21,17 +24,22 @@ class DataPacket(Generic[T]):
     packet: T
 
 
+class DataSourceTypeHandler(Generic[U]):
+    @staticmethod
+    def bulk_get_query_object(data_sources) -> dict[int, U | None]:
+        raise NotImplementedError
+
+
+data_source_type_registry = Registry[type[DataSourceTypeHandler]]()
+
+
 @region_silo_model
 class DataSource(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
-    class Type(models.IntegerChoices):
-        SNUBA_QUERY_SUBSCRIPTION = 1
-        SNUBA_QUERY = 2
-
     organization = FlexibleForeignKey("sentry.Organization")
     query_id = BoundedBigIntegerField()
-    type = models.SmallIntegerField(choices=Type.choices)
+    type = models.TextField()
 
     detectors = models.ManyToManyField("workflow_engine.Detector", through=DataSourceDetector)
 
@@ -39,3 +47,10 @@ class DataSource(DefaultFieldsModel):
         models.Index(fields=("type", "query_id")),
         models.Index(fields=("organization", "type", "query_id")),
     ]
+
+    @property
+    def type_handler(self) -> builtins.type[DataSourceTypeHandler]:
+        handler = data_source_type_registry.get(self.type)
+        if not handler:
+            raise ValueError(f"Unknown data source type: {self.type}")
+        return handler

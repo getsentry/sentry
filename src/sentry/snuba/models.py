@@ -12,6 +12,11 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.team import Team
 from sentry.users.models.user import User
+from sentry.workflow_engine.models.data_source import (
+    DataSource,
+    DataSourceTypeHandler,
+    data_source_type_registry,
+)
 
 
 class QueryAggregations(Enum):
@@ -144,3 +149,16 @@ class QuerySubscription(Model):
         subscription.save()
 
         return (subscription.pk, ImportKind.Inserted)
+
+
+@data_source_type_registry.register("snuba_query_subscription")
+class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription]):
+    @staticmethod
+    def bulk_get_query_object(
+        data_sources: list[DataSource],
+    ) -> dict[int, QuerySubscription | None]:
+        qs_lookup = {
+            qs.id: qs
+            for qs in QuerySubscription.objects.filter(id__in=[ds.query_id for ds in data_sources])
+        }
+        return {ds.id: qs_lookup.get(ds.query_id) for ds in data_sources}
