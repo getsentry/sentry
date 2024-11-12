@@ -30,10 +30,6 @@ def mark_failed(
     if monitor_env is None:
         return False
 
-    failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 1)
-    if not failure_issue_threshold:
-        failure_issue_threshold = 1
-
     # Compute the next check-in time from our reference time
     next_checkin = monitor_env.monitor.get_next_expected_checkin(failed_at)
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(failed_at)
@@ -76,4 +72,4 @@ def mark_failed(
     monitor_env.refresh_from_db()
 
     # Create incidents + issues
-    return try_incident_threshold(failed_checkin, failure_issue_threshold, received)
+    return try_incident_threshold(failed_checkin, received)
