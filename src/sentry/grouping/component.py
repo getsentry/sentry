@@ -170,4 +170,4 @@ class GroupingComponent:
         return rv
 
     def __repr__(self) -> str:
-        return f"GroupingComponent({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"
+        return f"{self.__class__.__name__}({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"
