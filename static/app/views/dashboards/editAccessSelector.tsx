@@ -49,6 +49,13 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       newSelectedValues.includes(teamId)
     );
 
+    // Enables/Disables the 'Save Changes' button
+    if (isEqual(newSelectedValues, getSelectedOptions())) {
+      setHasUnsavedChanges(false);
+    } else {
+      setHasUnsavedChanges(true);
+    }
+
     if (
       !selectedOptions.includes('_allUsers') &&
       newSelectedValues.includes('_allUsers')
@@ -210,7 +217,6 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       size="sm"
       onChange={newSelectedOptions => {
         onSelectOptions(newSelectedOptions);
-        setHasUnsavedChanges(true);
       }}
       multiple
       searchable
@@ -223,7 +229,6 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         setMenuOpen(!isMenuOpen);
         if (isMenuOpen) {
           setSelectedOptions(getSelectedOptions());
-          setHasUnsavedChanges(false);
         }
       }}
       menuFooter={dropdownFooterButtons}
