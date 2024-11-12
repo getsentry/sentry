@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 def try_incident_threshold(
     failed_checkin: MonitorCheckIn,
-    failure_issue_threshold: int,
     received: datetime | None,
 ) -> bool:
     from sentry.signals import monitor_environment_failed
@@ -22,6 +21,10 @@ def try_incident_threshold(
 
     if monitor_env is None:
         return False
+
+    failure_issue_threshold = monitor_env.monitor.config.get("failure_issue_threshold", 1)
+    if not failure_issue_threshold:
+        failure_issue_threshold = 1
 
     # check to see if we need to update the status
     if monitor_env.status in [MonitorStatus.OK, MonitorStatus.ACTIVE]:
