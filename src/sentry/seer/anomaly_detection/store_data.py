@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
@@ -37,6 +38,7 @@ seer_anomaly_detection_connection_pool = connection_from_url(
     settings.SEER_ANOMALY_DETECTION_URL,
     timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
 )
+MIN_DAYS = 7
 
 
 class SeerMethod(StrEnum):
@@ -278,11 +280,12 @@ def send_historical_data_to_seer(
         )
         raise Exception(message)
 
-    min_timestamps = 7 * 24 * 60 / anomaly_detection_config["time_period"]
     data_start_index = _get_start_index(formatted_data)
     if data_start_index == -1:
         return AlertRuleStatus.NOT_ENOUGH_DATA
 
-    if len(formatted_data) - data_start_index < min_timestamps:
+    data_start_time = datetime.fromtimestamp(formatted_data[data_start_index]["timestamp"])
+    data_end_time = datetime.fromtimestamp(formatted_data[-1]["timestamp"])
+    if data_end_time - data_start_time < timedelta(days=MIN_DAYS):
         return AlertRuleStatus.NOT_ENOUGH_DATA
     return AlertRuleStatus.PENDING

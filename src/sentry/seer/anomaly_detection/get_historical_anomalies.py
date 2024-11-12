@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -98,12 +98,14 @@ def get_historical_anomaly_data_from_seer_preview(
     Used for rendering the preview charts of anomaly detection alert rules.
     """
     # Check if historical data has at least seven days of data. Return early if not.
-    MIN_TIMESTAMPS = 7 * 24 * 60 / config["time_period"]
+    MIN_DAYS = 7
     data_start_index = _get_start_index(historical_data)
     if data_start_index == -1:
         return []
 
-    if len(historical_data) - data_start_index < MIN_TIMESTAMPS:
+    data_start_time = datetime.fromtimestamp(historical_data[data_start_index]["timestamp"])
+    data_end_time = datetime.fromtimestamp(historical_data[-1]["timestamp"])
+    if data_end_time - data_start_time < timedelta(days=MIN_DAYS):
         return []
 
     # Send data to Seer
