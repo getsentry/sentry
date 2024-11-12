@@ -18,6 +18,7 @@ import {getCultureContextData} from 'sentry/components/events/contexts/knownCont
 import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
+import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -32,10 +33,6 @@ import commonTheme from 'sentry/utils/theme';
 
 import {getDefaultContextData} from './default';
 import {getKnownDeviceContextData, getUnknownDeviceContextData} from './device';
-import {
-  getKnownOperatingSystemContextData,
-  getUnknownOperatingSystemContextData,
-} from './operatingSystem';
 import {
   getKnownPlatformContextData,
   getPlatformContextIcon,
@@ -409,10 +406,7 @@ export function getFormattedContextData({
     case 'browser':
       return getBrowserContextData({data: contextValue, meta});
     case 'os':
-      return [
-        ...getKnownOperatingSystemContextData({data: contextValue, meta}),
-        ...getUnknownOperatingSystemContextData({data: contextValue, meta}),
-      ];
+      return getOperatingSystemContextData({data: contextValue, meta});
     case 'unity':
       return [
         ...getKnownUnityContextData({data: contextValue, meta}),
