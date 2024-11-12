@@ -48,6 +48,7 @@ type Props = {
   widget: Widget;
   widgetLimitReached: boolean;
   description?: string;
+  hasEditAccess?: boolean;
   index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
@@ -80,6 +81,7 @@ function WidgetCardContextMenu({
   selection,
   widget,
   widgetLimitReached,
+  hasEditAccess,
   onDelete,
   onDuplicate,
   onEdit,
@@ -191,6 +193,7 @@ function WidgetCardContextMenu({
     widget,
     Boolean(isMetricsData),
     widgetLimitReached,
+    hasEditAccess ?? true,
     onDelete,
     onDuplicate,
     onEdit
@@ -267,6 +270,7 @@ export function getMenuOptions(
   widget: Widget,
   isMetricsData: boolean,
   widgetLimitReached: boolean,
+  hasEditAccess?: boolean,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
@@ -352,13 +356,14 @@ export function getMenuOptions(
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
-      disabled: widgetLimitReached,
+      disabled: widgetLimitReached || !hasEditAccess,
     });
 
     menuOptions.push({
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
+      disabled: !hasEditAccess,
     });
 
     menuOptions.push({
@@ -372,6 +377,7 @@ export function getMenuOptions(
           onConfirm: () => onDelete?.(),
         });
       },
+      disabled: !hasEditAccess,
     });
   }
 
