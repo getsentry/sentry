@@ -205,9 +205,9 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
                   icon={<IconAdd />}
                   onClick={() => addOverlay(group)}
                   priority="link"
-                  aria-label={t('Add Overlay')}
+                  aria-label={t('Add Data')}
                 >
-                  {t('Add Overlay')}
+                  {t('Add Data')}
                 </ToolbarFooterButton>
               </ToolbarFooter>
             </Fragment>
