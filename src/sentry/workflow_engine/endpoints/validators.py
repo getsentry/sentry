@@ -25,7 +25,7 @@ class BaseDataConditionValidator(CamelSnakeSerializer):
         raise NotImplementedError
 
     @property
-    def condition_result(self) -> Field:
+    def result(self) -> Field:
         raise NotImplementedError
 
     @property
