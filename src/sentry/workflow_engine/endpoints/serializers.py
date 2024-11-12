@@ -10,7 +10,7 @@ from sentry.workflow_engine.models import (
     DataSourceDetector,
     Detector,
 )
-from sentry.workflow_engine.models.data_source import DataSourceTypeHandler
+from sentry.workflow_engine.types import DataSourceTypeHandler
 
 
 @register(DataSource)

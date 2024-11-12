@@ -183,7 +183,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
-from sentry.workflow_engine.models.data_source import data_source_type_registry
+from sentry.workflow_engine.registry import data_source_type_registry
 from social_auth.models import UserSocialAuth
 
 

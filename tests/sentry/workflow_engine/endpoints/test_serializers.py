@@ -8,7 +8,7 @@ from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
-from sentry.workflow_engine.models.data_source import data_source_type_registry
+from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 

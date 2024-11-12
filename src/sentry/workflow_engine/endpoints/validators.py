@@ -18,11 +18,8 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
-from sentry.workflow_engine.models.data_source import (
-    DataSourceTypeHandler,
-    data_source_type_registry,
-)
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import DetectorPriorityLevel, DataSourceTypeHandler
 
 T = TypeVar("T", bound=Model)
 

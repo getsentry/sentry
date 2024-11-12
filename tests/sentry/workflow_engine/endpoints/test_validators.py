@@ -31,7 +31,7 @@ from sentry.workflow_engine.endpoints.validators import (
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.models.data_source import data_source_type_registry
+from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
 

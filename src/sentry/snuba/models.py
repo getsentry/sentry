@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from enum import Enum
-from typing import ClassVar, Self
+from typing import ClassVar, Self, TYPE_CHECKING
 
 from django.db import models
 from django.utils import timezone
@@ -12,11 +14,12 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.team import Team
 from sentry.users.models.user import User
-from sentry.workflow_engine.models.data_source import (
-    DataSource,
-    DataSourceTypeHandler,
-    data_source_type_registry,
-)
+from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import DataSourceTypeHandler
+
+
+if TYPE_CHECKING:
+    from sentry.workflow_engine.models.data_source import DataSource
 
 
 class QueryAggregations(Enum):

@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("workflow_engine", "0010_detector_state_unique_group"),
+        ("workflow_engine", "0011_data_source_type_change"),
     ]
 
     operations = [

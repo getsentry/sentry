@@ -11,26 +11,17 @@ from sentry.db.models import (
     FlexibleForeignKey,
     region_silo_model,
 )
-from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
+from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import DataSourceTypeHandler
 
 T = TypeVar("T")
-U = TypeVar("U")
 
 
 @dataclasses.dataclass
 class DataPacket(Generic[T]):
     query_id: str
     packet: T
-
-
-class DataSourceTypeHandler(Generic[U]):
-    @staticmethod
-    def bulk_get_query_object(data_sources) -> dict[int, U | None]:
-        raise NotImplementedError
-
-
-data_source_type_registry = Registry[type[DataSourceTypeHandler]]()
 
 
 @region_silo_model
