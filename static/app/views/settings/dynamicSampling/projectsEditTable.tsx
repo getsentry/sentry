@@ -109,8 +109,6 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
               <PercentInput
                 type="number"
                 disabled
-                min={0}
-                max={100}
                 size="sm"
                 value={formatNumberWithDynamicDecimalPoints(projectedOrgRate, 2)}
               />
