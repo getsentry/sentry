@@ -138,7 +138,7 @@ describe('ExploreToolbar', function () {
     ]);
 
     // try adding an overlay
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Overlay'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Data'}));
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     expect(visualizes).toEqual([
