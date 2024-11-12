@@ -20,6 +20,7 @@ import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -127,12 +128,13 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
             addErrorMessage(t('Failed to delete comment'));
           },
           onSuccess: () => {
+            trackAnalytics('issue_details.activity_deleted', {organization});
             addSuccessMessage(t('Comment removed'));
           },
         }
       );
     },
-    [group.activity, mutators, group.id]
+    [group.activity, mutators, group.id, organization]
   );
 
   const handleCreate = useCallback(
@@ -146,11 +148,12 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
         },
         onSuccess: data => {
           GroupStore.addActivity(group.id, data);
+          trackAnalytics('issue_details.activity_created', {organization});
           addSuccessMessage(t('Comment posted'));
         },
       });
     },
-    [group.activity, mutators, group.id]
+    [group.activity, mutators, group.id, organization]
   );
 
   return (
@@ -158,7 +161,14 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
       <Flex justify="space-between" align="center">
         <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
         {showAll && (
-          <TextButton borderless size="zero" onClick={() => setShowAll(false)}>
+          <TextButton
+            borderless
+            size="zero"
+            onClick={() => setShowAll(false)}
+            analyticsEventKey="issue_details.activity_collapsed"
+            analyticsEventName="Issue Details: Activity Collapsed"
+            analyticsParams={{num_activities: group.activity.length}}
+          >
             {t('Collapse')}
           </TextButton>
         )}
@@ -207,6 +217,11 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
                   onClick={() => setShowAll(true)}
                   borderless
                   size="zero"
+                  analyticsEventKey="issue_details.activity_expanded"
+                  analyticsEventName="Issue Details: Activity Expanded"
+                  analyticsParams={{
+                    num_activities_hidden: group.activity.length - 3,
+                  }}
                 >
                   {t('%s activities hidden', group.activity.length - 3)}
                 </TextButton>

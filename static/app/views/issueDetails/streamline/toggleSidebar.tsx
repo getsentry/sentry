@@ -21,6 +21,11 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
         onClick={() => setSidebarOpen(!sidebarOpen)}
         aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
         style={{height: size === 'lg' ? '30px' : '26px'}}
+        analyticsEventKey="issue_details.sidebar_toggle"
+        analyticsEventName="Issue Details: Sidebar Toggle"
+        analyticsParams={{
+          sidebar_open: !sidebarOpen,
+        }}
       >
         <LeftChevron direction={direction} />
         <RightChevron direction={direction} />
