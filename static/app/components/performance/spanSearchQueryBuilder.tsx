@@ -11,7 +11,6 @@ import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {
   type AggregationKey,
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   DEVICE_CLASS_TAG_VALUES,
   FieldKind,
   getFieldDefinition,
@@ -149,6 +148,7 @@ export function SpanSearchQueryBuilder({
 interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
+  supportedAggregates?: AggregationKey[];
 }
 
 export function EAPSpanSearchQueryBuilder({
@@ -158,6 +158,7 @@ export function EAPSpanSearchQueryBuilder({
   searchSource,
   numberTags,
   stringTags,
+  supportedAggregates = [],
 }: EAPSpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -166,8 +167,8 @@ export function EAPSpanSearchQueryBuilder({
   const placeholderText = placeholder ?? t('Search for spans, users, tags, and more');
 
   const functionTags = useMemo(() => {
-    return getFunctionTags(ALLOWED_EXPLORE_VISUALIZE_AGGREGATES);
-  }, []);
+    return getFunctionTags(supportedAggregates);
+  }, [supportedAggregates]);
 
   const tags = useMemo(() => {
     return {...functionTags, ...numberTags, ...stringTags};

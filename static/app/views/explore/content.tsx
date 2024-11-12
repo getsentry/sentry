@@ -19,6 +19,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,6 +34,8 @@ import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 
+import {useResultMode} from './hooks/useResultsMode';
+
 interface ExploreContentProps {
   location: Location;
 }
@@ -43,6 +46,10 @@ function ExploreContentImpl({}: ExploreContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const [dataset] = useDataset();
+
+  const [resultMode] = useResultMode();
+  const supportedAggregates =
+    resultMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
@@ -100,6 +107,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
                   initialQuery={userQuery}
                   onSearch={setUserQuery}
                   searchSource="explore"
+                  supportedAggregates={supportedAggregates}
                   numberTags={numberTags}
                   stringTags={stringTags}
                 />

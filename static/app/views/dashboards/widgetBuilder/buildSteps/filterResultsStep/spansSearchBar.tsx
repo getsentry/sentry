@@ -1,4 +1,5 @@
 import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WidgetBuilderSearchBarProps} from 'sentry/views/dashboards/datasetConfig/base';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -22,6 +23,7 @@ function SpansSearchBar({
       onSearch={onSearch}
       numberTags={numberTags}
       stringTags={stringTags}
+      supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
       searchSource="dashboards"
       projects={projects}
     />
