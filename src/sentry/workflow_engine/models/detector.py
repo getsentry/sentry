@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import builtins
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.db import models
 from django.db.models import UniqueConstraint
@@ -84,3 +84,7 @@ class Detector(DefaultFieldsModel, OwnerModel):
             )
             return None
         return group_type.detector_handler(self)
+
+    def get_audit_log_data(self) -> dict[str, Any]:
+        # TODO: Create proper audit log data for the detector, group and conditions
+        return {}
