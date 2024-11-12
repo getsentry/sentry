@@ -59,8 +59,10 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
 }
 
 const SplitDiffScrollWrapper = styled('div')`
-  height: 65vh;
   overflow: auto;
+  height: 0;
+  display: flex;
+  flex-grow: 1;
 `;
 
 const DiffHeader = styled('div')`
