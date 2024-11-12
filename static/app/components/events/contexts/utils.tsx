@@ -15,6 +15,7 @@ import {getAppContextData} from 'sentry/components/events/contexts/knownContext/
 import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';
 import {getCloudResourceContextData} from 'sentry/components/events/contexts/knownContext/cloudResource';
 import {getCultureContextData} from 'sentry/components/events/contexts/knownContext/culture';
+import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
@@ -30,7 +31,6 @@ import commonTheme from 'sentry/utils/theme';
 
 import {getDefaultContextData} from './default';
 import {getKnownDeviceContextData, getUnknownDeviceContextData} from './device';
-import {getKnownGpuContextData, getUnknownGpuContextData} from './gpu';
 import {
   getKnownMemoryInfoContextData,
   getUnknownMemoryInfoContextData,
@@ -435,10 +435,7 @@ export function getFormattedContextData({
         ...getUnknownUserContextData({data: contextValue, meta}),
       ];
     case 'gpu':
-      return [
-        ...getKnownGpuContextData({data: contextValue, meta}),
-        ...getUnknownGpuContextData({data: contextValue, meta}),
-      ];
+      return getGPUContextData({data: contextValue, meta});
     case 'trace':
       return [
         ...getKnownTraceContextData({
