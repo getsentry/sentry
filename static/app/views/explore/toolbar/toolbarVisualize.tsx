@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
@@ -28,6 +29,11 @@ import {
   ToolbarSection,
 } from './styles';
 
+type ParsedVisualize = {
+  func: ParsedFunction;
+  label: string;
+};
+
 interface ToolbarVisualizeProps {}
 
 export function ToolbarVisualize({}: ToolbarVisualizeProps) {
@@ -35,9 +41,17 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
 
   const numberTags = useSpanTags('number');
 
-  const parsedVisualizeGroups: ParsedFunction[][] = useMemo(() => {
+  const parsedVisualizeGroups: ParsedVisualize[][] = useMemo(() => {
     return visualizes.map(visualize =>
-      visualize.yAxes.map(parseFunction).filter(defined)
+      visualize.yAxes
+        .map(parseFunction)
+        .filter(defined)
+        .map(func => {
+          return {
+            func,
+            label: visualize.label,
+          };
+        })
     );
   }, [visualizes]);
 
@@ -95,7 +109,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
     (group: number, index: number, {value}: SelectOption<string>) => {
       const newVisualizes = visualizes.slice();
       newVisualizes[group].yAxes[index] =
-        `${parsedVisualizeGroups[group][index].name}(${value})`;
+        `${parsedVisualizeGroups[group][index].func.name}(${value})`;
       setVisualizes(newVisualizes);
     },
     [parsedVisualizeGroups, setVisualizes, visualizes]
@@ -105,7 +119,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
     (group: number, index: number, {value}: SelectOption<string>) => {
       const newVisualizes = visualizes.slice();
       newVisualizes[group].yAxes[index] =
-        `${value}(${parsedVisualizeGroups[group][index].arguments[0]})`;
+        `${value}(${parsedVisualizeGroups[group][index].func.arguments[0]})`;
       setVisualizes(newVisualizes);
     },
     [parsedVisualizeGroups, setVisualizes, visualizes]
@@ -160,15 +174,16 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
             <Fragment key={group}>
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
                 <ToolbarRow key={index}>
+                  <ChartLabel>{parsedVisualize.label}</ChartLabel>
                   <CompactSelect
                     searchable
                     options={fieldOptions}
-                    value={parsedVisualize.arguments[0]}
+                    value={parsedVisualize.func.arguments[0]}
                     onChange={newField => setChartField(group, index, newField)}
                   />
                   <CompactSelect
                     options={aggregateOptions}
-                    value={parsedVisualize?.name}
+                    value={parsedVisualize.func.name}
                     onChange={newAggregate =>
                       setChartAggregate(group, index, newAggregate)
                     }
@@ -202,3 +217,14 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
     </ToolbarSection>
   );
 }
+
+const ChartLabel = styled('div')`
+  background-color: ${p => p.theme.purple100};
+  border-radius: ${p => p.theme.borderRadius};
+  text-align: center;
+  min-width: 32px;
+  color: ${p => p.theme.purple400};
+  white-space: nowrap;
+  font-weight: ${p => p.theme.fontWeightBold};
+  align-content: center;
+`;
