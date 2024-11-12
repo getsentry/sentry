@@ -9,8 +9,10 @@ import {
 
 import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
 import {
+  EMPTY_STATE_SECTION_PROPS,
   MOCK_DATA_SECTION_PROPS,
   MOCK_FLAGS,
+  NO_FLAG_CONTEXT_SECTION_PROPS,
 } from 'sentry/components/events/featureFlags/testUtils';
 
 // Needed to mock useVirtualizer lists.
@@ -191,5 +193,31 @@ describe('EventFeatureFlagList', function () {
         .getByText(webVitalsFlag.flag)
         .compareDocumentPosition(screen.getByText(enableReplay.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('renders empty state', function () {
+    render(<EventFeatureFlagList {...EMPTY_STATE_SECTION_PROPS} />);
+
+    const control = screen.queryByRole('button', {name: 'Sort Flags'});
+    expect(control).not.toBeInTheDocument();
+    const search = screen.queryByRole('button', {name: 'Open Feature Flag Search'});
+    expect(search).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Set Up Integration'})).toBeInTheDocument();
+    expect(
+      screen.queryByText('No feature flags were found for this event')
+    ).toBeInTheDocument();
+  });
+
+  it('renders nothing if event.contexts.flags is not set', function () {
+    render(<EventFeatureFlagList {...NO_FLAG_CONTEXT_SECTION_PROPS} />);
+
+    const control = screen.queryByRole('button', {name: 'Sort Flags'});
+    expect(control).not.toBeInTheDocument();
+    const search = screen.queryByRole('button', {name: 'Open Feature Flag Search'});
+    expect(search).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Set Up Integration'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Feature Flags')).not.toBeInTheDocument();
   });
 });

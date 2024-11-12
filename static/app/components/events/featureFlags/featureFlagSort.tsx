@@ -31,6 +31,7 @@ export default function FeatureFlagSort({sortBy, orderBy, setOrderBy, setSortBy}
           aria-label={t('Sort Flags')}
           size="xs"
           icon={<IconSort />}
+          title={t('Sort Flags')}
         />
       )}
     >
