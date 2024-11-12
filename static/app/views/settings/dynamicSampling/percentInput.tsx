@@ -14,7 +14,7 @@ export function PercentInput(props: Props) {
         width: 160px;
       `}
     >
-      <InputGroup.Input type="number" {...props} />
+      <InputGroup.Input type="number" min={0} max={100} {...props} />
       <InputGroup.TrailingItems>
         <TrailingPercent>%</TrailingPercent>
       </InputGroup.TrailingItems>

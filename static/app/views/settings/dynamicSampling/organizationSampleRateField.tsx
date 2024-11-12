@@ -33,10 +33,7 @@ export function OrganizationSampleRateField({}) {
           title={t('You do not have permission to change the sample rate.')}
         >
           <PercentInput
-            width={100}
             type="number"
-            min={0}
-            max={100}
             disabled={!hasAccess}
             value={field.value}
             onChange={event => field.onChange(event.target.value)}

@@ -67,7 +67,14 @@ export function OrganizationSampling() {
 
   return (
     <FormProvider formState={formState}>
-      <form onSubmit={event => event.preventDefault()}>
+      <OnRouteLeave
+        message={UNSAVED_CHANGES_MESSAGE}
+        when={locationChange =>
+          locationChange.currentLocation.pathname !==
+            locationChange.nextLocation.pathname && formState.hasChanged
+        }
+      />
+      <form onSubmit={event => event.preventDefault()} noValidate>
         <Panel>
           <PanelHeader>{t('General Settings')}</PanelHeader>
           <PanelBody>
@@ -75,13 +82,6 @@ export function OrganizationSampling() {
             <OrganizationSampleRateField />
           </PanelBody>
         </Panel>
-        <OnRouteLeave
-          message={UNSAVED_CHANGES_MESSAGE}
-          when={locationChange =>
-            locationChange.currentLocation.pathname !==
-              locationChange.nextLocation.pathname && formState.hasChanged
-          }
-        />
         <FormActions>
           <Button disabled={!formState.hasChanged || isPending} onClick={handleReset}>
             {t('Reset')}
