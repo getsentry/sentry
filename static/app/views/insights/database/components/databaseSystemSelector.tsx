@@ -17,7 +17,7 @@ export function DatabaseSystemSelector() {
   const {selectedSystem, setSelectedSystem, options, isLoading, isError} =
     useSystemSelectorOptions();
 
-  const system = selectedSystem ?? systemQueryParam;
+  const system = systemQueryParam ?? selectedSystem;
 
   return (
     <CompactSelect
