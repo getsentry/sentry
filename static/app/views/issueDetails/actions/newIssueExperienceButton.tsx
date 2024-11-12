@@ -82,7 +82,7 @@ export function NewIssueExperienceButton() {
           onAction: () => {
             openForm({
               messagePlaceholder: t(
-                'Excluding bribes, what can we do to make you use the new UI?'
+                'Excluding bribes, what can we do to have you willing to use the new UI?'
               ),
             });
           },
