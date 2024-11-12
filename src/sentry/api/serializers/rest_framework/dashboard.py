@@ -511,7 +511,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     projects = serializers.ListField(
         child=serializers.IntegerField(),
         required=False,
-        default=[],
         help_text="The saved projects filter for this dashboard.",
     )
     environment = serializers.ListField(
