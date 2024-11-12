@@ -1,23 +1,24 @@
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
+import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/toggleSidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
@@ -25,20 +26,23 @@ import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 export function EventDetailsHeader({
   group,
   event,
+  project,
 }: {
   event: Event | undefined;
   group: Group;
+  project: Project;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({group});
   const {baseUrl} = useGroupDetailsRoute();
-  const [sidebarOpen, setSidebarOpen] = useSyncedLocalStorageState(
-    'issue-details-sidebar-open',
-    true
-  );
-  const direction = sidebarOpen ? 'right' : 'left';
+
+  const issueTypeConfig = getConfigForIssueType(group, project);
+
+  if (!issueTypeConfig.filterAndSearchHeader.enabled) {
+    return null;
+  }
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
@@ -71,20 +75,7 @@ export function EventDetailsHeader({
               disallowFreeText: true,
             }}
           />
-          <ToggleContainer sidebarOpen={sidebarOpen}>
-            <ToggleButton
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              aria-label={sidebarOpen ? t('Close Sidebar') : t('Open Sidebar')}
-              analyticsEventKey="issue_details.sidebar_toggle"
-              analyticsEventName="Issue Details: Sidebar Toggle"
-              analyticsParams={{
-                sidebar_open: !sidebarOpen,
-              }}
-            >
-              <LeftChevron direction={direction} />
-              <RightChevron direction={direction} />
-            </ToggleButton>
-          </ToggleContainer>
+          <ToggleSidebar />
         </Flex>
         <GraphSection>
           <EventGraph event={event} group={group} style={{flex: 1}} />
@@ -147,41 +138,6 @@ const DateFilter = styled(DatePageFilter)`
     position: absolute;
     background: ${p => p.theme.translucentInnerBorder};
   }
-`;
-
-const ToggleContainer = styled('div')<{sidebarOpen: boolean}>`
-  width: ${p => (p.sidebarOpen ? '30px' : '50px')};
-  position: relative;
-  padding: ${space(0.5)} 0;
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    display: none;
-  }
-`;
-
-// The extra 1px on width is to display above the sidebar border
-const ToggleButton = styled(Button)`
-  border-radius: ${p => p.theme.borderRadiusLeft};
-  border-right-color: ${p => p.theme.background} !important;
-  box-shadow: none;
-  position: absolute;
-  padding: 0;
-  left: ${space(0.5)};
-  width: calc(100% - ${space(0.5)} + 1px);
-  outline: 0;
-  height: 30px;
-  min-height: unset;
-`;
-
-const LeftChevron = styled(IconChevron)`
-  position: absolute;
-  color: ${p => p.theme.subText};
-  height: 10px;
-  width: 10px;
-  left: ${space(0.75)};
-`;
-
-const RightChevron = styled(LeftChevron)`
-  left: ${space(1.5)};
 `;
 
 const GraphSection = styled('div')`
