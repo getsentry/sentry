@@ -1,11 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {
-  BarSeriesOption,
-  LegendComponentOption,
-  SeriesOption,
-  TooltipComponentOption,
-} from 'echarts';
+import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts';
 
 import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
@@ -136,10 +131,7 @@ export type UsageChartProps = {
    * Additional data to draw on the chart alongside usage
    */
   chartSeries?: SeriesOption[];
-  /**
-   * Replace default tooltip
-   */
-  chartTooltip?: TooltipComponentOption;
+
   errors?: Record<string, Error>;
   /**
    * Modify the usageStats using the transformation method selected.
