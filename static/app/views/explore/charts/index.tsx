@@ -190,7 +190,6 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                     title={t('Type of chart displayed in this visualization (ex. line)')}
                   >
                     <CompactSelect
-                      triggerLabel=""
                       triggerProps={{
                         icon: <IconGraph type={chartIcon} />,
                         borderless: true,
@@ -207,7 +206,6 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                     title={t('Time interval displayed in this visualization (ex. 5m)')}
                   >
                     <CompactSelect
-                      triggerLabel=""
                       value={interval}
                       onChange={({value}) => setInterval(value)}
                       triggerProps={{
