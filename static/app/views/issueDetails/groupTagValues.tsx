@@ -32,9 +32,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import GroupEventDetails, {
-  type GroupEventDetailsProps,
-} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type RouteParams = {
@@ -318,12 +316,12 @@ export function GroupTagValues({baseUrl, project, group, environments}: Props) {
   );
 }
 
-function GroupTagValuesRoute(props: GroupEventDetailsProps & {baseUrl: string}) {
+function GroupTagValuesRoute(props: {baseUrl: string}) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   // TODO(streamlined-ui): Point the router directly to group event details
   if (hasStreamlinedUI) {
-    return <GroupEventDetails {...props} />;
+    return <GroupEventDetails />;
   }
 
   return <GroupTagValues {...props} />;
