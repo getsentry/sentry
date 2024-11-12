@@ -131,10 +131,15 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
         )
         triggers = AlertRuleTrigger.objects.filter(alert_rule_id=rule.id)
         for trigger in triggers:
+            condition_result = (
+                DetectorPriorityLevel.MEDIUM
+                if trigger.label == "warning"
+                else DetectorPriorityLevel.HIGH
+            )
             DataCondition.update_or_create(
                 condition=trigger.threshold_type,
                 comparison=trigger.alert_threshold,
-                condition_result=state,  # is this correct? why would we need the same data in 2 places?
+                condition_result=condition_result,
                 type=DataSourceType.SNUBA_QUERY_SUBSCRIPTION,  # is this correct?
             )
             # missing DataConditionDetails because this table doesn't exist yet
