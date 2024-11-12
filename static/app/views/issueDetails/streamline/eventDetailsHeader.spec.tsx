@@ -26,7 +26,7 @@ describe('EventDetailsHeader', () => {
   });
   const group = GroupFixture();
   const event = EventFixture({id: 'event-id'});
-  const defaultProps = {group, event};
+  const defaultProps = {group, event, project};
   const router = RouterFixture({
     location: LocationFixture({query: {streamline: '1'}}),
   });
