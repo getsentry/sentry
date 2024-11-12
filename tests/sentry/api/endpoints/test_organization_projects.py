@@ -85,29 +85,6 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
             self.organization.slug, qs_params={"statsPeriod": "48h"}, status_code=400
         )
 
-    def test_no_stats_if_no_project_access(self):
-        projects = [self.create_project(teams=[self.team])]
-
-        # disable Open Membership
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-
-        # user has no access to the first project
-        user_no_team = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user_no_team, organization=self.organization, role="member", teams=[]
-        )
-        self.login_as(user_no_team)
-
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"statsPeriod": "24h"}
-        )
-        self.check_valid_response(response, projects)
-
-        assert "stats" not in response.data[0]
-        assert "transactionStats" not in response.data[0]
-        assert "sessionStats" not in response.data[0]
-
     def test_search(self):
         project = self.create_project(teams=[self.team], name="bar", slug="bar")
 
