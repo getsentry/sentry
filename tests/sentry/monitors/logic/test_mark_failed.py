@@ -61,7 +61,7 @@ class MarkFailedTestCase(TestCase):
             trace_id=trace_id,
             date_added=last_checkin,
         )
-        assert mark_failed(checkin, ts=checkin.date_added)
+        assert mark_failed(checkin, failed_at=checkin.date_added)
 
         monitor_environment.refresh_from_db()
         assert monitor_environment.status == MonitorStatus.ERROR
@@ -171,7 +171,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.UNKNOWN,
         )
-        assert mark_failed(checkin, ts=checkin.date_added)
+        assert mark_failed(checkin, failed_at=checkin.date_added)
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
@@ -210,7 +210,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.UNKNOWN,
         )
-        assert mark_failed(checkin, ts=checkin.date_added)
+        assert mark_failed(checkin, failed_at=checkin.date_added)
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
@@ -259,7 +259,7 @@ class MarkFailedTestCase(TestCase):
                 project_id=self.project.id,
                 status=status,
             )
-            mark_failed(checkin, ts=checkin.date_added)
+            mark_failed(checkin, failed_at=checkin.date_added)
 
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -283,7 +283,7 @@ class MarkFailedTestCase(TestCase):
             )
             if _ == 0:
                 first_checkin = checkin
-            mark_failed(checkin, ts=checkin.date_added)
+            mark_failed(checkin, failed_at=checkin.date_added)
 
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -318,7 +318,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=status,
         )
-        mark_failed(checkin, ts=checkin.date_added)
+        mark_failed(checkin, failed_at=checkin.date_added)
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
 
@@ -357,7 +357,7 @@ class MarkFailedTestCase(TestCase):
                 project_id=self.project.id,
                 status=status,
             )
-            mark_failed(checkin, ts=checkin.date_added)
+            mark_failed(checkin, failed_at=checkin.date_added)
 
         monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
         assert len(monitor_incidents) == 2
@@ -410,7 +410,7 @@ class MarkFailedTestCase(TestCase):
         for _ in range(0, failure_issue_threshold - 1):
             checkin = checkins.pop(0)
             checkin.update(status=CheckInStatus.TIMEOUT)
-            mark_failed(checkin, ts=checkin.date_added)
+            mark_failed(checkin, failed_at=checkin.date_added)
 
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -418,7 +418,7 @@ class MarkFailedTestCase(TestCase):
 
         checkin = checkins.pop(0)
         checkin.update(status=CheckInStatus.TIMEOUT)
-        mark_failed(checkin, ts=checkin.date_added)
+        mark_failed(checkin, failed_at=checkin.date_added)
 
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -473,7 +473,7 @@ class MarkFailedTestCase(TestCase):
                 project_id=self.project.id,
                 status=CheckInStatus.UNKNOWN,
             )
-            mark_failed(checkin, ts=checkin.date_added)
+            mark_failed(checkin, failed_at=checkin.date_added)
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
@@ -516,7 +516,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.IN_PROGRESS,
         )
-        mark_failed(checkin, ts=checkin.date_added)
+        mark_failed(checkin, failed_at=checkin.date_added)
 
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)

@@ -13,17 +13,17 @@ logger = logging.getLogger(__name__)
 
 def mark_failed(
     failed_checkin: MonitorCheckIn,
-    ts: datetime,
+    failed_at: datetime,
     received: datetime | None = None,
 ) -> bool:
     """
     Given a failing check-in, mark the monitor environment as failed and trigger
     side effects for creating monitor incidents and issues.
 
-    The provided `ts` is the reference time for when the next check-in time is
-    calculated from. This typically would be the failed check-in's `date_added`
-    or completion time. Though for the missed and timedout tasks this may be
-    computed based on the tasks reference time.
+    The provided `failed_at` is the reference time for when the next check-in
+    time is calculated from. This typically would be the failed check-in's
+    `date_added` or completion time. Though for the missed and time-out tasks
+    this may be computed based on the tasks reference time.
     """
     monitor_env = failed_checkin.monitor_environment
 
@@ -35,8 +35,8 @@ def mark_failed(
         failure_issue_threshold = 1
 
     # Compute the next check-in time from our reference time
-    next_checkin = monitor_env.monitor.get_next_expected_checkin(ts)
-    next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(ts)
+    next_checkin = monitor_env.monitor.get_next_expected_checkin(failed_at)
+    next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(failed_at)
 
     # When the failed check-in is a synthetic missed check-in we do not move
     # the `last_checkin` timestamp forward.
