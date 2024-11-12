@@ -1,15 +1,37 @@
+from collections.abc import Callable
+from typing import Generic, TypeVar
+
 from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.fields import Field
 
 from sentry import audit_log
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.db.models import Model
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.models import DataConditionGroup, Detector
+from sentry.workflow_engine.models import (
+    DataConditionGroup,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+)
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+
+T = TypeVar("T", bound=Model)
+
+
+class DataSourceCreator(Generic[T]):
+    def __init__(self, create_fn: Callable[[], T]):
+        self._create_fn = create_fn
+        self._instance: T | None = None
+
+    def create(self) -> T:
+        if self._instance is None:
+            self._instance = self._create_fn()
+        return self._instance
 
 
 class BaseDataConditionValidator(CamelSnakeSerializer):
@@ -81,8 +103,19 @@ class NumericComparisonConditionValidator(BaseDataConditionValidator):
         return result
 
 
-class BaseDataSourceValidator(CamelSnakeSerializer):
-    pass
+class BaseDataSourceValidator(CamelSnakeSerializer, Generic[T]):
+    @property
+    def data_source_type(self) -> DataSource.Type:
+        raise NotImplementedError
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        attrs["_creator"] = DataSourceCreator[T](lambda: self.create_source(attrs))
+        attrs["data_source_type"] = self.data_source_type
+        return attrs
+
+    def create_source(self, validated_data) -> T:
+        raise NotImplementedError
 
 
 class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
@@ -112,18 +145,19 @@ class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
         raise NotImplementedError
 
     def create(self, validated_data):
-        # TODO: Implement data source abstraction
-        # data_source_data = validated_data["data_source"]
-        # data_source = DataSource.objects.create(
-        #     data_source_data
-        # )
-        condition_data = validated_data["data_conditions"]
         with transaction.atomic(router.db_for_write(Detector)):
             condition_group = DataConditionGroup.objects.create(
                 logic_type=DataConditionGroup.Type.ANY,
-                organization_id=self.context["project"].organization_id,
+                organization_id=self.context["organization"].id,
             )
-            for condition in condition_data:
+            data_source_creator = validated_data["data_source"]["_creator"]
+            data_source = data_source_creator.create()
+            detector_data_source = DataSource.objects.create(
+                organization_id=self.context["project"].organization_id,
+                query_id=data_source.id,
+                type=validated_data["data_source"]["data_source_type"],
+            )
+            for condition in validated_data["data_conditions"]:
                 DataCondition.objects.create(
                     condition=condition["condition"],
                     comparison=condition["comparison"],
@@ -137,10 +171,11 @@ class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
                 workflow_condition_group=condition_group,
                 type=validated_data["group_type"].slug,
             )
+            DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
 
             create_audit_entry(
                 request=self.context["request"],
-                organization=self.context["project"].organization,
+                organization=self.context["organization"],
                 target_object=detector.id,
                 event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
                 data=detector.get_audit_log_data(),
