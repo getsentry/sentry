@@ -87,13 +87,22 @@ run-dependent-services() {
 }
 
 create-db() {
+    new_devservices_container_name=sentry-postgres-1
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Creating 'sentry' database"
-    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
+    docker exec "${new_devservices_container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 sentry \
+    || docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 sentry \
+    || true
     echo "--> Creating 'control', 'region' and 'secondary' database"
-    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 control || true
-    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
-    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 secondary || true
+    docker exec "${new_devservices_container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 control \
+    || docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 control \
+    || true
+    docker exec "${new_devservices_container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region \
+    || docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region \
+    || true
+    docker exec "${new_devservices_container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 secondary \
+    || docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 secondary \
+    || true
 }
 
 apply-migrations() {
@@ -132,13 +141,18 @@ clean() {
 }
 
 drop-db() {
+    new_devservices_container_name=sentry-postgres-1
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Dropping existing 'sentry' database"
-    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres sentry
+    docker exec "${new_devservices_container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres sentry \
+    || docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres sentry
     echo "--> Dropping 'control' and 'region' database"
-    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres control
-    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres region
-    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres secondary
+    docker exec "${new_devservices_container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres control \
+    || docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres control
+    docker exec "${new_devservices_container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres region \
+    || docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres region
+    docker exec "${new_devservices_container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres secondary \
+    || docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres secondary
 }
 
 reset-db() {
