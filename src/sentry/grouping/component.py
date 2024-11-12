@@ -35,23 +35,23 @@ class GroupingComponent:
     into components to make a hash for grouping purposes.
     """
 
-    id: str
+    id: str = "default"
     hint: str | None
     contributes: bool | None
     values: Sequence[str | GroupingComponent]
 
     def __init__(
         self,
-        id: str,
+        id: str | None = None,
         hint: str | None = None,
         contributes: bool | None = None,
         values: Sequence[str | GroupingComponent] | None = None,
         variant_provider: bool = False,
     ):
-        self.id = id
+        self.id = id or self.id
 
         # Default values
-        self.hint = DEFAULT_HINTS.get(id)
+        self.hint = DEFAULT_HINTS.get(self.id)
         self.contributes = contributes
         self.variant_provider = variant_provider
         self.values: Sequence[str | GroupingComponent] = []
