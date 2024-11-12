@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Iterator, Sequence
-from typing import Any
+from typing import Any, TypeVar
 
 from sentry.grouping.utils import hash_from_values
 
@@ -171,3 +171,6 @@ class BaseGroupingComponent:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"
+
+
+GroupingComponent = TypeVar("GroupingComponent", bound=BaseGroupingComponent)
