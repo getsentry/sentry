@@ -1091,6 +1091,7 @@ function WidgetBuilder({
 
   const canAddSearchConditions =
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
+    state.dataSet !== DataSet.SPANS &&
     state.queries.length < 3;
 
   const hideLegendAlias = [DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(

@@ -2675,5 +2675,37 @@ describe('WidgetBuilder', function () {
       await userEvent.click(screen.getByText(`count(…)`));
       expect(screen.getByText('plan')).toBeInTheDocument();
     });
+
+    it('does not show the Add Query button', async function () {
+      const dashboard = mockDashboard({
+        widgets: [
+          WidgetFixture({
+            widgetType: WidgetType.SPANS,
+            // Add Query is only available for timeseries charts
+            displayType: DisplayType.LINE,
+            queries: [
+              {
+                name: 'Test Widget',
+                fields: ['count(span.duration)'],
+                columns: [],
+                conditions: '',
+                orderby: '',
+                aggregates: ['count(span.duration)'],
+              },
+            ],
+          }),
+        ],
+      });
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      await screen.findByText('Line Chart');
+      expect(screen.queryByText('Add Query')).not.toBeInTheDocument();
+    });
   });
 });
