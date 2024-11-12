@@ -54,9 +54,12 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
                     identifier=data["identifier"],
                 ).run()
             except Exception as e:
-                capture_exception(e)
+                error_id = capture_exception(e)
                 return Response(
-                    {"error": "An issue occured while trying to create external issue"}, status=500
+                    {
+                        "error": f"An issue occured while trying to create external issue. Sentry error ID: {error_id}"
+                    },
+                    status=500,
                 )
             return Response(
                 serialize(
