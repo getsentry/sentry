@@ -281,9 +281,9 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
 
         if is_group_condition_met:
             validated_condition_results: list[DetectorPriorityLevel] = [
-                DetectorPriorityLevel(int(result))
+                result
                 for result in condition_results
-                if result is not None
+                if result is not None and isinstance(result, DetectorPriorityLevel)
             ]
 
             max_result_status = max(validated_condition_results)
