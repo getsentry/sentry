@@ -9,6 +9,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
@@ -24,6 +25,9 @@ import {
 } from 'sentry/views/settings/dynamicSampling/utils/useSamplingProjectRates';
 
 const {useFormState, FormProvider} = projectSamplingForm;
+const UNSAVED_CHANGES_MESSAGE = t(
+  'You have unsaved changes, are you sure you want to leave?'
+);
 
 export function ProjectSampling() {
   const hasAccess = useHasDynamicSamplingWriteAccess();
@@ -79,9 +83,16 @@ export function ProjectSampling() {
 
   return (
     <FormProvider formState={formState}>
-      <form onSubmit={event => event.preventDefault()}>
+      <OnRouteLeave
+        message={UNSAVED_CHANGES_MESSAGE}
+        when={locationChange =>
+          locationChange.currentLocation.pathname !==
+            locationChange.nextLocation.pathname && formState.hasChanged
+        }
+      />
+      <form onSubmit={event => event.preventDefault()} noValidate>
         <Panel>
-          <PanelHeader>{t('Manual Sampling')}</PanelHeader>
+          <PanelHeader>{t('General Settings')}</PanelHeader>
           <PanelBody>
             <SamplingModeField />
           </PanelBody>
@@ -90,7 +101,16 @@ export function ProjectSampling() {
           <h4>{t('Customize Projects')}</h4>
           <ProjectionPeriodControl period={period} onChange={setPeriod} />
         </HeadingRow>
-        <p>{t('Set custom rates for traces starting at each of your projects.')}</p>
+        <p>
+          {t(
+            'Configure sample rates for each of your projects. These rates stay fixed if volumes change, which can lead to a change in the overall sample rate of your organization.'
+          )}
+        </p>
+        <p>
+          {t(
+            'Rates apply to all spans in traces that start in each project, including a portion of spans in connected other projects.'
+          )}
+        </p>
         {sampleCountsQuery.isError ? (
           <LoadingError onRetry={sampleCountsQuery.refetch} />
         ) : (

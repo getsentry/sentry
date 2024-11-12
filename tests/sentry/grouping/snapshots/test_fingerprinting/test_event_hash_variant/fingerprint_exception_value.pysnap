@@ -1,5 +1,5 @@
 ---
-created: '2024-10-16T22:32:32.087925+00:00'
+created: '2024-11-08T22:03:16.952667+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -24,9 +24,9 @@ variants:
       contributes: false
       hint: custom fingerprint takes precedence
     type: component
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: value:"*went wrong*" -> "something-went-wrong{{ error.value }}"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - something-went-wrong
     - something went WRONG
