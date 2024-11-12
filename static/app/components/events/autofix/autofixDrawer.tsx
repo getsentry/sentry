@@ -40,48 +40,54 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
 
   return (
     <StartBox>
-      <StarTrail>
-        {[...Array(8)].map((_, i) => (
-          <TrailStar
-            key={i}
-            src={starImage}
-            index={i}
-            size={28 - i * 2}
-            offset={(i % 2) * 30 - 15}
+      <StarTrailContainer>
+        <StarTrail>
+          {[...Array(8)].map((_, i) => (
+            <TrailStar
+              key={i}
+              src={starImage}
+              index={i}
+              size={28 - i * 2}
+              offset={(i % 2) * 30 - 15}
+            />
+          ))}
+        </StarTrail>
+      </StarTrailContainer>
+      <ContentContainer>
+        <Header>Autofix</Header>
+        <br />
+        <p>Work together with Autofix to find the root cause and fix the issue.</p>
+        <Row>
+          <Input
+            type="text"
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            placeholder={'(Optional) Share helpful context here...'}
           />
-        ))}
-      </StarTrail>
-      <Header>Autofix</Header>
-      <br />
-      <p>Work together with Autofix to find the root cause and fix the issue.</p>
-      <Row>
-        <Input
-          type="text"
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          placeholder={'(Optional) Share helpful context here...'}
-        />
-        <ButtonWithStars>
-          <StarLarge1 src={starImage} />
-          <StarLarge2 src={starImage} />
-          <StarLarge3 src={starImage} />
-          <Button
-            priority="primary"
-            onClick={send}
-            analyticsEventKey={
-              message ? 'autofix.give_instructions_clicked' : 'autofix.start_fix_clicked'
-            }
-            analyticsEventName={
-              message
-                ? 'Autofix: Give Instructions Clicked'
-                : 'Autofix: Start Fix Clicked'
-            }
-            analyticsParams={{group_id: groupId}}
-          >
-            {message ? 'Start' : 'Start Autofix'}
-          </Button>
-        </ButtonWithStars>
-      </Row>
+          <ButtonWithStars>
+            <StarLarge1 src={starImage} />
+            <StarLarge2 src={starImage} />
+            <StarLarge3 src={starImage} />
+            <Button
+              priority="primary"
+              onClick={send}
+              analyticsEventKey={
+                message
+                  ? 'autofix.give_instructions_clicked'
+                  : 'autofix.start_fix_clicked'
+              }
+              analyticsEventName={
+                message
+                  ? 'Autofix: Give Instructions Clicked'
+                  : 'Autofix: Start Fix Clicked'
+              }
+              analyticsParams={{group_id: groupId}}
+            >
+              {message ? 'Start' : 'Start Autofix'}
+            </Button>
+          </ButtonWithStars>
+        </Row>
+      </ContentContainer>
     </StartBox>
   );
 }
@@ -185,14 +191,25 @@ const Row = styled('div')`
 
 const StartBox = styled('div')`
   padding: ${space(2)};
-  display: flex;
-  flex-direction: column;
   position: absolute;
-  bottom: 0;
+  bottom: ${space(2)};
   left: ${space(2)};
   right: ${space(2)};
-  background: ${p => p.theme.background};
+`;
+
+const StarTrailContainer = styled('div')`
+  position: absolute;
+  bottom: 5rem;
+  left: 0;
+  right: 0;
   z-index: -1;
+  pointer-events: none;
+`;
+
+const ContentContainer = styled('div')`
+  position: relative;
+  z-index: 1;
+  margin-top: 80px;
 `;
 
 const AutofixDrawerContainer = styled('div')`
@@ -322,12 +339,11 @@ const HeaderText = styled('div')`
 `;
 
 const StarTrail = styled('div')`
-  position: relative;
-  height: 280px;
+  height: 400px;
   width: 100%;
   display: flex;
   justify-content: center;
-  margin-bottom: 5rem;
+  position: relative;
 `;
 
 const TrailStar = styled('img')<{index: number; offset: number; size: number}>`
