@@ -336,6 +336,7 @@ jobs:
           ! grep 'Incompatible return value type (got "HttpResponseBase"' .artifacts/mypy-all
           ! grep 'Incompatible types in "yield"' .artifacts/mypy-all
           ! grep 'Module "sentry.*has no attribute' .artifacts/mypy-all
+          ! grep 'No return value expected' .artifacts/mypy-all
           ! grep 'Unpacking a string is disallowed' .artifacts/mypy-all
           ! grep 'base class .* defined the type as.*Permission' .artifacts/mypy-all
           ! grep 'does not explicitly export attribute' .artifacts/mypy-all

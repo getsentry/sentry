@@ -415,7 +415,7 @@ class SubscriptionProcessor:
                         "alert_rule_id": self.alert_rule.id,
                     },
                 )
-                return []
+                return
 
         # Trigger callbacks for any AlertRules that may need to know about the subscription update
         # Current callback will update the activation metric values & delete querysubscription on finish
