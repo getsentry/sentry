@@ -162,8 +162,6 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
                 <PercentInput
                   type="number"
                   disabled={!hasAccess}
-                  min={0}
-                  max={100}
                   size="sm"
                   onChange={handleOrgChange}
                   value={projectedOrgRate}
