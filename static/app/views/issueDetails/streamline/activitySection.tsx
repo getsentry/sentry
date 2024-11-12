@@ -161,7 +161,14 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
       <Flex justify="space-between" align="center">
         <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
         {showAll && (
-          <TextButton borderless size="zero" onClick={() => setShowAll(false)}>
+          <TextButton
+            borderless
+            size="zero"
+            onClick={() => setShowAll(false)}
+            analyticsEventKey="issue_details.activity_collapsed"
+            analyticsEventName="Issue Details: Activity Collapsed"
+            analyticsParams={{num_activities: group.activity.length}}
+          >
             {t('Collapse')}
           </TextButton>
         )}
@@ -210,6 +217,11 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
                   onClick={() => setShowAll(true)}
                   borderless
                   size="zero"
+                  analyticsEventKey="issue_details.activity_expanded"
+                  analyticsEventName="Issue Details: Activity Expanded"
+                  analyticsParams={{
+                    num_activities_hidden: group.activity.length - 3,
+                  }}
                 >
                   {t('%s activities hidden', group.activity.length - 3)}
                 </TextButton>
