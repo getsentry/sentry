@@ -590,9 +590,9 @@ class BuiltInFingerprintingTest(TestCase):
 
     def test_built_in_chunkload_rules_wrong_sdk(self):
         """
-        Built-in ChunkLoadError rule should also apply event if SDK is not sentry.javascript.nextjs.
+        Built-in ChunkLoadError rule should also apply regardless of the SDK value.
         """
-        self.chunkload_error_trace["sdk"]["name"] = "sentry.javascript.react"
+        self.chunkload_error_trace["sdk"]["name"] = "not.a.real.SDK"
 
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
 
