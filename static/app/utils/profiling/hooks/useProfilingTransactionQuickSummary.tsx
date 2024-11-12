@@ -118,7 +118,7 @@ const functionsFields = [
   'function',
   'count()',
   'sum()',
-  'examples()',
+  'all_examples()',
 ] as const;
 
-type FunctionsField = (typeof functionsFields)[number];
+export type FunctionsField = (typeof functionsFields)[number];

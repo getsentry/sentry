@@ -19,6 +19,7 @@ import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -70,6 +71,9 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     EventGraphSeries.EVENT
   );
   const eventView = useIssueDetailsEventView({group});
+  const hasFeatureFlagFeature = organization.features.includes('feature-flag-ui');
+
+  const config = getConfigForIssueType(group, group.project);
 
   const {
     data: groupStats = {},
@@ -91,7 +95,9 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       {
         query: {
           ...eventView.getEventsAPIPayload(location),
-          dataset: DiscoverDatasets.ERRORS,
+          dataset: config.usesIssuePlatform
+            ? DiscoverDatasets.ISSUE_PLATFORM
+            : DiscoverDatasets.ERRORS,
           field: 'count_unique(user)',
           per_page: 50,
           project: group.project.id,
@@ -168,20 +174,28 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       seriesData.push(releaseSeries as BarChartSeries);
     }
 
-    if (flagSeries.markLine) {
+    if (flagSeries.markLine && hasFeatureFlagFeature) {
       seriesData.push(flagSeries as BarChartSeries);
     }
 
     return seriesData;
-  }, [visibleSeries, userSeries, eventSeries, releaseSeries, flagSeries, theme]);
+  }, [
+    visibleSeries,
+    userSeries,
+    eventSeries,
+    releaseSeries,
+    flagSeries,
+    theme,
+    hasFeatureFlagFeature,
+  ]);
 
   const bucketSize = eventSeries ? getBucketSize(series) : undefined;
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
     'issue-details-graph-legend',
     {
-      ['Releases']: true,
       ['Feature Flags']: true,
+      ['Releases']: false,
     }
   );
 
@@ -192,7 +206,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     show: true,
     top: 4,
     right: 8,
-    data: ['Releases', 'Feature Flags'],
+    data: hasFeatureFlagFeature ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
   });

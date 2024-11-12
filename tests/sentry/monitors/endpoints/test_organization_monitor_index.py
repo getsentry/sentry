@@ -448,6 +448,18 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert slug.startswith("1234-")
         assert not slug.isdecimal()
 
+    def test_crontab_whitespace(self):
+        data = {
+            "project": self.project.slug,
+            "name": "1234",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "  *\t* *     * * "},
+        }
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+
+        schedule = response.data["config"]["schedule"]
+        assert schedule == "* * * * *"
+
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_organization_limit(self):
         for i in range(settings.MAX_MONITORS_PER_ORG):
@@ -546,9 +558,8 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             "project": self.project.slug,
             "name": "My Monitor",
             "type": "cron_job",
-            # XXX(epurkhiser): February 29th is problematic for croniter
-            # unfortunately
-            "config": {"schedule_type": "crontab", "schedule": "0 0 29 2 *"},
+            # There is no Febuary 31st
+            "config": {"schedule_type": "crontab", "schedule": "0 0 31 2 *"},
         }
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert response.data["config"]["schedule"][0] == "Schedule is invalid"

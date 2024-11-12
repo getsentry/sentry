@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/container/flex';
 import Count from 'sentry/components/count';
@@ -104,8 +105,15 @@ export default function StreamlinedGroupHeader({
               {secondaryTitle ?? t('No error message')}
             </SecondaryTitle>
           </Flex>
-          <StatTitle aria-hidden>{t('Events')}</StatTitle>
-          <StatTitle aria-hidden={userCount === 0}>
+          <StatTitle>
+            <StatLink
+              to={`${baseUrl}events/${location.search}`}
+              aria-label={t('View events')}
+            >
+              {t('Events')}
+            </StatLink>
+          </StatTitle>
+          <StatTitle>
             {userCount === 0 ? (
               t('Users')
             ) : (
@@ -141,7 +149,9 @@ export default function StreamlinedGroupHeader({
             <ReplayBadge group={group} project={project} />
           </Flex>
           <StatCount value={eventCount} aria-label={t('Event count')} />
-          <StatCount value={userCount} aria-label={t('User count')} />
+          <GuideAnchor target="issue_header_stats">
+            <StatCount value={userCount} aria-label={t('User count')} />
+          </GuideAnchor>
         </HeaderGrid>
       </Header>
       <ActionBar isComplete={isComplete} role="banner">
@@ -157,10 +167,16 @@ export default function StreamlinedGroupHeader({
             {t('Priority')}
             <GroupPriority group={group} />
           </Workflow>
-          <Workflow>
-            {t('Assignee')}
-            <GroupHeaderAssigneeSelector group={group} project={project} event={event} />
-          </Workflow>
+          <GuideAnchor target="issue_sidebar_owners" position="left">
+            <Workflow>
+              {t('Assignee')}
+              <GroupHeaderAssigneeSelector
+                group={group}
+                project={project}
+                event={event}
+              />
+            </Workflow>
+          </GuideAnchor>
         </WorkflowActions>
       </ActionBar>
     </Fragment>

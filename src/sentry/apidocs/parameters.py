@@ -20,6 +20,13 @@ def build_typed_list(type: Any):
 
 
 class GlobalParams:
+    USER_ID = OpenApiParameter(
+        name="user_id",
+        description="The ID of the user the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
     ORG_ID_OR_SLUG = OpenApiParameter(
         name="organization_id_or_slug",
         description="The ID or slug of the organization the resource belongs to.",
@@ -37,6 +44,13 @@ class GlobalParams:
     TEAM_ID_OR_SLUG = OpenApiParameter(
         name="team_id_or_slug",
         description="The ID or slug of the team the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
+    INTEGRATION_ID = OpenApiParameter(
+        name="integration_id",
+        description="The ID of the integration installed on the organization.",
         required=True,
         type=str,
         location="path",
@@ -90,6 +104,13 @@ For example, `24h`, to mean query data starting from 24 hours ago to now.""",
 
 
 class EnvironmentParams:
+    ENVIRONMENT = OpenApiParameter(
+        name="environment",
+        location="path",
+        required=True,
+        type=str,
+        description="The name of the environment.",
+    )
     VISIBILITY = OpenApiParameter(
         name="visibility",
         location="query",

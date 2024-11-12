@@ -15,9 +15,11 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearch} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
+import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
 
 type SearchSuggestion = {
   label: string;
@@ -191,6 +193,8 @@ function SearchSuggestionList({
       ? 'Issue Views: Recommended View Saved'
       : 'Issue Views: Saved Search Saved';
 
+  const filterKeys = useIssueListFilterKeys();
+
   return (
     <Suggestions>
       <TitleWrapper>
@@ -262,7 +266,11 @@ function SearchSuggestionList({
               ) : null}
             </ScopeTagContainer>
             <QueryWrapper>
-              <FormattedQuery query={suggestion.query} />
+              <FormattedQuery
+                query={suggestion.query}
+                fieldDefinitionGetter={getFieldDefinition}
+                filterKeys={filterKeys}
+              />
               <ActionsWrapper className="data-actions-wrapper">
                 <StyledButton
                   size="zero"

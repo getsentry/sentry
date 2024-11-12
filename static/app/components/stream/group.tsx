@@ -43,7 +43,7 @@ import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
@@ -525,7 +525,7 @@ function BaseGroupRow({
     />
   );
 
-  const issueStreamAnchor = isDemoWalkthrough() ? (
+  const issueStreamAnchor = isDemoModeEnabled() ? (
     <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
   ) : (
     <GuideAnchor target="issue_stream" />
@@ -852,11 +852,11 @@ export const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
   font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
   ${p =>
     p.hasNewLayout &&
-    `
-    display: flex;
-    justify-content: right;
-    margin-bottom: ${space(0.25)};
-  `}
+    css`
+      display: flex;
+      justify-content: right;
+      margin-bottom: ${space(0.25)};
+    `}
   font-variant-numeric: tabular-nums;
 `;
 

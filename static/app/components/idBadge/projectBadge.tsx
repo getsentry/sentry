@@ -31,6 +31,10 @@ export interface ProjectBadgeProps extends BaseBadgeProps {
    */
   hideOverflow?: boolean | string;
   /**
+   * Overrides the onClick handler for the project badge
+   */
+  onClick?: React.HTMLAttributes<HTMLDivElement>['onClick'];
+  /**
    * Overrides where the project badge links
    */
   to?: LinkProps['to'];
@@ -39,6 +43,7 @@ export interface ProjectBadgeProps extends BaseBadgeProps {
 function ProjectBadge({
   project,
   to,
+  onClick,
   hideOverflow = true,
   hideName = false,
   disableLink = false,
@@ -48,16 +53,16 @@ function ProjectBadge({
   ...props
 }: ProjectBadgeProps) {
   const organization = useOrganization({allowNull: true});
-  const {slug, id} = project;
 
   const badge = (
     <BaseBadge
       hideName={hideName}
+      onClick={onClick}
       displayName={
         <BadgeDisplayName hideOverflow={hideOverflow}>
           {displayPlatformName && project.platform
             ? getPlatformName(project.platform)
-            : slug}
+            : project.slug}
         </BadgeDisplayName>
       }
       project={project}
@@ -66,8 +71,8 @@ function ProjectBadge({
   );
 
   if (!disableLink && organization?.slug) {
-    const defaultTo = `/organizations/${organization.slug}/projects/${slug}/${
-      id ? `?project=${id}` : ''
+    const defaultTo = `/organizations/${organization.slug}/projects/${project.slug}/${
+      project.id ? `?project=${project.id}` : ''
     }`;
 
     return (

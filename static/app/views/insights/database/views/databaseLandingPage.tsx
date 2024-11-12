@@ -18,6 +18,7 @@ import {useSynchronizeCharts} from 'sentry/views/insights/common/components/char
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -200,58 +201,63 @@ export function DatabaseLandingPage() {
           module={ModuleName.DB}
         />
       )}
-
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <ModuleLayout.Layout>
-            {hasModuleData && !onboardingProject && !isCriticalDataLoading && (
-              <NoDataMessage
-                Wrapper={AlertBanner}
-                isDataAvailable={isAnyCriticalDataAvailable}
-              />
-            )}
-
-            <ModuleLayout.Full>
-              <DatabasePageFilters
-                system={system}
-                databaseCommand={spanAction}
-                table={spanDomain}
-              />
-            </ModuleLayout.Full>
-            <ModulesOnboarding moduleName={ModuleName.DB}>
-              <ModuleLayout.Half>
-                <ThroughputChart
-                  series={throughputData['spm()']}
-                  isLoading={isThroughputDataLoading}
-                  error={throughputError}
-                  filters={chartFilters}
+      <ModuleBodyUpsellHook moduleName={ModuleName.DB}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ModuleLayout.Layout>
+              {hasModuleData && !onboardingProject && !isCriticalDataLoading && (
+                <NoDataMessage
+                  Wrapper={AlertBanner}
+                  isDataAvailable={isAnyCriticalDataAvailable}
                 />
-              </ModuleLayout.Half>
-
-              <ModuleLayout.Half>
-                <DurationChart
-                  series={[durationData[`${selectedAggregate}(span.self_time)`]]}
-                  isLoading={isDurationDataLoading}
-                  error={durationError}
-                  filters={chartFilters}
-                />
-              </ModuleLayout.Half>
+              )}
 
               <ModuleLayout.Full>
-                <SearchBar
-                  query={spanDescription}
-                  placeholder={t('Search for more queries')}
-                  onSearch={handleSearch}
+                <DatabasePageFilters
+                  system={system}
+                  databaseCommand={spanAction}
+                  table={spanDomain}
                 />
               </ModuleLayout.Full>
+              <ModulesOnboarding moduleName={ModuleName.DB}>
+                <ModuleLayout.Half>
+                  <ThroughputChart
+                    series={throughputData['spm()']}
+                    isLoading={isThroughputDataLoading}
+                    error={throughputError}
+                    filters={chartFilters}
+                  />
+                </ModuleLayout.Half>
 
-              <ModuleLayout.Full>
-                <QueriesTable response={queryListResponse} sort={sort} system={system} />
-              </ModuleLayout.Full>
-            </ModulesOnboarding>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
+                <ModuleLayout.Half>
+                  <DurationChart
+                    series={[durationData[`${selectedAggregate}(span.self_time)`]]}
+                    isLoading={isDurationDataLoading}
+                    error={durationError}
+                    filters={chartFilters}
+                  />
+                </ModuleLayout.Half>
+
+                <ModuleLayout.Full>
+                  <SearchBar
+                    query={spanDescription}
+                    placeholder={t('Search for more queries')}
+                    onSearch={handleSearch}
+                  />
+                </ModuleLayout.Full>
+
+                <ModuleLayout.Full>
+                  <QueriesTable
+                    response={queryListResponse}
+                    sort={sort}
+                    system={system}
+                  />
+                </ModuleLayout.Full>
+              </ModulesOnboarding>
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </ModuleBodyUpsellHook>
     </React.Fragment>
   );
 }
