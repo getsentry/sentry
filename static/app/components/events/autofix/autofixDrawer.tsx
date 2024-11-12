@@ -327,7 +327,7 @@ const StarTrail = styled('div')`
   width: 100%;
   display: flex;
   justify-content: center;
-  margin-bottom: ${space(4)};
+  margin-bottom: 5rem;
 `;
 
 const TrailStar = styled('img')<{index: number; offset: number; size: number}>`
