@@ -31,6 +31,11 @@ class IncidentStatus(Enum):
     CRITICAL = 20
 
 
+class ActionType(models.TextChoices):
+    Notification = "SendNotificationAction"
+    TriggerWorkflow = "TriggerWorkflowAction"
+
+
 class DataSourceType(models.IntegerChoices):
     SNUBA_QUERY_SUBSCRIPTION = 1
     SNUBA_QUERY = 2
@@ -129,8 +134,8 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
             DataCondition.update_or_create(
                 condition=trigger.threshold_type,
                 comparison=trigger.alert_threshold,
-                condition_result=state,  # ??? is that right?
-                type="idk",  # talk to josh about this
+                condition_result=state,  # is this correct? why would we need the same data in 2 places?
+                type=DataSourceType.SNUBA_QUERY_SUBSCRIPTION,  # is this correct?
             )
             # missing DataConditionDetails because this table doesn't exist yet
         trigger_actions = AlertRuleTriggerAction.objects.filter(
@@ -144,7 +149,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
             }
             action = Action.objects.update_or_create(
                 required=False,
-                type="idk",  # ???
+                type=ActionType.Notification,  # is this correct?
                 data=data,
                 integration_id=action.integration_id,
                 target_display=action.target_display,
