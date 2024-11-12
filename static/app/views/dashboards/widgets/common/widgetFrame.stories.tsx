@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import ExternalLink from 'sentry/components/links/externalLink';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
 import {WidgetFrame} from 'sentry/views/dashboards/widgets/common/widgetFrame';
 
@@ -29,6 +30,11 @@ export default storyBook(WidgetFrame, story => {
           The title is automatically wrapped in a tooltip if it does not fit.
         </p>
 
+        <p>
+          The description can be a React element, but don't go overboard. Stick to
+          strings, or <code>tct</code> output consisting of text and links.
+        </p>
+
         <SideBySide>
           <NormalWidget>
             <WidgetFrame
@@ -40,6 +46,18 @@ export default storyBook(WidgetFrame, story => {
             <WidgetFrame
               title="p95(measurements.lcp) / p95(measurements.inp)"
               description="This is a tough formula to reason about"
+            />
+          </NormalWidget>
+          <NormalWidget>
+            <WidgetFrame
+              title="p95(span.duration)"
+              description={tct('Learn more about this on our [documentation] website.', {
+                documentation: (
+                  <ExternalLink href="https://docs.sentry.io">
+                    {t('documentation')}
+                  </ExternalLink>
+                ),
+              })}
             />
           </NormalWidget>
         </SideBySide>

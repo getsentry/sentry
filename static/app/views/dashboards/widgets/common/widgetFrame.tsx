@@ -21,7 +21,7 @@ export interface WidgetFrameProps extends StateProps {
   actionsMessage?: string;
   badgeProps?: BadgeProps | BadgeProps[];
   children?: React.ReactNode;
-  description?: string;
+  description?: React.ReactElement | string;
   onFullScreenViewClick?: () => void;
   title?: string;
   warnings?: string[];
