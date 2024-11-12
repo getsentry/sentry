@@ -1,4 +1,3 @@
-from typing import Any
 from unittest import mock
 
 import pytest
@@ -18,6 +17,7 @@ from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
+from tests.sentry.integrations.jira.utils.test_metrics_assertions import assert_metrics_gathered
 
 pytestmark = [requires_snuba]
 
@@ -112,23 +112,6 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         assert response.status_code == 200
         return response
 
-    def assert_metrics_gathered(
-        self,
-        expected_metric_type: EventLifecycleOutcome,
-        domain: IntegrationDomain.PROJECT_MANAGEMENT,
-        integration_name: str,
-        interaction_type: ProjectManagementActionType,
-        metrics_mock: Any,
-    ):
-        slo_name = f"integrations.slo.{expected_metric_type}"
-        expected_tags = {
-            "integration_domain": str(domain),
-            "integration_name": integration_name,
-            "interaction_type": str(interaction_type),
-        }
-
-        metrics_mock.assert_any_call(slo_name, tags=expected_tags, sample_rate=1.0)
-
     @mock.patch.object(metrics, "incr", autospec=True)
     def test_ticket_rules(self, metrics_mock):
         with mock.patch(
@@ -159,11 +142,11 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             # assert new ticket NOT created in DB
             assert ExternalIssue.objects.count() == external_issue_count
 
-            self.assert_metrics_gathered(
+            assert_metrics_gathered(
                 EventLifecycleOutcome.SUCCESS,
-                "project_management",
+                IntegrationDomain.PROJECT_MANAGEMENT,
                 "jira",
-                ProjectManagementActionType.CREATE_EXTERNAL_ISSUE,
+                str(ProjectManagementActionType.CREATE_EXTERNAL_ISSUE),
                 metrics_mock,
             )
 
@@ -183,11 +166,11 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 # an ApiInvalidRequestError, which is reraised as an IntegrationError.
                 self.trigger(event, rule_object)
 
-            self.assert_metrics_gathered(
+            assert_metrics_gathered(
                 EventLifecycleOutcome.FAILURE,
-                "project_management",
+                IntegrationDomain.PROJECT_MANAGEMENT,
                 "jira",
-                ProjectManagementActionType.CREATE_EXTERNAL_ISSUE,
+                str(ProjectManagementActionType.CREATE_EXTERNAL_ISSUE),
                 metrics_mock,
             )
 
