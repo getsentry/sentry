@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Iterator, Sequence
+from enum import StrEnum
 from typing import Any
 
 from sentry.grouping.utils import hash_from_values
@@ -37,7 +38,7 @@ class GroupingComponent:
 
     def __init__(
         self,
-        id: str,
+        id: GroupingComponentID,
         hint: str | None = None,
         contributes: bool | None = None,
         values: Sequence[str | GroupingComponent] | None = None,
@@ -49,7 +50,7 @@ class GroupingComponent:
         self.hint = DEFAULT_HINTS.get(id)
         self.contributes = contributes
         self.variant_provider = variant_provider
-        self.values: Sequence[str | GroupingComponent] = []
+        self._values: Sequence[str | int | GroupingComponent] = []
 
         self.update(
             hint=hint,
@@ -60,6 +61,22 @@ class GroupingComponent:
     @property
     def name(self) -> str | None:
         return KNOWN_MAJOR_COMPONENT_NAMES.get(self.id)
+
+    @property
+    def values(self) -> Sequence[str | int | GroupingComponent]:
+        return self._values
+
+    @values.setter
+    def values(self, values: Sequence[str | int | GroupingComponent]) -> None:
+        for value in values:
+            if isinstance(value, GroupingComponent):
+                if value.id not in COMPONENT_VALUES[self.id]:
+                    raise ValueError(f"Invalid value for {self.id}: {value}")
+            else:
+                if type(value) not in ALLOWS_PRIMITIVES[self.id]:
+                    raise ValueError(f"Invalid value for {self.id}: {value}")
+
+        self._values = values
 
     @property
     def description(self) -> str:
@@ -127,7 +144,7 @@ class GroupingComponent:
         rv.values = list(self.values)
         return rv
 
-    def iter_values(self) -> Generator[str | GroupingComponent]:
+    def iter_values(self) -> Generator[str | int | GroupingComponent]:
         """Recursively walks the component and flattens it into a list of
         values.
         """
@@ -165,4 +182,78 @@ class GroupingComponent:
         return rv
 
     def __repr__(self) -> str:
-        return f"GroupingComponent({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"
+        return f"{self.__class__.__name__}({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"
+
+
+class GroupingComponentID(StrEnum):
+    MESSAGE = "message"
+    EXCEPTION = "exception"
+    CHAINED_EXCEPTION = "chained-exception"
+    STACKTRACE = "stacktrace"
+    THREADS = "threads"
+    CSP = "csp"
+    EXPECT_CT = "expect-ct"
+    EXPECT_STAPLE = "expect-staple"
+    HPKP = "hpkp"
+    TEMPLATE = "template"
+    FRAME = "frame"
+    CONTEXT_LINE = "context-line"
+    ERROR_TYPE = "type"
+    ERROR_VALUE = "value"
+    FILENAME = "filename"
+    FUNCTION = "function"
+    LINE_NUMBER = "lineno"
+    MODULE = "module"
+    NS_ERROR = "ns-error"
+    SYMBOL = "symbol"
+    HOSTNAME = "hostname"
+    SALT = "salt"
+    VIOLATION = "violation"
+    URI = "uri"
+
+
+# Maps component IDs to allowed value types
+COMPONENT_VALUES: dict[GroupingComponentID, set[GroupingComponentID]] = {
+    GroupingComponentID.EXCEPTION: {
+        GroupingComponentID.ERROR_TYPE,
+        GroupingComponentID.ERROR_VALUE,
+        GroupingComponentID.NS_ERROR,
+        GroupingComponentID.STACKTRACE,
+    },
+    GroupingComponentID.CHAINED_EXCEPTION: {GroupingComponentID.EXCEPTION},
+    GroupingComponentID.STACKTRACE: {GroupingComponentID.FRAME},
+    GroupingComponentID.THREADS: {GroupingComponentID.STACKTRACE},
+    GroupingComponentID.CSP: {
+        GroupingComponentID.SALT,
+        GroupingComponentID.VIOLATION,
+        GroupingComponentID.URI,
+    },
+    GroupingComponentID.EXPECT_CT: {GroupingComponentID.HOSTNAME, GroupingComponentID.SALT},
+    GroupingComponentID.EXPECT_STAPLE: {GroupingComponentID.HOSTNAME, GroupingComponentID.SALT},
+    GroupingComponentID.HPKP: {GroupingComponentID.HOSTNAME, GroupingComponentID.SALT},
+    GroupingComponentID.TEMPLATE: {GroupingComponentID.CONTEXT_LINE, GroupingComponentID.FILENAME},
+    GroupingComponentID.FRAME: {
+        GroupingComponentID.CONTEXT_LINE,
+        GroupingComponentID.FILENAME,
+        GroupingComponentID.FUNCTION,
+        GroupingComponentID.LINE_NUMBER,
+        GroupingComponentID.MODULE,
+        GroupingComponentID.SYMBOL,
+    },
+}
+
+ALLOWS_PRIMITIVES: dict[GroupingComponentID, set[type]] = {
+    GroupingComponentID.CONTEXT_LINE: {str},
+    GroupingComponentID.ERROR_TYPE: {str},
+    GroupingComponentID.ERROR_VALUE: {str},
+    GroupingComponentID.FILENAME: {str},
+    GroupingComponentID.FUNCTION: {str},
+    GroupingComponentID.LINE_NUMBER: {str},
+    GroupingComponentID.MODULE: {str},
+    GroupingComponentID.NS_ERROR: {str, int},
+    GroupingComponentID.SYMBOL: {str},
+    GroupingComponentID.HOSTNAME: {str},
+    GroupingComponentID.SALT: {str},
+    GroupingComponentID.VIOLATION: {str},
+    GroupingComponentID.URI: {str},
+}
