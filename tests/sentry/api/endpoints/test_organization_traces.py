@@ -476,9 +476,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             {
                 "breakdowns": [
                     {
-                        "duration": 60100,
+                        "duration": 60_100,
                         "start": timestamp,
-                        "end": timestamp + 60100,
+                        "end": timestamp + 60_100,
                         "sliceStart": 0,
                         "sliceEnd": 40,
                         "sliceWidth": 40,
@@ -488,8 +488,8 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sdkName": "sentry.javascript.node",
                     },
                 ],
-                "duration": 60100,
-                "end": timestamp + 60100,
+                "duration": 60_100,
+                "end": timestamp + 60_100,
                 "name": "foo",
                 "numErrors": 0,
                 "numOccurrences": 0,
@@ -498,7 +498,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
-                "rootDuration": 60100,
+                "rootDuration": 60_100,
             },
         ]
 
@@ -529,8 +529,8 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             parent_span_id=span_id_1,
             timestamp=ts,
             transaction="foo",
-            duration=15000,
-            exclusive_time=15000,
+            duration=15_000,
+            exclusive_time=15_000,
             sdk_name="sentry.javascript.node",
             op="pageload",
         )
@@ -551,9 +551,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             {
                 "breakdowns": [
                     {
-                        "duration": 60000,
+                        "duration": 60_000,
                         "start": timestamp,
-                        "end": timestamp + 60000,
+                        "end": timestamp + 60_000,
                         "sliceStart": 0,
                         "sliceEnd": 40,
                         "sliceWidth": 40,
@@ -563,9 +563,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sdkName": "sentry.javascript.remix",
                     },
                     {
-                        "duration": 15000,
+                        "duration": 15_000,
                         "start": timestamp,
-                        "end": timestamp + 15000,
+                        "end": timestamp + 15_000,
                         "sliceStart": 0,
                         "sliceEnd": 10,
                         "sliceWidth": 10,
@@ -575,8 +575,8 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sdkName": "sentry.javascript.node",
                     },
                 ],
-                "duration": 60000,
-                "end": timestamp + 60000,
+                "duration": 60_000,
+                "end": timestamp + 60_000,
                 "name": "foo",
                 "numErrors": 0,
                 "numOccurrences": 0,
@@ -585,7 +585,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
-                "rootDuration": 60000,
+                "rootDuration": 60_000,
             },
         ]
 
@@ -626,9 +626,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             {
                 "breakdowns": [
                     {
-                        "duration": 60100,
+                        "duration": 60_100,
                         "start": timestamp,
-                        "end": timestamp + 60100,
+                        "end": timestamp + 60_100,
                         "sliceStart": 0,
                         "sliceEnd": 40,
                         "sliceWidth": 40,
@@ -638,8 +638,8 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sdkName": "sentry.javascript.node",
                     },
                 ],
-                "duration": 60100,
-                "end": timestamp + 60100,
+                "duration": 60_100,
+                "end": timestamp + 60_100,
                 "name": "foo",
                 "numErrors": 0,
                 "numOccurrences": 0,
@@ -648,7 +648,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
-                "rootDuration": 60100,
+                "rootDuration": 60_100,
             },
         ]
 
