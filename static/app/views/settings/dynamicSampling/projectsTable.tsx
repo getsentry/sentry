@@ -258,6 +258,7 @@ const TableRow = memo(function TableRow({
       <Cell>
         <FirstCellLine data-has-chevron={isExpandable}>
           <HiddenButton
+            type="button"
             disabled={!isExpandable}
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
             onClick={() => setIsExpanded(value => !value)}
@@ -306,8 +307,6 @@ const TableRow = memo(function TableRow({
               type="number"
               disabled={!canEdit}
               onChange={handleChange}
-              min={0}
-              max={100}
               size="sm"
               value={sampleRate}
             />
