@@ -35,6 +35,11 @@ class GroupingComponent:
     into components to make a hash for grouping purposes.
     """
 
+    id: str
+    hint: str | None
+    contributes: bool | None
+    values: Sequence[str | GroupingComponent]
+
     def __init__(
         self,
         id: str,
