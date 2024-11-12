@@ -51,7 +51,7 @@ describe('AutofixDrawer', () => {
 
     expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
 
-    expect(screen.getAllByRole('heading', {name: 'Autofix'})[0]).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
 
     const startButton = screen.getByRole('button', {name: 'Start Autofix'});
     expect(startButton).toBeInTheDocument();

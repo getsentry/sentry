@@ -14,15 +14,17 @@ import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup'
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummaryBody, useGroupSummary} from 'sentry/components/group/groupSummary';
 import Input from 'sentry/components/input';
-import {IconSeer} from 'sentry/icons';
+import {IconDocs, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
+import Resources from 'sentry/views/issueDetails/streamline/resources';
 
 import {AutofixSetupContent} from './autofixSetupModal';
 
@@ -52,8 +54,7 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
         ))}
       </StarTrail>
       <ContentContainer>
-        <Header>Autofix</Header>
-        <br />
+        <HeaderText>Autofix</HeaderText>
         <p>Work together with Autofix to find the root cause and fix the issue.</p>
         <Row>
           <Input
@@ -111,6 +112,8 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
     autofix_status: autofixData?.status ?? 'none',
   });
 
+  const config = getConfigForIssueType(group, project);
+
   const isSetupComplete = setupData?.integration.ok && setupData?.genAIConsent.ok;
 
   return (
@@ -127,12 +130,12 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
               ),
             },
             {label: getShortEventId(event.id)},
-            {label: t('Autofix')},
+            {label: t('Solutions Hub')},
           ]}
         />
       </AutofixDrawerHeader>
       <AutofixNavigator>
-        <Header>{t('Autofix')}</Header>
+        <Header>{t('Solutions Hub')}</Header>
         {autofixData && (
           <ButtonBar gap={1}>
             <AutofixFeedback />
@@ -151,6 +154,21 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
         )}
       </AutofixNavigator>
       <AutofixDrawerBody>
+        {config.resources && (
+          <ResourcesContainer>
+            <HeaderText style={{gap: space(1.5)}}>
+              <IconDocs size="md" />
+              {t('Resources')}
+            </HeaderText>
+            <ResourcesBody>
+              <Resources
+                eventPlatform={event?.platform}
+                group={group}
+                configResources={config.resources}
+              />
+            </ResourcesBody>
+          </ResourcesContainer>
+        )}
         <HeaderText>
           <IconSeer size="lg" />
           {t('Sentry AI')}
@@ -181,6 +199,13 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
     </AutofixDrawerContainer>
   );
 }
+
+const ResourcesContainer = styled('div')``;
+const ResourcesBody = styled('div')`
+  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  margin-bottom: ${space(2)};
+`;
 
 const Row = styled('div')`
   display: flex;
