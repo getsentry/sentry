@@ -28,7 +28,7 @@ class DashboardPermissions(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    is_creator_only_editable = models.BooleanField(default=False)
+    is_creator_only_editable = models.BooleanField(default=False, null=True)
     is_editable_by_everyone = models.BooleanField(default=True)
     teams_with_edit_access = models.ManyToManyField(
         "sentry.Team", through=DashboardPermissionsTeam, blank=True
