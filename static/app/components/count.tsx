@@ -1,15 +1,13 @@
-import type {HTMLAttributes} from 'react';
-
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 type Props = {
   value: string | number;
   className?: string;
-} & HTMLAttributes<HTMLSpanElement>;
+};
 
-function Count({value, className, ...props}: Props) {
+function Count({value, className}: Props) {
   return (
-    <span className={className} title={value?.toLocaleString()} {...props}>
+    <span className={className} title={value?.toLocaleString()}>
       {formatAbbreviatedNumber(value)}
     </span>
   );

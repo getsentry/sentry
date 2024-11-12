@@ -79,7 +79,7 @@ describe('EventDetailsHeader', () => {
       screen.getByRole('button', {name: 'Toggle graph series - Users'})
     ).toBeInTheDocument();
     expect(screen.getByRole('figure')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Close Sidebar'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Close sidebar'})).toBeInTheDocument();
   });
 
   it('updates the query params with search tokens', async function () {
