@@ -373,7 +373,7 @@ class MockModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     class Meta:
-        app_label = "sentry"
+        app_label = "fixtures"
 
 
 class TestDataSourceCreator(TestCase):
