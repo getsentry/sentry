@@ -47,6 +47,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
           query: location.query,
           replace: true,
         }}
+        aria-label={t("View this issue's attachments")}
       >
         {hasManyAttachments
           ? t('50+ Attachments')

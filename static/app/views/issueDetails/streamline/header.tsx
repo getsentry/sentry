@@ -106,13 +106,21 @@ export default function StreamlinedGroupHeader({
             </SecondaryTitle>
           </Flex>
           <StatTitle>
-            <StatLink to={`${baseUrl}events/${location.search}`}>{t('Events')}</StatLink>
+            <StatLink
+              to={`${baseUrl}events/${location.search}`}
+              aria-label={t('View events')}
+            >
+              {t('Events')}
+            </StatLink>
           </StatTitle>
           <StatTitle>
             {userCount === 0 ? (
               t('Users')
             ) : (
-              <StatLink to={`${baseUrl}tags/user/${location.search}`}>
+              <StatLink
+                to={`${baseUrl}tags/user/${location.search}`}
+                aria-label={t('View affected users')}
+              >
                 {t('Users')}
               </StatLink>
             )}
@@ -136,18 +144,17 @@ export default function StreamlinedGroupHeader({
                 </Subtitle>
               </Fragment>
             )}
-
             <AttachmentsBadge group={group} />
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
           </Flex>
-          <StatCount value={eventCount} />
+          <StatCount value={eventCount} aria-label={t('Event count')} />
           <GuideAnchor target="issue_header_stats">
-            <StatCount value={userCount} />
+            <StatCount value={userCount} aria-label={t('User count')} />
           </GuideAnchor>
         </HeaderGrid>
       </Header>
-      <ActionBar isComplete={isComplete}>
+      <ActionBar isComplete={isComplete} role="banner">
         <GroupActions
           group={group}
           project={project}
@@ -176,7 +183,7 @@ export default function StreamlinedGroupHeader({
   );
 }
 
-const Header = styled('div')`
+const Header = styled('header')`
   background-color: ${p => p.theme.background};
   padding: ${space(1)} 24px;
 `;

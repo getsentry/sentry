@@ -17,6 +17,7 @@ export default storyBook(ScrollCarousel, story => {
       </p>
       <div style={{width: '375px', display: 'block'}}>
         <ScrollCarousel
+          aria-label="example"
           css={css`
             gap: ${space(1)};
           `}

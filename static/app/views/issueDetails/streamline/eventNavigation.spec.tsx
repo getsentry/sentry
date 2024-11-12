@@ -182,7 +182,7 @@ describe('EventNavigation', () => {
   describe('counts', () => {
     it('renders default counts', async () => {
       render(<IssueEventNavigation {...defaultProps} />);
-      await userEvent.click(screen.getByRole('button', {name: 'Events'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
       expect(
         await screen.findByRole('menuitemradio', {name: 'Attachments 0'})
@@ -201,7 +201,7 @@ describe('EventNavigation', () => {
       });
 
       render(<IssueEventNavigation {...defaultProps} />);
-      await userEvent.click(screen.getByRole('button', {name: 'Events'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
       expect(
         await screen.findByRole('menuitemradio', {name: 'Attachments 1'})
@@ -219,7 +219,7 @@ describe('EventNavigation', () => {
       });
 
       render(<IssueEventNavigation {...defaultProps} />);
-      await userEvent.click(screen.getByRole('button', {name: 'Events'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
       expect(
         await screen.findByRole('menuitemradio', {name: 'Attachments 50+'})

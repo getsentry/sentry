@@ -464,7 +464,7 @@ function AutofixMessageBox({
           </InputArea>
         )}
         {isChangesStep && prsMade && (
-          <ViewPRButtons>
+          <ViewPRButtons aria-label={t('View pull requests')}>
             {changes.map(
               change =>
                 change.pull_request?.pr_url && (

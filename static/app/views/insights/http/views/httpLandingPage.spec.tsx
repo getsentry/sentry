@@ -302,11 +302,12 @@ describe('HTTPLandingPage', function () {
       'href',
       '/organizations/org-slug/insights/http/domains/?domain=%2A.sentry.io&project=1&statsPeriod=10d'
     );
-    expect(screen.getByRole('cell', {name: 'backend'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'backend'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/projects/backend/?project=1'
-    );
+    expect(
+      screen.getAllByRole('cell', {name: 'View Project Details'})[0]
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', {name: 'View Project Details'})[0]
+    ).toHaveAttribute('href', '/organizations/org-slug/projects/backend/?project=1');
     expect(screen.getByRole('cell', {name: '40.8K/s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '0.04%'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '39.32%'})).toBeInTheDocument();

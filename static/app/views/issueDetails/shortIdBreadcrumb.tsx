@@ -67,7 +67,7 @@ export function ShortIdBreadcrumb({
         </Tooltip>
         <DropdownMenu
           triggerProps={{
-            'aria-label': t('Short-ID copy actions'),
+            'aria-label': t('Issue copy actions'),
             icon: <Chevron direction="down" />,
             size: 'zero',
             borderless: true,

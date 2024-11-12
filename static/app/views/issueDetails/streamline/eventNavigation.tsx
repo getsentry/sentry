@@ -185,7 +185,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
   };
 
   return (
-    <EventNavigationWrapper>
+    <EventNavigationWrapper role="navigation">
       <LargeDropdownButtonWrapper>
         <DropdownMenu
           items={[
@@ -260,13 +260,15 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 borderless
                 size="sm"
                 disabled={hideDropdownButton}
+                aria-label={t('Select issue content')}
+                aria-description={TabName[currentTab]}
               >
                 {TabName[currentTab] ?? TabName[Tab.DETAILS]}
               </NavigationDropdownButton>
             )
           }
         />
-        <LargeInThisIssueText>{t('in this issue')}</LargeInThisIssueText>
+        <LargeInThisIssueText aria-hidden>{t('in this issue')}</LargeInThisIssueText>
       </LargeDropdownButtonWrapper>
       {event ? (
         <NavigationWrapper>

@@ -10,6 +10,7 @@ import {space, type ValidSize} from 'sentry/styles/space';
 import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
 
 interface ScrollCarouselProps {
+  'aria-label': string;
   children: React.ReactNode;
   className?: string;
   'data-test-id'?: string;
@@ -100,7 +101,12 @@ export function ScrollCarousel({
 
   return (
     <ScrollCarouselWrapper>
-      <ScrollContainer ref={scrollContainerRef} style={{gap: space(gap)}} {...props}>
+      <ScrollContainer
+        ref={scrollContainerRef}
+        style={{gap: space(gap)}}
+        role="group"
+        {...props}
+      >
         {children}
       </ScrollContainer>
       {!isAtStart && <LeftMask transparentMask={transparentMask} />}

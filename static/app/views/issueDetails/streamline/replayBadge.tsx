@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import {IconPlay} from 'sentry/icons';
-import {tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -39,6 +39,7 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
           query: location.query,
           replace: true,
         }}
+        aria-label={t("View this issue's replays")}
       >
         {tn('%s Replay', '%s Replays', replaysCount)}
       </ReplayButton>

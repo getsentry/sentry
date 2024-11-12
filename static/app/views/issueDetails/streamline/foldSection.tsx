@@ -124,6 +124,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
         ref={mergeRefs([forwardedRef, scrollToSection])}
         id={sectionKey}
         scrollMargin={navScrollMargin ?? 0}
+        role="region"
       >
         <SectionExpander
           preventCollapse={preventCollapse}
