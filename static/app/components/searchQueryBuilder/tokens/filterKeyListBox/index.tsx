@@ -139,8 +139,10 @@ function useHighlightFirstOptionOnSectionChange({
   selectedSection,
   sections,
   hiddenOptions,
+  isOpen,
 }: {
   hiddenOptions: Set<SelectKey>;
+  isOpen: boolean;
   sections: Section[];
   selectedSection: Key | null;
   state: ComboBoxState<SelectOptionOrSectionWithKey<string>>;
@@ -156,6 +158,10 @@ function useHighlightFirstOptionOnSectionChange({
   const previousSection = usePrevious(selectedSection);
 
   useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
     if (selectedSection === previousSection) {
       return;
     }
@@ -163,7 +169,13 @@ function useHighlightFirstOptionOnSectionChange({
     if (firstItem) {
       state.selectionManager.setFocusedKey(firstItem.key);
     }
-  }, [displayedListItems, previousSection, selectedSection, state.selectionManager]);
+  }, [
+    displayedListItems,
+    isOpen,
+    previousSection,
+    selectedSection,
+    state.selectionManager,
+  ]);
 }
 
 function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
@@ -272,6 +284,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
     selectedSection,
     hiddenOptions: hiddenOptionsWithRecentsAdded,
     sections,
+    isOpen,
   });
 
   const fullWidth = !query;

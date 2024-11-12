@@ -413,7 +413,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
             onExit?.();
             return;
           case 'Enter':
-            if (state.selectionManager.focusedKey) {
+            if (isOpen && state.selectionManager.focusedKey) {
               return;
             }
             state.close();
