@@ -40,6 +40,7 @@ priority_ranking = {
     EventError.NATIVE_MISSING_DSYM: ActionPriority.LOW,
     EventError.NATIVE_INTERNAL_FAILURE: ActionPriority.LOW,
     EventError.NATIVE_SYMBOLICATOR_FAILED: ActionPriority.LOW,
+    EventError.NATIVE_UNSUPPORTED_DSYM: ActionPriority.LOW,
     EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: ActionPriority.LOW,
     EventError.PAST_TIMESTAMP: ActionPriority.LOW,
     EventError.PROGUARD_MISSING_LINENO: ActionPriority.LOW,
