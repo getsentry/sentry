@@ -321,7 +321,6 @@ function UsageChartBody({
   dataCategory,
   dataTransform,
   chartSeries,
-  chartTooltip,
   categoryColors,
   isLoading,
   isError,
@@ -498,16 +497,12 @@ function UsageChartBody({
         },
       }}
       series={series}
-      tooltip={
-        chartTooltip
-          ? chartTooltip
-          : {
-              // Trigger to axis prevents tooltip from redrawing when hovering
-              // over individual bars
-              trigger: 'axis',
-              valueFormatter: tooltipValueFormatter,
-            }
-      }
+      tooltip={{
+        // Trigger to axis prevents tooltip from redrawing when hovering
+        // over individual bars
+        trigger: 'axis',
+        valueFormatter: tooltipValueFormatter,
+      }}
       onLegendSelectChanged={onLegendSelectChanged}
       legend={Legend({
         right: 10,
