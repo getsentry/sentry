@@ -23,14 +23,14 @@ KNOWN_MAJOR_COMPONENT_NAMES = {
 }
 
 
-def _calculate_contributes(values: Sequence[str | int | GroupingComponent]) -> bool:
+def _calculate_contributes(values: Sequence[str | int | BaseGroupingComponent]) -> bool:
     for value in values or ():
-        if not isinstance(value, GroupingComponent) or value.contributes:
+        if not isinstance(value, BaseGroupingComponent) or value.contributes:
             return True
     return False
 
 
-class GroupingComponent:
+class BaseGroupingComponent:
     """A grouping component is a recursive structure that is flattened
     into components to make a hash for grouping purposes.
     """
@@ -38,14 +38,14 @@ class GroupingComponent:
     id: str = "default"
     hint: str | None
     contributes: bool | None
-    values: Sequence[str | int | GroupingComponent]
+    values: Sequence[str | int | BaseGroupingComponent]
 
     def __init__(
         self,
         id: str | None = None,
         hint: str | None = None,
         contributes: bool | None = None,
-        values: Sequence[str | int | GroupingComponent] | None = None,
+        values: Sequence[str | int | BaseGroupingComponent] | None = None,
         variant_provider: bool = False,
     ):
         self.id = id or self.id
@@ -54,7 +54,7 @@ class GroupingComponent:
         self.hint = DEFAULT_HINTS.get(self.id)
         self.contributes = contributes
         self.variant_provider = variant_provider
-        self.values: Sequence[str | int | GroupingComponent] = []
+        self.values: Sequence[str | int | BaseGroupingComponent] = []
 
         self.update(
             hint=hint,
@@ -70,10 +70,10 @@ class GroupingComponent:
     def description(self) -> str:
         items = []
 
-        def _walk_components(c: GroupingComponent, stack: list[str | None]) -> None:
+        def _walk_components(c: BaseGroupingComponent, stack: list[str | None]) -> None:
             stack.append(c.name)
             for value in c.values:
-                if isinstance(value, GroupingComponent) and value.contributes:
+                if isinstance(value, BaseGroupingComponent) and value.contributes:
                     _walk_components(value, stack)
             parts = [_f for _f in stack if _f]
             items.append(parts)
@@ -89,16 +89,16 @@ class GroupingComponent:
 
     def get_subcomponent(
         self, id: str, only_contributing: bool = False
-    ) -> str | int | GroupingComponent | None:
+    ) -> str | int | BaseGroupingComponent | None:
         """Looks up a subcomponent by the id and returns the first or `None`."""
         return next(self.iter_subcomponents(id=id, only_contributing=only_contributing), None)
 
     def iter_subcomponents(
         self, id: str, recursive: bool = False, only_contributing: bool = False
-    ) -> Iterator[str | int | GroupingComponent | None]:
+    ) -> Iterator[str | int | BaseGroupingComponent | None]:
         """Finds all subcomponents matching an id, optionally recursively."""
         for value in self.values:
-            if isinstance(value, GroupingComponent):
+            if isinstance(value, BaseGroupingComponent):
                 if only_contributing and not value.contributes:
                     continue
                 if value.id == id:
@@ -113,7 +113,7 @@ class GroupingComponent:
         self,
         hint: str | None = None,
         contributes: bool | None = None,
-        values: Sequence[str | int | GroupingComponent] | None = None,
+        values: Sequence[str | int | BaseGroupingComponent] | None = None,
     ) -> None:
         """Updates an already existing component with new values."""
         if hint is not None:
@@ -125,20 +125,20 @@ class GroupingComponent:
         if contributes is not None:
             self.contributes = contributes
 
-    def shallow_copy(self) -> GroupingComponent:
+    def shallow_copy(self) -> BaseGroupingComponent:
         """Creates a shallow copy."""
         rv = object.__new__(self.__class__)
         rv.__dict__.update(self.__dict__)
         rv.values = list(self.values)
         return rv
 
-    def iter_values(self) -> Generator[str | int | GroupingComponent]:
+    def iter_values(self) -> Generator[str | int | BaseGroupingComponent]:
         """Recursively walks the component and flattens it into a list of
         values.
         """
         if self.contributes:
             for value in self.values:
-                if isinstance(value, GroupingComponent):
+                if isinstance(value, BaseGroupingComponent):
                     yield from value.iter_values()
                 else:
                     yield value
@@ -160,7 +160,7 @@ class GroupingComponent:
             "values": [],
         }
         for value in self.values:
-            if isinstance(value, GroupingComponent):
+            if isinstance(value, BaseGroupingComponent):
                 rv["values"].append(value.as_dict())
             else:
                 # This basically assumes that a value is only a primitive
