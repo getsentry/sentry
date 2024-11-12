@@ -129,7 +129,7 @@ SINGULAR_HUMAN_FAILURE_MAP: Mapping[int, _StrPromise] = {
 
 def get_failure_reason(failed_checkins: Sequence[SimpleCheckIn]):
     """
-    Builds a humam readible string from a list of failed check-ins.
+    Builds a human readable string from a list of failed check-ins.
 
     "3 missed check-ins detected"
     "2 missed check-ins, 1 timeout check-in and 1 error check-in were detected"
