@@ -31,7 +31,7 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
   const {value, initialValue, error, onChange} = useFormField('projectRates');
 
   const [orgRate, setOrgRate] = useState<string>('');
-  const [editMode, setEditMode] = useState<'manual' | 'bulk'>('manual');
+  const [editMode, setEditMode] = useState<'single' | 'bulk'>('single');
   const projectRateSnapshotRef = useRef<Record<string, string>>({});
 
   const dataByProjectId = useMemo(
@@ -52,7 +52,7 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
         ...prev,
         [projectId]: newRate,
       }));
-      setEditMode('manual');
+      setEditMode('single');
     },
     [onChange]
   );
@@ -60,7 +60,7 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
   const handleOrgChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const newRate = event.target.value;
-      if (editMode === 'manual') {
+      if (editMode === 'single') {
         projectRateSnapshotRef.current = value;
       }
 

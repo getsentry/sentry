@@ -43,8 +43,8 @@ export function scaleSampleRates<T extends ScalingItem>({
 
   let factor = sampleRate / oldSampleRate;
   let remainingTotal = totalSpans;
-  let remainingSampled = newSampled;
-  let remainingOldSampled = totalSpans * oldSampleRate;
+  let remainingSampleCount = newSampled;
+  let remainingOldSampleCount = totalSpans * oldSampleRate;
 
   const sortedItems = items.toSorted((a, b) => a.count - b.count);
   const remainingProjects = sortedItems.toReversed();
@@ -53,16 +53,16 @@ export function scaleSampleRates<T extends ScalingItem>({
   for (const item of sortedItems) {
     remainingProjects.pop();
     const newProjectRate = Math.min(1, Math.max(0, item.sampleRate * factor));
-    const newProjectSampled = item.count * newProjectRate;
+    const newProjectSampleCount = item.count * newProjectRate;
 
     remainingTotal -= item.count;
-    remainingSampled -= newProjectSampled;
-    remainingOldSampled -= item.count * item.sampleRate;
+    remainingSampleCount -= newProjectSampleCount;
+    remainingOldSampleCount -= item.count * item.sampleRate;
 
-    const newTargetRate = remainingSampled / remainingTotal;
+    const newTargetRate = remainingSampleCount / remainingTotal;
 
     const remainingTotalRef = remainingTotal;
-    const remainingOldSampleRate = remainingOldSampled / remainingTotalRef;
+    const remainingOldSampleRate = remainingOldSampleCount / remainingTotalRef;
 
     factor = newTargetRate / remainingOldSampleRate;
 
