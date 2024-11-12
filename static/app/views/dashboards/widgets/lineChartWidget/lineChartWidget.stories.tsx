@@ -69,6 +69,11 @@ export default storyBook(LineChartWidget, story => {
           some bells and whistles including automatic axes labels, and a hover tooltip.
         </p>
 
+        <p>
+          The <code>utc</code> prop controls whether the X Axis timestamps are shown in
+          UTC or not
+        </p>
+
         <SideBySide>
           <MediumWidget>
             <LineChartWidget
@@ -90,6 +95,7 @@ export default storyBook(LineChartWidget, story => {
             <LineChartWidget
               title="span.duration"
               timeseries={[durationTimeSeries1, durationTimeSeries2]}
+              utc
               meta={{
                 fields: {
                   'p99(span.duration)': 'duration',
