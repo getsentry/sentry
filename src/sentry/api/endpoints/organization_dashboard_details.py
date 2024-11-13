@@ -44,19 +44,10 @@ class DashboardPermissions(BasePermission):
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
 
-    def has_object_permission(self, request: Request, view, obj):
-        if isinstance(obj, Dashboard) and features.has(
-            "organizations:dashboards-edit-access", obj.organization, actor=request.user
-        ):
-            # Check if user has permissions to edit dashboard
-            if hasattr(obj, "permissions"):
-                return obj.permissions.has_edit_permissions(request.user.id)
-        return True
-
 
 class OrganizationDashboardBase(OrganizationEndpoint):
     owner = ApiOwner.PERFORMANCE
-    permission_classes = (OrganizationDashboardsPermission, DashboardPermissions)
+    permission_classes = (OrganizationDashboardsPermission,)
 
     def convert_args(
         self, request: Request, organization_id_or_slug, dashboard_id, *args, **kwargs
