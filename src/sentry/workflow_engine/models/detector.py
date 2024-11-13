@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class Detector(DefaultFieldsModel, OwnerModel):
     __relocation_scope__ = RelocationScope.Organization
 
-    organization = FlexibleForeignKey("sentry.Organization")
+    project = FlexibleForeignKey("sentry.Project")
     name = models.CharField(max_length=200)
 
     # The data sources that the detector is watching
@@ -31,7 +31,9 @@ class Detector(DefaultFieldsModel, OwnerModel):
         "workflow_engine.DataSource", through="workflow_engine.DataSourceDetector"
     )
 
-    # The conditions that must be met for the detector to be considered 'active'
+    # If the detector is not enabled, it will not be evaluated. This is how we "snooze" a detector
+    enabled = models.BooleanField(default=True)
+
     # This will emit an event for the workflow to process
     workflow_condition_group = FlexibleForeignKey(
         "workflow_engine.DataConditionGroup",
@@ -49,11 +51,6 @@ class Detector(DefaultFieldsModel, OwnerModel):
                 name="workflow_engine_detector_org_name",
             )
         ]
-
-    @property
-    def project_id(self):
-        # XXX: Temporary property until we add `project_id` to the model.
-        return 1
 
     @property
     def group_type(self) -> builtins.type[GroupType] | None:
