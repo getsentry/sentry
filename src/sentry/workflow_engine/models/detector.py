@@ -34,6 +34,13 @@ class Detector(DefaultFieldsModel, OwnerModel):
     # If the detector is not enabled, it will not be evaluated. This is how we "snooze" a detector
     enabled = models.BooleanField(default=True)
 
+    # Optionally set a description of the detector, this will be used in notifications
+    description = models.TextField(blank=True, null=True)
+
+    # This represents a time delta, in seconds. If not null, this is used to determine which time
+    # window to query to compare the result from the current time_window to.
+    comparison_delta = models.IntegerField(null=True)
+
     # This will emit an event for the workflow to process
     workflow_condition_group = FlexibleForeignKey(
         "workflow_engine.DataConditionGroup",
