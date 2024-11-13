@@ -158,9 +158,7 @@ const HISTORICAL_TIME_PERIOD_MAP: TimePeriodMap = {
 };
 
 const HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS: TimePeriodMap = {
-  [TimePeriod.SIX_HOURS]: '678h',
-  [TimePeriod.ONE_DAY]: '29d',
-  [TimePeriod.THREE_DAYS]: '31d',
+  ...HISTORICAL_TIME_PERIOD_MAP,
   [TimePeriod.SEVEN_DAYS]: '28d', // fetching 28 + 7 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
   [TimePeriod.FOURTEEN_DAYS]: '28d', // fetching 28 + 14 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
 };
