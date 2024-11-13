@@ -7,6 +7,8 @@ import {Button} from 'sentry/components/button';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import Count from 'sentry/components/count';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -14,21 +16,31 @@ import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import ScoreBar from 'sentry/components/scoreBar';
 import TextOverflow from 'sentry/components/textOverflow';
+import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconChevron, IconWarning} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconEllipsis} from 'sentry/icons/iconEllipsis';
+import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
+import type {EventsStatsSeries} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {getShortEventId} from 'sentry/utils/events';
 import {Frame} from 'sentry/utils/profiling/frame';
 import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
-import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
+import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {getTargetId} from 'sentry/views/profiling/utils';
 
 import {
   Accordion,
@@ -45,22 +57,23 @@ const MAX_FUNCTIONS = 3;
 const DEFAULT_CURSOR_NAME = 'slowFnCursor';
 
 type BreakdownFunction = 'avg()' | 'p50()' | 'p75()' | 'p95()' | 'p99()';
+type ChartFunctions<F extends BreakdownFunction> = F | 'all_examples()' | 'max()';
 
-interface SlowestFunctionsWidgetProps {
-  breakdownFunction: BreakdownFunction;
+interface SlowestFunctionsWidgetProps<F extends BreakdownFunction> {
+  breakdownFunction: F;
   cursorName?: string;
   header?: ReactNode;
   userQuery?: string;
   widgetHeight?: string;
 }
 
-export function SlowestFunctionsWidget({
+export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   breakdownFunction,
   cursorName = DEFAULT_CURSOR_NAME,
   header,
   userQuery,
   widgetHeight,
-}: SlowestFunctionsWidgetProps) {
+}: SlowestFunctionsWidgetProps<F>) {
   const location = useLocation();
 
   const [expandedIndex, setExpandedIndex] = useState(0);
@@ -92,7 +105,9 @@ export function SlowestFunctionsWidget({
     cursor: slowFnCursor,
   });
 
-  const hasFunctions = (functionsQuery.data?.data?.length || 0) > 0;
+  const functionsData = functionsQuery.data?.data || [];
+
+  const hasFunctions = (functionsData.length || 0) > 0;
 
   const totalsQuery = useProfileFunctions<TotalsField>({
     fields: totalsFields,
@@ -116,6 +131,17 @@ export function SlowestFunctionsWidget({
 
   const isLoading = functionsQuery.isPending || (hasFunctions && totalsQuery.isPending);
   const isError = functionsQuery.isError || totalsQuery.isError;
+
+  const functionStats = useProfileTopEventsStats({
+    dataset: 'profileFunctions',
+    fields: ['fingerprint', 'all_examples()', 'max()', breakdownFunction],
+    query: functionsData.map(f => `fingerprint:${f.fingerprint}`).join(' OR '),
+    referrer: 'api.profiling.suspect-functions.stats',
+    yAxes: ['all_examples()', 'max()', breakdownFunction],
+    others: false,
+    topEvents: functionsData.length,
+    enabled: totalsQuery.isFetched && hasFunctions,
+  });
 
   return (
     <WidgetContainer height={widgetHeight}>
@@ -146,11 +172,12 @@ export function SlowestFunctionsWidget({
         )}
         {hasFunctions && totalsQuery.isFetched && (
           <StyledAccordion>
-            {(functionsQuery.data?.data ?? []).map((f, i, l) => {
+            {functionsData.map((f, i, l) => {
               const projectEntry = totalsQuery.data?.data?.find(
                 row => row['project.id'] === f['project.id']
               );
               const projectTotalDuration = projectEntry?.['sum()'] ?? f['sum()'];
+
               return (
                 <SlowestFunctionEntry
                   key={`${f['project.id']}-${f.package}-${f.function}`}
@@ -161,6 +188,7 @@ export function SlowestFunctionsWidget({
                     setExpandedIndex(nextIndex);
                   }}
                   func={f}
+                  stats={functionStats.data}
                   totalDuration={projectTotalDuration as number}
                   query={userQuery ?? ''}
                 />
@@ -173,24 +201,27 @@ export function SlowestFunctionsWidget({
   );
 }
 
-interface SlowestFunctionEntryProps {
+interface SlowestFunctionEntryProps<F extends BreakdownFunction> {
   breakdownFunction: BreakdownFunction;
   func: EventsResultsDataRow<FunctionsField>;
   isExpanded: boolean;
   query: string;
   setExpanded: () => void;
   totalDuration: number;
+  stats?: EventsStatsSeries<ChartFunctions<F>>;
 }
 
 const BARS = 10;
 
-function SlowestFunctionEntry({
+function SlowestFunctionEntry<F extends BreakdownFunction>({
   breakdownFunction,
   func,
   isExpanded,
   setExpanded,
+  stats,
   totalDuration,
-}: SlowestFunctionEntryProps) {
+}: SlowestFunctionEntryProps<F>) {
+  const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === String(func['project.id']));
 
@@ -212,11 +243,64 @@ function SlowestFunctionEntry({
     );
   }, [func, project]);
 
+  const examples: MenuItemProps[] = useMemo(() => {
+    const rawExamples = stats?.data?.find(
+      s => s.axis === 'all_examples()' && s.label === String(func.fingerprint)
+    );
+
+    if (!defined(rawExamples?.values)) {
+      return [];
+    }
+
+    const timestamps = stats?.timestamps ?? [];
+
+    return rawExamples.values
+      .map(values => (Array.isArray(values) ? values : []))
+      .flatMap((example, i) => {
+        const timestamp = (
+          <TimeSince
+            unitStyle="extraShort"
+            date={timestamps[i] * 1000}
+            tooltipShowSeconds
+          />
+        );
+        return example.slice(0, 1).map(profileRef => {
+          const targetId = getTargetId(profileRef);
+          return {
+            key: targetId,
+            label: (
+              <DropdownItem>
+                {getShortEventId(targetId)}
+                {timestamp}
+              </DropdownItem>
+            ),
+            to: generateProfileRouteFromProfileReference({
+              orgSlug: organization.slug,
+              projectSlug: project?.slug || '',
+              reference: profileRef,
+              frameName: frame.name,
+              framePackage: frame.package,
+            }),
+          };
+        });
+      })
+      .reverse()
+      .slice(0, 10);
+  }, [func, stats, organization, project, frame]);
+
   return (
     <Fragment>
       <StyledAccordionItem>
+        <Button
+          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+          aria-label={t('Expand')}
+          aria-expanded={isExpanded}
+          size="zero"
+          borderless
+          onClick={setExpanded}
+        />
         {project && (
-          <Tooltip title={project.name}>
+          <Tooltip title={project.slug}>
             <IdBadge project={project} avatarSize={16} hideName />
           </Tooltip>
         )}
@@ -233,58 +317,66 @@ function SlowestFunctionEntry({
         >
           <ScoreBar score={score} palette={palette} size={20} radius={0} />
         </Tooltip>
-        <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-          aria-label={t('Expand')}
-          aria-expanded={isExpanded}
-          size="zero"
-          borderless
-          onClick={setExpanded}
+        <DropdownMenu
+          position="bottom-end"
+          triggerProps={{
+            icon: <IconEllipsis size="xs" />,
+            borderless: true,
+            showChevron: false,
+            size: 'xs',
+          }}
+          items={examples}
         />
       </StyledAccordionItem>
       {isExpanded && (
         <FunctionChartContainer>
-          <FunctionChart func={func} breakdownFunction={breakdownFunction} />
+          <FunctionChart
+            func={func}
+            breakdownFunction={breakdownFunction}
+            stats={stats}
+          />
         </FunctionChartContainer>
       )}
     </Fragment>
   );
 }
 
-interface FunctionChartProps {
-  breakdownFunction: BreakdownFunction;
+interface FunctionChartProps<F extends BreakdownFunction> {
+  breakdownFunction: F;
   func: EventsResultsDataRow<FunctionsField>;
+  stats?: EventsStatsSeries<ChartFunctions<F>>;
 }
 
-function FunctionChart({breakdownFunction, func}: FunctionChartProps) {
+function FunctionChart<F extends BreakdownFunction>({
+  breakdownFunction,
+  func,
+  stats,
+}: FunctionChartProps<F>) {
   const {selection} = usePageFilters();
   const theme = useTheme();
 
-  const functionStats = useProfileEventsStats({
-    dataset: 'profileFunctions',
-    query: `fingerprint:${func.fingerprint}`,
-    referrer: 'api.profiling.suspect-functions.stats',
-    yAxes: [breakdownFunction],
-  });
-
   const series: Series[] = useMemo(() => {
-    const timestamps = functionStats.data?.timestamps ?? [];
-    const allData = (functionStats.data?.data ?? []).filter(
-      data => data.axis === breakdownFunction
+    const timestamps = stats?.timestamps ?? [];
+    const rawData = stats?.data?.find(
+      s => s.axis === breakdownFunction && s.label === String(func.fingerprint)
     );
 
-    return allData.map(data => {
-      return {
+    if (!defined(rawData?.values)) {
+      return [];
+    }
+
+    return [
+      {
         data: timestamps.map((timestamp, i) => {
           return {
             name: timestamp * 1000,
-            value: data.values[i],
+            value: rawData.values[i],
           };
         }),
-        seriesName: data.axis,
-      };
-    });
-  }, [breakdownFunction, functionStats]);
+        seriesName: breakdownFunction,
+      },
+    ];
+  }, [breakdownFunction, func, stats]);
 
   const chartOptions = useMemo(() => {
     return {
@@ -345,7 +437,8 @@ const StyledAccordion = styled(Accordion)`
 
 const StyledAccordionItem = styled(AccordionItem)`
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto auto 1fr auto auto;
+  padding: ${space(0.5)} ${space(2)};
 `;
 
 const FunctionName = styled(TextOverflow)`
@@ -354,4 +447,10 @@ const FunctionName = styled(TextOverflow)`
 
 const FunctionChartContainer = styled('div')`
   flex: 1 1 auto;
+`;
+
+const DropdownItem = styled('div')`
+  width: 150px;
+  display: flex;
+  justify-content: space-between;
 `;

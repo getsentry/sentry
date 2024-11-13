@@ -11,15 +11,12 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
-import {
-  isContinuousProfileReference,
-  isTransactionProfileReference,
-} from 'sentry/utils/profiling/guards/profile';
 import type {EventsResults, Sort} from 'sentry/utils/profiling/hooks/types';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getTargetId} from 'sentry/views/profiling/utils';
 
 interface FunctionsTableProps {
   analyticsPageSource: 'performance_transaction' | 'profiling_transaction';
@@ -226,13 +223,3 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
     width: COL_WIDTH_UNDEFINED,
   },
 };
-
-function getTargetId(reference): string {
-  if (isTransactionProfileReference(reference)) {
-    return reference.profile_id;
-  }
-  if (isContinuousProfileReference(reference)) {
-    return reference.profiler_id;
-  }
-  return reference;
-}
