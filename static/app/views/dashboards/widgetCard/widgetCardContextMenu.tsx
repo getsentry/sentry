@@ -193,7 +193,7 @@ function WidgetCardContextMenu({
     widget,
     Boolean(isMetricsData),
     widgetLimitReached,
-    hasEditAccess ?? true,
+    hasEditAccess,
     onDelete,
     onDuplicate,
     onEdit
@@ -270,7 +270,7 @@ export function getMenuOptions(
   widget: Widget,
   isMetricsData: boolean,
   widgetLimitReached: boolean,
-  hasEditAccess?: boolean,
+  hasEditAccess: boolean = true,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
