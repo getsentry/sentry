@@ -3,7 +3,7 @@ import {createContext, type ReactNode, useContext} from 'react';
 const AnalyticsAreaContext = createContext<string>('');
 
 /**
- * Returns a string identifying the UI area an analytics event is emitted from.
+ * Returns a string identifying the UI area from which an analytics event is emitted.
  * This may also be used for metadata like queryReferrers, but app logic should
  * not change or branch off of this value.
  */
@@ -12,7 +12,7 @@ export function useAnalyticsArea(): string {
 }
 
 /**
- * Used to provide context on the UI area an analytics event is emitted from.
+ * Used to provide context on the UI area from which an analytics event is emitted.
  * When nesting this component, we recursively append `name` to the outer
  * AnalyticsArea, so the area becomes `${outer}.${name}`. Use
  * `overrideParent` to strip the outer value.
