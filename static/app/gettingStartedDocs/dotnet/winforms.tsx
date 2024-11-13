@@ -92,7 +92,6 @@ static class Program
             ));`
                 : ''
             }
-          }
         });
         // Configure WinForms to throw exceptions so Sentry can capture them.
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
