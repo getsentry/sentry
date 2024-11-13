@@ -71,7 +71,7 @@ def handle_seer_error_responses(response, config, context, log_params):
         return True
 
     if not results.get("success"):
-        extra_data = {"message": results.get("message", "")}
+        extra_data = {"response_data": results.get("message", "")}
         log_statement("error", "Error when hitting Seer detect anomalies endpoint", extra_data)
         return True
 
