@@ -16,20 +16,19 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
 import GroupEventDetails, {
   type GroupEventDetailsProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-type GroupTagsProps = {
-  baseUrl: string;
-  environments: string[];
-  group: Group;
-};
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {
+  useEnvironmentsFromUrl,
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 
 type SimpleTag = {
   key: string;
@@ -42,8 +41,18 @@ type SimpleTag = {
   totalValues: number;
 };
 
-export function GroupTagsTab({group, baseUrl, environments}: GroupTagsProps) {
+export function GroupTagsTab() {
   const location = useLocation();
+  const environments = useEnvironmentsFromUrl();
+  const {baseUrl} = useGroupDetailsRoute();
+  const params = useParams<{groupId: string}>();
+
+  const {
+    data: group,
+    isPending: isGroupPending,
+    isError: isGroupError,
+    refetch: refetchGroup,
+  } = useGroup({groupId: params.groupId});
 
   const {
     data = [],
@@ -51,21 +60,24 @@ export function GroupTagsTab({group, baseUrl, environments}: GroupTagsProps) {
     isError,
     refetch,
   } = useGroupTags({
-    groupId: group.id,
+    groupId: group?.id,
     environment: environments,
   });
 
   const alphabeticalTags = data.sort((a, b) => a.key.localeCompare(b.key));
 
-  if (isPending) {
+  if (isPending || isGroupPending) {
     return <LoadingIndicator />;
   }
 
-  if (isError) {
+  if (isError || isGroupError) {
     return (
       <LoadingError
         message={t('There was an error loading issue tags.')}
-        onRetry={refetch}
+        onRetry={() => {
+          refetch();
+          refetchGroup();
+        }}
       />
     );
   }
@@ -136,9 +148,7 @@ export function GroupTagsTab({group, baseUrl, environments}: GroupTagsProps) {
   );
 }
 
-function GroupTagsRoute(
-  props: GroupEventDetailsProps & {baseUrl: string; environments: string[]}
-) {
+function GroupTagsRoute(props: GroupEventDetailsProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   // TODO(streamlined-ui): Point the router to group event details
@@ -146,7 +156,7 @@ function GroupTagsRoute(
     return <GroupEventDetails {...props} />;
   }
 
-  return <GroupTagsTab {...props} />;
+  return <GroupTagsTab />;
 }
 
 export default GroupTagsRoute;

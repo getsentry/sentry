@@ -14,6 +14,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -21,9 +22,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import type {SavedQueryVersions} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -31,23 +30,22 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupEventDetails, {
   type GroupEventDetailsProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {
+  useEnvironmentsFromUrl,
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 
 type RouteParams = {
   groupId: string;
   orgId: string;
   tagKey?: string;
-};
-
-type Props = {
-  baseUrl: string;
-  group: Group;
-  environments?: string[];
-  project?: Project;
 };
 
 const DEFAULT_SORT = 'count';
@@ -59,11 +57,11 @@ function useTagQueries({
   sort,
   cursor,
 }: {
+  environments: string[];
   groupId: string;
   sort: string | string[];
   tagKey: string;
   cursor?: string;
-  environments?: string[];
 }) {
   const organization = useOrganization();
 
@@ -101,23 +99,47 @@ function useTagQueries({
   };
 }
 
-export function GroupTagValues({baseUrl, project, group, environments}: Props) {
+export function GroupTagValues() {
   const organization = useOrganization();
   const location = useLocation();
+  const params = useParams<RouteParams>();
+  const environments = useEnvironmentsFromUrl();
+  const {baseUrl} = useGroupDetailsRoute();
   const {orgId, tagKey = ''} = useParams<RouteParams>();
   const {cursor, page: _page, ...currentQuery} = location.query;
+
+  const {
+    data: group,
+    isPending: isGroupPending,
+    isError: isGroupError,
+    refetch: refetchGroup,
+  } = useGroup({groupId: params.groupId});
+  const project = useProjectFromSlug({organization, projectSlug: group?.project?.slug});
 
   const title = tagKey === 'user' ? t('Affected Users') : tagKey;
   const sort = location.query.sort || DEFAULT_SORT;
   const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
 
   const {tagValueList, tag, isLoading, isError, pageLinks} = useTagQueries({
-    groupId: group.id,
+    groupId: params.groupId,
     sort,
     tagKey,
     environments,
     cursor: typeof cursor === 'string' ? cursor : undefined,
   });
+
+  if (isGroupPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isGroupError) {
+    return (
+      <LoadingError
+        message={t('There was an error loading the issue details')}
+        onRetry={refetchGroup}
+      />
+    );
+  }
 
   const lastSeenColumnHeader = (
     <StyledSortLink
@@ -305,7 +327,7 @@ export function GroupTagValues({baseUrl, project, group, environments}: Props) {
           ]}
           emptyMessage={t('Sorry, the tags for this issue could not be found.')}
           emptyAction={
-            environments?.length
+            environments.length
               ? t('No tags were found for the currently selected environments')
               : null
           }
@@ -318,7 +340,7 @@ export function GroupTagValues({baseUrl, project, group, environments}: Props) {
   );
 }
 
-function GroupTagValuesRoute(props: GroupEventDetailsProps & {baseUrl: string}) {
+function GroupTagValuesRoute(props: GroupEventDetailsProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   // TODO(streamlined-ui): Point the router directly to group event details
@@ -326,7 +348,7 @@ function GroupTagValuesRoute(props: GroupEventDetailsProps & {baseUrl: string}) 
     return <GroupEventDetails {...props} />;
   }
 
-  return <GroupTagValues {...props} />;
+  return <GroupTagValues />;
 }
 
 const TitleWrapper = styled('div')`
