@@ -1,3 +1,4 @@
+import type {MouseEventHandler} from 'react';
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
@@ -94,7 +95,9 @@ const SidebarItemList = styled('ul')`
 `;
 
 interface SidebarItemProps {
+  children: React.ReactNode;
   item: NavSidebarItem;
+  onClick?: MouseEventHandler<HTMLElement>;
 }
 
 function SidebarItem({item}: SidebarItemProps) {
@@ -135,14 +138,7 @@ const NavButton = styled('button')`
   ${linkStyles}
 `;
 
-function SidebarLink({
-  children,
-  item,
-  onClick,
-}: SidebarItemProps & {
-  children: React.ReactNode;
-  onClick: React.HTMLAttributes<HTMLAnchorElement>['onClick'];
-}) {
+function SidebarLink({children, item, onClick}: SidebarItemProps) {
   const location = useLocation();
   const isActive = isNavItemActive(item, location);
   const isSubmenuActive = isSubmenuItemActive(item, location);
@@ -167,14 +163,7 @@ function SidebarLink({
   );
 }
 
-function SidebarMenu({
-  item,
-  children,
-  onClick,
-}: SidebarItemProps & {
-  children: React.ReactNode;
-  onClick: React.HTMLAttributes<HTMLButtonElement>['onClick'];
-}) {
+function SidebarMenu({item, children, onClick}: SidebarItemProps) {
   if (!item.dropdown) {
     throw new Error(
       `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
