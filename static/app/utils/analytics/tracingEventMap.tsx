@@ -9,6 +9,7 @@ export type TracingEventParameters = {
     has_results: boolean;
     query_status: 'success' | 'error';
     results_mode: 'sample' | 'aggregate';
+    user_query: string;
     visualizes: Visualize[];
   };
   'trace.metadata': {
