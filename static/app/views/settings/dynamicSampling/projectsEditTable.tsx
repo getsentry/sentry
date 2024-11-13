@@ -201,6 +201,12 @@ export function ProjectsEditTable({
                   size="sm"
                   onChange={handleOrgChange}
                   value={projectedOrgRate}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      inputRef.current?.blur();
+                    }
+                  }}
                   onBlur={() => setIsBulkEditEnabled(false)}
                 />
                 <FlexRow>
