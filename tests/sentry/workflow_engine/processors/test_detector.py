@@ -158,6 +158,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             occurrence,
             event_data,
         )
+
         assert results == [
             (
                 detector,
