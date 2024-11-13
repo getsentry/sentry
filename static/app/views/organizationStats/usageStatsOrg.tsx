@@ -28,7 +28,11 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
-import {FORMAT_DATETIME_DAILY, FORMAT_DATETIME_HOURLY} from './usageChart/utils';
+import {
+  FORMAT_DATETIME_DAILY,
+  FORMAT_DATETIME_HOURLY,
+  getTooltipFormatter,
+} from './usageChart/utils';
 import {mapSeriesToChart} from './mapSeriesToChart';
 import type {UsageSeries} from './types';
 import type {ChartStats, UsageChartProps} from './usageChart';
@@ -299,6 +303,8 @@ class UsageStatsOrganization<
       chartTooltip: {
         subLabels: chartSubLabels,
         skipZeroValuedSubLabels: true,
+        trigger: 'axis',
+        valueFormatter: getTooltipFormatter(dataCategory),
       },
       legendSelected: {[SeriesTypes.CLIENT_DISCARD]: !!clientDiscard},
       onLegendSelectChanged: ({name, selected}) => {

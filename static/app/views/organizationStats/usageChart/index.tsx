@@ -1,6 +1,11 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts';
+import type {
+  BarSeriesOption,
+  LegendComponentOption,
+  SeriesOption,
+  TooltipComponentOption,
+} from 'echarts';
 
 import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
@@ -131,7 +136,10 @@ export type UsageChartProps = {
    * Additional data to draw on the chart alongside usage
    */
   chartSeries?: SeriesOption[];
-
+  /**
+   * Replace default tooltip
+   */
+  chartTooltip?: TooltipComponentOption;
   errors?: Record<string, Error>;
   /**
    * Modify the usageStats using the transformation method selected.
@@ -312,6 +320,7 @@ function UsageChartBody({
   usageStats,
   dataCategory,
   dataTransform,
+  chartTooltip,
   chartSeries,
   categoryColors,
   isLoading,
@@ -489,12 +498,16 @@ function UsageChartBody({
         },
       }}
       series={series}
-      tooltip={{
-        // Trigger to axis prevents tooltip from redrawing when hovering
-        // over individual bars
-        trigger: 'axis',
-        valueFormatter: tooltipValueFormatter,
-      }}
+      tooltip={
+        chartTooltip
+          ? chartTooltip
+          : {
+              // Trigger to axis prevents tooltip from redrawing when hovering
+              // over individual bars
+              trigger: 'axis',
+              valueFormatter: tooltipValueFormatter,
+            }
+      }
       onLegendSelectChanged={onLegendSelectChanged}
       legend={Legend({
         right: 10,
