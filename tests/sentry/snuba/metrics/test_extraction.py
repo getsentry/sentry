@@ -250,6 +250,26 @@ def test_spec_context_mapping() -> None:
     }
 
 
+def test_spec_tags_mapping() -> None:
+    spec = OnDemandMetricSpec(
+        "count()",
+        "tags[os]:Mac OR os:Windows OR tags[device.family]:Computer OR device.family:Laptop",
+    )
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "inner": [
+            {"name": "event.contexts.os", "op": "eq", "value": "Mac"},
+            {"name": "event.contexts.os", "op": "eq", "value": "Windows"},
+            {"name": "event.contexts.device.family", "op": "eq", "value": "Computer"},
+            {"name": "event.contexts.device.family", "op": "eq", "value": "Laptop"},
+        ],
+        "op": "or",
+    }
+
+
 def test_spec_query_or_precedence_with_environment() -> None:
     spec_1 = OnDemandMetricSpec(
         "count()",
