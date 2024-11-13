@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -35,7 +37,11 @@ class OrganizationFlagsWebHookSigningSecretEndpoint(OrganizationFlagsEndpoint):
         FlagWebHookSigningSecretModel.objects.create_or_update(
             organization=organization,
             provider=provider,
-            values={"secret": validator.validated_data["secret"]},
+            values={
+                "created_by": request.user.id,
+                "date_added": datetime.now(tz=timezone.utc),
+                "secret": validator.validated_data["secret"],
+            },
         )
 
         return Response(status=201)

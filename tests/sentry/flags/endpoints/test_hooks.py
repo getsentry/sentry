@@ -24,11 +24,14 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
 
     def test_launchdarkly_post_create(self):
         request_data = LD_REQUEST
-        signature = hmac_sha256_hex_digest(key="123", message=json.dumps(request_data).encode())
+        signature = hmac_sha256_hex_digest(key="456", message=json.dumps(request_data).encode())
 
-        # Store the signing secret in Sentry.
+        # Test multiple secrets exist for the provider, org pair.
         FlagWebHookSigningSecretModel.objects.create(
             organization=self.organization, provider="launchdarkly", secret="123"
+        )
+        FlagWebHookSigningSecretModel.objects.create(
+            organization=self.organization, provider="launchdarkly", secret="456"
         )
 
         with self.feature(self.features):

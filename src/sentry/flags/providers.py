@@ -158,15 +158,14 @@ def validate_launchdarkly_event(
     if signature is None:
         return False
 
-    try:
-        model = FlagWebHookSigningSecretModel.objects.get(
-            organization_id=organization_id,
-            provider="launchdarkly",
-        )
-    except FlagWebHookSigningSecretModel.DoesNotExist:
-        return False
-
-    return hmac_sha256_hex_digest(model.secret, request_data) == signature
+    models = FlagWebHookSigningSecretModel.objects.filter(
+        organization_id=organization_id,
+        provider="launchdarkly",
+    ).all()
+    for model in models:
+        if hmac_sha256_hex_digest(model.secret, request_data) == signature:
+            return True
+    return False
 
 
 def hmac_sha256_hex_digest(key: str, message: bytes):

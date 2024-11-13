@@ -1,5 +1,6 @@
 from enum import Enum
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -89,6 +90,8 @@ class FlagAuditLogModel(Model):
 class FlagWebHookSigningSecretModel(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
+    created_by = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    date_added = models.DateTimeField(default=timezone.now)
     organization = FlexibleForeignKey("sentry.Organization")
     provider = models.CharField(db_index=True)
     secret = models.CharField()
@@ -96,4 +99,4 @@ class FlagWebHookSigningSecretModel(Model):
     class Meta:
         app_label = "flags"
         db_table = "flags_webhooksigningsecret"
-        unique_together = (("organization", "provider"),)
+        unique_together = (("organization", "provider", "secret"),)
