@@ -1,14 +1,14 @@
-import type {ComponentProps} from 'react';
-
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 import GroupReplays from './groupReplays';
-
-type Props = ComponentProps<typeof GroupReplays>;
 
 function renderNoAccess() {
   return (
@@ -18,7 +18,22 @@ function renderNoAccess() {
   );
 }
 
-function GroupReplaysContainer(props: Props) {
+function GroupReplaysWithGroup() {
+  const params = useParams<{groupId: string}>();
+  const {data: group, isPending, isError, refetch} = useGroup({groupId: params.groupId});
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  return <GroupReplays group={group} />;
+}
+
+function GroupReplaysContainer() {
   const organization = useOrganization();
 
   return (
@@ -27,7 +42,7 @@ function GroupReplaysContainer(props: Props) {
       organization={organization}
       renderDisabled={renderNoAccess}
     >
-      <GroupReplays {...props} />
+      <GroupReplaysWithGroup />
     </Feature>
   );
 }

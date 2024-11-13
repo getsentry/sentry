@@ -42,6 +42,7 @@ export interface TraceResult {
   numOccurrences: number;
   numSpans: number;
   project: string | null;
+  rootDuration: number | null;
   slices: number;
   start: number;
   trace: string;

@@ -42,6 +42,7 @@ from sentry.incidents.models.incident import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import handle_trigger_action
+from sentry.incidents.utils.metric_issue_poc import create_or_update_metric_issue
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
@@ -415,7 +416,7 @@ class SubscriptionProcessor:
                         "alert_rule_id": self.alert_rule.id,
                     },
                 )
-                return []
+                return
 
         # Trigger callbacks for any AlertRules that may need to know about the subscription update
         # Current callback will update the activation metric values & delete querysubscription on finish
@@ -779,6 +780,12 @@ class SubscriptionProcessor:
                     metric_value=metric_value,
                 ).delay,
                 router.db_for_write(AlertRule),
+            )
+
+        if features.has("organizations:metric-issue-poc", self.alert_rule.organization):
+            create_or_update_metric_issue(
+                incident=incident,
+                metric_value=metric_value,
             )
 
     def handle_incident_severity_update(self) -> None:

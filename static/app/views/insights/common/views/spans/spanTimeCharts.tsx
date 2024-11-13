@@ -308,7 +308,7 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
 }
 
 /** This fucntion is just to generate mock data based on other time stamps we have found */
-const mockSeries = ({moduleName, filters, extraQuery}: ChartProps) => {
+const useMockSeries = ({moduleName, filters, extraQuery}: ChartProps) => {
   const pageFilters = usePageFilters();
   const eventView = getEventView(moduleName, pageFilters.selection, filters);
   if (extraQuery) {
@@ -359,7 +359,7 @@ const mockSeries = ({moduleName, filters, extraQuery}: ChartProps) => {
 };
 
 function BundleSizeChart(props: ChartProps) {
-  const {isPending, data} = mockSeries(props);
+  const {isPending, data} = useMockSeries(props);
   return (
     <Chart
       stacked

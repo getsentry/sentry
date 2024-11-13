@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 from django.utils.functional import cached_property
+from jsonschema import ValidationError
 
 from sentry.coreapi import APIError
 from sentry.http import safe_urlread
@@ -71,7 +72,8 @@ class IssueLinkRequester:
             )
             body = safe_urlread(request)
             response = json.loads(body)
-
+        except (json.JSONDecodeError, TypeError):
+            raise ValidationError(f"Unable to parse response from {self.sentry_app.slug}")
         except Exception as e:
             logger.info(
                 "issue-link-requester.error",
@@ -84,9 +86,12 @@ class IssueLinkRequester:
                     "error_message": str(e),
                 },
             )
+            raise APIError(
+                f"Issue occured while trying to contact {self.sentry_app.slug} to link issue"
+            )
 
         if not self._validate_response(response):
-            raise APIError(
+            raise ValidationError(
                 f"Invalid response format from sentry app {self.sentry_app} when linking issue"
             )
 
