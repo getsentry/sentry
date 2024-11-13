@@ -13,7 +13,7 @@ class DataConditionGroup(DefaultFieldsModel):
     A data group is a way to specify a group of conditions that must be met for a workflow action to execute
     """
 
-    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields="id")
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=["id"])
 
     __relocation_scope__ = RelocationScope.Organization
     __repr__ = sane_repr("logic_type")
