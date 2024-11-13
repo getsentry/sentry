@@ -8,16 +8,12 @@ import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import {useLocation} from 'sentry/utils/useLocation';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function NewIssueExperienceButton() {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
   const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
   const hasStreamlinedUI = useHasStreamlinedUI();
   const openForm = useFeedbackForm();
@@ -29,11 +25,7 @@ export function NewIssueExperienceButton() {
       isEnabled: !hasStreamlinedUI,
       organization: organization,
     });
-    navigate({
-      ...location,
-      query: {...location.query, streamline: hasStreamlinedUI ? '0' : '1'},
-    });
-  }, [mutate, organization, hasStreamlinedUI, location, navigate]);
+  }, [mutate, organization, hasStreamlinedUI]);
 
   if (!hasStreamlinedUIFlag) {
     return null;
