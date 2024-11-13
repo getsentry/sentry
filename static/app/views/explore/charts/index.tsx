@@ -99,9 +99,16 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     return deduped;
   }, [visualizes]);
 
+  const search = new MutableSearch(query);
+
+  // Filtering out all spans with op like 'ui.interaction*' which aren't
+  // embedded under transactions. The trace view does not support rendering
+  // such spans yet.
+  search.addFilterValues('!transaction.span_id', ['00']);
+
   const timeSeriesResult = useSortedTimeSeries(
     {
-      search: new MutableSearch(query ?? ''),
+      search,
       yAxis: yAxes,
       interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
       fields,

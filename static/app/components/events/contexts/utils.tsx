@@ -19,6 +19,11 @@ import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
+import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
+import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
+import {getStateContextData} from 'sentry/components/events/contexts/knownContext/state';
+import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
+import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -39,16 +44,7 @@ import {
   getUnknownPlatformContextData,
   KNOWN_PLATFORM_CONTEXTS,
 } from './platform';
-import {getKnownProfileContextData, getUnknownProfileContextData} from './profile';
-import {getReduxContextData} from './redux';
-import {getKnownReplayContextData, getUnknownReplayContextData} from './replay';
 import {getKnownRuntimeContextData, getUnknownRuntimeContextData} from './runtime';
-import {getKnownStateContextData, getUnknownStateContextData} from './state';
-import {
-  getKnownThreadPoolInfoContextData,
-  getUnknownThreadPoolInfoContextData,
-} from './threadPoolInfo';
-import {getKnownTraceContextData, getUnknownTraceContextData} from './trace';
 import {getKnownUnityContextData, getUnknownUnityContextData} from './unity';
 import {getKnownUserContextData, getUnknownUserContextData} from './user';
 
@@ -434,39 +430,22 @@ export function getFormattedContextData({
     case 'gpu':
       return getGPUContextData({data: contextValue, meta});
     case 'trace':
-      return [
-        ...getKnownTraceContextData({
-          data: contextValue,
-          event,
-          meta,
-          organization,
-          location,
-        }),
-        ...getUnknownTraceContextData({data: contextValue, meta}),
-      ];
+      return getTraceContextData({
+        data: contextValue,
+        event,
+        meta,
+        organization,
+        location,
+      });
     case 'threadpool_info': // Current
     case 'ThreadPool Info': // Legacy
-      return [
-        ...getKnownThreadPoolInfoContextData({data: contextValue, event, meta}),
-        ...getUnknownThreadPoolInfoContextData({data: contextValue, meta}),
-      ];
-    case 'redux.state':
-      return getReduxContextData({data: contextValue});
+      return getThreadPoolInfoContext({data: contextValue, meta});
     case 'state':
-      return [
-        ...getKnownStateContextData({data: contextValue, meta}),
-        ...getUnknownStateContextData({data: contextValue, meta}),
-      ];
+      return getStateContextData({data: contextValue, meta});
     case 'profile':
-      return [
-        ...getKnownProfileContextData({data: contextValue, meta, organization, project}),
-        ...getUnknownProfileContextData({data: contextValue, meta}),
-      ];
+      return getProfileContextData({data: contextValue, meta, organization, project});
     case 'replay':
-      return [
-        ...getKnownReplayContextData({data: contextValue, meta, organization}),
-        ...getUnknownReplayContextData({data: contextValue, meta}),
-      ];
+      return getReplayContextData({data: contextValue, meta});
     case 'cloud_resource':
       return getCloudResourceContextData({data: contextValue, meta});
     case 'culture':

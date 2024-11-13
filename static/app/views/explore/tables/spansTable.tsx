@@ -11,6 +11,8 @@ import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   Table,
@@ -29,6 +31,9 @@ import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
+import {useAnalytics} from '../hooks/useAnalytics';
+import {useVisualizes} from '../hooks/useVisualizes';
+
 import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {}
@@ -40,6 +45,8 @@ export function SpansTable({}: SpansTableProps) {
   const [fields] = useSampleFields();
   const [sorts, setSorts] = useSorts({fields});
   const [query] = useUserQuery();
+  const [visualizes] = useVisualizes();
+  const organization = useOrganization();
 
   const eventView = useMemo(() => {
     const queryFields = [
@@ -51,12 +58,19 @@ export function SpansTable({}: SpansTableProps) {
       'timestamp',
     ];
 
+    const search = new MutableSearch(query);
+
+    // Filtering out all spans with op like 'ui.interaction*' which aren't
+    // embedded under transactions. The trace view does not support rendering
+    // such spans yet.
+    search.addFilterValues('!transaction.span_id', ['00']);
+
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Samples',
       fields: queryFields,
       orderby: sorts.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
-      query,
+      query: search.formatString(),
       version: 2,
       dataset,
     };
@@ -71,6 +85,15 @@ export function SpansTable({}: SpansTableProps) {
     initialData: [],
     referrer: 'api.explore.spans-samples-table',
     allowAggregateConditions: false,
+  });
+
+  useAnalytics({
+    result,
+    visualizes,
+    organization,
+    columns: fields,
+    userQuery: query,
+    resultsMode: 'sample',
   });
 
   const {tableStyles} = useTableStyles({

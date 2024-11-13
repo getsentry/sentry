@@ -1,30 +1,39 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
+import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummaryBody, useGroupSummary} from 'sentry/components/group/groupSummary';
 import Input from 'sentry/components/input';
-import {IconSeer} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconDocs, IconSeer} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
+import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
+import {
+  getConfigForIssueType,
+  shouldShowCustomErrorResourceConfig,
+} from 'sentry/utils/issueTypeConfig';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
-
-import {AutofixSetupContent} from './autofixSetupModal';
+import Resources from 'sentry/views/issueDetails/streamline/resources';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 interface AutofixStartBoxProps {
   groupId: string;
@@ -46,14 +55,13 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
             key={i}
             src={starImage}
             index={i}
-            size={28 - i * 2}
-            offset={(i % 2) * 30 - 15}
+            size={14 + i * 2}
+            offset={(i % 2) * 50 - 15}
           />
         ))}
       </StarTrail>
       <ContentContainer>
-        <Header>Autofix</Header>
-        <br />
+        <HeaderText>Autofix</HeaderText>
         <p>Work together with Autofix to find the root cause and fix the issue.</p>
         <Row>
           <Input
@@ -90,13 +98,42 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   );
 }
 
-interface AutofixDrawerProps {
+const shouldDisplayAiAutofixForOrganization = (organization: Organization) => {
+  return (
+    ((organization.features.includes('autofix') &&
+      organization.features.includes('issue-details-autofix-ui')) ||
+      organization.genAIConsent) &&
+    !organization.hideAiFeatures &&
+    getRegionDataFromOrganization(organization)?.name !== 'de'
+  );
+};
+
+// Autofix requires the event to have stack trace frames in order to work correctly.
+function hasStacktraceWithFrames(event: Event) {
+  for (const entry of event.entries) {
+    if (entry.type === EntryType.EXCEPTION) {
+      if (entry.data.values?.some(value => value.stacktrace?.frames?.length)) {
+        return true;
+      }
+    }
+
+    if (entry.type === EntryType.THREADS) {
+      if (entry.data.values?.some(thread => thread.stacktrace?.frames?.length)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+interface SolutionsHubDrawerProps {
   event: Event;
   group: Group;
   project: Project;
 }
 
-export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
+export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerProps) {
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
   const {data: summaryData, isError} = useGroupSummary(group.id, group.issueCategory);
   const {
@@ -111,11 +148,23 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
     autofix_status: autofixData?.status ?? 'none',
   });
 
+  const config = getConfigForIssueType(group, project);
+
   const isSetupComplete = setupData?.integration.ok && setupData?.genAIConsent.ok;
+  const hasSummary = summaryData && !isError && setupData?.genAIConsent.ok;
+
+  const organization = useOrganization();
+  const isSampleError = useIsSampleEvent();
+  const displayAiAutofix =
+    shouldDisplayAiAutofixForOrganization(organization) &&
+    config.autofix &&
+    !shouldShowCustomErrorResourceConfig(group, project) &&
+    hasStacktraceWithFrames(event) &&
+    !isSampleError;
 
   return (
-    <AutofixDrawerContainer>
-      <AutofixDrawerHeader>
+    <SolutionsDrawerContainer>
+      <SolutionsDrawerHeader>
         <NavigationCrumbs
           crumbs={[
             {
@@ -127,12 +176,12 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
               ),
             },
             {label: getShortEventId(event.id)},
-            {label: t('Autofix')},
+            {label: t('Solutions Hub')},
           ]}
         />
-      </AutofixDrawerHeader>
-      <AutofixNavigator>
-        <Header>{t('Autofix')}</Header>
+      </SolutionsDrawerHeader>
+      <SolutionsDrawerNavigator>
+        <Header>{t('Solutions Hub')}</Header>
         {autofixData && (
           <ButtonBar gap={1}>
             <AutofixFeedback />
@@ -149,38 +198,75 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
             </Button>
           </ButtonBar>
         )}
-      </AutofixNavigator>
-      <AutofixDrawerBody>
+      </SolutionsDrawerNavigator>
+      <SolutionsDrawerBody>
+        {config.resources && (
+          <ResourcesContainer>
+            <ResourcesHeader>
+              <IconDocs size="md" />
+              {t('Resources')}
+            </ResourcesHeader>
+            <ResourcesBody>
+              <Resources
+                eventPlatform={event?.platform}
+                group={group}
+                configResources={config.resources}
+              />
+            </ResourcesBody>
+          </ResourcesContainer>
+        )}
         <HeaderText>
           <IconSeer size="lg" />
           {t('Sentry AI')}
-        </HeaderText>
-        <StyledCard>
-          <GroupSummaryBody data={summaryData} isError={isError} />
-        </StyledCard>
-        {!isSetupLoading && !isSetupComplete ? (
-          <SetupContainer>
-            <AutofixSetupContent
-              projectId={project.id}
-              groupId={group.id}
-              closeModal={() => {}}
-              refetchSetup={refetchSetup}
-            />
-          </SetupContainer>
-        ) : !autofixData ? (
-          <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
-        ) : (
-          <AutofixSteps
-            data={autofixData}
-            groupId={group.id}
-            runId={autofixData.run_id}
-            onRetry={reset}
+          <StyledFeatureBadge
+            type="beta"
+            title={tct(
+              'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+              {
+                email: <a href="mailto:autofix@sentry.io" />,
+              }
+            )}
           />
+        </HeaderText>
+        {hasSummary && (
+          <StyledCard>
+            <GroupSummaryBody data={summaryData} isError={isError} />
+          </StyledCard>
         )}
-      </AutofixDrawerBody>
-    </AutofixDrawerContainer>
+        {displayAiAutofix && (
+          <Fragment>
+            {!isSetupLoading && !isSetupComplete ? (
+              <SetupContainer>
+                <AutofixSetupContent
+                  projectId={project.id}
+                  groupId={group.id}
+                  closeModal={() => {}}
+                  refetchSetup={refetchSetup}
+                />
+              </SetupContainer>
+            ) : !autofixData ? (
+              <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
+            ) : (
+              <AutofixSteps
+                data={autofixData}
+                groupId={group.id}
+                runId={autofixData.run_id}
+                onRetry={reset}
+              />
+            )}
+          </Fragment>
+        )}
+      </SolutionsDrawerBody>
+    </SolutionsDrawerContainer>
   );
 }
+
+const ResourcesContainer = styled('div')``;
+const ResourcesBody = styled('div')`
+  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  margin-bottom: ${space(2)};
+`;
 
 const Row = styled('div')`
   display: flex;
@@ -201,20 +287,20 @@ const ContentContainer = styled('div')`
   margin-top: 80px;
 `;
 
-const AutofixDrawerContainer = styled('div')`
+const SolutionsDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
   grid-template-rows: auto auto 1fr;
 `;
 
-const AutofixDrawerHeader = styled(DrawerHeader)`
+const SolutionsDrawerHeader = styled(DrawerHeader)`
   position: unset;
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const AutofixNavigator = styled('div')`
+const SolutionsDrawerNavigator = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -226,7 +312,7 @@ const AutofixNavigator = styled('div')`
   box-shadow: ${p => p.theme.translucentBorder} 0 1px;
 `;
 
-const AutofixDrawerBody = styled(DrawerBody)`
+const SolutionsDrawerBody = styled(DrawerBody)`
   overflow: auto;
   overscroll-behavior: contain;
   /* Move the scrollbar to the left edge */
@@ -322,8 +408,17 @@ const HeaderText = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
   padding-bottom: ${space(2)};
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: ${space(0.25)};
+  padding-bottom: 3px;
+`;
+
+const ResourcesHeader = styled(HeaderText)`
+  gap: ${space(1)};
 `;
 
 const StarTrail = styled('div')`
@@ -332,7 +427,7 @@ const StarTrail = styled('div')`
   display: flex;
   justify-content: center;
   position: absolute;
-  bottom: 5rem;
+  bottom: 7rem;
   left: 0;
   right: 0;
   z-index: -1;
@@ -345,6 +440,6 @@ const TrailStar = styled('img')<{index: number; offset: number; size: number}>`
   height: ${p => p.size}px;
   top: ${p => p.index * 50}px;
   transform: translateX(${p => p.offset}px) rotate(${p => p.index * 40}deg);
-  opacity: ${p => Math.max(0.2, 1 - p.index * 0.1)};
+  opacity: ${p => Math.min(1, 0.2 + p.index * 0.1)};
   filter: sepia(1) saturate(3) hue-rotate(290deg);
 `;
