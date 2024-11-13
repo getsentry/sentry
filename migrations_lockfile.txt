@@ -10,7 +10,7 @@ hybridcloud: 0017_add_billing_role
 nodestore: 0002_nodestore_no_dictfield
 remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
-sentry: 0787_add_billing_role
+sentry: 0788_add_billing_role
 social_auth: 0002_default_auto_field
 uptime: 0017_unique_on_timeout
 workflow_engine: 0011_action_updates
