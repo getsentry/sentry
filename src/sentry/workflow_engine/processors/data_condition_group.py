@@ -70,7 +70,7 @@ def process_data_condition_group(
     value: Any,
 ) -> ProcessedDataConditionResult:
     try:
-        group = DataConditionGroup.objects.get(id=data_condition_group_id)
+        group = DataConditionGroup.objects.get_from_cache(id=data_condition_group_id)
     except DataConditionGroup.DoesNotExist:
         logger.exception(
             "DataConditionGroup does not exist",

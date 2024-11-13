@@ -113,7 +113,9 @@ class DetectorHandler(abc.ABC, Generic[T]):
         self.detector = detector
         if detector.workflow_condition_group_id is not None:
             try:
-                group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
+                group = DataConditionGroup.objects.get_from_cache(
+                    id=detector.workflow_condition_group_id
+                )
                 self.condition_group: DataConditionGroup | None = group
             except DataConditionGroup.DoesNotExist:
                 logger.exception(
