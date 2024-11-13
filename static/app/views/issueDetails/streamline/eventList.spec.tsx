@@ -1,4 +1,3 @@
-import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
@@ -9,8 +8,6 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, renderHook, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {MOCK_EVENTS_TABLE_DATA} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
@@ -22,7 +19,6 @@ describe('EventList', () => {
     environments: ['production', 'staging', 'development'],
   });
   const group = GroupFixture();
-  const event = EventFixture({id: 'event-id'});
   const persistantQuery = `issue:${group.shortId}`;
   const totalCount = 100;
 
@@ -30,22 +26,7 @@ describe('EventList', () => {
   let mockEventListMeta: jest.Mock;
 
   beforeEach(() => {
-    PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [],
-        environments: [],
-        datetime: {start: null, end: null, period: '14d', utc: null},
-      },
-      new Set(['environments'])
-    );
-    ProjectsStore.loadInitialData([project]);
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
-      body: {errors: []},
-      method: 'GET',
-    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: TagsFixture(),
@@ -91,7 +72,7 @@ describe('EventList', () => {
   });
 
   function renderAllEvents() {
-    render(<EventList group={group} project={project} />, {
+    render(<EventList group={group} />, {
       organization,
       router: RouterFixture({
         location: LocationFixture({
@@ -148,7 +129,7 @@ describe('EventList', () => {
         query: `${tagKey}:${tagValue}`,
       },
     };
-    render(<EventList group={group} project={project} />, {
+    render(<EventList group={group} />, {
       organization,
       router: RouterFixture({
         location: LocationFixture({

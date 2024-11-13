@@ -15,7 +15,6 @@ import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {type Group, IssueType} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {parseCursor} from 'sentry/utils/cursor';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeSorts} from 'sentry/utils/queryString';
@@ -29,7 +28,6 @@ import EventsTable from 'sentry/views/performance/transactionSummary/transaction
 
 interface EventListProps {
   group: Group;
-  project: Project;
 }
 
 export function EventList({group}: EventListProps) {
