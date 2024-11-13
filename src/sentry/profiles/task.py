@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import random
-from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -30,16 +29,17 @@ from sentry.profiles.java import (
     format_signature,
     merge_jvm_frames_with_android_methods,
 )
-from sentry.profiles.utils import get_from_profiling_service
+from sentry.profiles.utils import (
+    Profile,
+    apply_stack_trace_rules_to_profile,
+    get_from_profiling_service,
+)
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import set_measurement
-
-Profile = MutableMapping[str, Any]
-CallTrees = Mapping[str, list[Any]]
 
 
 class VroomTimeout(Exception):
@@ -176,6 +176,17 @@ def process_profile_task(
             profile["options"] = {
                 "dsn": dsn,
             }
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
+    if options.get("profiling.stack_trace_rules.enabled") and project.id in options.get(
+        "profiling.stack_trace_rules.allowed_project_ids"
+    ):
+        try:
+            with metrics.timer("process_profile.apply_stack_trace_rules"):
+                rules_config = project.get_option("sentry:grouping_enhancements")
+                if rules_config is not None and rules_config != "":
+                    apply_stack_trace_rules_to_profile(profile, rules_config)
         except Exception as e:
             sentry_sdk.capture_exception(e)
 

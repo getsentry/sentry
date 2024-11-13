@@ -112,6 +112,7 @@ def keep_profiling_rules(config: str) -> str:
     if config is None or config == "":
         return ""
     for rule in config.splitlines():
+        rule = rule.strip()
         if rule == "" or rule.startswith("#"):  # ignore comment lines
             continue
         *matchers, action = rule.split()
