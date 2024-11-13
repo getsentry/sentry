@@ -33,9 +33,7 @@ class Workflow(DefaultFieldsModel, OwnerModel):
     )
 
     environment_id = BoundedPositiveIntegerField(null=True)
-    created_by = HybridCloudForeignKey(
-        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL
-    )
+    created_by = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     frequency = BoundedPositiveIntegerField(default=30)  # in minutes
 
     __repr__ = sane_repr("name", "organization_id")
