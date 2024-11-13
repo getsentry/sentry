@@ -231,8 +231,17 @@ export function getContextType({alias, type}: {alias: string; type?: string}): s
  * Omit certain keys from ever being displayed on context items.
  * All custom context (and some known context) has the type:default so we remove it.
  */
-export function getContextKeys(ctxData: Record<string, any>): string[] {
-  return Object.keys(ctxData).filter(ctxKey => ctxKey !== 'type');
+export function getContextKeys({
+  data,
+  hiddenKeys = [],
+}: {
+  data: Record<string, any>;
+  hiddenKeys?: string[];
+}): string[] {
+  const hiddenKeySet = new Set(hiddenKeys);
+  return Object.keys(data).filter(
+    ctxKey => ctxKey !== 'type' && !hiddenKeySet.has(ctxKey)
+  );
 }
 
 export function getContextTitle({

@@ -39,7 +39,7 @@ export function getOperatingSystemContextData({
   data: OperatingSystemContext;
   meta?: Record<keyof OperatingSystemContext, any>;
 }): KeyValueListData {
-  return getContextKeys(data).map(ctxKey => {
+  return getContextKeys({data, hiddenKeys: ['os']}).map(ctxKey => {
     switch (ctxKey) {
       case OperatingSystemContextKeys.NAME:
         return {
