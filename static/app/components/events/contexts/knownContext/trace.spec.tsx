@@ -5,10 +5,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ContextCard from 'sentry/components/events/contexts/contextCard';
-import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
+import {
+  getTraceContextData,
+  type TraceContext,
+} from 'sentry/components/events/contexts/knownContext/trace';
 
 const TRACE_ID = '61d2d7c5acf448ffa8e2f8f973e2cd36';
-const MOCK_TRACE_CONTEXT = {
+const MOCK_TRACE_CONTEXT: TraceContext = {
   type: 'default',
   trace_id: TRACE_ID,
   span_id: '0415201309082013',

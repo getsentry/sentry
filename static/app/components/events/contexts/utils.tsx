@@ -21,6 +21,7 @@ import {getMissingInstrumentationContextData} from 'sentry/components/events/con
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
 import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
 import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
+import {getStateContextData} from 'sentry/components/events/contexts/knownContext/state';
 import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
@@ -42,9 +43,7 @@ import {
   getUnknownPlatformContextData,
   KNOWN_PLATFORM_CONTEXTS,
 } from './platform';
-import {getReduxContextData} from './redux';
 import {getKnownRuntimeContextData, getUnknownRuntimeContextData} from './runtime';
-import {getKnownStateContextData, getUnknownStateContextData} from './state';
 import {
   getKnownThreadPoolInfoContextData,
   getUnknownThreadPoolInfoContextData,
@@ -447,13 +446,8 @@ export function getFormattedContextData({
         ...getKnownThreadPoolInfoContextData({data: contextValue, event, meta}),
         ...getUnknownThreadPoolInfoContextData({data: contextValue, meta}),
       ];
-    case 'redux.state':
-      return getReduxContextData({data: contextValue});
     case 'state':
-      return [
-        ...getKnownStateContextData({data: contextValue, meta}),
-        ...getUnknownStateContextData({data: contextValue, meta}),
-      ];
+      return getStateContextData({data: contextValue, meta});
     case 'profile':
       return getProfileContextData({data: contextValue, meta, organization, project});
     case 'replay':
