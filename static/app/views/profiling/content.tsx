@@ -607,12 +607,13 @@ function ProfilingMissingTransactionsAlert(props: {
     });
   }, [organization]);
 
+  const onSeeFlamegraphTabClick = props.onSeeFlamegraphTabClick;
   const onViewFlamegraphClick = useCallback(() => {
     trackAnalytics('profiling_views.missing_transactions_banner.flamegraph_clicked', {
       organization,
     });
-    props.onSeeFlamegraphTabClick?.();
-  }, [organization, props]);
+    onSeeFlamegraphTabClick?.();
+  }, [organization, onSeeFlamegraphTabClick]);
 
   return (
     <Alert
@@ -624,10 +625,18 @@ function ProfilingMissingTransactionsAlert(props: {
         </Button>
       }
     >
-      {t('Looks like you are only sending us profiling data.')}{' '}
+      {t(
+        'Looks like you are only sending us continuous profiling data and not tracing data.'
+      )}{' '}
       {tct('Learn why this happens [docsLink].', {
         docsLink: (
-          <Link to={'https://docs.sentry.io/product/profiling/'}>{t('here')}</Link>
+          <Link
+            to={
+              'https://docs.sentry.io/product/explore/profiling/transaction-vs-continuous-profiling/#missing-transaction-data'
+            }
+          >
+            {t('here')}
+          </Link>
         ),
       })}
     </Alert>
