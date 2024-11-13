@@ -1,16 +1,28 @@
 import {AutofixDataFixture} from 'sentry-fixture/autofixData';
 import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 import {EventFixture} from 'sentry-fixture/event';
+import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutofixDrawer} from 'sentry/components/events/autofix/autofixDrawer';
 import {t} from 'sentry/locale';
+import {EntryType} from 'sentry/types/event';
+import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
 
 describe('AutofixDrawer', () => {
-  const mockEvent = EventFixture();
+  const organization = OrganizationFixture({genAIConsent: true, hideAiFeatures: false});
+
+  const mockEvent = EventFixture({
+    entries: [
+      {
+        type: EntryType.EXCEPTION,
+        data: {values: [{stacktrace: {frames: [FrameFixture()]}}]},
+      },
+    ],
+  });
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
 
@@ -45,13 +57,16 @@ describe('AutofixDrawer', () => {
       body: {autofix: mockAutofixData},
     });
 
-    render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
 
     expect(screen.getByText(mockGroup.shortId)).toBeInTheDocument();
 
     expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
 
-    expect(screen.getAllByRole('heading', {name: 'Autofix'})[0]).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
 
     const startButton = screen.getByRole('button', {name: 'Start Autofix'});
     expect(startButton).toBeInTheDocument();
@@ -69,7 +84,10 @@ describe('AutofixDrawer', () => {
       body: {autofix: null},
     });
 
-    render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
 
     const startButton = screen.getByRole('button', {name: 'Start Autofix'});
     await userEvent.click(startButton);
@@ -85,7 +103,10 @@ describe('AutofixDrawer', () => {
       body: {autofix: mockAutofixData},
     });
 
-    render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
 
     expect(
       await screen.findByRole('button', {name: t('Start Over')})
@@ -98,7 +119,10 @@ describe('AutofixDrawer', () => {
       body: {autofix: mockAutofixData},
     });
 
-    render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
 
     const startOverButton = await screen.findByRole('button', {name: t('Start Over')});
     expect(startOverButton).toBeInTheDocument();

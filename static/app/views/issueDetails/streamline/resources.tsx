@@ -38,6 +38,7 @@ export default function Resources({configResources, eventPlatform, group}: Props
             key={link}
             href={link}
             external
+            priority="link"
           >
             {text}
           </LinkButton>
@@ -49,6 +50,10 @@ export default function Resources({configResources, eventPlatform, group}: Props
 
 const LinkSection = styled('div')`
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-decoration: underline;
+  text-decoration-color: ${p => p.theme.linkUnderline};
   gap: ${space(1)};
   margin-top: ${space(1)};
 `;
