@@ -1659,12 +1659,6 @@ function buildRoutes() {
         )}
       />
       <Route
-        path="anomalies/"
-        component={make(
-          () => import('sentry/views/performance/transactionSummary/transactionAnomalies')
-        )}
-      />
-      <Route
         path="profiles/"
         component={make(
           () => import('sentry/views/performance/transactionSummary/transactionProfiles')
