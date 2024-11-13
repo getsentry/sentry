@@ -4,6 +4,7 @@ import type {FeatureProps} from 'sentry/components/acl/feature';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 
 export type NavMenuKey =
   | 'issues'
@@ -17,8 +18,8 @@ export type NavMenuKey =
   | 'help';
 
 // TODO(nate.moore): these should be derived from the route data, not hardcoded
-export function getActiveNavIds(): {menu: string; submenu?: string} {
-  const {pathname} = window.location;
+export function useActiveNavIds(): {menu: NavMenuKey; submenu?: string} {
+  const {pathname} = useLocation();
 
   if (pathname.includes('/issues/')) {
     const after = pathname.split('/issues/').at(-1)?.trim();
