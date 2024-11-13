@@ -18,10 +18,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import metrics, redis
 from sentry.utils.iterators import chunked
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector, DetectorState
-from sentry.workflow_engine.processors.data_condition_group import (
-    evaluate_condition_group,
-    get_data_condition_group,
-)
+from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
@@ -115,8 +112,15 @@ class DetectorHandler(abc.ABC, Generic[T]):
     def __init__(self, detector: Detector):
         self.detector = detector
         if detector.workflow_condition_group_id is not None:
-            group = get_data_condition_group(detector.workflow_condition_group_id)
-            self.condition_group: DataConditionGroup | None = group
+            try:
+                group = DataConditionGroup.objects.get(id=detector.workflow_condition_group_id)
+                self.condition_group: DataConditionGroup | None = group
+            except DataConditionGroup.DoesNotExist:
+                logger.exception(
+                    "Failed to find the data condition group for detector",
+                    extra={"detector_id": detector.id},
+                )
+                self.condition_group = None
         else:
             self.condition_group = None
 
