@@ -1,4 +1,6 @@
 export type FeatureFlagEventParameters = {
+  'flags.cta_dismissed': {type: string};
+  'flags.cta_setup_button_clicked': {};
   'flags.event_and_suspect_flags_found': {
     numEventFlags: number;
     numSuspectFlags: number;
@@ -22,4 +24,6 @@ export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.setup_modal_opened': 'Flag Setup Integration Modal Opened',
   'flags.webhook_url_generated': 'Flag Webhook URL Generated in Setup Integration Modal',
   'flags.table_rendered': 'Flag Table Rendered',
+  'flags.cta_setup_button_clicked': 'Flag CTA Setup Button Clicked',
+  'flags.cta_dismissed': 'Flag CTA Dismissed',
 };

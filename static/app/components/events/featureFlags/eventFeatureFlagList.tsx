@@ -10,6 +10,7 @@ import {
   CardContainer,
   FeatureFlagDrawer,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
+import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
   modalCss,
@@ -94,6 +95,10 @@ export function EventFeatureFlagList({
 
   const hasFlagContext = !!event.contexts.flags;
   const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values.length);
+  const showCTA =
+    !hasFlagContext &&
+    ['javascript', 'python'].includes(group.project.platform ?? '') &&
+    true; // TODO: make this last condition a feature flag for users who have LD integrated
 
   function handleSetupButtonClick() {
     trackAnalytics('flags.setup_modal_opened', {organization});
@@ -181,7 +186,10 @@ export function EventFeatureFlagList({
     }
   }, [hasFlags, hydratedFlags.length, organization]);
 
-  // TODO: for LD users, show a CTA in this section instead
+  if (showCTA) {
+    return <FeatureFlagInlineCTA _projectId={event.projectID} />;
+  }
+
   // if contexts.flags is not set, hide the section
   if (!hasFlagContext) {
     return null;
@@ -190,43 +198,39 @@ export function EventFeatureFlagList({
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
-      {hasFlagContext && (
+      <Button
+        aria-label={t('Set Up Integration')}
+        size="xs"
+        onClick={handleSetupButtonClick}
+      >
+        {t('Set Up Integration')}
+      </Button>
+      {hasFlags && (
         <Fragment>
           <Button
-            aria-label={t('Set Up Integration')}
             size="xs"
-            onClick={handleSetupButtonClick}
+            aria-label={t('View All')}
+            ref={viewAllButtonRef}
+            title={t('View All Flags')}
+            onClick={() => {
+              isDrawerOpen ? closeDrawer() : onViewAllFlags();
+            }}
           >
-            {t('Set Up Integration')}
+            {t('View All')}
           </Button>
-          {hasFlags && (
-            <Fragment>
-              <Button
-                size="xs"
-                aria-label={t('View All')}
-                ref={viewAllButtonRef}
-                title={t('View All Flags')}
-                onClick={() => {
-                  isDrawerOpen ? closeDrawer() : onViewAllFlags();
-                }}
-              >
-                {t('View All')}
-              </Button>
-              <Button
-                aria-label={t('Open Feature Flag Search')}
-                icon={<IconSearch size="xs" />}
-                size="xs"
-                title={t('Open Search')}
-                onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
-              />
-              <FeatureFlagSort
-                orderBy={orderBy}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                setOrderBy={setOrderBy}
-              />
-            </Fragment>
-          )}
+          <Button
+            aria-label={t('Open Feature Flag Search')}
+            icon={<IconSearch size="xs" />}
+            size="xs"
+            title={t('Open Search')}
+            onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
+          />
+          <FeatureFlagSort
+            orderBy={orderBy}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            setOrderBy={setOrderBy}
+          />
         </Fragment>
       )}
     </ButtonBar>
