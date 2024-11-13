@@ -9,7 +9,7 @@ from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
-from sentry.seer.anomaly_detection.store_data import _get_start_and_end_indices
+from sentry.seer.anomaly_detection.store_data import _get_start_index
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionConfig,
     DetectAnomaliesRequest,
@@ -99,12 +99,12 @@ def get_historical_anomaly_data_from_seer_preview(
     """
     # Check if historical data has at least seven days of data. Return early if not.
     MIN_DAYS = 7
-    data_start_index, data_end_index = _get_start_and_end_indices(historical_data)
+    data_start_index = _get_start_index(historical_data)
     if data_start_index == -1:
         return []
 
     data_start_time = datetime.fromtimestamp(historical_data[data_start_index]["timestamp"])
-    data_end_time = datetime.fromtimestamp(historical_data[data_end_index]["timestamp"])
+    data_end_time = datetime.fromtimestamp(historical_data[-1]["timestamp"])
     if data_end_time - data_start_time < timedelta(days=MIN_DAYS):
         return []
 
