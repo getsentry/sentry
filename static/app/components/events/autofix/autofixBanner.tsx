@@ -6,7 +6,6 @@ import bannerImage from 'sentry-images/spot/ai-suggestion-banner.svg';
 import {openModal} from 'sentry/actionCreators/modal';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
-import {AutofixDrawer} from 'sentry/components/events/autofix/autofixDrawer';
 import {AutofixSetupModal} from 'sentry/components/events/autofix/autofixSetupModal';
 import useDrawer from 'sentry/components/globalDrawer';
 import Panel from 'sentry/components/panels/panel';
@@ -17,6 +16,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
 
 type Props = {
   event: Event;
@@ -35,22 +35,25 @@ function SuccessfulSetup({
 
   const openAutofix = () => {
     if (!isDrawerOpen) {
-      openDrawer(() => <AutofixDrawer group={group} project={project} event={event} />, {
-        ariaLabel: t('Autofix drawer'),
-        // We prevent a click on the Open/Close Autofix button from closing the drawer so that
-        // we don't reopen it immediately, and instead let the button handle this itself.
-        shouldCloseOnInteractOutside: element => {
-          const viewAllButton = openButtonRef.current;
-          if (
-            viewAllButton?.contains(element) ||
-            document.getElementById('sentry-feedback')?.contains(element)
-          ) {
-            return false;
-          }
-          return true;
-        },
-        transitionProps: {stiffness: 1000},
-      });
+      openDrawer(
+        () => <SolutionsHubDrawer group={group} project={project} event={event} />,
+        {
+          ariaLabel: t('Autofix drawer'),
+          // We prevent a click on the Open/Close Autofix button from closing the drawer so that
+          // we don't reopen it immediately, and instead let the button handle this itself.
+          shouldCloseOnInteractOutside: element => {
+            const viewAllButton = openButtonRef.current;
+            if (
+              viewAllButton?.contains(element) ||
+              document.getElementById('sentry-feedback')?.contains(element)
+            ) {
+              return false;
+            }
+            return true;
+          },
+          transitionProps: {stiffness: 1000},
+        }
+      );
     } else {
       closeDrawer();
     }

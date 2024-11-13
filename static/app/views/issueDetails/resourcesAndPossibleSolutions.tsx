@@ -88,17 +88,13 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
     !displayAiAutofix &&
     !isSampleError;
 
-  if (
-    isSelfHostedErrorsOnly ||
-    (!config.resources && !(displayAiSuggestedSolution || displayAiAutofix)) ||
-    (hasStreamlinedUI && !config.autofix)
-  ) {
+  if (isSelfHostedErrorsOnly || hasStreamlinedUI) {
     return null;
   }
 
   return (
     <Wrapper
-      title={hasStreamlinedUI ? t('Autofix') : t('Resources and Possible Solutions')}
+      title={t('Resources and Possible Solutions')}
       configResources={!!config.resources}
       type={SectionKey.RESOURCES}
     >

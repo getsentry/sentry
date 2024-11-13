@@ -95,8 +95,7 @@ describe('StreamlinedSidebar', function () {
       organization,
     });
 
-    expect(await screen.findByText('Solutions & Resources')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'See More'})).toBeInTheDocument();
+    expect(await screen.findByText('Solutions Hub')).toBeInTheDocument();
 
     expect(await screen.findByText('First seen')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();
