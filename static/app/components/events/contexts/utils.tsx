@@ -22,6 +22,7 @@ import {getOperatingSystemContextData} from 'sentry/components/events/contexts/k
 import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
 import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
 import {getStateContextData} from 'sentry/components/events/contexts/knownContext/state';
+import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
 import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
@@ -44,10 +45,6 @@ import {
   KNOWN_PLATFORM_CONTEXTS,
 } from './platform';
 import {getKnownRuntimeContextData, getUnknownRuntimeContextData} from './runtime';
-import {
-  getKnownThreadPoolInfoContextData,
-  getUnknownThreadPoolInfoContextData,
-} from './threadPoolInfo';
 import {getKnownUnityContextData, getUnknownUnityContextData} from './unity';
 import {getKnownUserContextData, getUnknownUserContextData} from './user';
 
@@ -442,10 +439,7 @@ export function getFormattedContextData({
       });
     case 'threadpool_info': // Current
     case 'ThreadPool Info': // Legacy
-      return [
-        ...getKnownThreadPoolInfoContextData({data: contextValue, event, meta}),
-        ...getUnknownThreadPoolInfoContextData({data: contextValue, meta}),
-      ];
+      return getThreadPoolInfoContext({data: contextValue, meta});
     case 'state':
       return getStateContextData({data: contextValue, meta});
     case 'profile':
