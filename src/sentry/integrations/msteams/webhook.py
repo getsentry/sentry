@@ -658,9 +658,7 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
     @property
     def command_handlers(
         self,
-    ) -> Iterable[
-        tuple[MessagingIntegrationCommand, CommandHandler[MessagingResponse[AdaptiveCard]]]
-    ]:
+    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[AdaptiveCard]]]:
         def help_handler(input: CommandInput) -> MessagingResponse[AdaptiveCard]:
             return MessagingResponse(
                 interaction_result=EventLifecycleOutcome.SUCCESS,

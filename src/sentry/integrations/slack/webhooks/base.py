@@ -158,7 +158,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
     @property
     def command_handlers(
         self,
-    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[MessagingResponse[Response]]]]:
+    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[Response]]]:
         def help_handler(input: CommandInput) -> MessagingResponse[Response]:
             response = self.endpoint.help(input.cmd_value)
             return MessagingResponse(

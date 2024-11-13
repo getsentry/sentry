@@ -149,7 +149,7 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
     @abstractmethod
     def command_handlers(
         self,
-    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[MessagingResponse[R]]]]:
+    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[R]]]:
         """Return list of (command, handler) tuples.
 
         Each handler receives (command_input) and returns MessagingResponse[R].
@@ -166,7 +166,7 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         class CandidateHandler:
             command: MessagingIntegrationCommand
             slug: CommandSlug
-            callback: CommandHandler[MessagingResponse[R]]
+            callback: CommandHandler[R]
 
             def parsing_order(self) -> int:
                 # Sort by descending length of arg tokens. If one slug is a prefix of

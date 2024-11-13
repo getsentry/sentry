@@ -56,7 +56,7 @@ class DiscordCommandHandler(DiscordInteractionHandler):
                 "discord.interaction.command.unknown",
                 extra={"command": command_name, **self.request.logging_data},
             )
-            message = dispatcher.help(cmd_input)
+            message = dispatcher.dispatch(CommandInput("help"))
 
         return self.send_message(message)
 
@@ -72,7 +72,7 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
     @property
     def command_handlers(
         self,
-    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[MessagingResponse[str]]]]:
+    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[str]]]:
         def help_handler(input: CommandInput) -> MessagingResponse[str]:
             return MessagingResponse(
                 interaction_result=EventLifecycleOutcome.SUCCESS,
