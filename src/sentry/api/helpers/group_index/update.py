@@ -272,15 +272,7 @@ def update_groups(
                     status=400,
                 )
             # may not be a release yet
-            release = (
-                status_details.get("inNextRelease")
-                or Release.objects.filter(
-                    projects=projects[0], organization_id=projects[0].organization_id
-                )
-                .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                .order_by("-sort")
-                .first()
-            )
+            release = status_details.get("inNextRelease") or get_latest_release(projects[0])
 
             activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {
@@ -711,6 +703,33 @@ def update_groups(
         )
 
     return Response(result)
+
+
+def get_latest_release(project: Project) -> Release | None:
+    release = None
+
+    # XXX: Remove block once released
+    follows_semver = False
+    if features.has("organizations:releases-resolve-next-release-semver-fix", project.organization):
+        follows_semver = follows_semver_versioning_scheme(
+            org_id=project.organization_id, project_id=project.id
+        )
+
+    releases = Release.objects.filter(projects=project, organization_id=project.organization_id)
+    if follows_semver:
+        release = (
+            releases.filter_to_semver()
+            .annotate_prerelease_column()
+            .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
+            .first()
+        )
+    else:
+        release = (
+            releases.extra(select={"sort": "COALESCE(date_released, date_added)"})
+            .order_by("-sort")
+            .first()
+        )
+    return release
 
 
 def handle_is_subscribed(
