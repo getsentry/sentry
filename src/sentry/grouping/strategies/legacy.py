@@ -296,14 +296,7 @@ def frame_legacy(
     module_component = GroupingComponent(id="module")
     if interface.module:
         if is_unhashable_module_legacy(interface, platform):
-            module_component.update(
-                values=[
-                    GroupingComponent(
-                        id="salt", values=["<module>"], hint="normalized generated module name"
-                    )
-                ],
-                hint="ignored module",
-            )
+            module_component.update(values=["<module>"], hint="normalized generated module name")
         else:
             module_name, module_hint = remove_module_outliers_legacy(interface.module, platform)
             module_component.update(values=[module_name], hint=module_hint)
@@ -346,11 +339,7 @@ def frame_legacy(
         elif func:
             if is_unhashable_function_legacy(func):
                 function_component.update(
-                    values=[
-                        GroupingComponent(
-                            id="salt", values=["<function>"], hint="normalized lambda function name"
-                        )
-                    ]
+                    values=["<function>"], hint="normalized lambda function name"
                 )
             else:
                 function, function_hint = remove_function_outliers_legacy(func)
