@@ -184,6 +184,7 @@ export type MembershipSettingsProps = {
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:ai-setup-data-consent': () => React.ComponentType<{}>;
   'component:autofix-setup-step-consent': () => React.ComponentType<AutofixSetupConsentStepProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;

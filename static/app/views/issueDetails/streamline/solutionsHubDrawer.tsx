@@ -15,6 +15,7 @@ import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummaryBody, useGroupSummary} from 'sentry/components/group/groupSummary';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import Input from 'sentry/components/input';
 import {IconDocs, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -133,6 +134,11 @@ interface SolutionsHubDrawerProps {
   project: Project;
 }
 
+const AiSetupDataConsent = HookOrDefault({
+  hookName: 'component:ai-setup-data-consent',
+  defaultComponent: null,
+});
+
 export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerProps) {
   const {autofixData, triggerAutofix, reset, isPolling} = useAiAutofix(group, event);
   const {
@@ -163,8 +169,8 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
     shouldDisplayAiAutofixForOrganization(organization) &&
     config.autofix &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
-    hasStacktraceWithFrames(event) &&
-    !isSampleError;
+    hasStacktraceWithFrames(event);
+  // !isSampleError;
 
   return (
     <SolutionsDrawerContainer>
@@ -390,16 +396,6 @@ const StarLarge3 = styled(StarLarge)`
   transform: rotate(20deg);
   width: 28px;
   height: 28px;
-`;
-
-const SetupContainer = styled('div')`
-  padding: ${space(2)};
-
-  /* Override some modal-specific styles */
-  h3 {
-    font-size: ${p => p.theme.fontSizeLarge};
-    margin-bottom: ${space(2)};
-  }
 `;
 
 const StyledCard = styled('div')`

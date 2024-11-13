@@ -19,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ConsentStep = HookOrDefault({
-  hookName: 'component:autofix-setup-step-consent',
+  hookName: 'component:ai-setup-data-consent',
   defaultComponent: null,
 });
 
@@ -349,7 +349,7 @@ export function AutofixSetupContent({
 
   return (
     <Fragment>
-      <Header>Set up Autofix</Header>
+      <Header>Set up Sentry AI</Header>
       <p>
         Sentry's AI-enabled Autofix uses all of the contextual data surrounding this error
         to work with you to find the root cause and create a fix.
