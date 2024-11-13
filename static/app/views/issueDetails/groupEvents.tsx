@@ -2,26 +2,26 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {ISSUE_PROPERTY_FIELDS} from 'sentry/utils/fields';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {
+  useEnvironmentsFromUrl,
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 
 import AllEventsTable from './allEventsTable';
-
-interface Props extends RouteComponentProps<{groupId: string}, {}> {
-  environments: string[];
-  group: Group;
-  project: Project;
-}
 
 export const ALL_EVENTS_EXCLUDED_TAGS = [
   'environment',
@@ -31,28 +31,34 @@ export const ALL_EVENTS_EXCLUDED_TAGS = [
   ...ISSUE_PROPERTY_FIELDS,
 ];
 
-function GroupEvents({params, location, group, environments}: Props) {
-  const organization = useOrganization();
+interface GroupEventsProps {
+  group: Group;
+}
 
-  const {groupId} = params;
+function GroupEvents({group}: GroupEventsProps) {
+  const location = useLocation();
+  const environments = useEnvironmentsFromUrl();
+  const params = useParams<{groupId: string}>();
+  const organization = useOrganization();
 
   useCleanQueryParamsOnRouteLeave({
     fieldsToClean: ['cursor', 'query'],
-    shouldClean: newLocation => newLocation.pathname.includes(`/issues/${group.id}/`),
+    shouldClean: newLocation =>
+      newLocation.pathname.includes(`/issues/${params.groupId}/`),
   });
 
   const handleSearch = useCallback(
     (query: string) =>
       browserHistory.push(
         normalizeUrl({
-          pathname: `/organizations/${organization.slug}/issues/${groupId}/events/`,
+          pathname: `/organizations/${organization.slug}/issues/${params.groupId}/events/`,
           query: {...location.query, query},
         })
       ),
-    [location, organization, groupId]
+    [location, organization, params.groupId]
   );
 
-  const query = location.query?.query ?? '';
+  const query = (location.query?.query ?? '') as string;
 
   return (
     <Layout.Body>
@@ -66,8 +72,6 @@ function GroupEvents({params, location, group, environments}: Props) {
           />
         </AllEventsFilters>
         <AllEventsTable
-          issueId={group.id}
-          location={location}
           organization={organization}
           group={group}
           excludedTags={ALL_EVENTS_EXCLUDED_TAGS}
@@ -82,14 +86,29 @@ const AllEventsFilters = styled('div')`
 `;
 
 // TODO(streamlined-ui): Remove this file completely and change rotue to new events list
-function IssueEventsList(props: Props) {
+function IssueEventsList() {
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const params = useParams<{groupId: string}>();
+  const {
+    data: group,
+    isPending: isGroupPending,
+    isError: isGroupError,
+    refetch: refetchGroup,
+  } = useGroup({groupId: params.groupId});
 
-  if (hasStreamlinedUI) {
-    return <EventList {...props} />;
+  if (isGroupPending) {
+    return <LoadingIndicator />;
   }
 
-  return <GroupEvents {...props} />;
+  if (isGroupError) {
+    return <LoadingError onRetry={refetchGroup} />;
+  }
+
+  if (hasStreamlinedUI) {
+    return <EventList group={group} />;
+  }
+
+  return <GroupEvents group={group} />;
 }
 
 export default IssueEventsList;
