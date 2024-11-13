@@ -21,6 +21,7 @@ import {getMissingInstrumentationContextData} from 'sentry/components/events/con
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
 import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
 import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
+import {getRuntimeContextData} from 'sentry/components/events/contexts/knownContext/runtime';
 import {getStateContextData} from 'sentry/components/events/contexts/knownContext/state';
 import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
 import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
@@ -44,7 +45,6 @@ import {
   getUnknownPlatformContextData,
   KNOWN_PLATFORM_CONTEXTS,
 } from './platform';
-import {getKnownRuntimeContextData, getUnknownRuntimeContextData} from './runtime';
 import {getKnownUnityContextData, getUnknownUnityContextData} from './unity';
 import {getKnownUserContextData, getUnknownUserContextData} from './user';
 
@@ -418,10 +418,7 @@ export function getFormattedContextData({
         ...getUnknownUnityContextData({data: contextValue, meta}),
       ];
     case 'runtime':
-      return [
-        ...getKnownRuntimeContextData({data: contextValue, meta}),
-        ...getUnknownRuntimeContextData({data: contextValue, meta}),
-      ];
+      return getRuntimeContextData({data: contextValue, meta});
     case 'user':
       return [
         ...getKnownUserContextData({data: contextValue, meta}),
