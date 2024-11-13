@@ -132,7 +132,7 @@ pluggy==1.5.0
 pre-commit==4.0.0
 progressbar2==3.41.0
 prompt-toolkit==3.0.41
-proto-plus==1.24.0
+proto-plus==1.25.0
 protobuf==5.27.3
 psutil==5.9.7
 psycopg2-binary==2.9.10
