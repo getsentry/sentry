@@ -240,8 +240,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
                 <AutofixSetupContent
                   projectId={project.id}
                   groupId={group.id}
-                  closeModal={() => {}}
-                  refetchSetup={refetchSetup}
+                  onComplete={refetchSetup}
                 />
               </SetupContainer>
             ) : !autofixData ? (
