@@ -1,13 +1,12 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {AutofixSetupModal} from 'sentry/components/events/autofix/autofixSetupModal';
+import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixCodebaseIndexingStatus} from 'sentry/components/events/autofix/types';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-describe('AutofixSetupModal', function () {
+describe('AutofixSetupContent', function () {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([ProjectFixture({id: '1'})]);
@@ -41,18 +40,9 @@ describe('AutofixSetupModal', function () {
       },
     });
 
-    const closeModal = jest.fn();
+    const onComplete = jest.fn();
 
-    renderGlobalModal();
-
-    act(() => {
-      openModal(
-        modalProps => <AutofixSetupModal {...modalProps} groupId="1" projectId="1" />,
-        {
-          onClose: closeModal,
-        }
-      );
-    });
+    render(<AutofixSetupContent groupId="1" projectId="1" onComplete={onComplete} />);
 
     expect(await screen.findByText('Install the GitHub Integration')).toBeInTheDocument();
     expect(
@@ -81,18 +71,9 @@ describe('AutofixSetupModal', function () {
       },
     });
 
-    const closeModal = jest.fn();
+    const onComplete = jest.fn();
 
-    renderGlobalModal();
-
-    act(() => {
-      openModal(
-        modalProps => <AutofixSetupModal {...modalProps} groupId="1" projectId="1" />,
-        {
-          onClose: closeModal,
-        }
-      );
-    });
+    render(<AutofixSetupContent groupId="1" projectId="1" onComplete={onComplete} />);
 
     await screen.findByText('Install the GitHub Integration');
 
@@ -131,18 +112,9 @@ describe('AutofixSetupModal', function () {
       },
     });
 
-    const closeModal = jest.fn();
+    const onComplete = jest.fn();
 
-    renderGlobalModal();
-
-    act(() => {
-      openModal(
-        modalProps => <AutofixSetupModal {...modalProps} groupId="1" projectId="1" />,
-        {
-          onClose: closeModal,
-        }
-      );
-    });
+    render(<AutofixSetupContent groupId="1" projectId="1" onComplete={onComplete} />);
 
     expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
     expect(await screen.findByText('getsentry/seer')).toBeInTheDocument();
@@ -176,18 +148,9 @@ describe('AutofixSetupModal', function () {
       },
     });
 
-    const closeModal = jest.fn();
+    const onComplete = jest.fn();
 
-    renderGlobalModal();
-
-    act(() => {
-      openModal(
-        modalProps => <AutofixSetupModal {...modalProps} groupId="1" projectId="1" />,
-        {
-          onClose: closeModal,
-        }
-      );
-    });
+    render(<AutofixSetupContent groupId="1" projectId="1" onComplete={onComplete} />);
 
     await screen.findByText('Allow Autofix to Make Pull Requests');
 

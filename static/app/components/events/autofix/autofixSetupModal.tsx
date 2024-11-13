@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {
   type AutofixSetupRepoDefinition,
@@ -18,11 +17,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-
-interface AutofixSetupModalProps extends ModalRenderProps {
-  groupId: string;
-  projectId: string;
-}
 
 const ConsentStep = HookOrDefault({
   hookName: 'component:autofix-setup-step-consent',
@@ -143,19 +137,16 @@ export function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
 function AutofixGithubIntegrationStep({
   autofixSetup,
   canStartAutofix,
-  closeModal,
+  onComplete,
   isLastStep,
-  refetchSetup,
 }: {
   autofixSetup: AutofixSetupResponse;
   canStartAutofix: boolean;
-  closeModal: () => void;
   isLastStep?: boolean;
-  refetchSetup?: () => void;
+  onComplete?: () => void;
 }) {
   const handleClose = () => {
-    refetchSetup?.();
-    closeModal();
+    onComplete?.();
   };
 
   const sortedRepos = useMemo(
@@ -281,16 +272,14 @@ function AutofixGithubIntegrationStep({
 
 function AutofixSetupSteps({
   autofixSetup,
-  closeModal,
   canStartAutofix,
-  refetchSetup,
+  onComplete,
 }: {
   autofixSetup: AutofixSetupResponse;
   canStartAutofix: boolean;
-  closeModal: () => void;
   groupId: string;
   projectId: string;
-  refetchSetup?: () => void;
+  onComplete?: () => void;
 }) {
   return (
     <GuidedSteps>
@@ -311,9 +300,8 @@ function AutofixSetupSteps({
         <AutofixGithubIntegrationStep
           autofixSetup={autofixSetup}
           canStartAutofix={canStartAutofix}
-          closeModal={closeModal}
           isLastStep
-          refetchSetup={refetchSetup}
+          onComplete={onComplete}
         />
       </GuidedSteps.Step>
     </GuidedSteps>
@@ -323,13 +311,11 @@ function AutofixSetupSteps({
 export function AutofixSetupContent({
   projectId,
   groupId,
-  closeModal,
-  refetchSetup,
+  onComplete,
 }: {
-  closeModal: () => void;
   groupId: string;
   projectId: string;
-  refetchSetup?: () => void;
+  onComplete?: () => void;
 }) {
   const organization = useOrganization();
   const {data, canStartAutofix, isPending, isError} = useAutofixSetup(
@@ -374,32 +360,8 @@ export function AutofixSetupContent({
         projectId={projectId}
         autofixSetup={data}
         canStartAutofix={canStartAutofix}
-        closeModal={closeModal}
-        refetchSetup={refetchSetup}
+        onComplete={onComplete}
       />
-    </Fragment>
-  );
-}
-
-export function AutofixSetupModal({
-  Header,
-  Body,
-  groupId,
-  projectId,
-  closeModal,
-}: AutofixSetupModalProps) {
-  return (
-    <Fragment>
-      <Header closeButton>
-        <h3>{t('Configure Autofix')}</h3>
-      </Header>
-      <Body>
-        <AutofixSetupContent
-          projectId={projectId}
-          groupId={groupId}
-          closeModal={closeModal}
-        />
-      </Body>
     </Fragment>
   );
 }
