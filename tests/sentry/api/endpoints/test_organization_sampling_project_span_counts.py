@@ -42,7 +42,7 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
                 project_id=int(project_source_id),
                 mri=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
                 tags={"target_project_id": str(target_project_id)},
-                timestamp=hour_ago.timestamp(),
+                timestamp=int(hour_ago.timestamp()),
             )
             self.store_metric(
                 org_id=self.org.id,
@@ -50,7 +50,7 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
                 project_id=int(project_source_id),
                 mri=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
                 tags={"target_project_id": str(target_project_id)},
-                timestamp=day_ago.timestamp(),
+                timestamp=int(day_ago.timestamp()),
             )
 
     def test_feature_flag_required(self):
@@ -78,23 +78,23 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
             )
 
         assert response.status_code == 200
-        data = response.data["data"][0]
-        data = sorted(data, key=lambda x: x["by"]["target_project_id"])
+        data = response.data  # type: ignore[attr-defined]
+        span_counts = sorted(data["data"][0], key=lambda x: x["by"]["target_project_id"])
 
-        assert data[0]["by"]["project"] == self.project_2.name
-        assert data[0]["by"]["target_project_id"] == str(self.project_1.id)
-        assert data[0]["totals"] == 21.0
+        assert span_counts[0]["by"]["project"] == self.project_2.name
+        assert span_counts[0]["by"]["target_project_id"] == str(self.project_1.id)
+        assert span_counts[0]["totals"] == 21.0
 
-        assert data[1]["by"]["project"] == self.project_1.name
-        assert data[1]["by"]["target_project_id"] == str(self.project_2.id)
-        assert data[1]["totals"] == 12.0
+        assert span_counts[1]["by"]["project"] == self.project_1.name
+        assert span_counts[1]["by"]["target_project_id"] == str(self.project_2.id)
+        assert span_counts[1]["totals"] == 12.0
 
-        assert data[2]["by"]["project"] == self.project_1.name
-        assert data[2]["by"]["target_project_id"] == str(self.project_3.id)
-        assert data[2]["totals"] == 13.0
+        assert span_counts[2]["by"]["project"] == self.project_1.name
+        assert span_counts[2]["by"]["target_project_id"] == str(self.project_3.id)
+        assert span_counts[2]["totals"] == 13.0
 
-        assert response.data["end"] == MetricsEnhancedPerformanceTestCase.MOCK_DATETIME
-        assert (response.data["end"] - response.data["start"]) == timedelta(days=1)
+        assert data["end"] == MetricsEnhancedPerformanceTestCase.MOCK_DATETIME
+        assert (data["end"] - data["start"]) == timedelta(days=1)
 
     def test_get_span_counts_with_ingested_data_30d(self):
         with self.feature("organizations:dynamic-sampling-custom"):
@@ -104,20 +104,20 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
             )
 
         assert response.status_code == 200
-        data = response.data["data"][0]
-        data = sorted(data, key=lambda x: x["by"]["target_project_id"])
+        data = response.data  # type: ignore[attr-defined]
+        span_counts = sorted(data["data"][0], key=lambda x: x["by"]["target_project_id"])
 
-        assert data[0]["by"]["project"] == self.project_2.name
-        assert data[0]["by"]["target_project_id"] == str(self.project_1.id)
-        assert data[0]["totals"] == 21.0 * 2
+        assert span_counts[0]["by"]["project"] == self.project_2.name
+        assert span_counts[0]["by"]["target_project_id"] == str(self.project_1.id)
+        assert span_counts[0]["totals"] == 21.0 * 2
 
-        assert data[1]["by"]["project"] == self.project_1.name
-        assert data[1]["by"]["target_project_id"] == str(self.project_2.id)
-        assert data[1]["totals"] == 12.0 * 2
+        assert span_counts[1]["by"]["project"] == self.project_1.name
+        assert span_counts[1]["by"]["target_project_id"] == str(self.project_2.id)
+        assert span_counts[1]["totals"] == 12.0 * 2
 
-        assert data[2]["by"]["project"] == self.project_1.name
-        assert data[2]["by"]["target_project_id"] == str(self.project_3.id)
-        assert data[2]["totals"] == 13.0 * 2
+        assert span_counts[2]["by"]["project"] == self.project_1.name
+        assert span_counts[2]["by"]["target_project_id"] == str(self.project_3.id)
+        assert span_counts[2]["totals"] == 13.0 * 2
 
-        assert response.data["end"] == MetricsEnhancedPerformanceTestCase.MOCK_DATETIME
-        assert (response.data["end"] - response.data["start"]) == timedelta(days=30)
+        assert data["end"] == MetricsEnhancedPerformanceTestCase.MOCK_DATETIME
+        assert (data["end"] - data["start"]) == timedelta(days=30)
