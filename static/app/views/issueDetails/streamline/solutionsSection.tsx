@@ -85,7 +85,7 @@ export default function SolutionsSection({
       <SidebarSectionTitle style={{marginTop: 0}}>
         {t('Solutions Hub')}
       </SidebarSectionTitle>
-      {(isPending || (hasSummary && !data)) && (
+      {hasSummary && !data && (
         <Placeholder
           height="60px"
           style={{marginBottom: space(1)}}
