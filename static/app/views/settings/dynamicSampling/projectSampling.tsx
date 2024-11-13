@@ -86,7 +86,7 @@ export function ProjectSampling() {
     });
   };
 
-  // TODO(aknaus): This calculation + stiching of the two requests is repeaded in a few places
+  // TODO(aknaus): This calculation + stiching of the two requests is repeated in a few places
   // and should be moved to a shared utility function.
   const initialTargetRate = useMemo(() => {
     const sampleRates = sampleRatesQuery.data ?? [];
