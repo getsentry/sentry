@@ -111,7 +111,7 @@ export function FeatureFlagDrawer({
       </EventNavigator>
       <EventDrawerBody>
         <CardContainer numCols={1}>
-          <KeyValueData.Card contentItems={searchResults} />
+          <KeyValueData.Card expandLeft contentItems={searchResults} />
         </CardContainer>
       </EventDrawerBody>
     </EventDrawerContainer>
