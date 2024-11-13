@@ -21,7 +21,7 @@ export function getBrowserContextData({
   data: BrowserContext;
   meta?: Record<keyof BrowserContext, any>;
 }): KeyValueListData {
-  return getContextKeys(data).map(ctxKey => {
+  return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case BrowserContextKeys.NAME:
         return {
