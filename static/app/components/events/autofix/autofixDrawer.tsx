@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import starImage from 'sentry-images/spot/banner-star.svg';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -173,6 +174,7 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
         <HeaderText>
           <IconSeer size="lg" />
           {t('Sentry AI')}
+          <FeatureBadge type="beta" />
         </HeaderText>
         {hasSummary && (
           <StyledCard>
