@@ -19,6 +19,7 @@ import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
+import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -41,7 +42,6 @@ import {
 } from './platform';
 import {getKnownProfileContextData, getUnknownProfileContextData} from './profile';
 import {getReduxContextData} from './redux';
-import {getKnownReplayContextData, getUnknownReplayContextData} from './replay';
 import {getKnownRuntimeContextData, getUnknownRuntimeContextData} from './runtime';
 import {getKnownStateContextData, getUnknownStateContextData} from './state';
 import {
@@ -463,10 +463,7 @@ export function getFormattedContextData({
         ...getUnknownProfileContextData({data: contextValue, meta}),
       ];
     case 'replay':
-      return [
-        ...getKnownReplayContextData({data: contextValue, meta, organization}),
-        ...getUnknownReplayContextData({data: contextValue, meta}),
-      ];
+      return getReplayContextData({data: contextValue, meta});
     case 'cloud_resource':
       return getCloudResourceContextData({data: contextValue, meta});
     case 'culture':
