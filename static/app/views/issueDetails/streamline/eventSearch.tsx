@@ -195,7 +195,7 @@ export function EventSearch({
       getTagValues={getTagValues}
       placeholder={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events\u2026')}
       label={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events')}
-      searchSource="issue_events_tab"
+      searchSource={hasStreamlinedUI ? 'issue_details_header' : 'issue_events_tab'}
       className={className}
       showUnsubmittedIndicator
       {...queryBuilderProps}
