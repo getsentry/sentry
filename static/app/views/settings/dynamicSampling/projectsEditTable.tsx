@@ -132,26 +132,29 @@ export function ProjectsEditTable({
   );
   const [activeItems, inactiveItems] = partition(items, item => item.count > 0);
 
+  const totalSpanCount = useMemo(
+    () => items.reduce((acc, item) => acc + item.count, 0),
+    [items]
+  );
+
   const projectedOrgRate = useMemo(() => {
     if (editMode === 'bulk') {
       return orgRate;
     }
-    const totalSpans = items.reduce((acc, item) => acc + item.count, 0);
     const totalSampledSpans = items.reduce(
       (acc, item) => acc + item.count * Number(value[item.project.id] ?? 100),
       0
     );
-    return formatNumberWithDynamicDecimalPoints(totalSampledSpans / totalSpans, 2);
-  }, [editMode, items, orgRate, value]);
+    return formatNumberWithDynamicDecimalPoints(totalSampledSpans / totalSpanCount, 2);
+  }, [editMode, items, orgRate, totalSpanCount, value]);
 
   const initialOrgRate = useMemo(() => {
-    const totalSpans = items.reduce((acc, item) => acc + item.count, 0);
     const totalSampledSpans = items.reduce(
       (acc, item) => acc + item.count * Number(initialValue[item.project.id] ?? 100),
       0
     );
-    return formatNumberWithDynamicDecimalPoints(totalSampledSpans / totalSpans, 2);
-  }, [initialValue, items]);
+    return formatNumberWithDynamicDecimalPoints(totalSampledSpans / totalSpanCount, 2);
+  }, [initialValue, items, totalSpanCount]);
 
   const breakdownSampleRates = useMemo(
     () =>
@@ -203,12 +206,10 @@ export function ProjectsEditTable({
                 />
                 <FlexRow>
                   <PreviousValue>
-                    {initialOrgRate !== projectedOrgRate ? (
-                      t('previous: %f%%', initialOrgRate)
-                    ) : (
-                      // Placeholder char to prevent the line from collapsing
-                      <Fragment>&#x200b;</Fragment>
-                    )}
+                    {initialOrgRate !== projectedOrgRate
+                      ? t('previous: %f%%', initialOrgRate)
+                      : // Placeholder char to prevent the line from collapsing
+                        '\u200b'}
                   </PreviousValue>
                   {hasAccess && !isBulkEditEnabled && (
                     <BulkEditButton
