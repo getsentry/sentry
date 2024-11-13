@@ -3,7 +3,6 @@ import type {Organization} from 'sentry/types/organization';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
   type ApiQueryKey,
-  setApiQueryData,
   useMutation,
   useQuery,
   useQueryClient,
@@ -81,29 +80,29 @@ export function useUpdateSamplingProjectRates() {
       });
     },
     onSuccess: data => {
-      setApiQueryData<SamplingProjectRate[]>(
-        queryClient,
-        getQueryKey(organization),
-        previous => {
-          if (!previous) {
-            return data;
-          }
-          const newDataById = data.reduce(
-            (acc, item) => {
-              acc[item.id] = item;
-              return acc;
-            },
-            {} as Record<number, SamplingProjectRate>
-          );
+      const queryKey = getQueryKey(organization);
+      const previous = queryClient.getQueryData<SamplingProjectRate[]>(queryKey);
+      if (!previous) {
+        return;
+      }
 
-          return previous.map(item => {
-            const newItem = newDataById[item.id];
-            if (newItem) {
-              return newItem;
-            }
-            return item;
-          });
-        }
+      const newDataById = data.reduce(
+        (acc, item) => {
+          acc[item.id] = item;
+          return acc;
+        },
+        {} as Record<number, SamplingProjectRate>
+      );
+
+      queryClient.setQueryData(
+        queryKey,
+        previous.map(item => {
+          const newItem = newDataById[item.id];
+          if (newItem) {
+            return newItem;
+          }
+          return item;
+        })
       );
     },
     onSettled: () => {
