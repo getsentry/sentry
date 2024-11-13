@@ -904,11 +904,15 @@ class Group(Model):
     def get_email_subject(self):
         return f"{self.qualified_short_id} - {self.title}"
 
-    def count_users_seen(self, referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value):
+    def count_users_seen(
+        self,
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value,
+        environment_ids: list[int] | None = None,
+    ):
         return tagstore.backend.get_groups_user_counts(
             [self.project_id],
             [self.id],
-            environment_ids=None,
+            environment_ids=environment_ids,
             start=self.first_seen,
             tenant_ids={"organization_id": self.project.organization_id},
             referrer=referrer,

@@ -256,7 +256,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         widget.queries.map(q => omit(q, ignoredQueryProps)),
         prevProps.widget.queries.map(q => omit(q, ignoredQueryProps))
       ) ||
-      // If the fields changed (ignore falsy/empty fields -> they can happen after clicking on Add Overlay)
+      // If the fields changed (ignore falsy/empty fields -> they can happen after clicking on Add Data)
       !isEqual(
         widget.queries.flatMap(q => q.fields?.filter(field => !!field)),
         prevProps.widget.queries.flatMap(q => q.fields?.filter(field => !!field))

@@ -63,22 +63,37 @@ class GroupingComponent:
 
     @property
     def description(self) -> str:
-        items = []
+        """
+        Build the component description by walking its component tree and collecting the names of
+        contributing "major" components, to find the longest path of qualifying components from root
+        to leaf. (See `KNOWN_MAJOR_COMPONENT_NAMES` above.)
+        """
 
-        def _walk_components(c: GroupingComponent, stack: list[str | None]) -> None:
-            stack.append(c.name)
-            for value in c.values:
+        # Keep track of the paths we walk so later we can pick the longest one
+        paths = []
+
+        def _walk_components(component: GroupingComponent, current_path: list[str | None]) -> None:
+            # Keep track of the names of the nodes from the root of the component tree to here
+            current_path.append(component.name)
+
+            # Walk the tree, looking for contributing components.
+            for value in component.values:
                 if isinstance(value, GroupingComponent) and value.contributes:
-                    _walk_components(value, stack)
-            parts = [_f for _f in stack if _f]
-            items.append(parts)
-            stack.pop()
+                    _walk_components(value, current_path)
 
+            # Filter out the `None`s (which come from components not in `KNOWN_MAJOR_COMPONENT_NAMES`)
+            # before adding our current path to the list of possible longest paths
+            paths.append([name for name in current_path if name])
+
+            # We're about to finish processing this node, so pop it out of the path
+            current_path.pop()
+
+        # Find the longest path of contributing major components
         _walk_components(self, [])
-        items.sort(key=lambda x: (len(x), x))
+        paths.sort(key=lambda x: (len(x), x))
 
-        if items and items[-1]:
-            return " ".join(items[-1])
+        if paths and paths[-1]:
+            return " ".join(paths[-1])
 
         return self.name or self.id
 
