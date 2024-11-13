@@ -14,7 +14,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, router, transaction
-from django.db.models import Func, Max
+from django.db.models import Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -304,44 +304,6 @@ def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreport
     # the currently allowed maximum.
     query = EventAttachment.objects.filter(group_id=event.group_id, type__in=CRASH_REPORT_TYPES)
     return query[:max_crashreports].count()
-
-
-class ScoreClause(Func):
-    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
-        self.group = group
-        self.last_seen = last_seen
-        self.times_seen = times_seen
-        # times_seen is likely an F-object that needs the value extracted
-        if hasattr(self.times_seen, "rhs"):
-            self.times_seen = self.times_seen.rhs.value
-        super().__init__(*args, **kwargs)
-
-    def __int__(self):
-        # Calculate the score manually when coercing to an int.
-        # This is used within create_or_update and friends
-
-        # XXX: Since removing the 'score' column from 'Group', this now always returns 0.
-        return 0
-
-    def as_sql(
-        self,
-        compiler,
-        connection,
-        function=None,
-        template=None,
-        arg_joiner: str | None = None,
-        **extra_context,
-    ) -> tuple[str, list[str | int]]:
-        has_values = self.last_seen is not None and self.times_seen is not None
-        if has_values:
-            sql = "log(times_seen + %d) * 600 + %d" % (
-                self.times_seen,
-                self.last_seen.timestamp(),
-            )
-        else:
-            sql = "log(times_seen) * 600 + last_seen::abstime::int"
-
-        return (sql, [])
 
 
 ProjectsMapping = Mapping[int, Project]
