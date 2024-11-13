@@ -183,7 +183,6 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
           setMenuOpen(false);
           if (isMenuOpen) {
             setSelectedOptions(getSelectedOptions());
-            setHasUnsavedChanges(false);
           }
         }}
         disabled={!isCurrentUserDashboardOwner}
@@ -228,6 +227,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       onOpenChange={() => {
         setMenuOpen(!isMenuOpen);
         if (isMenuOpen) {
+          setHasUnsavedChanges(false);
           setSelectedOptions(getSelectedOptions());
         }
       }}
