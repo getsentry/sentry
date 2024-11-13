@@ -1,61 +1,60 @@
-import {createContext, useContext, useMemo} from 'react';
+import {createContext, useContext, useEffect, useState} from 'react';
 
 import {createNavConfig} from 'sentry/components/nav/config';
-import type {
-  NavConfig,
-  NavItemLayout,
-  NavSidebarItem,
-  NavSubmenuItem,
-} from 'sentry/components/nav/utils';
-import {isNavItemActive, isSubmenuItemActive} from 'sentry/components/nav/utils';
-import {useLocation} from 'sentry/utils/useLocation';
+import type {NavConfig, NavMenuKey} from 'sentry/components/nav/utils';
+import {getActiveNavIds} from 'sentry/components/nav/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export interface NavContext {
-  /** Raw config for entire nav items */
-  config: Readonly<NavConfig>;
-  /** Currently active submenu items, if any */
-  submenu?: Readonly<NavItemLayout<NavSubmenuItem>>;
+interface NavContext {
+  /**
+   * key for the active primary navigation menu
+   */
+  activeMenuId: NavMenuKey;
+  /**
+   * key for the active secondary navigation menu, if applicable
+   */
+  activeSubmenuId: string | undefined;
+  config: NavConfig;
+  setActiveMenuId: React.Dispatch<React.SetStateAction<NavMenuKey>>;
+  setActiveSubmenuId: React.Dispatch<React.SetStateAction<string | undefined>>;
 }
 
-const NavContext = createContext<NavContext>({config: {main: []}});
-
-export function useNavContext(): NavContext {
-  const navContext = useContext(NavContext);
-  return navContext;
-}
+const NavContext = createContext<NavContext>({} as any);
 
 export function NavContextProvider({children}) {
   const organization = useOrganization();
-  const location = useLocation();
-  /** Raw nav configuration values */
-  const config = useMemo(() => createNavConfig({organization}), [organization]);
-  /**
-   * Active submenu items derived from the nav config and current `location`.
-   * These are returned in a normalized layout format for ease of use.
-   */
-  const submenu = useMemo<NavContext['submenu']>(() => {
-    for (const item of config.main) {
-      if (isNavItemActive(item, location) || isSubmenuItemActive(item, location)) {
-        return normalizeSubmenu(item.submenu);
-      }
-    }
-    if (config.footer) {
-      for (const item of config.footer) {
-        if (isNavItemActive(item, location) || isSubmenuItemActive(item, location)) {
-          return normalizeSubmenu(item.submenu);
-        }
-      }
-    }
-    return undefined;
-  }, [config, location]);
+  const config = createNavConfig({organization});
+  const defaultActiveIds = getActiveNavIds();
+  const [activeMenuId, setActiveMenuId] = useState<NavMenuKey>(defaultActiveIds.menu);
+  const [activeSubmenuId, setActiveSubmenuId] = useState<string | undefined>(
+    defaultActiveIds.submenu
+  );
 
-  return <NavContext.Provider value={{config, submenu}}>{children}</NavContext.Provider>;
+  return (
+    <NavContext.Provider
+      value={{
+        config,
+        activeMenuId,
+        setActiveMenuId,
+        activeSubmenuId,
+        setActiveSubmenuId,
+      }}
+    >
+      {children}
+    </NavContext.Provider>
+  );
 }
 
-const normalizeSubmenu = (submenu: NavSidebarItem['submenu']): NavContext['submenu'] => {
-  if (Array.isArray(submenu)) {
-    return {main: submenu};
-  }
-  return submenu;
-};
+export function useNavContext() {
+  return useContext(NavContext);
+}
+
+export function useNavSidebar(main: NavMenuKey, initialSubmenu?: string) {
+  const {setActiveMenuId, setActiveSubmenuId} = useNavContext();
+  useEffect(() => {
+    setActiveMenuId(main);
+  }, [setActiveMenuId, main]);
+  useEffect(() => {
+    setActiveSubmenuId(active => (active ? active : initialSubmenu));
+  }, [setActiveSubmenuId, initialSubmenu]);
+}

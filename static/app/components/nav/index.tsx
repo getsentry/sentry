@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {NavContextProvider} from 'sentry/components/nav/context';
 import MobileTopbar from 'sentry/components/nav/mobileTopbar';
 import Sidebar from 'sentry/components/nav/sidebar';
 import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
@@ -8,11 +7,7 @@ import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 function Nav() {
   const screen = useBreakpoints();
 
-  return (
-    <NavContextProvider>
-      <NavContainer>{screen.medium ? <Sidebar /> : <MobileTopbar />}</NavContainer>
-    </NavContextProvider>
-  );
+  return <NavContainer>{screen.medium ? <Sidebar /> : <MobileTopbar />}</NavContainer>;
 }
 
 const NavContainer = styled('div')`

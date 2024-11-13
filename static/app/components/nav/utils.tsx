@@ -7,6 +7,59 @@ import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {useLocation} from 'sentry/utils/useLocation';
 
+// TODO(nate.moore): these should be derived from the route data, not hardcoded
+export function getActiveNavIds(): {menu: string; submenu?: string} {
+  const {pathname} = window.location;
+
+  if (pathname.includes('/issues/')) {
+    const after = pathname.split('/issues/').at(-1)?.trim();
+    return {menu: 'issues', submenu: after ? undefined : 'all'};
+  }
+  if (pathname.includes('/feedback/')) {
+    return {menu: 'issues', submenu: 'feedback'};
+  }
+  if (pathname.includes('/projects/')) {
+    return {menu: 'projects'};
+  }
+  if (pathname.includes('/insights/')) {
+    const domain = pathname.split('/').at(-1);
+    return {menu: 'performance', submenu: domain};
+  }
+  if (pathname.includes('/dashboard/')) {
+    return {menu: 'boards'};
+  }
+  if (pathname.includes('/settings/')) {
+    return {menu: 'settings'};
+  }
+  if (pathname.includes('/alerts/')) {
+    return {menu: 'alerts'};
+  }
+
+  if (pathname.includes('/traces/')) {
+    return {menu: 'explore', submenu: 'insights'};
+  }
+  if (pathname.includes('/metrics/')) {
+    return {menu: 'explore', submenu: 'metrics'};
+  }
+  if (pathname.includes('/profiling/')) {
+    return {menu: 'explore', submenu: 'profiling'};
+  }
+  if (pathname.includes('/replays/')) {
+    return {menu: 'explore', submenu: 'replays'};
+  }
+  if (pathname.includes('/discover/')) {
+    return {menu: 'explore', submenu: 'discover'};
+  }
+  if (pathname.includes('/releases/')) {
+    return {menu: 'explore', submenu: 'releases'};
+  }
+  if (pathname.includes('/crons/')) {
+    return {menu: 'explore', submenu: 'crons'};
+  }
+
+  return {menu: 'issues', submenu: 'all'};
+}
+
 /**
  * NavItem is the base class for both SidebarItem and SubmenuItem
  */
