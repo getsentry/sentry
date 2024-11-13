@@ -253,8 +253,8 @@ export function EventFeatureFlagList({
       >
         {hasFlags ? (
           <CardContainer numCols={columnTwo.length ? 2 : 1}>
-            <KeyValueData.Card contentItems={columnOne} />
-            <KeyValueData.Card contentItems={columnTwo} />
+            <KeyValueData.Card expandLeft contentItems={columnOne} />
+            <KeyValueData.Card expandLeft contentItems={columnTwo} />
           </CardContainer>
         ) : (
           <StyledEmptyStateWarning withIcon>

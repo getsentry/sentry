@@ -36,6 +36,10 @@ export interface KeyValueDataContentProps {
    */
   errors?: MetaError[];
   /**
+   * If true, expands the left side of the cards to take up more space.
+   */
+  expandLeft?: boolean;
+  /**
    * Used for the feature flag section.
    * If true, then the row will be highlighted in red.
    */
@@ -53,6 +57,7 @@ export function Content({
   disableLink = false,
   disableFormattedData = false,
   isSuspectFlag = false,
+  expandLeft,
   ...props
 }: KeyValueDataContentProps) {
   const {
@@ -84,7 +89,12 @@ export function Content({
   );
 
   return (
-    <ContentWrapper hasErrors={hasErrors} isSuspectFlag={isSuspectFlag} {...props}>
+    <ContentWrapper
+      expandLeft={expandLeft}
+      hasErrors={hasErrors}
+      isSuspectFlag={isSuspectFlag}
+      {...props}
+    >
       {subjectNode !== undefined ? subjectNode : <Subject>{subject}</Subject>}
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
         <ValueWrapper hasSuffix={hasSuffix}>
@@ -115,6 +125,10 @@ export interface KeyValueDataCardProps {
    */
   contentItems: KeyValueDataContentProps[];
   /**
+   * If true, expands the left side of the cards to take up more space.
+   */
+  expandLeft?: boolean;
+  /**
    *  Flag to enable alphabetical sorting by item subject. Uses given item ordering if false.
    */
   sortAlphabetically?: boolean;
@@ -133,6 +147,7 @@ export function Card({
   title,
   truncateLength = Infinity,
   sortAlphabetically = false,
+  expandLeft = false,
 }: KeyValueDataCardProps) {
   const [isTruncated, setIsTruncated] = useState(contentItems.length > truncateLength);
 
@@ -149,7 +164,7 @@ export function Card({
     : truncatedItems;
 
   const componentItems = orderedItems.map((itemProps, i) => (
-    <Content key={`content-card-${title}-${i}`} {...itemProps} />
+    <Content expandLeft={expandLeft} key={`content-card-${title}-${i}`} {...itemProps} />
   ));
 
   return (
@@ -218,9 +233,13 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const ContentWrapper = styled('div')<{hasErrors: boolean; isSuspectFlag: boolean}>`
+const ContentWrapper = styled('div')<{
+  hasErrors: boolean;
+  isSuspectFlag: boolean;
+  expandLeft?: boolean;
+}>`
   display: grid;
-  grid-template-columns: subgrid;
+  grid-template-columns: ${p => (p.expandLeft ? '1fr 0.2fr' : 'subgrid')};
   grid-column: span 2;
   column-gap: ${space(1.5)};
   padding: ${space(0.25)} ${space(0.75)};
