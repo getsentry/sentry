@@ -4,10 +4,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
-import type {MemoryInfoContext} from 'sentry/types/event';
 
-const MOCK_MEMORY_INFO_CONTEXT: MemoryInfoContext = {
-  type: 'memory_info',
+const MOCK_MEMORY_INFO_CONTEXT = {
+  type: 'memory_info' as const,
   allocated_bytes: 1048576 * 1,
   fragmented_bytes: 1048576 * 2,
   heap_size_bytes: 1048576 * 3,
@@ -23,6 +22,9 @@ const MOCK_MEMORY_INFO_CONTEXT: MemoryInfoContext = {
   compacted: true,
   concurrent: true,
   pause_durations: [0, 0],
+  // Extra data is still valid and preserved
+  extra_data: 'something',
+  unknown_key: 123,
 };
 
 const MOCK_REDACTION = {
@@ -64,6 +66,18 @@ describe('MemoryInfoContext', function () {
       {key: 'compacted', subject: 'Compacted', value: true},
       {key: 'concurrent', subject: 'Concurrent', value: true},
       {key: 'pause_durations', subject: 'Pause Durations', value: [0, 0]},
+      {
+        key: 'extra_data',
+        subject: 'extra_data',
+        value: 'something',
+        meta: undefined,
+      },
+      {
+        key: 'unknown_key',
+        subject: 'unknown_key',
+        value: 123,
+        meta: undefined,
+      },
     ]);
   });
 
