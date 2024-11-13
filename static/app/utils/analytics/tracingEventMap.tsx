@@ -6,11 +6,14 @@ export type TracingEventParameters = {
   };
   'trace.explorer.metadata': {
     groupBys: string[];
+    groupBys_count: number;
     has_results: boolean;
     query_status: 'success' | 'error';
     results_mode: 'sample' | 'aggregate';
-    user_query: string;
+    user_queries: string;
+    user_queries_count: number;
     visualizes: Visualize[];
+    visualizes_count: number;
   };
   'trace.metadata': {
     num_nodes: number;
