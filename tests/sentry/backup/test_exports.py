@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import tempfile
 from copy import deepcopy
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
-from sentry.backup.comparators import get_default_comparators
 from sentry.backup.dependencies import NormalizedModelName, get_model, get_model_name
 from sentry.backup.scopes import ExportScope
-from sentry.backup.validate import validate
 from sentry.db import models
 from sentry.models.options.option import Option
 from sentry.models.organization import Organization
@@ -16,7 +14,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils.helpers.backups import (
     BackupTransactionTestCase,
-    ValidationError,
     export_to_encrypted_tarball,
     export_to_file,
 )
@@ -100,21 +97,10 @@ class ScopingTests(ExportTestCase):
                 f"The following models were not included in the export: ${unseen_models}; this is despite it being included in at least one of the following relocation scopes: {scope.value}"
             )
 
-    def verify_encryption_equality(
-        self, tmp_dir: str, unencrypted: Any, scope: ExportScope
-    ) -> None:
-        res = validate(
-            unencrypted,
-            self.export_and_encrypt(tmp_dir, scope=scope),
-            get_default_comparators(),
-        )
-        if res.findings:
-            raise ValidationError(res)
-
     @freeze_time("2023-10-11 18:00:00")
     def test_user_export_scoping(self):
         self.create_exhaustive_instance(is_superadmin=True)
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             unencrypted = self.export(tmp_dir, scope=ExportScope.User)
             self.verify_model_inclusion(unencrypted, ExportScope.User)
             assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.User)
@@ -122,7 +108,7 @@ class ScopingTests(ExportTestCase):
     @freeze_time("2023-10-11 18:00:00")
     def test_organization_export_scoping(self):
         self.create_exhaustive_instance(is_superadmin=True)
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             unencrypted = self.export(tmp_dir, scope=ExportScope.Organization)
             self.verify_model_inclusion(unencrypted, ExportScope.Organization)
             assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.Organization)
@@ -136,7 +122,7 @@ class ScopingTests(ExportTestCase):
         self.create_exhaustive_api_keys_for_user(admin)
         self.create_exhaustive_api_keys_for_user(staff)
         self.create_exhaustive_api_keys_for_user(superuser)
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             unencrypted = self.export(tmp_dir, scope=ExportScope.Config)
             self.verify_model_inclusion(unencrypted, ExportScope.Config)
             assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.Config)
@@ -144,7 +130,7 @@ class ScopingTests(ExportTestCase):
     @freeze_time("2023-10-11 18:00:00")
     def test_global_export_scoping(self):
         self.create_exhaustive_instance(is_superadmin=True)
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             unencrypted = self.export(tmp_dir, scope=ExportScope.Global)
             self.verify_model_inclusion(unencrypted, ExportScope.Global)
             assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.Global)
@@ -161,7 +147,7 @@ class FilteringTests(ExportTestCase):
         self.create_exhaustive_user("user_1")
         self.create_exhaustive_user("user_2")
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(tmp_dir, scope=ExportScope.User, filter_by={"user_2"})
 
             # Count users, but also count a random model naively derived from just `User` alone,
@@ -181,7 +167,7 @@ class FilteringTests(ExportTestCase):
         self.create_exhaustive_user("user_3", email="a@example.com")
         self.create_exhaustive_user("user_4", email="b@example.com")
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.User,
@@ -201,7 +187,7 @@ class FilteringTests(ExportTestCase):
         self.create_exhaustive_user("user_1")
         self.create_exhaustive_user("user_2")
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(tmp_dir, scope=ExportScope.User, filter_by=set())
 
             assert len(data) == 0
@@ -249,7 +235,7 @@ class FilteringTests(ExportTestCase):
             organization=org_c, inviter_id=c.id, role="member", email="invited-c@example.com"
         )
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.Organization,
@@ -335,7 +321,7 @@ class FilteringTests(ExportTestCase):
             organization=org_c, inviter_id=c.id, role="member", email="invited-c@example.com"
         )
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.Organization,
@@ -412,7 +398,7 @@ class FilteringTests(ExportTestCase):
             organization=org_c, inviter_id=c.id, role="member", email="invited-c@example.com"
         )
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.Organization,
@@ -427,7 +413,7 @@ class FilteringTests(ExportTestCase):
         self.create_exhaustive_user("staff", is_staff=True)
         self.create_exhaustive_user("superuser", is_staff=True)
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.Config,
@@ -459,7 +445,7 @@ class QueryTests(ExportTestCase):
         Option.objects.create(key="sentry:test-unfiltered", value="included")
         Option.objects.create(key="foo:bar", value='"included"')
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.Config,
