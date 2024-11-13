@@ -6,14 +6,7 @@ import {Button} from 'sentry/components/button';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {
-  IconChevron,
-  IconFatal,
-  IconFocus,
-  IconLightning,
-  IconMegaphone,
-  IconSpan,
-} from 'sentry/icons';
+import {IconChevron, IconFatal, IconFocus, IconMegaphone, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {IssueCategory} from 'sentry/types/group';
@@ -89,32 +82,23 @@ function GroupSummaryFeatureBadge() {
   );
 }
 
-export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
-  const {data, isPending, isError, hasGenAIConsent} = useGroupSummary(
-    groupId,
-    groupCategory
-  );
-
-  const organization = useOrganization();
-
-  const [expanded, setExpanded] = useState(false);
-
-  const openForm = useFeedbackForm();
-
-  if (!isSummaryEnabled(hasGenAIConsent, organization.hideAiFeatures, groupCategory)) {
-    return null;
-  }
-
+export function GroupSummaryBody({
+  data,
+  isError,
+}: {
+  data: GroupSummaryData | undefined;
+  isError: boolean;
+}) {
   const insightCards = [
     {
       id: 'whats_wrong',
-      title: t("What's wrong?"),
+      title: t("What's wrong"),
       insight: data?.whatsWrong,
       icon: <IconFatal size="sm" />,
     },
     {
       id: 'trace',
-      title: t('Trace'),
+      title: t('In the trace'),
       insight: data?.trace,
       icon: <IconSpan size="sm" />,
     },
@@ -122,9 +106,49 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
       id: 'possible_cause',
       title: t('Possible cause'),
       insight: data?.possibleCause,
-      icon: <IconLightning size="sm" />,
+      icon: <IconFocus size="sm" />,
     },
   ].filter(card => card.insight);
+
+  return (
+    <Body>
+      {isError ? <div>{t('Error loading summary')}</div> : null}
+      {data && (
+        <Content>
+          <InsightGrid>
+            {insightCards.map(card => (
+              <InsightCard key={card.id}>
+                <CardTitle>
+                  <CardTitleIcon>{card.icon}</CardTitleIcon>
+                  <CardTitleText>{card.title}</CardTitleText>
+                </CardTitle>
+                <CardContent
+                  dangerouslySetInnerHTML={{
+                    __html: marked(card.insight ?? ''),
+                  }}
+                />
+              </InsightCard>
+            ))}
+          </InsightGrid>
+        </Content>
+      )}
+    </Body>
+  );
+}
+
+export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
+  const {data, isPending, isError, hasGenAIConsent} = useGroupSummary(
+    groupId,
+    groupCategory
+  );
+
+  const organization = useOrganization();
+  const [expanded, setExpanded] = useState(false);
+  const openForm = useFeedbackForm();
+
+  if (!isSummaryEnabled(hasGenAIConsent, organization.hideAiFeatures, groupCategory)) {
+    return null;
+  }
 
   return (
     <Wrapper>
@@ -145,7 +169,11 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
               <SummaryPreview
                 dangerouslySetInnerHTML={{
                   __html: singleLineRenderer(
-                    `Details: ${[data.whatsWrong, data.trace, data.possibleCause].filter(Boolean).join(' ').replaceAll('\n', ' ').replaceAll('-', '')}`
+                    `Details: ${[data.whatsWrong, data.trace, data.possibleCause]
+                      .filter(Boolean)
+                      .join(' ')
+                      .replaceAll('\n', ' ')
+                      .replaceAll('-', '')}`
                   ),
                 }}
               />
@@ -164,29 +192,8 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
         </IconContainerRight>
       </StyledTitleRow>
       {expanded && (
-        <Body>
-          {isError ? <div>{t('Error loading summary')}</div> : null}
-          {data && (
-            <Content>
-              <InsightGrid>
-                {insightCards.map(card => (
-                  <InsightCard key={card.id}>
-                    <CardTitle>
-                      <CardTitleWrapper>
-                        <CardTitleIcon>{card.icon}</CardTitleIcon>
-                        <CardTitleText>{card.title}</CardTitleText>
-                      </CardTitleWrapper>
-                    </CardTitle>
-                    <CardContent
-                      dangerouslySetInnerHTML={{
-                        __html: marked(card.insight ?? ''),
-                      }}
-                    />
-                  </InsightCard>
-                ))}
-              </InsightGrid>
-            </Content>
-          )}
+        <Fragment>
+          <GroupSummaryBody data={data} isError={isError} />
           {openForm && !isPending && (
             <ButtonContainer>
               <Button
@@ -209,14 +216,14 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
               <GroupSummaryFeatureBadge />
             </ButtonContainer>
           )}
-        </Body>
+        </Fragment>
       )}
     </Wrapper>
   );
 }
 
 const Body = styled('div')`
-  padding: 0 ${space(2)} ${space(1.5)} ${space(2)};
+  padding: 0 ${space(2)} ${space(0.5)} ${space(2)};
 `;
 
 const HeadlinePreview = styled('span')`
@@ -275,7 +282,7 @@ const Content = styled('div')`
 const ButtonContainer = styled('div')`
   align-items: center;
   display: flex;
-  margin-top: ${space(1)};
+  margin: ${space(1)} 0 ${space(1)} ${space(2)};
 `;
 
 const IconContainer = styled('div')`
@@ -291,55 +298,22 @@ const IconContainerRight = styled('div')`
   margin-top: ${space(0.25)};
   max-height: ${space(2)};
 `;
-const InsightCard = styled('div')`
-  display: flex;
-  flex-direction: column;
-  padding: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
-  width: 100%;
-`;
-
-const CardTitle = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
-`;
-
-const CardTitleText = styled('p')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const CardContent = styled('div')`
-  overflow-wrap: break-word;
-  word-break: break-word;
-  margin-top: ${space(1)};
-  p {
-    margin: 0;
-    white-space: pre-wrap;
-  }
-  code {
-    word-break: break-all;
-  }
-`;
 
 const InsightGrid = styled('div')`
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: ${space(1)};
   margin-top: ${space(1)};
+`;
 
-  /* Make cards take full width in narrow containers, creating a column layout */
-  ${InsightCard} {
-    flex: 1 1 15rem;
-    /* Remove height: 100% since we're using flex to control height */
-    min-height: 0;
-  }
+const InsightCard = styled('div')`
+  display: flex;
+  flex-direction: column;
+  padding: ${space(0.5)};
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.background};
+  width: 100%;
+  min-height: 0;
 `;
 
 const SummaryPreview = styled('span')`
@@ -350,14 +324,37 @@ const SummaryPreview = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
-const CardTitleWrapper = styled('div')`
+const CardTitle = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeightBold};
+  padding-bottom: ${space(0.5)};
+`;
+
+const CardTitleText = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const CardTitleIcon = styled('div')`
   display: flex;
   align-items: center;
   color: ${p => p.theme.subText};
+`;
+
+const CardContent = styled('div')`
+  overflow-wrap: break-word;
+  word-break: break-word;
+  padding-left: ${space(2)};
+  border-left: 3px solid ${p => p.theme.border};
+  margin-left: ${space(0.5)};
+  p {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+  code {
+    word-break: break-all;
+  }
 `;

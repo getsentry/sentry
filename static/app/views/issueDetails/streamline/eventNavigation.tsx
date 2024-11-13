@@ -185,7 +185,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
   };
 
   return (
-    <EventNavigationWrapper>
+    <EventNavigationWrapper role="navigation">
       <LargeDropdownButtonWrapper>
         <DropdownMenu
           items={[
@@ -260,13 +260,15 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 borderless
                 size="sm"
                 disabled={hideDropdownButton}
+                aria-label={t('Select issue content')}
+                aria-description={TabName[currentTab]}
               >
                 {TabName[currentTab] ?? TabName[Tab.DETAILS]}
               </NavigationDropdownButton>
             )
           }
         />
-        <LargeInThisIssueText>{t('in this issue')}</LargeInThisIssueText>
+        <LargeInThisIssueText aria-hidden>{t('in this issue')}</LargeInThisIssueText>
       </LargeDropdownButtonWrapper>
       {event ? (
         <NavigationWrapper>
@@ -399,6 +401,7 @@ const NavigationLabel = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   padding-right: ${space(0.25)};
+  padding-left: ${space(1.5)};
 `;
 
 const LargeInThisIssueText = styled('div')`
@@ -408,11 +411,11 @@ const LargeInThisIssueText = styled('div')`
 `;
 
 const EventNavigationWrapper = styled('div')`
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   font-size: ${p => p.theme.fontSizeSmall};
-  padding: 0 0 ${space(0.5)} ${space(0.25)};
 
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
     flex-direction: row;

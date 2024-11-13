@@ -136,7 +136,7 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
 
 
 @sentry_sdk.tracing.trace
-def get_grouping_config_dict_for_project(project, silent=True) -> GroupingConfig:
+def get_grouping_config_dict_for_project(project) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
     ingestion so that the grouping algorithm can be re-run later.
@@ -321,7 +321,7 @@ def get_grouping_variants_for_event(
             return {"checksum": ChecksumVariant(checksum)}
 
         rv: dict[str, BaseVariant] = {
-            "hashed-checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
+            "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
         }
 
         # The legacy code path also supported arbitrary values here but
@@ -360,9 +360,9 @@ def get_grouping_variants_for_event(
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         if (fingerprint_info or {}).get("matched_rule", {}).get("is_builtin") is True:
-            rv["built-in-fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
+            rv["built_in_fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
         else:
-            rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
+            rv["custom_fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
 
     # If only the default is referenced, we can use the variants as is
     elif defaults_referenced == 1 and len(fingerprint) == 1:
