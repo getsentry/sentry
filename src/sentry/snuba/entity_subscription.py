@@ -34,7 +34,7 @@ from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import TraceItemTableRequest, get_table_query, get_timeseries_query
+from sentry.snuba.spans_rpc import TraceItemTableRequest, get_timeseries_query
 from sentry.utils import metrics
 
 # TODO: If we want to support security events here we'll need a way to

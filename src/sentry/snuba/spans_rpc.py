@@ -2,11 +2,7 @@ import logging
 from typing import Any
 
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
-    Column,
-    TraceItemTableRequest,
-    TraceItemTableResponse,
-)
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 
 from sentry.search.eap.columns import ResolvedColumn
@@ -25,48 +21,6 @@ def categorize_column(column: ResolvedColumn) -> Column:
         return Column(aggregation=proto_definition, label=column.public_alias)
     else:
         return Column(key=proto_definition, label=column.public_alias)
-
-
-def get_table_query(
-    params: SnubaParams,
-    query_string: str,
-    selected_columns: list[str],
-    orderby: list[str] | None,
-    referrer: str,
-    config: SearchResolverConfig,
-) -> TraceItemTableRequest:
-    """Make the query"""
-    resolver = SearchResolver(params=params, config=config)
-    meta = resolver.resolve_meta(referrer=referrer)
-    query = resolver.resolve_query(query_string)
-    columns, contexts = resolver.resolve_columns(selected_columns)
-    # Orderby is only applicable to TraceItemTableRequest
-    resolved_orderby = (
-        [
-            TraceItemTableRequest.OrderBy(
-                column=categorize_column(resolver.resolve_column(orderby_column.lstrip("-"))[0]),
-                descending=orderby_column.startswith("-"),
-            )
-            for orderby_column in orderby
-        ]
-        if orderby
-        else []
-    )
-    labeled_columns = [categorize_column(col) for col in columns]
-
-    rpc_request = TraceItemTableRequest(
-        meta=meta,
-        filter=query,
-        columns=labeled_columns,
-        group_by=[
-            col.proto_definition
-            for col in columns
-            if isinstance(col.proto_definition, AttributeKey)
-        ],
-        order_by=resolved_orderby,
-        virtual_column_contexts=[context for context in contexts if context is not None],
-    )
-    return rpc_request
 
 
 def run_table_query(
@@ -111,7 +65,7 @@ def run_table_query(
         order_by=resolved_orderby,
         virtual_column_contexts=[context for context in contexts if context is not None],
     )
-    rpc_response = snuba_rpc.rpc(rpc_request, TraceItemTableResponse)
+    rpc_response = snuba_rpc.table_rpc(rpc_request)
 
     """Process the results"""
     final_data: SnubaData = []
