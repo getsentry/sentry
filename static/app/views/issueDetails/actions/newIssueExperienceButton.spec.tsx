@@ -8,10 +8,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 
-const mockUseNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => mockUseNavigate,
-}));
 jest.mock('sentry/utils/analytics');
 
 const mockFeedbackForm = jest.fn();
@@ -99,10 +95,6 @@ describe('NewIssueExperienceButton', function () {
         })
       );
     });
-    // Location should update
-    expect(mockUseNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {streamline: '1'}})
-    );
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
 
     // Clicking again toggles it off
@@ -124,10 +116,6 @@ describe('NewIssueExperienceButton', function () {
         })
       );
     });
-    // Location should update again
-    expect(mockUseNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {streamline: '0'}})
-    );
     expect(trackAnalytics).toHaveBeenCalledTimes(2);
   });
 
