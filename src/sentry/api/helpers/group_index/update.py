@@ -707,9 +707,14 @@ def update_groups(
 
 def get_latest_release(project: Project) -> Release | None:
     release = None
-    follows_semver = follows_semver_versioning_scheme(
-        org_id=project.organization_id, project_id=project.id
-    )
+
+    # XXX: Remove block once released
+    follows_semver = False
+    if features.has("organizations:releases-resolve-next-release-semver-fix", project.organization):
+        follows_semver = follows_semver_versioning_scheme(
+            org_id=project.organization_id, project_id=project.id
+        )
+
     releases = Release.objects.filter(projects=project, organization_id=project.organization_id)
     if follows_semver:
         release = (
