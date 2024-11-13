@@ -178,6 +178,19 @@ def parse_profile_filters(query: str) -> dict[str, str]:
     return profile_filters
 
 
+# This support applying a subset of stack trace rules to the profile (matchers and actions).
+#
+# Matchers allowed:
+#
+#     stack.abs_path
+#     stack.module
+#     stack.function
+#     stack.package
+#
+# Actions allowed:
+#
+#     +app
+#     -app
 def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> None:
     profiling_rules = keep_profiling_rules(rules_config)
     if profiling_rules == "":
@@ -188,8 +201,10 @@ def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> N
             profile["profile"]["frames"], profile["platform"], {}
         )
     elif profile["platform"] == "android":
-        # set the fields that Enhancements expect
+        # Set the fields that Enhancements expect
         # with the right names.
+        # Sample format already has the right fields,
+        # for android we need to create aliases.
         for method in profile["profile"]["methods"]:
             method["function"] = method.get("name", "")
             method["abs_path"] = method.get("source_file", "")
