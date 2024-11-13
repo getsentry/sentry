@@ -1,7 +1,11 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
@@ -32,6 +36,7 @@ const UNSAVED_CHANGES_MESSAGE = t(
 export function ProjectSampling() {
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
+  const [editMode, setEditMode] = useState<'single' | 'bulk'>('single');
 
   const sampleRatesQuery = useGetSamplingProjectRates();
   const sampleCountsQuery = useProjectSampleCounts({period});
@@ -56,6 +61,11 @@ export function ProjectSampling() {
     enableReInitialize: true,
   });
 
+  const handleReset = () => {
+    formState.reset();
+    setEditMode('single');
+  };
+
   const handleSubmit = () => {
     const ratesArray = Object.entries(formState.fields.projectRates.value).map(
       ([id, rate]) => ({
@@ -67,10 +77,11 @@ export function ProjectSampling() {
     updateSamplingProjectRates.mutate(ratesArray, {
       onSuccess: () => {
         formState.save();
+        setEditMode('single');
         addSuccessMessage(t('Changes applied'));
       },
       onError: () => {
-        addLoadingMessage(t('Unable to save changes. Please try again.'));
+        addErrorMessage(t('Unable to save changes. Please try again.'));
       },
     });
   };
@@ -115,12 +126,14 @@ export function ProjectSampling() {
           <LoadingError onRetry={sampleCountsQuery.refetch} />
         ) : (
           <ProjectsEditTable
+            editMode={editMode}
+            onEditModeChange={setEditMode}
             isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
             sampleCounts={sampleCountsQuery.data}
           />
         )}
         <FormActions>
-          <Button disabled={isFormActionDisabled} onClick={formState.reset}>
+          <Button disabled={isFormActionDisabled} onClick={handleReset}>
             {t('Reset')}
           </Button>
           <Button
