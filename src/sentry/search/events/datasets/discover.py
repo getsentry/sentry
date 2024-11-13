@@ -1660,8 +1660,8 @@ class DiscoverDatasetConfig(DatasetConfig):
             )
             if fixed_percentile == 1
             else Function(
-                f'quantileDeterministic({fixed_percentile if fixed_percentile is not None else args["percentile"]}, {QUANTILE_DETERMINISTIC_SEED})',
-                [args["column"]],
+                f'quantileDeterministic({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+                [args["column"], QUANTILE_DETERMINISTIC_SEED],
                 alias,
             )
         )
