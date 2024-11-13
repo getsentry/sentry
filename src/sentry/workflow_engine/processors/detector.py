@@ -276,7 +276,9 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             # thresholds at the moment. Probably should be a field on the Detector? Could also be on the condition
             # level, but usually we want to set this at a higher level.
             evaluation = condition.evaluate_value(value)
-            if evaluation is not None:
+
+            # ensures that the result is a DetectorPriorityLevel, and then uses the highest priority
+            if isinstance(evaluation, DetectorPriorityLevel):
                 new_status = max(new_status, evaluation)
 
         # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
