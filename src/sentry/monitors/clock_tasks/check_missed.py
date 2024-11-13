@@ -53,10 +53,6 @@ def dispatch_check_missing(ts: datetime):
     their next_checkin_latest, indicating they haven't checked-in when they
     should have
 
-    When the volume_anomaly_result is "abnormal" miss check-ins will be created
-    with the unknown status and will not mark the monitor as failed or produce
-    notifications.
-
     This will dispatch MarkMissing messages into monitors-clock-tasks.
     """
     missed_envs = list(
