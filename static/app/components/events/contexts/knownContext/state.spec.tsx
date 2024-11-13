@@ -29,7 +29,7 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('GPUContext', function () {
+describe('StateContext', function () {
   it('returns values and according to the parameters', function () {
     expect(getStateContextData({data: MOCK_STATE_CONTEXT})).toEqual([
       {
