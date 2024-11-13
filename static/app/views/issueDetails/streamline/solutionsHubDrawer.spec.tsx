@@ -10,13 +10,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {t} from 'sentry/locale';
 import {EntryType} from 'sentry/types/event';
-import useOrganization from 'sentry/utils/useOrganization';
 import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
 
-jest.mock('sentry/utils/useOrganization');
-
 describe('AutofixDrawer', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({genAIConsent: true, hideAiFeatures: false});
 
   const mockEvent = EventFixture({
     entries: [
@@ -28,7 +25,6 @@ describe('AutofixDrawer', () => {
   });
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
-  mockProject.organization.genAIConsent = true;
 
   const mockAutofixData = AutofixDataFixture({steps: [AutofixStepFixture()]});
 
@@ -53,12 +49,6 @@ describe('AutofixDrawer', () => {
         headline: 'Test headline',
       },
     });
-
-    (useOrganization as jest.Mock).mockReturnValue({
-      ...organization,
-      hideAiFeatures: false,
-      genAIConsent: true,
-    });
   });
 
   it('renders properly', () => {
@@ -68,7 +58,8 @@ describe('AutofixDrawer', () => {
     });
 
     render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
     );
 
     expect(screen.getByText(mockGroup.shortId)).toBeInTheDocument();
@@ -94,7 +85,8 @@ describe('AutofixDrawer', () => {
     });
 
     render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
     );
 
     const startButton = screen.getByRole('button', {name: 'Start Autofix'});
@@ -112,7 +104,8 @@ describe('AutofixDrawer', () => {
     });
 
     render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
     );
 
     expect(
@@ -127,7 +120,8 @@ describe('AutofixDrawer', () => {
     });
 
     render(
-      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
     );
 
     const startOverButton = await screen.findByRole('button', {name: t('Start Over')});

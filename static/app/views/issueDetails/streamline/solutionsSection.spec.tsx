@@ -3,28 +3,32 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useGroupSummary} from 'sentry/components/group/groupSummary';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useOrganization from 'sentry/utils/useOrganization';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/solutionsSection';
 
-jest.mock('sentry/components/group/groupSummary');
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/issueTypeConfig');
 
 describe('SolutionsSection', () => {
   const mockEvent = EventFixture();
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
-  const {organization} = initializeOrg({
-    organization: OrganizationFixture(),
-  });
+  const organization = OrganizationFixture({genAIConsent: true, hideAiFeatures: false});
 
   beforeEach(() => {
-    (getConfigForIssueType as jest.Mock).mockReturnValue({
+    MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: true},
+      },
+    });
+
+    jest.mocked(getConfigForIssueType).mockReturnValue({
       issueSummary: {
         enabled: true,
       },
@@ -33,16 +37,48 @@ describe('SolutionsSection', () => {
         links: [{link: 'https://example.com', text: 'Test Link'}],
         linksByPlatform: {},
       },
-    });
-
-    (useOrganization as jest.Mock).mockReturnValue({
-      ...organization,
-      hideAiFeatures: false,
-      genAIConsent: true,
+      actions: {
+        archiveUntilOccurrence: {enabled: false},
+        delete: {enabled: false},
+        deleteAndDiscard: {enabled: false},
+        ignore: {enabled: false},
+        merge: {enabled: false},
+        resolveInRelease: {enabled: false},
+        share: {enabled: false},
+      },
+      aiSuggestedSolution: false,
+      attachments: {enabled: false},
+      autofix: true,
+      discover: {enabled: false},
+      events: {enabled: false},
+      evidence: null,
+      filterAndSearchHeader: {enabled: false},
+      mergedIssues: {enabled: false},
+      performanceDurationRegression: {enabled: false},
+      profilingDurationRegression: {enabled: false},
+      regression: {enabled: false},
+      replays: {enabled: false},
+      showFeedbackWidget: false,
+      similarIssues: {enabled: false},
+      spanEvidence: {enabled: false},
+      stacktrace: {enabled: false},
+      stats: {enabled: false},
+      tags: {enabled: false},
+      tagsTab: {enabled: false},
+      userFeedback: {enabled: false},
+      usesIssuePlatform: false,
     });
   });
 
-  const renderComponent = () =>
+  it('renders loading state when summary is pending', () => {
+    // Use a delayed response to simulate loading state
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+      method: 'POST',
+      statusCode: 200,
+      body: new Promise(() => {}), // Never resolves, keeping the loading state
+    });
+
     render(
       <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
       {
@@ -50,46 +86,47 @@ describe('SolutionsSection', () => {
       }
     );
 
-  it('renders loading state when summary is pending', () => {
-    (useGroupSummary as jest.Mock).mockReturnValue({
-      isPending: true,
-      data: null,
-    });
-
-    renderComponent();
-
     expect(screen.getByText('Solutions Hub')).toBeInTheDocument();
     expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
   });
 
-  it('renders summary when AI features are enabled and data is available', () => {
+  it('renders summary when AI features are enabled and data is available', async () => {
     const mockSummary = 'This is a test summary';
-    (useGroupSummary as jest.Mock).mockReturnValue({
-      isPending: false,
-      data: {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+      method: 'POST',
+      body: {
         whatsWrong: mockSummary,
       },
     });
 
-    renderComponent();
+    render(
+      <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+      {
+        organization,
+      }
+    );
 
-    expect(screen.getByText(mockSummary)).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Solutions Hub'})).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(mockSummary)).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Open Solutions Hub'})
+      ).toBeInTheDocument();
+    });
   });
 
   it('renders AI setup prompt when consent is not given', () => {
-    (useGroupSummary as jest.Mock).mockReturnValue({
-      isPending: false,
-      data: null,
-    });
-
-    (useOrganization as jest.Mock).mockReturnValue({
-      ...organization,
-      hideAiFeatures: false,
+    const customOrganization = OrganizationFixture({
       genAIConsent: false,
+      hideAiFeatures: false,
     });
 
-    renderComponent();
+    render(
+      <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+      {
+        organization: customOrganization,
+      }
+    );
 
     expect(
       screen.getByText('Explore potential root causes and solutions with Sentry AI.')
@@ -98,36 +135,34 @@ describe('SolutionsSection', () => {
   });
 
   it('renders resources section when AI features are disabled', () => {
-    (useGroupSummary as jest.Mock).mockReturnValue({
-      isPending: false,
-      data: null,
-    });
-
-    (useOrganization as jest.Mock).mockReturnValue({
-      ...organization,
+    const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
       genAIConsent: false,
     });
 
-    renderComponent();
+    render(
+      <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+      {
+        organization: customOrganization,
+      }
+    );
 
     expect(screen.getByText('Test Link')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
   });
 
   it('toggles resources content when clicking Read More/Show Less', async () => {
-    (useGroupSummary as jest.Mock).mockReturnValue({
-      isPending: false,
-      data: null,
-    });
-
-    (useOrganization as jest.Mock).mockReturnValue({
-      ...organization,
+    const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
       genAIConsent: false,
     });
 
-    renderComponent();
+    render(
+      <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+      {
+        organization: customOrganization,
+      }
+    );
 
     const readMoreButton = screen.getByRole('button', {name: 'READ MORE'});
     await userEvent.click(readMoreButton);

@@ -55,8 +55,8 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
             key={i}
             src={starImage}
             index={i}
-            size={28 - i * 2}
-            offset={(i % 2) * 30 - 15}
+            size={14 + i * 2}
+            offset={(i % 2) * 50 - 15}
           />
         ))}
       </StarTrail>
@@ -218,7 +218,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
         <HeaderText>
           <IconSeer size="lg" />
           {t('Sentry AI')}
-          <FeatureBadge
+          <StyledFeatureBadge
             type="beta"
             title={tct(
               'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
@@ -408,12 +408,17 @@ const HeaderText = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
   padding-bottom: ${space(2)};
 `;
 
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: ${space(0.25)};
+  padding-bottom: 3px;
+`;
+
 const ResourcesHeader = styled(HeaderText)`
-  gap: ${space(1.5)};
+  gap: ${space(1)};
 `;
 
 const StarTrail = styled('div')`
@@ -422,7 +427,7 @@ const StarTrail = styled('div')`
   display: flex;
   justify-content: center;
   position: absolute;
-  bottom: 5rem;
+  bottom: 7rem;
   left: 0;
   right: 0;
   z-index: -1;
@@ -435,6 +440,6 @@ const TrailStar = styled('img')<{index: number; offset: number; size: number}>`
   height: ${p => p.size}px;
   top: ${p => p.index * 50}px;
   transform: translateX(${p => p.offset}px) rotate(${p => p.index * 40}deg);
-  opacity: ${p => Math.max(0.2, 1 - p.index * 0.1)};
+  opacity: ${p => Math.min(1, 0.2 + p.index * 0.1)};
   filter: sepia(1) saturate(3) hue-rotate(290deg);
 `;

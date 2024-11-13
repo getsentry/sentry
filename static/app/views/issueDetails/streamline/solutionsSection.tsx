@@ -66,10 +66,7 @@ export default function SolutionsSection({
   };
 
   const hasGenAIConsent = organization.genAIConsent;
-  const {data: summaryData, isPending: isSummaryPending} = useGroupSummary(
-    group.id,
-    group.issueCategory
-  );
+  const {data: summaryData} = useGroupSummary(group.id, group.issueCategory);
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasSummary = isSummaryEnabled(
@@ -79,7 +76,6 @@ export default function SolutionsSection({
   );
   const aiNeedsSetup =
     !hasGenAIConsent &&
-    !isSummaryPending &&
     issueTypeConfig.issueSummary.enabled &&
     !organization.hideAiFeatures;
   const hasResources = issueTypeConfig.resources;
