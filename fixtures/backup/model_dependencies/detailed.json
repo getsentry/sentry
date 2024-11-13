@@ -5372,7 +5372,11 @@
       "Region"
     ],
     "table_name": "sentry_rollbackorganization",
-    "uniques": []
+    "uniques": [
+      [
+        "organization_id"
+      ]
+    ]
   },
   "sentry.rollbackuser": {
     "dangling": false,
