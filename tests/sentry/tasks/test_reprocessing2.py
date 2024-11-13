@@ -26,7 +26,7 @@ from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
@@ -73,7 +73,9 @@ def process_and_save(default_project, task_runner):
         data.setdefault("platform", "native")
         # Every request to snuba has a timestamp that's clamped in a curious way to
         # ensure data consistency
-        data.setdefault("timestamp", iso_format(before_now(seconds=seconds_ago)))
+        data.setdefault(
+            "timestamp", before_now(seconds=seconds_ago).replace(microsecond=0).isoformat()
+        )
         mgr = EventManager(data=data, project=default_project)
         mgr.normalize()
         data = mgr.get_data()
