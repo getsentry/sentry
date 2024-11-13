@@ -43,6 +43,10 @@ export default function FeatureFlagSort({sortBy, orderBy, setOrderBy, setSortBy}
             setOrderBy(getDefaultOrderBy(selection.value));
           }
           setSortBy(selection.value);
+          trackAnalytics('flags.sort_flags', {
+            organization,
+            sortMethod: selection.value,
+          });
         }}
         options={SORT_BY_OPTIONS}
       />
@@ -51,7 +55,7 @@ export default function FeatureFlagSort({sortBy, orderBy, setOrderBy, setSortBy}
         value={orderBy}
         onChange={selection => {
           setOrderBy(selection.value);
-          trackAnalytics('flags.sort-flags', {
+          trackAnalytics('flags.sort_flags', {
             organization,
             sortMethod: selection.value,
           });
