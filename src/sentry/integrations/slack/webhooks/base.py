@@ -173,7 +173,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=response,
                     context_data={
-                        "reason": MessageCommandHaltReason.ALREADY_LINKED,
+                        "halt_reason": MessageCommandHaltReason.ALREADY_LINKED,
                         "email": self.request.identity_str,
                     },
                 )
@@ -189,7 +189,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=response,
                     context_data={
-                        "reason": MessageCommandHaltReason.NOT_LINKED,
+                        "halt_reason": MessageCommandHaltReason.NOT_LINKED,
                         "email": self.request.identity_str,
                     },
                 )
@@ -202,11 +202,11 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
             response = self.endpoint.link_team(self.request)
 
             for message, reason in self.TEAM_HALT_MAPPINGS.items():
-                if str(response.data) in message:
+                if message in str(response.data):
                     return MessagingResponse(
                         interaction_result=EventLifecycleOutcome.HALTED,
                         response=response,
-                        context_data={"reason": reason},
+                        context_data={"halt_reason": reason},
                     )
 
             return MessagingResponse(
@@ -218,11 +218,11 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
             response = self.endpoint.unlink_team(self.request)
 
             for message, reason in self.TEAM_HALT_MAPPINGS.items():
-                if str(response.data) in message:
+                if message in str(response.data):
                     return MessagingResponse(
                         interaction_result=EventLifecycleOutcome.HALTED,
                         response=response,
-                        context_data={"reason": reason},
+                        context_data={"halt_reason": reason},
                     )
 
             return MessagingResponse(
