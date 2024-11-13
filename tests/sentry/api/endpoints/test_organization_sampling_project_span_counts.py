@@ -1,23 +1,58 @@
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import pytest
 from django.urls import reverse
 
-from sentry.testutils.cases import APITestCase
+from sentry.snuba.metrics import SpanMRI
+from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 
+pytestmark = [pytest.mark.sentry_metrics]
 
+
+@freeze_time(MetricsEnhancedPerformanceTestCase.MOCK_DATETIME)
 @region_silo_test
-class OrganizationSamplingProjectSpanCountsTest(APITestCase):
+class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.org)
+        self.project_1 = self.create_project(organization=self.org, name="project_1")
+        self.project_2 = self.create_project(organization=self.org, name="project_2")
+        self.project_3 = self.create_project(organization=self.org, name="project_3")
         self.url = reverse(
             "sentry-api-0-organization-sampling-span-counts",
             kwargs={"organization_id_or_slug": self.org.slug},
         )
+
+        metric_data = (
+            (self.project_1.id, self.project_2.id, 12),
+            (self.project_1.id, self.project_3.id, 13),
+            (self.project_2.id, self.project_1.id, 21),
+        )
+
+        hour_ago = self.MOCK_DATETIME - timedelta(hours=1)
+        day_ago = self.MOCK_DATETIME - timedelta(days=5)
+
+        for project_source_id, target_project_id, span_count in metric_data:
+            self.store_metric(
+                org_id=self.org.id,
+                value=span_count,
+                project_id=int(project_source_id),
+                mri=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"target_project_id": str(target_project_id)},
+                timestamp=hour_ago.timestamp(),
+            )
+            self.store_metric(
+                org_id=self.org.id,
+                value=span_count,
+                project_id=int(project_source_id),
+                mri=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"target_project_id": str(target_project_id)},
+                timestamp=day_ago.timestamp(),
+            )
 
     def test_feature_flag_required(self):
         response = self.client.get(self.url)
@@ -67,3 +102,56 @@ class OrganizationSamplingProjectSpanCountsTest(APITestCase):
         )
 
         assert response.status_code == 404
+
+    def test_get_span_counts_with_ingested_data_24h(self):
+        """Test span counts endpoint with actual ingested metrics data"""
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.client.get(
+                self.url,
+                data={"statsPeriod": "24h"},
+            )
+
+        assert response.status_code == 200
+        data = response.data["data"][0]
+        data = sorted(data, key=lambda x: x["by"]["target_project_id"])
+
+        assert data[0]["by"]["project"] == self.project_2.name
+        assert data[0]["by"]["target_project_id"] == str(self.project_1.id)
+        assert data[0]["totals"] == 21.0
+
+        assert data[1]["by"]["project"] == self.project_1.name
+        assert data[1]["by"]["target_project_id"] == str(self.project_2.id)
+        assert data[1]["totals"] == 12.0
+
+        assert data[2]["by"]["project"] == self.project_1.name
+        assert data[2]["by"]["target_project_id"] == str(self.project_3.id)
+        assert data[2]["totals"] == 13.0
+
+        assert response.data["end"] == MetricsEnhancedPerformanceTestCase.MOCK_DATETIME
+        assert (response.data["end"] - response.data["start"]) == timedelta(days=1)
+
+    def test_get_span_counts_with_ingested_data_30d(self):
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.client.get(
+                self.url,
+                data={"statsPeriod": "30d"},
+            )
+
+        assert response.status_code == 200
+        data = response.data["data"][0]
+        data = sorted(data, key=lambda x: x["by"]["target_project_id"])
+
+        assert data[0]["by"]["project"] == self.project_2.name
+        assert data[0]["by"]["target_project_id"] == str(self.project_1.id)
+        assert data[0]["totals"] == 21.0 * 2
+
+        assert data[1]["by"]["project"] == self.project_1.name
+        assert data[1]["by"]["target_project_id"] == str(self.project_2.id)
+        assert data[1]["totals"] == 12.0 * 2
+
+        assert data[2]["by"]["project"] == self.project_1.name
+        assert data[2]["by"]["target_project_id"] == str(self.project_3.id)
+        assert data[2]["totals"] == 13.0 * 2
+
+        assert response.data["end"] == MetricsEnhancedPerformanceTestCase.MOCK_DATETIME
+        assert (response.data["end"] - response.data["start"]) == timedelta(days=30)

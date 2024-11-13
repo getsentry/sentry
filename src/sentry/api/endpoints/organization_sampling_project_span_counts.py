@@ -20,6 +20,7 @@ from sentry.sentry_metrics.querying.data import (
     run_queries,
 )
 from sentry.sentry_metrics.querying.types import QueryOrder, QueryType
+from sentry.snuba.metrics import SpanMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period
 
@@ -29,18 +30,10 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
     """Endpoint for retrieving project span counts in all orgs."""
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
-
+    permission_classes = (OrganizationPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-
-    permission_classes = (OrganizationPermission,)
-
-    def _check_feature(self, request: Request, organization: Organization) -> None:
-        if not features.has(
-            "organizations:dynamic-sampling-custom", organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
 
     def get(self, request: Request, organization: Organization) -> Response:
         # TODO(shellmayr): add docstring
@@ -51,7 +44,7 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
             Sequence[Project],
             Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).all(),
         )
-        mql = "sum(c:spans/count_per_root_project@none) by (project,target_project_id)"
+        mql = f"sum({SpanMRI.COUNT_PER_ROOT_PROJECT.value}) by (project,target_project_id)"
         query = MQLQuery(mql=mql, order=QueryOrder.DESC)
         results = run_queries(
             mql_queries=[query],
@@ -66,6 +59,12 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
         ).apply_transformer(MetricsAPIQueryResultsTransformer())
 
         return Response(status=200, data=results)
+
+    def _check_feature(self, request: Request, organization: Organization) -> None:
+        if not features.has(
+            "organizations:dynamic-sampling-custom", organization, actor=request.user
+        ):
+            raise ResourceDoesNotExist
 
     def _interval_from_request(self, request: Request) -> int:
         """
