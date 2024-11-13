@@ -598,11 +598,19 @@ function ProfilingOnboardingCTA(props: {
             organization={organization}
             fallback={
               <Fragment>
-                <h3>{t('Function level insights')}</h3>
+                <h3>
+                  {hintToAggregateFlamegraph
+                    ? t('Function level insights')
+                    : t('View Aggregate Flamegraph')}
+                </h3>
                 <p>
-                  {t(
-                    'Discover slow-to-execute or resource intensive functions within your application.'
-                  )}
+                  {hintToAggregateFlamegraph
+                    ? t(
+                        'It seems like you have continuous profiling enabled but have not sent any transactions. Open the aggregate flamegraph to see function-level insights.'
+                      )
+                    : t(
+                        'Discover slow-to-execute or resource intensive functions within your application.'
+                      )}
                 </p>
               </Fragment>
             }
