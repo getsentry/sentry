@@ -393,7 +393,11 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         "rate",
                         [
                             Column(TransactionMRI.DURATION.value),
-                            args["interval"],
+                            (
+                                self.builder.interval
+                                if hasattr(self.builder, "interval")
+                                else args["interval"]
+                            ),
                             60,
                         ],
                         alias,
@@ -407,7 +411,11 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         "rate",
                         [
                             Column(SpanMRI.SELF_TIME.value),
-                            args["interval"],
+                            (
+                                self.builder.interval
+                                if hasattr(self.builder, "interval")
+                                else args["interval"]
+                            ),
                             60,
                         ],
                         alias,
@@ -421,7 +429,11 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         "rate",
                         [
                             Column(TransactionMRI.DURATION.value),
-                            args["interval"],
+                            (
+                                self.builder.interval
+                                if hasattr(self.builder, "interval")
+                                else args["interval"]
+                            ),
                             1,
                         ],
                         alias,

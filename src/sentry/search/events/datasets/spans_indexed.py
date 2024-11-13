@@ -207,18 +207,16 @@ class SpansIndexedDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "eps",
-                    snql_aggregate=lambda args, alias: Function(
-                        "divide", [Function("count", []), args["interval"]], alias
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_eps(
+                        args, alias, self.builder
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="rate",
                 ),
                 SnQLFunction(
                     "epm",
-                    snql_aggregate=lambda args, alias: Function(
-                        "divide",
-                        [Function("count", []), Function("divide", [args["interval"], 60])],
-                        alias,
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_epm(
+                        args, alias, self.builder
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="rate",
@@ -611,20 +609,17 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
             for function in [
                 SnQLFunction(
                     "eps",
-                    snql_aggregate=lambda args, alias: Function(
-                        "divide", [Function("count", []), args["interval"]], alias
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_eps(
+                        args, alias, self.builder
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="rate",
                 ),
                 SnQLFunction(
                     "epm",
-                    snql_aggregate=lambda args, alias: Function(
-                        "divide",
-                        [Function("count", []), Function("divide", [args["interval"], 60])],
-                        alias,
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_epm(
+                        args, alias, self.builder
                     ),
-                    optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="rate",
                 ),
                 SnQLFunction(

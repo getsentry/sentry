@@ -10,6 +10,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
 )
 from sentry.search.events import constants
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.types import SelectType
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -359,5 +360,33 @@ def resolve_random_samples(
     return Function(
         f"groupArraySample({size}, {seed})",
         [Function("tuple", columns)],
+        alias,
+    )
+
+
+def resolve_eps(
+    args: Mapping[str, str | Column | SelectType | int | float],
+    alias: str,
+    builder: BaseQueryBuilder,
+) -> SelectType:
+    if hasattr(builder, "interval"):
+        interval = builder.interval
+    else:
+        interval = args["interval"]
+    return Function("divide", [Function("count", []), interval], alias)
+
+
+def resolve_epm(
+    args: Mapping[str, str | Column | SelectType | int | float],
+    alias: str,
+    builder: BaseQueryBuilder,
+) -> SelectType:
+    if hasattr(builder, "interval"):
+        interval = builder.interval
+    else:
+        interval = args["interval"]
+    return Function(
+        "divide",
+        [Function("count", []), Function("divide", [interval, 60])],
         alias,
     )

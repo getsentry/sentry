@@ -2062,8 +2062,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
 
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
-            "fields": {"time": "date", "epm_900": "rate"},
-            "units": {"time": None, "epm_900": None},
+            "fields": {"time": "date", "epm": "rate"},
+            "units": {"time": None, "epm": None},
             "isMetricsData": True,
             "isMetricsExtractedData": False,
             "tips": {},
