@@ -6,7 +6,7 @@ import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
 import type {MemoryInfoContext} from 'sentry/types/event';
 
-export const MOCK_MEMORY_INFO_CONTEXT: MemoryInfoContext = {
+const MOCK_MEMORY_INFO_CONTEXT: MemoryInfoContext = {
   type: 'memory_info',
   allocated_bytes: 1048576 * 1,
   fragmented_bytes: 1048576 * 2,

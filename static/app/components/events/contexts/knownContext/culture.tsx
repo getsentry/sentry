@@ -28,7 +28,7 @@ export function getCultureContextData({
   data: CultureContext;
   meta?: Record<keyof CultureContext, any>;
 }): KeyValueListData {
-  return getContextKeys(data).map(ctxKey => {
+  return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case CultureContextKeys.CALENDAR:
         return {

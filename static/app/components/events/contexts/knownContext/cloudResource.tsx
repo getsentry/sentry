@@ -41,7 +41,7 @@ export function getCloudResourceContextData({
   data: CloudResourceContext;
   meta?: Record<keyof CloudResourceContext, any>;
 }): KeyValueListData {
-  return getContextKeys(data).map(ctxKey => {
+  return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case CloudResourceContextKeys.CLOUD_ACCOUNT_ID:
         return {

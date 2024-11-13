@@ -22,7 +22,7 @@ export function getMissingInstrumentationContextData({
   data: MissingInstrumentationContext;
   meta?: Record<keyof MissingInstrumentationContext, any>;
 }): KeyValueListData {
-  return getContextKeys(data).map(ctxKey => {
+  return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case MissingInstrumentationContextKeys.PACKAGE:
         return {

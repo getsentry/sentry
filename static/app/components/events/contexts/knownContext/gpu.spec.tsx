@@ -24,6 +24,9 @@ export const MOCK_GPU_CONTEXT: GPUContext = {
   supports_ray_tracing: true,
   supports_compute_shaders: true,
   supports_geometry_shaders: true,
+  // Extra data is still valid and preserved
+  extra_data: 'something',
+  unknown_key: 123,
 };
 
 const MOCK_REDACTION = {
@@ -64,6 +67,16 @@ describe('GPUContext', function () {
         key: 'supports_geometry_shaders',
         subject: 'Supports Geometry Shaders',
         value: true,
+      },
+      {
+        key: 'extra_data',
+        subject: 'extra_data',
+        value: 'something',
+      },
+      {
+        key: 'unknown_key',
+        subject: 'unknown_key',
+        value: 123,
       },
     ]);
   });

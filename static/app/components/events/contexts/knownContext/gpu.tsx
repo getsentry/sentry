@@ -60,7 +60,7 @@ export function getGPUContextData({
   data: GPUContext;
   meta?: Record<keyof GPUContext, any>;
 }): KeyValueListData {
-  return getContextKeys(data).map(ctxKey => {
+  return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case GPUContextKeys.NAME:
         return {
