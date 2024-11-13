@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from sentry.incidents.endpoints.validators import MetricAlertsDetectorValidator
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
@@ -7,7 +8,6 @@ from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.processors.detector import StatefulDetectorHandler
 
 
-# TODO: This will be a stateful detector when we build that abstraction
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
     pass
 
@@ -25,3 +25,4 @@ class MetricAlertFire(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     detector_handler = MetricAlertDetectorHandler
+    detector_validator = MetricAlertsDetectorValidator

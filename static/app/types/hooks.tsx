@@ -1,6 +1,8 @@
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
+import type {FormPanelProps} from 'sentry/components/forms/formPanel';
+import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {
   ProductSelectionProps,
   ProductSolution,
@@ -170,6 +172,14 @@ export type PartnershipAgreementProps = {
   organizationSlug?: string;
 };
 
+export type MembershipSettingsProps = {
+  forms: JsonFormObject[];
+  jsonFormSettings: Omit<
+    FormPanelProps,
+    'highlighted' | 'fields' | 'additionalFieldProps'
+  >;
+};
+
 /**
  * Component wrapping hooks
  */
@@ -198,6 +208,7 @@ export type ComponentHooks = {
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
+  'component:organization-membership-settings': () => React.ComponentType<MembershipSettingsProps>;
   'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
