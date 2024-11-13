@@ -156,10 +156,6 @@ const InputWrapper = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   padding-bottom: ${space(0.5)};
-
-  & > label {
-    font-weight: ${p => p.theme.fontSizeMedium};
-  }
 `;
 
 const ErrorMessage = styled('div')`
