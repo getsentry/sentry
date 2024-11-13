@@ -95,8 +95,8 @@ const SidebarItemList = styled('ul')`
 `;
 
 interface SidebarItemProps {
-  children: React.ReactNode;
   item: NavSidebarItem;
+  children?: React.ReactNode;
   onClick?: MouseEventHandler<HTMLElement>;
 }
 
