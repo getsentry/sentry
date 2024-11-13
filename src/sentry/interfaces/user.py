@@ -69,6 +69,7 @@ class User(Interface):
             "username": self.username,
             "ip_address": self.ip_address,
             "name": self.name,
+            "geo": self.geo.to_json() if self.geo is not None else None,
             "data": self.data,
         }
 
