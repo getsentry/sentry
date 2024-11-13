@@ -40,6 +40,8 @@ export type ProfilingEventParameters = {
     source: ProfilingEventSource;
   };
   'profiling_views.landing': {};
+  'profiling_views.missing_transactions_banner.flamegraph_clicked': {};
+  'profiling_views.missing_transactions_banner.viewed': {};
   'profiling_views.onboarding': {};
   'profiling_views.onboarding_action': {
     action: 'done' | 'dismissed';
@@ -63,6 +65,10 @@ export const profilingEventMap: Record<EventKey, string> = {
   'profiling_views.onboarding_action': 'Profiling Actions: Onboarding Action',
   'profiling_views.give_feedback_action': 'Profiling Actions: Feedback Action',
   'profiling_views.visit_discord_channel': 'Profiling Actions: Visit Discord Channel',
+  'profiling_views.missing_transactions_banner.viewed':
+    'Profiling Views: Missing Transactions Banner Viewed',
+  'profiling_views.missing_transactions_banner.flamegraph_clicked':
+    'Profiling Views: Missing Transactions Banner Flamegraph Clicked',
   'profiling_ui_events.transaction_hovercard_view':
     'Profiling Actions: Viewed Transaction Hovercard',
 };

@@ -7,6 +7,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -27,13 +28,14 @@ import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useHasProfilingChunks} from 'sentry/utils/profiling/hooks/useHasProfileChunks';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -137,6 +139,14 @@ function ProfilingContentLegacy({location}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
+  const profileStats = useProfileEventsStats({
+    query,
+    dataset: 'profiles',
+    referrer: 'api.profiling.landing-chart',
+    yAxes: SERIES_ORDER,
+    continuousProfilingCompat: true,
+  });
+
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer
@@ -235,9 +245,8 @@ function ProfilingContentLegacy({location}: ProfilingContentProps) {
                     <Fragment>
                       <ProfilesChartWidget
                         chartHeight={150}
-                        referrer="api.profiling.landing-chart"
-                        userQuery={query}
                         selection={selection}
+                        profileStats={profileStats}
                       />
                       <WidgetsContainer>
                         <LandingWidgetSelector
@@ -400,10 +409,7 @@ function ProfilingFlamegraphTabContent(props: ProfilingTabContentProps) {
       </FlamegraphActionBar>
       <FlamegraphLayout>
         {props.shouldShowProfilingOnboardingPanel ? (
-          <ProfilingOnboardingCTA
-            tab="flamegraph"
-            onSeeFlamegraphTabClick={props.onSeeFlamegraphTabClick}
-          />
+          <ProfilingOnboardingCTA />
         ) : (
           <LandingAggregateFlamegraphContainer>
             <LandingAggregateFlamegraph />
@@ -414,6 +420,8 @@ function ProfilingFlamegraphTabContent(props: ProfilingTabContentProps) {
     </FlamegraphMainLayout>
   );
 }
+
+const SERIES_ORDER = ['p99()', 'p95()', 'p75()', 'p50()'] as const;
 
 function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
   const organization = useOrganization();
@@ -456,6 +464,22 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
     [location]
   );
 
+  const hasProfileChunks = useHasProfilingChunks();
+
+  const profileStats = useProfileEventsStats({
+    dataset: 'profiles',
+    query,
+    referrer: 'api.profiling.landing-chart',
+    yAxes: SERIES_ORDER,
+    continuousProfilingCompat: true,
+  });
+
+  const showGoToAggregateFlamegraph =
+    hasProfileChunks.status === 'success' &&
+    hasProfileChunks.data &&
+    profileStats.status === 'success' &&
+    profileStats.data.data.every(d => d.values.every(v => v === 0));
+
   return (
     <Layout.Main fullWidth>
       {transactionsError && (
@@ -463,6 +487,13 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
           {transactionsError}
         </Alert>
       )}
+
+      {showGoToAggregateFlamegraph ? (
+        <ProfilingMissingTransactionsAlert
+          onSeeFlamegraphTabClick={props.onSeeFlamegraphTabClick}
+        />
+      ) : null}
+
       <ActionBar>
         <PageFilterBar condensed>
           <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
@@ -488,20 +519,15 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
         )}
       </ActionBar>
       {props.shouldShowProfilingOnboardingPanel ? (
-        <ProfilingOnboardingCTA
-          tab="transactions"
-          onSeeFlamegraphTabClick={props.onSeeFlamegraphTabClick}
-        />
+        <ProfilingOnboardingCTA />
       ) : (
         <Fragment>
           {organization.features.includes('continuous-profiling-ui') ? (
             <Fragment>
               <ProfilesChartWidget
                 chartHeight={150}
-                referrer="api.profiling.landing-chart"
-                userQuery={query}
                 selection={selection}
-                continuousProfilingCompat
+                profileStats={profileStats}
               />
               <SlowestFunctionsTable userQuery={query} />
             </Fragment>
@@ -509,10 +535,8 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
             <Fragment>
               <ProfilesChartWidget
                 chartHeight={150}
-                referrer="api.profiling.landing-chart"
-                userQuery={query}
                 selection={selection}
-                continuousProfilingCompat
+                profileStats={profileStats}
               />
               <WidgetsContainer>
                 <LandingWidgetSelector
@@ -572,10 +596,45 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
   );
 }
 
-function ProfilingOnboardingCTA(props: {
-  tab: 'flamegraph' | 'transactions';
-  onSeeFlamegraphTabClick?: () => void;
+function ProfilingMissingTransactionsAlert(props: {
+  onSeeFlamegraphTabClick: (() => void) | undefined;
 }) {
+  const organization = useOrganization();
+
+  useEffect(() => {
+    trackAnalytics('profiling_views.missing_transactions_banner.viewed', {
+      organization,
+    });
+  }, [organization]);
+
+  const onViewFlamegraphClick = useCallback(() => {
+    trackAnalytics('profiling_views.missing_transactions_banner.flamegraph_clicked', {
+      organization,
+    });
+    props.onSeeFlamegraphTabClick?.();
+  }, [organization, props]);
+
+  return (
+    <Alert
+      type="warning"
+      showIcon
+      trailingItems={
+        <Button onClick={onViewFlamegraphClick} size="xs">
+          {t('View Flamegraph')}
+        </Button>
+      }
+    >
+      {t('Looks like you are only sending us profiling data.')}{' '}
+      {tct('Learn why this happens [docsLink].', {
+        docsLink: (
+          <Link to={'https://docs.sentry.io/product/profiling/'}>{t('here')}</Link>
+        ),
+      })}
+    </Alert>
+  );
+}
+
+function ProfilingOnboardingCTA() {
   const organization = useOrganization();
   // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
@@ -584,10 +643,6 @@ function ProfilingOnboardingCTA(props: {
     });
     SidebarPanelStore.activatePanel(SidebarPanelKey.PROFILING_ONBOARDING);
   }, [organization]);
-
-  const hasChunks = useHasProfilingChunks();
-  const hintToAggregateFlamegraph =
-    props.tab === 'transactions' && hasChunks.isSuccess && hasChunks.data;
 
   return (
     <Fragment>
@@ -598,19 +653,11 @@ function ProfilingOnboardingCTA(props: {
             organization={organization}
             fallback={
               <Fragment>
-                <h3>
-                  {hintToAggregateFlamegraph
-                    ? t('Function level insights')
-                    : t('View Aggregate Flamegraph')}
-                </h3>
+                <h3>{t('Function level insights')}</h3>
                 <p>
-                  {hintToAggregateFlamegraph
-                    ? t(
-                        'It seems like you have continuous profiling enabled but have not sent any transactions. Open the aggregate flamegraph to see function-level insights.'
-                      )
-                    : t(
-                        'Discover slow-to-execute or resource intensive functions within your application.'
-                      )}
+                  {t(
+                    'Discover slow-to-execute or resource intensive functions within your application.'
+                  )}
                 </p>
               </Fragment>
             }
@@ -621,29 +668,14 @@ function ProfilingOnboardingCTA(props: {
           data-test-id="profiling-upgrade"
           organization={organization}
           priority="primary"
-          onClick={
-            hintToAggregateFlamegraph
-              ? props.onSeeFlamegraphTabClick
-              : onSetupProfilingClick
-          }
+          onClick={onSetupProfilingClick}
           fallback={
-            <Button
-              onClick={
-                hintToAggregateFlamegraph
-                  ? props.onSeeFlamegraphTabClick
-                  : onSetupProfilingClick
-              }
-              priority="primary"
-            >
-              {hintToAggregateFlamegraph
-                ? t('Open Aggregate Flamegraph')
-                : t('Set Up Profiling')}
+            <Button onClick={onSetupProfilingClick} priority="primary">
+              {t('Set Up Profiling')}
             </Button>
           }
         >
-          {hintToAggregateFlamegraph
-            ? t('Open Aggregate Flamegraph')
-            : t('Set Up Profiling')}
+          {t('Set Up Profiling')}
         </ProfilingUpgradeButton>
         <LinkButton href="https://docs.sentry.io/product/profiling/" external>
           {t('Read Docs')}

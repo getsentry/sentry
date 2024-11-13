@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
+import type {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {
@@ -20,11 +20,9 @@ import {
 
 interface ProfilesChartWidgetProps {
   chartHeight: number;
-  referrer: string;
-  continuousProfilingCompat?: boolean;
+  profileStats: ReturnType<typeof useProfileEventsStats>;
   header?: ReactNode;
   selection?: PageFilters;
-  userQuery?: string;
   widgetHeight?: string;
 }
 
@@ -32,23 +30,13 @@ const SERIES_ORDER = ['p99()', 'p95()', 'p75()', 'p50()'] as const;
 
 export function ProfilesChartWidget({
   chartHeight,
-  continuousProfilingCompat,
   header,
-  referrer,
   selection,
-  userQuery,
   widgetHeight,
+  profileStats,
 }: ProfilesChartWidgetProps) {
   const theme = useTheme();
   const organization = useOrganization();
-
-  const profileStats = useProfileEventsStats({
-    dataset: 'profiles',
-    query: userQuery,
-    referrer,
-    yAxes: SERIES_ORDER,
-    continuousProfilingCompat,
-  });
 
   const series: Series[] = useMemo(() => {
     if (profileStats.status !== 'success') {
