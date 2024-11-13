@@ -82,7 +82,7 @@ class TestSyncStatusOutbound(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
-    def test_failed_sync(self, mock_sync_status, mock_record_event):
+    def test_failed_sync(self, mock_sync_status, mock_record_failure):
         mock_sync_status.side_effect = raise_exception
         external_issue: ExternalIssue = self.create_integration_external_issue(
             group=self.group, key="foo_integration", integration=self.example_integration
@@ -93,8 +93,8 @@ class TestSyncStatusOutbound(TestCase):
 
         assert exc.match("Something went wrong")
 
-        assert mock_record_event.call_count == 1
-        mock_record_event_args = mock_record_event.call_args_list[0][0]
+        assert mock_record_failure.call_count == 1
+        mock_record_event_args = mock_record_failure.call_args_list[0][0]
         assert mock_record_event_args[0] is not None
 
         metric_exception = mock_record_event_args[0]

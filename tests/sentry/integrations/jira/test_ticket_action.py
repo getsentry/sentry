@@ -6,18 +6,14 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 
 from fixtures.integrations.jira.mock import MockJira
 from sentry.eventstore.models import Event
-from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.integrations.project_management.metrics import ProjectManagementActionType
 from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiInvalidRequestError, IntegrationError
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
-from sentry.utils import metrics
-from tests.sentry.integrations.jira.utils.test_metrics_assertions import assert_metrics_gathered
 
 pytestmark = [requires_snuba]
 
@@ -112,8 +108,8 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         assert response.status_code == 200
         return response
 
-    @mock.patch.object(metrics, "incr", autospec=True)
-    def test_ticket_rules(self, metrics_mock):
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_ticket_rules(self, mock_record_event):
         with mock.patch(
             "sentry.integrations.jira.integration.JiraIntegration.get_client", self.get_client
         ):
@@ -141,17 +137,10 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
             # assert new ticket NOT created in DB
             assert ExternalIssue.objects.count() == external_issue_count
+            mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS)
 
-            assert_metrics_gathered(
-                EventLifecycleOutcome.SUCCESS,
-                IntegrationDomain.PROJECT_MANAGEMENT,
-                "jira",
-                str(ProjectManagementActionType.CREATE_EXTERNAL_ISSUE),
-                metrics_mock,
-            )
-
-    @mock.patch.object(metrics, "incr", autospec=True)
-    def test_misconfigured_ticket_rule(self, metrics_mock):
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    def test_misconfigured_ticket_rule(self, mock_record_failure):
         with mock.patch(
             "sentry.integrations.jira.integration.JiraIntegration.get_client",
             self.get_broken_client,
@@ -166,13 +155,12 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 # an ApiInvalidRequestError, which is reraised as an IntegrationError.
                 self.trigger(event, rule_object)
 
-            assert_metrics_gathered(
-                EventLifecycleOutcome.FAILURE,
-                IntegrationDomain.PROJECT_MANAGEMENT,
-                "jira",
-                str(ProjectManagementActionType.CREATE_EXTERNAL_ISSUE),
-                metrics_mock,
-            )
+            assert mock_record_failure.call_count == 1
+            mock_record_event_args = mock_record_failure.call_args_list[0][0]
+            assert mock_record_event_args[0] is not None
+
+            metric_exception = mock_record_event_args[0]
+            assert isinstance(metric_exception, IntegrationError)
 
     def test_fails_validation(self):
         """
