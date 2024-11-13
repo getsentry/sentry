@@ -17,7 +17,6 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.schedule import get_prev_schedule
-from sentry.monitors.types import TickVolumeAnomolyResult
 from sentry.utils import metrics
 
 from .producer import MONITORS_CLOCK_TASKS_CODEC, produce_task
@@ -48,7 +47,7 @@ IGNORE_MONITORS = ~Q(
 )
 
 
-def dispatch_check_missing(ts: datetime, volume_anomaly_result: TickVolumeAnomolyResult):
+def dispatch_check_missing(ts: datetime):
     """
     Given a clock tick timestamp determine which monitor environments are past
     their next_checkin_latest, indicating they haven't checked-in when they
@@ -79,7 +78,6 @@ def dispatch_check_missing(ts: datetime, volume_anomaly_result: TickVolumeAnomol
             "type": "mark_missing",
             "ts": ts.timestamp(),
             "monitor_environment_id": monitor_environment["id"],
-            "volume_anomaly_result": volume_anomaly_result.value,
         }
         # XXX(epurkhiser): Partitioning by monitor_environment.id is important
         # here as these task messages will be consumed in a multi-consumer

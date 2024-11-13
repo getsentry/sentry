@@ -16,3 +16,5 @@ class DetectorPriorityLevel(IntEnum):
 # For DataPackets that don't contain multiple values the key is just None.
 # This is stored in 'DetectorState.detector_group_key'
 DetectorGroupKey = str | None
+
+DataConditionResult = DetectorPriorityLevel | int | float | bool | None
