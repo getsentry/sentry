@@ -1,4 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 import {TagValuesFixture} from 'sentry-fixture/tagvalues';
 
@@ -8,30 +9,39 @@ import {
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {GroupTagValues} from 'sentry/views/issueDetails/groupTagValues';
 
-const group = GroupFixture();
-const tags = TagsFixture();
-
-function init(tagKey: string) {
-  return initializeOrg({
-    router: {
-      location: {
-        query: {},
-        pathname: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
-      },
-      params: {orgId: 'org-slug', groupId: group.id, tagKey},
-    },
-  });
-}
-
 describe('GroupTagValues', () => {
+  const group = GroupFixture();
+  const tags = TagsFixture();
+  const project = ProjectFixture();
+
+  function init(tagKey: string, environment?: string[] | string) {
+    return initializeOrg({
+      router: {
+        location: {
+          query: {
+            environment,
+          },
+          pathname: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
+        },
+        params: {orgId: 'org-slug', groupId: group.id, tagKey},
+      },
+    });
+  }
+
   beforeEach(() => {
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: group,
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/',
       body: tags.find(({key}) => key === 'user'),
@@ -43,27 +53,16 @@ describe('GroupTagValues', () => {
   });
 
   it('renders a list of tag values', async () => {
-    const {router, routerProps, project} = init('user');
+    const {router} = init('user');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
-    render(
-      <GroupTagValues
-        environments={[]}
-        group={group}
-        project={project}
-        baseUrl=""
-        {...routerProps}
-      />,
-      {router}
-    );
-
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    render(<GroupTagValues />, {router});
 
     // Special case for user tag - column title changes to Affected Users
-    expect(screen.getByText('Affected Users')).toBeInTheDocument();
+    expect(await screen.findByText('Affected Users')).toBeInTheDocument();
 
     // Affected user column
     expect(screen.getByText('David Cramer')).toBeInTheDocument();
@@ -74,7 +73,7 @@ describe('GroupTagValues', () => {
   });
 
   it('can page through tag values', async () => {
-    const {router, routerProps, project} = init('user');
+    const {router} = init('user');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
@@ -85,20 +84,9 @@ describe('GroupTagValues', () => {
           '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
     });
-    render(
-      <GroupTagValues
-        environments={[]}
-        group={group}
-        project={project}
-        baseUrl=""
-        {...routerProps}
-      />,
-      {router}
-    );
+    render(<GroupTagValues />, {router});
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Previous'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
 
     // Clicking next button loads page with query param ?cursor=0:100:0
@@ -111,24 +99,15 @@ describe('GroupTagValues', () => {
   });
 
   it('navigates to issue details events tab with correct query params', async () => {
-    const {routerProps, router, project} = init('user');
+    const {router} = init('user');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
-    render(
-      <GroupTagValues
-        environments={[]}
-        group={group}
-        project={project}
-        baseUrl=""
-        {...routerProps}
-      />,
-      {
-        router,
-      }
-    );
+    render(<GroupTagValues />, {
+      router,
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: 'More'}));
     await userEvent.click(
@@ -144,23 +123,14 @@ describe('GroupTagValues', () => {
   });
 
   it('renders an error message if tag values request fails', async () => {
-    const {router, routerProps, project} = init('user');
+    const {router} = init('user', 'staging');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       statusCode: 500,
     });
 
-    render(
-      <GroupTagValues
-        environments={['staging']}
-        group={group}
-        project={project}
-        baseUrl=""
-        {...routerProps}
-      />,
-      {router}
-    );
+    render(<GroupTagValues />, {router});
 
     expect(
       await screen.findByText('There was an error loading tag details')
@@ -168,23 +138,14 @@ describe('GroupTagValues', () => {
   });
 
   it('renders an error message if no tag values are returned because of environment selection', async () => {
-    const {router, routerProps, project} = init('user');
+    const {router} = init('user', 'staging');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: [],
     });
 
-    render(
-      <GroupTagValues
-        environments={['staging']}
-        group={group}
-        project={project}
-        baseUrl=""
-        {...routerProps}
-      />,
-      {router}
-    );
+    render(<GroupTagValues />, {router});
 
     expect(
       await screen.findByText(
