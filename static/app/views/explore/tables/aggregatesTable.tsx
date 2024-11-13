@@ -18,6 +18,7 @@ import {
   getAggregateAlias,
   parseFunction,
 } from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
@@ -66,12 +67,19 @@ export function AggregatesTable({}: AggregatesTableProps) {
   const [query] = useUserQuery();
 
   const eventView = useMemo(() => {
+    const search = new MutableSearch(query);
+
+    // Filtering out all spans with op like 'ui.interaction*' which aren't
+    // embedded under transactions. The trace view does not support rendering
+    // such spans yet.
+    search.addFilterValues('!transaction.span_id', ['00']);
+
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Aggregates',
       fields,
       orderby: sorts.map(formatSort),
-      query,
+      query: search.formatString(),
       version: 2,
       dataset,
     };
