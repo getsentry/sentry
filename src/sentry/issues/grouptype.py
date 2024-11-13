@@ -626,6 +626,17 @@ class UptimeDomainCheckFailure(GroupType):
     enable_escalation_detection = False
 
 
+@dataclass(frozen=True)
+class MetricIssuePOC(GroupType):
+    type_id = 8002
+    slug = "metric_issue_poc"
+    description = "Metric Issue POC"
+    category = GroupCategory.METRIC_ALERT.value
+    default_priority = PriorityLevel.HIGH
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
 def should_create_group(
     grouptype: type[GroupType],
     client: RedisCluster | StrictRedis,
