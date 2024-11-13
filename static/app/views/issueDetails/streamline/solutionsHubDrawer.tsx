@@ -222,7 +222,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
           <FeatureBadge
             type="beta"
             title={tct(
-              'This feature is experimental. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+              'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
               {
                 email: <a href="mailto:autofix@sentry.io" />,
               }
