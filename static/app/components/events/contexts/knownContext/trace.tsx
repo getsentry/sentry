@@ -22,7 +22,7 @@ enum TraceContextKeys {
   DATA = 'data',
 }
 
-type TraceContext = {
+export interface TraceContext {
   // Any custom keys users may set
   [key: string]: any;
   [TraceContextKeys.TRACE_ID]?: string;
@@ -35,7 +35,7 @@ type TraceContext = {
   [TraceContextKeys.DYNAMIC_SAMPLING_CONTEXT]?: Record<string, string>;
   [TraceContextKeys.ORIGIN]?: string;
   [TraceContextKeys.DATA]?: Record<string, any>;
-};
+}
 
 export function getTraceContextData({
   data,
