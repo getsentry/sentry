@@ -43,9 +43,9 @@ def django_test_transaction_water_mark(using: str | None = None):
         connection = transaction.get_connection(using)
 
     prev = hybrid_cloud.simulated_transaction_watermarks.state.get(using, 0)
-    hybrid_cloud.simulated_transaction_watermarks.state[
-        using
-    ] = hybrid_cloud.simulated_transaction_watermarks.get_transaction_depth(connection)
+    hybrid_cloud.simulated_transaction_watermarks.state[using] = (
+        hybrid_cloud.simulated_transaction_watermarks.get_transaction_depth(connection)
+    )
     old_run_on_commit = connection.run_on_commit
     connection.run_on_commit = []
     try:

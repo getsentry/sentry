@@ -207,13 +207,6 @@ def get_function_component(
     - Ruby generates (random?) integers for various anonymous style functions
       such as in erb and the active_support library.
     - Block functions have metadata that we don't care about.
-
-    The `legacy_function_logic` parameter controls if the system should
-    use the frame v1 function name logic or the frame v2 logic.  The difference
-    is that v2 uses the function name consistently and v1 prefers raw function
-    or a trimmed version (of the truncated one) for native.  Related to this is
-    the `prefer_raw_function_name` flag which just flat out prefers the
-    raw function name over the non raw one.
     """
     from sentry.stacktraces.functions import trim_function_name
 
@@ -229,7 +222,7 @@ def get_function_component(
     # for csharp.
     prefer_raw_function_name = platform == "csharp"
 
-    if context["legacy_function_logic"] or prefer_raw_function_name:
+    if prefer_raw_function_name:
         func = raw_function or function
     else:
         func = function or raw_function
@@ -266,14 +259,8 @@ def get_function_component(
         if func.startswith("lambda$"):
             function_component.update(contributes=False, hint="ignored lambda function")
 
-    elif behavior_family == "native":
-        if func in ("<redacted>", "<unknown>"):
-            function_component.update(contributes=False, hint="ignored unknown function")
-        elif context["legacy_function_logic"]:
-            new_function = trim_function_name(func, platform, normalize_lambdas=False)
-            if new_function != func:
-                function_component.update(values=[new_function], hint="isolated function")
-                func = new_function
+    elif behavior_family == "native" and func in ("<redacted>", "<unknown>"):
+        function_component.update(contributes=False, hint="ignored unknown function")
 
     elif context["javascript_fuzzing"] and behavior_family == "javascript":
         # This changes Object.foo or Foo.foo into foo so that we can
@@ -436,13 +423,21 @@ def _single_stacktrace_variant(
     values = []
     prev_frame = None
     frames_for_filtering = []
+    found_in_app_frame = False
+
     for frame in frames:
         with context:
             context["is_recursion"] = is_recursive_frames(frame, prev_frame)
             frame_component = context.get_single_grouping_component(frame, event=event, **meta)
 
-        if variant == "app" and not frame.in_app:
-            frame_component.update(contributes=False, hint="non app frame")
+        if variant == "app":
+            if frame.in_app:
+                found_in_app_frame = True
+            else:
+                # We have to do this here (rather than it being done in the rust enhancer) because
+                # the rust enhancer doesn't know about system vs app variants
+                frame_component.update(contributes=False, hint="non app frame")
+
         values.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
@@ -465,6 +460,26 @@ def _single_stacktrace_variant(
         event.platform,
         exception_data=context["exception_data"],
     )
+
+    # TODO: Ideally this hint would get set by the rust enhancer. Right now the only stacktrace
+    # component hint it sets is one about ignoring stacktraces with contributing frames because the
+    # number of contributing frames isn't big enough. In that case it also sets `contributes` to
+    # false, as it does when there are no contributing frames. In this latter case it doesn't set a
+    # hint, though, so we do it here.
+    if not main_variant.hint and not main_variant.contributes:
+        if len(frames) == 0:
+            frames_description = "frames"
+        elif variant == "system":
+            frames_description = "contributing frames"
+        elif variant == "app":
+            # If there are in-app frames but the stacktrace nontheless doesn't contribute, it must
+            # be because all of the frames got marked as non-contributing in the enhancer
+            if found_in_app_frame:
+                frames_description = "contributing frames"
+            else:
+                frames_description = "in-app frames"
+
+        main_variant.hint = f"ignored because it contains no {frames_description}"
 
     return {variant: main_variant}
 

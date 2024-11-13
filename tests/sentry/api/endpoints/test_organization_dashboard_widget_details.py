@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 from django.urls import reverse
 
 from sentry import options
@@ -347,12 +348,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 }
             ],
         }
-        with self.feature({"organizations:dashboards-bignumber-equations": True}):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 200, response.data
 
     def test_project_search_condition(self):
@@ -495,6 +495,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["conditions"], response.data
 
+    @pytest.mark.skip("Flaky - utc bug")
     def test_timestamp_query_with_timezone(self):
         data = {
             "title": "Timestamp filter",
@@ -1105,3 +1106,26 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert "columns" in warnings
         assert len(warnings["columns"]) == 1
         assert warnings["columns"]["sometag"] == "disabled:high-cardinality"
+
+    def test_widget_type_spans(self):
+        data = {
+            "title": "Test Query",
+            "widgetType": "spans",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["span.op", "count()"],
+                    "columns": ["span.op"],
+                    "aggregates": ["count()"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data

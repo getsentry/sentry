@@ -26,6 +26,7 @@ from sentry.grouping.variants import (
     ComponentVariant,
     CustomFingerprintVariant,
     FallbackVariant,
+    HashedChecksumVariant,
     SaltedComponentVariant,
 )
 from sentry.models.grouphash import GroupHash
@@ -135,7 +136,7 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
 
 
 @sentry_sdk.tracing.trace
-def get_grouping_config_dict_for_project(project, silent=True) -> GroupingConfig:
+def get_grouping_config_dict_for_project(project) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
     ingestion so that the grouping algorithm can be re-run later.
@@ -306,13 +307,21 @@ def get_grouping_variants_for_event(
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this
     # event is the checksum variant.
+    #
+    # TODO: Is there a reason we don't treat a checksum like a custom fingerprint, and run the other
+    # strategies but mark them as non-contributing, with explanations why?
+    #
+    # TODO: In the case where we have to hash the checksum to get a value in the right format, we
+    # store the raw value as well (provided it's not so long that it will overflow the DB field).
+    # Even when we do this, though, we don't set the raw value as non-cotributing, and we don't add
+    # an "ignored because xyz" hint on the variant, which we should.
     checksum = event.data.get("checksum")
     if checksum:
         if HASH_RE.match(checksum):
             return {"checksum": ChecksumVariant(checksum)}
 
         rv: dict[str, BaseVariant] = {
-            "hashed-checksum": ChecksumVariant(hash_from_values(checksum), hashed=True),
+            "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
         }
 
         # The legacy code path also supported arbitrary values here but
@@ -351,9 +360,9 @@ def get_grouping_variants_for_event(
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         if (fingerprint_info or {}).get("matched_rule", {}).get("is_builtin") is True:
-            rv["built-in-fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
+            rv["built_in_fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
         else:
-            rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
+            rv["custom_fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
 
     # If only the default is referenced, we can use the variants as is
     elif defaults_referenced == 1 and len(fingerprint) == 1:

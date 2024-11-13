@@ -1,11 +1,13 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconClock, IconGraph} from 'sentry/icons';
+import {IconClock, IconGraph, IconSubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -15,8 +17,11 @@ import {
   parseFunction,
 } from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
@@ -26,6 +31,7 @@ import Chart, {
 } from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 import {useGroupBys} from '../hooks/useGroupBys';
@@ -58,6 +64,8 @@ export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
+  const organization = useOrganization();
+  const {projects} = useProjects();
 
   const [dataset] = useDataset();
   const [visualizes, setVisualizes] = useVisualizes();
@@ -141,7 +149,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
           })
           .filter(Boolean);
 
-        const {chartType} = visualize;
+        const {chartType, label, yAxes: visualizeYAxes} = visualize;
         const chartIcon =
           chartType === ChartType.LINE
             ? 'line'
@@ -149,47 +157,90 @@ export function ExploreCharts({query}: ExploreChartsProps) {
               ? 'area'
               : 'bar';
 
+        const project =
+          projects.length === 1
+            ? projects[0]
+            : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
+        const singleProject =
+          (pageFilters.selection.projects.length === 1 || projects.length === 1) &&
+          project;
+        const alertsUrls = singleProject
+          ? visualizeYAxes.map(yAxis => ({
+              key: yAxis,
+              label: yAxis,
+              to: getAlertsUrl({
+                project,
+                query,
+                pageFilters: pageFilters.selection,
+                aggregate: yAxis,
+                orgSlug: organization.slug,
+                dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                interval,
+              }),
+            }))
+          : undefined;
+
         return (
           <ChartContainer key={index}>
             <ChartPanel>
               <ChartHeader>
-                <ChartTitle>{formattedYAxes.join(',')}</ChartTitle>
-                <ChartSettingsContainer>
+                <ChartLabel>{label}</ChartLabel>
+                <ChartTitle>{formattedYAxes.join(', ')}</ChartTitle>
+                <Tooltip
+                  title={t('Type of chart displayed in this visualization (ex. line)')}
+                >
+                  <CompactSelect
+                    triggerProps={{
+                      icon: <IconGraph type={chartIcon} />,
+                      borderless: true,
+                      showChevron: false,
+                      size: 'sm',
+                    }}
+                    value={chartType}
+                    menuTitle="Type"
+                    options={exploreChartTypeOptions}
+                    onChange={option => handleChartTypeChange(option.value, index)}
+                  />
+                </Tooltip>
+                <Tooltip
+                  title={t('Time interval displayed in this visualization (ex. 5m)')}
+                >
+                  <CompactSelect
+                    value={interval}
+                    onChange={({value}) => setInterval(value)}
+                    triggerProps={{
+                      icon: <IconClock />,
+                      borderless: true,
+                      showChevron: false,
+                      size: 'sm',
+                    }}
+                    menuTitle="Interval"
+                    options={intervalOptions}
+                  />
+                </Tooltip>
+                <Feature features="organizations:alerts-eap">
                   <Tooltip
-                    title={t('Type of chart displayed in this visualization (ex. line)')}
+                    title={
+                      singleProject
+                        ? t('Create an alert for this chart')
+                        : t('Cannot create an alert when multiple projects are selected')
+                    }
                   >
-                    <CompactSelect
-                      triggerLabel=""
+                    <DropdownMenu
                       triggerProps={{
-                        icon: <IconGraph type={chartIcon} />,
+                        'aria-label': t('Create Alert'),
+                        size: 'sm',
                         borderless: true,
                         showChevron: false,
-                        size: 'sm',
+                        icon: <IconSubscribed />,
                       }}
-                      value={chartType}
-                      menuTitle="Type"
-                      options={exploreChartTypeOptions}
-                      onChange={option => handleChartTypeChange(option.value, index)}
+                      position="bottom-end"
+                      items={alertsUrls ?? []}
+                      menuTitle={t('Create an alert for')}
+                      isDisabled={!alertsUrls || alertsUrls.length === 0}
                     />
                   </Tooltip>
-                  <Tooltip
-                    title={t('Time interval displayed in this visualization (ex. 5m)')}
-                  >
-                    <CompactSelect
-                      triggerLabel=""
-                      value={interval}
-                      onChange={({value}) => setInterval(value)}
-                      triggerProps={{
-                        icon: <IconClock />,
-                        borderless: true,
-                        showChevron: false,
-                        size: 'sm',
-                      }}
-                      menuTitle="Interval"
-                      options={intervalOptions}
-                    />
-                  </Tooltip>
-                </ChartSettingsContainer>
+                </Feature>
               </ChartHeader>
               <Chart
                 height={CHART_HEIGHT}
@@ -227,14 +278,23 @@ const ChartContainer = styled('div')`
 
 const ChartHeader = styled('div')`
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
+  gap: ${space(1)};
 `;
 
 const ChartTitle = styled('div')`
   ${p => p.theme.text.cardTitle}
+  line-height: 32px;
+  flex: 1;
 `;
 
-const ChartSettingsContainer = styled('div')`
-  display: flex;
+const ChartLabel = styled('div')`
+  background-color: ${p => p.theme.purple100};
+  border-radius: ${p => p.theme.borderRadius};
+  text-align: center;
+  min-width: 32px;
+  color: ${p => p.theme.purple400};
+  white-space: nowrap;
+  font-weight: ${p => p.theme.fontWeightBold};
+  align-content: center;
 `;

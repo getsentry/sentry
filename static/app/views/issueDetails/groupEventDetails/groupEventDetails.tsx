@@ -3,10 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import ArchivedBox from 'sentry/components/archivedBox';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
@@ -16,19 +16,18 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
+import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
-import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
 
 import ReprocessingProgress from '../reprocessingProgress';
 import {
@@ -39,27 +38,22 @@ import {
   useHasStreamlinedUI,
 } from '../utils';
 
-const EscalatingIssuesFeedback = HookOrDefault({
-  hookName: 'component:escalating-issues-banner-feedback',
-});
-
 export interface GroupEventDetailsProps
-  extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
+  extends RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}> {
   eventError: boolean;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   loadingEvent: boolean;
   onRetry: () => void;
-  organization: Organization;
   project: Project;
   event?: Event;
 }
 
 function GroupEventDetails(props: GroupEventDetailsProps) {
+  const organization = useOrganization();
   const {
     group,
     project,
-    organization,
     location,
     event,
     groupReprocessingStatus,
@@ -73,8 +67,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
   const hasStreamlinedUI = useHasStreamlinedUI();
-
-  const [sidebarOpen, _] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
 
   // load the data
   useSentryAppComponentsData({projectId});
@@ -144,6 +136,9 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
 
   const renderContent = () => {
     if (loadingEvent) {
+      if (hasStreamlinedUI) {
+        return <GroupEventDetailsLoading />;
+      }
       return <LoadingIndicator />;
     }
 
@@ -160,92 +155,74 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
 
   const eventWithMeta = withMeta(event);
   const issueTypeConfig = getConfigForIssueType(group, project);
-  const MainLayoutComponent = hasStreamlinedUI ? GroupContent : StyledLayoutMain;
+  const LayoutBody = hasStreamlinedUI ? 'div' : StyledLayoutBody;
+  const MainLayoutComponent = hasStreamlinedUI ? 'div' : StyledLayoutMain;
 
   return (
-    <TransactionProfileIdProvider
-      projectId={event?.projectID}
-      transactionId={event?.type === 'transaction' ? event.id : undefined}
-      timestamp={event?.dateReceived}
-    >
-      <VisuallyCompleteWithData
-        id="IssueDetails-EventBody"
-        hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
-        isLoading={loadingEvent}
+    <AnalyticsArea name="issue_details">
+      <TransactionProfileIdProvider
+        projectId={event?.projectID}
+        transactionId={event?.type === 'transaction' ? event.id : undefined}
+        timestamp={event?.dateReceived}
       >
-        <StyledLayoutBody
-          data-test-id="group-event-details"
-          hasStreamlinedUi={hasStreamlinedUI}
-          sidebarOpen={sidebarOpen}
+        <VisuallyCompleteWithData
+          id="IssueDetails-EventBody"
+          hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
+          isLoading={loadingEvent}
         >
-          {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
-            <ReprocessingProgress
-              totalEvents={
-                (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)
-                  .data.eventCount
-              }
-              pendingEvents={
-                (group.statusDetails as GroupReprocessing['statusDetails']).pendingEvents
-              }
-            />
-          ) : (
-            <Fragment>
-              <MainLayoutComponent>
-                {!hasStreamlinedUI && renderGroupStatusBanner()}
-                <EscalatingIssuesFeedback organization={organization} group={group} />
-                {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
-                  <GroupEventHeader
-                    group={group}
-                    event={eventWithMeta}
-                    project={project}
-                  />
-                )}
-                {renderContent()}
-              </MainLayoutComponent>
-              {hasStreamlinedUI ? (
-                sidebarOpen ? (
+          <LayoutBody data-test-id="group-event-details">
+            {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
+              <ReprocessingProgress
+                totalEvents={
+                  (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)
+                    .data.eventCount
+                }
+                pendingEvents={
+                  (group.statusDetails as GroupReprocessing['statusDetails'])
+                    .pendingEvents
+                }
+              />
+            ) : (
+              <Fragment>
+                <MainLayoutComponent>
+                  {!hasStreamlinedUI && renderGroupStatusBanner()}
+                  {eventWithMeta &&
+                    issueTypeConfig.stats.enabled &&
+                    !hasStreamlinedUI && (
+                      <GroupEventHeader
+                        group={group}
+                        event={eventWithMeta}
+                        project={project}
+                      />
+                    )}
+                  {renderContent()}
+                </MainLayoutComponent>
+                {hasStreamlinedUI ? null : (
                   <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
-                    <StreamlinedSidebar group={group} event={event} project={project} />
+                    <GroupSidebar
+                      organization={organization}
+                      project={project}
+                      group={group}
+                      event={eventWithMeta}
+                      environments={environments}
+                    />
                   </StyledLayoutSide>
-                ) : null
-              ) : (
-                <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
-                  <GroupSidebar
-                    organization={organization}
-                    project={project}
-                    group={group}
-                    event={eventWithMeta}
-                    environments={environments}
-                  />
-                </StyledLayoutSide>
-              )}
-            </Fragment>
-          )}
-        </StyledLayoutBody>
-      </VisuallyCompleteWithData>
-    </TransactionProfileIdProvider>
+                )}
+              </Fragment>
+            )}
+          </LayoutBody>
+        </VisuallyCompleteWithData>
+      </TransactionProfileIdProvider>
+    </AnalyticsArea>
   );
 }
 
-const StyledLayoutBody = styled(Layout.Body)<{
-  hasStreamlinedUi: boolean;
-  sidebarOpen: boolean;
-}>`
+const StyledLayoutBody = styled(Layout.Body)`
   /* Makes the borders align correctly */
   padding: 0 !important;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     align-content: stretch;
   }
-
-  ${p =>
-    p.hasStreamlinedUi &&
-    css`
-      min-height: 100vh;
-      @media (min-width: ${p.theme.breakpoints.large}) {
-        gap: ${space(1.5)};
-        display: ${p.sidebarOpen ? 'grid' : 'block'};
-      }
-    `}
 `;
 
 const GroupStatusBannerWrapper = styled('div')`
@@ -265,25 +242,11 @@ const StyledLayoutMain = styled(Layout.Main)`
   }
 `;
 
-const GroupContent = styled(Layout.Main)`
-  background: ${p => p.theme.backgroundSecondary};
-  display: flex;
-  flex-direction: column;
-  padding: ${space(1.5)};
-  gap: ${space(1.5)};
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    border-right: 1px solid ${p => p.theme.translucentBorder};
-  }
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    border-bottom-width: 1px solid ${p => p.theme.translucentBorder};
-  }
-`;
-
 const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
   ${p =>
     p.hasStreamlinedUi
       ? css`
-          padding: ${space(1.5)} ${space(2)} ${space(3)};
+          padding: ${space(1.5)} ${space(2)};
         `
       : css`
           padding: ${space(3)} ${space(2)} ${space(3)};
@@ -294,7 +257,7 @@ const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
         `}
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding-left: 0;
+    padding-left: ${p => (p.hasStreamlinedUi ? space(0.5) : 0)};
   }
 `;
 

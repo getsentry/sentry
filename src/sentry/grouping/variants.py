@@ -42,19 +42,28 @@ class ChecksumVariant(BaseVariant):
     """A checksum variant returns a single hardcoded hash."""
 
     type = "checksum"
+    description = "legacy checksum"
 
-    def __init__(self, hash, hashed=False):
-        self.hash = hash
-        self.hashed = hashed
-
-    @property
-    def description(self):
-        if self.hashed:
-            return "hashed legacy checksum"
-        return "legacy checksum"
+    def __init__(self, checksum: str):
+        self.checksum = checksum
 
     def get_hash(self) -> str | None:
-        return self.hash
+        return self.checksum
+
+    def _get_metadata_as_dict(self):
+        return {"checksum": self.checksum}
+
+
+class HashedChecksumVariant(ChecksumVariant):
+    type = "hashed_checksum"
+    description = "hashed legacy checksum"
+
+    def __init__(self, checksum: str, raw_checksum: str):
+        self.checksum = checksum
+        self.raw_checksum = raw_checksum
+
+    def _get_metadata_as_dict(self):
+        return {"checksum": self.checksum, "raw_checksum": self.raw_checksum}
 
 
 class FallbackVariant(BaseVariant):
@@ -76,7 +85,7 @@ class PerformanceProblemVariant(BaseVariant):
         contains the event and the evidence.
     """
 
-    type = "performance-problem"
+    type = "performance_problem"
     description = "performance problem"
     contributes = True
 
@@ -148,7 +157,7 @@ def expose_fingerprint_dict(values, info=None):
 class CustomFingerprintVariant(BaseVariant):
     """A user-defined custom fingerprint."""
 
-    type = "custom-fingerprint"
+    type = "custom_fingerprint"
 
     def __init__(self, values, fingerprint_info=None):
         self.values = values
@@ -168,7 +177,7 @@ class CustomFingerprintVariant(BaseVariant):
 class BuiltInFingerprintVariant(CustomFingerprintVariant):
     """A built-in, Sentry defined fingerprint."""
 
-    type = "built-in-fingerprint"
+    type = "built_in_fingerprint"
 
     @property
     def description(self):
@@ -178,7 +187,7 @@ class BuiltInFingerprintVariant(CustomFingerprintVariant):
 class SaltedComponentVariant(ComponentVariant):
     """A salted version of a component."""
 
-    type = "salted-component"
+    type = "salted_component"
 
     def __init__(self, values, component, config, fingerprint_info=None):
         ComponentVariant.__init__(self, component, config)

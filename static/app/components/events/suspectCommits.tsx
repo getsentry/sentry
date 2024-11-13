@@ -39,6 +39,7 @@ export function SuspectCommits({
   const {data} = useCommitters({
     eventId,
     projectSlug,
+    group,
   });
   const committers = data?.committers ?? [];
 
@@ -93,7 +94,12 @@ export function SuspectCommits({
 
   return hasStreamlinedUI ? (
     <SuspectCommitWrapper>
-      <ScrollCarousel gap={1.5} transparentMask jumpItemCount={1}>
+      <ScrollCarousel
+        gap={1.5}
+        transparentMask
+        jumpItemCount={1}
+        aria-label={t('Suspect commits')}
+      >
         {commits.slice(0, 100).map((commit, commitIndex) => (
           <StreamlinedPanel key={commitIndex}>
             <Title>{t('Suspect Commit')}</Title>

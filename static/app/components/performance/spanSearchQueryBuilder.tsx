@@ -33,10 +33,9 @@ interface SpanSearchQueryBuilderProps {
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
-  supportedAggregates?: AggregationKey[];
 }
 
-const getFunctionTags = (supportedAggregates: AggregationKey[] | undefined) => {
+const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {
     return {};
   }
@@ -51,8 +50,8 @@ const getFunctionTags = (supportedAggregates: AggregationKey[] | undefined) => {
   }, {});
 };
 
-const getSpanFieldDefinition = (key: string) => {
-  return getFieldDefinition(key, 'span');
+const getSpanFieldDefinition = (key: string, kind?: FieldKind) => {
+  return getFieldDefinition(key, 'span', kind);
 };
 
 export function SpanSearchQueryBuilder({
@@ -62,15 +61,14 @@ export function SpanSearchQueryBuilder({
   onSearch,
   placeholder,
   projects,
-  supportedAggregates,
 }: SpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const functionTags = useMemo(() => {
-    return getFunctionTags(supportedAggregates);
-  }, [supportedAggregates]);
+    return getFunctionTags();
+  }, []);
 
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for spans, users, tags, and more');
@@ -150,6 +148,7 @@ export function SpanSearchQueryBuilder({
 interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
+  supportedAggregates?: AggregationKey[];
 }
 
 export function EAPSpanSearchQueryBuilder({
@@ -159,6 +158,7 @@ export function EAPSpanSearchQueryBuilder({
   searchSource,
   numberTags,
   stringTags,
+  supportedAggregates = [],
 }: EAPSpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -166,9 +166,13 @@ export function EAPSpanSearchQueryBuilder({
 
   const placeholderText = placeholder ?? t('Search for spans, users, tags, and more');
 
+  const functionTags = useMemo(() => {
+    return getFunctionTags(supportedAggregates);
+  }, [supportedAggregates]);
+
   const tags = useMemo(() => {
-    return {...numberTags, ...stringTags};
-  }, [numberTags, stringTags]);
+    return {...functionTags, ...numberTags, ...stringTags};
+  }, [numberTags, stringTags, functionTags]);
 
   const filterKeySections = useMemo(() => {
     const predefined = new Set(

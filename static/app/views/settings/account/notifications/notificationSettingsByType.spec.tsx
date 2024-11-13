@@ -147,7 +147,7 @@ describe('NotificationSettingsByType', function () {
     expect(projectsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('renders all the quota subcatories', async function () {
+  it('renders all the quota subcategories', async function () {
     renderComponent({notificationType: 'quota'});
 
     // check for all the quota subcategories
@@ -161,7 +161,7 @@ describe('NotificationSettingsByType', function () {
     ).toBeInTheDocument();
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
-    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.queryByText('Spans')).not.toBeInTheDocument();
@@ -330,9 +330,10 @@ describe('NotificationSettingsByType', function () {
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
+    expect(screen.queryByText('Continuous Profiling')).not.toBeInTheDocument(); // TODO(Continuous Profiling GA): should be in document
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
@@ -348,7 +349,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     // toggle spans quota notifications off
-    await selectEvent.select(screen.getAllByText('On')[2], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[4], 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
@@ -378,10 +379,32 @@ describe('NotificationSettingsByType', function () {
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
+    expect(screen.queryByText('Continuous Profiling')).not.toBeInTheDocument(); // TODO(Continuous Profiling GA): should be in document
+  });
+
+  it('spend notifications on org with am1 org only', async function () {
+    const organization = OrganizationFixture();
+    organization.features.push('spend-visibility-notifications');
+    organization.features.push('am1-tier');
+    const otherOrganization = OrganizationFixture();
+    renderComponent({
+      notificationType: 'quota',
+      organizations: [organization, otherOrganization],
+    });
+
+    expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
+
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Session Replays')).toBeInTheDocument();
+    expect(screen.getByText('Attachments')).toBeInTheDocument();
+    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
+    expect(screen.getByText('Transactions')).toBeInTheDocument();
+    expect(screen.queryByText('Continuous Profiling')).not.toBeInTheDocument();
+    expect(screen.queryByText('Spans')).not.toBeInTheDocument();
   });
 
   it('spend notifications on org with am3 without spend visibility notifications', async function () {
@@ -397,9 +420,10 @@ describe('NotificationSettingsByType', function () {
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
-    expect(screen.getByText('Replays')).toBeInTheDocument();
+    expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
+    expect(screen.queryByText('Continuous Profiling')).not.toBeInTheDocument(); // TODO(Continuous Profiling GA): should be in document
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
@@ -415,7 +439,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     // toggle spans quota notifications off
-    await selectEvent.select(screen.getAllByText('On')[1], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[3], 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(

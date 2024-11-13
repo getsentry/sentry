@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonLabel} from 'sentry/components/button';
@@ -13,9 +14,11 @@ import IssueListSearchBar from './searchBar';
 type IssueSearchWithSavedSearchesProps = {
   onSearch: (query: string) => void;
   query: string;
+  className?: string;
 };
 
 export function IssueSearchWithSavedSearches({
+  className,
   query,
   onSearch,
 }: IssueSearchWithSavedSearchesProps) {
@@ -36,7 +39,7 @@ export function IssueSearchWithSavedSearches({
   }
 
   return (
-    <SearchBarWithButtonContainer>
+    <SearchBarWithButtonContainer className={className}>
       {!organization.features.includes('issue-stream-custom-views') && (
         <StyledButton onClick={onSavedSearchesToggleClicked}>
           {selectedSavedSearch?.name ?? t('Custom Search')}
@@ -95,10 +98,10 @@ const StyledIssueListSearchBarWithButton = styled(IssueListSearchBar)<{
 
   ${p =>
     !p.roundCorners &&
-    `
-    @media (min-width: ${p.theme.breakpoints.small}) {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
+    css`
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
     `}
 `;

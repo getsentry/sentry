@@ -111,6 +111,11 @@ export type WidgetPreview = {
   layout: WidgetLayout | null;
 };
 
+export type DashboardPermissions = {
+  isEditableByEveryone: boolean;
+  teamsWithEditAccess?: number[];
+};
+
 /**
  * The response shape from dashboard list endpoint
  */
@@ -145,6 +150,7 @@ export type DashboardDetails = {
   end?: string;
   environment?: string[];
   period?: string;
+  permissions?: DashboardPermissions;
   start?: string;
   utc?: boolean;
 };

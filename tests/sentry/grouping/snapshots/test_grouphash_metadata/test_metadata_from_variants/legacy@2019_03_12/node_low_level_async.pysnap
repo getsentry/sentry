@@ -1,0 +1,26 @@
+---
+created: '2024-10-28T14:02:56.686163+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "0006292929602ffceed7679beb242d96"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "task_queues"
+              function*
+                "processTicksAndRejections"
+            frame*
+              filename*
+                "(webpack://builder_rest/src/api/AxiosInterceptor.js"
+              function*
+                "runMicrotasks"
+          type*
+            "Error"

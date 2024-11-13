@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
@@ -10,6 +10,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
@@ -32,19 +33,6 @@ export function markEventSeen(
     },
     {}
   );
-}
-
-export function fetchGroupUserReports(
-  orgSlug: string,
-  groupId: string,
-  query: Record<string, string>
-) {
-  const api = new Client();
-
-  return api.requestPromise(`/organizations/${orgSlug}/issues/${groupId}/user-reports/`, {
-    includeAllArgs: true,
-    query,
-  });
 }
 
 export function useDefaultIssueEvent() {
@@ -204,22 +192,47 @@ export function useEnvironmentsFromUrl(): string[] {
 export function getGroupEventDetailsQueryData({
   environments,
   query,
-  stacktraceOnly,
 }: {
+  query: string | undefined;
   environments?: string[];
-  query?: string;
-  stacktraceOnly?: boolean;
-} = {}): Record<string, string | string[]> {
-  const defaultParams = {
-    collapse: stacktraceOnly ? ['stacktraceOnly'] : ['fullRelease'],
-    ...(query ? {query} : {}),
+}): Record<string, string | string[]> {
+  const params: Record<string, string | string[]> = {
+    collapse: ['fullRelease'],
   };
 
-  if (!environments || environments.length === 0) {
-    return defaultParams;
+  if (query) {
+    params.query = query;
   }
 
-  return {...defaultParams, environment: environments};
+  if (environments && environments.length > 0) {
+    params.environment = environments;
+  }
+
+  return params;
+}
+
+export function getGroupEventQueryKey({
+  orgSlug,
+  groupId,
+  eventId,
+  environments,
+  recommendedEventQuery,
+}: {
+  environments: string[];
+  eventId: string;
+  groupId: string;
+  orgSlug: string;
+  recommendedEventQuery?: string;
+}): ApiQueryKey {
+  return [
+    `/organizations/${orgSlug}/issues/${groupId}/events/${eventId}/`,
+    {
+      query: getGroupEventDetailsQueryData({
+        environments,
+        query: recommendedEventQuery,
+      }),
+    },
+  ];
 }
 
 export function useHasStreamlinedUI() {

@@ -16,15 +16,19 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
+import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
-import {UNSAVED_FILTERS_MESSAGE} from './detail';
+import {checkUserHasEditAccess, UNSAVED_FILTERS_MESSAGE} from './detail';
 import exportDashboard from './exportDashboard';
-import type {DashboardListItem} from './types';
+import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
+  dashboard: DashboardDetails;
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
   onAddWidget: (dataset: DataSet) => void;
@@ -35,13 +39,16 @@ type Props = {
   organization: Organization;
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
+  onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
 
 function Controls({
   dashboardState,
+  dashboard,
   dashboards,
   hasUnsavedFilters,
   widgetLimitReached,
+  onChangeEditAccess,
   onEdit,
   onCommit,
   onDelete,
@@ -64,6 +71,8 @@ function Controls({
   }
 
   const organization = useOrganization();
+  const currentUser = useUser();
+  const {teams: userTeams} = useUserTeams();
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
@@ -138,6 +147,16 @@ function Controls({
     ? DataSet.ERRORS
     : DataSet.EVENTS;
 
+  let hasEditAccess = true;
+  if (organization.features.includes('dashboards-edit-access')) {
+    hasEditAccess = checkUserHasEditAccess(
+      dashboard,
+      currentUser,
+      userTeams,
+      organization
+    );
+  }
+
   return (
     <StyledButtonBar gap={1} key="controls">
       <DashboardEditFeature>
@@ -158,6 +177,12 @@ function Controls({
                 {t('Export Dashboard')}
               </Button>
             </Feature>
+            <Feature features="dashboards-edit-access">
+              <EditAccessSelector
+                dashboard={dashboard}
+                onChangeEditAccess={onChangeEditAccess}
+              />
+            </Feature>
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {
@@ -165,7 +190,7 @@ function Controls({
                 onEdit();
               }}
               icon={<IconEdit />}
-              disabled={!hasFeature || hasUnsavedFilters}
+              disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess}
               title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
               priority="default"
               size="sm"
@@ -192,7 +217,7 @@ function Controls({
                     data-test-id="add-widget-library"
                     priority="primary"
                     size="sm"
-                    disabled={widgetLimitReached}
+                    disabled={widgetLimitReached || !hasEditAccess}
                     icon={<IconAdd isCircled />}
                     onClick={() => {
                       trackAnalytics('dashboards_views.widget_library.opened', {

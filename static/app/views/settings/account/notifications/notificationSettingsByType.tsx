@@ -47,16 +47,7 @@ type State = {
 } & DeprecatedAsyncComponent['state'];
 
 const typeMappedChildren = {
-  quota: [
-    'quotaErrors',
-    'quotaTransactions',
-    'quotaAttachments',
-    'quotaReplays',
-    'quotaMonitorSeats',
-    'quotaWarnings',
-    'quotaSpendAllocations',
-    'quotaSpans',
-  ],
+  quota: QUOTA_FIELDS.map(field => field.name),
 };
 
 const getQueryParams = (notificationType: string) => {
@@ -202,8 +193,14 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
       organization => !organization.features?.includes('am3-tier')
     );
 
+    // at least one org exists with am2 tier plan
+    const hasOrgWithAm2 = organizations.some(organization =>
+      organization.features?.includes('am2-tier')
+    );
+
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
     const includeSpans = hasOrgWithAm3;
+    const includeProfileDuration = hasOrgWithAm2 || hasOrgWithAm3;
 
     // if a quota notification is not disabled, add in our dependent fields
     // but do not show the top level controller
@@ -219,6 +216,9 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
               return false;
             }
             if (field.name === 'quotaTransactions' && excludeTransactions) {
+              return false;
+            }
+            if (field.name === 'quotaProfileDuration' && !includeProfileDuration) {
               return false;
             }
             return true;
@@ -243,6 +243,9 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
               return false;
             }
             if (field.name === 'quotaTransactions' && excludeTransactions) {
+              return false;
+            }
+            if (field.name === 'quotaProfileDuration' && !includeProfileDuration) {
               return false;
             }
             return true;

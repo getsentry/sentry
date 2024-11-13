@@ -36,10 +36,6 @@ BASE_STRATEGY = create_strategy_configuration(
         # This turns on the automatic message trimming and parameter substitution
         # by the message strategy.
         "normalize_message": False,
-        # newstyle: enables the legacy function logic.  This is only used
-        # by the newstyle:2019-04-05 strategy.  Once this is no longer used
-        # this can go away entirely.
-        "legacy_function_logic": False,
         # newstyle: turns on some javascript fuzzing features.
         "javascript_fuzzing": False,
         # newstyle: platforms for which context line should be taken into

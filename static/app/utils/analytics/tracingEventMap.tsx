@@ -1,6 +1,19 @@
+import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
+
 export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {
     title: string;
+  };
+  'trace.explorer.metadata': {
+    columns: string[];
+    columns_count: number;
+    has_results: boolean;
+    query_status: 'success' | 'error';
+    results_mode: 'sample' | 'aggregate';
+    user_queries: string;
+    user_queries_count: number;
+    visualizes: Visualize[];
+    visualizes_count: number;
   };
   'trace.metadata': {
     num_nodes: number;
@@ -8,6 +21,12 @@ export type TracingEventParameters = {
     project_platforms: string[];
     shape: string;
     trace_duration_seconds: number;
+  };
+  'trace.preferences.autogrouping_change': {
+    enabled: boolean;
+  };
+  'trace.preferences.missing_instrumentation_change': {
+    enabled: boolean;
   };
   'trace.quality.missing_spans.doc_link_clicked': {};
   'trace.quality.performance_setup.banner_loaded': {};
@@ -90,6 +109,7 @@ export type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.metadata': 'Trace Load Metadata',
+  'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_layout.show_in_view': 'Clicked Show in View Action',
@@ -130,4 +150,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace_explorer.search_failure': 'Trace Explorer: Search Failure',
   'trace_explorer.search_request': 'Trace Explorer: Search Request',
   'trace_explorer.search_success': 'Trace Explorer: Search Success',
+  'trace.preferences.autogrouping_change': 'Changed Autogrouping Preference',
+  'trace.preferences.missing_instrumentation_change':
+    'Changed Missing Instrumentation Preference',
 };

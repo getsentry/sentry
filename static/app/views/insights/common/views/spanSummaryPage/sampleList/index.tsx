@@ -5,14 +5,12 @@ import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -29,13 +27,14 @@ import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samp
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanIndexedField,
   SpanMetricsField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
@@ -57,13 +56,17 @@ export function SampleList({
   transactionMethod,
   subregions,
   onClose,
-  transactionRoute = '/performance/summary/',
+  transactionRoute,
   referrer,
 }: Props) {
+  const organization = useOrganization();
+  const {view} = useDomainViewFilters();
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
+
+  transactionRoute ??= `/${getTransactionSummaryBaseUrl(organization.slug, view, true)}`;
 
   // A a transaction name is required to show the panel, but a transaction
   // method is not
@@ -79,13 +82,11 @@ export function SampleList({
     []
   );
 
-  const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
   const {projects} = useProjects();
 
   const spanSearchQuery = decodeScalar(location.query.spanSearchQuery);
-  const {data: supportedTags} = useSpanFieldSupportedTags();
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),
@@ -225,26 +226,13 @@ export function SampleList({
         />
 
         <StyledSearchBar>
-          {organization.features.includes('search-query-builder-performance') ? (
-            <SpanSearchQueryBuilder
-              projects={selection.projects}
-              initialQuery={spanSearchQuery ?? ''}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              searchSource={`${moduleName}-sample-panel`}
-            />
-          ) : (
-            <SearchBar
-              searchSource={`${moduleName}-sample-panel`}
-              query={spanSearchQuery}
-              onSearch={handleSearch}
-              placeholder={t('Search for span attributes')}
-              organization={organization}
-              supportedTags={supportedTags}
-              dataset={DiscoverDatasets.SPANS_INDEXED}
-              projectIds={selection.projects}
-            />
-          )}
+          <SpanSearchQueryBuilder
+            projects={selection.projects}
+            initialQuery={spanSearchQuery ?? ''}
+            onSearch={handleSearch}
+            placeholder={t('Search for span attributes')}
+            searchSource={`${moduleName}-sample-panel`}
+          />
         </StyledSearchBar>
 
         <SampleTable

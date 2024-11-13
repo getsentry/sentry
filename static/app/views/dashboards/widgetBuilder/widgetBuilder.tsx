@@ -48,8 +48,8 @@ import {
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import useTags from 'sentry/utils/useTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import withTags from 'sentry/utils/withTags';
 import {
   assignTempId,
   enforceWidgetHeightValues,
@@ -62,6 +62,7 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
@@ -143,7 +144,6 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   onSave: (widgets: Widget[]) => void;
   organization: Organization;
   selection: PageFilters;
-  tags: TagCollection;
   widgetLegendState: WidgetLegendSelectionState;
   displayType?: DisplayType;
   end?: DateString;
@@ -183,9 +183,7 @@ function WidgetBuilder({
   end,
   statsPeriod,
   onSave,
-  route,
   router,
-  tags,
   updateDashboardSplitDecision,
   widgetLegendState,
 }: Props) {
@@ -305,13 +303,22 @@ function WidgetBuilder({
 
   const [splitDecision, setSplitDecision] = useState<WidgetType | undefined>(undefined);
 
+  let tags: TagCollection = useTags();
+
+  // HACK: Inject EAP dataset tags when selecting the Spans dataset
+  const numericSpanTags = useSpanTags('number');
+  const stringSpanTags = useSpanTags('string');
+  if (state.dataSet === DataSet.SPANS) {
+    tags = {...numericSpanTags, ...stringSpanTags};
+  }
+
   useEffect(() => {
     trackAnalytics('dashboards_views.widget_builder.opened', {
       organization,
       new_widget: !isEditing,
     });
 
-    if (isEmptyObject(tags)) {
+    if (isEmptyObject(tags) && dataSet !== DataSet.SPANS) {
       loadOrganizationTags(api, organization.slug, {
         ...selection,
         // Pin the request to 14d to avoid timeouts, see DD-967 for
@@ -380,19 +387,14 @@ function WidgetBuilder({
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
   }, [selection.projects, api, organization.slug]);
 
-  function onLegacyRouteLeave(): string | undefined {
-    return !isSubmittingRef.current && state.userHasModified
-      ? UNSAVED_CHANGES_MESSAGE
-      : undefined;
-  }
-
   function onRouteLeave(locationChange: {
     currentLocation: Location;
     nextLocation: Location;
   }): boolean {
     return (
       locationChange.currentLocation.pathname !== locationChange.nextLocation.pathname &&
-      !!onLegacyRouteLeave()
+      !isSubmittingRef.current &&
+      state.userHasModified
     );
   }
   const widgetType = DATA_SET_TO_WIDGET_TYPE[state.dataSet];
@@ -1089,6 +1091,7 @@ function WidgetBuilder({
 
   const canAddSearchConditions =
     [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(state.displayType) &&
+    state.dataSet !== DataSet.SPANS &&
     state.queries.length < 3;
 
   const hideLegendAlias = [DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(
@@ -1148,13 +1151,7 @@ function WidgetBuilder({
           datetime: {start: null, end: null, utc: null, period: DEFAULT_STATS_PERIOD},
         }}
       >
-        <OnRouteLeave
-          message={UNSAVED_CHANGES_MESSAGE}
-          when={onRouteLeave}
-          legacyWhen={onLegacyRouteLeave}
-          route={route}
-          router={router}
-        />
+        <OnRouteLeave message={UNSAVED_CHANGES_MESSAGE} when={onRouteLeave} />
         <CustomMeasurementsProvider organization={organization} selection={selection}>
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
@@ -1232,7 +1229,6 @@ function WidgetBuilder({
                                         newDisplayType
                                       );
                                     }}
-                                    noDashboardsMEPProvider
                                     isWidgetInvalid={!state.queryConditionsValid}
                                     onWidgetSplitDecision={
                                       handleUpdateWidgetSplitDecision
@@ -1399,7 +1395,7 @@ function WidgetBuilder({
   );
 }
 
-export default withPageFilters(withTags(WidgetBuilder));
+export default withPageFilters(WidgetBuilder);
 
 const TitleInput = styled(TextField)`
   padding: 0 ${space(2)} 0 0;

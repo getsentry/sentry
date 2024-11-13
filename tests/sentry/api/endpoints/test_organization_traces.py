@@ -9,6 +9,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry.api.endpoints.organization_traces import process_breakdowns
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
@@ -415,6 +416,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "duration": 60_100,
                 "start": timestamps[0],
                 "end": timestamps[0] + 60_100,
+                "rootDuration": 60_100,
                 "breakdowns": [],
             },
             {
@@ -428,6 +430,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "duration": 90_123,
                 "start": timestamps[4],
                 "end": timestamps[4] + 90_123,
+                "rootDuration": 90_123,
                 "breakdowns": [],
             },
         ]
@@ -436,8 +439,70 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             exception, contexts={"bad_traces": {"traces": list(sorted([trace_id_1, trace_id_2]))}}
         )
 
+    def test_use_first_span_for_name(self):
+        trace_id = uuid4().hex
+        span_id = "1" + uuid4().hex[:15]
+        parent_span_id = "1" + uuid4().hex[:15]
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        ts = now - timedelta(minutes=10)
+
+        self.double_write_segment(
+            project=self.project,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id=span_id,
+            parent_span_id=parent_span_id,
+            timestamp=ts,
+            transaction="foo",
+            duration=60_100,
+            exclusive_time=60_100,
+            sdk_name="sentry.javascript.node",
+            op="bar",
+        )
+
+        timestamp = int(ts.timestamp() * 1000)
+
+        query = {
+            "project": [],
+            "field": ["id", "parent_span", "span.duration"],
+            "query": "",
+            "maxSpansPerTrace": 3,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+
+        assert response.data["data"] == [
+            {
+                "breakdowns": [
+                    {
+                        "duration": 60_100,
+                        "start": timestamp,
+                        "end": timestamp + 60_100,
+                        "sliceStart": 0,
+                        "sliceEnd": 40,
+                        "sliceWidth": 40,
+                        "isRoot": False,
+                        "kind": "project",
+                        "project": self.project.slug,
+                        "sdkName": "sentry.javascript.node",
+                    },
+                ],
+                "duration": 60_100,
+                "end": timestamp + 60_100,
+                "name": "foo",
+                "numErrors": 0,
+                "numOccurrences": 0,
+                "numSpans": 1,
+                "matchingSpans": 1,
+                "project": self.project.slug,
+                "start": timestamp,
+                "trace": trace_id,
+                "rootDuration": 60_100,
+            },
+        ]
+
     def test_use_root_span_for_name(self):
-        project = self.create_project()
         trace_id = uuid4().hex
         span_id_1 = "1" + uuid4().hex[:15]
         span_id_2 = "1" + uuid4().hex[:15]
@@ -445,7 +510,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
-            project=project,
+            project=self.project,
             trace_id=trace_id,
             transaction_id=uuid4().hex,
             span_id=span_id_1,
@@ -457,15 +522,15 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         )
 
         self.double_write_segment(
-            project=project,
+            project=self.project,
             trace_id=trace_id,
             transaction_id=uuid4().hex,
             span_id=span_id_2,
             parent_span_id=span_id_1,
             timestamp=ts,
             transaction="foo",
-            duration=15000,
-            exclusive_time=15000,
+            duration=15_000,
+            exclusive_time=15_000,
             sdk_name="sentry.javascript.node",
             op="pageload",
         )
@@ -486,45 +551,45 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             {
                 "breakdowns": [
                     {
-                        "duration": 60000,
+                        "duration": 60_000,
                         "start": timestamp,
-                        "end": timestamp + 60000,
+                        "end": timestamp + 60_000,
                         "sliceStart": 0,
                         "sliceEnd": 40,
                         "sliceWidth": 40,
                         "isRoot": False,
                         "kind": "project",
-                        "project": project.slug,
+                        "project": self.project.slug,
                         "sdkName": "sentry.javascript.remix",
                     },
                     {
-                        "duration": 15000,
+                        "duration": 15_000,
                         "start": timestamp,
-                        "end": timestamp + 15000,
+                        "end": timestamp + 15_000,
                         "sliceStart": 0,
                         "sliceEnd": 10,
                         "sliceWidth": 10,
                         "isRoot": False,
                         "kind": "project",
-                        "project": project.slug,
+                        "project": self.project.slug,
                         "sdkName": "sentry.javascript.node",
                     },
                 ],
-                "duration": 60000,
-                "end": timestamp + 60000,
+                "duration": 60_000,
+                "end": timestamp + 60_000,
                 "name": "foo",
                 "numErrors": 0,
                 "numOccurrences": 0,
                 "numSpans": 2,
                 "matchingSpans": 2,
-                "project": project.slug,
+                "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
+                "rootDuration": 60_000,
             },
         ]
 
     def test_use_pageload_for_name(self):
-        project = self.create_project()
         trace_id = uuid4().hex
         span_id = "1" + uuid4().hex[:15]
         parent_span_id = "1" + uuid4().hex[:15]
@@ -532,7 +597,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ts = now - timedelta(minutes=10)
 
         self.double_write_segment(
-            project=project,
+            project=self.project,
             trace_id=trace_id,
             transaction_id=uuid4().hex,
             span_id=span_id,
@@ -561,28 +626,29 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             {
                 "breakdowns": [
                     {
-                        "duration": 60100,
+                        "duration": 60_100,
                         "start": timestamp,
-                        "end": timestamp + 60100,
+                        "end": timestamp + 60_100,
                         "sliceStart": 0,
                         "sliceEnd": 40,
                         "sliceWidth": 40,
                         "isRoot": False,
                         "kind": "project",
-                        "project": project.slug,
+                        "project": self.project.slug,
                         "sdkName": "sentry.javascript.node",
                     },
                 ],
-                "duration": 60100,
-                "end": timestamp + 60100,
+                "duration": 60_100,
+                "end": timestamp + 60_100,
                 "name": "foo",
                 "numErrors": 0,
                 "numOccurrences": 0,
                 "numSpans": 1,
                 "matchingSpans": 1,
-                "project": project.slug,
+                "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
+                "rootDuration": 60_100,
             },
         ]
 
@@ -681,6 +747,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "duration": 60_100,
                         "start": timestamps[0],
                         "end": timestamps[0] + 60_100,
+                        "rootDuration": 60_100,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
@@ -719,6 +786,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "duration": 90_123,
                         "start": timestamps[4],
                         "end": timestamps[4] + 90_123,
+                        "rootDuration": 90_123,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
@@ -759,7 +827,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             span_ids,
         ) = self.create_mock_traces()
 
-        for (mri, op) in [
+        for mri, op in [
             (TransactionMRI.DURATION.value, "count"),
             ("d:transactions/measurements.lcp@millisecond", "max"),
             (SpanMRI.DURATION.value, "min"),
@@ -804,6 +872,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "duration": 40_000,
                         "start": timestamps[10],
                         "end": timestamps[10] + 40_000,
+                        "rootDuration": 40_000,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
@@ -1006,7 +1075,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             span_ids,
         ) = self.create_mock_traces()
 
-        for (mri, op) in [
+        for mri, op in [
             (TransactionMRI.DURATION.value, "count"),
             ("d:transactions/measurements.lcp@millisecond", "max"),
             (SpanMRI.DURATION.value, "min"),
@@ -2541,6 +2610,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                 "duration": 60_100,
                 "start": timestamps[0],
                 "end": timestamps[0] + 60_100,
+                "rootDuration": 60_100,
                 "breakdowns": [
                     {
                         "project": project_1.slug,
@@ -2579,6 +2649,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                 "duration": 90_123,
                 "start": timestamps[4],
                 "end": timestamps[4] + 90_123,
+                "rootDuration": 90_123,
                 "breakdowns": [
                     {
                         "project": project_1.slug,
@@ -2613,21 +2684,49 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                 ["foo:[bar, baz]"],
                 ["foo:bar span.duration:>10s", "foo:baz"],
             ]:
-                query = {
-                    # only query for project_2 but expect traces to start from project_1
-                    "project": [project_2.id],
-                    "field": ["id", "parent_span", "span.duration"],
-                    "query": q,
-                    "sort": "-timestamp" if descending else "timestamp",
-                }
-
-                response = self.do_request(query)
-                assert response.status_code == 200, response.data
-                assert response.data["data"] == sorted(
+                expected = sorted(
                     expected,
                     key=lambda trace: trace["start"],
                     reverse=descending,
                 )
+
+                query = {
+                    # only query for project_2 but expect traces to start from project_1
+                    "project": [str(project_2.id)],
+                    "field": ["id", "parent_span", "span.duration"],
+                    "query": q,
+                    "sort": "-timestamp" if descending else "timestamp",
+                    "per_page": "1",
+                }
+                response = self.do_request(query)
+                assert response.status_code == 200, response.data
+                assert response.data["data"] == [expected[0]]
+
+                links = parse_link_header(response.headers["Link"])
+                prev_link = next(link for link in links.values() if link["rel"] == "previous")
+                assert prev_link["results"] == "false"
+                next_link = next(link for link in links.values() if link["rel"] == "next")
+                assert next_link["results"] == "true"
+                assert next_link["cursor"]
+
+                query = {
+                    # only query for project_2 but expect traces to start from project_1
+                    "project": [str(project_2.id)],
+                    "field": ["id", "parent_span", "span.duration"],
+                    "query": q,
+                    "sort": "-timestamp" if descending else "timestamp",
+                    "per_page": "1",
+                    "cursor": next_link["cursor"],
+                }
+                response = self.do_request(query)
+                assert response.status_code == 200, response.data
+                assert response.data["data"] == [expected[1]]
+
+                links = parse_link_header(response.headers["Link"])
+                prev_link = next(link for link in links.values() if link["rel"] == "previous")
+                assert prev_link["results"] == "true"
+                next_link = next(link for link in links.values() if link["rel"] == "next")
+                assert next_link["results"] == "false"
 
 
 class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):

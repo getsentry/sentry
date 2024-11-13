@@ -26,6 +26,7 @@ export interface OrganizationSummary {
   githubNudgeInvite: boolean;
   githubOpenPRBot: boolean;
   githubPRBot: boolean;
+  hideAiFeatures: boolean;
   id: string;
   isEarlyAdopter: boolean;
   issueAlertsThreadFlag: boolean;
@@ -86,6 +87,7 @@ export interface Organization extends OrganizationSummary {
   relayPiiConfig: string | null;
   requiresSso: boolean;
   safeFields: string[];
+  samplingMode: 'organization' | 'project';
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];

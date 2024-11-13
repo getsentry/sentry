@@ -4,9 +4,9 @@ from sentry.constants import TICKET_ACTIONS
 from sentry.integrations.github_enterprise.actions import GitHubEnterpriseCreateTicketAction
 from sentry.rules import MatchType
 from sentry.rules import rules as default_rules
-from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.rules.registry import RuleRegistry
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 
 EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
 APP_ACTION = "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
@@ -188,10 +188,31 @@ class ProjectRuleConfigurationTest(APITestCase):
         assert len(response.data["conditions"]) == 9
         assert len(response.data["filters"]) == 9
 
-        filter_ids = {f["id"] for f in response.data["filters"]}
-        assert IssueCategoryFilter.id in filter_ids
+        response = self.get_success_response(self.organization.slug, self.project.slug)
+        tagged_event_filter = next(
+            (
+                filter
+                for filter in response.data["filters"]
+                if filter["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter"
+            ),
+            None,
+        )
+        assert tagged_event_filter
+        filter_list = [
+            choice[0] for choice in tagged_event_filter["formFields"]["match"]["choices"]
+        ]
+        assert MatchType.IS_IN in filter_list
+        assert MatchType.NOT_IN in filter_list
 
-    def test_is_in_feature(self):
+    @with_feature("organizations:event-unique-user-frequency-condition-with-conditions")
+    def test_issue_type_and_category_filter_feature_with_conditions(self):
+        response = self.get_success_response(self.organization.slug, self.project.slug)
+        assert len(response.data["actions"]) == 12
+
+        assert len(response.data["conditions"]) == 10
+        assert len(response.data["filters"]) == 9
+        assert len(response.data["conditions"]) == 10
+
         response = self.get_success_response(self.organization.slug, self.project.slug)
         tagged_event_filter = next(
             (

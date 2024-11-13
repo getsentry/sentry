@@ -1,0 +1,52 @@
+---
+created: '2024-10-28T14:02:35.821189+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "b2602ad455472dede8e4c340d8a7eaba"
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "test"
+            frame*
+              module*
+                "test"
+              function* (trimmed javascript function)
+                "testMethod"
+            frame*
+              module*
+                "test"
+              function*
+                "aha"
+            frame*
+              module*
+                "test"
+              function*
+                "test"
+            frame*
+              module*
+                "test"
+            frame*
+              module*
+                "test"
+              function*
+                "callback"
+            frame*
+              module*
+                "test"
+              function*
+                "callAnotherThing"
+            frame*
+              module*
+                "test"
+              function*
+                "aha"
+          type*
+            "Error"

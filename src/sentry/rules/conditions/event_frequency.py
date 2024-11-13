@@ -13,14 +13,17 @@ from django.core.cache import cache
 from django.db.models import QuerySet
 from django.db.models.enums import TextChoices
 from django.utils import timezone
+from snuba_sdk import Op
 
-from sentry import release_health, tsdb
+from sentry import features, release_health, tsdb
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition, GenericCondition
+from sentry.rules.match import MatchType
 from sentry.tsdb.base import TSDBModel
 from sentry.types.condition_activity import (
     FREQUENCY_CONDITION_BUCKET_SIZE,
@@ -531,6 +534,238 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
 
     def get_preview_aggregate(self) -> tuple[str, str]:
         return "uniq", "user"
+
+
+class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCondition):
+    id = "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions"
+    label = "The issue is seen by more than {value} users in {interval} with conditions"
+
+    def query_hook(
+        self, event: GroupEvent, start: datetime, end: datetime, environment_id: int
+    ) -> int:
+        assert self.rule
+        if not features.has(
+            "organizations:event-unique-user-frequency-condition-with-conditions",
+            Project.objects.get(id=self.rule.project_id).organization,
+        ):
+            raise NotImplementedError(
+                "EventUniqueUserFrequencyConditionWithConditions is not enabled for this organization"
+            )
+        if self.rule.data["filter_match"] == "any":
+            raise NotImplementedError(
+                "EventUniqueUserFrequencyConditionWithConditions does not support filter_match == any"
+            )
+
+        conditions = []
+
+        for condition in self.rule.data["conditions"]:
+            if condition["id"] == self.id:
+                continue
+
+            snuba_condition = self.convert_rule_condition_to_snuba_condition(condition)
+            if snuba_condition:
+                conditions.append(snuba_condition)
+
+        total = self.get_chunked_result(
+            tsdb_function=self.tsdb.get_distinct_counts_totals_with_conditions,
+            model=get_issue_tsdb_user_group_model(GroupCategory.ERROR),
+            organization_id=event.group.project.organization_id,
+            group_ids=[event.group.id],
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            referrer_suffix="batch_alert_event_uniq_user_frequency",
+            conditions=conditions,
+        )
+        return total[event.group.id]
+
+    def batch_query_hook(
+        self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
+    ) -> dict[int, int]:
+        logger = logging.getLogger(
+            "sentry.rules.event_frequency.EventUniqueUserFrequencyConditionWithConditions"
+        )
+        logger.info(
+            "batch_query_hook_start",
+            extra={
+                "group_ids": group_ids,
+                "start": start,
+                "end": end,
+                "environment_id": environment_id,
+            },
+        )
+        assert self.rule
+        if not features.has(
+            "organizations:event-unique-user-frequency-condition-with-conditions",
+            self.rule.project.organization,
+        ):
+            raise NotImplementedError(
+                "EventUniqueUserFrequencyConditionWithConditions is not enabled for this organization"
+            )
+
+        if self.rule.data["filter_match"] == "any":
+            raise NotImplementedError(
+                "EventUniqueUserFrequencyConditionWithConditions does not support filter_match == any"
+            )
+        batch_totals: dict[int, int] = defaultdict(int)
+        groups = Group.objects.filter(id__in=group_ids).values(
+            "id", "type", "project_id", "project__organization_id"
+        )
+        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
+        organization_id = self.get_value_from_groups(groups, "project__organization_id")
+
+        conditions = []
+
+        for condition in self.rule.data["conditions"]:
+            if condition["id"] == self.id:
+                continue
+
+            snuba_condition = self.convert_rule_condition_to_snuba_condition(condition)
+            if snuba_condition:
+                conditions.append(snuba_condition)
+
+        logger.info(
+            "batch_query_hook_conditions",
+            extra={"conditions": conditions},
+        )
+        if error_issue_ids and organization_id:
+            error_totals = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_distinct_counts_totals_with_conditions,
+                model=get_issue_tsdb_user_group_model(GroupCategory.ERROR),
+                group_ids=error_issue_ids,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="batch_alert_event_uniq_user_frequency",
+                conditions=conditions,
+            )
+            batch_totals.update(error_totals)
+
+        if generic_issue_ids and organization_id:
+            error_totals = self.get_chunked_result(
+                tsdb_function=self.tsdb.get_distinct_counts_totals_with_conditions,
+                model=get_issue_tsdb_user_group_model(GroupCategory.PERFORMANCE),
+                group_ids=generic_issue_ids,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix="batch_alert_event_uniq_user_frequency",
+                conditions=conditions,
+            )
+            batch_totals.update(error_totals)
+
+        logger.info(
+            "batch_query_hook_end",
+            extra={"batch_totals": batch_totals},
+        )
+        return batch_totals
+
+    def get_snuba_query_result(
+        self,
+        tsdb_function: Callable[..., Any],
+        keys: list[int],
+        group_id: int,
+        organization_id: int,
+        model: TSDBModel,
+        start: datetime,
+        end: datetime,
+        environment_id: int,
+        referrer_suffix: str,
+        conditions: list[tuple[str, str, str | list[str]]] | None = None,
+    ) -> Mapping[int, int]:
+        result: Mapping[int, int] = tsdb_function(
+            model=model,
+            keys=keys,
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            use_cache=True,
+            jitter_value=group_id,
+            tenant_ids={"organization_id": organization_id},
+            referrer_suffix=referrer_suffix,
+            conditions=conditions,
+        )
+        return result
+
+    def get_chunked_result(
+        self,
+        tsdb_function: Callable[..., Any],
+        model: TSDBModel,
+        group_ids: list[int],
+        organization_id: int,
+        start: datetime,
+        end: datetime,
+        environment_id: int,
+        referrer_suffix: str,
+        conditions: list[tuple[str, str, str | list[str]]] | None = None,
+    ) -> dict[int, int]:
+        batch_totals: dict[int, int] = defaultdict(int)
+        group_id = group_ids[0]
+        for group_chunk in chunked(group_ids, SNUBA_LIMIT):
+            result = self.get_snuba_query_result(
+                tsdb_function=tsdb_function,
+                model=model,
+                keys=[group_id for group_id in group_chunk],
+                group_id=group_id,
+                organization_id=organization_id,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                referrer_suffix=referrer_suffix,
+                conditions=conditions,
+            )
+            batch_totals.update(result)
+        return batch_totals
+
+    @staticmethod
+    def convert_rule_condition_to_snuba_condition(
+        condition: dict[str, Any]
+    ) -> tuple[str, str, str | list[str]] | None:
+        if condition["id"] != "sentry.rules.filters.tagged_event.TaggedEventFilter":
+            return None
+        lhs = f"tags[{condition['key']}]"
+        rhs = condition["value"]
+        match condition["match"]:
+            case MatchType.EQUAL:
+                operator = Op.EQ
+            case MatchType.NOT_EQUAL:
+                operator = Op.NEQ
+            case MatchType.STARTS_WITH:
+                operator = Op.LIKE
+                rhs = f"{rhs}%"
+            case MatchType.NOT_STARTS_WITH:
+                operator = Op.NOT_LIKE
+                rhs = f"{rhs}%"
+            case MatchType.ENDS_WITH:
+                operator = Op.LIKE
+                rhs = f"%{rhs}"
+            case MatchType.NOT_ENDS_WITH:
+                operator = Op.NOT_LIKE
+                rhs = f"%{rhs}"
+            case MatchType.CONTAINS:
+                operator = Op.LIKE
+                rhs = f"%{rhs}%"
+            case MatchType.NOT_CONTAINS:
+                operator = Op.NOT_LIKE
+                rhs = f"%{rhs}%"
+            case MatchType.IS_SET:
+                operator = Op.IS_NOT_NULL
+                rhs = None
+            case MatchType.NOT_SET:
+                operator = Op.IS_NULL
+                rhs = None
+            case MatchType.IS_IN:
+                operator = Op.IN
+                rhs = rhs.split(",")
+            case MatchType.NOT_IN:
+                operator = Op.NOT_IN
+                rhs = rhs.split(",")
+            case _:
+                raise ValueError(f"Unsupported match type: {condition['match']}")
+
+        return (lhs, operator.value, rhs)
 
 
 PERCENT_INTERVALS: dict[str, tuple[str, timedelta]] = {

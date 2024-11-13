@@ -1,4 +1,3 @@
-from ..sentry_apps.models.platformexternalissue import *  # NOQA
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
@@ -60,7 +59,6 @@ from .groupsnooze import *  # NOQA
 from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
 from .importchunk import *  # NOQA
-from .integrations import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .notificationmessage import *  # NOQA
 from .notificationsettingoption import *  # NOQA
@@ -101,6 +99,8 @@ from .releaseprojectenvironment import *  # NOQA
 from .releases.release_project import *  # NOQA
 from .relocation import *  # NOQA
 from .repository import *  # NOQA
+from .rollbackorganization import *  # NOQA
+from .rollbackuser import *  # NOQA
 from .rule import *  # NOQA
 from .rulefirehistory import RuleFireHistory  # NOQA
 from .rulesnooze import RuleSnooze  # NOQA

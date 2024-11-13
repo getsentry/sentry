@@ -1,21 +1,25 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import {IconBusiness} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {
+  DOMAIN_VIEW_BASE_TITLE,
+  OVERVIEW_PAGE_TITLE,
+} from 'sentry/views/insights/pages/settings';
 import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
-import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -32,7 +36,7 @@ export type Props = {
 
 type Tab = {
   key: string;
-  label: string;
+  label: React.ReactNode;
 };
 
 export function DomainViewHeader({
@@ -49,10 +53,11 @@ export function DomainViewHeader({
   const navigate = useNavigate();
   const organization = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
+  const moduleTitles = useModuleTitles();
 
   const baseCrumbs: Crumb[] = [
     {
-      label: t('Performance'),
+      label: DOMAIN_VIEW_BASE_TITLE,
       to: undefined, // There is no base /performance/ page
       preservePageFilters: true,
     },
@@ -62,14 +67,16 @@ export function DomainViewHeader({
       preservePageFilters: true,
     },
     {
-      label: selectedModule ? MODULE_TITLES[selectedModule] : OVERVIEW_PAGE_TITLE,
-      to: `${moduleURLBuilder(selectedModule as RoutableModuleNames)}/`,
+      label: selectedModule ? moduleTitles[selectedModule] : OVERVIEW_PAGE_TITLE,
+      to: selectedModule
+        ? `${moduleURLBuilder(selectedModule as RoutableModuleNames)}/`
+        : domainBaseUrl,
       preservePageFilters: true,
     },
     ...additionalBreadCrumbs,
   ];
 
-  const filteredModules = filterEnabledModules(modules, organization);
+  const showModuleTabs = organization.features.includes('insights-entry-points');
 
   const defaultHandleTabChange = (key: ModuleName | typeof OVERVIEW_PAGE_TITLE) => {
     if (key === selectedModule || (key === OVERVIEW_PAGE_TITLE && !module)) {
@@ -96,11 +103,16 @@ export function DomainViewHeader({
       key: OVERVIEW_PAGE_TITLE,
       label: OVERVIEW_PAGE_TITLE,
     },
-    ...filteredModules.map(moduleName => ({
-      key: moduleName,
-      label: MODULE_TITLES[moduleName],
-    })),
   ];
+
+  if (showModuleTabs) {
+    tabList.push(
+      ...modules.map(moduleName => ({
+        key: moduleName,
+        label: <TabLabel moduleName={moduleName} />,
+      }))
+    );
+  }
 
   return (
     <Fragment>
@@ -131,6 +143,24 @@ export function DomainViewHeader({
   );
 }
 
-const filterEnabledModules = (modules: ModuleName[], organization: Organization) => {
-  return modules.filter(module => isModuleEnabled(module, organization));
-};
+function TabLabel({moduleName}: {moduleName: ModuleName}) {
+  const moduleTitles = useModuleTitles();
+  const organization = useOrganization();
+  const showBusinessIcon = !isModuleEnabled(moduleName, organization);
+  if (showBusinessIcon) {
+    return (
+      <TabWithIconContainer>
+        {moduleTitles[moduleName]}
+        <IconBusiness />
+      </TabWithIconContainer>
+    );
+  }
+  return <Fragment>{moduleTitles[moduleName]}</Fragment>;
+}
+
+const TabWithIconContainer = styled('div')`
+  display: inline-flex;
+  align-items: center;
+  text-align: left;
+  gap: ${space(0.5)};
+`;

@@ -55,8 +55,8 @@ class IdOrSlugLookupTests(TestCase):
     def setUp(self) -> None:
         self.compiler = Mock()
         # Simulate the quoting behavior for simplicity in tests
-        self.compiler.quote_name_unless_alias = (
-            lambda name: f"{name}" if '"' in name else f'"{name}"'
+        self.compiler.quote_name_unless_alias = lambda name: (
+            f"{name}" if '"' in name else f'"{name}"'
         )
         self.connection = Mock()
 

@@ -51,7 +51,10 @@ type Props = {
   event?: Event;
 };
 
-function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Group) {
+export function useFetchAllEnvsGroupData(
+  organization: OrganizationSummary,
+  group: Group
+) {
   return useApiQuery<Group>(
     makeFetchGroupQueryKey({
       organizationSlug: organization.slug,
@@ -279,7 +282,7 @@ export default function GroupSidebar({
         </ErrorBoundary>
       )}
       {!hasStreamlinedUI && renderPluginIssue()}
-      {issueTypeConfig.tags.enabled && (
+      {issueTypeConfig.tagsTab.enabled && (
         <TagFacets
           environments={environments}
           groupId={group.id}

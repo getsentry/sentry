@@ -1,4 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -14,6 +16,8 @@ jest.mock('sentry/components/events/contexts/contextIcon', () => ({
 }));
 
 describe('HighlightsIconSummary', function () {
+  const organization = OrganizationFixture();
+  const group = GroupFixture();
   const event = EventFixture({
     contexts: TEST_EVENT_CONTEXTS,
     tags: TEST_EVENT_TAGS,
@@ -54,7 +58,7 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getByText('user email')).toBeInTheDocument();
     expect(screen.getByText('user username')).toBeInTheDocument();
     await userEvent.hover(screen.getByText('user username'));
-    expect(await screen.findByText('Username')).toBeInTheDocument();
+    expect(await screen.findByText('User Username')).toBeInTheDocument();
   });
 
   it('renders appropriate icons and text', async function () {
@@ -62,11 +66,11 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getByText('Mac OS X')).toBeInTheDocument();
     expect(screen.getByText('10.15')).toBeInTheDocument();
     await userEvent.hover(screen.getByText('10.15'));
-    expect(await screen.findByText('Version')).toBeInTheDocument();
+    expect(await screen.findByText('Operating System Version')).toBeInTheDocument();
     expect(screen.getByText('CPython')).toBeInTheDocument();
     expect(screen.getByText('3.8.13')).toBeInTheDocument();
     await userEvent.hover(screen.getByText('3.8.13'));
-    expect(await screen.findByText('Version')).toBeInTheDocument();
+    expect(await screen.findByText('Runtime Version')).toBeInTheDocument();
     expect(screen.getAllByRole('img')).toHaveLength(2);
   });
 
@@ -97,6 +101,24 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getByText('iPhone 13')).toBeInTheDocument();
     expect(screen.getByText('x86')).toBeInTheDocument();
     await userEvent.hover(screen.getByText('x86'));
-    expect(await screen.findByText('Architecture')).toBeInTheDocument();
+    expect(await screen.findByText('Device Architecture')).toBeInTheDocument();
+  });
+
+  it('renders release and environment tags', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${group.project.slug}/releases/1.8/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/1.8/deploys/`,
+      body: [],
+    });
+    render(<HighlightsIconSummary event={event} group={group} />);
+    expect(await screen.findByText('1.8')).toBeInTheDocument();
+    expect(screen.getByText('production')).toBeInTheDocument();
   });
 });

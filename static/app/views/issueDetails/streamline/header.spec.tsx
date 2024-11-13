@@ -4,26 +4,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
-jest.mock('screenfull', () => ({
-  enabled: true,
-  isFullscreen: false,
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
-
-describe('UpdatedGroupHeader', () => {
+describe('StreamlinedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
   const organization = OrganizationFixture();
   const project = ProjectFixture({
@@ -65,36 +54,10 @@ describe('UpdatedGroupHeader', () => {
     });
 
     it('shows all elements of header', async () => {
-      const teams: TeamParticipant[] = [{...TeamFixture(), type: 'team'}];
-      const users: UserParticipant[] = [
-        {
-          ...UserFixture({
-            id: '2',
-            name: 'John Smith',
-            email: 'johnsmith@example.com',
-          }),
-          type: 'user',
-        },
-        {
-          ...UserFixture({
-            id: '3',
-            name: 'Sohn Jmith',
-            email: 'sohnjmith@example.com',
-          }),
-          type: 'user',
-        },
-      ];
-
-      const participantGroup = {
-        ...group,
-        participants: [...teams, ...users],
-        seenBy: users,
-      };
-
       render(
         <StreamlinedGroupHeader
           {...defaultProps}
-          group={participantGroup}
+          group={group}
           project={project}
           event={null}
         />,
@@ -106,15 +69,13 @@ describe('UpdatedGroupHeader', () => {
 
       expect(screen.getByText('RequestError')).toBeInTheDocument();
       expect(screen.getByText('Unhandled')).toBeInTheDocument();
-      expect(await screen.findByTestId('all-event-count')).toHaveTextContent(
-        'All Events'
-      );
+      expect(await screen.findByRole('link', {name: 'View events'})).toBeInTheDocument();
+      expect(screen.getByText(formatAbbreviatedNumber(group.count))).toBeInTheDocument();
       expect(
-        await screen.findByRole('link', {name: formatAbbreviatedNumber(group.count)})
+        await screen.findByRole('link', {name: 'View affected users'})
       ).toBeInTheDocument();
-      expect(await screen.findByText('All Users')).toBeInTheDocument();
       expect(
-        await screen.findByRole('link', {name: formatAbbreviatedNumber(group.userCount)})
+        screen.getByText(formatAbbreviatedNumber(group.userCount))
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Modify issue priority'})
@@ -122,9 +83,6 @@ describe('UpdatedGroupHeader', () => {
       expect(
         screen.getByRole('button', {name: 'Modify issue assignee'})
       ).toBeInTheDocument();
-
-      expect(screen.getByText('Participants')).toBeInTheDocument();
-      expect(screen.getByText('Viewers')).toBeInTheDocument();
 
       expect(
         screen.queryByRole('button', {name: 'Switch to the old issue experience'})

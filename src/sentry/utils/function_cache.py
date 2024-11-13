@@ -1,9 +1,12 @@
+from __future__ import annotations
+
+import logging
 import uuid
 from collections.abc import Callable
 from datetime import timedelta
 from decimal import Decimal
 from functools import partial
-from typing import Any, ParamSpec, TypeVar
+from typing import TypeVar, TypeVarTuple
 
 from django.core.cache import cache
 from django.db import models
@@ -11,12 +14,13 @@ from django.db.models.signals import post_delete, post_save
 
 from sentry.utils.hashlib import md5_text
 
-P = ParamSpec("P")
+logger = logging.getLogger(__name__)
+Ts = TypeVarTuple("Ts")
 R = TypeVar("R")
 S = TypeVar("S", bound=models.Model)
 
 
-def arg_to_hashable(arg: Any):
+def arg_to_hashable(arg: object) -> object:
     if isinstance(arg, (int, float, str, Decimal, uuid.UUID)):
         return arg
     elif isinstance(arg, models.Model):
@@ -27,28 +31,39 @@ def arg_to_hashable(arg: Any):
         )
 
 
-def cache_key_for_cached_func(cached_func: Callable[P, R], *args):
+def cache_key_for_cached_func(cached_func: Callable[[*Ts], R], *args: *Ts) -> str:
     base_cache_key = f"query_cache:{md5_text(cached_func.__qualname__).hexdigest()}"
     vals_to_hash = [arg_to_hashable(arg) for arg in args]
     return f"{base_cache_key}:{md5_text(*vals_to_hash).hexdigest()}"
 
 
 def clear_cache_for_cached_func(
-    cached_func: Callable[P, R], arg_getter, recalculate: bool, instance: S, *args, **kwargs
-):
-    args = arg_getter(instance)
-    cache_key = cache_key_for_cached_func(cached_func, *args)
+    cached_func: Callable[[*Ts], R],
+    arg_getter: Callable[[S], tuple[*Ts]],
+    recalculate: bool,
+    instance: S,
+    *args: object,
+    **kwargs: object,
+) -> None:
+    func_args = arg_getter(instance)
+    cache_key = cache_key_for_cached_func(cached_func, *func_args)
     if recalculate:
-        cache.set(cache_key, cached_func(*args))
+        try:
+            value = cached_func(*func_args)
+        except Exception:
+            logger.exception("Failed to recalculate cached value")
+            cache.delete(cache_key)
+        else:
+            cache.set(cache_key, value)
     else:
         cache.delete(cache_key)
 
 
 def cache_func_for_models(
-    cache_invalidators: list[tuple[type[S], Callable[[S], P.args]]],
+    cache_invalidators: list[tuple[type[S], Callable[[S], tuple[*Ts]]]],
     cache_ttl: None | timedelta = None,
     recalculate: bool = True,
-):
+) -> Callable[[Callable[[*Ts], R]], Callable[[*Ts], R]]:
     """
     Decorator that caches the result of a function, and actively invalidates the result when related models are
     created/updated/deleted. To use this, decorate a function with this decorator and pass a list of `cache_invalidators`
@@ -67,11 +82,8 @@ def cache_func_for_models(
     if cache_ttl is None:
         cache_ttl = timedelta(days=7)
 
-    def cached_query_func(func_to_cache: Callable[P, R]):
-        def inner(*args: P.args, **kwargs: P.kwargs) -> R:
-            if kwargs:
-                raise ValueError("Can't cache values using kwargs")
-
+    def cached_query_func(func_to_cache: Callable[[*Ts], R]) -> Callable[[*Ts], R]:
+        def inner(*args: *Ts) -> R:
             cache_key = cache_key_for_cached_func(func_to_cache, *args)
             cached_val = cache.get(cache_key, None)
             if cached_val is None:

@@ -67,6 +67,7 @@ function getMockReplay(rrwebEvents: any[], errors: ReplayError[]) {
   const replay = ReplayReader.factory({
     replayRecord,
     errors,
+    fetching: false,
     attachments,
   });
 
@@ -97,6 +98,7 @@ function getMockReplayWithCrumbFrame(
   const replay = ReplayReader.factory({
     replayRecord,
     errors,
+    fetching: false,
     attachments,
   });
 

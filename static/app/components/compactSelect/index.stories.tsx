@@ -33,10 +33,10 @@ export default storyBook(CompactSelect, story => {
     const [value, setValue] = useState<string>('');
     const options = [
       {value: '', label: 'All'},
-      {value: '2', label: '2XX'},
-      {value: '3', label: '3XX'},
-      {value: '4', label: '4XX'},
-      {value: '5', label: '5XX'},
+      {value: '2', label: '2XX', details: 'Optional'},
+      {value: '3', label: '3XX', details: 'Optional'},
+      {value: '4', label: '4XX', details: 'Optional'},
+      {value: '5', label: '5XX', details: 'Optional'},
     ];
 
     const handleValueChange = newValue => {

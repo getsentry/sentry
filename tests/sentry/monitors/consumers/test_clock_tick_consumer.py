@@ -38,7 +38,12 @@ def create_consumer():
 
 @mock.patch("sentry.monitors.consumers.clock_tick_consumer.dispatch_check_missing")
 @mock.patch("sentry.monitors.consumers.clock_tick_consumer.dispatch_check_timeout")
-def test_simple(mock_dispatch_check_timeout, mock_dispatch_check_missing):
+@mock.patch("sentry.monitors.consumers.clock_tick_consumer.record_clock_tick_volume_metric")
+def test_simple(
+    mock_record_clock_tick_volume_metric,
+    mock_dispatch_check_timeout,
+    mock_dispatch_check_missing,
+):
     consumer = create_consumer()
 
     ts = timezone.now().replace(second=0, microsecond=0)
@@ -50,6 +55,9 @@ def test_simple(mock_dispatch_check_timeout, mock_dispatch_check_missing):
         ts,
     )
     consumer.submit(Message(value))
+
+    assert mock_record_clock_tick_volume_metric.call_count == 1
+    assert mock_record_clock_tick_volume_metric.mock_calls[0] == mock.call(ts)
 
     assert mock_dispatch_check_timeout.call_count == 1
     assert mock_dispatch_check_timeout.mock_calls[0] == mock.call(ts)

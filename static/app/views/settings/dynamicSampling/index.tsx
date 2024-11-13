@@ -6,7 +6,8 @@ import {t} from 'sentry/locale';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {DynamicSampling} from 'sentry/views/settings/dynamicSampling/dynamicSampling';
+import {OrganizationSampling} from 'sentry/views/settings/dynamicSampling/organizationSampling';
+import {ProjectSampling} from 'sentry/views/settings/dynamicSampling/projectSampling';
 
 export default function DynamicSamplingSettings() {
   const organization = useOrganization();
@@ -20,7 +21,16 @@ export default function DynamicSamplingSettings() {
       <SentryDocumentTitle title={t('Dynamic Sampling')} orgSlug={organization.slug} />
       <div>
         <SettingsPageHeader title={t('Dynamic Sampling')} />
-        <DynamicSampling />
+        <p>
+          {t(
+            'Dynamic sampling adaptively reduces the number of spans stored in Sentry without changing SDK sample rates. It allows you to keep the most relevant samples and obtain accurate high-level insights while limiting redundancy and stored span volume. You can customize sample rates and priorities in these settings to control which data is stored.'
+          )}
+        </p>
+        {organization.samplingMode === 'organization' ? (
+          <OrganizationSampling />
+        ) : (
+          <ProjectSampling />
+        )}
       </div>
     </Fragment>
   );

@@ -416,7 +416,9 @@ def _get_and_save_split_decision_for_query(
 
     snuba_dataclass = _get_snuba_dataclass_for_saved_query(saved_query, list(projects))
     selected_columns = _get_field_list(saved_query.query.get("fields", []))
-    equations = _get_equation_list(saved_query.query.get("fields", []))
+    equations = [
+        equation for equation in _get_equation_list(saved_query.query.get("fields", [])) if equation
+    ]
     query = saved_query.query.get("query", "")
 
     try:
@@ -432,7 +434,28 @@ def _get_and_save_split_decision_for_query(
             equations=equations,
             limit=1,
         )
+    except (
+        snuba.UnqualifiedQueryError,
+        InvalidSearchQuery,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+    ) as e:
+        sentry_sdk.capture_exception(e)
+        if dry_run:
+            logger.info(
+                "Split decision for %s: %s (forced fallback)",
+                saved_query.id,
+                DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            )
+        else:
+            _save_split_decision_for_query(
+                saved_query,
+                DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+                DatasetSourcesTypes.FORCED,
+            )
+        return DiscoverSavedQueryTypes.TRANSACTION_LIKE, False
 
+    try:
         transactions_builder = DiscoverQueryBuilder(
             Dataset.Transactions,
             params={},
@@ -442,10 +465,16 @@ def _get_and_save_split_decision_for_query(
             equations=equations,
             limit=1,
         )
-    except (InvalidSearchQuery, InvalidQueryError):
+    except (
+        snuba.UnqualifiedQueryError,
+        InvalidSearchQuery,
+        InvalidQueryError,
+        snuba.QueryExecutionError,
+    ) as e:
+        sentry_sdk.capture_exception(e)
         if dry_run:
             logger.info(
-                "Split decision for %s: %s (forced)",
+                "Split decision for %s: %s (forced fallback)",
                 saved_query.id,
                 DiscoverSavedQueryTypes.ERROR_EVENTS,
             )

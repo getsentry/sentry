@@ -19,6 +19,7 @@ import useApi from 'sentry/utils/useApi';
 
 type AutofixDiffProps = {
   diff: FilePatch[];
+  editable: boolean;
   groupId: string;
   runId: string;
   repoId?: string;
@@ -136,7 +137,9 @@ function DiffHunkContent({
   lines,
   header,
   fileName,
+  editable,
 }: {
+  editable: boolean;
   fileName: string;
   groupId: string;
   header: string;
@@ -155,6 +158,7 @@ function DiffHunkContent({
   const [editedContent, setEditedContent] = useState<string>('');
   const [editedLines, setEditedLines] = useState<string[]>([]);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [hoveredGroup, setHoveredGroup] = useState<number | null>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -385,9 +389,16 @@ function DiffHunkContent({
           <DiffContent
             lineType={line.line_type}
             data-test-id={makeTestIdFromLineType(line.line_type)}
+            onMouseEnter={() => {
+              const group = lineGroups.find(g => index >= g.start && index <= g.end);
+              if (group) {
+                setHoveredGroup(group.start);
+              }
+            }}
+            onMouseLeave={() => setHoveredGroup(null)}
           >
             <DiffLineCode line={line} />
-            {lineGroups.some(group => index === group.start) && (
+            {editable && lineGroups.some(group => index === group.start) && (
               <ButtonGroup>
                 <ActionButton
                   size="xs"
@@ -395,6 +406,7 @@ function DiffHunkContent({
                   aria-label={t('Edit changes')}
                   title={t('Edit')}
                   onClick={() => handleEditClick(index)}
+                  isHovered={hoveredGroup === index}
                 />
                 <ActionButton
                   size="xs"
@@ -402,54 +414,63 @@ function DiffHunkContent({
                   aria-label={t('Reject changes')}
                   title={t('Reject')}
                   onClick={() => rejectChanges(index)}
+                  isHovered={hoveredGroup === index}
                 />
               </ButtonGroup>
             )}
             {editingGroup === index && (
               <EditOverlay ref={overlayRef}>
-                <OverlayTitle>{t('Editing %s', fileName)}</OverlayTitle>
-                <SectionTitle>{getDeletedLineTitle(index)}</SectionTitle>
-                {linesWithChanges
-                  .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
-                  .filter(l => l.line_type === DiffLineType.REMOVED).length > 0 ? (
-                  <RemovedLines>
-                    {linesWithChanges
-                      .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
-                      .filter(l => l.line_type === DiffLineType.REMOVED)
-                      .map((l, i) => (
-                        <RemovedLine key={i}>{l.value}</RemovedLine>
-                      ))}
-                  </RemovedLines>
-                ) : (
-                  <NoChangesMessage>{t('No lines are being deleted.')}</NoChangesMessage>
-                )}
-                <SectionTitle>{getNewLineTitle(index)}</SectionTitle>
-                <TextAreaWrapper>
-                  <StyledTextArea
-                    value={editedContent}
-                    onChange={handleTextAreaChange}
-                    rows={5}
-                    autosize
-                    placeholder={
-                      editedLines.length === 0 ? t('No lines are being added...') : ''
-                    }
-                  />
-                  <ClearButton
-                    size="xs"
-                    onClick={handleClearChanges}
-                    aria-label={t('Clear changes')}
-                    icon={<IconDelete size="xs" />}
-                    title={t('Clear all new lines')}
-                  />
-                </TextAreaWrapper>
-                <OverlayButtonGroup>
-                  <Button size="xs" onClick={handleCancelEdit}>
-                    {t('Cancel')}
-                  </Button>
-                  <Button size="xs" priority="primary" onClick={handleSaveEdit}>
-                    {t('Save')}
-                  </Button>
-                </OverlayButtonGroup>
+                <OverlayHeader>
+                  <OverlayTitle>{t('Editing %s', fileName)}</OverlayTitle>
+                </OverlayHeader>
+                <OverlayContent>
+                  <SectionTitle>{getDeletedLineTitle(index)}</SectionTitle>
+                  {linesWithChanges
+                    .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
+                    .filter(l => l.line_type === DiffLineType.REMOVED).length > 0 ? (
+                    <RemovedLines>
+                      {linesWithChanges
+                        .slice(index, lineGroups.find(g => g.start === index)?.end! + 1)
+                        .filter(l => l.line_type === DiffLineType.REMOVED)
+                        .map((l, i) => (
+                          <RemovedLine key={i}>{l.value}</RemovedLine>
+                        ))}
+                    </RemovedLines>
+                  ) : (
+                    <NoChangesMessage>
+                      {t('No lines are being deleted.')}
+                    </NoChangesMessage>
+                  )}
+                  <SectionTitle>{getNewLineTitle(index)}</SectionTitle>
+                  <TextAreaWrapper>
+                    <StyledTextArea
+                      value={editedContent}
+                      onChange={handleTextAreaChange}
+                      rows={5}
+                      autosize
+                      placeholder={
+                        editedLines.length === 0 ? t('No lines are being added...') : ''
+                      }
+                    />
+                    <ClearButton
+                      size="xs"
+                      onClick={handleClearChanges}
+                      aria-label={t('Clear changes')}
+                      icon={<IconDelete size="xs" />}
+                      title={t('Clear all new lines')}
+                    />
+                  </TextAreaWrapper>
+                </OverlayContent>
+                <OverlayFooter>
+                  <OverlayButtonGroup>
+                    <Button size="xs" onClick={handleCancelEdit}>
+                      {t('Cancel')}
+                    </Button>
+                    <Button size="xs" priority="primary" onClick={handleSaveEdit}>
+                      {t('Save')}
+                    </Button>
+                  </OverlayButtonGroup>
+                </OverlayFooter>
               </EditOverlay>
             )}
           </DiffContent>
@@ -464,7 +485,9 @@ function FileDiff({
   groupId,
   runId,
   repoId,
+  editable,
 }: {
+  editable: boolean;
   file: FilePatch;
   groupId: string;
   runId: string;
@@ -502,6 +525,7 @@ function FileDiff({
                 lines={lines}
                 header={section_header}
                 fileName={file.path}
+                editable={editable}
               />
             );
           })}
@@ -511,7 +535,7 @@ function FileDiff({
   );
 }
 
-export function AutofixDiff({diff, groupId, runId, repoId}: AutofixDiffProps) {
+export function AutofixDiff({diff, groupId, runId, repoId, editable}: AutofixDiffProps) {
   if (!diff || !diff.length) {
     return null;
   }
@@ -525,6 +549,7 @@ export function AutofixDiff({diff, groupId, runId, repoId}: AutofixDiffProps) {
           groupId={groupId}
           runId={runId}
           repoId={repoId}
+          editable={editable}
         />
       ))}
     </DiffsColumn>
@@ -595,7 +620,7 @@ const HunkHeaderContent = styled('div')`
 
 const LineNumber = styled('div')<{lineType: DiffLineType}>`
   display: flex;
-  padding: ${space(0.25)} ${space(2)};
+  padding: ${space(0.25)} ${space(1)};
   user-select: none;
 
   background-color: ${p => p.theme.backgroundSecondary};
@@ -652,37 +677,54 @@ const ButtonGroup = styled('div')`
   top: 0;
   right: ${space(0.25)};
   display: flex;
-  opacity: 0;
-  transition: opacity 0.1s ease-in-out;
-
-  ${DiffContent}:hover & {
-    opacity: 1;
-  }
 `;
 
-const ActionButton = styled(Button)`
+const ActionButton = styled(Button)<{isHovered: boolean}>`
   margin-left: ${space(0.5)};
   font-family: ${p => p.theme.text.family};
+  background-color: ${p =>
+    p.isHovered ? p.theme.button.default.background : p.theme.translucentGray100};
+  color: ${p =>
+    p.isHovered ? p.theme.button.default.color : p.theme.translucentGray200};
+  transition:
+    background-color 0.2s ease-in-out,
+    color 0.2s ease-in-out;
 `;
 
 const EditOverlay = styled('div')`
   position: fixed;
-  bottom: 200px;
+  bottom: 11rem;
   right: ${space(2)};
   left: calc(50% + ${space(2)});
   background: ${p => p.theme.backgroundElevated};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  padding: ${space(2)};
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 18rem);
+`;
+
+const OverlayHeader = styled('div')`
+  padding: ${space(2)} ${space(2)} 0;
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const OverlayContent = styled('div')`
+  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  overflow-y: auto;
+`;
+
+const OverlayFooter = styled('div')`
+  padding: ${space(2)};
+  border-top: 1px solid ${p => p.theme.border};
 `;
 
 const OverlayButtonGroup = styled('div')`
   display: flex;
   justify-content: flex-end;
   gap: ${space(1)};
-  margin-top: ${space(1)};
   font-family: ${p => p.theme.text.family};
 `;
 

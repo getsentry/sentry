@@ -487,6 +487,12 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "feedback.message.max-size",
+    type=Int,
+    default=4096,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Dev Toolbar Options
 register(
@@ -910,18 +916,11 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# TODO: The default error limit here was estimated based on EA traffic. (In an average 10 min
-# period, there are roughly 35K events without matching hashes. About 2% of orgs are EA, so for
-# simplicity, assume 2% of those events are from EA orgs. If we're willing to tolerate up to a 95%
-# failure rate, then we need 35K * 0.02 * 0.95 events to fail to trip the breaker.)
-#
-# When we GA, we should multiply both the limits by 50 (to remove the 2% part of the current
-# calculation), and remove this TODO.
 register(
     "seer.similarity.circuit-breaker-config",
     type=Dict,
     default={
-        "error_limit": 666,
+        "error_limit": 33250,
         "error_limit_window": 600,  # 10 min
         "broken_state_duration": 300,  # 5 min
     },
@@ -1034,19 +1033,6 @@ register(
 register(
     "store.save-event-highcpu-platforms", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-register(
-    "store.symbolicate-event-lpq-never", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "store.symbolicate-event-lpq-always", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# Rate at which to send eligible projects to LPQ symbolicators. This is
-# intended to test gradually phasing out the LPQ.
-register(
-    "store.symbolicate-event-lpq-rate", type=Float, default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 register(
     "post_process.get-autoassign-owners", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
@@ -1922,6 +1908,15 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables a feature flag check in dynamic sampling tasks that switches
+# organizations between transactions and spans for rebalancing. This check is
+# expensive, so it can be disabled using this option.
+register(
+    "dynamic-sampling.check_span_feature_flag",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
 # === Hybrid cloud subsystem options ===
 # UI rollout
 register(
@@ -2006,22 +2001,27 @@ register(
     default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "backpressure.high_watermarks.processing-store-transactions",
+    default=0.8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+# Enables anomaly detection based on the volume of check-ins being processed
+register(
+    "crons.tick_volume_anomaly_detection",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Sets the timeout for webhooks
 register(
     "sentry-apps.webhook.timeout.sec",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# The flag activates whether to send group attributes messages to kafka
-register(
-    "issues.group_attributes.send_kafka",
-    default=True,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Enables statistical detectors for a project
@@ -2545,13 +2545,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deobfuscate profiles using Symbolicator
-register(
-    "profiling.deobfuscate-using-symbolicator.enable-for-project",
-    type=Sequence,
-    default=[],
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "traces.sample-list.sample-rate",
     type=Float,
@@ -2816,9 +2809,62 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Demo mode
 register(
-    "sentryapps.process-resource-change.use-eventid",
+    "demo-mode.enabled",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-mode.orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-mode.users",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# killswitch for profile consumers outcome emission.
+# If false, processed outcomes for profiles will keep
+# being emitted in the billing metrics consumer.
+#
+# If true, we'll stop emitting processed outcomes for
+# profiles in the billing metrics consumer and we'll
+# start emitting them in the profiling consumers
+register(
+    "profiling.emit_outcomes_in_profiling_consumer.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option for sample size when fetching project tag keys
+register(
+    "visibility.tag-key-sample-size",
+    default=1_000_000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option used to enable/disable applying
+# stack trace rules in profiles
+register(
+    "profiling.stack_trace_rules.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# list of project IDs for which we'll apply
+# stack trace rules to the profiles in case
+# there are any rules defined
+register(
+    "profiling.stack_trace_rules.allowed_project_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
