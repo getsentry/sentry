@@ -594,6 +594,15 @@ default_manager.add(
     )
 )
 
+default_manager.add(
+    AuditLogEvent(
+        event_id=204,
+        name="MEMBER_REINVITE",
+        api_name="member.reinvite",
+        template="reinvited member {email}",
+    )
+)
+
 default_manager.add(events.DataSecrecyWaivedAuditLogEvent())
 
 default_manager.add(
