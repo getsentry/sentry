@@ -2,7 +2,6 @@ import {Fragment, useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
@@ -65,7 +64,6 @@ export function SetupIntegrationModal<T extends Data>({
   const {createToken} = useGenerateAuthToken({state, orgSlug: organization?.slug});
 
   const handleDone = useCallback(() => {
-    addSuccessMessage(t('Integration set up successfully'));
     closeModal();
   }, [closeModal]);
 
