@@ -155,7 +155,7 @@ function EventAffectedTransactionsInner({
 
     transactionsDeltaQuery.data?.data?.forEach(row => {
       const transaction = row.transaction as string;
-      const data = functionStats.data.data.find(
+      const data = functionStats.data?.data?.find(
         ({axis, label}) => axis === 'examples()' && label === transaction
       );
       if (!defined(data)) {

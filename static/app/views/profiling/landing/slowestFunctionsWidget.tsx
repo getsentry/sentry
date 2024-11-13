@@ -35,7 +35,9 @@ import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -57,7 +59,7 @@ const MAX_FUNCTIONS = 3;
 const DEFAULT_CURSOR_NAME = 'slowFnCursor';
 
 type BreakdownFunction = 'avg()' | 'p50()' | 'p75()' | 'p95()' | 'p99()';
-type ChartFunctions<F extends BreakdownFunction> = F | 'all_examples()' | 'max()';
+type ChartFunctions<F extends BreakdownFunction> = F | 'all_examples()';
 
 interface SlowestFunctionsWidgetProps<F extends BreakdownFunction> {
   breakdownFunction: F;
@@ -134,10 +136,11 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
 
   const functionStats = useProfileTopEventsStats({
     dataset: 'profileFunctions',
-    fields: ['fingerprint', 'all_examples()', 'max()', breakdownFunction],
+    fields: ['fingerprint', 'all_examples()', breakdownFunction],
     query: functionsData.map(f => `fingerprint:${f.fingerprint}`).join(' OR '),
     referrer: 'api.profiling.suspect-functions.stats',
-    yAxes: ['all_examples()', 'max()', breakdownFunction],
+    yAxes: ['all_examples()', breakdownFunction],
+
     others: false,
     topEvents: functionsData.length,
     enabled: totalsQuery.isFetched && hasFunctions,
@@ -188,7 +191,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
                     setExpandedIndex(nextIndex);
                   }}
                   func={f}
-                  stats={functionStats.data}
+                  stats={functionStats}
                   totalDuration={projectTotalDuration as number}
                   query={userQuery ?? ''}
                 />
@@ -208,7 +211,7 @@ interface SlowestFunctionEntryProps<F extends BreakdownFunction> {
   query: string;
   setExpanded: () => void;
   totalDuration: number;
-  stats?: EventsStatsSeries<ChartFunctions<F>>;
+  stats?: UseApiQueryResult<EventsStatsSeries<ChartFunctions<F>>, RequestError>;
 }
 
 const BARS = 10;
@@ -244,7 +247,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
   }, [func, project]);
 
   const examples: MenuItemProps[] = useMemo(() => {
-    const rawExamples = stats?.data?.find(
+    const rawExamples = stats?.data?.data?.find(
       s => s.axis === 'all_examples()' && s.label === String(func.fingerprint)
     );
 
@@ -252,7 +255,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
       return [];
     }
 
-    const timestamps = stats?.timestamps ?? [];
+    const timestamps = stats?.data?.timestamps ?? [];
 
     return rawExamples.values
       .map(values => (Array.isArray(values) ? values : []))
@@ -344,7 +347,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
 interface FunctionChartProps<F extends BreakdownFunction> {
   breakdownFunction: F;
   func: EventsResultsDataRow<FunctionsField>;
-  stats?: EventsStatsSeries<ChartFunctions<F>>;
+  stats?: UseApiQueryResult<EventsStatsSeries<ChartFunctions<F>>, RequestError>;
 }
 
 function FunctionChart<F extends BreakdownFunction>({
@@ -356,8 +359,8 @@ function FunctionChart<F extends BreakdownFunction>({
   const theme = useTheme();
 
   const series: Series[] = useMemo(() => {
-    const timestamps = stats?.timestamps ?? [];
-    const rawData = stats?.data?.find(
+    const timestamps = stats?.data?.timestamps ?? [];
+    const rawData = stats?.data?.data?.find(
       s => s.axis === breakdownFunction && s.label === String(func.fingerprint)
     );
 
