@@ -21,6 +21,7 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
         self.project_1 = self.create_project(organization=self.org, name="project_1")
         self.project_2 = self.create_project(organization=self.org, name="project_2")
         self.project_3 = self.create_project(organization=self.org, name="project_3")
+        self.project_4 = self.create_project(organization=self.org, name="project_4")
         self.url = reverse(
             "sentry-api-0-organization-sampling-span-counts",
             kwargs={"organization_id_or_slug": self.org.slug},
@@ -33,7 +34,8 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
         )
 
         hour_ago = self.MOCK_DATETIME - timedelta(hours=1)
-        day_ago = self.MOCK_DATETIME - timedelta(days=5)
+        days_ago = self.MOCK_DATETIME - timedelta(days=5)
+        fifty_days_ago = self.MOCK_DATETIME - timedelta(days=50)
 
         for project_source_id, target_project_id, span_count in metric_data:
             self.store_metric(
@@ -50,7 +52,15 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
                 project_id=int(project_source_id),
                 mri=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
                 tags={"target_project_id": str(target_project_id)},
-                timestamp=int(day_ago.timestamp()),
+                timestamp=int(days_ago.timestamp()),
+            )
+            self.store_metric(
+                org_id=self.org.id,
+                value=span_count,
+                project_id=int(project_source_id),
+                mri=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                tags={"target_project_id": str(target_project_id)},
+                timestamp=int(fifty_days_ago.timestamp()),
             )
 
     def test_feature_flag_required(self):
