@@ -1,3 +1,5 @@
+from unittest import mock
+
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.processors.data_condition_group import (
@@ -20,13 +22,18 @@ class TestGetDataConditionsForGroup(TestCase):
 
 class TestProcessDataConditionGroup(TestCase):
     def test_process_data_condition_group(self):
-        assert process_data_condition_group(1, 1) == (False, [])
+        with mock.patch(
+            "sentry.workflow_engine.processors.data_condition_group.logger"
+        ) as mock_logger:
+            assert process_data_condition_group(1, 1) == (False, [])
+            assert mock_logger.exception.call_args[0][0] == "DataConditionGroup does not exist"
 
-    def test_process_data_condition_group__exists(self):
+    def test_process_data_condition_group__exists__fails(self):
         data_condition_group = self.create_data_condition_group()
         self.create_data_condition(
             condition_group=data_condition_group, condition="gt", comparison="5"
         )
+
         assert process_data_condition_group(data_condition_group.id, 1) == (False, [])
 
     def test_process_data_condition_group__exists__passes(self):

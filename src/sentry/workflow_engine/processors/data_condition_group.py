@@ -72,7 +72,10 @@ def process_data_condition_group(
     try:
         group = DataConditionGroup.objects.get(id=data_condition_group_id)
     except DataConditionGroup.DoesNotExist:
-        logger.execption(f"DataConditionGroup with id {data_condition_group_id} does not exist")
+        logger.exception(
+            "DataConditionGroup does not exist",
+            extra={"id": data_condition_group_id},
+        )
         return False, []
 
     return evaluate_condition_group(group, value)
