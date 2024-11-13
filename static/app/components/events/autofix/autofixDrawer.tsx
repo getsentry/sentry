@@ -115,6 +115,7 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
   const config = getConfigForIssueType(group, project);
 
   const isSetupComplete = setupData?.integration.ok && setupData?.genAIConsent.ok;
+  const hasSummary = summaryData && !isError && setupData?.genAIConsent.ok;
 
   return (
     <AutofixDrawerContainer>
@@ -173,9 +174,11 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
           <IconSeer size="lg" />
           {t('Sentry AI')}
         </HeaderText>
-        <StyledCard>
-          <GroupSummaryBody data={summaryData} isError={isError} />
-        </StyledCard>
+        {hasSummary && (
+          <StyledCard>
+            <GroupSummaryBody data={summaryData} isError={isError} />
+          </StyledCard>
+        )}
         {!isSetupLoading && !isSetupComplete ? (
           <SetupContainer>
             <AutofixSetupContent

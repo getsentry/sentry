@@ -62,7 +62,10 @@ export default function SolutionsSection({
     });
   };
 
-  const {data, hasGenAIConsent} = useGroupSummary(group.id, group.issueCategory);
+  const {data, hasGenAIConsent, isPending} = useGroupSummary(
+    group.id,
+    group.issueCategory
+  );
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasSummary = isSummaryEnabled(
@@ -70,6 +73,11 @@ export default function SolutionsSection({
     issueTypeConfig.issueSummary.enabled,
     organization.hideAiFeatures
   );
+  const aiNeedsSetup =
+    !hasGenAIConsent &&
+    !isPending &&
+    issueTypeConfig.issueSummary.enabled &&
+    !organization.hideAiFeatures;
   const hasResources = issueTypeConfig.resources;
 
   return (
@@ -77,7 +85,7 @@ export default function SolutionsSection({
       <SidebarSectionTitle style={{marginTop: 0}}>
         {t('Solutions Hub')}
       </SidebarSectionTitle>
-      {hasSummary && !data && (
+      {(isPending || (hasSummary && !data)) && (
         <Placeholder height="60px" style={{marginBottom: space(1)}} />
       )}
       {hasSummary && data && (
@@ -89,7 +97,18 @@ export default function SolutionsSection({
           />
         </Summary>
       )}
-      {!hasSummary && hasResources && (
+      {aiNeedsSetup && (
+        <Summary>
+          <HeadlineText
+            dangerouslySetInnerHTML={{
+              __html: singleLineRenderer(
+                'Explore potential root causes and solutions with Sentry AI.'
+              ),
+            }}
+          />
+        </Summary>
+      )}
+      {!hasSummary && hasResources && !aiNeedsSetup && (
         <ResourcesWrapper isExpanded={isExpanded}>
           <ResourcesContent isExpanded={isExpanded}>
             <Resources
@@ -103,7 +122,7 @@ export default function SolutionsSection({
           </ExpandButton>
         </ResourcesWrapper>
       )}
-      {hasSummary && (
+      {(hasSummary || aiNeedsSetup) && (
         <StyledButton ref={openButtonRef} onClick={() => openSolutionsDrawer()}>
           {t('Open Solutions Hub')}
           <IconChevron direction="right" size="xs" />
