@@ -103,7 +103,7 @@ def rpc(
                 "referer": referrer,
             },
         )
-        if http_resp.status != 200:
+        if http_resp.status != 200 and http_resp.status != 202:
             error = ErrorProto()
             error.ParseFromString(http_resp.data)
             if SNUBA_INFO:

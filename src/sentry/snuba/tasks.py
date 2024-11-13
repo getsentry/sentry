@@ -11,7 +11,6 @@ from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionResponse,
 )
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemName
 
 from sentry import features
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -130,13 +129,17 @@ def update_subscription_in_snuba(
                 "event_types": subscription.snuba_query.event_types,
             },
         )
-        old_entity_key = get_entity_key_from_query_builder(
-            old_entity_subscription.build_query_builder(
-                query,
-                [subscription.project_id],
-                None,
-                {"organization_id": subscription.project.organization_id},
-            ),
+        old_entity_key = (
+            EntityKey.EAPSpans
+            if dataset == Dataset.EventsAnalyticsPlatform
+            else get_entity_key_from_query_builder(
+                old_entity_subscription.build_query_builder(
+                    query,
+                    [subscription.project_id],
+                    None,
+                    {"organization_id": subscription.project.organization_id},
+                ),
+            )
         )
         _delete_from_snuba(
             Dataset(dataset),
@@ -291,17 +294,17 @@ def _create_rpc_in_snuba(
         resolution_secs=snuba_query.resolution,
     )
 
-    response = snuba_rpc.rpc(
-        subscription_request,
-        CreateSubscriptionResponse,
-        Referrer.API_ALERTS_ALERT_RULE_CHART.value,
-    )
-
-    if response.status != 202:
+    try:
+        response = snuba_rpc.rpc(
+            subscription_request,
+            CreateSubscriptionResponse,
+            Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+        )
+    except snuba_rpc.SnubaRPCError:
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
-        raise SnubaError("HTTP %s response from Snuba!" % response.status)
+        raise
 
-    return orjson.loads(response.data)["subscription_id"]
+    return response.subscription_id
 
 
 def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: EntityKey) -> None:

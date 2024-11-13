@@ -2,6 +2,7 @@ from datetime import datetime
 from unittest.mock import patch
 
 import pytest
+from google.protobuf.json_format import MessageToDict
 from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Relationship
 
 from sentry.exceptions import (
@@ -657,7 +658,7 @@ class EntitySubscriptionTestCase(TestCase):
                 assert isinstance(builder, AlertMetricsQueryBuilder)
                 assert builder.use_metrics_layer is use_metrics_layer
 
-    def test_get_entity_subscription_for_eap_rpc_table_query(self) -> None:
+    def test_get_entity_subscription_for_eap_rpc_query(self) -> None:
         aggregate = "count(span.duration)"
         query = "span.op:http.client"
         entity_subscription = get_entity_subscription(
@@ -665,19 +666,29 @@ class EntitySubscriptionTestCase(TestCase):
             dataset=Dataset.EventsAnalyticsPlatform,
             aggregate=aggregate,
             time_window=3600,
+            extra_fields={"org_id": self.organization.id},
         )
         assert isinstance(entity_subscription, PerformanceSpansEAPRpcEntitySubscription)
         assert entity_subscription.aggregate == aggregate
         assert entity_subscription.get_entity_extra_params() == {}
         assert entity_subscription.dataset == Dataset.EventsAnalyticsPlatform
 
-        rpc_table_request = entity_subscription.build_rpc_request(query, [self.project.id], None)
+        rpc_timeseries_request = entity_subscription.build_rpc_request(
+            query, [self.project.id], None
+        )
 
-        rpc_table_request_string = rpc_table_request.SerializeToString()
+        time_series_request_dict = MessageToDict(rpc_timeseries_request)
 
+        assert time_series_request_dict.get("granularitySecs") == "3600"
         assert (
-            rpc_table_request_string
-            == b'\x12A\x12)\x08\x03\x12\x0f\x08\x04\x12\x0bduration_ms\x1a\x14count(span.duration)\x1a\x14count(span.duration)\x1a%"#\n\x10\x08\x01\x12\x0cattr_str[op]\x10\x05\x1a\r\x12\x0bhttp.client'
+            time_series_request_dict.get("filter")
+            .get("comparisonFilter")
+            .get("value")
+            .get("valStr")
+            == "http.client"
+        )
+        assert (
+            time_series_request_dict.get("aggregations")[0].get("label") == "count(span.duration)"
         )
 
 

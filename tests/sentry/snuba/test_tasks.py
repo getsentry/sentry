@@ -10,6 +10,9 @@ from uuid import uuid4
 import pytest
 import responses
 from django.utils import timezone
+from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import FUNCTION_COUNT
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Or, Query, Relationship
 
 from sentry.incidents.logic import query_datasets_to_type
@@ -280,19 +283,39 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             dataset=Dataset.EventsAnalyticsPlatform,
             time_window=time_window,
         )
-        with patch("sentry.snuba.tasks._snuba_pool") as pool:
+        with patch("sentry.utils.snuba_rpc._snuba_pool") as pool:
             resp = Mock()
             resp.status = 202
-            resp.data = json.dumps({"subscription_id": "123"})
+            resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
             pool.urlopen.return_value = resp
 
             create_subscription_in_snuba(sub.id)
-            request_body = json.loads(pool.urlopen.call_args[1]["body"])
-            # Validate that the spm function uses the correct time window
+
+            rpc_request_body = pool.urlopen.call_args[1]["body"]
+            createSubscriptionRequest = CreateSubscriptionRequest.FromString(rpc_request_body)
+
+            assert createSubscriptionRequest.time_window_secs == time_window
             assert (
-                "b'\\x12A\\x12)\\x08\\x03\\x12\\x0f\\x08\\x04\\x12\\x0bduration_ms\\x1a\\x14count(span.duration)\\x1a\\x14count(span.duration)\\x1a%\"#\\n\\x10\\x08\\x01\\x12\\x0cattr_str[op]\\x10\\x05\\x1a\\r\\x12\\x0bhttp.client'"
-                in request_body["trace_item_table_request"]
+                createSubscriptionRequest.time_series_request.filter.comparison_filter.op
+                == ComparisonFilter.Op.OP_EQUALS
             )
+            assert (
+                createSubscriptionRequest.time_series_request.filter.comparison_filter.key.name
+                == "sentry.op"
+            )
+            assert (
+                createSubscriptionRequest.time_series_request.filter.comparison_filter.value.val_str
+                == "http.client"
+            )
+            assert (
+                createSubscriptionRequest.time_series_request.aggregations[0].aggregate
+                == FUNCTION_COUNT
+            )
+            assert (
+                createSubscriptionRequest.time_series_request.aggregations[0].key.name
+                == "sentry.duration_ms"
+            )
+            # Validate that the spm function uses the correct time window
             sub = QuerySubscription.objects.get(id=sub.id)
             assert sub.status == QuerySubscription.Status.ACTIVE.value
             assert sub.subscription_id is not None
