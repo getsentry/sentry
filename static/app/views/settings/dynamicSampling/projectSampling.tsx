@@ -32,6 +32,7 @@ const UNSAVED_CHANGES_MESSAGE = t(
 export function ProjectSampling() {
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const [period, setPeriod] = useState<ProjectionSamplePeriod>('24h');
+  const [editMode, setEditMode] = useState<'single' | 'bulk'>('single');
 
   const sampleRatesQuery = useGetSamplingProjectRates();
   const sampleCountsQuery = useProjectSampleCounts({period});
@@ -55,6 +56,11 @@ export function ProjectSampling() {
     initialValues: initialValues,
     enableReInitialize: true,
   });
+
+  const handleReset = () => {
+    formState.reset();
+    setEditMode('single');
+  };
 
   const handleSubmit = () => {
     const ratesArray = Object.entries(formState.fields.projectRates.value).map(
@@ -115,12 +121,14 @@ export function ProjectSampling() {
           <LoadingError onRetry={sampleCountsQuery.refetch} />
         ) : (
           <ProjectsEditTable
+            editMode={editMode}
+            onEditModeChange={setEditMode}
             isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
             sampleCounts={sampleCountsQuery.data}
           />
         )}
         <FormActions>
-          <Button disabled={isFormActionDisabled} onClick={formState.reset}>
+          <Button disabled={isFormActionDisabled} onClick={handleReset}>
             {t('Reset')}
           </Button>
           <Button
