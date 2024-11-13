@@ -37,7 +37,6 @@ class Workflow(DefaultFieldsModel, OwnerModel):
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL
     )
     frequency = BoundedPositiveIntegerField(default=30)  # in minutes
-    snoozed = models.BooleanField(default=False)
 
     __repr__ = sane_repr("name", "organization_id")
 
