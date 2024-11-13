@@ -1,6 +1,19 @@
+import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
+
 export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {
     title: string;
+  };
+  'trace.explorer.metadata': {
+    columns: string[];
+    columns_count: number;
+    has_results: boolean;
+    query_status: 'success' | 'error';
+    results_mode: 'sample' | 'aggregate';
+    user_queries: string;
+    user_queries_count: number;
+    visualizes: Visualize[];
+    visualizes_count: number;
   };
   'trace.metadata': {
     num_nodes: number;
@@ -96,6 +109,7 @@ export type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.metadata': 'Trace Load Metadata',
+  'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_layout.show_in_view': 'Clicked Show in View Action',
