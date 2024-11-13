@@ -16,7 +16,6 @@ from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_tasks.check_missed import dispatch_check_missing
 from sentry.monitors.clock_tasks.check_timeout import dispatch_check_timeout
 from sentry.monitors.system_incidents import record_clock_tick_volume_metric
-from sentry.monitors.types import TickVolumeAnomolyResult
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ def process_clock_tick(message: Message[KafkaPayload | FilteredPayload]):
         extra={"reference_datetime": str(ts)},
     )
 
-    dispatch_check_missing(ts, TickVolumeAnomolyResult.NORMAL)
+    dispatch_check_missing(ts)
     dispatch_check_timeout(ts)
 
 
