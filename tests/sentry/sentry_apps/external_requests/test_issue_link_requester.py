@@ -1,5 +1,6 @@
 import pytest
 import responses
+from jsonschema import ValidationError
 
 from sentry.coreapi import APIError
 from sentry.sentry_apps.external_requests.issue_link_requester import IssueLinkRequester
@@ -94,7 +95,7 @@ class TestIssueLinkRequester(TestCase):
             status=200,
             content_type="application/json",
         )
-        with pytest.raises(APIError):
+        with pytest.raises(ValidationError):
             IssueLinkRequester(
                 install=self.install,
                 group=self.group,
