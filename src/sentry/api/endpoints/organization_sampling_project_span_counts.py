@@ -36,7 +36,6 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-        # TODO(shellmayr): add docstring
         self._check_feature(request, organization)
 
         start, end = get_date_range_from_params(request.GET)
