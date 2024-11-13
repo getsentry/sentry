@@ -5,9 +5,11 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {getAllByRole, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/components/nav';
+import {NavContextProvider} from 'sentry/components/nav/context';
 
 const ALL_AVAILABLE_FEATURES = [
   'insights-entry-points',
+  'insights-domain-view',
   'discover',
   'discover-basic',
   'discover-query',
@@ -25,12 +27,17 @@ const ALL_AVAILABLE_FEATURES = [
 describe('Nav', function () {
   describe('default', function () {
     beforeEach(() => {
-      render(<Nav />, {
-        router: RouterFixture({
-          location: LocationFixture({pathname: '/organizations/org-slug/issues/'}),
-        }),
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      });
+      render(
+        <NavContextProvider>
+          <Nav />
+        </NavContextProvider>,
+        {
+          router: RouterFixture({
+            location: LocationFixture({pathname: '/organizations/org-slug/issues/'}),
+          }),
+          organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        }
+      );
     });
     it('renders primary navigation', async function () {
       expect(
@@ -48,34 +55,32 @@ describe('Nav', function () {
         screen.getByRole('navigation', {name: 'Primary Navigation'}),
         'link'
       );
-      expect(links).toHaveLength(8);
+      expect(links).toHaveLength(7);
 
-      [
-        'Issues',
-        'Projects',
-        'Explore',
-        'Insights',
-        'Perf.',
-        'Boards',
-        'Alerts',
-        'Settings',
-      ].forEach((title, index) => {
-        expect(links[index]).toHaveAccessibleName(title);
-      });
+      ['Issues', 'Projects', 'Explore', 'Perf.', 'Boards', 'Alerts', 'Settings'].forEach(
+        (title, index) => {
+          expect(links[index]).toHaveAccessibleName(title);
+        }
+      );
     });
   });
 
   describe('issues', function () {
     beforeEach(() => {
-      render(<Nav />, {
-        router: RouterFixture({
-          location: LocationFixture({
-            pathname: '/organizations/org-slug/issues/',
-            search: '?query=is:unresolved',
+      render(
+        <NavContextProvider>
+          <Nav />
+        </NavContextProvider>,
+        {
+          router: RouterFixture({
+            location: LocationFixture({
+              pathname: '/organizations/org-slug/issues/',
+              search: '?query=is:unresolved',
+            }),
           }),
-        }),
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      });
+          organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        }
+      );
     });
 
     it('renders secondary navigation', async function () {
@@ -99,12 +104,19 @@ describe('Nav', function () {
 
   describe('insights', function () {
     beforeEach(() => {
-      render(<Nav />, {
-        router: RouterFixture({
-          location: LocationFixture({pathname: '/organizations/org-slug/insights/http/'}),
-        }),
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      });
+      render(
+        <NavContextProvider>
+          <Nav />
+        </NavContextProvider>,
+        {
+          router: RouterFixture({
+            location: LocationFixture({
+              pathname: '/organizations/org-slug/insights/http/',
+            }),
+          }),
+          organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        }
+      );
     });
 
     it('renders secondary navigation', async function () {
@@ -116,16 +128,12 @@ describe('Nav', function () {
     it('includes expected submenu items', function () {
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
       const links = getAllByRole(container, 'link');
-      expect(links).toHaveLength(8);
+      expect(links).toHaveLength(4);
       [
-        'Requests',
-        'Queries',
-        'Assets',
-        'App Starts',
-        'Web Vitals',
-        'Caches',
-        'Queues',
-        'LLM Monitoring',
+        'Frontend Performance',
+        'Backend Performance',
+        'AI Performance',
+        'Mobile Performance',
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });
@@ -134,12 +142,17 @@ describe('Nav', function () {
 
   describe('explore', function () {
     beforeEach(() => {
-      render(<Nav />, {
-        router: RouterFixture({
-          location: LocationFixture({pathname: '/organizations/org-slug/traces/'}),
-        }),
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-      });
+      render(
+        <NavContextProvider>
+          <Nav />
+        </NavContextProvider>,
+        {
+          router: RouterFixture({
+            location: LocationFixture({pathname: '/organizations/org-slug/traces/'}),
+          }),
+          organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        }
+      );
     });
 
     it('renders secondary navigation', async function () {
