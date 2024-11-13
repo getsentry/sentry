@@ -86,6 +86,29 @@ export function ProjectSampling() {
     });
   };
 
+  // TODO(aknaus): This calculation + stiching of the two requests is repeated in a few places
+  // and should be moved to a shared utility function.
+  const initialTargetRate = useMemo(() => {
+    const sampleRates = sampleRatesQuery.data ?? [];
+    const spanCounts = sampleCountsQuery.data ?? [];
+    const totalSpanCount = spanCounts.reduce((acc, item) => acc + item.count, 0);
+
+    const spanCountsById = spanCounts.reduce(
+      (acc, item) => {
+        acc[item.project.id] = item.count;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+
+    return (
+      sampleRates.reduce((acc, item) => {
+        const count = spanCountsById[item.id] ?? 0;
+        return acc + count * item.sampleRate;
+      }, 0) / totalSpanCount
+    );
+  }, [sampleRatesQuery.data, sampleCountsQuery.data]);
+
   const isFormActionDisabled =
     !hasAccess ||
     sampleRatesQuery.isPending ||
@@ -105,7 +128,7 @@ export function ProjectSampling() {
         <Panel>
           <PanelHeader>{t('General Settings')}</PanelHeader>
           <PanelBody>
-            <SamplingModeField />
+            <SamplingModeField initialTargetRate={initialTargetRate} />
           </PanelBody>
         </Panel>
         <HeadingRow>
