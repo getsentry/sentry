@@ -7,14 +7,21 @@ from django.conf import settings
 from django.utils import timezone
 
 from sentry.monitors.system_incidents import (
+    MONITOR_TICK_METRIC,
     MONITOR_VOLUME_DECISION_STEP,
     MONITOR_VOLUME_HISTORY,
     MONITOR_VOLUME_RETENTION,
+    AnomalyTransition,
+    TickAnomalyDecision,
+    _make_reference_ts,
+    get_clock_tick_decision,
     get_clock_tick_volume_metric,
+    make_clock_tick_decision,
     record_clock_tick_volume_metric,
     update_check_in_volume,
 )
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import redis
 
 redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
@@ -48,6 +55,24 @@ def fill_historic_volume(
         ts = ts - step
 
     update_check_in_volume(ts_list)
+
+
+def fill_historic_metrics(start: datetime, metrics: Sequence[float | None]):
+    """
+    Creates historic metrics starting from the `start` datetime backfilling the
+    `metrics`, popping from the end of the list until all metrics have been
+    recorded.
+
+    Returns the timestamp the metrics begin at
+    """
+    values: dict[str | bytes, float] = {}
+    for index, metric in enumerate(metrics):
+        ts = _make_reference_ts(start + timedelta(minutes=index))
+        key = MONITOR_TICK_METRIC.format(ts=ts)
+        if metric:
+            values[key] = metric
+
+    redis_client.mset(values)
 
 
 def test_update_check_in_volume():
@@ -258,3 +283,311 @@ def test_record_clock_tiock_volume_metric_uniform(metrics, logger):
         sample_rate=1.0,
     )
     assert get_clock_tick_volume_metric(past_ts) == 0.0
+
+
+@django_db_all
+@override_options(
+    {
+        "crons.tick_volume_anomaly_detection": True,
+        "crons.system_incidents.tick_decision_window": 5,
+        "crons.system_incidents.pct_deviation_anomaly_threshold": -5,
+        "crons.system_incidents.pct_deviation_incident_threshold": -25,
+    }
+)
+def test_tick_decision_anomaly_recovery():
+    start = timezone.now().replace(second=0, microsecond=0)
+
+    test_metrics = [
+        # fmt: off
+        # Operating as normal
+        1.0, 4.0, 3.0, 2.0, 2.0, -3.0,
+        # Anomaly detected
+        -6.0, -7.0,
+        # Anomaly recovers to normal
+        -4.0, -3.0, -3.0, -4.0, -1.0
+        # fmt: on
+    ]
+
+    ts = start
+    fill_historic_metrics(ts, test_metrics)
+
+    # First 6 ticks are operating as normal
+    for _ in range(0, 6):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.NORMAL
+        assert result.transition is None
+
+    # Transition into anomalous state (-6)
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.ABNORMAL
+        assert result.transition == AnomalyTransition.ABNORMALITY_STARTED
+
+    # Next 5 ticks (-7, -4, -3, -3, -4) stay in abnormal state
+    for _ in range(0, 5):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.ABNORMAL
+        assert result.transition is None
+
+    # Next tick recovers the abnormality after 5 ticks under the abnormality threshold
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.NORMAL
+        assert result.transition == AnomalyTransition.ABNORMALITY_RECOVERED
+
+    # The last 6 ABNORMAL ticks transitioned to NORMAL
+    for i in range(1, 7):
+        assert get_clock_tick_decision(ts - timedelta(minutes=i)) == TickAnomalyDecision.NORMAL
+
+
+@django_db_all
+@override_options(
+    {
+        "crons.tick_volume_anomaly_detection": True,
+        "crons.system_incidents.tick_decision_window": 5,
+        "crons.system_incidents.pct_deviation_anomaly_threshold": -5,
+        "crons.system_incidents.pct_deviation_incident_threshold": -25,
+    }
+)
+def test_tick_decisions_simple_incident():
+    """
+    Tests incident detection for an incident that immediately starts and
+    immediately stops.
+    """
+    start = timezone.now().replace(second=0, microsecond=0)
+
+    test_metrics = [
+        # fmt: off
+        # Operating as normal
+        1.0, 4.0, 3.0, 2.0, 2.0, -3.0,
+        # Incident starts immediately
+        -35.0, -80.0, -100.0, -50.0,
+        # Incident quickly recovers
+        -3.0, -2.0, -4.0, -1.0, -4.0
+        # fmt: on
+    ]
+
+    ts = start
+    fill_historic_metrics(ts, test_metrics)
+
+    # First 6 ticks are operating as normal
+    for _ in range(0, 6):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.NORMAL
+        assert result.transition is None
+
+    # Transition into incident (-35)
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.INCIDENT
+        assert result.transition == AnomalyTransition.INCIDENT_STARTED
+
+    # Incident continues (-80, -100, -50)
+    for _ in range(0, 3):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.INCIDENT
+        assert result.transition is None
+
+    # Incident recovers (-3)
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.RECOVERING
+        assert result.transition == AnomalyTransition.INCIDENT_RECOVERING
+
+    # Incident continues recovery (-2, -4, -1)
+    for _ in range(0, 3):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.RECOVERING
+        assert result.transition is None
+
+    # Incident recovers
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.NORMAL
+        assert result.transition == AnomalyTransition.INCIDENT_RECOVERED
+
+    # The last 4 RECOVERING ticks transitioned to NORMAL
+    for i in range(1, 5):
+        assert get_clock_tick_decision(ts - timedelta(minutes=i)) == TickAnomalyDecision.NORMAL
+
+
+@django_db_all
+@override_options(
+    {
+        "crons.tick_volume_anomaly_detection": True,
+        "crons.system_incidents.tick_decision_window": 5,
+        "crons.system_incidents.pct_deviation_anomaly_threshold": -5,
+        "crons.system_incidents.pct_deviation_incident_threshold": -25,
+    }
+)
+def test_tick_decisions_variable_incident():
+    """
+    Tests an incident that slowly starts and slowly recovers.
+    """
+    start = timezone.now().replace(second=0, microsecond=0)
+
+    test_metrics = [
+        # fmt: off
+        # Operating as normal
+        1.0, 4.0, 3.0, 2.0, 2.0, -3.0,
+        # Anomaly detected
+        -6.0, -7.0,
+        # Metrics below anomaly threshold, but not recovered
+        -4.0, -3.0,
+        # Metrics above anomaly threshold again, but not at incident threshold
+        -10.0,
+        # Incident threshold reached
+        -30.0, -40.0, -38.0, -42.0, -25.0, -20.0, -10.0,
+        # Incident recovering
+        -4.0, -3.0,
+        # Metrics above anomaly threshold, recovery failed
+        -6.0,
+        # Metrics back below anomaly threshold, begin recovering again
+        -2.0, -1.0,
+        # Metrics above incident threshold, recovery failed
+        -30.0,
+        # Metrics below anomaly threshold, incident will recover
+        -3.0, -2.0, -4.0, -4.0, -3.0,
+        # fmt: on
+    ]
+
+    ts = start
+    fill_historic_metrics(ts, test_metrics)
+
+    # First 6 ticks are operating as normal
+    for _ in range(0, 6):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.NORMAL
+        assert result.transition is None
+
+    # Transition into anomalous state (-6)
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.ABNORMAL
+        assert result.transition == AnomalyTransition.ABNORMALITY_STARTED
+
+    # Next 4 ticks (-7, -4, -3, -10) stay in anomaly
+    for _ in range(0, 4):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.ABNORMAL
+        assert result.transition is None
+
+    # Incident starts (-30)
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.INCIDENT
+        assert result.transition == AnomalyTransition.INCIDENT_STARTED
+
+    # The last 5 ABNORMAL ticks transitioned to INCIDENT
+    for i in range(1, 6):
+        assert get_clock_tick_decision(ts - timedelta(minutes=i)) == TickAnomalyDecision.INCIDENT
+
+    # Incident continues (-40, -38, -42, -25, -20, -10)
+    for _ in range(0, 6):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.INCIDENT
+        assert result.transition is None
+
+    # Incident begins recovering (-4)
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.RECOVERING
+        assert result.transition == AnomalyTransition.INCIDENT_RECOVERING
+
+    # Incident continues to recover (-3)
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.RECOVERING
+        assert result.transition is None
+
+    # Incident has anomalous tick again (-6), not fully recovered
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.INCIDENT
+        assert result.transition == AnomalyTransition.INCIDENT_RECOVERY_FAILED
+
+    # The last 2 RECOVERING ticks transitioned back to incident
+    for i in range(1, 3):
+        assert get_clock_tick_decision(ts - timedelta(minutes=i)) == TickAnomalyDecision.INCIDENT
+
+    # Incident begins recovering again (-2)
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.RECOVERING
+        assert result.transition == AnomalyTransition.INCIDENT_RECOVERING
+
+    # Incident continues to recover (-1)
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.RECOVERING
+        assert result.transition is None
+
+    # Incident has incident tick again (-30), not fully recovered
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.INCIDENT
+        assert result.transition == AnomalyTransition.INCIDENT_RECOVERY_FAILED
+
+    # The last 2 RECOVERING ticks transitioned back to incident
+    for i in range(1, 3):
+        assert get_clock_tick_decision(ts - timedelta(minutes=i)) == TickAnomalyDecision.INCIDENT
+
+    # Incident begins recovering again (-3)
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.RECOVERING
+        assert result.transition == AnomalyTransition.INCIDENT_RECOVERING
+
+    # Incident continues to recover for the next 3 normal ticks (-2, -4, -4)
+    for _ in range(0, 3):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.RECOVERING
+        assert result.transition is None
+
+    # Incident recovers at the final 5th tick (-3)
+    for _ in range(0, 1):
+        result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
+        assert result.decision == TickAnomalyDecision.NORMAL
+        assert result.transition == AnomalyTransition.INCIDENT_RECOVERED
+
+    # The last 4 RECOVERING ticks transitioned to NORMAL
+    for i in range(1, 5):
+        assert get_clock_tick_decision(ts - timedelta(minutes=i)) == TickAnomalyDecision.NORMAL
+
+    # The final tick decision history looks like this
+    decision_history = [
+        TickAnomalyDecision.NORMAL,
+        TickAnomalyDecision.NORMAL,
+        TickAnomalyDecision.NORMAL,
+        TickAnomalyDecision.NORMAL,
+        TickAnomalyDecision.NORMAL,
+        TickAnomalyDecision.NORMAL,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.INCIDENT,
+        TickAnomalyDecision.NORMAL,
+        TickAnomalyDecision.NORMAL,
+        TickAnomalyDecision.NORMAL,
+        TickAnomalyDecision.NORMAL,
+        TickAnomalyDecision.NORMAL,
+    ]
+
+    ts = start + timedelta(minutes=1)
+    for i, expected in enumerate(decision_history):
+        decision = get_clock_tick_decision(ts + timedelta(minutes=i))
+        assert decision == expected
