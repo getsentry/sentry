@@ -56,11 +56,11 @@ class OrganizationDashboardsPermission(OrganizationPermission):
             if request.user.id == obj.created_by_id:
                 return True
 
-            # Check if user has permissions to edit dashboard
+            # check if user is restricted from editing dashboard
             if hasattr(obj, "permissions"):
                 return obj.permissions.has_edit_permissions(request.user.id)
 
-            return False
+            return True
 
         return True
 
