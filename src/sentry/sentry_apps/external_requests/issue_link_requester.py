@@ -72,7 +72,8 @@ class IssueLinkRequester:
             )
             body = safe_urlread(request)
             response = json.loads(body)
-
+        except (json.JSONDecodeError, TypeError):
+            raise ValidationError(f"Unable to parse response from {self.sentry_app.slug}")
         except Exception as e:
             logger.info(
                 "issue-link-requester.error",
