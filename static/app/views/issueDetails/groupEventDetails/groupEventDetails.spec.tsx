@@ -431,7 +431,7 @@ describe('groupEventDetails', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the Span Evidence and Resources section for Performance Issues', async function () {
+  it('renders the Span Evidence section for Performance Issues', async function () {
     const props = makeDefaultMockData();
     const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
@@ -465,14 +465,9 @@ describe('groupEventDetails', () => {
         name: /span evidence/i,
       })
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {
-        name: /resources/i,
-      })
-    ).toBeInTheDocument();
   });
 
-  it('renders the Function Evidence and Resources section for Profile Issues', async function () {
+  it('renders the Function Evidence section for Profile Issues', async function () {
     const props = makeDefaultMockData();
     const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
@@ -509,11 +504,6 @@ describe('groupEventDetails', () => {
     expect(
       await screen.findByRole('heading', {
         name: /function evidence/i,
-      })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {
-        name: /resources/i,
       })
     ).toBeInTheDocument();
   });
