@@ -8,7 +8,7 @@ import {
   type GPUContext,
 } from 'sentry/components/events/contexts/knownContext/gpu';
 
-export const MOCK_GPU_CONTEXT: GPUContext = {
+const MOCK_GPU_CONTEXT: GPUContext = {
   name: '',
   version: 'Metal',
   id: 2400,
