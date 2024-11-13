@@ -277,8 +277,9 @@ def update_groups(
                 or Release.objects.filter(
                     projects=projects[0], organization_id=projects[0].organization_id
                 )
-                .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                .order_by("-sort")
+                .filter_to_semver()
+                .annotate_prerelease_column()
+                .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
                 .first()
             )
 
