@@ -262,7 +262,6 @@ module = [
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.middleware.superuser",
-    "sentry.models.organizationaccessrequest",
     "sentry.monitors.consumers.monitor_consumer",
     "sentry.monitors.endpoints.base",
     "sentry.monitors.endpoints.monitor_ingest_checkin_attachment",

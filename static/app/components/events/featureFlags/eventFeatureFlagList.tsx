@@ -1,14 +1,20 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   CardContainer,
   FeatureFlagDrawer,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
+import {
+  modalCss,
+  SetupIntegrationModal,
+} from 'sentry/components/events/featureFlags/setupIntegrationModal';
 import {
   FlagControlOptions,
   OrderBy,
@@ -86,6 +92,16 @@ export function EventFeatureFlagList({
     event,
   });
 
+  const hasFlagContext = !!event.contexts.flags;
+  const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values.length);
+
+  function handleSetupButtonClick() {
+    trackAnalytics('flags.setup_modal_opened', {organization});
+    openModal(modalProps => <SetupIntegrationModal {...modalProps} />, {
+      modalCss,
+    });
+  }
+
   const suspectFlagNames: Set<string> = useMemo(() => {
     return isSuspectError || isSuspectPending
       ? new Set()
@@ -156,37 +172,63 @@ export function EventFeatureFlagList({
     [openDrawer, event, group, project, hydratedFlags, organization, sortBy, orderBy]
   );
 
-  if (!hydratedFlags.length) {
+  useEffect(() => {
+    if (hasFlags) {
+      trackAnalytics('flags.table_rendered', {
+        organization,
+        numFlags: hydratedFlags.length,
+      });
+    }
+  }, [hasFlags, hydratedFlags.length, organization]);
+
+  // TODO: for LD users, show a CTA in this section instead
+  // if contexts.flags is not set, hide the section
+  if (!hasFlagContext) {
     return null;
   }
 
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
-      <Button
-        size="xs"
-        aria-label={t('View All')}
-        ref={viewAllButtonRef}
-        title={t('View All Flags')}
-        onClick={() => {
-          isDrawerOpen ? closeDrawer() : onViewAllFlags();
-        }}
-      >
-        {t('View All')}
-      </Button>
-      <Button
-        aria-label={t('Open Feature Flag Search')}
-        icon={<IconSearch size="xs" />}
-        size="xs"
-        title={t('Open Search')}
-        onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
-      />
-      <FeatureFlagSort
-        orderBy={orderBy}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        setOrderBy={setOrderBy}
-      />
+      {hasFlagContext && (
+        <Fragment>
+          <Button
+            aria-label={t('Set Up Integration')}
+            size="xs"
+            onClick={handleSetupButtonClick}
+          >
+            {t('Set Up Integration')}
+          </Button>
+          {hasFlags && (
+            <Fragment>
+              <Button
+                size="xs"
+                aria-label={t('View All')}
+                ref={viewAllButtonRef}
+                title={t('View All Flags')}
+                onClick={() => {
+                  isDrawerOpen ? closeDrawer() : onViewAllFlags();
+                }}
+              >
+                {t('View All')}
+              </Button>
+              <Button
+                aria-label={t('Open Feature Flag Search')}
+                icon={<IconSearch size="xs" />}
+                size="xs"
+                title={t('Open Search')}
+                onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
+              />
+              <FeatureFlagSort
+                orderBy={orderBy}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                setOrderBy={setOrderBy}
+              />
+            </Fragment>
+          )}
+        </Fragment>
+      )}
     </ButtonBar>
   );
 
@@ -209,10 +251,16 @@ export function EventFeatureFlagList({
         type={SectionKey.FEATURE_FLAGS}
         actions={actions}
       >
-        <CardContainer numCols={columnTwo.length ? 2 : 1}>
-          <KeyValueData.Card contentItems={columnOne} />
-          <KeyValueData.Card contentItems={columnTwo} />
-        </CardContainer>
+        {hasFlags ? (
+          <CardContainer numCols={columnTwo.length ? 2 : 1}>
+            <KeyValueData.Card contentItems={columnOne} />
+            <KeyValueData.Card contentItems={columnTwo} />
+          </CardContainer>
+        ) : (
+          <StyledEmptyStateWarning withIcon>
+            {t('No feature flags were found for this event')}
+          </StyledEmptyStateWarning>
+        )}
       </InterimSection>
     </ErrorBoundary>
   );
@@ -225,4 +273,12 @@ const SuspectLabel = styled('div')`
 const ValueWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  border: ${p => p.theme.border} solid 1px;
+  border-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
