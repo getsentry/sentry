@@ -1027,18 +1027,22 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 
     def _resolve_epm(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: dict[str, str | Column | SelectType | int | float],
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
         return self._resolve_rate(60, args, alias, extra_condition)
 
     def _resolve_eps(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: dict[str, str | Column | SelectType | int | float],
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
         return self._resolve_rate(None, args, alias, extra_condition)
 
     def _resolve_rate(

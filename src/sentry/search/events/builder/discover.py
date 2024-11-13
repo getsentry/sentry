@@ -175,6 +175,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         config = config if config is not None else QueryBuilderConfig()
         config.auto_fields = False
         config.equation_config = {"auto_add": True, "aggregates_only": True}
+        self.interval = interval
         super().__init__(
             dataset,
             params,
@@ -185,7 +186,6 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             config=config,
         )
 
-        self.interval = interval
         self.granularity = Granularity(interval)
 
         self.limit = None if limit is None else Limit(limit)

@@ -2070,6 +2070,8 @@ class MetricsDatasetConfig(DatasetConfig):
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
         return self._resolve_rate(60, args, alias, extra_condition)
 
     def _resolve_spm(
@@ -2078,6 +2080,8 @@ class MetricsDatasetConfig(DatasetConfig):
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
         return self._resolve_rate(60, args, alias, extra_condition, "span.self_time")
 
     def _resolve_eps(
@@ -2086,6 +2090,8 @@ class MetricsDatasetConfig(DatasetConfig):
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
         return self._resolve_rate(None, args, alias, extra_condition)
 
     def _resolve_rate(

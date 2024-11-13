@@ -52,12 +52,6 @@ def get_query_columns(columns, rollup):
     column_map = {
         "user_count": "count_unique(user)",
         "event_count": "count()",
-        "epm()": "epm(%d)" % rollup,
-        "eps()": "eps(%d)" % rollup,
-        "tpm()": "tpm(%d)" % rollup,
-        "tps()": "tps(%d)" % rollup,
-        "sps()": "sps(%d)" % rollup,
-        "spm()": "spm(%d)" % rollup,
     }
 
     return [column_map.get(column, column) for column in columns]
