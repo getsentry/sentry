@@ -3,7 +3,6 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -29,20 +28,6 @@ from sentry.models.dashboard import Dashboard, DashboardTombstone
 
 EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
-
-
-class DashboardPermissions(BasePermission):
-    """
-    Django Permissions Class for managing Dashboard Edit
-    permissions defined in the DashboardPermissions Model
-    """
-
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
-    }
 
 
 class OrganizationDashboardBase(OrganizationEndpoint):
