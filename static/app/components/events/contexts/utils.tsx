@@ -19,6 +19,7 @@ import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
+import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
 import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
@@ -40,7 +41,6 @@ import {
   getUnknownPlatformContextData,
   KNOWN_PLATFORM_CONTEXTS,
 } from './platform';
-import {getKnownProfileContextData, getUnknownProfileContextData} from './profile';
 import {getReduxContextData} from './redux';
 import {getKnownRuntimeContextData, getUnknownRuntimeContextData} from './runtime';
 import {getKnownStateContextData, getUnknownStateContextData} from './state';
@@ -458,10 +458,7 @@ export function getFormattedContextData({
         ...getUnknownStateContextData({data: contextValue, meta}),
       ];
     case 'profile':
-      return [
-        ...getKnownProfileContextData({data: contextValue, meta, organization, project}),
-        ...getUnknownProfileContextData({data: contextValue, meta}),
-      ];
+      return getProfileContextData({data: contextValue, meta, organization, project});
     case 'replay':
       return getReplayContextData({data: contextValue, meta});
     case 'cloud_resource':
