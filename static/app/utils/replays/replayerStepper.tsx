@@ -44,7 +44,7 @@ export default function replayerStepper<
     // as well.
     const rrwebEventsWithoutMediaInteractions = rrwebEvents.filter(
       ({type, data}) =>
-        type === EventType.IncrementalSnapshot &&
+        type !== EventType.IncrementalSnapshot ||
         data.source !== IncrementalSource.MediaInteraction
     );
 
