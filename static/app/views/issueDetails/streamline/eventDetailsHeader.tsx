@@ -87,6 +87,8 @@ export function EventDetailsHeader({
               query: location.query,
               replace: true,
             }}
+            analyticsEventKey="issue_details.issue_tags_clicked"
+            analyticsEventName="Issue Details: Issue Tags Clicked"
           >
             {t('Issue Tags')}
           </IssueTagsButton>
