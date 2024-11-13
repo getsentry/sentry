@@ -1,23 +1,16 @@
+import logging
 from typing import Any
 
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.types import ProcessedDataConditionResult
 
-
-@cache_func_for_models(
-    [(DataConditionGroup, lambda group: (group.id,))],
-)
-def get_data_condition_group(data_condition_group_id: int) -> DataConditionGroup | None:
-    try:
-        group = DataConditionGroup.objects.get(id=data_condition_group_id)
-    except DataConditionGroup.DoesNotExist:
-        group = None
-    return group
+logger = logging.getLogger(__name__)
 
 
 @cache_func_for_models(
     [(DataCondition, lambda condition: (condition.condition_group_id,))],
+    recalculate=False,
 )
 def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCondition]:
     return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
@@ -73,11 +66,13 @@ def evaluate_condition_group(
 
 
 def process_data_condition_group(
-    data_condition_group_id: int, value
+    data_condition_group_id: int,
+    value: Any,
 ) -> ProcessedDataConditionResult:
-    group = get_data_condition_group(data_condition_group_id)
-
-    if group is None:
+    try:
+        group = DataConditionGroup.objects.get(id=data_condition_group_id)
+    except DataConditionGroup.DoesNotExist:
+        logger.execption(f"DataConditionGroup with id {data_condition_group_id} does not exist")
         return False, []
 
     return evaluate_condition_group(group, value)
