@@ -39,12 +39,18 @@ const BASE_CONFIG: IssueTypeConfig = {
   aiSuggestedSolution: false,
   events: {enabled: true},
   mergedIssues: {enabled: false},
+  filterAndSearchHeader: {enabled: true},
+  performanceDurationRegression: {enabled: false},
+  profilingDurationRegression: {enabled: false},
   regression: {enabled: false},
   replays: {enabled: false},
   showFeedbackWidget: false,
-  stats: {enabled: true},
   similarIssues: {enabled: false},
+  spanEvidence: {enabled: false},
+  stacktrace: {enabled: true},
+  stats: {enabled: true},
   tags: {enabled: true},
+  tagsTab: {enabled: true},
   userFeedback: {enabled: false},
   discover: {enabled: true},
   evidence: {title: t('Evidence')},
@@ -104,7 +110,7 @@ export const getIssueCategoryAndTypeFromOccurrenceType = (
 export const getConfigForIssueType = (
   params: GetConfigForIssueTypeParams,
   project: Project
-) => {
+): IssueTypeConfig => {
   const {issueCategory, issueType, title} =
     'eventOccurrenceType' in params
       ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType as number)

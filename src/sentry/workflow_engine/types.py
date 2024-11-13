@@ -18,5 +18,4 @@ class DetectorPriorityLevel(IntEnum):
 DetectorGroupKey = str | None
 
 DataConditionResult = DetectorPriorityLevel | int | float | bool | None
-
 ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]

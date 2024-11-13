@@ -19,7 +19,6 @@ from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.profiles.task import (
-    Profile,
     _calculate_profile_duration_ms,
     _deobfuscate,
     _deobfuscate_using_symbolicator,
@@ -30,6 +29,7 @@ from sentry.profiles.task import (
     get_metrics_dsn,
     process_profile_task,
 )
+from sentry.profiles.utils import Profile
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.pytest.fixtures import django_db_all

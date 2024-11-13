@@ -106,6 +106,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:dashboards-releases-on-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access protected editing of dashboards
     manager.add("organizations:dashboards-edit-access", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable share links for dashboards for sharing outside the org
+    manager.add("organizations:dashboards-share", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the dev toolbar PoC code for employees
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -349,6 +351,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:relay-cardinality-limiter", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable the release details performance section
     manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Fixes the next release resolution for semver releases
+    manager.add("organizations:releases-resolve-next-release-semver-fix", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # enable new release set_commits functionality
     manager.add("organizations:set-commits-updated", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable new release UI
@@ -360,7 +364,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable version 2 of reprocessing (completely distinct from v1)
     manager.add("organizations:reprocessing-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable Sentry's 2024 Rollback feature
-    manager.add("organizations:sentry-rollback-2024", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:sentry-rollback-2024", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable resolve in upcoming release
     # TODO(steve): Remove when we remove the feature from the UI
     manager.add("organizations:resolve-in-upcoming-release", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=True)
@@ -391,8 +395,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-enable-canvas-replayer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable linking from 'new issue' email notifs to the issue replay list
     manager.add("organizations:session-replay-issue-emails", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enable queries to materialized view from replay index endpoint
-    manager.add("organizations:session-replay-materialized-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable mobile replay player
     manager.add("organizations:session-replay-mobile-player", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disable select orgs from ingesting mobile replay events.

@@ -55,6 +55,7 @@ export function useIntegrationExternalIssues({
     const actions = configurations
       .filter(config => config.externalIssues.length === 0)
       .map<ExternalIssueAction>(config => ({
+        id: config.id,
         name: config.name,
         nameSubText: config.domainName ?? undefined,
         disabled: config.status === 'disabled',

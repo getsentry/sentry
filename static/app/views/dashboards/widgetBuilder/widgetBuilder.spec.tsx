@@ -581,8 +581,8 @@ describe('WidgetBuilder', function () {
     // Select line chart display
     await userEvent.click(screen.getByText('Line Chart'));
 
-    // Click the add overlay button
-    await userEvent.click(screen.getByLabelText('Add Overlay'));
+    // Click the Add Data button
+    await userEvent.click(screen.getByLabelText('Add Data'));
     await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
 
     await userEvent.click(screen.getByLabelText('Add Widget'));
@@ -1259,7 +1259,7 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('Area Chart')).toBeInTheDocument();
 
     // Add a group by
-    await userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Data'));
     await selectEvent.select(screen.getByText('Select group'), /project/);
 
     // Change the y-axis
@@ -1308,7 +1308,7 @@ describe('WidgetBuilder', function () {
 
     await selectEvent.select(await screen.findByText('Select group'), 'project');
 
-    await userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Data'));
     await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
 
     await waitFor(() => {
@@ -1375,7 +1375,7 @@ describe('WidgetBuilder', function () {
     screen.getByText('Limit to 5 results');
 
     await userEvent.click(screen.getByText('Add Query'));
-    await userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Data'));
 
     expect(screen.getByText('Limit to 2 results')).toBeInTheDocument();
   });
@@ -2674,6 +2674,38 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByText('plan')).not.toBeInTheDocument();
       await userEvent.click(screen.getByText(`count(…)`));
       expect(screen.getByText('plan')).toBeInTheDocument();
+    });
+
+    it('does not show the Add Query button', async function () {
+      const dashboard = mockDashboard({
+        widgets: [
+          WidgetFixture({
+            widgetType: WidgetType.SPANS,
+            // Add Query is only available for timeseries charts
+            displayType: DisplayType.LINE,
+            queries: [
+              {
+                name: 'Test Widget',
+                fields: ['count(span.duration)'],
+                columns: [],
+                conditions: '',
+                orderby: '',
+                aggregates: ['count(span.duration)'],
+              },
+            ],
+          }),
+        ],
+      });
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      await screen.findByText('Line Chart');
+      expect(screen.queryByText('Add Query')).not.toBeInTheDocument();
     });
   });
 });

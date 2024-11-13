@@ -11,7 +11,7 @@ from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLe
 logger = logging.getLogger(__name__)
 
 
-class Conditions(StrEnum):
+class Condition(StrEnum):
     EQUAL = "eq"
     GREATER_OR_EQUAL = "gte"
     GREATER = "gt"
@@ -21,12 +21,12 @@ class Conditions(StrEnum):
 
 
 condition_ops = {
-    Conditions.EQUAL: operator.eq,
-    Conditions.GREATER_OR_EQUAL: operator.ge,
-    Conditions.GREATER: operator.gt,
-    Conditions.LESS_OR_EQUAL: operator.le,
-    Conditions.LESS: operator.lt,
-    Conditions.NOT_EQUAL: operator.ne,
+    Condition.EQUAL: operator.eq,
+    Condition.GREATER_OR_EQUAL: operator.ge,
+    Condition.GREATER: operator.gt,
+    Condition.LESS_OR_EQUAL: operator.le,
+    Condition.LESS: operator.lt,
+    Condition.NOT_EQUAL: operator.ne,
 }
 
 
@@ -79,7 +79,7 @@ class DataCondition(DefaultFieldsModel):
         # TODO: This evaluation logic should probably go into the condition class, and we just produce a condition
         # class from this model
         try:
-            condition = Conditions(self.condition)
+            condition = Condition(self.condition)
         except ValueError:
             logger.exception(
                 "Invalid condition", extra={"condition": self.condition, "id": self.id}
