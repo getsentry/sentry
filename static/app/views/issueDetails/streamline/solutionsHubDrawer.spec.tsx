@@ -6,7 +6,6 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
@@ -17,9 +16,7 @@ import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutions
 jest.mock('sentry/utils/useOrganization');
 
 describe('AutofixDrawer', () => {
-  const {organization} = initializeOrg({
-    organization: OrganizationFixture(),
-  });
+  const organization = OrganizationFixture();
 
   const mockEvent = EventFixture({
     entries: [

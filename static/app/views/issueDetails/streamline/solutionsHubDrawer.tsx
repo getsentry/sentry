@@ -9,6 +9,7 @@ import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumb
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
+import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
@@ -33,8 +34,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
-
-import {AutofixSetupContent} from '../../../components/events/autofix/autofixSetupModal';
 
 interface AutofixStartBoxProps {
   groupId: string;
@@ -203,10 +202,10 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
       <SolutionsDrawerBody>
         {config.resources && (
           <ResourcesContainer>
-            <HeaderText style={{gap: space(1.5)}}>
+            <ResourcesHeader>
               <IconDocs size="md" />
               {t('Resources')}
-            </HeaderText>
+            </ResourcesHeader>
             <ResourcesBody>
               <Resources
                 eventPlatform={event?.platform}
@@ -411,6 +410,10 @@ const HeaderText = styled('div')`
   align-items: center;
   gap: ${space(1)};
   padding-bottom: ${space(2)};
+`;
+
+const ResourcesHeader = styled(HeaderText)`
+  gap: ${space(1.5)};
 `;
 
 const StarTrail = styled('div')`
