@@ -337,6 +337,7 @@ class UsageStatsOrganization<
       dataCategoryApiName,
     } = this.props;
     const {total, accepted, invalid, rateLimited, filtered} = this.chartData.cardStats;
+    const dataCategoryNameLower = dataCategoryName.toLowerCase();
 
     const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
       event.preventDefault();
@@ -356,7 +357,7 @@ class UsageStatsOrganization<
         help: tct(
           'Accepted [dataCategory] were successfully processed by Sentry. For more information, read our [docsLink:docs].',
           {
-            dataCategory,
+            dataCategory: dataCategoryNameLower,
             docsLink: (
               <ExternalLink
                 href="https://docs.sentry.io/product/stats/#accepted"
@@ -380,7 +381,7 @@ class UsageStatsOrganization<
         help: tct(
           'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules. For more information, read our [docsLink:docs].',
           {
-            dataCategory,
+            dataCategory: dataCategoryNameLower,
             filterSettings: (
               <a href="#" onClick={event => navigateToInboundFilterSettings(event)} />
             ),
@@ -399,7 +400,7 @@ class UsageStatsOrganization<
         help: tct(
           'Rate Limited [dataCategory] were discarded due to rate limits or quota. For more information, read our [docsLink:docs].',
           {
-            dataCategory,
+            dataCategory: dataCategoryNameLower,
             docsLink: (
               <ExternalLink
                 href="https://docs.sentry.io/product/stats/#rate-limited"
@@ -415,7 +416,7 @@ class UsageStatsOrganization<
         help: tct(
           'Invalid [dataCategory] were sent by the SDK and were discarded because the data did not meet the basic schema requirements. For more information, read our [docsLink:docs].',
           {
-            dataCategory,
+            dataCategory: dataCategoryNameLower,
             docsLink: (
               <ExternalLink
                 href="https://docs.sentry.io/product/stats/#invalid"
