@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
@@ -22,6 +23,8 @@ interface TraceTimelineTooltipProps {
 export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineTooltipProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const area = useAnalyticsArea();
+
   // TODO: should handling of current event + other events look different
   if (timelineEvents.length === 1 && timelineEvents[0].id === event.id) {
     return <YouAreHere>{t('You are here')}</YouAreHere>;
@@ -32,6 +35,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
   );
   const displayYouAreHere = filteredTimelineEvents.length !== timelineEvents.length;
   const hasTitle = filteredTimelineEvents.length > 1 || displayYouAreHere;
+
   return (
     <UnstyledUnorderedList>
       {displayYouAreHere && <YouAreHereItem>{t('You are here')}</YouAreHereItem>}
@@ -52,13 +56,21 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
           <Link
             to={generateTraceTarget(event, organization, location)}
             onClick={() => {
-              trackAnalytics(
-                'issue_details.issue_tab.trace_timeline_more_events_clicked',
-                {
-                  organization,
-                  num_hidden: filteredTimelineEvents.length - 3,
-                }
-              );
+              if (area.startsWith('issue_details')) {
+                // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
+                trackAnalytics(
+                  'issue_details.issue_tab.trace_timeline_more_events_clicked',
+                  {
+                    organization,
+                    num_hidden: filteredTimelineEvents.length - 3,
+                  }
+                );
+              }
+              trackAnalytics('trace_timeline_more_events_clicked', {
+                organization,
+                num_hidden: filteredTimelineEvents.length - 3,
+                area,
+              });
             }}
           >
             {tn(
@@ -85,6 +97,8 @@ function EventItem({timelineEvent, location}: EventItemProps) {
     orgId: organization.slug,
   });
   const project = projects.find(p => p.slug === timelineEvent.project);
+  const area = useAnalyticsArea();
+
   return (
     <EventItemRoot
       to={{
@@ -92,14 +106,25 @@ function EventItem({timelineEvent, location}: EventItemProps) {
         query: {
           ...location.query,
           project: undefined,
-          referrer: 'issues_trace_timeline',
+          referrer: area.includes('issue_details')
+            ? 'issues_trace_timeline' // TODO: remove this condition after queries are migrated
+            : area,
         },
       }}
       onClick={() => {
-        trackAnalytics('issue_details.issue_tab.trace_timeline_clicked', {
+        if (area.includes('issue_details')) {
+          // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated
+          trackAnalytics('issue_details.issue_tab.trace_timeline_clicked', {
+            organization,
+            event_id: timelineEvent.id,
+            group_id: `${timelineEvent['issue.id']}`,
+          });
+        }
+        trackAnalytics('trace_timeline_clicked', {
           organization,
           event_id: timelineEvent.id,
           group_id: `${timelineEvent['issue.id']}`,
+          area,
         });
       }}
     >
