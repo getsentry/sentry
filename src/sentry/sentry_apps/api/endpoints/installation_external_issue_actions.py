@@ -1,11 +1,14 @@
 from django.utils.functional import empty
+from jsonschema import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import capture_exception
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
+from sentry.coreapi import APIError, APIUnauthorized
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
@@ -71,8 +74,16 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
                 uri=uri,
                 user=user,
             ).run()
-        except Exception:
-            return Response({"error": "Error communicating with Sentry App service"}, status=400)
+        except (APIError, ValidationError, APIUnauthorized) as e:
+            return Response({"error": str(e)}, status=400)
+        except Exception as e:
+            error_id = capture_exception(e)
+            return Response(
+                {
+                    "error": f"Something went wrong while trying to link issue. Sentry error ID: {error_id}"
+                },
+                status=500,
+            )
 
         return Response(
             serialize(objects=external_issue, serializer=PlatformExternalIssueSerializer())
