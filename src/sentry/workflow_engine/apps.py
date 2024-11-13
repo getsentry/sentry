@@ -5,4 +5,4 @@ class Config(AppConfig):
     name = "sentry.workflow_engine"
 
     def ready(self):
-        pass
+        from sentry.workflow_engine.endpoints import serializers  # NOQA
