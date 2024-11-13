@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
@@ -16,16 +16,23 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import {GroupSummaryBody, useGroupSummary} from 'sentry/components/group/groupSummary';
 import Input from 'sentry/components/input';
 import {IconDocs, IconSeer} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
+import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {
+  getConfigForIssueType,
+  shouldShowCustomErrorResourceConfig,
+} from 'sentry/utils/issueTypeConfig';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {AutofixSetupContent} from './autofixSetupModal';
 
@@ -92,6 +99,35 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   );
 }
 
+const shouldDisplayAiAutofixForOrganization = (organization: Organization) => {
+  return (
+    ((organization.features.includes('autofix') &&
+      organization.features.includes('issue-details-autofix-ui')) ||
+      organization.genAIConsent) &&
+    !organization.hideAiFeatures &&
+    getRegionDataFromOrganization(organization)?.name !== 'de'
+  );
+};
+
+// Autofix requires the event to have stack trace frames in order to work correctly.
+function hasStacktraceWithFrames(event: Event) {
+  for (const entry of event.entries) {
+    if (entry.type === EntryType.EXCEPTION) {
+      if (entry.data.values?.some(value => value.stacktrace?.frames?.length)) {
+        return true;
+      }
+    }
+
+    if (entry.type === EntryType.THREADS) {
+      if (entry.data.values?.some(thread => thread.stacktrace?.frames?.length)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 interface AutofixDrawerProps {
   event: Event;
   group: Group;
@@ -117,6 +153,15 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
 
   const isSetupComplete = setupData?.integration.ok && setupData?.genAIConsent.ok;
   const hasSummary = summaryData && !isError && setupData?.genAIConsent.ok;
+
+  const organization = useOrganization();
+  const isSampleError = useIsSampleEvent();
+  const displayAiAutofix =
+    shouldDisplayAiAutofixForOrganization(organization) &&
+    config.autofix &&
+    !shouldShowCustomErrorResourceConfig(group, project) &&
+    hasStacktraceWithFrames(event) &&
+    !isSampleError;
 
   return (
     <AutofixDrawerContainer>
@@ -174,31 +219,43 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
         <HeaderText>
           <IconSeer size="lg" />
           {t('Sentry AI')}
-          <FeatureBadge type="beta" />
+          <FeatureBadge
+            type="beta"
+            title={tct(
+              'This feature is experimental. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+              {
+                email: <a href="mailto:autofix@sentry.io" />,
+              }
+            )}
+          />
         </HeaderText>
         {hasSummary && (
           <StyledCard>
             <GroupSummaryBody data={summaryData} isError={isError} />
           </StyledCard>
         )}
-        {!isSetupLoading && !isSetupComplete ? (
-          <SetupContainer>
-            <AutofixSetupContent
-              projectId={project.id}
-              groupId={group.id}
-              closeModal={() => {}}
-              refetchSetup={refetchSetup}
-            />
-          </SetupContainer>
-        ) : !autofixData ? (
-          <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
-        ) : (
-          <AutofixSteps
-            data={autofixData}
-            groupId={group.id}
-            runId={autofixData.run_id}
-            onRetry={reset}
-          />
+        {displayAiAutofix && (
+          <Fragment>
+            {!isSetupLoading && !isSetupComplete ? (
+              <SetupContainer>
+                <AutofixSetupContent
+                  projectId={project.id}
+                  groupId={group.id}
+                  closeModal={() => {}}
+                  refetchSetup={refetchSetup}
+                />
+              </SetupContainer>
+            ) : !autofixData ? (
+              <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
+            ) : (
+              <AutofixSteps
+                data={autofixData}
+                groupId={group.id}
+                runId={autofixData.run_id}
+                onRetry={reset}
+              />
+            )}
+          </Fragment>
         )}
       </AutofixDrawerBody>
     </AutofixDrawerContainer>

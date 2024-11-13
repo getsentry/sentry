@@ -62,10 +62,8 @@ export default function SolutionsSection({
     });
   };
 
-  const {data, hasGenAIConsent, isPending} = useGroupSummary(
-    group.id,
-    group.issueCategory
-  );
+  const hasGenAIConsent = organization.genAIConsent;
+  const {data, isPending} = useGroupSummary(group.id, group.issueCategory);
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasSummary = isSummaryEnabled(

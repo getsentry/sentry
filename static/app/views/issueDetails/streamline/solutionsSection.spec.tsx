@@ -38,6 +38,7 @@ describe('SolutionsSection', () => {
     (useOrganization as jest.Mock).mockReturnValue({
       ...organization,
       hideAiFeatures: false,
+      genAIConsent: true,
     });
   });
 
@@ -52,7 +53,6 @@ describe('SolutionsSection', () => {
   it('renders loading state when summary is pending', () => {
     (useGroupSummary as jest.Mock).mockReturnValue({
       isPending: true,
-      hasGenAIConsent: true,
       data: null,
     });
 
@@ -66,7 +66,6 @@ describe('SolutionsSection', () => {
     const mockSummary = 'This is a test summary';
     (useGroupSummary as jest.Mock).mockReturnValue({
       isPending: false,
-      hasGenAIConsent: true,
       data: {
         whatsWrong: mockSummary,
       },
@@ -78,11 +77,16 @@ describe('SolutionsSection', () => {
     expect(screen.getByRole('button', {name: 'Open Solutions Hub'})).toBeInTheDocument();
   });
 
-  it('renders AI setup prompt when consent is needed and summary should otherwise be available', () => {
+  it('renders AI setup prompt when consent is not given', () => {
     (useGroupSummary as jest.Mock).mockReturnValue({
       isPending: false,
-      hasGenAIConsent: false,
       data: null,
+    });
+
+    (useOrganization as jest.Mock).mockReturnValue({
+      ...organization,
+      hideAiFeatures: false,
+      genAIConsent: false,
     });
 
     renderComponent();
@@ -96,13 +100,13 @@ describe('SolutionsSection', () => {
   it('renders resources section when AI features are disabled', () => {
     (useGroupSummary as jest.Mock).mockReturnValue({
       isPending: false,
-      hasGenAIConsent: false,
       data: null,
     });
 
     (useOrganization as jest.Mock).mockReturnValue({
       ...organization,
       hideAiFeatures: true,
+      genAIConsent: false,
     });
 
     renderComponent();
@@ -114,13 +118,13 @@ describe('SolutionsSection', () => {
   it('toggles resources content when clicking Read More/Show Less', async () => {
     (useGroupSummary as jest.Mock).mockReturnValue({
       isPending: false,
-      hasGenAIConsent: false,
       data: null,
     });
 
     (useOrganization as jest.Mock).mockReturnValue({
       ...organization,
       hideAiFeatures: true,
+      genAIConsent: false,
     });
 
     renderComponent();

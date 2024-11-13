@@ -1,18 +1,37 @@
 import {AutofixDataFixture} from 'sentry-fixture/autofixData';
 import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 import {EventFixture} from 'sentry-fixture/event';
+import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AutofixDrawer} from 'sentry/components/events/autofix/autofixDrawer';
 import {t} from 'sentry/locale';
+import {EntryType} from 'sentry/types/event';
+import useOrganization from 'sentry/utils/useOrganization';
+
+jest.mock('sentry/utils/useOrganization');
 
 describe('AutofixDrawer', () => {
-  const mockEvent = EventFixture();
+  const {organization} = initializeOrg({
+    organization: OrganizationFixture(),
+  });
+
+  const mockEvent = EventFixture({
+    entries: [
+      {
+        type: EntryType.EXCEPTION,
+        data: {values: [{stacktrace: {frames: [FrameFixture()]}}]},
+      },
+    ],
+  });
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
+  mockProject.organization.genAIConsent = true;
 
   const mockAutofixData = AutofixDataFixture({steps: [AutofixStepFixture()]});
 
@@ -36,6 +55,12 @@ describe('AutofixDrawer', () => {
         possibleCause: 'Test possible cause',
         headline: 'Test headline',
       },
+    });
+
+    (useOrganization as jest.Mock).mockReturnValue({
+      ...organization,
+      hideAiFeatures: false,
+      genAIConsent: true,
     });
   });
 
