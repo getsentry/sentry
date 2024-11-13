@@ -1,7 +1,15 @@
+from django.conf import settings
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    DefaultFieldsModel,
+    FlexibleForeignKey,
+    region_silo_model,
+    sane_repr,
+)
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.owner_base import OwnerModel
 
 
@@ -23,6 +31,13 @@ class Workflow(DefaultFieldsModel, OwnerModel):
     when_condition_group = FlexibleForeignKey(
         "workflow_engine.DataConditionGroup", blank=True, null=True
     )
+
+    environment_id = BoundedPositiveIntegerField(null=True)
+    created_by = HybridCloudForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL
+    )
+    frequency = BoundedPositiveIntegerField(default=30)  # in minutes
+    snoozed = models.BooleanField(default=False)
 
     __repr__ = sane_repr("name", "organization_id")
 
