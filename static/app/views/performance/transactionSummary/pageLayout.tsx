@@ -38,7 +38,6 @@ import {
   getTransactionName,
 } from '../utils';
 
-import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
@@ -140,8 +139,6 @@ function PageLayout(props: Props) {
           return eventsRouteWithQuery(routeQuery);
         case Tab.SPANS:
           return spansRouteWithQuery(routeQuery);
-        case Tab.ANOMALIES:
-          return anomaliesRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
           return replaysRouteWithQuery(routeQuery);
         case Tab.PROFILING: {

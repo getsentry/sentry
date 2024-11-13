@@ -4,7 +4,6 @@ import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -37,7 +36,6 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
 import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
-import {anomaliesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionAnomalies/utils';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 import {replaysRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
@@ -102,8 +100,6 @@ function TransactionHeader({
           return eventsRouteWithQuery(routeQuery);
         case Tab.SPANS:
           return spansRouteWithQuery(routeQuery);
-        case Tab.ANOMALIES:
-          return anomaliesRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
           return replaysRouteWithQuery(routeQuery);
         case Tab.PROFILING: {
@@ -146,10 +142,6 @@ function TransactionHeader({
   }
 
   const project = projects.find(p => p.id === projectId);
-
-  const hasAnomalyDetection = organization.features.includes(
-    'performance-anomaly-detection-ui'
-  );
 
   const hasSessionReplay =
     organization.features.includes('session-replay') &&
@@ -221,14 +213,6 @@ function TransactionHeader({
             <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
             <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
             <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
-            <TabList.Item
-              key={Tab.ANOMALIES}
-              textValue={t('Anomalies')}
-              hidden={!hasAnomalyDetection}
-            >
-              {t('Anomalies')}
-              <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />
-            </TabList.Item>
             <TabList.Item
               key={Tab.WEB_VITALS}
               textValue={t('Web Vitals')}
@@ -396,14 +380,6 @@ function TransactionHeader({
               <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
               <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
-              <TabList.Item
-                key={Tab.ANOMALIES}
-                textValue={t('Anomalies')}
-                hidden={!hasAnomalyDetection}
-              >
-                {t('Anomalies')}
-                <FeatureBadge type="alpha" tooltipProps={{disabled: true}} />
-              </TabList.Item>
               <TabList.Item
                 key={Tab.WEB_VITALS}
                 textValue={t('Web Vitals')}
