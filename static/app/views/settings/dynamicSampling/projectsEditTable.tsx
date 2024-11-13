@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
@@ -39,6 +39,7 @@ export function ProjectsEditTable({
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const {value, initialValue, error, onChange} = useFormField('projectRates');
   const [isBulkEditEnabled, setIsBulkEditEnabled] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [orgRate, setOrgRate] = useState<string>('');
 
@@ -55,6 +56,12 @@ export function ProjectsEditTable({
       ),
     [sampleCounts]
   );
+
+  useEffect(() => {
+    if (isBulkEditEnabled) {
+      inputRef.current?.focus();
+    }
+  }, [isBulkEditEnabled]);
 
   const handleProjectChange = useCallback(
     (projectId: string, newRate: string) => {
@@ -180,7 +187,7 @@ export function ProjectsEditTable({
             <FieldGroup
               label={t('Projected Organization Rate')}
               help={t(
-                'An estimate of the organization-wide sample rate, based on the span volume in the selected time frame.'
+                "An estimate of the combined sample rate for all projects. Adjusting this will proportionally update each project's rate below."
               )}
               flexibleControlStateSize
               alignRight
@@ -188,6 +195,7 @@ export function ProjectsEditTable({
               <InputWrapper>
                 <PercentInput
                   type="number"
+                  ref={inputRef}
                   disabled={!hasAccess || !isBulkEditEnabled}
                   size="sm"
                   onChange={handleOrgChange}
@@ -206,12 +214,14 @@ export function ProjectsEditTable({
                     <BulkEditButton
                       size="zero"
                       title={t(
-                        'Scale all your project rates up and down by adjusting the organization-wide target'
+                        'Adjusting your organization rate will automatically scale individual project rates to match.'
                       )}
                       priority="link"
-                      onClick={() => setIsBulkEditEnabled(true)}
+                      onClick={() => {
+                        setIsBulkEditEnabled(true);
+                      }}
                     >
-                      {t('bulk edit')}
+                      {t('edit')}
                     </BulkEditButton>
                   )}
                 </FlexRow>
