@@ -20,7 +20,7 @@ from sentry.integrations.messaging.commands import (
     MessagingIntegrationCommandDispatcher,
 )
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
-from sentry.integrations.utils.metrics import EventLifecycle
+from sentry.integrations.types import EventLifecycleOutcome, MessagingResponse
 
 LINK_USER_MESSAGE = "[Click here]({url}) to link your Discord account to your Sentry account."
 ALREADY_LINKED_MESSAGE = "You are already linked to the Sentry account with email: `{email}`."
@@ -72,28 +72,25 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
     @property
     def command_handlers(
         self,
-    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler]]:
-        def help_handler(input: CommandInput, lifecycle: EventLifecycle) -> str:
-            return HELP_MESSAGE
+    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[MessagingResponse[str]]]]:
+        def help_handler(input: CommandInput) -> MessagingResponse[str]:
+            return MessagingResponse(
+                interaction_result=EventLifecycleOutcome.SUCCESS,
+                response=HELP_MESSAGE,
+            )
 
-        def link_user_handler(input: CommandInput, lifecycle: EventLifecycle) -> str:
+        def link_user_handler(input: CommandInput) -> MessagingResponse[str]:
             if self.request.has_identity():
-                lifecycle.record_halt(
-                    extra={
+                return MessagingResponse(
+                    interaction_result=EventLifecycleOutcome.HALTED,
+                    response=ALREADY_LINKED_MESSAGE.format(email=self.request.get_identity_str()),
+                    context_data={
                         "reason": MessageCommandHaltReason.ALREADY_LINKED,
                         "email": self.request.get_identity_str(),
-                    }
+                    },
                 )
-                return ALREADY_LINKED_MESSAGE.format(email=self.request.get_identity_str())
 
             if not self.request.integration or not self.request.user_id:
-                lifecycle.record_failure(
-                    extra={
-                        "reason": MessageCommandFailureReason.MISSING_DATA,
-                        "has_integration": bool(self.request.integration),
-                        "has_user_id": self.request.user_id,
-                    }
-                )
                 # TODO: remove this logger
                 logger.warning(
                     "discord.interaction.command.missing.integration",
@@ -102,19 +99,33 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
                         "hasUserId": self.request.user_id,
                     },
                 )
-                return MISSING_DATA_MESSAGE
+                return MessagingResponse(
+                    interaction_result=EventLifecycleOutcome.FAILURE,
+                    response=MISSING_DATA_MESSAGE,
+                    context_data={
+                        "has_integration": bool(self.request.integration),
+                        "has_user_id": bool(self.request.user_id),
+                        "reason": MessageCommandFailureReason.MISSING_DATA,
+                    },
+                )
 
             link_url = build_linking_url(
                 integration=self.request.integration,
                 discord_id=self.request.user_id,
             )
 
-            return LINK_USER_MESSAGE.format(url=link_url)
+            return MessagingResponse(
+                interaction_result=EventLifecycleOutcome.SUCCESS,
+                response=LINK_USER_MESSAGE.format(url=link_url),
+            )
 
-        def unlink_user_handler(input: CommandInput, lifecycle: EventLifecycle) -> str:
+        def unlink_user_handler(input: CommandInput) -> MessagingResponse[str]:
             if not self.request.has_identity():
-                lifecycle.record_halt(extra={"reason": MessageCommandHaltReason.NOT_LINKED})
-                return NOT_LINKED_MESSAGE
+                return MessagingResponse(
+                    interaction_result=EventLifecycleOutcome.HALTED,
+                    response=NOT_LINKED_MESSAGE,
+                    context_data={"reason": MessageCommandHaltReason.NOT_LINKED},
+                )
 
             # if self.request.has_identity() then these must not be None
             assert self.request.integration is not None
@@ -125,7 +136,10 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
                 discord_id=self.request.user_id,
             )
 
-            return UNLINK_USER_MESSAGE.format(url=unlink_url)
+            return MessagingResponse(
+                interaction_result=EventLifecycleOutcome.SUCCESS,
+                response=UNLINK_USER_MESSAGE.format(url=unlink_url),
+            )
 
         yield commands.HELP, help_handler
         yield commands.LINK_IDENTITY, link_user_handler

@@ -10,7 +10,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
-from sentry.integrations.utils.metrics import EventLifecycle
+from sentry.integrations.types import EventLifecycleOutcome, MessagingResponse
 
 
 @dataclass(frozen=True, eq=True)
@@ -133,7 +133,8 @@ class MessageCommandFailureReason(Enum):
 R = TypeVar("R")  # response
 
 # Command handler type that receives lifecycle object
-CommandHandler = Callable[[CommandInput, EventLifecycle], R]
+CommandHandler = Callable[[CommandInput], MessagingResponse[R]]
+MessagingDispatchResponse = Callable[[CommandInput], MessagingResponse[R]]
 
 
 class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
@@ -148,10 +149,10 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
     @abstractmethod
     def command_handlers(
         self,
-    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[R]]]:
+    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[MessagingResponse[R]]]]:
         """Return list of (command, handler) tuples.
 
-        Each handler receives (command_input, lifecycle) and returns R.
+        Each handler receives (command_input) and returns MessagingResponse[R].
         """
         raise NotImplementedError
 
@@ -165,7 +166,7 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         class CandidateHandler:
             command: MessagingIntegrationCommand
             slug: CommandSlug
-            callback: CommandHandler[R]
+            callback: CommandHandler[MessagingResponse[R]]
 
             def parsing_order(self) -> int:
                 # Sort by descending length of arg tokens. If one slug is a prefix of
@@ -184,7 +185,15 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
             if handler.slug.does_match(cmd_input):
                 arg_input = cmd_input.adjust(handler.slug)
                 event = self.get_event(handler.command)
-                with event.capture(assume_success=True) as lifecycle:
-                    return handler.callback(arg_input, lifecycle)
+                with event.capture(assume_success=False) as lifecycle:
+                    response = handler.callback(arg_input)
+                    # Record the appropriate lifecycle event based on the response
+                    if response.interaction_result == EventLifecycleOutcome.HALTED:
+                        lifecycle.record_halt(extra=response.context_data or {})
+                    elif response.interaction_result == EventLifecycleOutcome.FAILURE:
+                        lifecycle.record_failure(extra=response.context_data or {})
+                    else:
+                        lifecycle.record_success()
+                    return response.response
 
         raise CommandNotMatchedError(f"{cmd_input=!r}", cmd_input)
