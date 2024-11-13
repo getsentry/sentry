@@ -168,7 +168,9 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
 
         def link_user_handler(input: CommandInput) -> MessagingResponse[Response]:
             response = self.endpoint.link_user(self.request)
-            if str(response.data) in ALREADY_LINKED_MESSAGE:
+            if ALREADY_LINKED_MESSAGE.format(username=self.request.identity_str) in str(
+                response.data
+            ):
                 return MessagingResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=response,
@@ -184,7 +186,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
 
         def unlink_user_handler(input: CommandInput) -> MessagingResponse[Response]:
             response = self.endpoint.unlink_user(self.request)
-            if str(response.data) in NOT_LINKED_MESSAGE:
+            if NOT_LINKED_MESSAGE in str(response.data):
                 return MessagingResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=response,
@@ -216,7 +218,6 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
 
         def unlink_team_handler(input: CommandInput) -> MessagingResponse[Response]:
             response = self.endpoint.unlink_team(self.request)
-
             for message, reason in self.TEAM_HALT_MAPPINGS.items():
                 if message in str(response.data):
                     return MessagingResponse(
