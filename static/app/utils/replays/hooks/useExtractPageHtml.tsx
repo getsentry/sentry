@@ -60,7 +60,7 @@ export default function useExtractPageHtml({replay, offsetMsToStopAt}: Props) {
     queryFn: () =>
       extractPageHtml({
         offsetMsToStopAt,
-        rrwebEvents: replay?.getRRWebFrames(),
+        rrwebEvents: replay?.getRRWebFramesWithoutMediaInteractions(),
         startTimestampMs: replay?.getReplay().started_at.getTime() ?? 0,
       }),
     enabled: Boolean(replay),
