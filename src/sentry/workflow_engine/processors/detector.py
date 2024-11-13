@@ -21,7 +21,6 @@ from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detect
 from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_condition_group,
     get_data_condition_group,
-    get_data_conditions_for_group,
 )
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
@@ -117,10 +116,7 @@ class DetectorHandler(abc.ABC, Generic[T]):
         self.detector = detector
         if detector.workflow_condition_group_id is not None:
             group = get_data_condition_group(detector.workflow_condition_group_id)
-            conditions = get_data_conditions_for_group(detector.workflow_condition_group_id)
-
             self.condition_group: DataConditionGroup | None = group
-            self.conditions = conditions
         else:
             self.condition_group = None
 
@@ -276,7 +272,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         # level, but usually we want to set this at a higher level.
         new_status = DetectorPriorityLevel.OK
         is_group_condition_met, condition_results = evaluate_condition_group(
-            self.condition_group, value, conditions=self.conditions
+            self.condition_group, value
         )
 
         if is_group_condition_met:
@@ -286,8 +282,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
                 if result is not None and isinstance(result, DetectorPriorityLevel)
             ]
 
-            max_result_status = max(validated_condition_results)
-            new_status = max(new_status, max_result_status)
+            new_status = max(new_status, *validated_condition_results)
 
         # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
         self.enqueue_counter_update(group_key, {})
