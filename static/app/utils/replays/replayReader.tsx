@@ -455,7 +455,7 @@ export default class ReplayReader {
 
     const results = await replayerStepper({
       frames: this.getDOMFrames(),
-      rrwebEvents: this.getRRWebFramesWithoutMediaInteractions(),
+      rrwebEvents: this.getRRWebFrames(),
       startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
       onVisitFrame,
       shouldVisitFrame,
@@ -492,13 +492,6 @@ export default class ReplayReader {
   };
 
   getRRWebFrames = () => this._sortedRRWebEvents;
-
-  getRRWebFramesWithoutMediaInteractions = () =>
-    this._sortedRRWebEvents.filter(
-      ({type, data}) =>
-        type === EventType.IncrementalSnapshot &&
-        data.source !== IncrementalSource.MediaInteraction
-    );
 
   getBreadcrumbFrames = () => this._sortedBreadcrumbFrames;
 

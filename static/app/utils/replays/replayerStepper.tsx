@@ -1,4 +1,4 @@
-import type {Replayer} from '@sentry-internal/rrweb';
+import {EventType, IncrementalSource, type Replayer} from '@sentry-internal/rrweb';
 
 import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
 
@@ -38,7 +38,19 @@ export default function replayerStepper<
       return;
     }
 
-    const {replayer, cleanupReplayer} = createHiddenPlayer(rrwebEvents);
+    // Skip media interaction events as they are unnecessary to the
+    // stepper. Prevents errors with `play()`
+    // (https://developer.chrome.com/blog/play-request-was-interrupted)
+    // as well.
+    const rrwebEventsWithoutMediaInteractions = rrwebEvents.filter(
+      ({type, data}) =>
+        type === EventType.IncrementalSnapshot &&
+        data.source !== IncrementalSource.MediaInteraction
+    );
+
+    const {replayer, cleanupReplayer} = createHiddenPlayer(
+      rrwebEventsWithoutMediaInteractions
+    );
 
     const nextFrame = (function () {
       let i = 0;
