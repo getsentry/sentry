@@ -24,25 +24,6 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
 
     def test_launchdarkly_post_create(self):
         request_data = LD_REQUEST
-
-        with self.feature(self.features):
-            response = self.client.post(self.url, request_data)
-
-        assert response.status_code == 200
-        assert FlagAuditLogModel.objects.count() == 2
-        flag = FlagAuditLogModel.objects.first()
-        assert flag is not None
-        assert flag.action == ACTION_MAP["created"]
-        assert flag.flag == "test flag"
-        assert flag.created_by == "michelle@example.com"
-        assert flag.created_by_type == CREATED_BY_TYPE_MAP["email"]
-        assert flag.organization_id == self.organization.id
-        assert flag.tags is not None
-        assert flag.tags["description"] == "flag was created"
-
-    def test_launchdarkly_post_create_signed(self):
-        # Sign the LD request.
-        request_data = LD_REQUEST
         signature = hmac_sha256_hex_digest(key="123", message=json.dumps(request_data).encode())
 
         # Store the signing secret in Sentry.
@@ -74,8 +55,13 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             assert response.status_code == 401
 
     def test_post_launchdarkly_deserialization_failed(self):
+        signature = hmac_sha256_hex_digest(key="123", message=json.dumps({}).encode())
+        FlagWebHookSigningSecretModel.objects.create(
+            organization=self.organization, provider="launchdarkly", secret="123"
+        )
+
         with self.feature(self.features):
-            response = self.client.post(self.url, {})
+            response = self.client.post(self.url, {}, headers={"X-LD-Signature": signature})
             assert response.status_code == 200
             assert FlagAuditLogModel.objects.count() == 0
 

@@ -156,7 +156,7 @@ def validate_launchdarkly_event(
     """Return "true" if the launchdarkly payload is valid."""
     signature = request_headers.get("X-LD-Signature")
     if signature is None:
-        return True
+        return False
 
     try:
         model = FlagWebHookSigningSecretModel.objects.get(
