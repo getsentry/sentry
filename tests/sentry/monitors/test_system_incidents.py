@@ -10,11 +10,14 @@ from sentry.monitors.system_incidents import (
     MONITOR_VOLUME_DECISION_STEP,
     MONITOR_VOLUME_HISTORY,
     MONITOR_VOLUME_RETENTION,
-    evaluate_tick_decision,
+    get_clock_tick_volume_metric,
+    record_clock_tick_volume_metric,
     update_check_in_volume,
 )
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import redis
+
+redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
 
 def fill_historic_volume(
@@ -62,7 +65,7 @@ def test_update_check_in_volume():
 
     def make_key(offset: timedelta) -> str:
         ts = now.replace(second=0, microsecond=0) + offset
-        return MONITOR_VOLUME_HISTORY.format(int(ts.timestamp()))
+        return MONITOR_VOLUME_HISTORY.format(ts=int(ts.timestamp()))
 
     minute_0 = redis_client.get(make_key(timedelta()))
     minute_1 = redis_client.get(make_key(timedelta(minutes=1)))
@@ -78,10 +81,10 @@ def test_update_check_in_volume():
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.tick_volume_anomaly_detection": True})
-def test_evaluate_tick_decision_simple(metrics, logger):
+def test_record_clock_tiock_volume_metric_simple(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
-    # This is the timestamp we're looking at just after the tick
+    # This is the timestamp we're looking at just before the tick
     past_ts = tick - timedelta(minutes=1)
 
     # Fill histroic volume data for earlier minutes.
@@ -95,7 +98,7 @@ def test_evaluate_tick_decision_simple(metrics, logger):
     # Record a volume of 200 for the timestamp we are considerng
     update_check_in_volume([past_ts] * 165)
 
-    evaluate_tick_decision(tick)
+    record_clock_tick_volume_metric(tick)
 
     logger.info.assert_called_with(
         "monitors.system_incidents.volume_history",
@@ -125,15 +128,16 @@ def test_evaluate_tick_decision_simple(metrics, logger):
         1.3513513513513442,
         sample_rate=1.0,
     )
+    assert get_clock_tick_volume_metric(past_ts) == 1.3513513513513442
 
 
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.tick_volume_anomaly_detection": True})
-def test_evaluate_tick_decision_volume_drop(metrics, logger):
+def test_record_clock_tiock_volume_metric_volume_drop(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
-    # This is the timestamp we're looking at just after the tick
+    # This is the timestamp we're looking at just before the tick
     past_ts = tick - timedelta(minutes=1)
 
     # Fill histroic volume data for earlier minutes.
@@ -147,7 +151,7 @@ def test_evaluate_tick_decision_volume_drop(metrics, logger):
     # Record a volume much lower than what we had been recording previously
     update_check_in_volume([past_ts] * 6_000)
 
-    evaluate_tick_decision(tick)
+    record_clock_tick_volume_metric(tick)
 
     # Note that the pct_deviation and z_score are extremes
     logger.info.assert_called_with(
@@ -157,7 +161,7 @@ def test_evaluate_tick_decision_volume_drop(metrics, logger):
             "evaluation_minute": past_ts.strftime("%H:%M"),
             "history_count": 30,
             "z_score": -19.816869917656856,
-            "pct_deviation": 52.0,
+            "pct_deviation": -52.0,
             "historic_mean": 12500,
             "historic_stdev": 328.0033641543204,
         },
@@ -175,39 +179,41 @@ def test_evaluate_tick_decision_volume_drop(metrics, logger):
     )
     metrics.gauge.assert_any_call(
         "monitors.task.volume_history.pct_deviation",
-        52.0,
+        -52.0,
         sample_rate=1.0,
     )
+    assert get_clock_tick_volume_metric(past_ts) == -52.0
 
 
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.tick_volume_anomaly_detection": True})
-def test_evaluate_tick_decision_low_history(metrics, logger):
+def test_record_clock_tiock_volume_metric_low_history(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
-    # This is the timestamp we're looking at just after the tick
+    # This is the timestamp we're looking at just before the tick
     past_ts = tick - timedelta(minutes=1)
 
     # Only add one historic value (and the current value being evaluated)
     update_check_in_volume([past_ts - MONITOR_VOLUME_DECISION_STEP] * 900)
     update_check_in_volume([past_ts] * 900)
 
-    evaluate_tick_decision(tick)
+    record_clock_tick_volume_metric(tick)
 
     # We should do nothing because there was not enough daata to make any
     # calculation
     assert not logger.info.called
     assert not metrics.gauge.called
+    assert get_clock_tick_volume_metric(past_ts) is None
 
 
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.tick_volume_anomaly_detection": True})
-def test_evaluate_tick_decision_uniform(metrics, logger):
+def test_record_clock_tiock_volume_metric_uniform(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
-    # This is the timestamp we're looking at just after the tick
+    # This is the timestamp we're looking at just before the tick
     past_ts = tick - timedelta(minutes=1)
 
     # Fill with a uniform history (all values the same). This will give us a
@@ -221,7 +227,7 @@ def test_evaluate_tick_decision_uniform(metrics, logger):
     )
     update_check_in_volume([past_ts] * 1000)
 
-    evaluate_tick_decision(tick)
+    record_clock_tick_volume_metric(tick)
 
     logger.info.assert_called_with(
         "monitors.system_incidents.volume_history",
@@ -251,3 +257,4 @@ def test_evaluate_tick_decision_uniform(metrics, logger):
         0.0,
         sample_rate=1.0,
     )
+    assert get_clock_tick_volume_metric(past_ts) == 0.0

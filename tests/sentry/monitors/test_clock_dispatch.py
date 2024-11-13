@@ -8,7 +8,6 @@ from django.utils import timezone
 from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
 from sentry.monitors.clock_dispatch import _dispatch_tick, try_monitor_clock_tick
-from sentry.monitors.types import TickVolumeAnomolyResult
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
@@ -149,7 +148,6 @@ def test_dispatch_to_kafka(clock_tick_producer_mock):
 
     message: ClockTick = {
         "ts": now.timestamp(),
-        "volume_anomaly_result": TickVolumeAnomolyResult.NORMAL.value,
     }
     clock_tick_producer_mock.produce.assert_called_with(
         Topic("clock-tick-test-topic"),
