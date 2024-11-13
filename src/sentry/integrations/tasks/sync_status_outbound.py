@@ -49,7 +49,7 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
         return None
 
     with ProjectManagementEvent(
-        action_type=ProjectManagementActionType.OUTBOUND_STATUS_SYNC, integration=integration.model
+        action_type=ProjectManagementActionType.OUTBOUND_STATUS_SYNC, integration=integration
     ).capture() as lifecycle:
         if installation.should_sync("outbound_status"):
             installation.sync_status_outbound(

@@ -69,11 +69,6 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
     def get_group_title(self, group, event, **kwargs):
         return get_notification_group_title(group, event, **kwargs)
 
-    @property
-    @abstractmethod
-    def issue_provider_name(self) -> str:
-        raise NotImplementedError
-
     @abstractmethod
     def get_issue_url(self, key: str) -> str:
         """
