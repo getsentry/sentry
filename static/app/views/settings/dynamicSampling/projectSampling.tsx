@@ -1,7 +1,11 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
@@ -73,10 +77,11 @@ export function ProjectSampling() {
     updateSamplingProjectRates.mutate(ratesArray, {
       onSuccess: () => {
         formState.save();
+        setEditMode('single');
         addSuccessMessage(t('Changes applied'));
       },
       onError: () => {
-        addLoadingMessage(t('Unable to save changes. Please try again.'));
+        addErrorMessage(t('Unable to save changes. Please try again.'));
       },
     });
   };
