@@ -54,7 +54,7 @@ export function getAppContextData({
   event: Event;
   meta?: Record<keyof AppContext, any>;
 }): KeyValueListData {
-  return getContextKeys(data).map(ctxKey => {
+  return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case AppContextKeys.ID:
         return {

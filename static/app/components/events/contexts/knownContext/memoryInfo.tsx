@@ -18,7 +18,7 @@ export function getMemoryInfoContext({
   data: MemoryInfoContext;
   meta?: Record<keyof MemoryInfoContext, any>;
 }): KeyValueListData {
-  return getContextKeys(data).map(ctxKey => {
+  return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case MemoryInfoContextKey.ALLOCATED_BYTES:
         return {
