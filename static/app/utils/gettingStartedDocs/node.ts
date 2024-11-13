@@ -232,7 +232,7 @@ Sentry.profiler.startProfiler();
 ${
   params.isPerformanceSelected
     ? `
-// Starts a transaction that will be also be profiled
+// Starts a transaction that will also be profiled
 Sentry.startSpan({
   name: "My First Transaction",
 }, () => {
