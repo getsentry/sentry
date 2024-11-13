@@ -16,11 +16,12 @@ from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscrip
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansEAPQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     resolve,
@@ -29,12 +30,11 @@ from sentry.sentry_metrics.utils import (
     resolve_tag_values,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.discover import SnubaParams
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.spans_rpc import TraceItemTableRequest, get_timeseries_query
+from sentry.snuba.spans_rpc import get_timeseries_query
 from sentry.utils import metrics
 
 # TODO: If we want to support security events here we'll need a way to
@@ -161,7 +161,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
-    ) -> TraceItemTableRequest:
+    ) -> TimeSeriesRequest:
         raise NotImplementedError
 
 
@@ -317,9 +317,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             y_axes=[self.aggregate],
             groupby=[],
             referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
-            config=QueryBuilderConfig(
-                skip_time_conditions=True,
-            ),
+            config=SearchResolverConfig(),
             granularity_secs=self.time_window,
         )
 

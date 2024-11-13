@@ -2,7 +2,6 @@ from datetime import datetime
 from unittest.mock import patch
 
 import pytest
-from google.protobuf.json_format import MessageToDict
 from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Relationship
 
 from sentry.exceptions import (
@@ -677,19 +676,9 @@ class EntitySubscriptionTestCase(TestCase):
             query, [self.project.id], None
         )
 
-        time_series_request_dict = MessageToDict(rpc_timeseries_request)
-
-        assert time_series_request_dict.get("granularitySecs") == "3600"
-        assert (
-            time_series_request_dict.get("filter")
-            .get("comparisonFilter")
-            .get("value")
-            .get("valStr")
-            == "http.client"
-        )
-        assert (
-            time_series_request_dict.get("aggregations")[0].get("label") == "count(span.duration)"
-        )
+        assert rpc_timeseries_request.granularity_secs == 3600
+        assert rpc_timeseries_request.filter.comparison_filter.value.val_str == "http.client"
+        assert rpc_timeseries_request.aggregations[0].label == "count(span.duration)"
 
 
 class GetEntitySubscriptionFromSnubaQueryTest(TestCase):

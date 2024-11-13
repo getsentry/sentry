@@ -7,6 +7,7 @@ import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
 from google.protobuf.message import Message as ProtobufMessage
+from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
@@ -14,7 +15,6 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from urllib3.response import BaseHTTPResponse
 
-from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import SnubaError, _snuba_pool
 
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
@@ -59,7 +59,8 @@ def table_rpc(req: TraceItemTableRequest) -> TraceItemTableResponse:
 
 
 def rpc(
-    req: SnubaRPCRequest, resp_type: type[RPCResponseType], referrer: Referrer | None = None
+    req: SnubaRPCRequest | CreateSubscriptionRequest,
+    resp_type: type[RPCResponseType],
 ) -> RPCResponseType:
     """
     You want to call a snuba RPC. Here's how you do it:
@@ -95,29 +96,36 @@ def rpc(
     cls = req.__class__
     endpoint_name = cls.__name__
     class_version = cls.__module__.split(".", 3)[2]
-    http_resp = _make_rpc_request(endpoint_name, class_version, req, referrer)
+    http_resp = _make_rpc_request(endpoint_name, class_version, req)
     resp = resp_type()
     resp.ParseFromString(http_resp.data)
     return resp
 
 
 def _make_rpc_request(
-    endpoint_name: str, class_version: str, req: SnubaRPCRequest, referrer: Referrer | None = None
+    endpoint_name: str,
+    class_version: str,
+    req: SnubaRPCRequest | CreateSubscriptionRequest,
 ) -> BaseHTTPResponse:
-    referrer = referrer if referrer else req.meta.referrer
+    referrer = req.meta.referrer if hasattr(req, "meta") else None
     if SNUBA_INFO:
         from google.protobuf.json_format import MessageToJson
 
         log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
     with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
-        span.set_tag("snuba.referrer", referrer)
+        if referrer:
+            span.set_tag("snuba.referrer", referrer)
         http_resp = _snuba_pool.urlopen(
             "POST",
             f"/rpc/{endpoint_name}/{class_version}",
             body=req.SerializeToString(),
-            headers={
-                "referer": referrer,
-            },
+            headers=(
+                {
+                    "referer": referrer,
+                }
+                if referrer
+                else {}
+            ),
         )
         if http_resp.status != 200 and http_resp.status != 202:
             error = ErrorProto()

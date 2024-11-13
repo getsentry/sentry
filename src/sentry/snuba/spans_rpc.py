@@ -118,8 +118,16 @@ def get_timeseries_query(
     return TimeSeriesRequest(
         meta=meta,
         filter=query,
-        aggregations=[agg.proto_definition for agg in aggregations],
-        group_by=[groupby.proto_definition for groupby in groupbys],
+        aggregations=[
+            agg.proto_definition
+            for agg in aggregations
+            if isinstance(agg.proto_definition, AttributeAggregation)
+        ],
+        group_by=[
+            groupby.proto_definition
+            for groupby in groupbys
+            if isinstance(groupby.proto_definition, AttributeKey)
+        ],
         granularity_secs=granularity_secs,
     )
 

@@ -22,7 +22,6 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import build_query_strings
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, snuba_rpc
@@ -295,11 +294,7 @@ def _create_rpc_in_snuba(
     )
 
     try:
-        response = snuba_rpc.rpc(
-            subscription_request,
-            CreateSubscriptionResponse,
-            Referrer.API_ALERTS_ALERT_RULE_CHART.value,
-        )
+        response = snuba_rpc.rpc(subscription_request, CreateSubscriptionResponse)
     except snuba_rpc.SnubaRPCError:
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
         raise
