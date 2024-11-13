@@ -21,6 +21,7 @@ import {getMissingInstrumentationContextData} from 'sentry/components/events/con
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
 import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
 import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
+import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -48,7 +49,6 @@ import {
   getKnownThreadPoolInfoContextData,
   getUnknownThreadPoolInfoContextData,
 } from './threadPoolInfo';
-import {getKnownTraceContextData, getUnknownTraceContextData} from './trace';
 import {getKnownUnityContextData, getUnknownUnityContextData} from './unity';
 import {getKnownUserContextData, getUnknownUserContextData} from './user';
 
@@ -434,16 +434,13 @@ export function getFormattedContextData({
     case 'gpu':
       return getGPUContextData({data: contextValue, meta});
     case 'trace':
-      return [
-        ...getKnownTraceContextData({
-          data: contextValue,
-          event,
-          meta,
-          organization,
-          location,
-        }),
-        ...getUnknownTraceContextData({data: contextValue, meta}),
-      ];
+      return getTraceContextData({
+        data: contextValue,
+        event,
+        meta,
+        organization,
+        location,
+      });
     case 'threadpool_info': // Current
     case 'ThreadPool Info': // Legacy
       return [
