@@ -405,6 +405,22 @@ function FunctionChart<F extends BreakdownFunction>({
     };
   }, [theme.chartLabel]);
 
+  if (stats?.isPending) {
+    return (
+      <StatusContainer>
+        <LoadingIndicator />
+      </StatusContainer>
+    );
+  }
+
+  if (stats?.isError) {
+    return (
+      <StatusContainer>
+        <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+      </StatusContainer>
+    );
+  }
+
   return (
     <ChartZoom {...selection.datetime}>
       {zoomRenderProps => (
@@ -450,6 +466,9 @@ const FunctionName = styled(TextOverflow)`
 
 const FunctionChartContainer = styled('div')`
   flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const DropdownItem = styled('div')`
