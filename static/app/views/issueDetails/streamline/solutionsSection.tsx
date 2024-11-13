@@ -86,7 +86,11 @@ export default function SolutionsSection({
         {t('Solutions Hub')}
       </SidebarSectionTitle>
       {(isPending || (hasSummary && !data)) && (
-        <Placeholder height="60px" style={{marginBottom: space(1)}} />
+        <Placeholder
+          height="60px"
+          style={{marginBottom: space(1)}}
+          testId="loading-placeholder"
+        />
       )}
       {hasSummary && data && (
         <Summary>
