@@ -107,7 +107,7 @@ services:
   clickhouse:
     <<: *restart_policy
     container_name: sentry_clickhouse
-    image: 'ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.3.19.33.altinitystable'
+    image: 'ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.8.11.29.altinitystable'
     ulimits:
       nofile:
         soft: 262144
