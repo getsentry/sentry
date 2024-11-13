@@ -157,6 +157,12 @@ const HISTORICAL_TIME_PERIOD_MAP: TimePeriodMap = {
   [TimePeriod.FOURTEEN_DAYS]: '42d',
 };
 
+const HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS: TimePeriodMap = {
+  ...HISTORICAL_TIME_PERIOD_MAP,
+  [TimePeriod.SEVEN_DAYS]: '28d', // fetching 28 + 7 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
+  [TimePeriod.FOURTEEN_DAYS]: '28d', // fetching 28 + 14 days of historical data at 5 minute increments exceeds the max number of data points that snuba can return
+};
+
 const noop: any = () => {};
 
 type State = {
@@ -496,6 +502,11 @@ class TriggersChart extends PureComponent<Props, State> {
             <OnDemandMetricRequest
               {...baseProps}
               api={this.historicalAPI}
+              period={
+                timeWindow === 5
+                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]
+                  : HISTORICAL_TIME_PERIOD_MAP[period]
+              }
               dataLoadedCallback={onHistoricalDataLoaded}
             />
           ) : null}
@@ -610,7 +621,11 @@ class TriggersChart extends PureComponent<Props, State> {
           <EventsRequest
             {...baseProps}
             api={this.historicalAPI}
-            period={HISTORICAL_TIME_PERIOD_MAP[period]}
+            period={
+              timeWindow === 5
+                ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]
+                : HISTORICAL_TIME_PERIOD_MAP[period]
+            }
             dataLoadedCallback={onHistoricalDataLoaded}
           >
             {noop}
