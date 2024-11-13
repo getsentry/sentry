@@ -83,7 +83,7 @@ export function SpansTable({}: SpansTableProps) {
     result,
     visualizes,
     organization,
-    groupBys: [],
+    columns: fields,
     userQuery: query,
     resultsMode: 'sample',
   });

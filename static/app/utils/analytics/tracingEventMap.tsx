@@ -5,8 +5,8 @@ export type TracingEventParameters = {
     title: string;
   };
   'trace.explorer.metadata': {
-    groupBys: string[];
-    groupBys_count: number;
+    columns: string[];
+    columns_count: number;
     has_results: boolean;
     query_status: 'success' | 'error';
     results_mode: 'sample' | 'aggregate';

@@ -91,7 +91,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
     result,
     visualizes,
     organization,
-    groupBys,
+    columns: groupBys,
     userQuery: query,
     resultsMode: 'aggregate',
   });
