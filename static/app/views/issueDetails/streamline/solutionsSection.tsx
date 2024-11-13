@@ -2,7 +2,6 @@ import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {AutofixDrawer} from 'sentry/components/events/autofix/autofixDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
 import {useGroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
@@ -17,6 +16,7 @@ import {singleLineRenderer} from 'sentry/utils/marked';
 import useOrganization from 'sentry/utils/useOrganization';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
+import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
 
 const isSummaryEnabled = (
   hasGenAIConsent: boolean,
@@ -44,26 +44,32 @@ export default function SolutionsSection({
     if (!event) {
       return;
     }
-    openDrawer(() => <AutofixDrawer group={group} project={project} event={event} />, {
-      ariaLabel: t('Solutions drawer'),
-      // We prevent a click on the Open/Close Autofix button from closing the drawer so that
-      // we don't reopen it immediately, and instead let the button handle this itself.
-      shouldCloseOnInteractOutside: element => {
-        const viewAllButton = openButtonRef.current;
-        if (
-          viewAllButton?.contains(element) ||
-          document.getElementById('sentry-feedback')?.contains(element)
-        ) {
-          return false;
-        }
-        return true;
-      },
-      transitionProps: {stiffness: 1000},
-    });
+    openDrawer(
+      () => <SolutionsHubDrawer group={group} project={project} event={event} />,
+      {
+        ariaLabel: t('Solutions drawer'),
+        // We prevent a click on the Open/Close Autofix button from closing the drawer so that
+        // we don't reopen it immediately, and instead let the button handle this itself.
+        shouldCloseOnInteractOutside: element => {
+          const viewAllButton = openButtonRef.current;
+          if (
+            viewAllButton?.contains(element) ||
+            document.getElementById('sentry-feedback')?.contains(element)
+          ) {
+            return false;
+          }
+          return true;
+        },
+        transitionProps: {stiffness: 1000},
+      }
+    );
   };
 
   const hasGenAIConsent = organization.genAIConsent;
-  const {data, isPending} = useGroupSummary(group.id, group.issueCategory);
+  const {data: summaryData, isPending: isSummaryPending} = useGroupSummary(
+    group.id,
+    group.issueCategory
+  );
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasSummary = isSummaryEnabled(
@@ -73,7 +79,7 @@ export default function SolutionsSection({
   );
   const aiNeedsSetup =
     !hasGenAIConsent &&
-    !isPending &&
+    !isSummaryPending &&
     issueTypeConfig.issueSummary.enabled &&
     !organization.hideAiFeatures;
   const hasResources = issueTypeConfig.resources;
@@ -83,18 +89,20 @@ export default function SolutionsSection({
       <SidebarSectionTitle style={{marginTop: 0}}>
         {t('Solutions Hub')}
       </SidebarSectionTitle>
-      {hasSummary && !data && (
+      {hasSummary && !summaryData && (
         <Placeholder
           height="60px"
           style={{marginBottom: space(1)}}
           testId="loading-placeholder"
         />
       )}
-      {hasSummary && data && (
+      {hasSummary && summaryData && (
         <Summary>
           <HeadlineText
             dangerouslySetInnerHTML={{
-              __html: singleLineRenderer(data.whatsWrong?.replaceAll('**', '') ?? ''),
+              __html: singleLineRenderer(
+                summaryData.whatsWrong?.replaceAll('**', '') ?? ''
+              ),
             }}
           />
         </Summary>

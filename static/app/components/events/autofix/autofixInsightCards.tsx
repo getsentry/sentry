@@ -342,6 +342,13 @@ function AutofixInsightCards({
             results.
           </p>
         </NoInsightsYet>
+      ) : hasStepBelow ? (
+        <ChainLink
+          insightCardAboveIndex={null}
+          stepIndex={stepIndex}
+          groupId={groupId}
+          runId={runId}
+        />
       ) : null}
     </InsightsContainer>
   );

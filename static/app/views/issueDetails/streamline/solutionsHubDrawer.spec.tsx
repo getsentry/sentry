@@ -9,10 +9,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutofixDrawer} from 'sentry/components/events/autofix/autofixDrawer';
 import {t} from 'sentry/locale';
 import {EntryType} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
 
 jest.mock('sentry/utils/useOrganization');
 
@@ -70,7 +70,9 @@ describe('AutofixDrawer', () => {
       body: {autofix: mockAutofixData},
     });
 
-    render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />
+    );
 
     expect(screen.getByText(mockGroup.shortId)).toBeInTheDocument();
 
@@ -94,7 +96,9 @@ describe('AutofixDrawer', () => {
       body: {autofix: null},
     });
 
-    render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />
+    );
 
     const startButton = screen.getByRole('button', {name: 'Start Autofix'});
     await userEvent.click(startButton);
@@ -110,7 +114,9 @@ describe('AutofixDrawer', () => {
       body: {autofix: mockAutofixData},
     });
 
-    render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />
+    );
 
     expect(
       await screen.findByRole('button', {name: t('Start Over')})
@@ -123,7 +129,9 @@ describe('AutofixDrawer', () => {
       body: {autofix: mockAutofixData},
     });
 
-    render(<AutofixDrawer event={mockEvent} group={mockGroup} project={mockProject} />);
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />
+    );
 
     const startOverButton = await screen.findByRole('button', {name: t('Start Over')});
     expect(startOverButton).toBeInTheDocument();

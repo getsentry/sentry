@@ -34,7 +34,7 @@ import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
-import {AutofixSetupContent} from './autofixSetupModal';
+import {AutofixSetupContent} from '../../../components/events/autofix/autofixSetupModal';
 
 interface AutofixStartBoxProps {
   groupId: string;
@@ -128,13 +128,13 @@ function hasStacktraceWithFrames(event: Event) {
   return false;
 }
 
-interface AutofixDrawerProps {
+interface SolutionsHubDrawerProps {
   event: Event;
   group: Group;
   project: Project;
 }
 
-export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
+export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerProps) {
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
   const {data: summaryData, isError} = useGroupSummary(group.id, group.issueCategory);
   const {
@@ -164,8 +164,8 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
     !isSampleError;
 
   return (
-    <AutofixDrawerContainer>
-      <AutofixDrawerHeader>
+    <SolutionsDrawerContainer>
+      <SolutionsDrawerHeader>
         <NavigationCrumbs
           crumbs={[
             {
@@ -180,8 +180,8 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
             {label: t('Solutions Hub')},
           ]}
         />
-      </AutofixDrawerHeader>
-      <AutofixNavigator>
+      </SolutionsDrawerHeader>
+      <SolutionsDrawerNavigator>
         <Header>{t('Solutions Hub')}</Header>
         {autofixData && (
           <ButtonBar gap={1}>
@@ -199,8 +199,8 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
             </Button>
           </ButtonBar>
         )}
-      </AutofixNavigator>
-      <AutofixDrawerBody>
+      </SolutionsDrawerNavigator>
+      <SolutionsDrawerBody>
         {config.resources && (
           <ResourcesContainer>
             <HeaderText style={{gap: space(1.5)}}>
@@ -257,8 +257,8 @@ export function AutofixDrawer({group, project, event}: AutofixDrawerProps) {
             )}
           </Fragment>
         )}
-      </AutofixDrawerBody>
-    </AutofixDrawerContainer>
+      </SolutionsDrawerBody>
+    </SolutionsDrawerContainer>
   );
 }
 
@@ -288,20 +288,20 @@ const ContentContainer = styled('div')`
   margin-top: 80px;
 `;
 
-const AutofixDrawerContainer = styled('div')`
+const SolutionsDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
   grid-template-rows: auto auto 1fr;
 `;
 
-const AutofixDrawerHeader = styled(DrawerHeader)`
+const SolutionsDrawerHeader = styled(DrawerHeader)`
   position: unset;
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const AutofixNavigator = styled('div')`
+const SolutionsDrawerNavigator = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -313,7 +313,7 @@ const AutofixNavigator = styled('div')`
   box-shadow: ${p => p.theme.translucentBorder} 0 1px;
 `;
 
-const AutofixDrawerBody = styled(DrawerBody)`
+const SolutionsDrawerBody = styled(DrawerBody)`
   overflow: auto;
   overscroll-behavior: contain;
   /* Move the scrollbar to the left edge */
