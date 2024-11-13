@@ -1,5 +1,5 @@
 ---
-created: '2024-10-28T14:02:29.512254+00:00'
+created: '2024-11-08T19:39:33.277681+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -9,7 +9,7 @@ contributing variants:
   checksum*
     hash: "not a legit checksum"
     checksum: "not a legit checksum"
-  hashed-checksum*
+  hashed_checksum*
     hash: "de46d023e69b171b90ccf3ebca7aede4"
     checksum: "de46d023e69b171b90ccf3ebca7aede4"
     raw_checksum: "not a legit checksum"

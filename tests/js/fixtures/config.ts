@@ -26,6 +26,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     isOnPremise: false,
     isSelfHosted: false,
     isSelfHostedErrorsOnly: false,
+    sentryMode: 'SAAS',
     lastOrganization: null,
     gravatarBaseUrl: 'https://gravatar.com',
     initialTrace: {

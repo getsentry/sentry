@@ -644,7 +644,7 @@ export default class ReplayReader {
     return Boolean(this._sortedRRWebEvents.filter(findCanvas).length);
   });
 
-  isVideoReplay = memoize(() => this.getVideoEvents().length > 0);
+  isVideoReplay = () => this.getVideoEvents().length > 0;
 
   isNetworkDetailsSetup = memoize(() => {
     const sdkOptions = this.getSDKOptions();

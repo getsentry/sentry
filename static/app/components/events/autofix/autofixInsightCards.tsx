@@ -2,8 +2,6 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
-import bannerImage from 'sentry-images/insights/module-upsells/insights-module-upsell.svg';
-
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {
@@ -334,15 +332,15 @@ function AutofixInsightCards({
             />
           )
         )
-      ) : !hasStepAbove && !hasStepBelow ? (
+      ) : stepIndex === 0 && !hasStepBelow ? (
         <NoInsightsYet>
+          <p>Autofix will share its discoveries here.</p>
           <p>
-            Autofix will share important conclusions here as it discovers them, building a
-            line of reasoning up to the root cause.
+            Autofix is like an AI rubber ducky to help you debug your code.
+            <br />
+            Collaborate with it and share your own knowledge and opinions for the best
+            results.
           </p>
-          <IllustrationContainer>
-            <Illustration src={bannerImage} />
-          </IllustrationContainer>
         </NoInsightsYet>
       ) : null}
     </InsightsContainer>
@@ -502,14 +500,6 @@ const UserMessage = styled('div')`
   flex-shrink: 100;
 `;
 
-const IllustrationContainer = styled('div')`
-  padding-top: ${space(4)};
-`;
-
-const Illustration = styled('img')`
-  height: 100%;
-`;
-
 const NoInsightsYet = styled('div')`
   display: flex;
   justify-content: center;
@@ -517,6 +507,8 @@ const NoInsightsYet = styled('div')`
   padding-left: ${space(4)};
   padding-right: ${space(4)};
   text-align: center;
+  color: ${p => p.theme.subText};
+  padding-top: ${space(4)};
 `;
 
 const InsightsContainer = styled('div')``;

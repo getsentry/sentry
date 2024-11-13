@@ -207,13 +207,6 @@ def get_function_component(
     - Ruby generates (random?) integers for various anonymous style functions
       such as in erb and the active_support library.
     - Block functions have metadata that we don't care about.
-
-    The `legacy_function_logic` parameter controls if the system should
-    use the frame v1 function name logic or the frame v2 logic.  The difference
-    is that v2 uses the function name consistently and v1 prefers raw function
-    or a trimmed version (of the truncated one) for native.  Related to this is
-    the `prefer_raw_function_name` flag which just flat out prefers the
-    raw function name over the non raw one.
     """
     from sentry.stacktraces.functions import trim_function_name
 
@@ -229,7 +222,7 @@ def get_function_component(
     # for csharp.
     prefer_raw_function_name = platform == "csharp"
 
-    if context["legacy_function_logic"] or prefer_raw_function_name:
+    if prefer_raw_function_name:
         func = raw_function or function
     else:
         func = function or raw_function
@@ -266,14 +259,8 @@ def get_function_component(
         if func.startswith("lambda$"):
             function_component.update(contributes=False, hint="ignored lambda function")
 
-    elif behavior_family == "native":
-        if func in ("<redacted>", "<unknown>"):
-            function_component.update(contributes=False, hint="ignored unknown function")
-        elif context["legacy_function_logic"]:
-            new_function = trim_function_name(func, platform, normalize_lambdas=False)
-            if new_function != func:
-                function_component.update(values=[new_function], hint="isolated function")
-                func = new_function
+    elif behavior_family == "native" and func in ("<redacted>", "<unknown>"):
+        function_component.update(contributes=False, hint="ignored unknown function")
 
     elif context["javascript_fuzzing"] and behavior_family == "javascript":
         # This changes Object.foo or Foo.foo into foo so that we can
