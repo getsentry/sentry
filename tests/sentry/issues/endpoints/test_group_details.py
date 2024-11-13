@@ -322,7 +322,7 @@ class GroupUpdateTest(APITestCase):
             user_id=self.user.id, group=group, is_active=True
         ).exists()
 
-    def test_resolved_in_next_release(self):
+    def test_resolved_in_next_release_non_semver(self):
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -330,16 +330,86 @@ class GroupUpdateTest(APITestCase):
         project.save()
         group = self.create_group(project=project)
         Release.get_or_create(version="abcd", project=project)
+        most_recent_version = Release.get_or_create(version="def", project=project)
+        assert group.status == GroupStatus.UNRESOLVED
+        assert GroupResolution.objects.all().count() == 0
 
         url = f"/api/0/issues/{group.id}/"
 
         response = self.client.put(url, data={"status": "resolvedInNextRelease"})
         assert response.status_code == 200, response.content
 
+        # Refetch from DB to ensure the latest state is fetched
         group = Group.objects.get(id=group.id, project=group.project.id)
         assert group.status == GroupStatus.RESOLVED
 
-        assert GroupResolution.objects.filter(group=group).exists()
+        group_resolution = GroupResolution.objects.filter(group=group).first()
+        assert group_resolution is not None
+        assert group_resolution.group == group
+        assert group_resolution.type == GroupResolution.Type.in_next_release
+        assert group_resolution.status == GroupResolution.Status.pending
+        assert group_resolution.release.version == most_recent_version.version
+
+    # XXX: Remove this test once the feature flag is removed
+    def test_resolved_in_next_release_semver_without_feature_flag(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        project.flags.has_releases = True
+        project.save()
+        Release.get_or_create(version="com.foo.bar@1.0+0", project=project)
+        Release.get_or_create(version="com.foo.bar@2.0+0", project=project)
+        wrong_release = Release.get_or_create(version="com.foo.bar@1.0+1", project=project)
+        group = self.create_group(project=project)
+        assert group.status == GroupStatus.UNRESOLVED
+        assert GroupResolution.objects.all().count() == 0
+
+        url = f"/api/0/issues/{group.id}/"
+        data = {"status": "resolvedInNextRelease"}
+        response = self.client.put(url, data=data)
+        assert response.status_code == 200, response.content == {}
+
+        # Refetch from DB to ensure the latest state is fetched
+        group = Group.objects.get(id=group.id, project=project.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        group_resolution = GroupResolution.objects.filter(group=group).first()
+        assert group_resolution is not None
+        assert group_resolution.group == group
+        assert group_resolution.type == GroupResolution.Type.in_next_release
+        assert group_resolution.status == GroupResolution.Status.pending
+        assert group_resolution.release.version == wrong_release.version
+
+    @with_feature("organizations:releases-resolve-next-release-semver-fix")
+    def test_resolved_in_next_release_semver(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        project.flags.has_releases = True
+        project.save()
+        Release.get_or_create(version="com.foo.bar@1.0+0", project=project)
+        greatest_version = Release.get_or_create(version="com.foo.bar@2.0+0", project=project)
+        # It should not be picked up based on creation date
+        Release.get_or_create(version="com.foo.bar@1.0+1", project=project)
+        group = self.create_group(project=project)
+        assert group.status == GroupStatus.UNRESOLVED
+        assert GroupResolution.objects.all().count() == 0
+
+        url = f"/api/0/issues/{group.id}/"
+        data = {"status": "resolvedInNextRelease"}
+        response = self.client.put(url, data=data)
+        assert response.status_code == 200, response.content == {}
+
+        # Refetch from DB to ensure the latest state is fetched
+        group = Group.objects.get(id=group.id, project=project.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        group_resolution = GroupResolution.objects.filter(group=group).first()
+        assert group_resolution is not None
+        assert group_resolution.group == group
+        assert group_resolution.type == GroupResolution.Type.in_next_release
+        assert group_resolution.status == GroupResolution.Status.pending
+        assert group_resolution.release.version == greatest_version.version
 
     def test_resolved_in_next_release_no_release(self):
         self.login_as(user=self.user)
