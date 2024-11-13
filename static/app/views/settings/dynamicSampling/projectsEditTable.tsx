@@ -1,8 +1,10 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import {Button} from 'sentry/components/button';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
@@ -18,20 +20,29 @@ import {scaleSampleRates} from 'sentry/views/settings/dynamicSampling/utils/scal
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 interface Props {
+  editMode: 'single' | 'bulk';
   isLoading: boolean;
+  onEditModeChange: (mode: 'single' | 'bulk') => void;
   sampleCounts: ProjectSampleCount[];
 }
 
 const {useFormField} = projectSamplingForm;
 const EMPTY_ARRAY = [];
 
-export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Props) {
+export function ProjectsEditTable({
+  isLoading: isLoadingProp,
+  sampleCounts,
+  editMode,
+  onEditModeChange,
+}: Props) {
   const {projects, fetching} = useProjects();
   const hasAccess = useHasDynamicSamplingWriteAccess();
   const {value, initialValue, error, onChange} = useFormField('projectRates');
+  const [isBulkEditEnabled, setIsBulkEditEnabled] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const [orgRate, setOrgRate] = useState<string>('');
-  const [editMode, setEditMode] = useState<'single' | 'bulk'>('single');
+
   const projectRateSnapshotRef = useRef<Record<string, string>>({});
 
   const dataByProjectId = useMemo(
@@ -46,15 +57,21 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
     [sampleCounts]
   );
 
+  useEffect(() => {
+    if (isBulkEditEnabled) {
+      inputRef.current?.focus();
+    }
+  }, [isBulkEditEnabled]);
+
   const handleProjectChange = useCallback(
     (projectId: string, newRate: string) => {
       onChange(prev => ({
         ...prev,
         [projectId]: newRate,
       }));
-      setEditMode('single');
+      onEditModeChange('single');
     },
-    [onChange]
+    [onChange, onEditModeChange]
   );
 
   const handleOrgChange = useCallback(
@@ -63,6 +80,7 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
       if (editMode === 'single') {
         projectRateSnapshotRef.current = value;
       }
+      const cappedOrgRate = Math.min(100, Math.max(0, Number(newRate))) ?? 100;
 
       const scalingItems = Object.entries(projectRateSnapshotRef.current)
         .map(([projectId, rate]) => ({
@@ -75,7 +93,7 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
 
       const {scaledItems} = scaleSampleRates({
         items: scalingItems,
-        sampleRate: Number(newRate) / 100,
+        sampleRate: cappedOrgRate / 100,
       });
 
       const newProjectValues = scaledItems.reduce((acc, item) => {
@@ -87,9 +105,9 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
       });
 
       setOrgRate(newRate);
-      setEditMode('bulk');
+      onEditModeChange('bulk');
     },
-    [dataByProjectId, editMode, onChange, value]
+    [dataByProjectId, editMode, onChange, onEditModeChange, value]
   );
 
   const items = useMemo(
@@ -126,6 +144,15 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
     return formatNumberWithDynamicDecimalPoints(totalSampledSpans / totalSpans, 2);
   }, [editMode, items, orgRate, value]);
 
+  const initialOrgRate = useMemo(() => {
+    const totalSpans = items.reduce((acc, item) => acc + item.count, 0);
+    const totalSampledSpans = items.reduce(
+      (acc, item) => acc + item.count * Number(initialValue[item.project.id] ?? 100),
+      0
+    );
+    return formatNumberWithDynamicDecimalPoints(totalSampledSpans / totalSpans, 2);
+  }, [initialValue, items]);
+
   const breakdownSampleRates = useMemo(
     () =>
       Object.entries(value).reduce(
@@ -151,23 +178,55 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
           />
         ) : (
           <Fragment>
-            <SamplingBreakdown
-              sampleCounts={sampleCounts}
-              sampleRates={breakdownSampleRates}
-            />
-            <Divider />
-            <ProjectedOrgRateWrapper>
-              {t('Projected Organization Rate')}
-              <div>
+            <BreakdownWrapper>
+              <SamplingBreakdown
+                sampleCounts={sampleCounts}
+                sampleRates={breakdownSampleRates}
+              />
+            </BreakdownWrapper>
+            <FieldGroup
+              label={t('Projected Organization Rate')}
+              help={t(
+                "An estimate of the combined sample rate for all projects. Adjusting this will proportionally update each project's rate below."
+              )}
+              flexibleControlStateSize
+              alignRight
+            >
+              <InputWrapper>
                 <PercentInput
                   type="number"
-                  disabled={!hasAccess}
+                  ref={inputRef}
+                  disabled={!hasAccess || !isBulkEditEnabled}
                   size="sm"
                   onChange={handleOrgChange}
                   value={projectedOrgRate}
                 />
-              </div>
-            </ProjectedOrgRateWrapper>
+                <FlexRow>
+                  <PreviousValue>
+                    {initialOrgRate !== projectedOrgRate ? (
+                      t('previous: %f%%', initialOrgRate)
+                    ) : (
+                      // Placeholder char to prevent the line from collapsing
+                      <Fragment>&#x200b;</Fragment>
+                    )}
+                  </PreviousValue>
+                  {hasAccess && !isBulkEditEnabled && (
+                    <BulkEditButton
+                      size="zero"
+                      title={t(
+                        'Adjusting your organization rate will automatically scale individual project rates to match.'
+                      )}
+                      priority="link"
+                      onClick={() => {
+                        setIsBulkEditEnabled(true);
+                      }}
+                    >
+                      {t('edit')}
+                    </BulkEditButton>
+                  )}
+                </FlexRow>
+              </InputWrapper>
+            </FieldGroup>
           </Fragment>
         )}
       </BreakdownPanel>
@@ -186,20 +245,33 @@ export function ProjectsEditTable({isLoading: isLoadingProp, sampleCounts}: Prop
 
 const BreakdownPanel = styled(Panel)`
   margin-bottom: ${space(3)};
-  padding: ${space(2)};
 `;
 
-const ProjectedOrgRateWrapper = styled('label')`
+const BreakdownWrapper = styled('div')`
+  padding: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+`;
+
+const InputWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const FlexRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
-const Divider = styled('hr')`
-  margin: ${space(2)} -${space(2)};
+const PreviousValue = styled('span')`
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.subText};
+`;
+
+const BulkEditButton = styled(Button)`
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  padding: 0;
   border: none;
-  border-top: 1px solid ${p => p.theme.innerBorder};
 `;
