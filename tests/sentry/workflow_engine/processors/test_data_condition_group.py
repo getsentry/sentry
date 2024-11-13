@@ -75,15 +75,10 @@ class TestEvaluateConditionGroupTypeAny(TestCase):
 
         self.conditions = [self.data_condition, self.data_condition_two]
 
-    def test_evaluate_condition_group__passes_all__fetches_conditions(self):
-        assert evaluate_condition_group(self.data_condition_group, 10) == (
-            True,
-            [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW],
-        )
-
     def test_evaluate_condition_group__passes_all(self):
         assert evaluate_condition_group(
-            self.data_condition_group, 10, conditions=self.conditions
+            self.data_condition_group,
+            10,
         ) == (
             True,
             [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW],
@@ -91,7 +86,8 @@ class TestEvaluateConditionGroupTypeAny(TestCase):
 
     def test_evaluate_condition_group__passes_one(self):
         assert evaluate_condition_group(
-            self.data_condition_group, 4, conditions=self.conditions
+            self.data_condition_group,
+            4,
         ) == (
             True,
             [DetectorPriorityLevel.LOW],
@@ -101,14 +97,69 @@ class TestEvaluateConditionGroupTypeAny(TestCase):
         assert evaluate_condition_group(
             self.data_condition_group,
             1,
-            conditions=self.conditions,
         ) == (
             False,
             [],
         )
 
     def test_evaluate_conditon_group__passes_without_conditions(self):
-        assert evaluate_condition_group(self.data_condition_group, 10, conditions=[]) == (
+        data_condition_group = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY
+        )
+        assert evaluate_condition_group(data_condition_group, 10) == (
+            True,
+            [],
+        )
+
+
+class TestEvaluateConditionGroupTypeAnyShortCircuit(TestCase):
+    def setUp(self):
+        self.data_condition_group = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+
+        self.data_condition = self.create_data_condition(
+            condition="gt",
+            comparison="5",
+            condition_result=True,
+            condition_group=self.data_condition_group,
+        )
+
+        self.data_condition_two = self.create_data_condition(
+            condition="gt",
+            comparison="3",
+            condition_result=True,
+            condition_group=self.data_condition_group,
+        )
+
+        self.conditions = [self.data_condition, self.data_condition_two]
+
+    def test_evaluate_condition_group__passes_all(self):
+        assert evaluate_condition_group(self.data_condition_group, 10) == (
+            True,
+            [True],
+        )
+
+    def test_evaluate_condition_group__passes_one(self):
+        assert evaluate_condition_group(self.data_condition_group, 4) == (
+            True,
+            [True],
+        )
+
+    def test_evaluate_condition_group__fails_all(self):
+        assert evaluate_condition_group(
+            self.data_condition_group,
+            1,
+        ) == (
+            False,
+            [],
+        )
+
+    def test_evaluate_conditon_group__passes_without_conditions(self):
+        data_condition_group = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+        assert evaluate_condition_group(data_condition_group, 10) == (
             True,
             [],
         )
@@ -136,38 +187,29 @@ class TestEvaluateConditionGroupTypeAll(TestCase):
 
         self.conditions = [self.data_condition, self.data_condition_two]
 
-    def test_evaluate_condition_group__passes_all__fetches_conditions(self):
+    def test_evaluate_condition_group__passes_all(self):
         assert evaluate_condition_group(self.data_condition_group, 10) == (
             True,
             [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW],
         )
 
-    def test_evaluate_condition_group__passes_all(self):
-        assert evaluate_condition_group(
-            self.data_condition_group, 10, conditions=self.conditions
-        ) == (
-            True,
-            [DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW],
-        )
-
     def test_evaluate_condition_group__passes_one(self):
-        assert evaluate_condition_group(
-            self.data_condition_group, 4, conditions=self.conditions
-        ) == (
+        assert evaluate_condition_group(self.data_condition_group, 4) == (
             False,
             [],
         )
 
     def test_evaluate_condition_group__fails_all(self):
-        assert evaluate_condition_group(
-            self.data_condition_group, 1, conditions=self.conditions
-        ) == (
+        assert evaluate_condition_group(self.data_condition_group, 1) == (
             False,
             [],
         )
 
     def test_evaluate_conditon_group__passes_without_conditions(self):
-        assert evaluate_condition_group(self.data_condition_group, 10, conditions=[]) == (
+        data_condition_group = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ALL
+        )
+        assert evaluate_condition_group(data_condition_group, 10) == (
             True,
             [],
         )

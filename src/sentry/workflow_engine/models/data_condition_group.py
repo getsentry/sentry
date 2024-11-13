@@ -14,8 +14,16 @@ class DataConditionGroup(DefaultFieldsModel):
     __repr__ = sane_repr("logic_type")
 
     class Type(models.TextChoices):
+        # ANY will evaluate all conditions, and return true if any of those are met
         ANY = "any"
+
+        # ANY_SHORT_CIRCUIT will stop evaluating conditions as soon as one is met
+        ANY_SHORT_CIRCUIT = "any-short"
+
+        # ALL will evaluate all conditions, and return true if all of those are met
         ALL = "all"
+
+        # NONE will return true if none of the conditions are met, will return false immediately if any are met
         NONE = "none"
 
     logic_type = models.CharField(max_length=200, choices=Type.choices, default=Type.ANY)

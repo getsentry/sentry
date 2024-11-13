@@ -23,47 +23,37 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
     return list(DataCondition.objects.filter(condition_group_id=data_condition_group_id))
 
 
-def process_data_condition_group(
-    data_condition_group_id: int, value
-) -> ProcessedDataConditionResult:
-    group = get_data_condition_group(data_condition_group_id)
-
-    if group is None:
-        return False, []
-
-    conditions = get_data_conditions_for_group(data_condition_group_id)
-    return evaluate_condition_group(group, value, conditions=conditions)
-
-
 def evaluate_condition_group(
     data_condition_group: DataConditionGroup,
     value: Any,
-    **kwargs,
 ) -> ProcessedDataConditionResult:
     """
     Evaluate the conditions for a given group and value.
     """
     results = []
-    conditions = kwargs.get("conditions", None)
+    conditions = get_data_conditions_for_group(data_condition_group.id)
 
-    if conditions is None:
-        conditions = get_data_conditions_for_group(data_condition_group.id)
-
-    # TODO evaluate the condition types to see if we should evaluate slow conditions
+    # TODO - @saponifi3d
+    # Split the conditions into fast and slow conditions
+    # Evaluate the fast conditions first, if any are met, return early
+    # Enqueue the slow conditions to be evaluated later
 
     for condition in conditions:
         evaluation_result = condition.evaluate_value(value)
         is_condition_triggered = evaluation_result is not None
 
-        # TODO - Should we break once the first condition is met for ANY?
+        if is_condition_triggered:
+            if data_condition_group.logic_type == data_condition_group.Type.ANY_SHORT_CIRCUIT:
+                return is_condition_triggered, [evaluation_result]
+
+            if data_condition_group.logic_type == data_condition_group.Type.NONE:
+                return False, []
+
         results.append((is_condition_triggered, evaluation_result))
 
     if data_condition_group.logic_type == data_condition_group.Type.NONE:
-        is_no_condition_met = all([not result[0] for result in results])
-
-        if is_no_condition_met:
-            # TODO - is this the correct list of results?
-            return is_no_condition_met, []
+        # if we get to this point, no conditions were met
+        return True, []
     elif data_condition_group.logic_type == data_condition_group.Type.ANY:
         is_any_condition_met = any([result[0] for result in results])
 
@@ -80,3 +70,14 @@ def evaluate_condition_group(
 
     # if we don't have any conditions, we want this to evaluate as Truthy
     return len(conditions) == 0, []
+
+
+def process_data_condition_group(
+    data_condition_group_id: int, value
+) -> ProcessedDataConditionResult:
+    group = get_data_condition_group(data_condition_group_id)
+
+    if group is None:
+        return False, []
+
+    return evaluate_condition_group(group, value)
