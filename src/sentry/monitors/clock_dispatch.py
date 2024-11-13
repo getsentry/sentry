@@ -10,7 +10,6 @@ from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.monitors.system_incidents import safe_evaluate_tick_decision
 from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -64,13 +63,7 @@ def _dispatch_tick(ts: datetime):
         # XXX(epurkhiser): Unclear what we want to do if we're not using kafka
         return
 
-    volume_anomaly_result = safe_evaluate_tick_decision(ts)
-
-    message: ClockTick = {
-        "ts": ts.timestamp(),
-        "volume_anomaly_result": volume_anomaly_result.value,
-    }
-    payload = KafkaPayload(None, CLOCK_TICK_CODEC.encode(message), [])
+    payload = KafkaPayload(None, CLOCK_TICK_CODEC.encode({"ts": ts.timestamp()}), [])
 
     topic = get_topic_definition(Topic.MONITORS_CLOCK_TICK)["real_topic_name"]
     _clock_tick_producer.produce(ArroyoTopic(topic), payload)
