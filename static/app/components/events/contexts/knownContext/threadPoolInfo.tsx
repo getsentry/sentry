@@ -8,7 +8,7 @@ export function getThreadPoolInfoContext({
   meta,
 }: {
   data: ThreadPoolInfoContext;
-  meta?: Record<keyof ThreadPoolInfoContextKey, any>;
+  meta?: Record<keyof ThreadPoolInfoContext, any>;
 }): KeyValueListData {
   return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
