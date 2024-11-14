@@ -51,7 +51,6 @@ import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import {ProfilesChart} from './landing/profileCharts';
 import {ProfilesChartWidget} from './landing/profilesChartWidget';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
-import {SlowestFunctionsTable} from './landing/slowestFunctionsTable';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 const LEFT_WIDGET_CURSOR = 'leftCursor';
@@ -485,18 +484,7 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
         <ProfilingOnboardingCTA />
       ) : (
         <Fragment>
-          {organization.features.includes('continuous-profiling-ui') ? (
-            <Fragment>
-              <ProfilesChartWidget
-                chartHeight={150}
-                referrer="api.profiling.landing-chart"
-                userQuery={query}
-                selection={selection}
-                continuousProfilingCompat
-              />
-              <SlowestFunctionsTable userQuery={query} />
-            </Fragment>
-          ) : organization.features.includes('profiling-global-suspect-functions') ? (
+          {organization.features.includes('profiling-global-suspect-functions') ? (
             <Fragment>
               <ProfilesChartWidget
                 chartHeight={150}
