@@ -9,6 +9,8 @@ import type {
 } from 'sentry/components/feedback/useMutateActivity';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -19,12 +21,14 @@ import type {
   GroupActivityNote,
   GroupActivityReprocess,
 } from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {User} from 'sentry/types/user';
 import type {MutateOptions} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import ActivitySection from 'sentry/views/issueDetails/activitySection';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
   getGroupMostRecentActivity,
@@ -33,13 +37,13 @@ import {
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
 
-type Props = {
-  group: Group;
-} & RouteComponentProps<{groupId: string; orgId: string}, {}>;
-
 export type MutateActivityOptions = MutateOptions<TData, TError, TVariables, TContext>;
 
-function GroupActivity({group}: Props) {
+interface GroupActivityProps {
+  group: Group;
+}
+
+function GroupActivity({group}: GroupActivityProps) {
   const organization = useOrganization();
   const {activity: activities, count, id: groupId} = group;
   const groupCount = Number(count);
@@ -147,22 +151,39 @@ function GroupActivity({group}: Props) {
   );
 }
 
-function GroupActivityRoute(props: Props) {
+function GroupActivityRoute() {
   const hasStreamlinedUI = useHasStreamlinedUI();
   const navigate = useNavigate();
   const {baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
+  const params = useParams<{groupId: string}>();
+
+  const {
+    data: group,
+    isPending: isGroupPending,
+    isError: isGroupError,
+    refetch: refetchGroup,
+  } = useGroup({groupId: params.groupId});
 
   // TODO(streamlined-ui): Activity will become a router redirect to the event details page
   useEffect(() => {
     if (hasStreamlinedUI) {
       navigate({
-        ...props.location,
+        ...location,
         pathname: baseUrl,
       });
     }
-  }, [hasStreamlinedUI, navigate, baseUrl, props.location]);
+  }, [hasStreamlinedUI, navigate, baseUrl, location]);
 
-  return <GroupActivity {...props} />;
+  if (isGroupPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isGroupError) {
+    return <LoadingError onRetry={refetchGroup} />;
+  }
+
+  return <GroupActivity group={group} />;
 }
 
 export default GroupActivityRoute;
