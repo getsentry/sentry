@@ -43,6 +43,7 @@ import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerforma
 function sortFunctions(a: Profiling.FunctionMetric, b: Profiling.FunctionMetric) {
   return b.sum - a.sum;
 }
+
 function makeProfileLinkFromExample(
   organization: Organization,
   f: Profiling.FunctionMetric,
