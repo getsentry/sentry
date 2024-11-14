@@ -1,3 +1,4 @@
+import logging
 from uuid import uuid4
 
 from sentry.incidents.models.incident import Incident, IncidentStatus
@@ -9,6 +10,8 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.types.group import PriorityLevel
+
+logger = logging.getLogger(__name__)
 
 
 def _build_occurrence_from_incident(
@@ -48,6 +51,7 @@ def create_or_update_metric_issue(
 ) -> IssueOccurrence | None:
     project = incident.alert_rule.projects.first()
     if not project:
+        logger.debug("No project found for incident %s", incident.id)
         return None
 
     # collect the data from the incident to treat as an event
@@ -65,6 +69,7 @@ def create_or_update_metric_issue(
         occurrence=occurrence,
         event_data=event_data,
     )
+    logger.debug("Created metric issue for alert rule %s", incident.alert_rule.id)
     update_group_status(incident, project, occurrence)
 
     return occurrence
@@ -74,6 +79,7 @@ def update_group_status(
     incident: Incident, project: Project, occurrence: IssueOccurrence
 ) -> StatusChangeMessage | None:
     if incident.status != IncidentStatus.CLOSED.value:
+        logger.debug("Incident %s is not closed, skipping status update", incident.id)
         return None
 
     status_change_message = StatusChangeMessage(
@@ -86,5 +92,5 @@ def update_group_status(
         payload_type=PayloadType.STATUS_CHANGE,
         status_change=status_change_message,
     )
-
+    logger.debug("Updated group status to resolved for occurrence %s", occurrence.id)
     return status_change_message

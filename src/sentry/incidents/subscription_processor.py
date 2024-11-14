@@ -782,7 +782,8 @@ class SubscriptionProcessor:
                 router.db_for_write(AlertRule),
             )
 
-        if features.has("organizations:metric-issue-poc", self.alert_rule.organization):
+        if features.has("organizations:metric-issue-poc", incident.organization):
+            logger.debug("Creating metric issue for alert rule %s", incident.alert_rule.id)
             create_or_update_metric_issue(
                 incident=incident,
                 metric_value=metric_value,
